@@ -1,9 +1,11 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import type { ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatRuntimeSelection, ZetroChatStreamEvent } from "@codexsun/zetro-contracts";
+import type { ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatRuntimeSelection, ZetroChatStreamEvent, ZetroCodexDeviceCode } from "@codexsun/zetro-contracts";
 import { ChatStore } from "./chat-store.js";
+import { CodexDeviceCode } from "./codex-device-code.js";
 
 export class ChatService {
+  private readonly deviceCode = new CodexDeviceCode();
   constructor(private readonly store: ChatStore) {}
 
   createConversation(title = "New idea"): ZetroChatConversation {
@@ -23,7 +25,7 @@ export class ChatService {
     const connected = await probeLocalCodex();
     return {
       connected,
-      message: connected ? "Local Codex CLI is ready." : "Local Codex CLI is unavailable. Reconnect after signing in or restoring the CLI.",
+      message: connected ? "Connected to the local Codex CLI." : "Local Codex is not connected. Open Settings to sign in.",
       model: "Default",
       models: ["Default", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-6-astra"],
       provider: "Codex",
@@ -31,6 +33,14 @@ export class ChatService {
       reasoning: "Default",
       reasoningLevels: ["Default", "Low", "Medium", "High", "XHigh"],
     };
+  }
+
+  async generateDeviceCode(): Promise<ZetroCodexDeviceCode> {
+    return this.deviceCode.generate(codexCommand());
+  }
+
+  getDeviceCode(): ZetroCodexDeviceCode {
+    return this.deviceCode.status();
   }
 
   async sendMessage(conversationId: string, content: string, runtime?: ZetroChatRuntimeSelection): Promise<ChatConversation> {
@@ -69,12 +79,13 @@ export class ChatService {
   }
 
   close(): void {
+    this.deviceCode.stop();
     this.store.close();
   }
 
   private transcript(conversationId: string): string {
     const conversation = this.store.listMessages(conversationId).map((message) => `${message.role}: ${message.content}`).join("\n\n");
-    return `You are Zetro, a concise collaborative idea partner. Help the user explore, revise, and finish an idea.\n\n${conversation}`;
+    return `Use the $zetro-idea-workshop skill. You are Zetro, a concise collaborative idea partner. Stay in the idea stage. Do not create tasks, plans, worktrees, code changes, commands, or approvals. Help the user explore, revise, compare, and finish an idea.\n\n${conversation}`;
   }
 }
 
@@ -137,11 +148,16 @@ function runLocalCodexStream(prompt: string, publish: (event: ZetroChatStreamEve
 
 function parseCodexEvent(line: string): ZetroChatStreamEvent | undefined {
   try {
-    const event = JSON.parse(line) as { item?: { command?: string; text?: string; type?: string }; type?: string };
-    if (event.type === "thread.started" || event.type === "turn.started") return { type: "processing", message: event.type, raw: redact(line) };
-    if (event.item?.type === "command_execution") return { type: "command", message: redact(event.item.command || "Running a read-only command."), raw: redact(line) };
-    if (event.item?.type === "agent_message" && event.item.text) return { type: "response", message: redact(event.item.text), raw: redact(line) };
-    return { type: "processing", message: event.type || event.item?.type || "Codex event", raw: redact(line) };
+    const event = JSON.parse(line) as { item?: { command?: string; path?: string; query?: string; text?: string; type?: string }; type?: string };
+    const item = event.item;
+    const itemType = item?.type;
+    const raw = redact(line);
+    if (itemType === "command_execution") return { type: "command", message: redact(item?.command || "Running a read-only command."), raw };
+    if (itemType === "agent_message" && item?.text) return { type: "response", message: redact(item.text), raw };
+    if (itemType === "reasoning") return { type: "review", message: "Reviewing the idea and constraints.", raw };
+    if (itemType === "web_search" || itemType === "mcp_tool_call") return { type: "request", message: redact(item?.query || itemType), raw };
+    if (itemType === "file_change") return { type: "change", message: redact(item?.path || "Changed files."), raw };
+    return { type: "processing", message: event.type || itemType || "Codex event", raw };
   } catch {
     return undefined;
   }
@@ -172,7 +188,7 @@ function runtimeLabel(runtime?: ZetroChatRuntimeSelection): string {
 
 function probeLocalCodex(): Promise<boolean> {
   return new Promise((resolve) => {
-    const child = spawn(codexCommand(), ["--version"], { shell: false, windowsHide: true });
+    const child = spawn(codexCommand(), ["login", "status"], { shell: false, windowsHide: true });
     const timeout = setTimeout(() => child.kill(), 3_000);
     child.once("error", () => resolve(false));
     child.once("close", (code) => {

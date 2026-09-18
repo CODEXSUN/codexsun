@@ -4,13 +4,16 @@ import {
   type ZetroChatConversation,
   type ZetroChatMessage,
   type ZetroChatRuntime,
+  type ZetroCodexDeviceCode,
   type ZetroChatRuntimeSelection,
   zetroChatStreamEventSchema,
   zetroChatRuntimeResponseSchema,
+  zetroCodexDeviceCodeResponseSchema,
   type ZetroChatStreamEvent,
 } from "@codexsun/zetro-contracts";
 
-const conversationUrl = "/api/zetro/v1/chat/conversations";
+const chatUrl = "/api/zetro/v1/chat";
+const conversationUrl = `${chatUrl}/conversations`;
 export type ConversationView = { conversation: ZetroChatConversation; messages: ZetroChatMessage[] };
 
 export async function listConversations(): Promise<ZetroChatConversation[]> {
@@ -28,7 +31,15 @@ export async function getConversation(id: string): Promise<ConversationView> {
 }
 
 export async function getChatRuntime(): Promise<ZetroChatRuntime> {
-  return zetroChatRuntimeResponseSchema.parse(await read(await fetch(`${conversationUrl}/runtime`))).data;
+  return zetroChatRuntimeResponseSchema.parse(await read(await fetch(`${chatUrl}/runtime`))).data;
+}
+
+export async function getCodexDeviceCode(): Promise<ZetroCodexDeviceCode> {
+  return zetroCodexDeviceCodeResponseSchema.parse(await read(await fetch(`${chatUrl}/runtime/device-code`))).data;
+}
+
+export async function generateCodexDeviceCode(): Promise<ZetroCodexDeviceCode> {
+  return zetroCodexDeviceCodeResponseSchema.parse(await read(await fetch(`${chatUrl}/runtime/device-code`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }))).data;
 }
 
 export async function sendMessage(id: string, content: string, runtime?: ZetroChatRuntimeSelection): Promise<ConversationView> {

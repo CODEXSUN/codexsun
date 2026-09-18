@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronRightIcon, TerminalIcon } from 'lucide-react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../components/collapsible'
+import { cn } from '../../lib/utils'
 
 export type ChatRuntimeTraceEvent = {
   message: string
@@ -9,12 +10,13 @@ export type ChatRuntimeTraceEvent = {
 }
 
 export type ChatRuntimeTraceProps = {
+  className?: string
   elapsedSeconds: number
   events: readonly ChatRuntimeTraceEvent[]
   isWorking: boolean
 }
 
-export function ChatRuntimeTrace({ elapsedSeconds, events, isWorking }: ChatRuntimeTraceProps) {
+export function ChatRuntimeTrace({ className, elapsedSeconds, events, isWorking }: ChatRuntimeTraceProps) {
   const [open, setOpen] = useState(isWorking)
 
   useEffect(() => setOpen(isWorking), [isWorking])
@@ -22,7 +24,7 @@ export function ChatRuntimeTrace({ elapsedSeconds, events, isWorking }: ChatRunt
   if (!events.length) return null
 
   return (
-    <Collapsible className="mx-auto w-4/5 shrink-0 border-y border-border/50" open={open} onOpenChange={setOpen}>
+    <Collapsible className={cn("w-full shrink-0 border-y border-border/50", className)} open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="group/runtime-trace flex w-full items-center gap-2 py-2 text-left text-xs text-muted-foreground hover:text-foreground">
         <ChevronRightIcon className="size-3 shrink-0 transition-transform group-data-[state=open]/runtime-trace:rotate-90" />
         <TerminalIcon className="size-3 shrink-0" />

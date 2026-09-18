@@ -12,6 +12,7 @@ export const scopeWorkspaces = {
     "@codexsun/platform-mobile",
   ],
   docs: ["@codexsun/docs-api", "@codexsun/docs-web"],
+  garments: ["@codexsun/garments-api", "@codexsun/garments-web"],
   orship: ["@codexsun/orship-api", "@codexsun/orship-web"],
   zetro: ["@codexsun/zetro-api", "@codexsun/zetro-web"],
   uiux: ["@codexsun/uiux-web"],

@@ -24,6 +24,12 @@
     "@codexsun/docs-web#build": {
       "outputs": ["../../../dist/docs/web/**"]
     },
+    "@codexsun/garments-api#build": {
+      "outputs": ["../../../dist/garments/api/**"]
+    },
+    "@codexsun/garments-web#build": {
+      "outputs": ["../../../dist/apps/garments/web/**"]
+    },
     "@codexsun/platform-desktop#build": {
       "outputs": ["../../../dist/platform/desktop/**"]
     },

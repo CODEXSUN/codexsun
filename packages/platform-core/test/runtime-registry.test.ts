@@ -5,6 +5,8 @@ import {
   createPlatformRuntime,
   readDocsApiRuntimeConfig,
   readDocsWebRuntimeConfig,
+  readGarmentsApiRuntimeConfig,
+  readGarmentsWebRuntimeConfig,
   ModuleEnablementPolicy,
   PlatformRuntimeRegistry,
   readApiRuntimeConfig,
@@ -103,6 +105,24 @@ test("validates each host configuration without exposing server values to client
       DATABASE_URL: "sqlite://private",
     }).VITE_DOCS_API_URL,
     "http://127.0.0.1:6030",
+  );
+  assert.equal(
+    readGarmentsApiRuntimeConfig({
+      PLATFORM_HOST: "127.0.0.1",
+      GARMENTS_API_PORT: "6050",
+      GARMENTS_DATABASE_URL: "sqlite://garments",
+      GARMENTS_INDEX_PATH: "../../../storage/apps/private/garments/index.sqlite",
+      GARMENTS_WEB_ORIGIN: "http://127.0.0.1:6060",
+    }).GARMENTS_API_PORT,
+    6050,
+  );
+  assert.equal(
+    readGarmentsWebRuntimeConfig({
+      PLATFORM_HOST: "127.0.0.1",
+      GARMENTS_WEB_PORT: "6060",
+      VITE_GARMENTS_API_URL: "http://127.0.0.1:6050",
+    }).VITE_GARMENTS_API_URL,
+    "http://127.0.0.1:6050",
   );
   assert.equal(
     readDesktopRuntimeConfig({

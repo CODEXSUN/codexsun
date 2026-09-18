@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.19
+Current version: 1.0.20
 
-Release tag: v-1.0.19
+Release tag: v-1.0.20
 
-Changelog label: v 1.0.19
+Changelog label: v 1.0.20
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -19,6 +19,11 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+- Added the repository-owned `zetro-idea-workshop` skill. Zetro now invokes it
+  for local Codex idea conversations. The skill supports idea discovery,
+  option comparison, revision, and final briefs. It cannot create tasks,
+  worktrees, commands, code changes, or approvals.
 
 - Restored UI and UIUX Gallery compliance. Markdown renderers no longer pass
   parser nodes to DOM elements. Gallery specimen categories now load on demand.
@@ -169,6 +174,18 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
   and the web host reserves port `6091`; the web host proxies `/api` to the
   configured API URL. No database change.
 
+## v-1.0.20
+
+### [v 1.0.20] 2026-09-18 1:30 pm - Working on garments project
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.20.
+
 ## v-1.0.19
 
 ### [v 1.0.19] 2026-09-18 10:37 am - UIUX Gallery Build Compliance
@@ -179,6 +196,25 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 #### App Codebase Changes
 
+- Added a reusable `@codexsun/ui` Codex connection-settings sheet and opened it
+  from Zetro's right utility rail and unavailable header reconnect control.
+  It reports the real local `codex login status`, offers the browser URL and
+  copyable `codex login --device-auth` command, and keeps device codes outside
+  Zetro APIs, logs, storage, and chat history.
+- Moved Zetro's live Codex trace into the active assistant response. Request,
+  review, command, change, response, processing, and completion events now
+  arrive in order inside one collapsible turn instead of a separate panel.
+  Event payloads remain redacted and transient.
+- Added Zetro's handover stack for idea consolidation. Each persisted chat
+  request and response already has a UUID; selected assistant responses can
+  now be collected from their action row, reviewed with source UUIDs, removed,
+  and consolidated into one revised idea through the local read-only Codex
+  conversation. This creates no task, worker, repository action, or approval.
+- Added operator-controlled device-code authentication to Zetro Settings. It
+  can probe the installed local Codex CLI, generate a one-time App Server
+  device code, copy that code or its verification URL, and open the browser
+  flow. The code lives only in the running service memory and is excluded from
+  storage, chat records, and logs.
 - Bumped CODEXSUN workspace version to 1.0.19.
 - Fixed UI and UIUX Gallery compliance. The UI lint, Gallery validation,
   root-layout check, and UIUX production build now pass.

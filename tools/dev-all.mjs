@@ -6,8 +6,8 @@ import { pathToFileURL } from "node:url";
 
 const root = resolve(import.meta.dirname, "..");
 const targetGroups = {
-  api: ["platform-api", "zetro-api", "orship-api", "docs-api"],
-  web: ["platform-web", "uiux-web", "zetro-web", "orship-web", "docs-web"],
+  api: ["platform-api", "zetro-api", "orship-api", "docs-api", "garments-api"],
+  web: ["platform-web", "uiux-web", "zetro-web", "orship-web", "docs-web", "garments-web"],
 };
 
 function main() {

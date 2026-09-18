@@ -1,0 +1,11 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../../dist/garments/api",
+    "baseUrl": ".",
+    "paths": {
+      "@codexsun/garments-contracts": ["../../../packages/garments-contracts/src/index.ts"]
+    }
+  },
+  "include": ["src/config.ts", "src/server.ts", "src/modules/catalog"]
+}

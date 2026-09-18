@@ -17,10 +17,12 @@ test("reads a chat conversation list from the Zetro API", async () => {
   }
 });
 
-test("reads the live Codex runtime settings from the Zetro API", async () => {
+test("reads the live Codex runtime settings from the dedicated runtime route", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () =>
-    new Response(
+  let requestedUrl = "";
+  globalThis.fetch = async (input) => {
+    requestedUrl = String(input);
+    return new Response(
       JSON.stringify({
         data: {
           connected: true,
@@ -36,9 +38,11 @@ test("reads the live Codex runtime settings from the Zetro API", async () => {
       }),
       { status: 200, headers: { "content-type": "application/json" } },
     );
+  };
 
   try {
     assert.equal((await getChatRuntime()).connected, true);
+    assert.equal(requestedUrl, "/api/zetro/v1/chat/runtime");
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -84,6 +84,20 @@ const targets = {
     envKey: "DOCS_WEB_PORT",
     workspace: "@codexsun/docs-web",
   },
+  "garments-api": {
+    displayName: "Garments API",
+    application: "garments",
+    environmentDirectory: "api",
+    envKey: "GARMENTS_API_PORT",
+    workspace: "@codexsun/garments-api",
+  },
+  "garments-web": {
+    displayName: "Garments web",
+    application: "garments",
+    environmentDirectory: "web",
+    envKey: "GARMENTS_WEB_PORT",
+    workspace: "@codexsun/garments-web",
+  },
 };
 
 export class StartupPreflight {

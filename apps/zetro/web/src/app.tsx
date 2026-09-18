@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MainWorkspace } from "@codexsun/ui";
 import { ChatRuntimeControls } from "@codexsun/ui/blocks/chat-runtime-controls";
 import { ChatRuntimeTrace } from "@codexsun/ui/blocks/chat-runtime-trace";
+import { CodexConnectionSettings } from "@codexsun/ui/blocks/codex-connection-settings";
+import { HandoverStack } from "@codexsun/ui/blocks/handover-stack";
 import { ChatDateDivider, ChatResponseProgress, ChatTurnDivider } from "@codexsun/ui/blocks/chat-response-progress";
 import { ChatComposer, type ChatComposerAttachment } from "@codexsun/ui/blocks/chat-composer";
 import { ChatHistory } from "@codexsun/ui/blocks/chat-history";
@@ -10,10 +12,10 @@ import { MarkdownContent } from "@codexsun/ui/components/markdown-content";
 import { MessageScroller, MessageScrollerButton, MessageScrollerViewport } from "@codexsun/ui/components/message-scroller";
 import { TopologyRegion } from "@codexsun/ui/features/interface-topology";
 import { useMdiTopology } from "@codexsun/ui/layouts/mdi-main";
-import type { ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatStreamEvent } from "@codexsun/zetro-contracts";
+import type { ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatStreamEvent, ZetroCodexDeviceCode } from "@codexsun/zetro-contracts";
 import type { InterfaceTopologySection } from "@codexsun/ui/features/interface-topology";
-import { BotIcon, ClockIcon, CopyIcon, FileTextIcon, LightbulbIcon, MessageSquareIcon, PanelsTopLeftIcon, RotateCcwIcon, Share2Icon } from "lucide-react";
-import { createConversation, getChatRuntime, getConversation, listConversations, streamMessage } from "./chat-api.js";
+import { BotIcon, ClockIcon, CopyIcon, FileTextIcon, Layers3Icon, LightbulbIcon, MessageSquareIcon, PanelsTopLeftIcon, RotateCcwIcon, SettingsIcon, Share2Icon } from "lucide-react";
+import { createConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, listConversations, streamMessage } from "./chat-api.js";
 
 type VoiceRecognizer = {
   continuous: boolean;
@@ -58,6 +60,9 @@ const disconnectedRuntime: ZetroChatRuntime = {
   reasoningLevels: ["Default", "Low", "Medium", "High", "XHigh"],
 };
 
+const codexDeviceLoginUrl = "https://auth.openai.com/codex/device";
+const idleDeviceCode: ZetroCodexDeviceCode = { status: "idle", message: "Generate a device code to connect Codex." };
+
 export function App() {
   const [conversations, setConversations] = useState<ZetroChatConversation[]>([]);
   const [conversation, setConversation] = useState<ZetroChatConversation>();
@@ -75,6 +80,10 @@ export function App() {
   const [messages, setMessages] = useState<ZetroChatMessage[]>([]);
   const [messagesByConversation, setMessagesByConversation] = useState<Record<string, ZetroChatMessage[]>>({});
   const [runtime, setRuntime] = useState<ZetroChatRuntime>(disconnectedRuntime);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deviceCode, setDeviceCode] = useState<ZetroCodexDeviceCode>(idleDeviceCode);
+  const [handoverStackOpen, setHandoverStackOpen] = useState(false);
+  const [handoverMessageIds, setHandoverMessageIds] = useState<string[]>([]);
   const isLoading = isStreaming;
 
   useEffect(() => {
@@ -186,6 +195,7 @@ export function App() {
       activeConversationIdRef.current = undefined;
       setConversation(undefined);
       setMessages([]);
+      setHandoverMessageIds([]);
     }
   }
 
@@ -226,12 +236,54 @@ export function App() {
 
   async function refreshRuntime(): Promise<void> {
     try {
-      setRuntime(await getChatRuntime());
+      const [nextRuntime, nextDeviceCode] = await Promise.all([getChatRuntime(), getCodexDeviceCode()]);
+      setRuntime(nextRuntime);
+      setDeviceCode(nextDeviceCode);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Zetro could not reach the local Codex CLI.";
       setRuntime({ ...disconnectedRuntime, message });
     }
   }
+
+  async function reconnect(): Promise<void> {
+    await refreshRuntime();
+    setSettingsOpen(true);
+  }
+
+  function openDeviceBrowser(): void {
+    window.open(deviceCode.verificationUrl ?? codexDeviceLoginUrl, "_blank", "noopener,noreferrer");
+  }
+
+  function copyDeviceUrl(): void {
+    void navigator.clipboard.writeText(deviceCode.verificationUrl ?? codexDeviceLoginUrl);
+  }
+
+  function copyDeviceCode(): void {
+    if (deviceCode.userCode) void navigator.clipboard.writeText(deviceCode.userCode);
+  }
+
+  async function generateDeviceCode(): Promise<void> {
+    try {
+      setDeviceCode(await generateCodexDeviceCode());
+    } catch (error) {
+      setDeviceCode({ status: "failed", message: error instanceof Error ? error.message : "Zetro could not generate a device code." });
+    }
+  }
+
+  function toggleHandoverMessage(id: string): void {
+    setHandoverMessageIds((items) => items.includes(id) ? items.filter((item) => item !== id) : [...items, id]);
+  }
+
+  async function consolidateHandover(): Promise<void> {
+    if (isLoading || !runtime.connected || !conversation) return;
+    const sourceMessages = messages.filter((message) => handoverMessageIds.includes(message.id) && message.role === "assistant" && message.content);
+    if (!sourceMessages.length) return;
+    setElapsedSeconds(0);
+    setHandoverStackOpen(false);
+    await runStream(conversation.id, `Consolidate the selected Zetro responses below into one revised idea. Preserve useful decisions, resolve conflicts, state assumptions, and finish with a concise final brief. Stay in the idea stage; do not create tasks or execute work.\n\n${sourceMessages.map((message, index) => `Source response ${index + 1} (${message.id}):\n${message.content}`).join("\n\n")}`);
+  }
+
+  const handoverItems = messages.filter((message) => handoverMessageIds.includes(message.id) && message.role === "assistant" && message.content).map((message) => ({ id: message.id, content: message.content }));
 
   async function runStream(conversationId: string | undefined, content: string): Promise<void> {
     if (!conversationId) return;
@@ -239,10 +291,14 @@ export function App() {
     streamAbortRef.current = controller;
     setIsStreaming(true);
     setExecutionEvents([]);
-    setMessages((items) => [...items, { id: crypto.randomUUID(), conversationId, role: "user", content, createdAt: new Date().toISOString() }]);
+    const createdAt = new Date().toISOString();
+    setMessages((items) => [...items, { id: crypto.randomUUID(), conversationId, role: "user", content, createdAt }, { id: crypto.randomUUID(), conversationId, role: "assistant", content: "", createdAt }]);
     try {
       await streamMessage(conversationId, content, runtime, (event) => {
         setExecutionEvents((items) => [...items.slice(-80), event]);
+        if (event.type === "response") {
+          setMessages((items) => items.map((message, index) => index === items.length - 1 && message.role === "assistant" ? { ...message, content: event.message } : message));
+        }
       }, controller.signal);
       const view = await getConversation(conversationId);
       setConversation(view.conversation);
@@ -278,6 +334,7 @@ export function App() {
         },
         secondaryRail: {
           items: [
+            { active: settingsOpen, icon: SettingsIcon, id: "settings", label: "Settings", onSelect: () => setSettingsOpen(true) },
             { icon: FileTextIcon, id: "brief", label: "Brief" },
           ],
           label: "Agent utilities",
@@ -302,7 +359,9 @@ export function App() {
       topologySections={zetroTopologySections}
       workspaceTitle="Idea workspace"
     >
-      <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onReconnect={refreshRuntime} onRemoveAttachment={removeAttachment} onRuntimeChange={setRuntime} onSteer={steer} onStop={stop} onSubmit={submit} onVoiceToggle={toggleVoiceInput} />
+      <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRemoveAttachment={removeAttachment} onRuntimeChange={setRuntime} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />
+      <CodexConnectionSettings connected={runtime.connected} deviceCode={deviceCode} message={runtime.message} open={settingsOpen} onConnectLocal={refreshRuntime} onCopyCode={copyDeviceCode} onCopyUrl={copyDeviceUrl} onGenerateDeviceCode={generateDeviceCode} onOpenBrowser={openDeviceBrowser} onOpenChange={setSettingsOpen} />
+      <HandoverStack items={handoverItems} open={handoverStackOpen} working={isLoading} onConsolidate={consolidateHandover} onOpenChange={setHandoverStackOpen} onRemove={toggleHandoverMessage} />
     </MainWorkspace>
   );
 }
@@ -312,7 +371,7 @@ function ZetroHistory({ activeConversationId, conversations, pinnedConversationI
   return <TopologyRegion as="div" className="flex min-h-0 flex-1" id="z01" topology={topology}><ChatHistory activeId={activeConversationId} items={conversations.map((item) => ({ id: item.id, pinned: pinnedConversationIds.includes(item.id), title: item.title }))} onCreate={onCreate} onDelete={onDelete} onPin={onTogglePin} onRename={onRename} onSelect={onSelect} /></TopologyRegion>;
 }
 
-function ZetroWorkspace({ attachments, conversation, draft, elapsedSeconds, executionEvents, isRecording, isWorking, messages, queuedSteerCount, runtime, onAddAttachments, onDraftChange, onReconnect, onRemoveAttachment, onRuntimeChange, onSteer, onStop, onSubmit, onVoiceToggle }: { attachments: ChatComposerAttachment[]; conversation?: ZetroChatConversation; draft: string; elapsedSeconds: number; executionEvents: ZetroChatStreamEvent[]; isRecording: boolean; isWorking: boolean; messages: ZetroChatMessage[]; queuedSteerCount: number; runtime: ZetroChatRuntime; onAddAttachments: (files: File[]) => void; onDraftChange: (value: string) => void; onReconnect: () => void; onRemoveAttachment: (id: string) => void; onRuntimeChange: (runtime: ZetroChatRuntime) => void; onSteer: () => void; onStop: () => void; onSubmit: () => void; onVoiceToggle: () => void }) {
+function ZetroWorkspace({ attachments, conversation, draft, elapsedSeconds, executionEvents, handoverCount, isRecording, isWorking, messages, queuedSteerCount, runtime, onAddAttachments, onDraftChange, onOpenHandoverStack, onReconnect, onRemoveAttachment, onRuntimeChange, onSteer, onStop, onSubmit, onToggleHandover, onVoiceToggle, selectedHandoverMessageIds }: { attachments: ChatComposerAttachment[]; conversation?: ZetroChatConversation; draft: string; elapsedSeconds: number; executionEvents: ZetroChatStreamEvent[]; handoverCount: number; isRecording: boolean; isWorking: boolean; messages: ZetroChatMessage[]; queuedSteerCount: number; runtime: ZetroChatRuntime; onAddAttachments: (files: File[]) => void; onDraftChange: (value: string) => void; onOpenHandoverStack: () => void; onReconnect: () => void; onRemoveAttachment: (id: string) => void; onRuntimeChange: (runtime: ZetroChatRuntime) => void; onSteer: () => void; onStop: () => void; onSubmit: () => void; onToggleHandover: (id: string) => void; onVoiceToggle: () => void; selectedHandoverMessageIds: string[] }) {
   const topology = useMdiTopology();
   const messageViewportRef = useRef<HTMLDivElement>(null);
   const [canScrollToLatest, setCanScrollToLatest] = useState(false);
@@ -332,22 +391,22 @@ function ZetroWorkspace({ attachments, conversation, draft, elapsedSeconds, exec
   return <TopologyRegion as="section" className="flex size-full min-h-0 flex-col bg-background" id="z02" topology={topology}>
     <TopologyRegion as="header" className="flex shrink-0 items-center gap-4 border-b border-border px-4 py-3 sm:px-6" id="z02.1" topology={topology}>
       <h1 className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight">{conversation?.title ?? "Start with an idea"}</h1>
+      <Button aria-label={`Open handover stack (${handoverCount} responses)`} className="relative" size="icon-sm" variant="ghost" onClick={onOpenHandoverStack}><Layers3Icon />{handoverCount ? <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-primary text-[10px] text-primary-foreground">{handoverCount}</span> : null}</Button>
       <ChatRuntimeControls connected={runtime.connected} message={runtime.message} model={runtime.model} models={runtime.models} onModelChange={(model) => onRuntimeChange({ ...runtime, model: model as ZetroChatRuntime["model"] })} onProviderChange={(provider) => onRuntimeChange({ ...runtime, provider: provider as ZetroChatRuntime["provider"] })} onReasoningChange={(reasoning) => onRuntimeChange({ ...runtime, reasoning: reasoning as ZetroChatRuntime["reasoning"] })} onReconnect={onReconnect} provider={runtime.provider} providers={runtime.providers} reasoning={runtime.reasoning} reasoningLevels={runtime.reasoningLevels} />
     </TopologyRegion>
-    <TopologyRegion as="div" className="min-h-0 flex-1" id="z02.2" topology={topology}><MessageScroller><MessageScrollerViewport ref={messageViewportRef} className="px-6 py-7 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/70 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1" onScroll={updateScrollPosition}><TopologyRegion as="div" className={`mx-auto flex w-4/5 flex-col ${isWorking ? "gap-1" : "gap-3"}`} id="z02.2.2" topology={topology}>{messages[0] ? <ChatDateDivider label={formatDateBadge(messages[0].createdAt)} /> : null}{messages.map((message, index) => <div key={message.id} className="flex flex-col gap-0.5"><div className={`group flex flex-col ${message.role === "user" ? "w-fit max-w-[80%] self-end" : "w-full self-start"}`}><article className={message.role === "user" ? "rounded-sm bg-muted/60 px-4 py-3 text-foreground shadow-sm" : isWorking && index === messages.length - 1 ? "px-4 pt-3 pb-0" : "px-4 py-3"}><p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">{message.role === "assistant" ? <BotIcon aria-hidden="true" className="size-3.5" /> : null}{message.role === "user" ? "You" : message.role === "error" ? "Connection" : "Zetro"}</p>{message.content ? message.role === "assistant" ? <MarkdownContent className="mt-1" content={message.content} /> : <p className="mt-1 whitespace-pre-wrap text-sm leading-6">{message.content}</p> : null}</article>{!(isWorking && message.role === "assistant" && index === messages.length - 1) ? <MessageActions role={message.role} timestamp={message.createdAt} /> : null}</div>{message.role !== "user" && !(isWorking && index === messages.length - 1) ? <ChatTurnDivider /> : null}</div>)}{isWorking ? <ChatResponseProgress elapsedSeconds={elapsedSeconds} label="Working" tone="orange" /> : null}</TopologyRegion></MessageScrollerViewport>{canScrollToLatest ? <MessageScrollerButton aria-label="Scroll to latest message" className="invisible border-border/70 opacity-0 shadow-sm transition-opacity group-hover/message-scroller:visible group-hover:opacity-100 focus-visible:visible focus-visible:opacity-100" onClick={scrollToLatest} /> : null}</MessageScroller></TopologyRegion>
-    <ChatRuntimeTrace elapsedSeconds={elapsedSeconds} events={executionEvents.filter((event) => event.raw)} isWorking={isWorking} />
+    <TopologyRegion as="div" className="min-h-0 flex-1" id="z02.2" topology={topology}><MessageScroller><MessageScrollerViewport ref={messageViewportRef} className="px-6 py-7 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/70 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1" onScroll={updateScrollPosition}><TopologyRegion as="div" className={`mx-auto flex w-4/5 flex-col ${isWorking ? "gap-1" : "gap-3"}`} id="z02.2.2" topology={topology}>{messages[0] ? <ChatDateDivider label={formatDateBadge(messages[0].createdAt)} /> : null}{messages.map((message, index) => { const isLiveAssistant = isWorking && message.role === "assistant" && index === messages.length - 1; return <div key={message.id} className="flex flex-col gap-0.5"><div className={`group flex flex-col ${message.role === "user" ? "w-fit max-w-[80%] self-end" : "w-full self-start"}`}><article className={message.role === "user" ? "rounded-sm bg-muted/60 px-4 py-3 text-foreground shadow-sm" : isLiveAssistant ? "px-4 pt-3 pb-0" : "px-4 py-3"}><p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">{message.role === "assistant" ? <BotIcon aria-hidden="true" className="size-3.5" /> : null}{message.role === "user" ? "You" : message.role === "error" ? "Connection" : "Zetro"}</p>{message.content ? message.role === "assistant" ? <MarkdownContent className="mt-1" content={message.content} /> : <p className="mt-1 whitespace-pre-wrap text-sm leading-6">{message.content}</p> : null}{isLiveAssistant ? <><ChatResponseProgress elapsedSeconds={elapsedSeconds} label="Working" tone="orange" /><ChatRuntimeTrace className="mt-2" elapsedSeconds={elapsedSeconds} events={executionEvents} isWorking /></> : null}</article>{!isLiveAssistant ? <MessageActions handoverSelected={selectedHandoverMessageIds.includes(message.id)} messageId={message.id} role={message.role} timestamp={message.createdAt} onToggleHandover={onToggleHandover} /> : null}</div>{message.role !== "user" && !isLiveAssistant ? <ChatTurnDivider /> : null}</div>})}</TopologyRegion></MessageScrollerViewport>{canScrollToLatest ? <MessageScrollerButton aria-label="Scroll to latest message" className="invisible border-border/70 opacity-0 shadow-sm transition-opacity group-hover/message-scroller:visible group-hover:opacity-100 focus-visible:visible focus-visible:opacity-100" onClick={scrollToLatest} /> : null}</MessageScroller></TopologyRegion>
     <TopologyRegion as="footer" className="sticky bottom-0 z-10 shrink-0 bg-background px-6 py-4" id="z02.3" topology={topology}>
       <TopologyRegion as="div" id="z02.3.1" topology={topology}><ChatComposer attachments={attachments} isRecording={isRecording} isWorking={isWorking} queuedSteerCount={queuedSteerCount} value={draft} onAddFiles={onAddAttachments} onRemoveAttachment={onRemoveAttachment} onSteer={onSteer} onStop={onStop} onSubmit={onSubmit} onValueChange={onDraftChange} onVoiceToggle={onVoiceToggle} /></TopologyRegion>
     </TopologyRegion>
   </TopologyRegion>;
 }
 
-function MessageActions({ role, timestamp }: { role: ZetroChatMessage["role"]; timestamp: string }) {
+function MessageActions({ handoverSelected, messageId, role, timestamp, onToggleHandover }: { handoverSelected: boolean; messageId: string; role: ZetroChatMessage["role"]; timestamp: string; onToggleHandover: (id: string) => void }) {
   if (role === "error") return null;
 
   return <div className="invisible mt-0.5 flex items-center gap-1 px-1 opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
     <Button aria-label="Copy message" size="icon-xs" variant="ghost"><CopyIcon /></Button>
-    {role === "user" ? <><Button aria-label="Share message" size="icon-xs" variant="ghost"><Share2Icon /></Button><span className="ml-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><ClockIcon className="size-3" />{formatMessageTime(timestamp)}</span></> : <><Button aria-label="Regenerate response" size="icon-xs" variant="ghost"><RotateCcwIcon /></Button><Button aria-label="Share response" size="icon-xs" variant="ghost"><Share2Icon /></Button></>}
+    {role === "user" ? <><Button aria-label="Share message" size="icon-xs" variant="ghost"><Share2Icon /></Button><span className="ml-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><ClockIcon className="size-3" />{formatMessageTime(timestamp)}</span></> : <><Button aria-label={handoverSelected ? "Remove from handover stack" : "Add to handover stack"} className={handoverSelected ? "text-primary" : undefined} size="icon-xs" variant="ghost" onClick={() => onToggleHandover(messageId)}><Layers3Icon /></Button><Button aria-label="Regenerate response" size="icon-xs" variant="ghost"><RotateCcwIcon /></Button><Button aria-label="Share response" size="icon-xs" variant="ghost"><Share2Icon /></Button></>}
   </div>;
 }
 

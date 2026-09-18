@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -16,6 +16,7 @@
     "turbo:scope": "node tools/turbo-scope.mjs",
     "build:platform": "npm run turbo:scope -- platform build",
     "build:docs": "npm run turbo:scope -- docs build",
+    "build:garments": "npm run turbo:scope -- garments build",
     "build:orship": "npm run turbo:scope -- orship build",
     "build:zetro": "npm run turbo:scope -- zetro build",
     "build:uiux": "npm run turbo:scope -- uiux build",
@@ -33,6 +34,8 @@
     "dev:orship-web": "node tools/preflight.mjs orship-web --restart",
     "dev:docs-api": "node tools/preflight.mjs docs-api --restart",
     "dev:docs-web": "node tools/preflight.mjs docs-web --restart",
+    "dev:garments-api": "node tools/preflight.mjs garments-api --restart",
+    "dev:garments-web": "node tools/preflight.mjs garments-web --restart",
     "dev:desktop": "node tools/preflight.mjs platform-desktop --restart",
     "dev:mobile": "node tools/preflight.mjs platform-mobile --restart",
     "format": "prettier --write .",
@@ -60,6 +63,8 @@
     "test:zetro-web": "npm run test --workspace @codexsun/zetro-web",
     "test:docs-api": "npm run test --workspace @codexsun/docs-api",
     "test:docs-web": "npm run test --workspace @codexsun/docs-web",
+    "test:garments-api": "npm run test --workspace @codexsun/garments-api",
+    "test:garments-web": "npm run test --workspace @codexsun/garments-web",
     "test:platform-desktop": "npm run test --workspace @codexsun/platform-desktop",
     "test:platform-mobile": "npm run test --workspace @codexsun/platform-mobile",
     "test:e2e": "playwright test"

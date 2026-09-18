@@ -81,8 +81,17 @@ export const zetroChatRuntimeSchema = zetroChatRuntimeSelectionSchema.extend({
 
 export const zetroChatRuntimeResponseSchema = zetroSuccessSchema(zetroChatRuntimeSchema);
 
+export const zetroCodexDeviceCodeSchema = z.object({
+  message: z.string().min(1).max(500),
+  status: z.enum(["idle", "awaiting", "connected", "failed"]),
+  userCode: z.string().min(1).max(64).optional(),
+  verificationUrl: z.string().url().optional(),
+});
+
+export const zetroCodexDeviceCodeResponseSchema = zetroSuccessSchema(zetroCodexDeviceCodeSchema);
+
 export const zetroChatStreamEventSchema = z.object({
-  type: z.enum(["processing", "command", "response", "error", "complete"]),
+  type: z.enum(["processing", "request", "review", "command", "change", "response", "error", "complete"]),
   message: z.string().min(1).max(20_000),
   raw: z.string().max(20_000).optional(),
 });
@@ -93,3 +102,4 @@ export type ZetroChatRole = z.infer<typeof zetroChatRoleSchema>;
 export type ZetroChatStreamEvent = z.infer<typeof zetroChatStreamEventSchema>;
 export type ZetroChatRuntime = z.infer<typeof zetroChatRuntimeSchema>;
 export type ZetroChatRuntimeSelection = z.infer<typeof zetroChatRuntimeSelectionSchema>;
+export type ZetroCodexDeviceCode = z.infer<typeof zetroCodexDeviceCodeSchema>;
