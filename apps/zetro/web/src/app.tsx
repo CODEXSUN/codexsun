@@ -15,7 +15,7 @@ import { useMdiTopology } from "@codexsun/ui/layouts/mdi-main";
 import type { ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatStreamEvent, ZetroCodexDeviceCode } from "@codexsun/zetro-contracts";
 import type { InterfaceTopologySection } from "@codexsun/ui/features/interface-topology";
 import { BotIcon, ClockIcon, CopyIcon, FileTextIcon, Layers3Icon, LightbulbIcon, MessageSquareIcon, PanelsTopLeftIcon, RotateCcwIcon, SettingsIcon, Share2Icon } from "lucide-react";
-import { createConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, listConversations, streamMessage } from "./chat-api.js";
+import { createConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, listConversations, streamMessage, updateChatRuntime } from "./chat-api.js";
 
 type VoiceRecognizer = {
   continuous: boolean;
@@ -252,6 +252,17 @@ export function App() {
     }
   }
 
+  async function updateRuntimeSelection(nextRuntime: ZetroChatRuntime): Promise<void> {
+    const previousRuntime = runtime;
+    setRuntime(nextRuntime);
+    try {
+      setRuntime(await updateChatRuntime({ provider: nextRuntime.provider, model: nextRuntime.model, reasoning: nextRuntime.reasoning }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Zetro could not update the local Codex settings.";
+      setRuntime({ ...previousRuntime, message });
+    }
+  }
+
   async function reconnect(): Promise<void> {
     await refreshRuntime();
     setSettingsOpen(true);
@@ -366,7 +377,7 @@ export function App() {
       topologySections={zetroTopologySections}
       workspaceTitle="Idea workspace"
     >
-      <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRemoveAttachment={removeAttachment} onRuntimeChange={setRuntime} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />
+      <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRemoveAttachment={removeAttachment} onRuntimeChange={updateRuntimeSelection} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />
       <CodexConnectionSettings connected={runtime.connected} deviceCode={deviceCode} message={runtime.message} open={settingsOpen} onConnectLocal={recheckLocalCodex} onCopyCode={copyDeviceCode} onCopyUrl={copyDeviceUrl} onGenerateDeviceCode={generateDeviceCode} onOpenBrowser={openDeviceBrowser} onOpenChange={setSettingsOpen} />
       <HandoverStack items={handoverItems} open={handoverStackOpen} working={isLoading} onConsolidate={consolidateHandover} onOpenChange={setHandoverStackOpen} onRemove={toggleHandoverMessage} />
     </MainWorkspace>

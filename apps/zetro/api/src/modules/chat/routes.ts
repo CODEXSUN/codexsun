@@ -4,6 +4,7 @@ import {
   zetroChatConversationResponseSchema,
   zetroCodexDeviceCodeResponseSchema,
   zetroChatRuntimeResponseSchema,
+  zetroUpdateChatRuntimeSchema,
   zetroCreateChatMessageSchema,
   zetroCreateConversationSchema,
   zetroChatStreamEventSchema,
@@ -15,6 +16,10 @@ import { ChatService, ConversationNotFoundError } from "./chat-service.js";
 export async function registerChatRoutes(app: FastifyInstance, service: ChatService): Promise<void> {
   app.get("/api/zetro/v1/chat/runtime", async () =>
     zetroChatRuntimeResponseSchema.parse({ data: await service.getRuntime(), version: zetroApiVersion }),
+  );
+
+  app.put("/api/zetro/v1/chat/runtime", async (request) =>
+    zetroChatRuntimeResponseSchema.parse({ data: await service.updateRuntime(zetroUpdateChatRuntimeSchema.parse(request.body)), version: zetroApiVersion }),
   );
 
   app.get("/api/zetro/v1/chat/runtime/device-code", async () =>

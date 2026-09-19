@@ -34,6 +34,10 @@ export async function getChatRuntime(): Promise<ZetroChatRuntime> {
   return zetroChatRuntimeResponseSchema.parse(await read(await fetch(`${chatUrl}/runtime`))).data;
 }
 
+export async function updateChatRuntime(runtime: ZetroChatRuntimeSelection): Promise<ZetroChatRuntime> {
+  return zetroChatRuntimeResponseSchema.parse(await read(await fetch(`${chatUrl}/runtime`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(runtime) }))).data;
+}
+
 export async function getCodexDeviceCode(): Promise<ZetroCodexDeviceCode> {
   return zetroCodexDeviceCodeResponseSchema.parse(await read(await fetch(`${chatUrl}/runtime/device-code`))).data;
 }

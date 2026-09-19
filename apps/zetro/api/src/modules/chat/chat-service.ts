@@ -1,4 +1,7 @@
 import { spawn } from "node:child_process";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { createInterface } from "node:readline";
 import type { ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatRuntimeSelection, ZetroChatStreamEvent, ZetroCodexDeviceCode } from "@codexsun/zetro-contracts";
 import { ChatStore } from "./chat-store.js";
@@ -23,16 +26,22 @@ export class ChatService {
 
   async getRuntime(): Promise<ZetroChatRuntime> {
     const connected = await probeLocalCodex();
+    const settings = readCodexSettings();
     return {
       connected,
       message: connected ? "Connected to the local Codex CLI." : "Local Codex is not connected. Open Settings to sign in.",
-      model: "Default",
-      models: ["Default", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-6-astra"],
+      model: settings.model,
+      models: orderedModels(settings.model),
       provider: "Codex",
       providers: ["Codex"],
-      reasoning: "Default",
-      reasoningLevels: ["Default", "Low", "Medium", "High", "XHigh"],
+      reasoning: settings.reasoning,
+      reasoningLevels: ["Low", "Medium", "High", "XHigh"],
     };
+  }
+
+  async updateRuntime(runtime: ZetroChatRuntimeSelection): Promise<ZetroChatRuntime> {
+    writeCodexSettings(runtime);
+    return this.getRuntime();
   }
 
   async generateDeviceCode(): Promise<ZetroCodexDeviceCode> {
@@ -177,7 +186,73 @@ function codexArguments(prompt: string, json: boolean, runtime?: ZetroChatRuntim
 }
 
 function codexCommand(): string {
-  return process.env.ZETRO_CODEX_COMMAND || "codex";
+  return process.env.ZETRO_CODEX_COMMAND || installedWindowsCodex() || "codex";
+}
+
+function installedWindowsCodex(): string | undefined {
+  if (process.platform !== "win32" || !process.env.LOCALAPPDATA) return undefined;
+  const binDirectory = join(process.env.LOCALAPPDATA, "OpenAI", "Codex", "bin");
+  try {
+    return readdirSync(binDirectory).sort().reverse().map((version) => join(binDirectory, version, "codex.exe")).find(existsSync);
+  } catch {
+    return undefined;
+  }
+}
+
+function readCodexSettings(): { model: ZetroChatRuntimeSelection["model"]; reasoning: ZetroChatRuntimeSelection["reasoning"] } {
+  const config = readCodexConfig();
+  return {
+    model: parseModel(config, "model") ?? "gpt-5.6-terra",
+    reasoning: parseReasoning(config, "model_reasoning_effort") ?? "Medium",
+  };
+}
+
+function writeCodexSettings(runtime: ZetroChatRuntimeSelection): void {
+  const configPath = codexConfigPath();
+  const current = readCodexConfig();
+  const withModel = updateTomlValue(current, "model", runtime.model);
+  writeFileSync(configPath, updateTomlValue(withModel, "model_reasoning_effort", runtime.reasoning.toLowerCase()), "utf8");
+}
+
+function readCodexConfig(): string {
+  try {
+    return readFileSync(codexConfigPath(), "utf8");
+  } catch {
+    return "";
+  }
+}
+
+function codexConfigPath(): string {
+  return join(homedir(), ".codex", "config.toml");
+}
+
+function updateTomlValue(config: string, key: string, value: string): string {
+  const setting = `${key} = ${JSON.stringify(value)}`;
+  const expression = new RegExp(`^\\s*${key}\\s*=.*$`, "m");
+  if (expression.test(config)) return config.replace(expression, setting);
+  const lines = config.split(/\\r?\\n/);
+  const firstTable = lines.findIndex((line) => /^\\s*\[/.test(line));
+  lines.splice(firstTable < 0 ? lines.length : firstTable, 0, setting);
+  return lines.join("\n").replace(/\n+$/, "\n");
+}
+
+function parseModel(config: string, key: string): ZetroChatRuntimeSelection["model"] | undefined {
+  const value = readTomlString(config, key);
+  return value && ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-6-astra"].includes(value) ? value as ZetroChatRuntimeSelection["model"] : undefined;
+}
+
+function parseReasoning(config: string, key: string): ZetroChatRuntimeSelection["reasoning"] | undefined {
+  const value = readTomlString(config, key)?.toLowerCase();
+  const levels = { low: "Low", medium: "Medium", high: "High", xhigh: "XHigh" } as const;
+  return value && value in levels ? levels[value as keyof typeof levels] : undefined;
+}
+
+function readTomlString(config: string, key: string): string | undefined {
+  return new RegExp(`^\\s*${key}\\s*=\\s*["']([^"']+)["']\\s*$`, "m").exec(config)?.[1];
+}
+
+function orderedModels(selected: ZetroChatRuntimeSelection["model"]): ZetroChatRuntimeSelection["model"][] {
+  return [selected, ...["gpt-5.6-sol", "gpt-5.6-terra", "gpt-6-astra"].filter((model) => model !== selected) as ZetroChatRuntimeSelection["model"][]];
 }
 
 function runtimeLabel(runtime?: ZetroChatRuntimeSelection): string {
@@ -189,8 +264,13 @@ function runtimeLabel(runtime?: ZetroChatRuntimeSelection): string {
 function probeLocalCodex(): Promise<boolean> {
   return new Promise((resolve) => {
     const child = spawn(codexCommand(), ["login", "status"], { shell: false, windowsHide: true });
-    const timeout = setTimeout(() => child.kill(), 3_000);
-    child.once("error", () => resolve(false));
+    const timeout = setTimeout(() => child.kill(), 10_000);
+    child.stdout.resume();
+    child.stderr.resume();
+    child.once("error", () => {
+      clearTimeout(timeout);
+      resolve(false);
+    });
     child.once("close", (code) => {
       clearTimeout(timeout);
       resolve(code === 0);

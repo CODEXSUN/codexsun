@@ -20,12 +20,22 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+- Added the DevKit-based Rich Text Editor to the shared UI package. It provides
+  write, Markdown, HTML, and preview modes with package-owned formatting tools.
+  UIUX Gallery now shows a live editor specimen. No UI positions changed.
+
 - Split Zetro Codex Settings into separate Local Codex and Device code cards.
   Local rechecks visibly refresh the installed CLI session state, while the
   device-code generator is explicitly enabled with a connection-mode switch.
 - Decoupled Zetro's local Codex recheck from device-code status loading. A
   transient device-code request can no longer hide a successful local CLI
   result, and the check controls now show their in-progress state.
+- Made Zetro's Windows local Codex probe resolve the installed Codex executable
+  directly before falling back to `PATH`, so API restarts preserve the same
+  connection behavior as an interactive terminal.
+- Replaced Zetro's runtime placeholders with the active local Codex model and
+  reasoning settings. Model and reasoning selections now update the user-owned
+  Codex configuration and are re-read after every reconnect.
 
 - Added the repository-owned `zetro-idea-workshop` skill. Zetro now invokes it
   for local Codex idea conversations. The skill supports idea discovery,

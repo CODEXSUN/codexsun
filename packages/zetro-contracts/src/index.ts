@@ -80,6 +80,7 @@ export const zetroChatRuntimeSchema = zetroChatRuntimeSelectionSchema.extend({
 });
 
 export const zetroChatRuntimeResponseSchema = zetroSuccessSchema(zetroChatRuntimeSchema);
+export const zetroUpdateChatRuntimeSchema = zetroChatRuntimeSelectionSchema;
 
 export const zetroCodexDeviceCodeSchema = z.object({
   message: z.string().min(1).max(500),

@@ -21,3 +21,8 @@ and browser state. It does not duplicate package components or product logic.
 
 Exit: the Gallery documents each supported route, validates the shared UI
 system, and loads component specimens without exceeding the chunk budget.
+
+### Phase UX-1210: Shared Editor
+
+- [x] UX-1211 Add the DevKit rich text editor as a published UI component and
+      Gallery specimen.
