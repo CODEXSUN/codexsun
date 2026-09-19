@@ -1,7 +1,7 @@
 {
   "name": "@codexsun/ui",
   "private": true,
-  "version": "1.0.21",
+  "version": "1.0.22",
   "type": "module",
   "main": "../../../dist/packages/ui/index.js",
   "types": "../../../dist/packages/ui/index.d.ts",
@@ -35,6 +35,8 @@
     "./blocks/chat-runtime-trace": "./src/blocks/chat-runtime-trace/index.ts",
     "./blocks/codex-connection-settings": "./src/blocks/codex-connection-settings/index.ts",
     "./blocks/handover-stack": "./src/blocks/handover-stack/index.ts",
+    "./blocks/idea-handover": "./src/blocks/idea-handover/index.ts",
+    "./blocks/agent-task-workspace": "./src/blocks/agent-task-workspace/index.ts",
     "./lib/*": "./src/lib/*.ts",
     "./hooks/*": "./src/hooks/*.ts",
     "./features/interface-topology": "./src/features/interface-topology/index.ts",

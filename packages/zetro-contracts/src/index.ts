@@ -25,6 +25,7 @@ export interface ZetroSqliteReadiness {
 }
 
 export const zetroChatRoleSchema = z.enum(["user", "assistant", "error"]);
+export const zetroIdeaStageSchema = z.enum(["explore", "compare", "revise", "final"]);
 
 export const zetroChatConversationSchema = z.object({
   id: z.string().uuid(),
@@ -32,7 +33,9 @@ export const zetroChatConversationSchema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   messageCount: z.number().int().nonnegative(),
+  archived: z.boolean(),
   pinned: z.boolean(),
+  stage: zetroIdeaStageSchema,
 });
 
 export const zetroChatMessageSchema = z.object({
@@ -59,9 +62,11 @@ export const zetroCreateConversationSchema = z.object({
 });
 
 export const zetroUpdateConversationSchema = z.object({
+  archived: z.boolean().optional(),
   pinned: z.boolean().optional(),
+  stage: zetroIdeaStageSchema.optional(),
   title: z.string().trim().min(1).max(120).optional(),
-}).refine((value) => value.pinned !== undefined || value.title !== undefined, "Provide a conversation update.");
+}).refine((value) => value.archived !== undefined || value.pinned !== undefined || value.stage !== undefined || value.title !== undefined, "Provide a conversation update.");
 
 export const zetroCodexModelSchema = z.string().trim().min(1).max(120);
 export const zetroCodexReasoningSchema = z.enum(["Default", "Low", "Medium", "High", "XHigh"]);
@@ -98,6 +103,83 @@ export const zetroCodexDeviceCodeSchema = z.object({
 
 export const zetroCodexDeviceCodeResponseSchema = zetroSuccessSchema(zetroCodexDeviceCodeSchema);
 
+export const zetroIdeaBriefSchema = z.object({
+  audience: z.string().trim().max(1_000),
+  constraints: z.string().trim().max(4_000),
+  conversationId: z.string().uuid(),
+  createdAt: z.string().datetime(),
+  exclusions: z.string().trim().max(4_000),
+  id: z.string().uuid(),
+  outcome: z.string().trim().min(1).max(4_000),
+  projectReference: z.string().trim().max(240).nullable(),
+  projectScope: z.enum(["project", "all-projects"]),
+  risks: z.string().trim().max(4_000),
+  scope: z.string().trim().max(4_000),
+  sourceMessageIds: z.array(z.string().uuid()).max(100),
+  status: z.enum(["draft", "final"]),
+  successSignals: z.string().trim().max(4_000),
+  title: z.string().trim().min(1).max(160),
+  updatedAt: z.string().datetime(),
+}).superRefine((value, context) => {
+  if (value.projectScope === "project" && !value.projectReference) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Choose a referred project for project scope.", path: ["projectReference"] });
+  }
+  if (value.status === "final" && !value.sourceMessageIds.length) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Final briefs require at least one source response.", path: ["sourceMessageIds"] });
+  }
+});
+
+export const zetroUpsertIdeaBriefSchema = z.object({
+  audience: z.string().trim().max(1_000),
+  constraints: z.string().trim().max(4_000),
+  exclusions: z.string().trim().max(4_000),
+  outcome: z.string().trim().min(1).max(4_000),
+  projectReference: z.string().trim().max(240).nullable(),
+  projectScope: z.enum(["project", "all-projects"]),
+  risks: z.string().trim().max(4_000),
+  scope: z.string().trim().max(4_000),
+  sourceMessageIds: z.array(z.string().uuid()).max(100),
+  status: z.enum(["draft", "final"]),
+  successSignals: z.string().trim().max(4_000),
+  title: z.string().trim().min(1).max(160),
+}).superRefine((value, context) => {
+  if (value.projectScope === "project" && !value.projectReference) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Choose a referred project for project scope.", path: ["projectReference"] });
+  }
+  if (value.status === "final" && !value.sourceMessageIds.length) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Final briefs require at least one source response.", path: ["sourceMessageIds"] });
+  }
+});
+
+export const zetroIdeaBriefResponseSchema = zetroSuccessSchema(z.object({ brief: zetroIdeaBriefSchema.nullable() }));
+
+export const zetroAgentTaskSchema = z.object({
+  briefId: z.string().uuid(),
+  createdAt: z.string().datetime(),
+  id: z.string().uuid(),
+  projectReference: z.string().trim().max(240).nullable(),
+  projectScope: z.enum(["project", "all-projects"]),
+  status: z.literal("prepared"),
+  summary: z.string().trim().min(1).max(4_000),
+  title: z.string().trim().min(1).max(160),
+  updatedAt: z.string().datetime(),
+});
+
+export const zetroCreateAgentTaskSchema = z.object({
+  briefId: z.string().uuid(),
+  projectReference: z.string().trim().max(240).nullable(),
+  projectScope: z.enum(["project", "all-projects"]),
+  summary: z.string().trim().min(1).max(4_000),
+  title: z.string().trim().min(1).max(160),
+}).superRefine((value, context) => {
+  if (value.projectScope === "project" && !value.projectReference) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Choose a referred project for project scope.", path: ["projectReference"] });
+  }
+});
+
+export const zetroAgentTaskListResponseSchema = zetroSuccessSchema(z.object({ tasks: z.array(zetroAgentTaskSchema) }));
+export const zetroAgentTaskResponseSchema = zetroSuccessSchema(z.object({ task: zetroAgentTaskSchema }));
+
 export const zetroChatStreamEventSchema = z.object({
   type: z.enum(["processing", "request", "review", "command", "change", "response", "error", "complete"]),
   message: z.string().min(1).max(20_000),
@@ -105,10 +187,22 @@ export const zetroChatStreamEventSchema = z.object({
 });
 
 export type ZetroChatConversation = z.infer<typeof zetroChatConversationSchema>;
+export type ZetroIdeaStage = z.infer<typeof zetroIdeaStageSchema>;
 export type ZetroChatMessage = z.infer<typeof zetroChatMessageSchema>;
+export type ZetroChatConversationView = { conversation: ZetroChatConversation; messages: ZetroChatMessage[] };
+export interface ZetroChatConversationReader {
+  getConversation(id: string): ZetroChatConversationView | undefined;
+}
 export type ZetroChatAttachment = NonNullable<z.infer<typeof zetroCreateChatMessageSchema>["attachments"]>[number];
 export type ZetroChatRole = z.infer<typeof zetroChatRoleSchema>;
 export type ZetroChatStreamEvent = z.infer<typeof zetroChatStreamEventSchema>;
 export type ZetroChatRuntime = z.infer<typeof zetroChatRuntimeSchema>;
 export type ZetroChatRuntimeSelection = z.infer<typeof zetroChatRuntimeSelectionSchema>;
 export type ZetroCodexDeviceCode = z.infer<typeof zetroCodexDeviceCodeSchema>;
+export type ZetroIdeaBrief = z.infer<typeof zetroIdeaBriefSchema>;
+export type ZetroUpsertIdeaBrief = z.infer<typeof zetroUpsertIdeaBriefSchema>;
+export interface ZetroFinalBriefReader {
+  getFinalBrief(id: string): ZetroIdeaBrief;
+}
+export type ZetroAgentTask = z.infer<typeof zetroAgentTaskSchema>;
+export type ZetroCreateAgentTask = z.infer<typeof zetroCreateAgentTaskSchema>;

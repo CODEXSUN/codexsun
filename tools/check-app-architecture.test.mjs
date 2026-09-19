@@ -6,7 +6,32 @@ import test from "node:test";
 import { checkAppArchitecture } from "./check-app-architecture.mjs";
 
 function fixture() {
-  return mkdtempSync(join(tmpdir(), "codexsun-app-architecture-"));
+  const root = mkdtempSync(join(tmpdir(), "codexsun-app-architecture-"));
+  write(root, "registry/profiles/development.json", JSON.stringify({ schemaVersion: 1, id: "development", enabledApplications: [], enabledAddons: [] }));
+  return root;
+}
+
+function registerApplication(root, name, hosts) {
+  write(
+    root,
+    `registry/applications/${name}.json`,
+    JSON.stringify({
+      kind: "application",
+      schemaVersion: 1,
+      id: name,
+      label: name,
+      taskPrefix: name[0],
+      providers: [],
+      hosts: hosts.map((kind) => ({
+        kind,
+        target: `${name}-${kind}`,
+        displayName: `${name} ${kind}`,
+        environmentDirectory: kind,
+        envKey: `${name.toUpperCase()}_${kind.toUpperCase()}_PORT`,
+        workspace: `@codexsun/${name}-${kind}`,
+      })),
+    }),
+  );
 }
 
 function app(root, name, hosts) {
@@ -30,6 +55,7 @@ function write(root, file, content) {
 test("reports missing host and module architecture requirements", () => {
   const root = fixture();
   try {
+    registerApplication(root, "platform", ["api", "web", "desktop", "mobile"]);
     assert.throws(() => checkAppArchitecture(root), /apps\/platform: missing application README/u);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -44,8 +70,10 @@ test("explains missing event declarations for a module provider", () => {
       docs: ["api", "web"],
       zetro: ["api", "web"],
       uiux: ["web"],
-    }))
+    })) {
+      registerApplication(root, name, profile);
       app(root, name, profile);
+    }
 
     write(root, "apps/platform/api/src/config.ts", "export {};\n");
     write(root, "apps/platform/api/src/server.ts", "export {};\n");

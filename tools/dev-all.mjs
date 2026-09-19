@@ -3,12 +3,13 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { getRuntimeTargets } from "../packages/app-cli/src/registry.mjs";
 
 const root = resolve(import.meta.dirname, "..");
-const targetGroups = {
-  api: ["platform-api", "zetro-api", "docs-api"],
-  web: ["platform-web", "uiux-web", "zetro-web", "docs-web"],
-};
+const runtimeTargets = getRuntimeTargets(root);
+const targetGroups = Object.fromEntries(
+  ["api", "web"].map((kind) => [kind, Object.entries(runtimeTargets).filter(([, target]) => target.environmentDirectory === kind).map(([name]) => name)]),
+);
 
 function main() {
   const group = process.argv[2];

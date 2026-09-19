@@ -1,17 +1,19 @@
 import Fastify from "fastify";
 import { resolve } from "node:path";
-import { createPlatformRuntime } from "@codexsun/platform-core";
+import { createPlatformRuntime, readApplicationDeployableProfile } from "@codexsun/platform-core";
 import { readConfig } from "./config.js";
 import { DocsCatalogProvider } from "./modules/catalog/provider.js";
 import { registerDocsHealthRoute } from "./modules/catalog/routes/docs-health-route.js";
 
 const config = readConfig();
-const runtime = createPlatformRuntime({ id: "docs.local", enabledProviderIds: ["platform.core", "docs.catalog"] }, [
-  new DocsCatalogProvider({
-    indexPath: resolve(process.cwd(), config.DOCS_INDEX_PATH),
-    repositoryRoot: resolve(process.cwd(), "../../.."),
-  }),
-]);
+const catalogProvider = new DocsCatalogProvider({
+  indexPath: resolve(process.cwd(), config.DOCS_INDEX_PATH),
+  repositoryRoot: resolve(process.cwd(), "../../.."),
+});
+const runtime = createPlatformRuntime(
+  readApplicationDeployableProfile({ applicationId: "docs", availableProviderIds: ["platform.core", catalogProvider.manifest.id] }),
+  [catalogProvider],
+);
 
 runtime.start();
 const app = Fastify({ logger: true });

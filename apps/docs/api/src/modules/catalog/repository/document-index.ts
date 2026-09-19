@@ -10,6 +10,13 @@ export interface IndexSyncResult {
   readonly removed: number;
   readonly unchanged: number;
 }
+
+type IndexedDocumentRow = {
+  path: string;
+  source_mtime_ms: number;
+  source_size: number;
+};
+
 export class DocumentIndex {
   private readonly database: DatabaseSync;
   constructor(indexPath: string) {
@@ -18,16 +25,12 @@ export class DocumentIndex {
     applyDocsIndexMigration(this.database);
   }
   sync(documents: readonly DiscoveredDocument[]): IndexSyncResult {
-    const existing = new Map(
-      this.database
-        .prepare("SELECT path, source_mtime_ms, source_size FROM docs_documents")
-        .all()
-        .map((row: any) => [row.path, row]),
-    );
+    const rows = this.database.prepare("SELECT path, source_mtime_ms, source_size FROM docs_documents").all() as unknown as IndexedDocumentRow[];
+    const existing = new Map(rows.map((row) => [row.path, row]));
     let changed = 0;
     let unchanged = 0;
     for (const document of documents) {
-      const stored: any = existing.get(document.path);
+      const stored = existing.get(document.path);
       if (stored && stored.source_mtime_ms === document.sourceMtimeMs && stored.source_size === document.sourceSize)
         unchanged++;
       else {

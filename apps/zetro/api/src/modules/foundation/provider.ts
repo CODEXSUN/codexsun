@@ -4,7 +4,7 @@ export class ZetroFoundationProvider implements ModuleProvider {
   readonly manifest = {
     id: "zetro.foundation",
     owner: "apps/zetro/api/modules/foundation",
-    version: "1.0.9",
+    version: "1.0.22",
     dependencies: ["platform.core"],
     contracts: ["zetro.health"],
     events: { published: [], consumed: [] },

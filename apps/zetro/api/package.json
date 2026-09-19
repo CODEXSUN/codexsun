@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/zetro-api",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/zetro/api/server.js",
     "check": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
-    "test": "tsx --test src/modules/foundation/test/foundation-provider.test.ts src/modules/foundation/test/zetro-health-route.test.ts src/modules/storage/test/zetro-sqlite-readiness.test.ts src/modules/chat/test/chat-store.test.ts"
+    "test": "tsx --test src/test/config.test.ts src/modules/foundation/test/foundation-provider.test.ts src/modules/foundation/test/zetro-health-route.test.ts src/modules/storage/test/zetro-sqlite-readiness.test.ts src/modules/chat/test/chat-store.test.ts src/modules/chat/test/chat-attachment-store.test.ts src/modules/brief/test/brief-service.test.ts src/modules/task/test/task-service.test.ts"
   },
   "dependencies": {
     "@codexsun/framework": "file:../../../packages/framework",

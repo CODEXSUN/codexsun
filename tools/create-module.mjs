@@ -59,7 +59,7 @@ function writeFile(modulePath, file, content) {
 
 function providerSource(moduleName, moduleId, owner) {
   const className = `${moduleName.split("-").map(capitalize).join("")}ModuleProvider`;
-  return `import { type ModuleProvider, type ProviderRegistrationContext } from "@codexsun/framework";\n\nexport class ${className} implements ModuleProvider {\n  readonly manifest = {\n    id: "${moduleId}",\n    owner: "${owner}/modules/${moduleName}",\n    version: "0.1.0",\n    dependencies: [],\n    contracts: [],\n  };\n\n  register(_context: ProviderRegistrationContext): void {}\n}\n`;
+  return `import { type ModuleProvider, type ProviderRegistrationContext } from "@codexsun/framework";\n\nexport class ${className} implements ModuleProvider {\n  readonly manifest = {\n    id: "${moduleId}",\n    owner: "${owner}/modules/${moduleName}",\n    version: "0.1.0",\n    dependencies: [],\n    contracts: [],\n    events: { published: [], consumed: [] },\n  };\n\n  register(_context: ProviderRegistrationContext): void {}\n}\n`;
 }
 
 function readmeSource(moduleName, moduleId, owner) {

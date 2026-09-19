@@ -11,6 +11,8 @@ import { StorageProvider } from "./storage-provider.js";
 export { createPlatformRuntime, PlatformRuntime, PlatformRuntimeRegistry } from "./runtime-registry.js";
 export { ModuleEnablementPolicy } from "./module-enablement-policy.js";
 export type { DeployableProfile } from "./module-enablement-policy.js";
+export { readApplicationDeployableProfile } from "./deployment-profile.js";
+export type { ApplicationProfileOptions } from "./deployment-profile.js";
 export { KyselyDataProvider } from "./kysely-data-provider.js";
 export type { KyselyTransactionWork } from "./kysely-data-provider.js";
 export { createSqliteDataProvider } from "./sqlite-data-provider.js";

@@ -10,8 +10,8 @@ Read `planning.md` before work starts.
   - Delivered: public chat contracts, provider-owned private SQLite history,
     conversation routes, a local read-only ephemeral Codex CLI runner, MDI chat
     workspace, and history side menu.
-  - Exclusions: device-code login, credential access, final brief persistence,
-    worker dispatch, repository commands, and task creation.
+  - Exclusions: final brief persistence, worker dispatch, repository commands,
+    and task creation.
   - Data impact: private SQLite stores conversation metadata and messages only.
     Authentication material is not stored.
   - Acceptance criteria:
@@ -20,18 +20,34 @@ Read `planning.md` before work starts.
     3. A message is passed to the existing local Codex CLI with read-only and
        ephemeral execution options; its response or failure is saved to history.
     4. The history and composer are keyboard-accessible.
-  - Verification: API and web type checks; four API tests; web health test;
+  - Verification: API and web type checks; seven API tests; web health test;
     live API create/read verification; and browser-visible verification at
     `http://127.0.0.1:6131/`.
 
 ## Queued Execution
 
-- [ ] Z-1204: Local Codex Connection Status and Device-Code Boundary
-  - Requires a reviewed adapter contract, secret-redaction policy, explicit
-    local-runtime ownership, and an operator-approved device-code flow.
+- [x] Z-1204: Local Codex Connection Status and Device-Code Boundary
+  - Status: complete on 2026-09-19.
+  - Owner: `apps/zetro/api/modules/chat` and `packages/ui` connection blocks.
+  - Delivered: local CLI status, active model and reasoning settings, a
+    reconnect action, and transient App Server device-code authentication.
+  - Boundary: the API returns a code and verification URL only while the
+    process holds an active request. It does not persist these values in
+    SQLite, storage, chat history, or logs.
+  - Verification: Zetro API type, lint, and test checks. Live local CLI status
+    and runtime endpoint checks passed on 2026-09-19.
 
-- [ ] Z-1205: Final Brief and Handover Records
-  - Requires module-owned lifecycle records, handover contract, and tests.
+- [x] Z-1205: Final Brief and Handover Records
+  - Status: complete on 2026-09-19.
+  - Owners: `apps/zetro/api/modules/brief`,
+    `apps/zetro/api/modules/task`, and the shared UI handover workspace.
+  - Delivered: persisted idea stages, editable final briefs, selected source
+    response UUIDs, project or all-projects scope, and prepared task records.
+  - Boundary: a task must use a finalized brief and retain its project scope.
+    It does not create a worktree, run an agent, or modify a repository.
+  - Verification: contract, UI, API, and web type checks passed. Ten Zetro API
+    tests passed. Live verification created a final brief with one source UUID
+    and a prepared task scoped to `codexsun`.
 
 ## Completion Rule
 

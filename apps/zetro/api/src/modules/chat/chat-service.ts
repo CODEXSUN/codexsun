@@ -1,25 +1,26 @@
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { createInterface } from "node:readline";
-import type { ZetroChatAttachment, ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatRuntimeSelection, ZetroChatStreamEvent, ZetroCodexDeviceCode } from "@codexsun/zetro-contracts";
+import type { ZetroChatAttachment, ZetroChatConversation, ZetroChatConversationView, ZetroChatRuntime, ZetroChatRuntimeSelection, ZetroChatStreamEvent, ZetroCodexDeviceCode } from "@codexsun/zetro-contracts";
 import { ChatStore } from "./chat-store.js";
+import { ChatAttachmentStore } from "./chat-attachment-store.js";
 import { CodexDeviceCode } from "./codex-device-code.js";
 
 export class ChatService {
   private readonly deviceCode = new CodexDeviceCode();
-  constructor(private readonly store: ChatStore) {}
+  constructor(private readonly store: ChatStore, private readonly attachments: ChatAttachmentStore) {}
 
   createConversation(title = "New idea"): ZetroChatConversation {
     return this.store.createConversation(title);
   }
 
-  listConversations(): ZetroChatConversation[] {
-    return this.store.listConversations();
+  listConversations(archived = false): ZetroChatConversation[] {
+    return this.store.listConversations(archived);
   }
 
-  updateConversation(id: string, update: { pinned?: boolean; title?: string }): ZetroChatConversation | undefined {
+  updateConversation(id: string, update: { archived?: boolean; pinned?: boolean; stage?: ZetroChatConversation["stage"]; title?: string }): ZetroChatConversation | undefined {
     return this.store.updateConversation(id, update);
   }
 
@@ -27,7 +28,7 @@ export class ChatService {
     return this.store.deleteConversation(id);
   }
 
-  getConversation(id: string): ChatConversation | undefined {
+  getConversation(id: string): ZetroChatConversationView | undefined {
     const conversation = this.store.getConversation(id);
     return conversation ? { conversation, messages: this.store.listMessages(id) } : undefined;
   }
@@ -60,7 +61,7 @@ export class ChatService {
     return this.deviceCode.status();
   }
 
-  async sendMessage(conversationId: string, content: string, runtime?: ZetroChatRuntimeSelection): Promise<ChatConversation> {
+  async sendMessage(conversationId: string, content: string, runtime?: ZetroChatRuntimeSelection): Promise<ZetroChatConversationView> {
     if (!this.store.getConversation(conversationId)) throw new ConversationNotFoundError();
     this.store.addMessage(conversationId, "user", content);
 
@@ -75,13 +76,13 @@ export class ChatService {
     return result;
   }
 
-  async streamMessage(conversationId: string, content: string, publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection, attachments: ZetroChatAttachment[] = []): Promise<ChatConversation> {
+  async streamMessage(conversationId: string, content: string, publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection, attachments: ZetroChatAttachment[] = []): Promise<ZetroChatConversationView> {
     if (!this.store.getConversation(conversationId)) throw new ConversationNotFoundError();
     this.store.addMessage(conversationId, "user", content);
 
     try {
       publish({ type: "processing", message: runtimeLabel(runtime) });
-      const response = await runWithAttachments(this.transcript(conversationId), attachments, publish, signal, runtime);
+      const response = await this.runWithAttachments(this.transcript(conversationId), attachments, publish, signal, runtime);
       this.store.addMessage(conversationId, "assistant", response);
       publish({ type: "complete", message: "Codex response saved to this conversation." });
     } catch (error) {
@@ -104,29 +105,17 @@ export class ChatService {
     const conversation = this.store.listMessages(conversationId).map((message) => `${message.role}: ${message.content}`).join("\n\n");
     return `Use the $zetro-idea-workshop skill. You are Zetro, a concise collaborative idea partner. Stay in the idea stage. Do not create tasks, plans, worktrees, code changes, commands, or approvals. Help the user explore, revise, compare, and finish an idea.\n\n${conversation}`;
   }
-}
 
-async function runWithAttachments(prompt: string, attachments: ZetroChatAttachment[], publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection): Promise<string> {
-  if (!attachments.length) return runLocalCodexStream(prompt, publish, signal, runtime);
-  const directory = mkdtempSync(join(homedir(), ".codex", "zetro-attachments-"));
-  try {
-    const images: string[] = [];
-    const text: string[] = [];
-    for (const attachment of attachments) {
-      const path = join(directory, basename(attachment.name));
-      const data = Buffer.from(attachment.content, "base64");
-      writeFileSync(path, data);
-      if (attachment.type.startsWith("image/")) images.push(path);
-      else if (attachment.type.startsWith("text/") || attachment.type === "application/json") text.push(`Attachment ${attachment.name}:\n${data.toString("utf8")}`);
-      else text.push(`Attachment ${attachment.name} was supplied as ${attachment.type}.`);
+  private async runWithAttachments(prompt: string, attachments: ZetroChatAttachment[], publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection): Promise<string> {
+    if (!attachments.length) return runLocalCodexStream(prompt, publish, signal, runtime);
+    const materialized = await this.attachments.materialize(attachments);
+    try {
+      return runLocalCodexStream([prompt, ...materialized.promptContext].join("\n\n"), publish, signal, runtime, materialized.images);
+    } finally {
+      await materialized.dispose();
     }
-    return runLocalCodexStream([prompt, ...text].join("\n\n"), publish, signal, runtime, images);
-  } finally {
-    rmSync(directory, { force: true, recursive: true });
   }
 }
-
-export type ChatConversation = { conversation: ZetroChatConversation; messages: ZetroChatMessage[] };
 
 export class ConversationNotFoundError extends Error {
   constructor() {

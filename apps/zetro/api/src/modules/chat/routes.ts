@@ -31,8 +31,8 @@ export async function registerChatRoutes(app: FastifyInstance, service: ChatServ
     zetroCodexDeviceCodeResponseSchema.parse({ data: await service.generateDeviceCode(), version: zetroApiVersion }),
   );
 
-  app.get("/api/zetro/v1/chat/conversations", async () =>
-    zetroChatConversationListResponseSchema.parse({ data: { conversations: service.listConversations() }, version: zetroApiVersion }),
+  app.get<{ Querystring: { archived?: string } }>("/api/zetro/v1/chat/conversations", async (request) =>
+    zetroChatConversationListResponseSchema.parse({ data: { conversations: service.listConversations(request.query.archived === "true") }, version: zetroApiVersion }),
   );
 
   app.post("/api/zetro/v1/chat/conversations", async (request) => {

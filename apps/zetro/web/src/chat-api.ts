@@ -8,17 +8,24 @@ import {
   type ZetroChatRuntimeSelection,
   type ZetroChatAttachment,
   zetroChatStreamEventSchema,
+  zetroIdeaBriefResponseSchema,
+  zetroAgentTaskResponseSchema,
+  zetroAgentTaskListResponseSchema,
   zetroChatRuntimeResponseSchema,
   zetroCodexDeviceCodeResponseSchema,
   type ZetroChatStreamEvent,
+  type ZetroAgentTask,
+  type ZetroCreateAgentTask,
+  type ZetroIdeaBrief,
+  type ZetroUpsertIdeaBrief,
 } from "@codexsun/zetro-contracts";
 
 const chatUrl = "/api/zetro/v1/chat";
 const conversationUrl = `${chatUrl}/conversations`;
 export type ConversationView = { conversation: ZetroChatConversation; messages: ZetroChatMessage[] };
 
-export async function listConversations(): Promise<ZetroChatConversation[]> {
-  const response = await fetch(conversationUrl);
+export async function listConversations(archived = false): Promise<ZetroChatConversation[]> {
+  const response = await fetch(archived ? `${conversationUrl}?archived=true` : conversationUrl);
   return zetroChatConversationListResponseSchema.parse(await read(response)).data.conversations;
 }
 
@@ -31,8 +38,30 @@ export async function getConversation(id: string): Promise<ConversationView> {
   return zetroChatConversationResponseSchema.parse(await read(await fetch(`${conversationUrl}/${id}`))).data;
 }
 
-export async function updateConversation(id: string, update: Pick<ZetroChatConversation, "pinned" | "title">): Promise<ConversationView> {
+export async function updateConversation(id: string, update: Partial<Pick<ZetroChatConversation, "archived" | "pinned" | "stage" | "title">>): Promise<ConversationView> {
   return zetroChatConversationResponseSchema.parse(await read(await fetch(`${conversationUrl}/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(update) }))).data;
+}
+
+export async function getIdeaBrief(conversationId: string): Promise<ZetroIdeaBrief | undefined> {
+  const response = await fetch(`/api/zetro/v1/conversations/${conversationId}/brief`);
+  return zetroIdeaBriefResponseSchema.parse(await read(response)).data.brief ?? undefined;
+}
+
+export async function saveIdeaBrief(conversationId: string, brief: ZetroUpsertIdeaBrief): Promise<ZetroIdeaBrief> {
+  const response = await fetch(`/api/zetro/v1/conversations/${conversationId}/brief`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(brief) });
+  const saved = zetroIdeaBriefResponseSchema.parse(await read(response)).data.brief;
+  if (!saved) throw new Error("Zetro did not save the final brief.");
+  return saved;
+}
+
+export async function createAgentTask(input: ZetroCreateAgentTask): Promise<ZetroAgentTask> {
+  const response = await fetch("/api/zetro/v1/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+  return zetroAgentTaskResponseSchema.parse(await read(response)).data.task;
+}
+
+export async function listAgentTasks(): Promise<ZetroAgentTask[]> {
+  const response = await fetch("/api/zetro/v1/tasks");
+  return zetroAgentTaskListResponseSchema.parse(await read(response)).data.tasks;
 }
 
 export async function deleteConversation(id: string): Promise<void> {

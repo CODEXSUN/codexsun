@@ -24,7 +24,16 @@ export class DocsLibraryService {
 
   public async listDocuments(): Promise<DocumentSummary[]> {
     const documents = await this.vault.list();
-    return documents.map(({ source, sourceHash, ...summary }) => summary);
+    return documents.map((document) => ({
+      aliases: document.aliases,
+      description: document.description,
+      links: document.links,
+      path: document.path,
+      slug: document.slug,
+      tags: document.tags,
+      title: document.title,
+      updatedAt: document.updatedAt,
+    }));
   }
 
   public getAsset(assetPath: string) {

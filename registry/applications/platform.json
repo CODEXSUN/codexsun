@@ -1,0 +1,15 @@
+{
+  "kind": "application",
+  "schemaVersion": 1,
+  "id": "platform",
+  "label": "Platform",
+  "taskPrefix": "p",
+  "mdi": { "icon": "platform", "localUrlKey": "VITE_PLATFORM_WEB_URL", "path": "/system" },
+  "providers": ["platform.core", "platform.logger", "platform.identity", "platform.operations", "platform.settings", "platform.system"],
+  "hosts": [
+    { "kind": "api", "target": "platform-api", "displayName": "Platform API", "environmentDirectory": "api", "envKey": "PLATFORM_API_PORT", "workspace": "@codexsun/platform-api" },
+    { "kind": "web", "target": "platform-web", "displayName": "Platform web", "environmentDirectory": "web", "envKey": "PLATFORM_WEB_PORT", "workspace": "@codexsun/platform-web" },
+    { "kind": "desktop", "target": "platform-desktop", "displayName": "Platform desktop", "environmentDirectory": "desktop", "envKey": "PLATFORM_DESKTOP_PORT", "workspace": "@codexsun/platform-desktop" },
+    { "kind": "mobile", "target": "platform-mobile", "displayName": "Platform mobile", "environmentDirectory": "mobile", "envKey": "PLATFORM_MOBILE_PORT", "workspace": "@codexsun/platform-mobile" }
+  ]
+}

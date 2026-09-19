@@ -4,6 +4,8 @@ import { ChatRuntimeControls } from "@codexsun/ui/blocks/chat-runtime-controls";
 import { ChatRuntimeTrace } from "@codexsun/ui/blocks/chat-runtime-trace";
 import { CodexConnectionSettings } from "@codexsun/ui/blocks/codex-connection-settings";
 import { HandoverStack } from "@codexsun/ui/blocks/handover-stack";
+import { IdeaHandoverWorkspace, type IdeaBriefDraft, type IdeaHandoverTask } from "@codexsun/ui/blocks/idea-handover";
+import { AgentTaskWorkspace } from "@codexsun/ui/blocks/agent-task-workspace";
 import { ChatDateDivider, ChatResponseProgress, ChatTurnDivider } from "@codexsun/ui/blocks/chat-response-progress";
 import { ChatComposer, type ChatComposerAttachment } from "@codexsun/ui/blocks/chat-composer";
 import { ChatHistory } from "@codexsun/ui/blocks/chat-history";
@@ -12,10 +14,10 @@ import { MarkdownContent } from "@codexsun/ui/components/markdown-content";
 import { MessageScroller, MessageScrollerButton, MessageScrollerViewport } from "@codexsun/ui/components/message-scroller";
 import { TopologyRegion } from "@codexsun/ui/features/interface-topology";
 import { useMdiTopology } from "@codexsun/ui/layouts/mdi-main";
-import type { ZetroChatAttachment, ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatStreamEvent, ZetroCodexDeviceCode } from "@codexsun/zetro-contracts";
+import type { ZetroAgentTask, ZetroChatAttachment, ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatStreamEvent, ZetroCodexDeviceCode, ZetroIdeaBrief } from "@codexsun/zetro-contracts";
 import type { InterfaceTopologySection } from "@codexsun/ui/features/interface-topology";
-import { BotIcon, ClockIcon, CopyIcon, FileTextIcon, Layers3Icon, LightbulbIcon, MessageSquareIcon, PanelsTopLeftIcon, RotateCcwIcon, SettingsIcon, Share2Icon } from "lucide-react";
-import { createConversation, deleteConversation as deleteStoredConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, listConversations, streamMessage, updateChatRuntime, updateConversation as updateStoredConversation } from "./chat-api.js";
+import { ArchiveIcon, BotIcon, ClockIcon, CopyIcon, FileTextIcon, Layers3Icon, ListTodoIcon, MessageSquareIcon, PanelsTopLeftIcon, RotateCcwIcon, SettingsIcon, Share2Icon } from "lucide-react";
+import { createAgentTask, createConversation, deleteConversation as deleteStoredConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, getIdeaBrief, listAgentTasks, listConversations, saveIdeaBrief, streamMessage, updateChatRuntime, updateConversation as updateStoredConversation } from "./chat-api.js";
 
 type VoiceRecognizer = {
   continuous: boolean;
@@ -47,6 +49,8 @@ const zetroTopologySections: readonly InterfaceTopologySection[] = [
   { id: "z02.3", technicalName: "zetro.chat.composer", name: "Chat composer", scope: "Idea conversation", description: "Writes and sends a new idea message." },
   { id: "z02.3.1", technicalName: "zetro.chat.promptInput", name: "Prompt input", scope: "Chat composer", description: "Accepts a full-width idea prompt." },
   { id: "z02.3.2", technicalName: "zetro.chat.sendButton", name: "Send message", scope: "Chat composer", description: "Sends the prompt to the live, read-only local Codex session." },
+  { id: "z03", technicalName: "zetro.tasks.workspace", name: "Agent tasks", scope: "Zetro workspace", description: "Lists prepared handovers with their final brief and referred project." },
+  { id: "z04", technicalName: "zetro.history.archive", name: "Archived handovers", scope: "Conversation history", description: "Keeps handed-over conversations available after archive without deleting their messages." },
 ];
 
 const disconnectedRuntime: ZetroChatRuntime = {
@@ -65,6 +69,9 @@ const idleDeviceCode: ZetroCodexDeviceCode = { status: "idle", message: "Generat
 
 export function App() {
   const [conversations, setConversations] = useState<ZetroChatConversation[]>([]);
+  const [archivedConversations, setArchivedConversations] = useState<ZetroChatConversation[]>([]);
+  const [historyMode, setHistoryMode] = useState<"active" | "archived">("active");
+  const [workspaceView, setWorkspaceView] = useState<"chat" | "tasks">("chat");
   const [conversation, setConversation] = useState<ZetroChatConversation>();
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<ChatComposerAttachment[]>([]);
@@ -83,6 +90,12 @@ export function App() {
   const [deviceCode, setDeviceCode] = useState<ZetroCodexDeviceCode>(idleDeviceCode);
   const [handoverStackOpen, setHandoverStackOpen] = useState(false);
   const [handoverMessageIds, setHandoverMessageIds] = useState<string[]>([]);
+  const [briefOpen, setBriefOpen] = useState(false);
+  const [brief, setBrief] = useState<IdeaBriefDraft>(emptyBrief());
+  const [agentTask, setAgentTask] = useState<IdeaHandoverTask>();
+  const [agentTasks, setAgentTasks] = useState<ZetroAgentTask[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string>();
+  const [isSavingBrief, setIsSavingBrief] = useState(false);
   const isLoading = isStreaming;
 
   useEffect(() => {
@@ -94,6 +107,7 @@ export function App() {
 
   useEffect(() => {
     void listConversations().then(setConversations).catch((error: unknown) => setExecutionEvents([{ type: "error", message: error instanceof Error ? error.message : "Zetro API is unavailable." }]));
+    void listAgentTasks().then(setAgentTasks).catch(() => undefined);
     void refreshRuntime();
   }, []);
 
@@ -110,20 +124,23 @@ export function App() {
   }, [isLoading, steerQueue]);
 
   const history = useMemo(() => (
-    <ZetroHistory activeConversationId={conversation?.id} conversations={conversations} onCreate={startConversation} onDelete={deleteConversation} onRename={renameConversation} onSelect={selectConversation} onTogglePin={toggleConversationPin} />
-  ), [conversation?.id, conversations]);
+    <ZetroHistory activeConversationId={conversation?.id} archived={historyMode === "archived"} conversations={historyMode === "archived" ? archivedConversations : conversations} onArchive={archiveConversation} onCreate={startConversation} onDelete={deleteConversation} onRename={renameConversation} onSelect={selectConversation} onTogglePin={toggleConversationPin} />
+  ), [archivedConversations, conversation?.id, conversations, historyMode]);
 
   function selectConversation(id: string): void {
-    const selected = conversations.find((item) => item.id === id);
+    const selected = [...conversations, ...archivedConversations].find((item) => item.id === id);
     if (!selected) return;
     if (activeConversationIdRef.current) setMessagesByConversation((items) => ({ ...items, [activeConversationIdRef.current!]: messages }));
     activeConversationIdRef.current = selected.id;
     setConversation(selected);
     void getConversation(selected.id).then((view) => setMessages(view.messages)).catch(() => setMessages(messagesByConversation[selected.id] ?? []));
+    void loadBrief(selected.id);
     setSteerQueue([]);
   }
 
   async function startConversation(): Promise<void> {
+    setWorkspaceView("chat");
+    setHistoryMode("active");
     const { conversation: nextConversation } = await createConversation();
     setConversations((items) => [nextConversation, ...items]);
     activeConversationIdRef.current = nextConversation.id;
@@ -133,6 +150,8 @@ export function App() {
     setMessages([]);
     setSteerQueue([]);
     setAttachments([]);
+    setBrief(emptyBrief());
+    setAgentTask(undefined);
   }
 
   async function submit(): Promise<void> {
@@ -202,6 +221,104 @@ export function App() {
       setConversation(undefined);
       setMessages([]);
       setHandoverMessageIds([]);
+    }
+  }
+
+  async function archiveConversation(id: string): Promise<void> {
+    const current = conversations.find((item) => item.id === id);
+    if (!current || isStreaming) return;
+    const { conversation: archived } = await updateStoredConversation(id, { archived: true });
+    setConversations((items) => items.filter((item) => item.id !== id));
+    setArchivedConversations((items) => [archived, ...items.filter((item) => item.id !== id)]);
+    if (activeConversationIdRef.current === id) {
+      activeConversationIdRef.current = undefined;
+      setConversation(undefined);
+      setMessages([]);
+      setHandoverMessageIds([]);
+      setBriefOpen(false);
+      setHistoryMode("archived");
+    }
+  }
+
+  async function openTasks(): Promise<void> {
+    setWorkspaceView("tasks");
+    setBriefOpen(false);
+    const tasks = await listAgentTasks();
+    setAgentTasks(tasks);
+    setSelectedTaskId((id) => id ?? tasks[0]?.id);
+  }
+
+  async function showArchivedConversations(): Promise<void> {
+    setWorkspaceView("chat");
+    setBriefOpen(false);
+    setHistoryMode("archived");
+    setArchivedConversations(await listConversations(true));
+  }
+
+  function showActiveConversations(): void {
+    setWorkspaceView("chat");
+    setHistoryMode("active");
+  }
+
+  async function loadBrief(conversationId: string): Promise<ZetroIdeaBrief | undefined> {
+    try {
+      const storedBrief = await getIdeaBrief(conversationId);
+      setBrief(storedBrief ? toBriefDraft(storedBrief) : emptyBrief());
+      try {
+        const tasks = await listAgentTasks();
+        setAgentTask(storedBrief ? tasks.find((task) => task.briefId === storedBrief.id) : undefined);
+      } catch {
+        setAgentTask(undefined);
+      }
+      return storedBrief;
+    } catch {
+      setBrief(emptyBrief());
+      setAgentTask(undefined);
+      return undefined;
+    }
+  }
+
+  async function openBrief(): Promise<void> {
+    if (!conversation) return;
+    const storedBrief = await loadBrief(conversation.id);
+    if (!storedBrief) setBrief({ ...emptyBrief(), sourceMessageIds: handoverMessageIds });
+    setBriefOpen(true);
+  }
+
+  async function saveBrief(status: "draft" | "final"): Promise<void> {
+    if (!conversation) return;
+    setIsSavingBrief(true);
+    try {
+      const saved = await saveIdeaBrief(conversation.id, { ...brief, status });
+      setBrief(toBriefDraft(saved));
+      if (status === "final") {
+        const { conversation: updated } = await updateStoredConversation(conversation.id, { stage: "final" });
+        setConversation(updated);
+        setConversations((items) => items.map((item) => item.id === updated.id ? updated : item));
+      }
+    } finally {
+      setIsSavingBrief(false);
+    }
+  }
+
+  async function changeIdeaStage(stage: ZetroChatConversation["stage"]): Promise<void> {
+    if (!conversation) return;
+    const { conversation: updated } = await updateStoredConversation(conversation.id, { stage });
+    setConversation(updated);
+    setConversations((items) => items.map((item) => item.id === updated.id ? updated : item));
+  }
+
+  async function handOverToAgentTask(): Promise<void> {
+    if (!conversation || brief.status !== "final") return;
+    setIsSavingBrief(true);
+    try {
+      const saved = await saveIdeaBrief(conversation.id, brief);
+      const task = await createAgentTask({ briefId: saved.id, projectReference: saved.projectReference, projectScope: saved.projectScope, summary: saved.outcome, title: saved.title });
+      setAgentTask(task);
+      setAgentTasks((items) => [task, ...items.filter((item) => item.id !== task.id)]);
+      setSelectedTaskId(task.id);
+    } finally {
+      setIsSavingBrief(false);
     }
   }
 
@@ -356,15 +473,16 @@ export function App() {
       agentWorkspace={{
         primaryRail: {
           items: [
-            { active: true, icon: MessageSquareIcon, id: "chat", label: "Conversation" },
-            { icon: LightbulbIcon, id: "ideas", label: "Ideas" },
+            { active: workspaceView === "chat" && historyMode === "active", icon: MessageSquareIcon, id: "chat", label: "Conversation", onSelect: showActiveConversations },
+            { active: workspaceView === "tasks", icon: ListTodoIcon, id: "tasks", label: "Tasks", onSelect: () => void openTasks() },
           ],
           label: "Agent tools",
         },
         secondaryRail: {
           items: [
             { active: settingsOpen, icon: SettingsIcon, id: "settings", label: "Settings", onSelect: () => setSettingsOpen(true) },
-            { icon: FileTextIcon, id: "brief", label: "Brief" },
+            { active: briefOpen, icon: FileTextIcon, id: "brief", label: "Brief", onSelect: openBrief },
+            { active: historyMode === "archived", icon: ArchiveIcon, id: "archive", label: "Archive", onSelect: () => void showArchivedConversations() },
           ],
           label: "Agent utilities",
         },
@@ -381,14 +499,14 @@ export function App() {
       ]}
       primaryAction={{ label: "New conversation", onSelect: startConversation }}
       sidebarContent={history}
-      sidebarFooter={<p className="px-2 text-xs text-muted-foreground">{isLoading ? `Working for ${elapsedSeconds}s` : steerQueue.length ? `${steerQueue.length} steer queued` : "Frontend idea workspace"}</p>}
+      sidebarFooter={<p className="px-2 text-xs text-muted-foreground">{isLoading ? `Working for ${elapsedSeconds}s` : steerQueue.length ? `${steerQueue.length} steer queued` : "Zetro workspace"}</p>}
       sidebarStateKey="codexsun.zetro.sidebar"
       statusLabel="Ready"
       showMdiOverview
       topologySections={zetroTopologySections}
-      workspaceTitle="Idea workspace"
+      workspaceTitle="Zetro workspace"
     >
-      <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRemoveAttachment={removeAttachment} onRuntimeChange={updateRuntimeSelection} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />
+      {workspaceView === "tasks" ? <AgentTaskWorkspace selectedTaskId={selectedTaskId} tasks={agentTasks} onBack={showActiveConversations} onSelectTask={setSelectedTaskId} /> : briefOpen ? <IdeaHandoverWorkspace brief={brief} currentStage={conversation?.stage ?? "explore"} saving={isSavingBrief} sources={messages.filter((message) => message.role === "assistant" && message.content).map((message) => ({ content: message.content, id: message.id }))} task={agentTask} onArchiveConversation={conversation && agentTask ? () => void archiveConversation(conversation.id) : undefined} onBack={() => setBriefOpen(false)} onBriefChange={setBrief} onCreateTask={handOverToAgentTask} onSaveBrief={saveBrief} onStageChange={changeIdeaStage} /> : <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRemoveAttachment={removeAttachment} onRuntimeChange={updateRuntimeSelection} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />}
       <CodexConnectionSettings connected={runtime.connected} deviceCode={deviceCode} message={runtime.message} open={settingsOpen} onConnectLocal={recheckLocalCodex} onCopyCode={copyDeviceCode} onCopyUrl={copyDeviceUrl} onGenerateDeviceCode={generateDeviceCode} onOpenBrowser={openDeviceBrowser} onOpenChange={setSettingsOpen} />
       <HandoverStack items={handoverItems} open={handoverStackOpen} working={isLoading} onConsolidate={consolidateHandover} onOpenChange={setHandoverStackOpen} onRemove={toggleHandoverMessage} />
     </MainWorkspace>
@@ -405,9 +523,9 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(value);
 }
 
-function ZetroHistory({ activeConversationId, conversations, onCreate, onDelete, onRename, onSelect, onTogglePin }: { activeConversationId?: string; conversations: ZetroChatConversation[]; onCreate: () => void; onDelete: (id: string) => void; onRename: (id: string) => void; onSelect: (id: string) => void; onTogglePin: (id: string) => void }) {
+function ZetroHistory({ activeConversationId, archived, conversations, onArchive, onCreate, onDelete, onRename, onSelect, onTogglePin }: { activeConversationId?: string; archived: boolean; conversations: ZetroChatConversation[]; onArchive: (id: string) => void; onCreate: () => void; onDelete: (id: string) => void; onRename: (id: string) => void; onSelect: (id: string) => void; onTogglePin: (id: string) => void }) {
   const topology = useMdiTopology();
-  return <TopologyRegion as="div" className="flex min-h-0 flex-1" id="z01" topology={topology}><ChatHistory activeId={activeConversationId} items={conversations.map((item) => ({ id: item.id, pinned: item.pinned, title: item.title }))} onCreate={onCreate} onDelete={onDelete} onPin={onTogglePin} onRename={onRename} onSelect={onSelect} /></TopologyRegion>;
+  return <TopologyRegion as="div" className="flex min-h-0 flex-1" id="z01" topology={topology}><ChatHistory activeId={activeConversationId} emptyLabel={archived ? "No archived handovers" : "No conversations yet"} items={conversations.map((item) => ({ id: item.id, pinned: item.pinned, title: item.title }))} onArchive={archived ? undefined : onArchive} onCreate={onCreate} onDelete={onDelete} onPin={onTogglePin} onRename={onRename} onSelect={onSelect} /></TopologyRegion>;
 }
 
 function ZetroWorkspace({ attachments, conversation, draft, elapsedSeconds, executionEvents, handoverCount, isRecording, isWorking, messages, queuedSteerCount, runtime, onAddAttachments, onDraftChange, onOpenHandoverStack, onReconnect, onRemoveAttachment, onRuntimeChange, onSteer, onStop, onSubmit, onToggleHandover, onVoiceToggle, selectedHandoverMessageIds }: { attachments: ChatComposerAttachment[]; conversation?: ZetroChatConversation; draft: string; elapsedSeconds: number; executionEvents: ZetroChatStreamEvent[]; handoverCount: number; isRecording: boolean; isWorking: boolean; messages: ZetroChatMessage[]; queuedSteerCount: number; runtime: ZetroChatRuntime; onAddAttachments: (files: File[]) => void; onDraftChange: (value: string) => void; onOpenHandoverStack: () => void; onReconnect: () => void; onRemoveAttachment: (id: string) => void; onRuntimeChange: (runtime: ZetroChatRuntime) => void; onSteer: () => void; onStop: () => void; onSubmit: () => void; onToggleHandover: (id: string) => void; onVoiceToggle: () => void; selectedHandoverMessageIds: string[] }) {
@@ -456,4 +574,12 @@ function formatDateBadge(timestamp: string): string {
 
 function formatMessageTime(timestamp: string): string {
   return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(timestamp));
+}
+
+function emptyBrief(): IdeaBriefDraft {
+  return { audience: "", constraints: "", exclusions: "", outcome: "", projectReference: null, projectScope: "all-projects", risks: "", scope: "", sourceMessageIds: [], status: "draft", successSignals: "", title: "" };
+}
+
+function toBriefDraft(value: ZetroIdeaBrief): IdeaBriefDraft {
+  return { audience: value.audience, constraints: value.constraints, exclusions: value.exclusions, outcome: value.outcome, projectReference: value.projectReference, projectScope: value.projectScope, risks: value.risks, scope: value.scope, sourceMessageIds: value.sourceMessageIds, status: value.status, successSignals: value.successSignals, title: value.title };
 }

@@ -7,7 +7,7 @@ export class ZetroStorageProvider implements ModuleProvider {
   readonly manifest = {
     id: "zetro.storage",
     owner: "apps/zetro/api/modules/storage",
-    version: "1.0.9",
+    version: "1.0.22",
     dependencies: ["platform.core"],
     contracts: ["zetro.sqlite"],
     events: { published: [], consumed: [] },

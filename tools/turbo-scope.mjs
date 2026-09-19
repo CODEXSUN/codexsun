@@ -1,28 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { getScopeWorkspaces } from "../packages/app-cli/src/registry.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 
-export const scopeWorkspaces = {
-  platform: [
-    "@codexsun/platform-api",
-    "@codexsun/platform-web",
-    "@codexsun/platform-desktop",
-    "@codexsun/platform-mobile",
-  ],
-  docs: ["@codexsun/docs-api", "@codexsun/docs-web"],
-  zetro: ["@codexsun/zetro-api", "@codexsun/zetro-web"],
-  uiux: ["@codexsun/uiux-web"],
-  packages: [
-    "@codexsun/contracts",
-    "@codexsun/docs-contracts",
-    "@codexsun/framework",
-    "@codexsun/platform-core",
-    "@codexsun/ui",
-    "@codexsun/zetro-contracts",
-  ],
-};
+export const scopeWorkspaces = getScopeWorkspaces(root);
 
 const supportedTasks = new Set(["build", "check", "lint"]);
 

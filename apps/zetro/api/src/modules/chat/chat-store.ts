@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { ZetroChatConversation, ZetroChatMessage, ZetroChatRole } from "@codexsun/zetro-contracts";
+import type { ZetroChatConversation, ZetroChatMessage, ZetroChatRole, ZetroIdeaStage } from "@codexsun/zetro-contracts";
 
 type ConversationRow = {
   id: string;
@@ -11,6 +11,8 @@ type ConversationRow = {
   updated_at: number;
   message_count: number;
   pinned: number;
+  archived: number;
+  stage: ZetroIdeaStage;
 };
 
 type MessageRow = {
@@ -33,6 +35,8 @@ export class ChatStore {
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         pinned INTEGER NOT NULL DEFAULT 0,
+        archived INTEGER NOT NULL DEFAULT 0,
+        stage TEXT NOT NULL DEFAULT 'explore' CHECK(stage IN ('explore', 'compare', 'revise', 'final')),
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -51,6 +55,16 @@ export class ChatStore {
     } catch {
       // Existing databases already have the pinned column.
     }
+    try {
+      this.database.exec("ALTER TABLE zetro_conversations ADD COLUMN stage TEXT NOT NULL DEFAULT 'explore';");
+    } catch {
+      // Existing databases already have the stage column.
+    }
+    try {
+      this.database.exec("ALTER TABLE zetro_conversations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0;");
+    } catch {
+      // Existing databases already have the archived column.
+    }
   }
 
   close(): void {
@@ -59,26 +73,26 @@ export class ChatStore {
 
   createConversation(title: string): ZetroChatConversation {
     const now = Date.now();
-    const conversation = { id: randomUUID(), title, pinned: false, createdAt: toIso(now), updatedAt: toIso(now), messageCount: 0 };
-    this.database.prepare("INSERT INTO zetro_conversations (id, title, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(conversation.id, title, 0, now, now);
+    const conversation = { id: randomUUID(), title, archived: false, pinned: false, stage: "explore" as const, createdAt: toIso(now), updatedAt: toIso(now), messageCount: 0 };
+    this.database.prepare("INSERT INTO zetro_conversations (id, title, pinned, archived, stage, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(conversation.id, title, 0, 0, conversation.stage, now, now);
     return conversation;
   }
 
-  listConversations(): ZetroChatConversation[] {
+  listConversations(archived = false): ZetroChatConversation[] {
     const rows = this.database.prepare(`
-      SELECT conversations.id, conversations.title, conversations.pinned, conversations.created_at, conversations.updated_at,
+      SELECT conversations.id, conversations.title, conversations.pinned, conversations.archived, conversations.stage, conversations.created_at, conversations.updated_at,
         COUNT(messages.id) AS message_count
       FROM zetro_conversations AS conversations
       LEFT JOIN zetro_messages AS messages ON messages.conversation_id = conversations.id
-      GROUP BY conversations.id
+      WHERE conversations.archived = ? GROUP BY conversations.id
       ORDER BY conversations.updated_at DESC
-    `).all() as unknown as ConversationRow[];
+    `).all(Number(archived)) as unknown as ConversationRow[];
     return rows.map(toConversation);
   }
 
   getConversation(id: string): ZetroChatConversation | undefined {
     const row = this.database.prepare(`
-      SELECT conversations.id, conversations.title, conversations.pinned, conversations.created_at, conversations.updated_at,
+      SELECT conversations.id, conversations.title, conversations.pinned, conversations.archived, conversations.stage, conversations.created_at, conversations.updated_at,
         COUNT(messages.id) AS message_count
       FROM zetro_conversations AS conversations
       LEFT JOIN zetro_messages AS messages ON messages.conversation_id = conversations.id
@@ -102,13 +116,15 @@ export class ChatStore {
     return message;
   }
 
-  updateConversation(id: string, update: { pinned?: boolean; title?: string }): ZetroChatConversation | undefined {
+  updateConversation(id: string, update: { archived?: boolean; pinned?: boolean; stage?: ZetroIdeaStage; title?: string }): ZetroChatConversation | undefined {
     const current = this.getConversation(id);
     if (!current) return undefined;
     const now = Date.now();
     const title = update.title ?? current.title;
     const pinned = update.pinned ?? current.pinned;
-    this.database.prepare("UPDATE zetro_conversations SET title = ?, pinned = ?, updated_at = ? WHERE id = ?").run(title, Number(pinned), now, id);
+    const archived = update.archived ?? current.archived;
+    const stage = update.stage ?? current.stage;
+    this.database.prepare("UPDATE zetro_conversations SET title = ?, pinned = ?, archived = ?, stage = ?, updated_at = ? WHERE id = ?").run(title, Number(pinned), Number(archived), stage, now, id);
     return this.getConversation(id);
   }
 
@@ -122,7 +138,7 @@ function toIso(timestamp: number): string {
 }
 
 function toConversation(row: ConversationRow): ZetroChatConversation {
-  return { id: row.id, title: row.title, pinned: Boolean(row.pinned), createdAt: toIso(row.created_at), updatedAt: toIso(row.updated_at), messageCount: Number(row.message_count) };
+  return { id: row.id, title: row.title, archived: Boolean(row.archived), pinned: Boolean(row.pinned), stage: row.stage, createdAt: toIso(row.created_at), updatedAt: toIso(row.updated_at), messageCount: Number(row.message_count) };
 }
 
 function toMessage(row: MessageRow): ZetroChatMessage {

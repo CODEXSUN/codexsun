@@ -1,18 +1,16 @@
 # Zetro
 
-Zetro is the CODEXSUN agentic delivery application. It turns reviewed ideas
-into governed plans, tasks, isolated worker worktrees, evidence, and a manual
-merge decision.
+Zetro is the CODEXSUN idea workspace. It helps a person explore, revise, and
+finish an idea before a later governed delivery workflow.
 
-Zetro owns idea refinement, task planning, task splitting, review evidence,
-worker dispatch, worktree records, test orchestration, deployment rehearsals,
-and approval records. It does not own product business logic. It must not run
-arbitrary unsandboxed commands or import private code from another application.
+Zetro currently owns idea chat and local Codex connection controls. It does not
+own task creation, worker dispatch, worktrees, product business logic, or
+approval records. It must not run arbitrary unsandboxed commands or import
+private files from another application.
 
-The current Zetro data decision is SQLite. The existing SQLite connection is a
-working baseline. Each future data module owns its migrations, repository,
-backup notes, and tests. A task must not assume that SQLite state is valid until
-its required migration and repository checks pass.
+Zetro stores conversations in its private SQLite database. It uses the shared
+storage provider for temporary attachments. Future data modules must own their
+migrations, repositories, backup notes, and tests.
 
 ## Configuration
 

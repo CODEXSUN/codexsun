@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "qcafe",
+  "label": "Q Cafe",
+  "taskPrefix": "q",
+  "providers": [
+    "platform.core",
+    "qcafe.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_QCAFE_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "qcafe-api",
+      "displayName": "Q Cafe API",
+      "environmentDirectory": "api",
+      "envKey": "QCAFE_API_PORT",
+      "workspace": "@codexsun/qcafe-api",
+      "defaultPort": 6210
+    },
+    {
+      "kind": "web",
+      "target": "qcafe-web",
+      "displayName": "Q Cafe web",
+      "environmentDirectory": "web",
+      "envKey": "QCAFE_WEB_PORT",
+      "workspace": "@codexsun/qcafe-web",
+      "defaultPort": 6211
+    }
+  ]
+}

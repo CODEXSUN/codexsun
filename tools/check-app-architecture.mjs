@@ -3,24 +3,21 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { getApplicationProfiles } from "../packages/app-cli/src/registry.mjs";
 
 const sourceExtensions = new Set([".ts", ".tsx"]);
 
-export const applicationProfiles = {
-  platform: { hosts: ["api", "web", "desktop", "mobile"] },
-  docs: { hosts: ["api", "web"] },
-  zetro: { hosts: ["api", "web"] },
-  uiux: { hosts: ["web"], role: "visual-catalog" },
-};
+export const applicationProfiles = getApplicationProfiles(resolve(import.meta.dirname, ".."));
 
 export function checkAppArchitecture(rootDir) {
   const root = resolve(rootDir);
-  const violations = Object.entries(applicationProfiles).flatMap(([app, profile]) =>
+  const profiles = getApplicationProfiles(root);
+  const violations = Object.entries(profiles).flatMap(([app, profile]) =>
     checkApplication(root, app, profile),
   );
 
   if (violations.length) throw new Error(`Application architecture violations:\n${violations.join("\n")}`);
-  return Object.keys(applicationProfiles);
+  return Object.keys(profiles);
 }
 
 function checkApplication(root, app, profile) {

@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.21
+Current version: 1.0.22
 
-Release tag: v-1.0.21
+Release tag: v-1.0.22
 
-Changelog label: v 1.0.21
+Changelog label: v 1.0.22
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -198,6 +198,31 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added the generated shadcn `sidebar-16` navigation block under the versioned
   `sidemenu/v16` package path, with public header and sidebar exports plus UIUX
   gallery preview coverage. No database change.
+
+## v-1.0.22
+
+### [v 1.0.22] 2026-09-19 8:48 am - Harden application registry and module boundaries
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Added Zetro's complete idea handover flow: Explore, Compare, Revise, Final
+  brief, and prepared agent task. Final briefs store selected response UUIDs
+  and project scope. A prepared task can target one referred project or all
+  projects. It cannot start a worker or change a repository.
+- Bumped CODEXSUN workspace version to 1.0.22.
+- Added the registry-owned application CLI with manifest validation, profile
+  lifecycle commands, and registry-driven build, preflight, architecture, and
+  worktree tooling.
+- Rejected unsafe profile paths, duplicate runtime targets, and stale host
+  workspace bindings before a profile can be changed or a target can start.
+- Replaced Zetro's private Chat and Brief implementation imports with public
+  reader contracts, and added Brief and Task module documentation and tests.
+- Excluded the preserved temporary dependency-repair backup from linting and
+  removed the remaining Docs API lint violations.
 
 ## v-1.0.21
 

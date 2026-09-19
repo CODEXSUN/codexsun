@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 import test from "node:test";
 import type { ModuleProvider } from "@codexsun/framework";
 import {
@@ -13,6 +16,7 @@ import {
   readUiuxWebRuntimeConfig,
   readRedisRuntimeConfig,
   readWebRuntimeConfig,
+  readApplicationDeployableProfile,
 } from "../src/index.js";
 
 function provider(id: string): ModuleProvider {
@@ -58,6 +62,19 @@ test("rejects duplicate runtime providers before engine composition", () => {
   registry.include(provider("platform.test"));
 
   assert.throws(() => registry.include(provider("platform.test")), /already includes provider/u);
+});
+
+test("reads enabled application providers from a deployment profile", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "codexsun-profile-"));
+  mkdirSync(resolve(root, "registry", "applications"), { recursive: true });
+  mkdirSync(resolve(root, "registry", "profiles"), { recursive: true });
+  writeFileSync(resolve(root, "registry", "applications", "sample.json"), JSON.stringify({ id: "sample", providers: ["platform.core", "sample.foundation"] }));
+  writeFileSync(resolve(root, "registry", "profiles", "development.json"), JSON.stringify({ id: "development", enabledApplications: ["sample"], enabledProviders: { sample: ["platform.core", "sample.foundation"] } }));
+
+  assert.deepEqual(
+    readApplicationDeployableProfile({ applicationId: "sample", availableProviderIds: ["platform.core", "sample.foundation"], registryRoot: root }),
+    { id: "development:sample", enabledProviderIds: ["platform.core", "sample.foundation"] },
+  );
 });
 
 test("validates each host configuration without exposing server values to clients", () => {

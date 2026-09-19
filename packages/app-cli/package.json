@@ -1,0 +1,13 @@
+{
+  "name": "@codexsun/app-cli",
+  "version": "1.0.22",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "codexsun-app": "./src/main.mjs"
+  },
+  "scripts": {
+    "check": "node --check src/main.mjs && node --check src/registry.mjs && node --check src/app-scaffold.mjs && node --check src/addon-scaffold.mjs && node --check src/mdi-catalog.mjs",
+    "test": "node --test test/registry.test.mjs"
+  }
+}

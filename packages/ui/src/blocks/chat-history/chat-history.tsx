@@ -30,14 +30,13 @@ export function ChatHistory({ activeId, className, emptyLabel = 'No conversation
   const filteredItems = useMemo(() => items.filter((item) => item.title.toLocaleLowerCase().includes(query.toLocaleLowerCase())), [items, query])
 
   return (
-    <div className={cn('flex min-h-0 flex-1 flex-col gap-3 px-2 py-3', className)}>
-      <Button className="w-full" onClick={onCreate}><PlusIcon />New conversation</Button>
+    <div className={cn('flex min-h-0 flex-1 flex-col gap-3 px-3 py-4', className)}>
+      <div className="flex justify-center py-1"><Button size="sm" onClick={onCreate}><PlusIcon />New conversation</Button></div>
       <div className="relative">
         <SearchIcon aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input aria-label="Search conversation history" className="pl-8" placeholder="Search history" value={query} onChange={(event) => setQuery(event.target.value)} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <p className="px-2 pb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">History</p>
         <div className="flex flex-col gap-1">
           {filteredItems.map((item) => (
             <div key={item.id} className="group/history-item flex items-center gap-1">

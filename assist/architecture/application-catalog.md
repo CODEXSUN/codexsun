@@ -17,6 +17,16 @@ Do not add an application or add-on without a named owner, provider, public cont
 
 The listed folders are scaffolds. A deployment must explicitly select an application before it becomes a delivered product.
 
+## Application creation
+
+Create a new application with `npm run app:create -- <id>`. The command creates
+the API and web hosts, an application manifest, a development profile provider
+selection, module foundation, route contract, API reference setup, tests, and
+an MDI catalog entry.
+
+Use `npm run app:sync` after a manual manifest change. Use
+`npm run app:verify` before development or deployment.
+
 ## Application Boundaries
 
 | Application | Must own                                                                                                        | Must not own                                                                             |
@@ -30,6 +40,10 @@ The listed folders are scaffolds. A deployment must explicitly select an applica
 An add-on belongs in `packages/<addon>`. It owns its modules and publishes one public provider.
 
 An application selects an add-on through its composition root. An add-on must not import an application.
+
+Create a new add-on with `npm run addon:create -- <id>`. Its manifest must
+declare a provider ID, dependencies, backward-compatible data lifecycle, and
+retained data policy before it can be installed in a profile.
 
 ## Deployment catalog entry
 

@@ -3,7 +3,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default [
-  { ignores: ["dist/**", "node_modules/**", "storage/runtime/**"] },
+  { ignores: [".tmp-es-toolkit-repair/**", "dist/**", "node_modules/**", "storage/runtime/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

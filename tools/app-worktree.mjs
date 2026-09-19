@@ -2,12 +2,12 @@ import { execFileSync, execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, relative, resolve } from "node:path";
 import { scopeWorkspaces } from "./turbo-scope.mjs";
+import { getApplication } from "../packages/app-cli/src/registry.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const WORKTREE_ROOT = resolve(ROOT, "..", ".codexsun-worktrees");
 const STATE_ROOT = resolve(ROOT, "storage", "runtime", "worktrees");
 const MAIN_BRANCH = "main";
-const TASK_PREFIXES = { docs: "d", platform: "p", uiux: "u", zetro: "z" };
 
 export function createWorktree(scope, task) {
   const state = createState(scope, task);
@@ -198,8 +198,9 @@ function assertScope(scope) {
 
 function normalizeNewTask(scope, task) {
   const safeTask = normalizeLegacyTask(task);
-  if (!new RegExp(`^${TASK_PREFIXES[scope]}-\\d{4}$`).test(safeTask)) {
-    throw new Error(`Use the short ${TASK_PREFIXES[scope]}-0000 task ID from the app task register.`);
+  const prefix = getApplication(ROOT, scope).taskPrefix;
+  if (!prefix || !new RegExp(`^${prefix}-\\d{4}$`).test(safeTask)) {
+    throw new Error(`Use the short ${prefix ?? scope}-0000 task ID from the app task register.`);
   }
   return safeTask;
 }

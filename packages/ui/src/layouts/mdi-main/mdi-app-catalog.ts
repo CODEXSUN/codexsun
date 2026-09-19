@@ -1,43 +1,22 @@
 import { BookOpenIcon, BotIcon, BoxesIcon, PanelsTopLeftIcon } from "lucide-react";
 
 import type { MdiAppItem } from "./mdi-types";
+import { mdiCatalogApplications } from "./mdi-app-catalog.generated";
 
 type MdiCatalogEntry = MdiAppItem & {
-  id: "docs" | "platform" | "ui" | "zetro";
+  id: string;
   localUrl: string;
   path: string;
 };
 
-const mdiApplicationCatalog: readonly MdiCatalogEntry[] = [
-  {
-    icon: BoxesIcon,
-    id: "platform",
-    label: "Platform",
-    localUrl: requiredEnvironmentPort("VITE_PLATFORM_WEB_URL"),
-    path: "/system",
-  },
-  {
-    icon: PanelsTopLeftIcon,
-    id: "ui",
-    label: "UI",
-    localUrl: requiredEnvironmentPort("VITE_UIUX_WEB_URL"),
-    path: "/",
-  },
-  {
-    icon: BookOpenIcon,
-    id: "docs",
-    label: "Docs",
-    localUrl: requiredEnvironmentPort("VITE_DOCS_WEB_URL"),
-    path: "/",
-  },
-  {
-    icon: BotIcon,
-    id: "zetro",
-    label: "Zetro",
-    localUrl: requiredEnvironmentPort("VITE_ZETRO_WEB_URL"),
-    path: "/zetro",
-  },
-];
+const icons = { docs: BookOpenIcon, platform: BoxesIcon, uiux: PanelsTopLeftIcon, zetro: BotIcon };
+const mdiApplicationCatalog: readonly MdiCatalogEntry[] = mdiCatalogApplications.map((application) => ({
+  icon: icons[application.icon as keyof typeof icons] ?? BoxesIcon,
+  id: application.id,
+  label: application.label,
+  localUrl: requiredEnvironmentPort(application.localUrlKey),
+  path: application.path,
+}));
 
 export function createDefaultMdiApps(applicationId: string): MdiAppItem[] {
   const currentLocation = typeof window === "undefined" ? undefined : window.location;
@@ -55,9 +34,7 @@ function requiredEnvironmentPort(key: string): string {
   return value!;
 }
 
-function isApplicationActive(id: MdiCatalogEntry["id"], applicationId: string): boolean {
-  if (id === "ui") return applicationId === "ui" || applicationId === "uiux";
-  if (id === "platform") return applicationId === "platform";
+function isApplicationActive(id: string, applicationId: string): boolean {
   return id === applicationId;
 }
 

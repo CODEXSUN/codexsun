@@ -34,3 +34,19 @@ test("persists conversation title and pin changes, then deletes the conversation
     store.close();
   }
 });
+
+test("moves a handed-over conversation to the archive without deleting its messages", () => {
+  const store = new ChatStore(":memory:");
+
+  try {
+    const conversation = store.createConversation("Ready to hand over");
+    store.addMessage(conversation.id, "assistant", "Final brief response");
+    const archived = store.updateConversation(conversation.id, { archived: true });
+    assert.equal(archived?.archived, true);
+    assert.equal(store.listConversations().length, 0);
+    assert.equal(store.listConversations(true)[0]?.id, conversation.id);
+    assert.equal(store.listMessages(conversation.id).length, 1);
+  } finally {
+    store.close();
+  }
+});
