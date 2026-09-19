@@ -6,6 +6,7 @@ import { CodexConnectionSettings } from "@codexsun/ui/blocks/codex-connection-se
 import { HandoverStack } from "@codexsun/ui/blocks/handover-stack";
 import { IdeaHandoverWorkspace, type IdeaBriefDraft, type IdeaHandoverTask } from "@codexsun/ui/blocks/idea-handover";
 import { AgentTaskWorkspace } from "@codexsun/ui/blocks/agent-task-workspace";
+import { ArchivedChatWorkspace } from "@codexsun/ui/blocks/archived-chat-workspace";
 import { ChatDateDivider, ChatResponseProgress, ChatTurnDivider } from "@codexsun/ui/blocks/chat-response-progress";
 import { ChatComposer, type ChatComposerAttachment } from "@codexsun/ui/blocks/chat-composer";
 import { ChatHistory } from "@codexsun/ui/blocks/chat-history";
@@ -17,7 +18,7 @@ import { useMdiTopology } from "@codexsun/ui/layouts/mdi-main";
 import type { ZetroAgentTask, ZetroChatAttachment, ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatStreamEvent, ZetroCodexDeviceCode, ZetroIdeaBrief } from "@codexsun/zetro-contracts";
 import type { InterfaceTopologySection } from "@codexsun/ui/features/interface-topology";
 import { ArchiveIcon, BotIcon, ClockIcon, CopyIcon, FileTextIcon, Layers3Icon, ListTodoIcon, MessageSquareIcon, PanelsTopLeftIcon, RotateCcwIcon, SettingsIcon, Share2Icon } from "lucide-react";
-import { createAgentTask, createConversation, deleteConversation as deleteStoredConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, getIdeaBrief, listAgentTasks, listConversations, saveIdeaBrief, streamMessage, updateChatRuntime, updateConversation as updateStoredConversation } from "./chat-api.js";
+import { createAgentTask, createConversation, deleteArchivedConversations, deleteConversation as deleteStoredConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, getIdeaBrief, listAgentTasks, listConversations, saveIdeaBrief, streamMessage, updateChatRuntime, updateConversation as updateStoredConversation } from "./chat-api.js";
 
 type VoiceRecognizer = {
   continuous: boolean;
@@ -71,7 +72,7 @@ export function App() {
   const [conversations, setConversations] = useState<ZetroChatConversation[]>([]);
   const [archivedConversations, setArchivedConversations] = useState<ZetroChatConversation[]>([]);
   const [historyMode, setHistoryMode] = useState<"active" | "archived">("active");
-  const [workspaceView, setWorkspaceView] = useState<"chat" | "tasks">("chat");
+  const [workspaceView, setWorkspaceView] = useState<"chat" | "tasks" | "archive">("chat");
   const [conversation, setConversation] = useState<ZetroChatConversation>();
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<ChatComposerAttachment[]>([]);
@@ -124,7 +125,7 @@ export function App() {
   }, [isLoading, steerQueue]);
 
   const history = useMemo(() => (
-    <ZetroHistory activeConversationId={conversation?.id} archived={historyMode === "archived"} conversations={historyMode === "archived" ? archivedConversations : conversations} onArchive={archiveConversation} onCreate={startConversation} onDelete={deleteConversation} onRename={renameConversation} onSelect={selectConversation} onTogglePin={toggleConversationPin} />
+    <ZetroHistory activeConversationId={conversation?.id} archived={historyMode === "archived"} conversations={historyMode === "archived" ? archivedConversations : conversations} onArchive={archiveConversation} onCreate={startConversation} onRename={renameConversation} onSelect={selectConversation} onTogglePin={toggleConversationPin} />
   ), [archivedConversations, conversation?.id, conversations, historyMode]);
 
   function selectConversation(id: string): void {
@@ -212,18 +213,6 @@ export function App() {
     setConversation((item) => item?.id === id ? updated : item);
   }
 
-  async function deleteConversation(id: string): Promise<void> {
-    await deleteStoredConversation(id);
-    setConversations((items) => items.filter((item) => item.id !== id));
-    setMessagesByConversation((items) => Object.fromEntries(Object.entries(items).filter(([key]) => key !== id)));
-    if (activeConversationIdRef.current === id) {
-      activeConversationIdRef.current = undefined;
-      setConversation(undefined);
-      setMessages([]);
-      setHandoverMessageIds([]);
-    }
-  }
-
   async function archiveConversation(id: string): Promise<void> {
     const current = conversations.find((item) => item.id === id);
     if (!current || isStreaming) return;
@@ -249,10 +238,45 @@ export function App() {
   }
 
   async function showArchivedConversations(): Promise<void> {
-    setWorkspaceView("chat");
+    setWorkspaceView("archive");
     setBriefOpen(false);
-    setHistoryMode("archived");
     setArchivedConversations(await listConversations(true));
+  }
+
+  async function restoreConversation(id: string): Promise<void> {
+    const { conversation: restored } = await updateStoredConversation(id, { archived: false });
+    setArchivedConversations((items) => items.filter((item) => item.id !== id));
+    setConversations((items) => [restored, ...items.filter((item) => item.id !== id)]);
+    if (conversation?.id === id) setConversation(restored);
+  }
+
+  async function forceDeleteArchivedConversation(id: string): Promise<void> {
+    const archived = archivedConversations.find((item) => item.id === id);
+    if (!archived || !window.confirm(`Permanently delete “${archived.title}”? This cannot be undone.`)) return;
+    await deleteStoredConversation(id);
+    setArchivedConversations((items) => items.filter((item) => item.id !== id));
+    if (conversation?.id === id) {
+      setConversation(undefined);
+      setMessages([]);
+      activeConversationIdRef.current = undefined;
+    }
+  }
+
+  async function forceDeleteAllArchivedConversations(): Promise<void> {
+    if (!archivedConversations.length || !window.confirm(`Permanently delete all ${archivedConversations.length} archived chats? This cannot be undone.`)) return;
+    await deleteArchivedConversations();
+    setArchivedConversations([]);
+    if (conversation?.archived) {
+      setConversation(undefined);
+      setMessages([]);
+      activeConversationIdRef.current = undefined;
+    }
+  }
+
+  function openArchivedConversation(id: string): void {
+    setHistoryMode("archived");
+    setWorkspaceView("chat");
+    selectConversation(id);
   }
 
   function showActiveConversations(): void {
@@ -482,7 +506,6 @@ export function App() {
           items: [
             { active: settingsOpen, icon: SettingsIcon, id: "settings", label: "Settings", onSelect: () => setSettingsOpen(true) },
             { active: briefOpen, icon: FileTextIcon, id: "brief", label: "Brief", onSelect: openBrief },
-            { active: historyMode === "archived", icon: ArchiveIcon, id: "archive", label: "Archive", onSelect: () => void showArchivedConversations() },
           ],
           label: "Agent utilities",
         },
@@ -499,14 +522,14 @@ export function App() {
       ]}
       primaryAction={{ label: "New conversation", onSelect: startConversation }}
       sidebarContent={history}
-      sidebarFooter={<p className="px-2 text-xs text-muted-foreground">{isLoading ? `Working for ${elapsedSeconds}s` : steerQueue.length ? `${steerQueue.length} steer queued` : "Zetro workspace"}</p>}
+      sidebarFooter={<div className="grid gap-2 p-2"><Button className="w-full justify-start" size="sm" variant={workspaceView === "archive" ? "secondary" : "ghost"} onClick={() => void showArchivedConversations()}><ArchiveIcon /> Archive</Button><p className="px-2 text-xs text-muted-foreground">{isLoading ? `Working for ${elapsedSeconds}s` : steerQueue.length ? `${steerQueue.length} steer queued` : "Zetro workspace"}</p></div>}
       sidebarStateKey="codexsun.zetro.sidebar"
       statusLabel="Ready"
       showMdiOverview
       topologySections={zetroTopologySections}
       workspaceTitle="Zetro workspace"
     >
-      {workspaceView === "tasks" ? <AgentTaskWorkspace selectedTaskId={selectedTaskId} tasks={agentTasks} onBack={showActiveConversations} onSelectTask={setSelectedTaskId} /> : briefOpen ? <IdeaHandoverWorkspace brief={brief} currentStage={conversation?.stage ?? "explore"} saving={isSavingBrief} sources={messages.filter((message) => message.role === "assistant" && message.content).map((message) => ({ content: message.content, id: message.id }))} task={agentTask} onArchiveConversation={conversation && agentTask ? () => void archiveConversation(conversation.id) : undefined} onBack={() => setBriefOpen(false)} onBriefChange={setBrief} onCreateTask={handOverToAgentTask} onSaveBrief={saveBrief} onStageChange={changeIdeaStage} /> : <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRemoveAttachment={removeAttachment} onRuntimeChange={updateRuntimeSelection} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />}
+      {workspaceView === "archive" ? <ArchivedChatWorkspace chats={archivedConversations} onDelete={forceDeleteArchivedConversation} onDeleteAll={forceDeleteAllArchivedConversations} onOpen={openArchivedConversation} onRestore={restoreConversation} /> : workspaceView === "tasks" ? <AgentTaskWorkspace selectedTaskId={selectedTaskId} tasks={agentTasks} onBack={showActiveConversations} onSelectTask={setSelectedTaskId} /> : briefOpen ? <IdeaHandoverWorkspace brief={brief} currentStage={conversation?.stage ?? "explore"} saving={isSavingBrief} sources={messages.filter((message) => message.role === "assistant" && message.content).map((message) => ({ content: message.content, id: message.id }))} task={agentTask} onArchiveConversation={conversation && agentTask ? () => void archiveConversation(conversation.id) : undefined} onBack={() => setBriefOpen(false)} onBriefChange={setBrief} onCreateTask={handOverToAgentTask} onSaveBrief={saveBrief} onStageChange={changeIdeaStage} /> : <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRemoveAttachment={removeAttachment} onRuntimeChange={updateRuntimeSelection} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />}
       <CodexConnectionSettings connected={runtime.connected} deviceCode={deviceCode} message={runtime.message} open={settingsOpen} onConnectLocal={recheckLocalCodex} onCopyCode={copyDeviceCode} onCopyUrl={copyDeviceUrl} onGenerateDeviceCode={generateDeviceCode} onOpenBrowser={openDeviceBrowser} onOpenChange={setSettingsOpen} />
       <HandoverStack items={handoverItems} open={handoverStackOpen} working={isLoading} onConsolidate={consolidateHandover} onOpenChange={setHandoverStackOpen} onRemove={toggleHandoverMessage} />
     </MainWorkspace>
@@ -523,9 +546,9 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(value);
 }
 
-function ZetroHistory({ activeConversationId, archived, conversations, onArchive, onCreate, onDelete, onRename, onSelect, onTogglePin }: { activeConversationId?: string; archived: boolean; conversations: ZetroChatConversation[]; onArchive: (id: string) => void; onCreate: () => void; onDelete: (id: string) => void; onRename: (id: string) => void; onSelect: (id: string) => void; onTogglePin: (id: string) => void }) {
+function ZetroHistory({ activeConversationId, archived, conversations, onArchive, onCreate, onRename, onSelect, onTogglePin }: { activeConversationId?: string; archived: boolean; conversations: ZetroChatConversation[]; onArchive: (id: string) => void; onCreate: () => void; onRename: (id: string) => void; onSelect: (id: string) => void; onTogglePin: (id: string) => void }) {
   const topology = useMdiTopology();
-  return <TopologyRegion as="div" className="flex min-h-0 flex-1" id="z01" topology={topology}><ChatHistory activeId={activeConversationId} emptyLabel={archived ? "No archived handovers" : "No conversations yet"} items={conversations.map((item) => ({ id: item.id, pinned: item.pinned, title: item.title }))} onArchive={archived ? undefined : onArchive} onCreate={onCreate} onDelete={onDelete} onPin={onTogglePin} onRename={onRename} onSelect={onSelect} /></TopologyRegion>;
+  return <TopologyRegion as="div" className="flex min-h-0 flex-1" id="z01" topology={topology}><ChatHistory activeId={activeConversationId} emptyLabel={archived ? "No archived handovers" : "No conversations yet"} items={conversations.map((item) => ({ id: item.id, pinned: item.pinned, title: item.title }))} onArchive={archived ? undefined : onArchive} onCreate={onCreate} onPin={onTogglePin} onRename={onRename} onSelect={onSelect} /></TopologyRegion>;
 }
 
 function ZetroWorkspace({ attachments, conversation, draft, elapsedSeconds, executionEvents, handoverCount, isRecording, isWorking, messages, queuedSteerCount, runtime, onAddAttachments, onDraftChange, onOpenHandoverStack, onReconnect, onRemoveAttachment, onRuntimeChange, onSteer, onStop, onSubmit, onToggleHandover, onVoiceToggle, selectedHandoverMessageIds }: { attachments: ChatComposerAttachment[]; conversation?: ZetroChatConversation; draft: string; elapsedSeconds: number; executionEvents: ZetroChatStreamEvent[]; handoverCount: number; isRecording: boolean; isWorking: boolean; messages: ZetroChatMessage[]; queuedSteerCount: number; runtime: ZetroChatRuntime; onAddAttachments: (files: File[]) => void; onDraftChange: (value: string) => void; onOpenHandoverStack: () => void; onReconnect: () => void; onRemoveAttachment: (id: string) => void; onRuntimeChange: (runtime: ZetroChatRuntime) => void; onSteer: () => void; onStop: () => void; onSubmit: () => void; onToggleHandover: (id: string) => void; onVoiceToggle: () => void; selectedHandoverMessageIds: string[] }) {

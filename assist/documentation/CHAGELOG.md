@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.22
+Current version: 1.0.23
 
-Release tag: v-1.0.22
+Release tag: v-1.0.23
 
-Changelog label: v 1.0.22
+Changelog label: v 1.0.23
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -198,6 +198,24 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added the generated shadcn `sidebar-16` navigation block under the versioned
   `sidemenu/v16` package path, with public header and sidebar exports plus UIUX
   gallery preview coverage. No database change.
+
+## v-1.0.23
+
+### [v 1.0.23] 2026-09-19 10:00 am - Application lifecycle tooling
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.23.
+- Added application create, sync, and remove commands. The CLI creates API and
+  web hosts, registry bindings, MDI entries, API contracts, and local ports.
+- Added a scoped application uninstaller. It removes one stopped application,
+  its profile bindings, MDI entry, workspace lock records, and local MDI port.
+- Verified the Q Cafe scaffold through API health, protected OpenAPI access,
+  browser API queries, production builds, type checks, lint, and architecture checks.
 
 ## v-1.0.22
 

@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import test from "node:test";
 import { getRuntimeTargets, getScopeWorkspaces, updateProfile, verifyRegistry } from "../src/registry.mjs";
 import { createApplication } from "../src/app-scaffold.mjs";
+import { removeApplication } from "../src/app-uninstall.mjs";
 import { createAddon } from "../src/addon-scaffold.mjs";
 
 function createFixture() {
@@ -54,6 +55,18 @@ test("creates an API and web foundation that is ready for a new application", ()
   assert.match(readFileSync(resolve(root, "packages", "ui", "src", "layouts", "mdi-main", "mdi-app-catalog.generated.ts"), "utf8"), /inventory/u);
   assert.ok(verifyRegistry(root).applications.includes("inventory"));
   assert.ok(JSON.parse(readFileSync(resolve(root, "package-lock.json"), "utf8")).packages["apps/inventory/api"]);
+});
+
+test("removes only one generated application and its registry bindings", () => {
+  const root = createFixture();
+  mkdirSync(resolve(root, "packages", "ui", "src", "layouts", "mdi-main"), { recursive: true });
+  const application = createApplication(root, { apiPort: 6200, id: "inventory", label: "Inventory", taskPrefix: "i", webPort: 6201 });
+
+  assert.deepEqual(removeApplication(root, application.id), { id: "inventory", removed: true });
+  assert.equal(existsSync(resolve(root, "apps", "inventory")), false);
+  assert.equal(existsSync(resolve(root, "registry", "applications", "inventory.json")), false);
+  assert.equal(verifyRegistry(root).applications.includes("inventory"), false);
+  assert.equal(JSON.parse(readFileSync(resolve(root, "package-lock.json"), "utf8")).packages["apps/inventory/api"], undefined);
 });
 
 test("creates an add-on with lifecycle metadata and a provider test", () => {

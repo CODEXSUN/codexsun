@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getApplication, getRuntimeTargets, loadRegistry, updateProfile, verifyRegistry } from "./registry.mjs";
 import { createApplication } from "./app-scaffold.mjs";
+import { removeApplication } from "./app-uninstall.mjs";
 import { createAddon } from "./addon-scaffold.mjs";
 import { syncMdiCatalog } from "./mdi-catalog.mjs";
 
@@ -17,6 +18,7 @@ export async function run(argumentsList, rootDir = root) {
   if (command === "list") return list(args[0] ?? "applications", rootDir);
   if (command === "verify") return console.log(JSON.stringify(verifyRegistry(rootDir), null, 2));
   if (command === "create") return create(args, rootDir);
+  if (command === "remove") return remove(args, rootDir);
   if (command === "create-addon") return createAddonCommand(args, rootDir);
   if (command === "sync") return console.log(syncMdiCatalog(rootDir));
   if (["enable", "install", "disable", "uninstall"].includes(command)) {
@@ -57,6 +59,12 @@ function create(args, rootDir) {
     webPort: optionValue(options, "--web-port"),
   });
   console.log(JSON.stringify(application, null, 2));
+}
+
+function remove(args, rootDir) {
+  const [id] = args;
+  if (!id) throw new Error("Use remove <application>.");
+  console.log(JSON.stringify(removeApplication(rootDir, id), null, 2));
 }
 
 function createAddonCommand(args, rootDir) {
@@ -105,7 +113,7 @@ function optionValue(options, name) {
 }
 
 function help() {
-  return "Use: codexsun-app <list|verify|create|create-addon|sync|install|uninstall|build|dev>.";
+  return "Use: codexsun-app <list|verify|create|remove|create-addon|sync|install|uninstall|build|dev>.";
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

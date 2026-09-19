@@ -1,4 +1,4 @@
-export { ThemeProvider, useColorTheme } from './theme-provider'
+export { ThemeProvider, useColorTheme, useTheme } from './theme-provider'
 export { ThemeSelector } from './theme-selector'
 export {
   COLOR_THEME_ATTRIBUTE,
@@ -10,4 +10,3 @@ export {
   themeModes,
 } from './theme-config'
 export type { ColorThemeId, ThemeMode } from './theme-config'
-export { useTheme } from 'next-themes'

@@ -65,8 +65,8 @@ function writeApplicationFiles(root, application) {
   write(root, `apps/${application.id}/web/.app.env.example`, `PLATFORM_HOST=127.0.0.1\n${web.envKey}=${web.defaultPort}\nVITE_${key}_API_URL=http://127.0.0.1:${api.defaultPort}\n`);
   write(root, `apps/${application.id}/web/README.md`, `# ${application.label} Web\n\nThe web host composes the shared MDI workspace.\n`);
   write(root, `apps/${application.id}/web/index.html`, '<div id="root"></div><script type="module" src="/src/main.tsx"></script>\n');
-  write(root, `apps/${application.id}/web/src/main.tsx`, 'import "@codexsun/ui/globals.css";\nimport { createRoot } from "react-dom/client";\nimport { App } from "./app";\n\ncreateRoot(document.getElementById("root")!).render(<App />);\n');
-  write(root, `apps/${application.id}/web/src/app.tsx`, `import { MainWorkspace } from "@codexsun/ui";\n\nexport function App() {\n  return <MainWorkspace applicationId="${application.id}" applicationName="${application.label}" workspaceTitle="${application.label}"><main className="p-6"><h1 className="text-lg font-semibold">${application.label}</h1><p className="text-sm text-muted-foreground">Application foundation is ready.</p></main></MainWorkspace>;\n}\n`);
+  write(root, `apps/${application.id}/web/src/main.tsx`, 'import "@codexsun/ui/globals.css";\nimport { QueryClient, QueryClientProvider } from "@tanstack/react-query";\nimport { createRoot } from "react-dom/client";\nimport { App } from "./app";\n\nconst queryClient = new QueryClient({ defaultOptions: { queries: { retry: 2, staleTime: 15_000, refetchOnWindowFocus: false } } });\ncreateRoot(document.getElementById("root")!).render(<QueryClientProvider client={queryClient}><App /></QueryClientProvider>);\n');
+  write(root, `apps/${application.id}/web/src/app.tsx`, `import { useQuery } from "@tanstack/react-query";\nimport { MainWorkspace } from "@codexsun/ui";\n\ntype Health = { status: "ok"; providers: string[] };\n\nexport function App() {\n  const health = useQuery({ queryKey: ["${application.id}", "health"], queryFn: readHealth });\n  return <MainWorkspace applicationId="${application.id}" applicationName="${application.label}" workspaceTitle="${application.label}"><main className="p-6"><h1 className="text-lg font-semibold">${application.label}</h1><p className="text-sm text-muted-foreground">{health.isPending ? "Connecting to API…" : health.isError ? "API connection failed." : \`API ready: \${health.data.status}\`}</p></main></MainWorkspace>;\n}\n\nasync function readHealth(): Promise<Health> {\n  const response = await fetch("/api/v1/${application.id}/health", { signal: AbortSignal.timeout(5_000) });\n  if (!response.ok) throw new Error(\`Health request failed: \${response.status}\`);\n  return response.json() as Promise<Health>;\n}\n`);
   write(root, `apps/${application.id}/web/vite.config.ts`, viteSourceV2(application));
 }
 
@@ -92,17 +92,12 @@ function apiPackage(application) {
 }
 
 function webPackage(application) {
-  return { name: `@codexsun/${application.id}-web`, version: "1.0.22", private: true, type: "module", scripts: { build: "vite build", check: "tsc -p tsconfig.json --noEmit", dev: "vite", lint: "eslint src", test: "tsx --test" }, dependencies: { "@codexsun/ui": "file:../../../packages/ui", "@tailwindcss/vite": "^4.0.0", "@vitejs/plugin-react": "^5.0.0", react: "^19.0.0", "react-dom": "^19.0.0", vite: "^7.0.0" } };
-}
-
-function apiSource(application) {
-  const [api] = application.hosts;
-  return `import swagger from "@fastify/swagger";\nimport swaggerUi from "@fastify/swagger-ui";\nimport Fastify from "fastify";\nimport { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from "fastify-type-provider-zod";\nimport { z } from "zod";\nimport { createPlatformRuntime, readApplicationDeployableProfile } from "@codexsun/platform-core";\nimport { ${className(application.id)}FoundationProvider } from "./modules/foundation/provider.js";\n\nconst port = Number(process.env.${api.envKey});\nif (!Number.isInteger(port) || port < 1) throw new Error("Set ${api.envKey} to a valid port.");\nconst provider = new ${className(application.id)}FoundationProvider();\nconst runtime = createPlatformRuntime(readApplicationDeployableProfile({ applicationId: "${application.id}", availableProviderIds: ["platform.core", provider.manifest.id] }), [provider]);\nruntime.start();\nconst app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();\napp.setValidatorCompiler(validatorCompiler);\napp.setSerializerCompiler(serializerCompiler);\nawait app.register(swagger, { openapi: { info: { title: "${application.label} API", version: "1.0.0" }, openapi: "3.0.3" }, transform: jsonSchemaTransform });\nawait app.register(swaggerUi, { routePrefix: "/api/internal/reference", uiHooks: { onRequest: (request, reply, done) => { if (request.headers.authorization !== \`Bearer \${process.env.${environmentKey(application.id)}_API_REFERENCE_TOKEN}\`) return reply.code(401).send({ error: "Authentication required." }); done(); } } });\napp.get("/api/v1/${application.id}/health", { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } }, async () => ({ status: "ok", providers: runtime.enabledProviderIds }));\napp.addHook("onClose", () => runtime.stop());\nawait app.listen({ host: process.env.PLATFORM_HOST ?? "127.0.0.1", port });\n`;
+  return { name: `@codexsun/${application.id}-web`, version: "1.0.22", private: true, type: "module", scripts: { build: "vite build", check: "tsc -p tsconfig.json --noEmit", dev: "vite", lint: "eslint src", test: "tsx --test" }, dependencies: { "@codexsun/ui": "file:../../../packages/ui", "@tailwindcss/vite": "^4.0.0", "@tanstack/react-query": "^5.103.1", "@vitejs/plugin-react": "^5.0.0", react: "^19.0.0", "react-dom": "^19.0.0", vite: "^7.0.0" } };
 }
 
 function providerSource(application) {
   const name = className(application.id);
-  return `import type { ModuleProvider, ProviderRegistrationContext } from "@codexsun/framework";\n\nexport class ${name}FoundationProvider implements ModuleProvider {\n  readonly manifest = { id: "${application.id}.foundation", owner: "apps/${application.id}/api/modules/foundation", version: "1.0.0", dependencies: ["platform.core"], contracts: ["${application.id}.health"], events: { published: [], consumed: [] } };\n  register(_context: ProviderRegistrationContext): void {}\n}\n`;
+  return `import type { ModuleProvider } from "@codexsun/framework";\n\nexport class ${name}FoundationProvider implements ModuleProvider {\n  readonly manifest = { id: "${application.id}.foundation", owner: "apps/${application.id}/api/modules/foundation", version: "1.0.0", dependencies: ["platform.core"], contracts: ["${application.id}.health"], events: { published: [], consumed: [] } };\n  register(): void {}\n}\n`;
 }
 
 function apiConfigSource(application) {
@@ -117,8 +112,9 @@ function apiSourceV2(application) {
 }
 
 function viteSourceV2(application) {
-  const [, web] = application.hosts;
-  return `import { config } from "dotenv";\nimport { resolve } from "node:path";\nimport react from "@vitejs/plugin-react";\nimport tailwindcss from "@tailwindcss/vite";\nimport { defineConfig } from "vite";\n\nconfig({ path: resolve(import.meta.dirname, ".app.env") });\n\nexport default defineConfig({\n  plugins: [react(), tailwindcss()],\n  server: {\n    host: process.env.PLATFORM_HOST ?? "127.0.0.1",\n    port: Number(process.env.${web.envKey} ?? ${web.defaultPort}),\n    strictPort: true,\n  },\n  build: { outDir: "../../../dist/apps/${application.id}/web", emptyOutDir: true },\n});\n`;
+  const [api, web] = application.hosts;
+  const key = environmentKey(application.id);
+  return `import { config } from "dotenv";\nimport { resolve } from "node:path";\nimport react from "@vitejs/plugin-react";\nimport tailwindcss from "@tailwindcss/vite";\nimport { defineConfig } from "vite";\n\nconfig({ path: resolve(import.meta.dirname, "../../../.env") });\nconfig({ path: resolve(import.meta.dirname, ".app.env"), override: true });\n\nexport default defineConfig({\n  plugins: [react(), tailwindcss()],\n  server: {\n    host: process.env.PLATFORM_HOST ?? "127.0.0.1",\n    port: Number(process.env.${web.envKey} ?? ${web.defaultPort}),\n    proxy: { "/api": process.env.VITE_${key}_API_URL ?? "http://127.0.0.1:${api.defaultPort}" },\n    strictPort: true,\n  },\n  build: { outDir: "../../../dist/apps/${application.id}/web", emptyOutDir: true },\n});\n`;
 }
 
 function apiTestSource(application) {
@@ -131,11 +127,6 @@ function mariaDbTestSource(application) {
 
 function providerTestSource(application) {
   return `import test from "node:test";\nimport assert from "node:assert/strict";\nimport { ${className(application.id)}FoundationProvider } from "../provider.js";\n\ntest("declares the ${application.id} provider contract", () => assert.equal(new ${className(application.id)}FoundationProvider().manifest.id, "${application.id}.foundation"));\n`;
-}
-
-function viteSource(application) {
-  const [, web] = application.hosts;
-  return `import react from "@vitejs/plugin-react";\nimport tailwindcss from "@tailwindcss/vite";\nimport { defineConfig } from "vite";\n\nexport default defineConfig({ plugins: [react(), tailwindcss()], server: { host: process.env.PLATFORM_HOST ?? "127.0.0.1", port: Number(process.env.${web.envKey} ?? ${web.defaultPort}), strictPort: true }, build: { outDir: "../../../dist/apps/${application.id}/web", emptyOutDir: true } });\n`;
 }
 
 function readPort(value, fallback) {

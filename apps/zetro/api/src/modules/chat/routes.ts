@@ -43,6 +43,11 @@ export async function registerChatRoutes(app: FastifyInstance, service: ChatServ
     });
   });
 
+  app.delete<{ Querystring: { archived?: string } }>("/api/zetro/v1/chat/conversations", async (request, reply) => {
+    if (request.query.archived !== "true") return reply.code(400).send({ error: "Only archived conversations can be force deleted.", code: "zetro.archive-required" });
+    return reply.code(200).send({ data: { deleted: service.deleteArchivedConversations() }, version: zetroApiVersion });
+  });
+
   app.get<{ Params: { conversationId: string } }>("/api/zetro/v1/chat/conversations/:conversationId", async (request, reply) => {
     const result = service.getConversation(request.params.conversationId);
     if (!result) return reply.code(404).send({ error: "Conversation not found.", code: "zetro.conversation-not-found" });

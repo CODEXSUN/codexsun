@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -36,6 +36,7 @@
     "app:list": "node packages/app-cli/src/main.mjs list applications",
     "app:verify": "node packages/app-cli/src/main.mjs verify",
     "app:create": "node packages/app-cli/src/main.mjs create",
+    "app:remove": "node packages/app-cli/src/main.mjs remove",
     "app:sync": "node packages/app-cli/src/main.mjs sync",
     "app:enable": "node packages/app-cli/src/main.mjs enable",
     "app:disable": "node packages/app-cli/src/main.mjs disable",

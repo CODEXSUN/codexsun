@@ -69,6 +69,13 @@ export async function deleteConversation(id: string): Promise<void> {
   if (!response.ok) throw new Error(`Zetro could not delete this conversation (${response.status}).`);
 }
 
+export async function deleteArchivedConversations(): Promise<number> {
+  const response = await fetch(`${conversationUrl}?archived=true`, { method: "DELETE" });
+  const payload = await read(response) as { data?: { deleted?: unknown } };
+  if (typeof payload.data?.deleted !== "number") throw new Error("Zetro did not confirm archived conversation deletion.");
+  return payload.data.deleted;
+}
+
 export async function getChatRuntime(): Promise<ZetroChatRuntime> {
   return zetroChatRuntimeResponseSchema.parse(await read(await fetch(`${chatUrl}/runtime`))).data;
 }

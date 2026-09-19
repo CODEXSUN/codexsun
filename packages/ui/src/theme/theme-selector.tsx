@@ -1,11 +1,10 @@
 'use client'
 
 import { LaptopIcon, MoonIcon, SunIcon, type LucideIcon } from 'lucide-react'
-import { useTheme } from 'next-themes'
 
 import { cn } from '../lib/utils'
 import { colorThemes, isThemeMode, themeModes, type ThemeMode } from './theme-config'
-import { useColorTheme } from './theme-provider'
+import { useColorTheme, useTheme } from './theme-provider'
 
 const modeIcons: Record<ThemeMode, LucideIcon> = {
   dark: MoonIcon,

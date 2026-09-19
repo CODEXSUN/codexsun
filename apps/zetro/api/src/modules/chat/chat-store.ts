@@ -131,6 +131,10 @@ export class ChatStore {
   deleteConversation(id: string): boolean {
     return this.database.prepare("DELETE FROM zetro_conversations WHERE id = ?").run(id).changes > 0;
   }
+
+  deleteArchivedConversations(): number {
+    return Number(this.database.prepare("DELETE FROM zetro_conversations WHERE archived = 1").run().changes);
+  }
 }
 
 function toIso(timestamp: number): string {

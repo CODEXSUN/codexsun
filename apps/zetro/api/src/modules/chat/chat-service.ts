@@ -28,6 +28,10 @@ export class ChatService {
     return this.store.deleteConversation(id);
   }
 
+  deleteArchivedConversations(): number {
+    return this.store.deleteArchivedConversations();
+  }
+
   getConversation(id: string): ZetroChatConversationView | undefined {
     const conversation = this.store.getConversation(id);
     return conversation ? { conversation, messages: this.store.listMessages(id) } : undefined;

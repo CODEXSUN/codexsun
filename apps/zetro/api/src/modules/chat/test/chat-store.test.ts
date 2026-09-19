@@ -50,3 +50,18 @@ test("moves a handed-over conversation to the archive without deleting its messa
     store.close();
   }
 });
+
+test("force deletes archived conversations without deleting active chats", () => {
+  const store = new ChatStore(":memory:");
+
+  try {
+    const active = store.createConversation("Active");
+    const archived = store.createConversation("Archived");
+    store.updateConversation(archived.id, { archived: true });
+    assert.equal(store.deleteArchivedConversations(), 1);
+    assert.equal(store.getConversation(active.id)?.title, "Active");
+    assert.equal(store.getConversation(archived.id), undefined);
+  } finally {
+    store.close();
+  }
+});

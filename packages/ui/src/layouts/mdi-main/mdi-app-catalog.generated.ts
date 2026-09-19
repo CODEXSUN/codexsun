@@ -24,13 +24,6 @@ export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
     "path": "/system"
   },
   {
-    "icon": "application",
-    "id": "qcafe",
-    "label": "Q Cafe",
-    "localUrlKey": "VITE_QCAFE_WEB_URL",
-    "path": "/"
-  },
-  {
     "icon": "uiux",
     "id": "uiux",
     "label": "UIUX",

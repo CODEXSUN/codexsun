@@ -5,7 +5,6 @@
   "enabledApplications": [
     "docs",
     "platform",
-    "qcafe",
     "uiux",
     "zetro"
   ],
@@ -30,10 +29,6 @@
       "zetro.chat",
       "zetro.brief",
       "zetro.task"
-    ],
-    "qcafe": [
-      "platform.core",
-      "qcafe.foundation"
     ]
   }
 }
