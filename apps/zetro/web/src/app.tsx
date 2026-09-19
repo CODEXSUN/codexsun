@@ -235,10 +235,17 @@ export function App() {
   }
 
   async function refreshRuntime(): Promise<void> {
+    await recheckLocalCodex();
     try {
-      const [nextRuntime, nextDeviceCode] = await Promise.all([getChatRuntime(), getCodexDeviceCode()]);
-      setRuntime(nextRuntime);
-      setDeviceCode(nextDeviceCode);
+      setDeviceCode(await getCodexDeviceCode());
+    } catch (error) {
+      setDeviceCode({ status: "failed", message: error instanceof Error ? error.message : "Zetro could not read device-code status." });
+    }
+  }
+
+  async function recheckLocalCodex(): Promise<void> {
+    try {
+      setRuntime(await getChatRuntime());
     } catch (error) {
       const message = error instanceof Error ? error.message : "Zetro could not reach the local Codex CLI.";
       setRuntime({ ...disconnectedRuntime, message });
@@ -360,7 +367,7 @@ export function App() {
       workspaceTitle="Idea workspace"
     >
       <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRemoveAttachment={removeAttachment} onRuntimeChange={setRuntime} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />
-      <CodexConnectionSettings connected={runtime.connected} deviceCode={deviceCode} message={runtime.message} open={settingsOpen} onConnectLocal={refreshRuntime} onCopyCode={copyDeviceCode} onCopyUrl={copyDeviceUrl} onGenerateDeviceCode={generateDeviceCode} onOpenBrowser={openDeviceBrowser} onOpenChange={setSettingsOpen} />
+      <CodexConnectionSettings connected={runtime.connected} deviceCode={deviceCode} message={runtime.message} open={settingsOpen} onConnectLocal={recheckLocalCodex} onCopyCode={copyDeviceCode} onCopyUrl={copyDeviceUrl} onGenerateDeviceCode={generateDeviceCode} onOpenBrowser={openDeviceBrowser} onOpenChange={setSettingsOpen} />
       <HandoverStack items={handoverItems} open={handoverStackOpen} working={isLoading} onConsolidate={consolidateHandover} onOpenChange={setHandoverStackOpen} onRemove={toggleHandoverMessage} />
     </MainWorkspace>
   );

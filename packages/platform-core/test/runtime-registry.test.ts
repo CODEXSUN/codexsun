@@ -111,6 +111,7 @@ test("validates each host configuration without exposing server values to client
       PLATFORM_HOST: "127.0.0.1",
       GARMENTS_API_PORT: "6050",
       GARMENTS_DATABASE_URL: "sqlite://garments",
+      GARMENTS_FRAPPE_URL: "https://logicx.tmnext.in",
       GARMENTS_INDEX_PATH: "../../../storage/apps/private/garments/index.sqlite",
       GARMENTS_WEB_ORIGIN: "http://127.0.0.1:6060",
     }).GARMENTS_API_PORT,

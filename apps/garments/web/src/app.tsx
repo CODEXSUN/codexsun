@@ -1,5 +1,10 @@
-import { GarmentsWorkspace } from "./modules/garments-library/garments-library.workspace.js";
+import { MainWorkspace } from "@codexsun/ui";
+import { GarmentCard } from "./modules/garments-dashboard/garments-dashboard.js";
 
 export function App() {
-  return <GarmentsWorkspace />;
+  return (
+    <MainWorkspace applicationId="garments" applicationName="Garments">
+      <GarmentCard />
+    </MainWorkspace>
+  );
 }

@@ -7,5 +7,5 @@
       "@codexsun/garments-contracts": ["../../../packages/garments-contracts/src/index.ts"]
     }
   },
-  "include": ["src/config.ts", "src/server.ts", "src/modules/catalog"]
+  "include": ["src/config.ts", "src/server.ts", "src/modules/catalog", "src/modules/frappe"]
 }

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@codexsun/contracts": "file:../../../packages/contracts",
+    "@codexsun/garments-web": "file:../../garments/web",
     "@codexsun/platform-core": "file:../../../packages/platform-core",
     "@codexsun/ui": "file:../../../packages/ui",
     "dotenv": "^17.0.0",

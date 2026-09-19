@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.20",
   "type": "module",
+  "exports": {
+    "./dashboard": "./src/index.ts"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -40,7 +40,7 @@ export default defineConfig(() => {
         { find: /^@\//, replacement: `${fileURLToPath(new URL("./src", import.meta.url))}/` },
         {
           find: /^@codexsun\/garments-contracts$/,
-          replacement: fileURLToPath(new URL("../contracts/src/index.ts", import.meta.url)),
+          replacement: fileURLToPath(new URL("../../../packages/garments-contracts/src/index.ts", import.meta.url)),
         },
         {
           find: /^@codexsun\/ui$/,

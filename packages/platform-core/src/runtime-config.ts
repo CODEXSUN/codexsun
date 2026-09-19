@@ -72,6 +72,8 @@ export const garmentsApiRuntimeConfigSchema = z.object({
     }),
   GARMENTS_INDEX_PATH: z.string().trim().min(1),
   GARMENTS_WEB_ORIGIN: urlSchema,
+  GARMENTS_FRAPPE_URL: urlSchema,
+  GARMENTS_FRAPPE_TOKEN: z.string().trim().min(1).optional(),
 });
 
 export const garmentsWebRuntimeConfigSchema = z.object({

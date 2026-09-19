@@ -1,9 +1,9 @@
-import { BookOpenIcon, BotIcon, BoxesIcon, NetworkIcon, PanelsTopLeftIcon } from 'lucide-react'
+import { BookOpenIcon, BotIcon, BoxesIcon, NetworkIcon, PanelsTopLeftIcon, ShirtIcon } from 'lucide-react'
 
 import type { MdiAppItem } from './mdi-types'
 
 type MdiCatalogEntry = MdiAppItem & {
-  id: 'docs' | 'orship' | 'platform' | 'ui' | 'zetro'
+  id: 'docs' | 'garments' | 'orship' | 'platform' | 'ui' | 'zetro'
   localUrl: string
   path: string
 }
@@ -43,6 +43,13 @@ const mdiApplicationCatalog: readonly MdiCatalogEntry[] = [
     label: 'Zetro',
     localUrl: requiredEnvironmentPort('VITE_ZETRO_WEB_URL'),
     path: '/zetro',
+  },
+  {
+    icon: ShirtIcon,
+    id: 'garments',
+    label: 'Garments',
+    localUrl: requiredEnvironmentPort('VITE_GARMENTS_WEB_URL'),
+    path: '/',
   },
 ]
 

@@ -1,6 +1,7 @@
 import { MainWorkspace } from "@codexsun/ui";
 import { Card, CardContent } from "@codexsun/ui/components/card";
-import { BlocksIcon, LayoutDashboardIcon, SettingsIcon } from "lucide-react";
+import { GarmentCard } from "@codexsun/garments-web/dashboard";
+import { BlocksIcon, LayoutDashboardIcon, SettingsIcon, ShirtIcon } from "lucide-react";
 import { platformHealthSchema, platformModulesSchema, type PlatformHealth } from "@codexsun/contracts";
 import { useEffect, useState } from "react";
 import { HttpIdentitySessionGateway } from "./modules/identity/session/identity-session-gateway";
@@ -20,6 +21,7 @@ export function App() {
 function PlatformWorkspace() {
   const [health, setHealth] = useState<HealthView | null>(null);
   const [modules, setModules] = useState<string[]>([]);
+  const [view, setView] = useState<"platform" | "garments">("platform");
   const session = useIdentitySession();
 
   useEffect(() => {
@@ -43,7 +45,8 @@ function PlatformWorkspace() {
       navigation={[
         {
           items: [
-            { active: true, icon: LayoutDashboardIcon, label: "Workspace" },
+            { active: view === "platform", icon: LayoutDashboardIcon, label: "Workspace", onSelect: () => setView("platform") },
+            { active: view === "garments", icon: ShirtIcon, label: "Garments", onSelect: () => setView("garments") },
             { icon: BlocksIcon, label: "Apps" },
             { icon: SettingsIcon, label: "Settings" },
           ],
@@ -52,9 +55,16 @@ function PlatformWorkspace() {
       primaryAction={null}
       sidebarFooter={<p className="px-2 text-xs text-muted-foreground">Platform modules are composed through declared providers.</p>}
       statusLabel={`${health?.status ?? "loading"} · ${session.state}`}
-      workspaceTitle="Platform workspace"
+      workspaceTitle={view === "platform" ? "Platform workspace" : "Garments dashboard"}
     >
-      <section className="size-full overflow-y-auto p-6">
+      {view === "garments" ? <GarmentCard /> : <PlatformDashboard health={health} modules={modules} />}
+    </MainWorkspace>
+  );
+}
+
+function PlatformDashboard({ health, modules }: { health: HealthView | null; modules: string[] }) {
+  return (
+    <section className="size-full overflow-y-auto p-6">
         <header className="mb-6">
           <h1 className="text-xl font-semibold tracking-tight">Workspace</h1>
           <p className="mt-1 text-sm text-muted-foreground">Provider health and enabled platform capabilities.</p>
@@ -78,7 +88,6 @@ function PlatformWorkspace() {
             ))}
           </ul>
         </section>
-      </section>
-    </MainWorkspace>
+    </section>
   );
 }

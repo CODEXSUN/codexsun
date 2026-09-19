@@ -24,6 +24,19 @@ export const garmentsApiErrorSchema = z.object({
 
 export const garmentsHealthResponseSchema = garmentsSuccessSchema(garmentsHealthSchema);
 
+export const frappeApiLogSchema = z.object({
+  creation: z.string(),
+  name: z.string(),
+  request_content: z.unknown().nullable(),
+});
+
+export const garmentsFrappeLogsSchema = z.object({
+  fetchedAt: z.string(),
+  logs: z.array(frappeApiLogSchema),
+});
+
+export const garmentsFrappeLogsResponseSchema = garmentsSuccessSchema(garmentsFrappeLogsSchema);
+
 export const documentSummarySchema = z.object({
   aliases: z.array(z.string()),
   description: z.string(),
@@ -74,6 +87,8 @@ export const documentationScanResponseSchema = z.object({
 export type GarmentsHealth = z.infer<typeof garmentsHealthSchema>;
 export type GarmentsHealthResponse = z.infer<typeof garmentsHealthResponseSchema>;
 export type GarmentsApiError = z.infer<typeof garmentsApiErrorSchema>;
+export type FrappeApiLog = z.infer<typeof frappeApiLogSchema>;
+export type GarmentsFrappeLogs = z.infer<typeof garmentsFrappeLogsSchema>;
 export type Document = z.infer<typeof documentSchema>;
 export type DocumentSummary = z.infer<typeof documentSummarySchema>;
 export type DocumentListResponse = z.infer<typeof documentListResponseSchema>;

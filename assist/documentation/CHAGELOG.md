@@ -20,6 +20,13 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+- Split Zetro Codex Settings into separate Local Codex and Device code cards.
+  Local rechecks visibly refresh the installed CLI session state, while the
+  device-code generator is explicitly enabled with a connection-mode switch.
+- Decoupled Zetro's local Codex recheck from device-code status loading. A
+  transient device-code request can no longer hide a successful local CLI
+  result, and the check controls now show their in-progress state.
+
 - Added the repository-owned `zetro-idea-workshop` skill. Zetro now invokes it
   for local Codex idea conversations. The skill supports idea discovery,
   option comparison, revision, and final briefs. It cannot create tasks,
