@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "crm",
+  "label": "CRM",
+  "owner": "apps/crm",
+  "taskPrefix": "c",
+  "providers": [
+    "platform.core",
+    "crm.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_CRM_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "crm-api",
+      "displayName": "CRM API",
+      "environmentDirectory": "api",
+      "envKey": "CRM_API_PORT",
+      "workspace": "@codexsun/crm-api",
+      "defaultPort": 6204
+    },
+    {
+      "kind": "web",
+      "target": "crm-web",
+      "displayName": "CRM web",
+      "environmentDirectory": "web",
+      "envKey": "CRM_WEB_PORT",
+      "workspace": "@codexsun/crm-web",
+      "defaultPort": 6205
+    }
+  ]
+}

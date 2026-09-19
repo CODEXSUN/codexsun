@@ -3,42 +3,94 @@
   "cacheDir": "dist/.turbo/workspace",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "outputs": []
     },
     "@codexsun/platform-api#build": {
-      "outputs": ["../../../dist/platform/api/**"]
+      "outputs": [
+        "../../../dist/platform/api/**"
+      ]
     },
     "@codexsun/platform-web#build": {
-      "outputs": ["../../../dist/platform/web/**"]
+      "outputs": [
+        "../../../dist/platform/web/**"
+      ]
     },
     "@codexsun/docs-api#build": {
-      "outputs": ["../../../dist/docs/api/**"]
+      "outputs": [
+        "../../../dist/docs/api/**"
+      ]
     },
     "@codexsun/docs-web#build": {
-      "outputs": ["../../../dist/docs/web/**"]
+      "outputs": [
+        "../../../dist/docs/web/**"
+      ]
     },
     "@codexsun/platform-desktop#build": {
-      "outputs": ["../../../dist/platform/desktop/**"]
+      "outputs": [
+        "../../../dist/platform/desktop/**"
+      ]
     },
     "@codexsun/platform-mobile#build": {
-      "outputs": ["../../../dist/platform/mobile/**"]
+      "outputs": [
+        "../../../dist/platform/mobile/**"
+      ]
     },
     "@codexsun/uiux-web#build": {
-      "outputs": ["../../../dist/uiux/web/**"]
+      "outputs": [
+        "../../../dist/uiux/web/**"
+      ]
     },
     "@codexsun/zetro-api#build": {
-      "outputs": ["../../../dist/zetro/api/**"]
+      "outputs": [
+        "../../../dist/zetro/api/**"
+      ]
     },
     "@codexsun/zetro-web#build": {
-      "outputs": ["../../../dist/zetro/web/**"]
+      "outputs": [
+        "../../../dist/zetro/web/**"
+      ]
     },
     "check": {
-      "dependsOn": ["^check"],
+      "dependsOn": [
+        "^check"
+      ],
       "outputs": []
     },
     "lint": {
       "outputs": []
+    },
+    "@codexsun/docx-api#build": {
+      "outputs": [
+        "../../../dist/docx/api/**"
+      ]
+    },
+    "@codexsun/docx-web#build": {
+      "outputs": [
+        "../../../dist/apps/docx/web/**"
+      ]
+    },
+    "@codexsun/qcafe-api#build": {
+      "outputs": [
+        "../../../dist/qcafe/api/**"
+      ]
+    },
+    "@codexsun/qcafe-web#build": {
+      "outputs": [
+        "../../../dist/apps/qcafe/web/**"
+      ]
+    },
+    "@codexsun/crm-api#build": {
+      "outputs": [
+        "../../../dist/crm/api/**"
+      ]
+    },
+    "@codexsun/crm-web#build": {
+      "outputs": [
+        "../../../dist/apps/crm/web/**"
+      ]
     }
   }
 }

@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.24
+Current version: 1.0.25
 
-Release tag: v-1.0.24
+Release tag: v-1.0.25
 
-Changelog label: v 1.0.24
+Changelog label: v 1.0.25
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -198,6 +198,22 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added the generated shadcn `sidebar-16` navigation block under the versioned
   `sidemenu/v16` package path, with public header and sidebar exports plus UIUX
   gallery preview coverage. No database change.
+
+## v-1.0.25
+
+### [v 1.0.25] 2026-09-19 11:51 am - Installed DOCX, Q Cafe, and CRM applications
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.25.
+- Installed DOCX, Q Cafe, and CRM through the app builder.
+- Added API and web hosts for each application. Each host has local ports,
+  environment files, MDI registration, development-profile enablement, test
+  scripts, and Turbo build outputs.
 
 ## v-1.0.24
 

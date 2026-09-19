@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -80,7 +80,16 @@
     "test:docs-web": "npm run test --workspace @codexsun/docs-web",
     "test:platform-desktop": "npm run test --workspace @codexsun/platform-desktop",
     "test:platform-mobile": "npm run test --workspace @codexsun/platform-mobile",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "dev:docx-api": "node tools/preflight.mjs docx-api --restart",
+    "dev:docx-web": "node tools/preflight.mjs docx-web --restart",
+    "test:docx": "npm run test --workspace @codexsun/docx-api && npm run test --workspace @codexsun/docx-web",
+    "dev:qcafe-api": "node tools/preflight.mjs qcafe-api --restart",
+    "dev:qcafe-web": "node tools/preflight.mjs qcafe-web --restart",
+    "test:qcafe": "npm run test --workspace @codexsun/qcafe-api && npm run test --workspace @codexsun/qcafe-web",
+    "dev:crm-api": "node tools/preflight.mjs crm-api --restart",
+    "dev:crm-web": "node tools/preflight.mjs crm-web --restart",
+    "test:crm": "npm run test --workspace @codexsun/crm-api && npm run test --workspace @codexsun/crm-web"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

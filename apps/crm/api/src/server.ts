@@ -1,0 +1,27 @@
+import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
+import swagger from "@fastify/swagger";
+import swaggerUi from "@fastify/swagger-ui";
+import Fastify from "fastify";
+import { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from "fastify-type-provider-zod";
+import { z } from "zod";
+import { createPlatformRuntime, loadEnabledAddonProviders, readApplicationDeployableProfile } from "@codexsun/platform-core";
+import { readConfig } from "./config.js";
+import { CrmFoundationProvider } from "./modules/foundation/provider.js";
+
+const config = readConfig();
+const provider = new CrmFoundationProvider();
+const profile = readApplicationDeployableProfile({ applicationId: "crm", availableProviderIds: ["platform.core", provider.manifest.id] });
+const runtime = createPlatformRuntime(profile, [provider, ...(await loadEnabledAddonProviders(profile))]);
+runtime.start();
+const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
+app.setValidatorCompiler(validatorCompiler);
+app.setSerializerCompiler(serializerCompiler);
+await app.register(helmet);
+await app.register(cors, { origin: process.env.CRM_WEB_ORIGIN, methods: ["GET", "HEAD", "OPTIONS"], allowedHeaders: ["Authorization", "Content-Type"] });
+await app.register(swagger, { openapi: { info: { title: "CRM API", version: "1.0.0" }, openapi: "3.0.3" }, transform: jsonSchemaTransform });
+await app.register(swaggerUi, { routePrefix: "/api/internal/reference", uiHooks: { onRequest: (request, reply, done) => { if (request.headers.authorization !== `Bearer ${config.apiReferenceToken}`) return reply.code(401).send({ error: "Authentication required." }); done(); } } });
+app.setErrorHandler((error, _request, reply) => { app.log.error(error); return reply.code(500).send({ error: "Internal server error.", code: "server.internal" }); });
+app.get("/api/v1/crm/health", { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } }, async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }));
+app.addHook("onClose", () => runtime.stop());
+await app.listen({ host: config.host, port: config.port });

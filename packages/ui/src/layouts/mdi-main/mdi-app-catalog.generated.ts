@@ -10,10 +10,24 @@ export type MdiCatalogApplication = {
 
 export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
   {
+    "icon": "application",
+    "id": "crm",
+    "label": "CRM",
+    "localUrlKey": "VITE_CRM_WEB_URL",
+    "path": "/"
+  },
+  {
     "icon": "docs",
     "id": "docs",
     "label": "Docs",
     "localUrlKey": "VITE_DOCS_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
+    "id": "docx",
+    "label": "DOCX",
+    "localUrlKey": "VITE_DOCX_WEB_URL",
     "path": "/"
   },
   {
@@ -22,6 +36,13 @@ export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
     "label": "Platform",
     "localUrlKey": "VITE_PLATFORM_WEB_URL",
     "path": "/system"
+  },
+  {
+    "icon": "application",
+    "id": "qcafe",
+    "label": "Q Cafe",
+    "localUrlKey": "VITE_QCAFE_WEB_URL",
+    "path": "/"
   },
   {
     "icon": "uiux",

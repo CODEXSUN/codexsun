@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "docx",
+  "label": "DOCX",
+  "owner": "apps/docx",
+  "taskPrefix": "x",
+  "providers": [
+    "platform.core",
+    "docx.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_DOCX_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "docx-api",
+      "displayName": "DOCX API",
+      "environmentDirectory": "api",
+      "envKey": "DOCX_API_PORT",
+      "workspace": "@codexsun/docx-api",
+      "defaultPort": 6200
+    },
+    {
+      "kind": "web",
+      "target": "docx-web",
+      "displayName": "DOCX web",
+      "environmentDirectory": "web",
+      "envKey": "DOCX_WEB_PORT",
+      "workspace": "@codexsun/docx-web",
+      "defaultPort": 6201
+    }
+  ]
+}

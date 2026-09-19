@@ -92,11 +92,11 @@ function registerRootMdiPort(root, application) {
 }
 
 function apiPackage(application, version) {
-  return { name: `@codexsun/${application.id}-api`, version, private: true, type: "module", scripts: { build: "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/" + application.id + "/api/server.js", check: "tsc -p tsconfig.json --noEmit", dev: "tsx watch src/server.ts", lint: "eslint src", test: "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts" }, dependencies: { "@codexsun/framework": "file:../../../packages/framework", "@codexsun/platform-core": "file:../../../packages/platform-core", "@fastify/cors": "^11.3.0", "@fastify/helmet": "^13.1.1", "@fastify/swagger": "^9.8.1", "@fastify/swagger-ui": "^6.1.1", fastify: "^5.0.0", "fastify-type-provider-zod": "^4.0.2", zod: "^3.25.76" } };
+  return { name: `@codexsun/${application.id}-api`, version, private: true, type: "module", scripts: { build: "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/" + application.id + "/api/server.js", check: "tsc -p tsconfig.json --noEmit", dev: "tsx watch src/server.ts", lint: "eslint src", test: "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts" }, dependencies: { "@codexsun/framework": "file:../../../packages/framework", "@codexsun/platform-core": "file:../../../packages/platform-core", "@fastify/cors": "^11.3.0", "@fastify/helmet": "^13.1.1", "@fastify/swagger": "^9.8.1", "@fastify/swagger-ui": "^6.1.1", dotenv: "^17.0.0", fastify: "^5.0.0", "fastify-type-provider-zod": "^4.0.2", zod: "^3.25.76" } };
 }
 
 function webPackage(application, version) {
-  return { name: `@codexsun/${application.id}-web`, version, private: true, type: "module", scripts: { build: "vite build", check: "tsc -p tsconfig.json --noEmit", dev: "vite", lint: "eslint src", test: "tsx --test" }, dependencies: { "@codexsun/ui": "file:../../../packages/ui", "@tailwindcss/vite": "^4.0.0", "@tanstack/react-query": "^5.103.1", "@vitejs/plugin-react": "^5.0.0", react: "^19.0.0", "react-dom": "^19.0.0", vite: "^7.0.0" } };
+  return { name: `@codexsun/${application.id}-web`, version, private: true, type: "module", scripts: { build: "vite build", check: "tsc -p tsconfig.json --noEmit", dev: "vite", lint: "eslint src", test: "tsx --test" }, dependencies: { "@codexsun/ui": "file:../../../packages/ui", "@tailwindcss/vite": "^4.0.0", "@tanstack/react-query": "^5.103.1", "@vitejs/plugin-react": "^5.0.0", dotenv: "^17.0.0", react: "^19.0.0", "react-dom": "^19.0.0", vite: "^7.0.0" } };
 }
 
 function providerSource(application) {
