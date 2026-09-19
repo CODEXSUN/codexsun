@@ -33,7 +33,7 @@ export function IdentitySessionProvider({ children, gateway }: IdentitySessionPr
         setSession(undefined);
       },
       fetch(input, init) {
-        if (!session) return Promise.reject(new Error("An active session is required."));
+        if (!session) return globalThis.fetch(input, init);
         const headers = new Headers(init?.headers);
         headers.set("authorization", `Bearer ${session.token}`);
         return globalThis.fetch(input, { ...init, headers });

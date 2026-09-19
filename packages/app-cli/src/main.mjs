@@ -21,7 +21,8 @@ export async function run(argumentsList, rootDir = root) {
   if (command === "remove") return remove(args, rootDir);
   if (command === "create-addon") return createAddonCommand(args, rootDir);
   if (command === "sync") return console.log(syncMdiCatalog(rootDir));
-  if (["enable", "install", "disable", "uninstall"].includes(command)) {
+  if (command === "uninstall") return uninstall(args, rootDir);
+  if (["enable", "install", "disable"].includes(command)) {
     return update(args, command === "enable" || command === "install", rootDir);
   }
   if (command === "build") return build(args, rootDir);
@@ -41,6 +42,13 @@ function update(args, enabled, rootDir) {
   if (!new Set(["application", "addon"]).has(kind) || !id) throw new Error("Use install|uninstall <application|addon> <id> [--profile development].");
   const profile = optionValue(options, "--profile") ?? "development";
   console.log(JSON.stringify(updateProfile(rootDir, profile, kind, id, enabled), null, 2));
+}
+
+function uninstall(args, rootDir) {
+  const [kind, id] = args;
+  if (kind === "application") return console.log(JSON.stringify(removeApplication(rootDir, id), null, 2));
+  if (kind === "addon") return update(args, false, rootDir);
+  throw new Error("Use uninstall <application|addon> <id>.");
 }
 
 function build(args, rootDir) {

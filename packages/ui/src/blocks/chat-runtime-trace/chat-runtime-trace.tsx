@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronRightIcon, TerminalIcon } from 'lucide-react'
+import { CircleAlertIcon, CircleCheckIcon, EyeIcon, FilePenLineIcon, LoaderCircleIcon, MessageSquareIcon, SearchIcon, TerminalIcon } from 'lucide-react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../components/collapsible'
 import { cn } from '../../lib/utils'
 
@@ -26,7 +26,6 @@ export function ChatRuntimeTrace({ className, elapsedSeconds, events, isWorking 
   return (
     <Collapsible className={cn("w-full shrink-0 border-y border-border/50", className)} open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="group/runtime-trace flex w-full items-center gap-2 py-2 text-left text-xs text-muted-foreground hover:text-foreground">
-        <ChevronRightIcon className="size-3 shrink-0 transition-transform group-data-[state=open]/runtime-trace:rotate-90" />
         <TerminalIcon className="size-3 shrink-0" />
         <span className={isWorking ? 'shimmer shimmer-orange font-medium' : 'font-medium'}>{isWorking ? `Compacting auto · Working for ${elapsedSeconds}s` : `Compacted · Worked for ${elapsedSeconds}s`}</span>
         <span className="ml-auto">{events.length} events</span>
@@ -47,8 +46,7 @@ function TraceEvent({ event }: { event: ChatRuntimeTraceEvent }) {
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="group/runtime-event flex w-full items-center gap-2 rounded-sm px-1 py-1 text-left text-xs text-muted-foreground hover:bg-muted/50 hover:text-foreground">
-        <ChevronRightIcon className="size-3 shrink-0 transition-transform group-data-[state=open]/runtime-event:rotate-90" />
-        <span className="w-16 shrink-0 font-medium capitalize text-foreground/80">{event.type}</span>
+        <EventIcon type={event.type} />
         <span className="truncate">{event.message}</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="px-1 pb-1">
@@ -56,4 +54,9 @@ function TraceEvent({ event }: { event: ChatRuntimeTraceEvent }) {
       </CollapsibleContent>
     </Collapsible>
   )
+}
+
+function EventIcon({ type }: { type: string }) {
+  const Icon = type === 'command' ? TerminalIcon : type === 'response' ? MessageSquareIcon : type === 'request' ? SearchIcon : type === 'review' ? EyeIcon : type === 'change' ? FilePenLineIcon : type === 'complete' ? CircleCheckIcon : type === 'error' ? CircleAlertIcon : LoaderCircleIcon
+  return <Icon aria-label={type} className={cn('size-3 shrink-0', type === 'processing' && 'animate-spin')} />
 }

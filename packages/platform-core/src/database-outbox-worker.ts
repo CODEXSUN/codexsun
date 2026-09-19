@@ -1,6 +1,7 @@
 import type { DatabaseOutbox, OutboxMessage } from "./database-outbox.js";
 
 export interface DatabaseOutboxWorkerConfiguration {
+  readonly lockTimeoutMs?: number;
   readonly maximumAttempts: number;
   readonly retryDelayMs: number;
 }
@@ -16,6 +17,7 @@ export class DatabaseOutboxWorker {
 
   async runOnce(now = new Date()): Promise<"idle" | "completed" | "retried" | "failed"> {
     const timestamp = now.toISOString();
+    await this.outbox.recoverExpiredLocks(timestamp, this.configuration.lockTimeoutMs ?? 60_000);
     const message = await this.outbox.claimNext(timestamp);
     if (!message) return "idle";
 

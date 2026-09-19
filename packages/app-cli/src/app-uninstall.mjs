@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { loadRegistry } from "./registry.mjs";
 import { syncMdiCatalog } from "./mdi-catalog.mjs";
 
@@ -13,6 +13,8 @@ export function removeApplication(rootDir, applicationId) {
   assertNotRunning(registry.root, application);
   removeProfileBindings(registry.root, application.id);
   removeWorkspaceLock(registry.root, application);
+  removeRootScripts(registry.root, application);
+  removeTurboOutputs(registry.root, application);
   removeRootMdiPort(registry.root, application.mdi?.localUrlKey);
   unlinkSync(resolve(registry.root, "registry", "applications", `${application.id}.json`));
   rmSync(applicationPath, { force: true, recursive: true });
@@ -22,7 +24,7 @@ export function removeApplication(rootDir, applicationId) {
 
 function assertApplicationPath(root, applicationPath, applicationId) {
   const appsPath = resolve(root, "apps");
-  if (applicationPath !== resolve(appsPath, applicationId) || !applicationPath.startsWith(`${appsPath}\\`)) {
+  if (relative(appsPath, applicationPath) !== applicationId || resolve(appsPath, applicationId) !== applicationPath) {
     throw new Error("Application path is outside apps.");
   }
 }
@@ -64,6 +66,31 @@ function removeRootMdiPort(root, key) {
   if (!key || !existsSync(path)) return;
   const content = readFileSync(path, "utf8");
   writeFileSync(path, content.replace(new RegExp(`^${key}=.*(?:\\r?\\n|$)`, "mu"), ""), "utf8");
+}
+
+function removeRootScripts(root, application) {
+  const path = resolve(root, "package.json");
+  if (!existsSync(path)) return;
+  const packageJson = JSON.parse(readFileSync(path, "utf8"));
+  const scripts = packageJson.scripts ?? {};
+  for (const host of application.hosts) {
+    const key = `dev:${application.id}-${host.kind}`;
+    if (scripts[key] === `node tools/preflight.mjs ${host.target} --restart`) delete scripts[key];
+  }
+  const testKey = `test:${application.id}`;
+  const testValue = application.hosts.map((host) => `npm run test --workspace ${host.workspace}`).join(" && ");
+  if (scripts[testKey] === testValue) delete scripts[testKey];
+  packageJson.scripts = scripts;
+  writeJson(path, packageJson);
+}
+
+function removeTurboOutputs(root, application) {
+  const path = resolve(root, "turbo.json");
+  if (!existsSync(path)) return;
+  const turbo = JSON.parse(readFileSync(path, "utf8"));
+  delete turbo.tasks?.[`@codexsun/${application.id}-api#build`];
+  delete turbo.tasks?.[`@codexsun/${application.id}-web#build`];
+  writeJson(path, turbo);
 }
 
 function writeJson(path, value) {

@@ -6,6 +6,7 @@ import { registerHttpSecurity } from "./http-security.js";
 import { registerInternalApiReference, registerOpenApi } from "./openapi.js";
 import { registerRequestLogging } from "./request-logging.js";
 import { registerRequestObservability } from "./request-observability.js";
+import { registerRequestScope } from "./request-scope.js";
 import { registerRootRoute } from "./root-route.js";
 import { registerPlatformRoutes } from "./routes.js";
 
@@ -22,6 +23,7 @@ export async function createPlatformApiApplication(options: PlatformApiApplicati
   await registerOpenApi(api);
   await registerHttpSecurity(app, options.webOrigin);
   registerRequestObservability(app);
+  registerRequestScope(app, options.engine);
   registerRequestLogging(app);
   app.addHook("onClose", () => options.stopRuntime());
   registerRootRoute(app, options.engine, options.webOrigin);

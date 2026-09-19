@@ -3,6 +3,7 @@ import test from "node:test";
 import Fastify from "fastify";
 import { type ModuleProvider, ProviderEngine } from "@codexsun/framework";
 import { registerHealthRoute } from "../routes/health-route.js";
+import { configureApiSchemas } from "../../../openapi.js";
 
 test("reports provider readiness without provider values", async () => {
   const engine = new ProviderEngine();
@@ -21,6 +22,7 @@ test("reports provider readiness without provider values", async () => {
   engine.start();
 
   const app = Fastify();
+  configureApiSchemas(app);
   await registerHealthRoute(app, engine);
   const response = await app.inject({ method: "GET", url: "/api/v1/platform/health" });
 

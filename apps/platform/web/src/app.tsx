@@ -1,40 +1,26 @@
 import { MainWorkspace } from "@codexsun/ui";
 import { Card, CardContent } from "@codexsun/ui/components/card";
 import { BlocksIcon, LayoutDashboardIcon, SettingsIcon } from "lucide-react";
-import { platformHealthSchema, platformModulesSchema, type PlatformHealth } from "@codexsun/contracts";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { HttpIdentitySessionGateway } from "./modules/identity/session/identity-session-gateway";
 import { IdentitySessionProvider, useIdentitySession } from "./modules/identity/provider";
-
-const apiUrl = import.meta.env.VITE_PLATFORM_API_URL;
-type HealthView = PlatformHealth | { status: string; providers: string[] };
+import { getPlatformApiUrl, PlatformApiError } from "./lib/platform-client";
+import { usePlatformHealth, usePlatformModules } from "./hooks/use-platform";
 
 export function App() {
+  const apiUrl = usePlatformApiUrl();
   return (
-    <IdentitySessionProvider gateway={new HttpIdentitySessionGateway(apiUrl)}>
-      <PlatformWorkspace />
+    <IdentitySessionProvider gateway={new HttpIdentitySessionGateway(apiUrl ?? "")}>
+      <PlatformWorkspace apiUrl={apiUrl} />
     </IdentitySessionProvider>
   );
 }
 
-function PlatformWorkspace() {
-  const [health, setHealth] = useState<HealthView | null>(null);
-  const [modules, setModules] = useState<string[]>([]);
+function PlatformWorkspace({ apiUrl }: { apiUrl: string | undefined }) {
   const session = useIdentitySession();
-
-  useEffect(() => {
-    if (!apiUrl) {
-      setHealth({ status: "configuration error", providers: [] });
-      return;
-    }
-    void Promise.all([fetch(`${apiUrl}/api/v1/platform/health`), fetch(`${apiUrl}/api/v1/platform/modules`)])
-      .then(async ([healthResponse, modulesResponse]) => {
-        if (!healthResponse.ok || !modulesResponse.ok) throw new Error("Platform API is unavailable.");
-        setHealth(platformHealthSchema.parse(await healthResponse.json()));
-        setModules(platformModulesSchema.parse(await modulesResponse.json()).providers);
-      })
-      .catch(() => setHealth({ status: "offline", providers: [] }));
-  }, []);
+  const health = usePlatformHealth(apiUrl, session.fetch);
+  const modules = usePlatformModules(apiUrl, session.fetch);
+  const state = platformState(apiUrl, health, modules);
 
   return (
     <MainWorkspace
@@ -53,15 +39,15 @@ function PlatformWorkspace() {
       sidebarFooter={
         <p className="px-2 text-xs text-muted-foreground">Platform modules are composed through declared providers.</p>
       }
-      statusLabel={`${health?.status ?? "loading"} · ${session.state}`}
+      statusLabel={`${state.status} · ${session.state}`}
       workspaceTitle="Platform workspace"
     >
-      <PlatformDashboard health={health} modules={modules} />
+      <PlatformDashboard providers={health.data?.providers ?? []} modules={modules.data?.providers ?? []} state={state} />
     </MainWorkspace>
   );
 }
 
-function PlatformDashboard({ health, modules }: { health: HealthView | null; modules: string[] }) {
+function PlatformDashboard({ providers, modules, state }: { providers: string[]; modules: string[]; state: PlatformState }) {
   return (
     <section className="size-full overflow-y-auto p-6">
       <header className="mb-6">
@@ -75,8 +61,8 @@ function PlatformDashboard({ health, modules }: { health: HealthView | null; mod
         <p className="mt-1 text-sm text-muted-foreground">The active provider engine controls this deployable.</p>
         <Card className="mt-3">
           <CardContent>
-            <p className="text-2xl font-semibold">{health?.providers.length ?? 0}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Providers ready</p>
+            <p className="text-2xl font-semibold">{providers.length}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{state.message}</p>
           </CardContent>
         </Card>
       </section>
@@ -95,4 +81,32 @@ function PlatformDashboard({ health, modules }: { health: HealthView | null; mod
       </section>
     </section>
   );
+}
+
+interface PlatformState {
+  readonly message: string;
+  readonly status: string;
+}
+
+function usePlatformApiUrl(): string | undefined {
+  return useMemo(() => {
+    try {
+      return getPlatformApiUrl();
+    } catch (error) {
+      if (error instanceof PlatformApiError) return undefined;
+      throw error;
+    }
+  }, []);
+}
+
+function platformState(
+  apiUrl: string | undefined,
+  health: ReturnType<typeof usePlatformHealth>,
+  modules: ReturnType<typeof usePlatformModules>,
+): PlatformState {
+  if (!apiUrl) return { status: "configuration error", message: "Set VITE_PLATFORM_API_URL to connect the workspace." };
+  if (health.isPending || modules.isPending) return { status: "loading", message: "Loading provider state…" };
+  if (health.isError || modules.isError) return { status: "offline", message: "Platform API is unavailable." };
+  if (!health.data?.providers.length) return { status: health.data?.status ?? "ok", message: "No providers are enabled." };
+  return { status: health.data.status, message: "Providers ready" };
 }

@@ -3,14 +3,14 @@ import test from "node:test";
 import { failure, type ModuleProvider, type ProviderManifest, success } from "../src/index.js";
 import { createProviderFixture } from "../src/test-harness.js";
 
-function manifest(id: string, dependencies: readonly string[] = []): ProviderManifest {
+function manifest(id: string, dependencies: readonly string[] = [], events = { published: [] as string[], consumed: [] as string[] }): ProviderManifest {
   return {
     id,
     owner: "packages/framework/test",
     version: "1.0.2",
     dependencies,
     contracts: [],
-    events: { published: [], consumed: [] },
+    events,
   };
 }
 
@@ -110,4 +110,47 @@ test("reports provider readiness without provider values", () => {
 
   fixture.engine.stop();
   assert.deepEqual(fixture.engine.readiness(), [{ id: "foundation", state: "stopped" }]);
+});
+
+test("resolves lazy singleton factories and request scopes", () => {
+  const fixture = createProviderFixture();
+  let factoryCalls = 0;
+  fixture.engine.provide("configuration", { region: "local" });
+  fixture.engine.provideFactory("service", (dependencies) => {
+    factoryCalls += 1;
+    return { region: dependencies.require<{ region: string }>("configuration").region };
+  });
+
+  assert.deepEqual(fixture.engine.require("service"), { region: "local" });
+  assert.deepEqual(fixture.engine.require("service"), { region: "local" });
+  assert.equal(factoryCalls, 1);
+
+  const request = fixture.engine.createScope();
+  request.provide("request.id", "request-1");
+  assert.equal(request.require("request.id"), "request-1");
+  assert.deepEqual(request.require("service"), { region: "local" });
+});
+
+test("dispatches declared events only to declared consumers", async () => {
+  const fixture = createProviderFixture();
+  let publisher: { emit<T>(name: string, payload: T): Promise<void> } | undefined;
+  const delivered: string[] = [];
+  fixture.engine.register(
+    fixture.provider(manifest("consumer", [], { published: [], consumed: ["example.created.v1"] }), {
+      register: (context) => context.on<{ id: string }>("example.created.v1", (event) => {
+        delivered.push(event.payload.id);
+      }),
+    }),
+  );
+  fixture.engine.register(
+    fixture.provider(manifest("publisher", [], { published: ["example.created.v1"], consumed: [] }), {
+      register: (context) => {
+        publisher = context;
+      },
+    }),
+  );
+
+  await publisher?.emit("example.created.v1", { id: "one" });
+  assert.deepEqual(delivered, ["one"]);
+  await assert.rejects(() => publisher!.emit("example.deleted.v1", { id: "one" }), /did not declare published event/u);
 });

@@ -28,6 +28,7 @@ export const zetroChatRoleSchema = z.enum(["user", "assistant", "error"]);
 export const zetroIdeaStageSchema = z.enum(["explore", "compare", "revise", "final"]);
 
 export const zetroChatConversationSchema = z.object({
+  analysisRoot: z.string().nullable(),
   id: z.string().uuid(),
   title: z.string().min(1).max(120),
   createdAt: z.string().datetime(),
@@ -154,11 +155,13 @@ export const zetroUpsertIdeaBriefSchema = z.object({
 export const zetroIdeaBriefResponseSchema = zetroSuccessSchema(z.object({ brief: zetroIdeaBriefSchema.nullable() }));
 
 export const zetroAgentTaskSchema = z.object({
+  acceptanceCriteria: z.string().trim().max(2_000),
   briefId: z.string().uuid(),
   createdAt: z.string().datetime(),
   id: z.string().uuid(),
   projectReference: z.string().trim().max(240).nullable(),
   projectScope: z.enum(["project", "all-projects"]),
+  priority: z.enum(["low", "medium", "high"]),
   status: z.literal("prepared"),
   summary: z.string().trim().min(1).max(4_000),
   title: z.string().trim().min(1).max(160),
@@ -166,9 +169,11 @@ export const zetroAgentTaskSchema = z.object({
 });
 
 export const zetroCreateAgentTaskSchema = z.object({
+  acceptanceCriteria: z.string().trim().max(2_000),
   briefId: z.string().uuid(),
   projectReference: z.string().trim().max(240).nullable(),
   projectScope: z.enum(["project", "all-projects"]),
+  priority: z.enum(["low", "medium", "high"]),
   summary: z.string().trim().min(1).max(4_000),
   title: z.string().trim().min(1).max(160),
 }).superRefine((value, context) => {

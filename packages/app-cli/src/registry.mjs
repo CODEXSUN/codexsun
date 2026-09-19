@@ -28,7 +28,7 @@ export function verifyRegistry(rootDir) {
 
   verifyApplicationBindings(registry.root, registry.applications);
   for (const profile of profiles) {
-    verifyProfile(profile, applicationIds, addonIds);
+    verifyProfile(profile, registry.applications, registry.addons, applicationIds, addonIds);
   }
   return { applications: registry.applications.map((item) => item.id), addons: registry.addons.map((item) => item.id), profiles: profiles.map((item) => item.id) };
 }
@@ -116,6 +116,7 @@ function validateManifest(manifest, expectedKind, filename, ids) {
 function validateApplication(application, filename) {
   if (application.schemaVersion !== 1) throw new Error(`${filename}: schemaVersion must be 1.`);
   if (typeof application.label !== "string" || !application.label.trim()) throw new Error(`${filename}: label is required.`);
+  if (typeof application.owner !== "string" || !application.owner.startsWith("apps/")) throw new Error(`${filename}: owner must be an apps path.`);
   if (typeof application.taskPrefix !== "string" || !/^[a-z]$/u.test(application.taskPrefix)) {
     throw new Error(`${filename}: taskPrefix must be one lowercase letter.`);
   }
@@ -144,6 +145,7 @@ function validateApplication(application, filename) {
 function validateAddon(addon, filename) {
   if (addon.schemaVersion !== 1) throw new Error(`${filename}: schemaVersion must be 1.`);
   if (typeof addon.label !== "string" || !addon.label.trim()) throw new Error(`${filename}: label is required.`);
+  if (typeof addon.owner !== "string" || !addon.owner.startsWith("packages/")) throw new Error(`${filename}: owner must be a packages path.`);
   if (typeof addon.package !== "string" || !addon.package.startsWith("@codexsun/")) {
     throw new Error(`${filename}: add-on package must use the @codexsun scope.`);
   }
@@ -202,7 +204,7 @@ function readProfiles(root) {
     });
 }
 
-function verifyProfile(profile, applicationIds, addonIds) {
+function verifyProfile(profile, applications, addons, applicationIds, addonIds) {
   if (profile.schemaVersion !== 1) throw new Error(`Profile ${profile.id}: schemaVersion must be 1.`);
   if (!idPattern.test(profile.id ?? "")) throw new Error("Profile id must be lowercase kebab-case.");
   for (const [key, knownIds] of [["enabledApplications", applicationIds], ["enabledAddons", addonIds]]) {
@@ -219,6 +221,21 @@ function verifyProfile(profile, applicationIds, addonIds) {
     }
     if (!Array.isArray(providers) || new Set(providers).size !== providers.length) {
       throw new Error(`Profile ${profile.id}: enabledProviders for ${applicationId} must be a unique array.`);
+    }
+    const application = applications.find((item) => item.id === applicationId);
+    for (const provider of providers) {
+      if (!application.providers.includes(provider)) {
+        throw new Error(`Profile ${profile.id}: enabledProviders includes undeclared provider ${provider} for ${applicationId}.`);
+      }
+    }
+  }
+  const enabledAddons = new Set(profile.enabledAddons);
+  for (const addonId of profile.enabledAddons) {
+    const addon = addons.find((item) => item.id === addonId);
+    for (const dependency of addon.dependencies) {
+      if (!enabledAddons.has(dependency)) {
+        throw new Error(`Profile ${profile.id}: add-on ${addonId} requires enabled add-on ${dependency}.`);
+      }
     }
   }
 }

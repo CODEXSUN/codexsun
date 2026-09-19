@@ -4,10 +4,12 @@ import Fastify from "fastify";
 import { SettingsController } from "../controller/settings.controller.js";
 import { InMemorySettingsRepository } from "../repository/settings.repository.js";
 import { registerSettingsRoutes } from "../routes/settings-routes.js";
+import { configureApiSchemas } from "../../../openapi.js";
 import { SettingsService } from "../service/settings.service.js";
 
 test("allows only actors with platform settings permission to read settings", async () => {
   const app = Fastify();
+  configureApiSchemas(app);
   const controller = new SettingsController(
     new SettingsService(new InMemorySettingsRepository([{ key: "platform.name", value: "Aaran" }])),
   );

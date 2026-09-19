@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -12,6 +12,7 @@
     "packages/*"
   ],
   "scripts": {
+    "test": "npm run test:framework && npm run test:platform-core && npm run test:platform-api && npm run test:platform-web && npm run test:ui && npm run test:zetro-api && npm run test:zetro-web && npm run test:docs-api && npm run test:docs-web && npm run test:platform-desktop && npm run test:platform-mobile && npm run test:app-cli && npm run test:module-generator && npm run test:turbo-scope && npm run test:module-boundaries && npm run test:app-architecture && npm run test:versions && npm run test:line-endings && npm run test:app-worktree && npm run test:app-build",
     "github:now": "node tools/github-helper.mjs",
     "dev:api": "node tools/preflight.mjs platform-api --restart",
     "dev:web": "node tools/preflight.mjs platform-web --restart",
@@ -69,6 +70,7 @@
     "test:app-cli": "npm run test --workspace @codexsun/app-cli",
     "test:framework": "npm run test --workspace @codexsun/framework",
     "test:platform-core": "npm run test --workspace @codexsun/platform-core",
+    "test:platform-mariadb": "npm run test:mariadb --workspace @codexsun/platform-core",
     "test:platform-api": "npm run test --workspace @codexsun/platform-api",
     "test:platform-web": "npm run test --workspace @codexsun/platform-web",
     "test:ui": "npm run test --workspace @codexsun/ui",

@@ -20,7 +20,14 @@ npm run addon:create -- catalog --label "Catalog"
 npm run app:sync
 npm run app:verify
 npm run app:uninstall -- <id>
+npm run app:remove -- <id>
 ```
 
 `app:create` adds an API and web foundation, typed route schema, protected API
 reference, MDI entry, module tests, and deployment profile selection.
+
+`app:disable` disables an application in the selected deployment profile. It
+preserves application files and data. `app:uninstall` removes a stopped,
+generated application from `apps/` and removes its registry, profile, MDI,
+lockfile, Turbo, script, and local development port bindings. `app:remove` is
+an alias for this destructive operation.

@@ -3,6 +3,7 @@
   "schemaVersion": 1,
   "id": "docs",
   "label": "Docs",
+  "owner": "apps/docs",
   "taskPrefix": "d",
   "mdi": { "icon": "docs", "localUrlKey": "VITE_DOCS_WEB_URL", "path": "/" },
   "providers": ["platform.core", "docs.catalog"],

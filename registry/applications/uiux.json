@@ -3,6 +3,7 @@
   "schemaVersion": 1,
   "id": "uiux",
   "label": "UIUX",
+  "owner": "apps/uiux",
   "taskPrefix": "u",
   "mdi": { "icon": "uiux", "localUrlKey": "VITE_UIUX_WEB_URL", "path": "/" },
   "role": "visual-catalog",

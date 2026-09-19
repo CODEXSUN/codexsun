@@ -60,6 +60,29 @@ test("marks database work as failed after its retry limit", async () => {
   await provider.destroy();
 });
 
+test("releases work abandoned by a crashed outbox worker", async () => {
+  const provider = createSqliteDataProvider<OperationsDatabase>({ filename: ":memory:" });
+  const database = provider.queryDatabase();
+  await operationsMigration.apply(database);
+  const outbox = new DatabaseOutbox(database as unknown as Kysely<DatabaseOutboxSchema>);
+  await outbox.record({
+    owner: "platform.operations",
+    eventType: "test.recovered.v1",
+    payload: "{}",
+    availableAt: "2026-09-17T00:00:00.000Z",
+  });
+  assert.ok(await outbox.claimNext("2026-09-17T00:00:00.000Z"));
+  const worker = new DatabaseOutboxWorker(outbox, async () => undefined, {
+    lockTimeoutMs: 60_000,
+    maximumAttempts: 2,
+    retryDelayMs: 1,
+  });
+
+  assert.equal(await worker.runOnce(new Date("2026-09-17T00:02:00.000Z")), "completed");
+  assert.deepEqual(await outbox.stateCounts(), { pending: 0, processing: 0, completed: 1, failed: 0 });
+  await provider.destroy();
+});
+
 test("isolates module storage and validates structured audit records", async () => {
   const root = await mkdtemp(join(tmpdir(), "codexsun-storage-"));
   const service = new OperationsService(new StorageProvider(root));

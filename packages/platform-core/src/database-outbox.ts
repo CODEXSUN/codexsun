@@ -40,6 +40,10 @@ export type OutboxStateCounts = Record<OutboxState, number>;
 export class DatabaseOutbox {
   constructor(private readonly database: Kysely<DatabaseOutboxSchema>) {}
 
+  forDatabase(database: Kysely<DatabaseOutboxSchema>): DatabaseOutbox {
+    return new DatabaseOutbox(database);
+  }
+
   async record(input: Omit<OutboxMessage, "id" | "state" | "attempts">): Promise<OutboxMessage> {
     const message: OutboxMessage = { ...input, id: randomUUID(), state: "pending", attempts: 0 };
     await this.database
@@ -82,6 +86,19 @@ export class DatabaseOutbox {
       if (Number(update.numUpdatedRows) !== 1) return undefined;
       return toMessage({ ...row, state: "processing" });
     });
+  }
+
+  /** Releases messages abandoned by a crashed worker so another worker can retry them. */
+  async recoverExpiredLocks(now: string, lockTimeoutMs: number): Promise<number> {
+    if (!Number.isInteger(lockTimeoutMs) || lockTimeoutMs < 1) throw new Error("Outbox lock timeout must be at least one millisecond.");
+    const expiresAt = new Date(new Date(now).getTime() - lockTimeoutMs).toISOString();
+    const result = await this.database
+      .updateTable("platform_outbox_messages")
+      .set({ state: "pending", available_at: now, locked_at: null, failure_code: "outbox.lock-expired" })
+      .where("state", "=", "processing")
+      .where("locked_at", "<", expiresAt)
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows);
   }
 
   async complete(messageId: string, completedAt: string): Promise<void> {

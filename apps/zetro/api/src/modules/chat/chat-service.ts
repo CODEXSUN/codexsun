@@ -7,6 +7,7 @@ import type { ZetroChatAttachment, ZetroChatConversation, ZetroChatConversationV
 import { ChatStore } from "./chat-store.js";
 import { ChatAttachmentStore } from "./chat-attachment-store.js";
 import { CodexDeviceCode } from "./codex-device-code.js";
+import { findAnalysisRoot } from "./analysis-root.js";
 
 export class ChatService {
   private readonly deviceCode = new CodexDeviceCode();
@@ -86,7 +87,12 @@ export class ChatService {
 
     try {
       publish({ type: "processing", message: runtimeLabel(runtime) });
-      const response = await this.runWithAttachments(this.transcript(conversationId), attachments, publish, signal, runtime);
+      const analysis = await findAnalysisRoot(content);
+      if (analysis) {
+        this.store.setAnalysisRoot(conversationId, analysis.path);
+        publish({ type: "review", message: `Read-only analysis root accepted: ${analysis.path}` });
+      }
+      const response = await this.runWithAttachments([this.transcript(conversationId), analysis?.prompt].filter(Boolean).join("\n\n"), attachments, publish, signal, runtime, analysis?.path);
       this.store.addMessage(conversationId, "assistant", response);
       publish({ type: "complete", message: "Codex response saved to this conversation." });
     } catch (error) {
@@ -110,11 +116,11 @@ export class ChatService {
     return `Use the $zetro-idea-workshop skill. You are Zetro, a concise collaborative idea partner. Stay in the idea stage. Do not create tasks, plans, worktrees, code changes, commands, or approvals. Help the user explore, revise, compare, and finish an idea.\n\n${conversation}`;
   }
 
-  private async runWithAttachments(prompt: string, attachments: ZetroChatAttachment[], publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection): Promise<string> {
-    if (!attachments.length) return runLocalCodexStream(prompt, publish, signal, runtime);
+  private async runWithAttachments(prompt: string, attachments: ZetroChatAttachment[], publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection, cwd?: string): Promise<string> {
+    if (!attachments.length) return runLocalCodexStream(prompt, publish, signal, runtime, [], cwd);
     const materialized = await this.attachments.materialize(attachments);
     try {
-      return runLocalCodexStream([prompt, ...materialized.promptContext].join("\n\n"), publish, signal, runtime, materialized.images);
+      return runLocalCodexStream([prompt, ...materialized.promptContext].join("\n\n"), publish, signal, runtime, materialized.images, cwd);
     } finally {
       await materialized.dispose();
     }
@@ -145,13 +151,13 @@ function runLocalCodex(prompt: string, runtime?: ZetroChatRuntimeSelection): Pro
   });
 }
 
-function runLocalCodexStream(prompt: string, publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection, images: string[] = []): Promise<string> {
+function runLocalCodexStream(prompt: string, publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection, images: string[] = [], cwd?: string): Promise<string> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(new Error("Codex response was stopped."));
       return;
     }
-    const child = spawn(codexCommand(), codexArguments(prompt, true, runtime, images), { shell: false, windowsHide: true });
+    const child = spawn(codexCommand(), codexArguments(prompt, true, runtime, images), { cwd, shell: false, windowsHide: true });
     child.stdin.end();
     const stopChild = () => child.kill();
     signal?.addEventListener("abort", stopChild, { once: true });

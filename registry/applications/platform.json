@@ -3,6 +3,7 @@
   "schemaVersion": 1,
   "id": "platform",
   "label": "Platform",
+  "owner": "apps/platform",
   "taskPrefix": "p",
   "mdi": { "icon": "platform", "localUrlKey": "VITE_PLATFORM_WEB_URL", "path": "/system" },
   "providers": ["platform.core", "platform.logger", "platform.identity", "platform.operations", "platform.settings", "platform.system"],

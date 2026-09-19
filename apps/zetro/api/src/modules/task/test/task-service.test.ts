@@ -6,7 +6,7 @@ import { AgentTaskService } from "../task-service.js";
 import { TaskStore } from "../task-store.js";
 
 function input(briefId: string): ZetroCreateAgentTask {
-  return { briefId, projectReference: null, projectScope: "all-projects", summary: "Hand over the validated registry change.", title: "Registry handover" };
+  return { acceptanceCriteria: "Review approved", briefId, priority: "medium", projectReference: null, projectScope: "all-projects", summary: "Hand over the validated registry change.", title: "Registry handover" };
 }
 
 test("prepares a task only when its final brief has the same project scope", () => {

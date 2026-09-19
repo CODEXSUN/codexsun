@@ -1,6 +1,6 @@
 import Fastify from "fastify";
 import { resolve } from "node:path";
-import { createPlatformRuntime, readApplicationDeployableProfile } from "@codexsun/platform-core";
+import { createPlatformRuntime, loadEnabledAddonProviders, readApplicationDeployableProfile } from "@codexsun/platform-core";
 import { readConfig } from "./config.js";
 import { ZetroFoundationProvider } from "./modules/foundation/provider.js";
 import { registerZetroHealthRoute } from "./modules/foundation/routes/zetro-health-route.js";
@@ -23,9 +23,13 @@ const applicationProviders = [
   new ZetroBriefProvider(config.ZETRO_DATABASE_PATH),
   new ZetroTaskProvider(config.ZETRO_DATABASE_PATH),
 ];
+const profile = readApplicationDeployableProfile({
+  applicationId: "zetro",
+  availableProviderIds: ["platform.core", ...applicationProviders.map((provider) => provider.manifest.id)],
+});
 const runtime = createPlatformRuntime(
-  readApplicationDeployableProfile({ applicationId: "zetro", availableProviderIds: ["platform.core", ...applicationProviders.map((provider) => provider.manifest.id)] }),
-  applicationProviders,
+  profile,
+  [...applicationProviders, ...(await loadEnabledAddonProviders(profile))],
   { storageRoot: resolve(process.cwd(), config.ZETRO_STORAGE_ROOT) },
 );
 

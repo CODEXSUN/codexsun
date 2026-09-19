@@ -1,10 +1,18 @@
 import { defineConfig } from "@playwright/test";
 
-const baseURL = process.env.PLAYWRIGHT_PLATFORM_URL;
-if (!baseURL) throw new Error("Set PLAYWRIGHT_PLATFORM_URL before running Playwright checks.");
+const externalBaseUrl = process.env.PLAYWRIGHT_PLATFORM_URL;
+const baseURL = externalBaseUrl ?? "http://127.0.0.1:6101";
 
 export default defineConfig({
   testDir: "./e2e",
   use: { baseURL, trace: "retain-on-failure" },
   reporter: "list",
+  webServer: externalBaseUrl
+    ? undefined
+    : {
+        command: "npm.cmd run dev --workspace @codexsun/platform-web",
+        url: baseURL,
+        reuseExistingServer: true,
+        timeout: 60_000,
+      },
 });

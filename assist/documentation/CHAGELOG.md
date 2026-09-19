@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.23
+Current version: 1.0.24
 
-Release tag: v-1.0.23
+Release tag: v-1.0.24
 
-Changelog label: v 1.0.23
+Changelog label: v 1.0.24
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -198,6 +198,27 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added the generated shadcn `sidebar-16` navigation block under the versioned
   `sidemenu/v16` package path, with public header and sidebar exports plus UIUX
   gallery preview coverage. No database change.
+
+## v-1.0.24
+
+### [v 1.0.24] 2026-09-19 11:33 am - Platform wiring and runtime hardening
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.24.
+- Made the Platform API factory the live server path. It now starts the
+  protected OpenAPI reference, request correlation, request scope, telemetry,
+  security, error mapping, readiness, and graceful shutdown hooks.
+- Added direct API and web dependencies. Platform Web now uses TanStack Query
+  with typed API parsing, retries, cancellation, cache defaults, and tests.
+- Added profile owner and provider checks. Enabled add-ons now load as runtime
+  providers for Platform, Docs, and Zetro hosts.
+- Added outbox lock recovery and a transaction-capable durable event bridge.
+- Added root test wiring and a Platform MDI browser smoke test.
 
 ## v-1.0.23
 

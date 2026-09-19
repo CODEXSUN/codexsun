@@ -37,7 +37,6 @@ export function ChatHistory({ activeId, className, emptyLabel = 'No conversation
         <Input aria-label="Search conversation history" className="pl-8" placeholder="Search history" value={query} onChange={(event) => setQuery(event.target.value)} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <p className="px-2 pb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">History</p>
         <div className="flex flex-col gap-1">
           {filteredItems.map((item) => (
             <div key={item.id} className="group/history-item relative overflow-hidden">

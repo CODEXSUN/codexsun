@@ -13,11 +13,13 @@ function createFixture() {
   mkdirSync(resolve(root, "registry", "applications"), { recursive: true });
   mkdirSync(resolve(root, "registry", "addons"), { recursive: true });
   mkdirSync(resolve(root, "registry", "profiles"), { recursive: true });
+  writeFileSync(resolve(root, "package.json"), JSON.stringify({ name: "fixture", version: "9.8.7", scripts: {} }));
   writeFileSync(resolve(root, "package-lock.json"), JSON.stringify({ lockfileVersion: 3, packages: {} }));
+  writeFileSync(resolve(root, "turbo.json"), JSON.stringify({ tasks: {} }));
   mkdirSync(resolve(root, "apps", "sample", "web"), { recursive: true });
   writeFileSync(resolve(root, "apps", "sample", "web", "package.json"), JSON.stringify({ name: "@codexsun/sample-web" }));
-  writeFileSync(resolve(root, "registry", "applications", "sample.json"), JSON.stringify({ schemaVersion: 1, kind: "application", id: "sample", label: "Sample", taskPrefix: "s", providers: [], hosts: [{ kind: "web", target: "sample-web", displayName: "Sample web", environmentDirectory: "web", envKey: "SAMPLE_PORT", workspace: "@codexsun/sample-web" }] }));
-  writeFileSync(resolve(root, "registry", "addons", "sample-addon.json"), JSON.stringify({ schemaVersion: 1, kind: "addon", id: "sample-addon", label: "Sample addon", package: "@codexsun/sample-addon", providerId: "sample-addon.provider", dependencies: [], dataRetention: "retain", dataLifecycle: { compatibility: "backward-compatible", migrations: [], seeders: [] } }));
+  writeFileSync(resolve(root, "registry", "applications", "sample.json"), JSON.stringify({ schemaVersion: 1, kind: "application", id: "sample", label: "Sample", owner: "apps/sample", taskPrefix: "s", providers: [], hosts: [{ kind: "web", target: "sample-web", displayName: "Sample web", environmentDirectory: "web", envKey: "SAMPLE_PORT", workspace: "@codexsun/sample-web" }] }));
+  writeFileSync(resolve(root, "registry", "addons", "sample-addon.json"), JSON.stringify({ schemaVersion: 1, kind: "addon", id: "sample-addon", label: "Sample addon", owner: "packages/sample-addon", package: "@codexsun/sample-addon", providerId: "sample-addon.provider", dependencies: [], dataRetention: "retain", dataLifecycle: { compatibility: "backward-compatible", migrations: [], seeders: [] } }));
   writeFileSync(resolve(root, "registry", "profiles", "development.json"), JSON.stringify({ schemaVersion: 1, id: "development", enabledApplications: ["sample"], enabledAddons: [] }));
   return root;
 }
@@ -38,7 +40,7 @@ test("updates a profile without deleting application or add-on files", () => {
 test("rejects unsafe profile paths and duplicate runtime targets", () => {
   const root = createFixture();
   assert.throws(() => updateProfile(root, "../outside", "application", "sample", true), /Profile id/u);
-  writeFileSync(resolve(root, "registry", "applications", "duplicate.json"), JSON.stringify({ schemaVersion: 1, kind: "application", id: "duplicate", label: "Duplicate", taskPrefix: "d", providers: [], hosts: [{ kind: "web", target: "sample-web", displayName: "Duplicate web", environmentDirectory: "web", envKey: "DUPLICATE_PORT", workspace: "@codexsun/duplicate-web" }] }));
+  writeFileSync(resolve(root, "registry", "applications", "duplicate.json"), JSON.stringify({ schemaVersion: 1, kind: "application", id: "duplicate", label: "Duplicate", owner: "apps/duplicate", taskPrefix: "d", providers: [], hosts: [{ kind: "web", target: "sample-web", displayName: "Duplicate web", environmentDirectory: "web", envKey: "DUPLICATE_PORT", workspace: "@codexsun/duplicate-web" }] }));
   assert.throws(() => getRuntimeTargets(root), /Duplicate runtime target/u);
 });
 
@@ -49,11 +51,17 @@ test("creates an API and web foundation that is ready for a new application", ()
 
   assert.equal(application.id, "inventory");
   assert.equal(existsSync(resolve(root, "apps", "inventory", "api", "src", "server.ts")), true);
-  assert.match(readFileSync(resolve(root, "apps", "inventory", "api", "src", "server.ts"), "utf8"), /swaggerUi/u);
+  const serverSource = readFileSync(resolve(root, "apps", "inventory", "api", "src", "server.ts"), "utf8");
+  assert.match(serverSource, /swaggerUi/u);
+  assert.match(serverSource, /loadEnabledAddonProviders/u);
+  assert.match(serverSource, /app\.register\(helmet\)/u);
   assert.equal(existsSync(resolve(root, "apps", "inventory", "api", "src", "mariadb.integration.test.ts")), true);
   assert.match(readFileSync(resolve(root, "apps", "inventory", "api", "src", "modules", "foundation", "provider.ts"), "utf8"), /published: \[\], consumed: \[\]/u);
   assert.match(readFileSync(resolve(root, "packages", "ui", "src", "layouts", "mdi-main", "mdi-app-catalog.generated.ts"), "utf8"), /inventory/u);
   assert.ok(verifyRegistry(root).applications.includes("inventory"));
+  assert.equal(JSON.parse(readFileSync(resolve(root, "apps", "inventory", "api", "package.json"), "utf8")).version, "9.8.7");
+  assert.equal(JSON.parse(readFileSync(resolve(root, "package.json"), "utf8")).scripts["dev:inventory-api"], "node tools/preflight.mjs inventory-api --restart");
+  assert.ok(JSON.parse(readFileSync(resolve(root, "turbo.json"), "utf8")).tasks["@codexsun/inventory-web#build"]);
   assert.ok(JSON.parse(readFileSync(resolve(root, "package-lock.json"), "utf8")).packages["apps/inventory/api"]);
 });
 
@@ -67,6 +75,8 @@ test("removes only one generated application and its registry bindings", () => {
   assert.equal(existsSync(resolve(root, "registry", "applications", "inventory.json")), false);
   assert.equal(verifyRegistry(root).applications.includes("inventory"), false);
   assert.equal(JSON.parse(readFileSync(resolve(root, "package-lock.json"), "utf8")).packages["apps/inventory/api"], undefined);
+  assert.equal(JSON.parse(readFileSync(resolve(root, "package.json"), "utf8")).scripts["dev:inventory-api"], undefined);
+  assert.equal(JSON.parse(readFileSync(resolve(root, "turbo.json"), "utf8")).tasks["@codexsun/inventory-web#build"], undefined);
 });
 
 test("creates an add-on with lifecycle metadata and a provider test", () => {
@@ -74,6 +84,8 @@ test("creates an add-on with lifecycle metadata and a provider test", () => {
   const addon = createAddon(root, { id: "catalog", label: "Catalog" });
 
   assert.equal(addon.providerId, "catalog.provider");
+  assert.equal(JSON.parse(readFileSync(resolve(root, "packages", "catalog", "package.json"), "utf8")).version, "9.8.7");
+  assert.match(readFileSync(resolve(root, "packages", "catalog", "src", "index.ts"), "utf8"), /createAddonProvider/u);
   assert.equal(existsSync(resolve(root, "packages", "catalog", "test", "provider.test.ts")), true);
   assert.ok(verifyRegistry(root).addons.includes("catalog"));
 });

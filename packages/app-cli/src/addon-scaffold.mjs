@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadRegistry } from "./registry.mjs";
 
@@ -17,6 +17,7 @@ export function createAddon(rootDir, options) {
     kind: "addon",
     id,
     label,
+    owner: `packages/${id}`,
     package: `@codexsun/${id}`,
     providerId,
     dependencies: [],
@@ -24,7 +25,7 @@ export function createAddon(rootDir, options) {
     dataLifecycle: { compatibility: "backward-compatible", migrations: [], seeders: [] },
   };
   writeJson(resolve(registry.root, "registry", "addons", `${id}.json`), addon);
-  writeJson(resolve(packagePath, "package.json"), packageJson(addon));
+  writeJson(resolve(packagePath, "package.json"), packageJson(addon, workspaceVersion(registry.root)));
   write(resolve(packagePath, "tsconfig.json"), '{ "extends": "../../tsconfig.base.json", "include": ["src", "test"] }\n');
   write(resolve(packagePath, "README.md"), `# ${label} Add-on\n\nThis add-on publishes one provider. Applications select it through a deployment profile.\n`);
   write(resolve(packagePath, "src", "index.ts"), providerSource(addon));
@@ -32,13 +33,13 @@ export function createAddon(rootDir, options) {
   return addon;
 }
 
-function packageJson(addon) {
-  return { name: addon.package, version: "1.0.22", private: true, type: "module", exports: { ".": "./src/index.ts" }, scripts: { check: "tsc --noEmit -p tsconfig.json", test: "tsx --test test/provider.test.ts" }, dependencies: { "@codexsun/framework": "file:../framework" } };
+function packageJson(addon, version) {
+  return { name: addon.package, version, private: true, type: "module", exports: { ".": "./src/index.ts" }, scripts: { check: "tsc --noEmit -p tsconfig.json", test: "tsx --test test/provider.test.ts" }, dependencies: { "@codexsun/framework": "file:../framework" } };
 }
 
 function providerSource(addon) {
   const name = className(addon.id);
-  return `import type { ModuleProvider, ProviderRegistrationContext } from "@codexsun/framework";\n\nexport class ${name}Provider implements ModuleProvider {\n  readonly manifest = { id: "${addon.providerId}", owner: "packages/${addon.id}", version: "1.0.0", dependencies: [], contracts: ["${addon.id}"], events: { published: [], consumed: [] } };\n  register(_context: ProviderRegistrationContext): void {}\n}\n`;
+  return `import type { ModuleProvider, ProviderRegistrationContext } from "@codexsun/framework";\n\nexport class ${name}Provider implements ModuleProvider {\n  readonly manifest = { id: "${addon.providerId}", owner: "packages/${addon.id}", version: "1.0.0", dependencies: [], contracts: ["${addon.id}"], events: { published: [], consumed: [] } };\n  register(_context: ProviderRegistrationContext): void {}\n}\n\nexport function createAddonProvider(): ModuleProvider {\n  return new ${name}Provider();\n}\n`;
 }
 
 function testSource(addon) {
@@ -61,4 +62,9 @@ function className(id) {
 
 function titleCase(id) {
   return id.split("-").map((part) => `${part[0].toUpperCase()}${part.slice(1)}`).join(" ");
+}
+
+function workspaceVersion(root) {
+  const path = resolve(root, "package.json");
+  return JSON.parse(readFileSync(path, "utf8")).version;
 }

@@ -26,7 +26,7 @@ export function createModule({ rootDir, target, moduleName, moduleId, owner }) {
   mkdirSync(modulePath, { recursive: true });
   writeFile(modulePath, "provider.ts", providerSource(moduleName, moduleId, owner));
   writeFile(modulePath, "README.md", readmeSource(moduleName, moduleId, owner));
-  writeFile(modulePath, "test/provider.test.ts", testSource(moduleName));
+  writeFile(modulePath, "test/provider.test.ts", testSource(moduleName, moduleId));
   writeFile(modulePath, "test/README.md", testReadmeSource());
   for (const folder of artifactFolders) writeFile(modulePath, `${folder}/.gitkeep`, "");
   return modulePath;
@@ -66,8 +66,9 @@ function readmeSource(moduleName, moduleId, owner) {
   return `# ${moduleName} Module\n\nModule ID: \`${moduleId}\`\n\nOwner: \`${owner}/modules/${moduleName}\`\n\n## Purpose\n\nState the module business capability.\n\n## Provider\n\nAdd dependencies, public contracts, routes, and event subscriptions.\n\n## Data And Storage\n\nRecord tables, migrations, seeders, storage, retention, and tenant behavior.\n\n## Clients And Tests\n\nList supported clients and focused checks.\n`;
 }
 
-function testSource(moduleName) {
-  return `import test from "node:test";\n\ntest("${moduleName} module provider placeholder", () => {});\n`;
+function testSource(moduleName, moduleId) {
+  const className = `${moduleName.split("-").map(capitalize).join("")}ModuleProvider`;
+  return `import assert from "node:assert/strict";\nimport test from "node:test";\nimport { ${className} } from "../provider.js";\n\ntest("${moduleName} module declares its provider contract", () => {\n  const provider = new ${className}();\n  assert.equal(provider.manifest.id, "${moduleId}");\n  assert.deepEqual(provider.manifest.events, { published: [], consumed: [] });\n});\n`;
 }
 
 function testReadmeSource() {

@@ -62,6 +62,15 @@ The repository supports three client targets in parallel.
 
 Read the [workspace runtime](../operations/workspace-runtime.md) for root dependency, output, and TypeScript rules.
 
+## Framework events and dependencies
+
+The Framework event bus delivers declared events in one process. Providers can
+only publish and consume events listed in their manifests. Use the Platform
+database outbox when delivery must survive a process restart or cross a process boundary.
+
+The provider engine owns shared dependency values and lazy singleton factories.
+Each request can create a dependency scope for request-only values.
+
 Read the [configuration rules](../governance/configuration-rules.md) for environment-variable rules.
 
 ## First implementation order

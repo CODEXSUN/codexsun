@@ -1,3 +1,6 @@
+import { DependencyContainer, type DependencyFactory, DependencyScope } from "./dependency-container.js";
+import { EventBus, type EventHandler } from "./event-bus.js";
+
 export type ProviderLifecycleStage = "register" | "start" | "stop";
 export type ProviderRuntimeState = "registered" | "starting" | "started" | "stopping" | "stopped" | "failed";
 
@@ -7,6 +10,8 @@ export interface ProviderReadiness {
 }
 
 export * from "./contracts.js";
+export * from "./dependency-container.js";
+export * from "./event-bus.js";
 export * from "./persistence-contracts.js";
 
 export interface ProviderManifest {
@@ -56,8 +61,24 @@ export class ProviderRegistrationContext {
     this.engine.provide(key, value);
   }
 
+  provideFactory<T>(key: string, factory: DependencyFactory<T>): void {
+    this.engine.provideFactory(key, factory);
+  }
+
   require<T>(key: string): T {
     return this.engine.require<T>(key);
+  }
+
+  createScope(): DependencyScope {
+    return this.engine.createScope();
+  }
+
+  on<T>(name: string, handler: EventHandler<T>): void {
+    this.engine.subscribe(this.manifest, name, handler);
+  }
+
+  emit<T>(name: string, payload: T): Promise<void> {
+    return this.engine.publish(this.manifest, name, payload);
   }
 }
 
@@ -66,7 +87,8 @@ export class ProviderLifecycleContext extends ProviderRegistrationContext {}
 export class ProviderEngine {
   private readonly providers = new Map<string, RegisteredProvider>();
   private readonly providerStates = new Map<string, ProviderRuntimeState>();
-  private readonly values = new Map<string, unknown>();
+  private readonly dependencies = new DependencyContainer();
+  private readonly events = new EventBus();
   private readonly startedProviderIds: string[] = [];
   private started = false;
 
@@ -149,14 +171,27 @@ export class ProviderEngine {
   }
 
   provide<T>(key: string, value: T): void {
-    if (this.values.has(key)) throw new Error(`Provider value already exists: ${key}`);
-    this.values.set(key, value);
+    this.dependencies.provide(key, value);
+  }
+
+  provideFactory<T>(key: string, factory: DependencyFactory<T>): void {
+    this.dependencies.provideFactory(key, factory);
   }
 
   require<T>(key: string): T {
-    const value = this.values.get(key);
-    if (value === undefined) throw new Error(`Provider value is unavailable: ${key}`);
-    return value as T;
+    return this.dependencies.require<T>(key);
+  }
+
+  createScope(): DependencyScope {
+    return this.dependencies.createScope();
+  }
+
+  subscribe<T>(manifest: ProviderManifest, name: string, handler: EventHandler<T>): void {
+    this.events.subscribe(manifest.id, manifest.events.consumed, name, handler as EventHandler);
+  }
+
+  publish<T>(manifest: ProviderManifest, name: string, payload: T): Promise<void> {
+    return this.events.publish(manifest.id, manifest.events.published, name, payload);
   }
 
   ids(): string[] {

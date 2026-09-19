@@ -6,6 +6,7 @@ import { JwtIdentityAuthenticator } from "../auth/jwt-identity-authenticator.js"
 import { IdentityController } from "../controller/identity.controller.js";
 import { InMemoryIdentityRepository } from "../repository/identity.repository.js";
 import { registerIdentityRoutes } from "../routes/identity-routes.js";
+import { configureApiSchemas } from "../../../openapi.js";
 import { IdentityService } from "../service/identity.service.js";
 
 const authentication = {
@@ -30,6 +31,7 @@ function createAuthenticator(repository: InMemoryIdentityRepository): JwtIdentit
 
 test("allows a signed actor to read only its own identity", async () => {
   const app = Fastify();
+  configureApiSchemas(app);
   const repository = new InMemoryIdentityRepository([
     { id: "user-1", kind: "user", roles: ["operator"], permissions: [] },
     { id: "user-2", kind: "user", roles: ["operator"], permissions: [] },
@@ -81,6 +83,7 @@ test("allows a signed actor to read only its own identity", async () => {
 
 test("rejects missing and invalid credentials, then preserves not-found responses", async () => {
   const app = Fastify();
+  configureApiSchemas(app);
   const repository = new InMemoryIdentityRepository([
     { id: "user-1", kind: "user", roles: ["operator"], permissions: [] },
   ]);

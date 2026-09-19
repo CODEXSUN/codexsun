@@ -14,6 +14,8 @@ export function createApplication(rootDir, options) {
   enableInDevelopmentProfile(registry.root, application);
   registerRootMdiPort(registry.root, application);
   registerWorkspaceLock(registry.root, application);
+  registerRootScripts(registry.root, application);
+  registerTurboOutputs(registry.root, application);
   syncMdiCatalog(registry.root);
   return application;
 }
@@ -35,6 +37,7 @@ function createManifest(options, applications) {
     kind: "application",
     id,
     label,
+    owner: `apps/${id}`,
     taskPrefix,
     providers: ["platform.core", `${id}.foundation`],
     mdi: { icon: "application", localUrlKey: `VITE_${key}_WEB_URL`, path: "/" },
@@ -48,19 +51,20 @@ function createManifest(options, applications) {
 function writeApplicationFiles(root, application) {
   const [api, web] = application.hosts;
   const key = environmentKey(application.id);
+  const version = workspaceVersion(root);
   write(root, `apps/${application.id}/README.md`, `# ${application.label}\n\nThis application owns its product modules and composition.\n`);
-  write(root, `apps/${application.id}/api/package.json`, apiPackage(application));
+  write(root, `apps/${application.id}/api/package.json`, apiPackage(application, version));
   write(root, `apps/${application.id}/api/tsconfig.json`, '{ "extends": "../../../tsconfig.base.json", "include": ["src", "test"] }\n');
   write(root, `apps/${application.id}/api/.app.env.example`, `PLATFORM_HOST=127.0.0.1\n${api.envKey}=${api.defaultPort}\n${key}_WEB_ORIGIN=http://127.0.0.1:${web.defaultPort}\n${key}_API_REFERENCE_TOKEN=change-this-local-token\n`);
   write(root, `apps/${application.id}/api/README.md`, `# ${application.label} API\n\nThe API exposes typed Zod routes and a protected internal OpenAPI reference.\n`);
   write(root, `apps/${application.id}/api/src/config.ts`, apiConfigSource(application));
-  write(root, `apps/${application.id}/api/src/server.ts`, apiSourceV2(application));
+  write(root, `apps/${application.id}/api/src/server.ts`, apiSourceV3(application));
   write(root, `apps/${application.id}/api/src/server.test.ts`, apiTestSource(application));
   write(root, `apps/${application.id}/api/src/mariadb.integration.test.ts`, mariaDbTestSource(application));
   write(root, `apps/${application.id}/api/src/modules/foundation/provider.ts`, providerSource(application));
   write(root, `apps/${application.id}/api/src/modules/foundation/README.md`, `# ${application.label} Foundation Module\n\nThis module owns the application health provider.\n`);
   write(root, `apps/${application.id}/api/src/modules/foundation/test/provider.test.ts`, providerTestSource(application));
-  write(root, `apps/${application.id}/web/package.json`, webPackage(application));
+  write(root, `apps/${application.id}/web/package.json`, webPackage(application, version));
   write(root, `apps/${application.id}/web/tsconfig.json`, '{ "extends": "../../../tsconfig.base.json", "compilerOptions": { "module": "ESNext", "moduleResolution": "Bundler", "jsx": "react-jsx", "noEmit": true, "types": ["vite/client"] }, "include": ["src", "vite.config.ts"] }\n');
   write(root, `apps/${application.id}/web/.app.env.example`, `PLATFORM_HOST=127.0.0.1\n${web.envKey}=${web.defaultPort}\nVITE_${key}_API_URL=http://127.0.0.1:${api.defaultPort}\n`);
   write(root, `apps/${application.id}/web/README.md`, `# ${application.label} Web\n\nThe web host composes the shared MDI workspace.\n`);
@@ -87,12 +91,12 @@ function registerRootMdiPort(root, application) {
   appendFileSync(path, `\n${key}=${web.defaultPort}\n`, "utf8");
 }
 
-function apiPackage(application) {
-  return { name: `@codexsun/${application.id}-api`, version: "1.0.22", private: true, type: "module", scripts: { build: "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/" + application.id + "/api/server.js", check: "tsc -p tsconfig.json --noEmit", dev: "tsx watch src/server.ts", lint: "eslint src", test: "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts" }, dependencies: { "@codexsun/framework": "file:../../../packages/framework", "@codexsun/platform-core": "file:../../../packages/platform-core", "@fastify/swagger": "^9.8.1", "@fastify/swagger-ui": "^6.1.1", fastify: "^5.0.0", "fastify-type-provider-zod": "^4.0.2", zod: "^3.25.76" } };
+function apiPackage(application, version) {
+  return { name: `@codexsun/${application.id}-api`, version, private: true, type: "module", scripts: { build: "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/" + application.id + "/api/server.js", check: "tsc -p tsconfig.json --noEmit", dev: "tsx watch src/server.ts", lint: "eslint src", test: "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts" }, dependencies: { "@codexsun/framework": "file:../../../packages/framework", "@codexsun/platform-core": "file:../../../packages/platform-core", "@fastify/cors": "^11.3.0", "@fastify/helmet": "^13.1.1", "@fastify/swagger": "^9.8.1", "@fastify/swagger-ui": "^6.1.1", fastify: "^5.0.0", "fastify-type-provider-zod": "^4.0.2", zod: "^3.25.76" } };
 }
 
-function webPackage(application) {
-  return { name: `@codexsun/${application.id}-web`, version: "1.0.22", private: true, type: "module", scripts: { build: "vite build", check: "tsc -p tsconfig.json --noEmit", dev: "vite", lint: "eslint src", test: "tsx --test" }, dependencies: { "@codexsun/ui": "file:../../../packages/ui", "@tailwindcss/vite": "^4.0.0", "@tanstack/react-query": "^5.103.1", "@vitejs/plugin-react": "^5.0.0", react: "^19.0.0", "react-dom": "^19.0.0", vite: "^7.0.0" } };
+function webPackage(application, version) {
+  return { name: `@codexsun/${application.id}-web`, version, private: true, type: "module", scripts: { build: "vite build", check: "tsc -p tsconfig.json --noEmit", dev: "vite", lint: "eslint src", test: "tsx --test" }, dependencies: { "@codexsun/ui": "file:../../../packages/ui", "@tailwindcss/vite": "^4.0.0", "@tanstack/react-query": "^5.103.1", "@vitejs/plugin-react": "^5.0.0", react: "^19.0.0", "react-dom": "^19.0.0", vite: "^7.0.0" } };
 }
 
 function providerSource(application) {
@@ -111,6 +115,15 @@ function apiSourceV2(application) {
   return `import swagger from "@fastify/swagger";\nimport swaggerUi from "@fastify/swagger-ui";\nimport Fastify from "fastify";\nimport { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from "fastify-type-provider-zod";\nimport { z } from "zod";\nimport { createPlatformRuntime, readApplicationDeployableProfile } from "@codexsun/platform-core";\nimport { readConfig } from "./config.js";\nimport { ${name}FoundationProvider } from "./modules/foundation/provider.js";\n\nconst config = readConfig();\nconst provider = new ${name}FoundationProvider();\nconst runtime = createPlatformRuntime(\n  readApplicationDeployableProfile({ applicationId: "${application.id}", availableProviderIds: ["platform.core", provider.manifest.id] }),\n  [provider],\n);\nruntime.start();\nconst app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();\napp.setValidatorCompiler(validatorCompiler);\napp.setSerializerCompiler(serializerCompiler);\nawait app.register(swagger, {\n  openapi: { info: { title: "${application.label} API", version: "1.0.0" }, openapi: "3.0.3" },\n  transform: jsonSchemaTransform,\n});\nawait app.register(swaggerUi, {\n  routePrefix: "/api/internal/reference",\n  uiHooks: {\n    onRequest: (request, reply, done) => {\n      if (request.headers.authorization !== \`Bearer \${config.apiReferenceToken}\`) return reply.code(401).send({ error: "Authentication required." });\n      done();\n    },\n  },\n});\napp.get(\n  "/api/v1/${application.id}/health",\n  { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } },\n  async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }),\n);\napp.addHook("onClose", () => runtime.stop());\nawait app.listen({ host: config.host, port: config.port });\n`;
 }
 
+function apiSourceV3(application) {
+  const name = className(application.id);
+  const key = environmentKey(application.id);
+  return `import cors from "@fastify/cors";\nimport helmet from "@fastify/helmet";\nimport swagger from "@fastify/swagger";\nimport swaggerUi from "@fastify/swagger-ui";\nimport Fastify from "fastify";\nimport { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from "fastify-type-provider-zod";\nimport { z } from "zod";\nimport { createPlatformRuntime, loadEnabledAddonProviders, readApplicationDeployableProfile } from "@codexsun/platform-core";\nimport { readConfig } from "./config.js";\nimport { ${name}FoundationProvider } from "./modules/foundation/provider.js";\n\nconst config = readConfig();\nconst provider = new ${name}FoundationProvider();\nconst profile = readApplicationDeployableProfile({ applicationId: "${application.id}", availableProviderIds: ["platform.core", provider.manifest.id] });\nconst runtime = createPlatformRuntime(profile, [provider, ...(await loadEnabledAddonProviders(profile))]);\nruntime.start();\nconst app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();\napp.setValidatorCompiler(validatorCompiler);\napp.setSerializerCompiler(serializerCompiler);\nawait app.register(helmet);\nawait app.register(cors, { origin: process.env.${key}_WEB_ORIGIN, methods: ["GET", "HEAD", "OPTIONS"], allowedHeaders: ["Authorization", "Content-Type"] });\nawait app.register(swagger, { openapi: { info: { title: "${application.label} API", version: "1.0.0" }, openapi: "3.0.3" }, transform: jsonSchemaTransform });\nawait app.register(swaggerUi, { routePrefix: "/api/internal/reference", uiHooks: { onRequest: (request, reply, done) => { if (request.headers.authorization !== \`Bearer \${config.apiReferenceToken}\`) return reply.code(401).send({ error: "Authentication required." }); done(); } } });\napp.setErrorHandler((error, _request, reply) => { app.log.error(error); return reply.code(500).send({ error: "Internal server error.", code: "server.internal" }); });\napp.get("/api/v1/${application.id}/health", { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } }, async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }));\napp.addHook("onClose", () => runtime.stop());\nawait app.listen({ host: config.host, port: config.port });\n`;
+}
+
+// Kept temporarily so applications generated before the hardened template remain traceable.
+void apiSourceV2;
+
 function viteSourceV2(application) {
   const [api, web] = application.hosts;
   const key = environmentKey(application.id);
@@ -118,7 +131,8 @@ function viteSourceV2(application) {
 }
 
 function apiTestSource(application) {
-  return `import test from "node:test";\nimport assert from "node:assert/strict";\n\ntest("${application.id} API contract declares a health route", () => assert.ok(true));\n`;
+  const name = className(application.id);
+  return `import test from "node:test";\nimport assert from "node:assert/strict";\nimport { ${name}FoundationProvider } from "./modules/foundation/provider.js";\n\ntest("${application.id} API declares its owned health contract", () => {\n  const provider = new ${name}FoundationProvider();\n  assert.deepEqual(provider.manifest.contracts, ["${application.id}.health"]);\n  assert.equal(provider.manifest.owner, "apps/${application.id}/api/modules/foundation");\n});\n`;
 }
 
 function mariaDbTestSource(application) {
@@ -161,14 +175,44 @@ function registerWorkspaceLock(root, application) {
   const path = resolve(root, "package-lock.json");
   if (!existsSync(path)) return;
   const lock = JSON.parse(readFileSync(path, "utf8"));
-  const apiWorkspace = apiPackage(application);
-  const webWorkspace = webPackage(application);
+  const version = workspaceVersion(root);
+  const apiWorkspace = apiPackage(application, version);
+  const webWorkspace = webPackage(application, version);
   const entries = [[`apps/${application.id}/api`, apiWorkspace], [`apps/${application.id}/web`, webWorkspace]];
   for (const [workspacePath, workspace] of entries) {
     lock.packages[workspacePath] = workspace;
     lock.packages[`node_modules/${workspace.name}`] = { resolved: workspacePath, link: true };
   }
   writeJson(path, lock);
+}
+
+function registerRootScripts(root, application) {
+  const path = resolve(root, "package.json");
+  if (!existsSync(path)) return;
+  const packageJson = JSON.parse(readFileSync(path, "utf8"));
+  const scripts = packageJson.scripts ?? {};
+  for (const host of application.hosts) {
+    scripts[`dev:${application.id}-${host.kind}`] ??= `node tools/preflight.mjs ${host.target} --restart`;
+  }
+  scripts[`test:${application.id}`] ??= application.hosts.map((host) => `npm run test --workspace ${host.workspace}`).join(" && ");
+  packageJson.scripts = scripts;
+  writeJson(path, packageJson);
+}
+
+function registerTurboOutputs(root, application) {
+  const path = resolve(root, "turbo.json");
+  if (!existsSync(path)) return;
+  const turbo = JSON.parse(readFileSync(path, "utf8"));
+  turbo.tasks ??= {};
+  turbo.tasks[`@codexsun/${application.id}-api#build`] = { outputs: [`../../../dist/${application.id}/api/**`] };
+  turbo.tasks[`@codexsun/${application.id}-web#build`] = { outputs: [`../../../dist/apps/${application.id}/web/**`] };
+  writeJson(path, turbo);
+}
+
+function workspaceVersion(root) {
+  const packagePath = resolve(root ?? process.cwd(), "package.json");
+  if (!existsSync(packagePath)) throw new Error("Root package.json is required to scaffold an application.");
+  return String(JSON.parse(readFileSync(packagePath, "utf8")).version);
 }
 
 function requireText(path) {

@@ -8,10 +8,11 @@ Run it through the root scripts:
 npm run app:list
 npm run app:verify
 npm run app:create -- inventory --label "Inventory" --api-port 6200 --web-port 6201
+npm run app:remove -- inventory
 npm run app:sync
 npm run app -- build docs
 npm run app -- dev docs api --check
-npm run app:uninstall -- zetro --profile development
+npm run app:disable -- zetro --profile development
 npm run app:install -- zetro --profile development
 ```
 
@@ -22,4 +23,11 @@ reference setup, module tests, manifests, a deployment provider selection, and
 the generated MDI app catalog. It does not install external packages or start a
 database.
 
-Uninstalling changes only `registry/profiles/<profile>.json`. It never removes application files, packages, or persisted data. An add-on must explicitly declare `dataRetention: "retain"`.
+`app:disable` changes only `registry/profiles/<profile>.json`. It never removes
+application files, packages, or persisted data. An add-on must explicitly
+declare `dataRetention: "retain"`.
+
+`app:uninstall` removes a stopped generated application. It removes only the
+selected `apps/<id>` directory and that application's generated registry,
+profile, MDI, lockfile, Turbo, script, and local port bindings. `app:remove`
+is an alias for this destructive operation.

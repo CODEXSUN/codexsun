@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/framework",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "private": true,
   "type": "module",
   "exports": {
@@ -9,6 +9,7 @@
   },
   "scripts": {
     "check": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src test",
     "test": "tsx --test test/provider-engine.test.ts test/persistence-contracts.test.ts"
   }
 }

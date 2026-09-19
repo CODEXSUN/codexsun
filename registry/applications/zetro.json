@@ -3,6 +3,7 @@
   "schemaVersion": 1,
   "id": "zetro",
   "label": "Zetro",
+  "owner": "apps/zetro",
   "taskPrefix": "z",
   "mdi": { "icon": "zetro", "localUrlKey": "VITE_ZETRO_WEB_URL", "path": "/zetro" },
   "providers": ["platform.core", "zetro.foundation", "zetro.storage", "zetro.chat", "zetro.brief", "zetro.task"],

@@ -73,7 +73,20 @@ test("reads enabled application providers from a deployment profile", () => {
 
   assert.deepEqual(
     readApplicationDeployableProfile({ applicationId: "sample", availableProviderIds: ["platform.core", "sample.foundation"], registryRoot: root }),
-    { id: "development:sample", enabledProviderIds: ["platform.core", "sample.foundation"] },
+    { id: "development:sample", enabledProviderIds: ["platform.core", "sample.foundation"], addons: [] },
+  );
+});
+
+test("rejects profile providers that are not declared by the application", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "codexsun-profile-"));
+  mkdirSync(resolve(root, "registry", "applications"), { recursive: true });
+  mkdirSync(resolve(root, "registry", "profiles"), { recursive: true });
+  writeFileSync(resolve(root, "registry", "applications", "sample.json"), JSON.stringify({ id: "sample", providers: ["platform.core"] }));
+  writeFileSync(resolve(root, "registry", "profiles", "development.json"), JSON.stringify({ id: "development", enabledApplications: ["sample"], enabledAddons: [], enabledProviders: { sample: ["platform.core", "other.provider"] } }));
+
+  assert.throws(
+    () => readApplicationDeployableProfile({ applicationId: "sample", availableProviderIds: ["platform.core", "other.provider"], registryRoot: root }),
+    /undeclared provider/u,
   );
 });
 

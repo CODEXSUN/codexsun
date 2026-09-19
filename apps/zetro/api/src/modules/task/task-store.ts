@@ -5,11 +5,13 @@ import { DatabaseSync } from "node:sqlite";
 import type { ZetroAgentTask, ZetroCreateAgentTask } from "@codexsun/zetro-contracts";
 
 type TaskRow = {
+  acceptance_criteria: string;
   brief_id: string;
   created_at: number;
   id: string;
   project_reference: string | null;
   project_scope: "project" | "all-projects";
+  priority: "low" | "medium" | "high";
   status: "prepared";
   summary: string;
   title: string;
@@ -29,6 +31,8 @@ export class TaskStore {
         brief_id TEXT NOT NULL UNIQUE,
         title TEXT NOT NULL,
         summary TEXT NOT NULL,
+        acceptance_criteria TEXT NOT NULL DEFAULT '',
+        priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high')),
         project_scope TEXT NOT NULL CHECK(project_scope IN ('project', 'all-projects')),
         project_reference TEXT,
         status TEXT NOT NULL CHECK(status IN ('prepared')),
@@ -36,6 +40,7 @@ export class TaskStore {
         updated_at INTEGER NOT NULL
       );
     `);
+    for (const statement of ["ALTER TABLE zetro_agent_tasks ADD COLUMN acceptance_criteria TEXT NOT NULL DEFAULT '';", "ALTER TABLE zetro_agent_tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium';"]) try { this.database.exec(statement); } catch { /* Existing database. */ }
   }
 
   close(): void {
@@ -49,18 +54,20 @@ export class TaskStore {
   create(input: ZetroCreateAgentTask): ZetroAgentTask {
     const now = Date.now();
     const task = { ...input, createdAt: toIso(now), id: randomUUID(), status: "prepared" as const, updatedAt: toIso(now) };
-    this.database.prepare("INSERT INTO zetro_agent_tasks (id, brief_id, title, summary, project_scope, project_reference, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run(task.id, task.briefId, task.title, task.summary, task.projectScope, task.projectReference, task.status, now, now);
+    this.database.prepare("INSERT INTO zetro_agent_tasks (id, brief_id, title, summary, acceptance_criteria, priority, project_scope, project_reference, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(task.id, task.briefId, task.title, task.summary, task.acceptanceCriteria, task.priority, task.projectScope, task.projectReference, task.status, now, now);
     return task;
   }
 }
 
 function toTask(row: TaskRow): ZetroAgentTask {
   return {
+    acceptanceCriteria: row.acceptance_criteria,
     briefId: row.brief_id,
     createdAt: toIso(row.created_at),
     id: row.id,
     projectReference: row.project_reference,
     projectScope: row.project_scope,
+    priority: row.priority,
     status: row.status,
     summary: row.summary,
     title: row.title,

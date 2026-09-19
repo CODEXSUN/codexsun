@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import type { ZetroChatConversation, ZetroChatMessage, ZetroChatRole, ZetroIdeaStage } from "@codexsun/zetro-contracts";
 
 type ConversationRow = {
+  analysis_root: string | null;
   id: string;
   title: string;
   created_at: number;
@@ -36,6 +37,7 @@ export class ChatStore {
         title TEXT NOT NULL,
         pinned INTEGER NOT NULL DEFAULT 0,
         archived INTEGER NOT NULL DEFAULT 0,
+        analysis_root TEXT,
         stage TEXT NOT NULL DEFAULT 'explore' CHECK(stage IN ('explore', 'compare', 'revise', 'final')),
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
@@ -65,6 +67,11 @@ export class ChatStore {
     } catch {
       // Existing databases already have the archived column.
     }
+    try {
+      this.database.exec("ALTER TABLE zetro_conversations ADD COLUMN analysis_root TEXT;");
+    } catch {
+      // Existing databases already have the analysis root column.
+    }
   }
 
   close(): void {
@@ -73,14 +80,14 @@ export class ChatStore {
 
   createConversation(title: string): ZetroChatConversation {
     const now = Date.now();
-    const conversation = { id: randomUUID(), title, archived: false, pinned: false, stage: "explore" as const, createdAt: toIso(now), updatedAt: toIso(now), messageCount: 0 };
-    this.database.prepare("INSERT INTO zetro_conversations (id, title, pinned, archived, stage, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(conversation.id, title, 0, 0, conversation.stage, now, now);
+    const conversation = { id: randomUUID(), title, analysisRoot: null, archived: false, pinned: false, stage: "explore" as const, createdAt: toIso(now), updatedAt: toIso(now), messageCount: 0 };
+    this.database.prepare("INSERT INTO zetro_conversations (id, title, pinned, archived, analysis_root, stage, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(conversation.id, title, 0, 0, null, conversation.stage, now, now);
     return conversation;
   }
 
   listConversations(archived = false): ZetroChatConversation[] {
     const rows = this.database.prepare(`
-      SELECT conversations.id, conversations.title, conversations.pinned, conversations.archived, conversations.stage, conversations.created_at, conversations.updated_at,
+      SELECT conversations.id, conversations.title, conversations.pinned, conversations.archived, conversations.analysis_root, conversations.stage, conversations.created_at, conversations.updated_at,
         COUNT(messages.id) AS message_count
       FROM zetro_conversations AS conversations
       LEFT JOIN zetro_messages AS messages ON messages.conversation_id = conversations.id
@@ -92,7 +99,7 @@ export class ChatStore {
 
   getConversation(id: string): ZetroChatConversation | undefined {
     const row = this.database.prepare(`
-      SELECT conversations.id, conversations.title, conversations.pinned, conversations.archived, conversations.stage, conversations.created_at, conversations.updated_at,
+      SELECT conversations.id, conversations.title, conversations.pinned, conversations.archived, conversations.analysis_root, conversations.stage, conversations.created_at, conversations.updated_at,
         COUNT(messages.id) AS message_count
       FROM zetro_conversations AS conversations
       LEFT JOIN zetro_messages AS messages ON messages.conversation_id = conversations.id
@@ -114,6 +121,11 @@ export class ChatStore {
     this.database.prepare("INSERT INTO zetro_messages (id, conversation_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)").run(message.id, conversationId, role, content, now);
     this.database.prepare("UPDATE zetro_conversations SET updated_at = ? WHERE id = ?").run(now, conversationId);
     return message;
+  }
+
+  setAnalysisRoot(id: string, analysisRoot: string): ZetroChatConversation | undefined {
+    this.database.prepare("UPDATE zetro_conversations SET analysis_root = ?, updated_at = ? WHERE id = ?").run(analysisRoot, Date.now(), id);
+    return this.getConversation(id);
   }
 
   updateConversation(id: string, update: { archived?: boolean; pinned?: boolean; stage?: ZetroIdeaStage; title?: string }): ZetroChatConversation | undefined {
@@ -142,7 +154,7 @@ function toIso(timestamp: number): string {
 }
 
 function toConversation(row: ConversationRow): ZetroChatConversation {
-  return { id: row.id, title: row.title, archived: Boolean(row.archived), pinned: Boolean(row.pinned), stage: row.stage, createdAt: toIso(row.created_at), updatedAt: toIso(row.updated_at), messageCount: Number(row.message_count) };
+  return { id: row.id, title: row.title, analysisRoot: row.analysis_root, archived: Boolean(row.archived), pinned: Boolean(row.pinned), stage: row.stage, createdAt: toIso(row.created_at), updatedAt: toIso(row.updated_at), messageCount: Number(row.message_count) };
 }
 
 function toMessage(row: MessageRow): ZetroChatMessage {

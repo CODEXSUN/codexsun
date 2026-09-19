@@ -20,6 +20,7 @@ function registerApplication(root, name, hosts) {
       schemaVersion: 1,
       id: name,
       label: name,
+      owner: `apps/${name}`,
       taskPrefix: name[0],
       providers: [],
       hosts: hosts.map((kind) => ({

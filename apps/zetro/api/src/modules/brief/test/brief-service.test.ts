@@ -12,7 +12,7 @@ function input(messageId: string): ZetroUpsertIdeaBrief {
 test("accepts source messages that belong to its conversation", () => {
   const conversationId = randomUUID();
   const messageId = randomUUID();
-  const reader: ZetroChatConversationReader = { getConversation: (id) => id === conversationId ? { conversation: { archived: false, createdAt: new Date().toISOString(), id, messageCount: 1, pinned: false, stage: "final", title: "Registry", updatedAt: new Date().toISOString() }, messages: [{ content: "Review registry", conversationId: id, createdAt: new Date().toISOString(), id: messageId, role: "user" }] } : undefined };
+  const reader: ZetroChatConversationReader = { getConversation: (id) => id === conversationId ? { conversation: { analysisRoot: null, archived: false, createdAt: new Date().toISOString(), id, messageCount: 1, pinned: false, stage: "final", title: "Registry", updatedAt: new Date().toISOString() }, messages: [{ content: "Review registry", conversationId: id, createdAt: new Date().toISOString(), id: messageId, role: "user" }] } : undefined };
   const service = new BriefService(new BriefStore(":memory:"), reader);
   try {
     assert.equal(service.saveBrief(conversationId, input(messageId)).status, "final");
@@ -23,7 +23,7 @@ test("accepts source messages that belong to its conversation", () => {
 
 test("rejects source messages from another conversation", () => {
   const conversationId = randomUUID();
-  const reader: ZetroChatConversationReader = { getConversation: () => ({ conversation: { archived: false, createdAt: new Date().toISOString(), id: conversationId, messageCount: 0, pinned: false, stage: "final", title: "Registry", updatedAt: new Date().toISOString() }, messages: [] }) };
+  const reader: ZetroChatConversationReader = { getConversation: () => ({ conversation: { analysisRoot: null, archived: false, createdAt: new Date().toISOString(), id: conversationId, messageCount: 0, pinned: false, stage: "final", title: "Registry", updatedAt: new Date().toISOString() }, messages: [] }) };
   const service = new BriefService(new BriefStore(":memory:"), reader);
   try {
     assert.throws(() => service.saveBrief(conversationId, input(randomUUID())), BriefReferenceError);
