@@ -6,6 +6,7 @@ import {
   type ZetroChatRuntime,
   type ZetroCodexDeviceCode,
   type ZetroChatRuntimeSelection,
+  type ZetroChatAttachment,
   zetroChatStreamEventSchema,
   zetroChatRuntimeResponseSchema,
   zetroCodexDeviceCodeResponseSchema,
@@ -28,6 +29,15 @@ export async function createConversation(): Promise<ConversationView> {
 
 export async function getConversation(id: string): Promise<ConversationView> {
   return zetroChatConversationResponseSchema.parse(await read(await fetch(`${conversationUrl}/${id}`))).data;
+}
+
+export async function updateConversation(id: string, update: Pick<ZetroChatConversation, "pinned" | "title">): Promise<ConversationView> {
+  return zetroChatConversationResponseSchema.parse(await read(await fetch(`${conversationUrl}/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(update) }))).data;
+}
+
+export async function deleteConversation(id: string): Promise<void> {
+  const response = await fetch(`${conversationUrl}/${id}`, { method: "DELETE" });
+  if (!response.ok) throw new Error(`Zetro could not delete this conversation (${response.status}).`);
 }
 
 export async function getChatRuntime(): Promise<ZetroChatRuntime> {
@@ -55,11 +65,11 @@ export async function sendMessage(id: string, content: string, runtime?: ZetroCh
   return zetroChatConversationResponseSchema.parse(await read(response)).data;
 }
 
-export async function streamMessage(id: string, content: string, runtime: ZetroChatRuntimeSelection, onEvent: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal): Promise<void> {
+export async function streamMessage(id: string, content: string, runtime: ZetroChatRuntimeSelection, attachments: ZetroChatAttachment[], onEvent: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal): Promise<void> {
   const response = await fetch(`${conversationUrl}/${id}/messages/stream`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "text/event-stream" },
-    body: JSON.stringify({ content, runtime }),
+    body: JSON.stringify({ attachments, content, runtime }),
     signal,
   });
   if (!response.ok || !response.body) throw new Error(`The Zetro API stream failed (${response.status}).`);

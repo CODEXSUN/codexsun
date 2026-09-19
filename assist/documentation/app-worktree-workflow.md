@@ -12,7 +12,6 @@ Use one app scope for each task:
 | ---------- | -------------------------------------- |
 | `platform` | Platform API, web, desktop, and mobile |
 | `docs`     | Docs API and web                       |
-| `orship`   | Orship API and web                     |
 | `zetro`    | Zetro API and web                      |
 | `uiux`     | UIUX web                               |
 

@@ -19,3 +19,18 @@ test("stores a conversation and its message history", () => {
     store.close();
   }
 });
+
+test("persists conversation title and pin changes, then deletes the conversation", () => {
+  const store = new ChatStore(":memory:");
+
+  try {
+    const conversation = store.createConversation("Initial idea");
+    const updated = store.updateConversation(conversation.id, { pinned: true, title: "Refined idea" });
+    assert.equal(updated?.pinned, true);
+    assert.equal(updated?.title, "Refined idea");
+    assert.equal(store.deleteConversation(conversation.id), true);
+    assert.equal(store.getConversation(conversation.id), undefined);
+  } finally {
+    store.close();
+  }
+});

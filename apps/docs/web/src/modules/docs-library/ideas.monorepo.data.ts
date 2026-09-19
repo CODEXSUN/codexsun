@@ -7,7 +7,6 @@ import {
   MonitorIcon,
   PaletteIcon,
   ServerCogIcon,
-  ShieldCheckIcon,
 } from "lucide-react";
 
 export const monorepoApplications = [
@@ -30,11 +29,6 @@ export const monorepoApplications = [
     color: "text-indigo-600 dark:text-indigo-400",
     icon: BoxesIcon,
     title: "Zetro",
-  },
-  {
-    color: "text-emerald-600 dark:text-emerald-400",
-    icon: ShieldCheckIcon,
-    title: "Orship",
   },
 ] as const;
 

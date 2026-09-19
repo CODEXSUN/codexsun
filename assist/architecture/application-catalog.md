@@ -12,7 +12,6 @@ Do not add an application or add-on without a named owner, provider, public cont
 | -------- | ----------------------------------------------------------------------------------------------------- | --------------------------------- |
 | Platform | Generic holder and platform-owned capabilities.                                                       | Web, desktop, mobile.             |
 | Docs     | Hybrid Markdown, MDX, and database-indexed repository documentation.                                  | Web.                              |
-| Orship   | Deployment, Docker, monitoring, and database-maintenance operations application.                      | Web, desktop, mobile as required. |
 | UIUX     | Dynamic visual gallery for published `packages/ui` registry entries. It consumes `packages/ui`.       | Web.                              |
 | Zetro    | Governed AI agent application for planning, tasking, workers, review, test, and deployment workflows. | Web, desktop, mobile as required. |
 
@@ -24,7 +23,6 @@ The listed folders are scaffolds. A deployment must explicitly select an applica
 | ----------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Zetro       | Agent plans, task records, worker dispatch, review evidence, test and deployment orchestration.                 | Arbitrary unsandboxed execution, product business logic, or private application imports. |
 | Docs        | Markdown and MDX source discovery, database index, article composition, links, backlinks, and graph metadata.   | The source authority of another application or unreviewed source rewrites.               |
-| Orship      | Deployment profiles, Docker state, health, logs, metrics, database maintenance workflows, and approval records. | Product modules, direct secret display, or unapproved destructive operations.            |
 | UIUX        | Registry gallery, variant previews, visual documentation, and temporary preview controls.                       | Shared component ownership or imports from another application.                          |
 
 ## Add-on rules

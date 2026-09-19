@@ -43,7 +43,7 @@ Exit: a Framework extension cannot silently break Platform or an application.
 
 ### Phase F-1320: Agent And Deployment Compatibility
 
-- [ ] F-1321 Review Framework contracts needed by Zetro and Orship.
+- [ ] F-1321 Review Framework contracts needed by Zetro.
 - [ ] F-1322 Define runtime-neutral capability and evidence contracts only when approved.
 - [ ] F-1323 Verify desktop, mobile, and deployable profile compatibility.
 

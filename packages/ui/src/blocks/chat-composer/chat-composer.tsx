@@ -6,6 +6,7 @@ import { Textarea } from '../../components/textarea'
 import { cn } from '../../lib/utils'
 
 export type ChatComposerAttachment = {
+  file: File
   id: string
   name: string
   previewUrl?: string

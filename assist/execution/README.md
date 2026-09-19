@@ -8,9 +8,6 @@ Read the [delivery workflow](workflow.md) and [verification standards](verificat
 
 Read the [Framework and Platform plan](planning.md) and the [execution task register](task.md) before starting a planned task.
 
-Read the [Orship planning](apps/orship/planning.md) and [Orship task
-register](apps/orship/task.md) before starting Orship work.
-
 Read the [Zetro planning](apps/zetro/planning.md) and [Zetro task register](apps/zetro/task.md)
 before planning or implementing Zetro.
 

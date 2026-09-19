@@ -22,7 +22,7 @@ npm.cmd run codexsun -- app develop <scope> <task>
 npm.cmd run codexsun -- app review <scope> <task>
 ```
 
-The scope is `platform`, `docs`, `orship`, `zetro`, or `uiux`. Do not edit code until `verify` passes.
+The scope is `platform`, `docs`, `zetro`, or `uiux`. Do not edit code until `verify` passes.
 
 Run `npm.cmd install` once at the new worktree root before `verify`. Do not create nested dependency folders.
 

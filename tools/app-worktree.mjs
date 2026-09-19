@@ -7,7 +7,7 @@ const ROOT = resolve(import.meta.dirname, "..");
 const WORKTREE_ROOT = resolve(ROOT, "..", ".codexsun-worktrees");
 const STATE_ROOT = resolve(ROOT, "storage", "runtime", "worktrees");
 const MAIN_BRANCH = "main";
-const TASK_PREFIXES = { docs: "d", orship: "o", platform: "p", uiux: "u", zetro: "z" };
+const TASK_PREFIXES = { docs: "d", platform: "p", uiux: "u", zetro: "z" };
 
 export function createWorktree(scope, task) {
   const state = createState(scope, task);

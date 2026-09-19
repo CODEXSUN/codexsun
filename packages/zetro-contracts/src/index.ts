@@ -32,6 +32,7 @@ export const zetroChatConversationSchema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   messageCount: z.number().int().nonnegative(),
+  pinned: z.boolean(),
 });
 
 export const zetroChatMessageSchema = z.object({
@@ -57,7 +58,12 @@ export const zetroCreateConversationSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
 });
 
-export const zetroCodexModelSchema = z.enum(["Default", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-6-astra"]);
+export const zetroUpdateConversationSchema = z.object({
+  pinned: z.boolean().optional(),
+  title: z.string().trim().min(1).max(120).optional(),
+}).refine((value) => value.pinned !== undefined || value.title !== undefined, "Provide a conversation update.");
+
+export const zetroCodexModelSchema = z.string().trim().min(1).max(120);
 export const zetroCodexReasoningSchema = z.enum(["Default", "Low", "Medium", "High", "XHigh"]);
 
 export const zetroChatRuntimeSelectionSchema = z.object({
@@ -68,6 +74,7 @@ export const zetroChatRuntimeSelectionSchema = z.object({
 
 export const zetroCreateChatMessageSchema = z.object({
   content: z.string().trim().min(1).max(20_000),
+  attachments: z.array(z.object({ name: z.string().min(1).max(240), type: z.string().max(120), content: z.string().min(1).max(14_000_000) })).max(5).optional(),
   runtime: zetroChatRuntimeSelectionSchema.optional(),
 });
 
@@ -99,6 +106,7 @@ export const zetroChatStreamEventSchema = z.object({
 
 export type ZetroChatConversation = z.infer<typeof zetroChatConversationSchema>;
 export type ZetroChatMessage = z.infer<typeof zetroChatMessageSchema>;
+export type ZetroChatAttachment = NonNullable<z.infer<typeof zetroCreateChatMessageSchema>["attachments"]>[number];
 export type ZetroChatRole = z.infer<typeof zetroChatRoleSchema>;
 export type ZetroChatStreamEvent = z.infer<typeof zetroChatStreamEventSchema>;
 export type ZetroChatRuntime = z.infer<typeof zetroChatRuntimeSchema>;

@@ -60,28 +60,6 @@ export const docsWebRuntimeConfigSchema = z.object({
   VITE_DOCS_API_URL: urlSchema,
 });
 
-export const garmentsApiRuntimeConfigSchema = z.object({
-  NODE_ENV: z.string().trim().min(1).default("development"),
-  PLATFORM_HOST: hostSchema,
-  GARMENTS_API_PORT: portSchema,
-  GARMENTS_DATABASE_URL: z
-    .string()
-    .url()
-    .refine((value) => new URL(value).protocol === "sqlite:", {
-      message: "GARMENTS_DATABASE_URL must use sqlite://.",
-    }),
-  GARMENTS_INDEX_PATH: z.string().trim().min(1),
-  GARMENTS_WEB_ORIGIN: urlSchema,
-  GARMENTS_FRAPPE_URL: urlSchema,
-  GARMENTS_FRAPPE_TOKEN: z.string().trim().min(1).optional(),
-});
-
-export const garmentsWebRuntimeConfigSchema = z.object({
-  PLATFORM_HOST: hostSchema,
-  GARMENTS_WEB_PORT: portSchema,
-  VITE_GARMENTS_API_URL: urlSchema,
-});
-
 export const zetroApiRuntimeConfigSchema = z.object({
   NODE_ENV: z.string().trim().min(1).default("development"),
   PLATFORM_HOST: hostSchema,
@@ -129,8 +107,6 @@ export type ApiRuntimeConfig = z.infer<typeof apiRuntimeConfigSchema>;
 export type WebRuntimeConfig = z.infer<typeof webRuntimeConfigSchema>;
 export type DocsApiRuntimeConfig = z.infer<typeof docsApiRuntimeConfigSchema>;
 export type DocsWebRuntimeConfig = z.infer<typeof docsWebRuntimeConfigSchema>;
-export type GarmentsApiRuntimeConfig = z.infer<typeof garmentsApiRuntimeConfigSchema>;
-export type GarmentsWebRuntimeConfig = z.infer<typeof garmentsWebRuntimeConfigSchema>;
 export type ZetroApiRuntimeConfig = z.infer<typeof zetroApiRuntimeConfigSchema>;
 export type ZetroWebRuntimeConfig = z.infer<typeof zetroWebRuntimeConfigSchema>;
 export type UiuxWebRuntimeConfig = z.infer<typeof uiuxWebRuntimeConfigSchema>;
@@ -152,14 +128,6 @@ export function readDocsApiRuntimeConfig(environment: NodeJS.ProcessEnv): DocsAp
 
 export function readDocsWebRuntimeConfig(environment: NodeJS.ProcessEnv): DocsWebRuntimeConfig {
   return docsWebRuntimeConfigSchema.parse(environment);
-}
-
-export function readGarmentsApiRuntimeConfig(environment: NodeJS.ProcessEnv): GarmentsApiRuntimeConfig {
-  return garmentsApiRuntimeConfigSchema.parse(environment);
-}
-
-export function readGarmentsWebRuntimeConfig(environment: NodeJS.ProcessEnv): GarmentsWebRuntimeConfig {
-  return garmentsWebRuntimeConfigSchema.parse(environment);
 }
 
 export function readZetroApiRuntimeConfig(environment: NodeJS.ProcessEnv): ZetroApiRuntimeConfig {

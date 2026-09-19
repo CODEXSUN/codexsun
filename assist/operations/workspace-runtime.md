@@ -33,7 +33,7 @@ dist/.turbo/<scope>/
 
 `dist/.turbo/` is the only Turborepo cache location. Each Turbo scope writes to `dist/.turbo/<scope>/`.
 
-Use these scope names: `platform`, `docs`, `orship`, `zetro`, `uiux`, `packages`, and `workspace`.
+Use these scope names: `platform`, `docs`, `zetro`, `uiux`, `packages`, and `workspace`.
 
 No app, add-on, package, module, or tool may write a local `dist/`, `.turbo/`, generated JavaScript, declarations, or build artifacts into source folders.
 

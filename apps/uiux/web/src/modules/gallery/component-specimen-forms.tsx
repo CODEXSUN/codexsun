@@ -29,7 +29,14 @@ const options = ["Platform", "Docs", "UI"];
 
 export function FormsSpecimen({ componentId, compact }: SpecimenProps) {
   const [otp, setOtp] = useState("2026");
-  return <SpecimenStage compact={compact}>{renderSpecimen(componentId, compact, otp, setOtp)}</SpecimenStage>;
+  return (
+    <SpecimenStage
+      className={componentId === "rich-text-editor" ? "w-full max-w-none justify-stretch" : undefined}
+      compact={compact}
+    >
+      {renderSpecimen(componentId, compact, otp, setOtp)}
+    </SpecimenStage>
+  );
 }
 
 function renderSpecimen(componentId: string, compact: boolean, otp: string, setOtp: (value: string) => void) {
@@ -136,7 +143,7 @@ function renderSpecimen(componentId: string, compact: boolean, otp: string, setO
   if (componentId === "rich-text-editor")
     return (
       <RichTextEditor
-        className={width}
+        className="w-full"
         content="<h2>Workspace update</h2><p>Use <strong>shared components</strong> for every application.</p>"
       />
     );

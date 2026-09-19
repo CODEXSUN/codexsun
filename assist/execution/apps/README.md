@@ -11,7 +11,6 @@ Use short task IDs only:
 | --- | --- | --- |
 | Platform | `P` | `platform-p-1201` |
 | Docs | `D` | `docs-d-1231` |
-| Orship | `O` | `orship-o-1203` |
 | Zetro | `Z` | `zetro-z-1203` |
 | UIUX | `U` | `uiux-u-1203` |
 

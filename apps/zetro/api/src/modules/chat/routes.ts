@@ -7,6 +7,7 @@ import {
   zetroUpdateChatRuntimeSchema,
   zetroCreateChatMessageSchema,
   zetroCreateConversationSchema,
+  zetroUpdateConversationSchema,
   zetroChatStreamEventSchema,
   type ZetroChatStreamEvent,
 } from "@codexsun/zetro-contracts";
@@ -48,6 +49,17 @@ export async function registerChatRoutes(app: FastifyInstance, service: ChatServ
     return zetroChatConversationResponseSchema.parse({ data: result, version: zetroApiVersion });
   });
 
+  app.patch<{ Body: unknown; Params: { conversationId: string } }>("/api/zetro/v1/chat/conversations/:conversationId", async (request, reply) => {
+    const conversation = service.updateConversation(request.params.conversationId, zetroUpdateConversationSchema.parse(request.body));
+    if (!conversation) return reply.code(404).send({ error: "Conversation not found.", code: "zetro.conversation-not-found" });
+    return zetroChatConversationResponseSchema.parse({ data: { conversation, messages: service.getConversation(conversation.id)?.messages ?? [] }, version: zetroApiVersion });
+  });
+
+  app.delete<{ Params: { conversationId: string } }>("/api/zetro/v1/chat/conversations/:conversationId", async (request, reply) => {
+    if (!service.deleteConversation(request.params.conversationId)) return reply.code(404).send({ error: "Conversation not found.", code: "zetro.conversation-not-found" });
+    return reply.code(204).send();
+  });
+
   app.post<{ Params: { conversationId: string } }>("/api/zetro/v1/chat/conversations/:conversationId/messages", async (request, reply) => {
     const requestBody = zetroCreateChatMessageSchema.parse(request.body);
     try {
@@ -73,7 +85,7 @@ export async function registerChatRoutes(app: FastifyInstance, service: ChatServ
     };
 
     try {
-      await service.streamMessage(request.params.conversationId, requestBody.content, publish, controller.signal, requestBody.runtime);
+      await service.streamMessage(request.params.conversationId, requestBody.content, publish, controller.signal, requestBody.runtime, requestBody.attachments ?? []);
     } catch (error) {
       if (error instanceof ConversationNotFoundError) publish({ type: "error", message: error.message });
       else throw error;

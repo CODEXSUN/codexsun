@@ -31,13 +31,21 @@ export class CodexDeviceCode {
   private start(command: string, resolve: (result: ZetroCodexDeviceCode) => void): void {
     const child = spawn(command, ["app-server"], { shell: false, windowsHide: true });
     this.process = child;
-    const finish = (result: ZetroCodexDeviceCode) => { clearTimeout(timeout); this.current = result; resolve(result); };
+    let settled = false;
+    const finish = (result: ZetroCodexDeviceCode) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      this.current = result;
+      if (result.status !== "awaiting") this.stop();
+      resolve(result);
+    };
     const timeout = setTimeout(() => finish({ status: "failed", message: "Codex did not provide a device code. Try again." }), 15_000);
     const send = (message: unknown) => child.stdin.write(`${JSON.stringify(message)}\n`);
     child.once("error", () => finish({ status: "failed", message: "Zetro could not start the installed Codex CLI." }));
     child.once("close", () => { if (this.current.status === "awaiting") this.current = { status: "failed", message: "The device-code session closed before sign-in completed." }; });
     createInterface({ input: child.stdout }).on("line", (line) => this.handle(line, send, finish));
-    send({ method: "initialize", id: 0, params: { clientInfo: { name: "zetro", title: "Zetro", version: "1.0.19" } } });
+    send({ method: "initialize", id: 0, params: { clientInfo: { name: "zetro", title: "Zetro", version: "1.0.20" } } });
   }
 
   private handle(line: string, send: (message: unknown) => void, finish: (result: ZetroCodexDeviceCode) => void): void {

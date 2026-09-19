@@ -42,16 +42,24 @@ test("explains missing event declarations for a module provider", () => {
     for (const [name, profile] of Object.entries({
       platform: ["api", "web", "desktop", "mobile"],
       docs: ["api", "web"],
-      orship: ["api", "web"],
       zetro: ["api", "web"],
       uiux: ["web"],
-    })) app(root, name, profile);
+    }))
+      app(root, name, profile);
 
     write(root, "apps/platform/api/src/config.ts", "export {};\n");
     write(root, "apps/platform/api/src/server.ts", "export {};\n");
-    write(root, "apps/platform/api/package.json", JSON.stringify({ dependencies: { "@codexsun/framework": "*", "@codexsun/platform-core": "*" } }));
+    write(
+      root,
+      "apps/platform/api/package.json",
+      JSON.stringify({ dependencies: { "@codexsun/framework": "*", "@codexsun/platform-core": "*" } }),
+    );
     write(root, "apps/platform/api/src/modules/demo/README.md", "# Demo\n");
-    write(root, "apps/platform/api/src/modules/demo/provider.ts", 'export const provider = { owner: "apps/platform/api/modules/demo" };\n');
+    write(
+      root,
+      "apps/platform/api/src/modules/demo/provider.ts",
+      'export const provider = { owner: "apps/platform/api/modules/demo" };\n',
+    );
     write(root, "apps/platform/api/src/modules/demo/test/demo.test.ts", "export {};\n");
 
     assert.throws(() => checkAppArchitecture(root), /provider must declare published and consumed events/u);

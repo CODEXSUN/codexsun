@@ -18,7 +18,7 @@ type DocsGroupDefinition = Omit<DocsIndexGroup, "documents"> & {
   matches: (path: string) => boolean;
 };
 
-const applicationOrder = ["platform", "docs", "zetro", "orship"];
+const applicationOrder = ["platform", "docs", "zetro"];
 
 export function getDocsIndexGroups(documents: DocumentSummary[]): DocsIndexGroup[] {
   const ungrouped = new Set(documents);

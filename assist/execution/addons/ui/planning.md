@@ -37,6 +37,6 @@ Expand `@codexsun/ui` as the single reusable CODEXSUN design system. Application
 
 - [ ] UI-1321 Add approved reusable blocks.
 - [ ] UI-1322 Add approved reusable pages and templates.
-- [ ] UI-1323 Verify Platform, Docs, Orship, Zetro, and UIUX compatibility.
+- [ ] UI-1323 Verify Platform, Docs, Zetro, and UIUX compatibility.
 
 Exit: each published item has stable ownership, a default, variants, states, accessibility notes, registry metadata, tests, and consumer evidence.

@@ -25,8 +25,6 @@ Read these documents before you add an application, package, service, or shared 
 - [Execution](execution/README.md) defines the delivery workflow and verification expectations.
 - [Delivery workflow](execution/workflow.md) defines planning, implementation, verification, and handoff.
 - [Verification standards](execution/verification.md) define static, live, Docker, and production evidence.
-- [Orship planning](execution/apps/orship/planning.md) defines infrastructure, deployment, and monitoring work.
-- [Orship task register](execution/apps/orship/task.md) lists the next reviewed Orship tasks.
 - [Zetro planning](execution/apps/zetro/planning.md) defines the governed agentic IDE phases.
 - [Zetro task register](execution/apps/zetro/task.md) defines the next Zetro task and approval gates.
 - [Assets](assets/README.md) lists shared visual and media assets.

@@ -10,7 +10,6 @@ Develop one application or shared package without changing another active applic
 | ----------- | ---------------------------------- | ------------------------ |
 | `platform`  | Platform API, web, desktop, mobile | `dist/.turbo/platform/`  |
 | `docs`      | Docs API and web                   | `dist/.turbo/docs/`      |
-| `orship`    | Orship API and web                 | `dist/.turbo/orship/`    |
 | `zetro`     | Zetro API and web                  | `dist/.turbo/zetro/`     |
 | `uiux`      | UIUX web                           | `dist/.turbo/uiux/`      |
 | `packages`  | Shared packages                    | `dist/.turbo/packages/`  |

@@ -10,6 +10,7 @@ type ConversationRow = {
   created_at: number;
   updated_at: number;
   message_count: number;
+  pinned: number;
 };
 
 type MessageRow = {
@@ -31,6 +32,7 @@ export class ChatStore {
       CREATE TABLE IF NOT EXISTS zetro_conversations (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
+        pinned INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -44,6 +46,11 @@ export class ChatStore {
       CREATE INDEX IF NOT EXISTS zetro_messages_by_conversation
         ON zetro_messages(conversation_id, created_at);
     `);
+    try {
+      this.database.exec("ALTER TABLE zetro_conversations ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;");
+    } catch {
+      // Existing databases already have the pinned column.
+    }
   }
 
   close(): void {
@@ -52,14 +59,14 @@ export class ChatStore {
 
   createConversation(title: string): ZetroChatConversation {
     const now = Date.now();
-    const conversation = { id: randomUUID(), title, createdAt: toIso(now), updatedAt: toIso(now), messageCount: 0 };
-    this.database.prepare("INSERT INTO zetro_conversations (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)").run(conversation.id, title, now, now);
+    const conversation = { id: randomUUID(), title, pinned: false, createdAt: toIso(now), updatedAt: toIso(now), messageCount: 0 };
+    this.database.prepare("INSERT INTO zetro_conversations (id, title, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(conversation.id, title, 0, now, now);
     return conversation;
   }
 
   listConversations(): ZetroChatConversation[] {
     const rows = this.database.prepare(`
-      SELECT conversations.id, conversations.title, conversations.created_at, conversations.updated_at,
+      SELECT conversations.id, conversations.title, conversations.pinned, conversations.created_at, conversations.updated_at,
         COUNT(messages.id) AS message_count
       FROM zetro_conversations AS conversations
       LEFT JOIN zetro_messages AS messages ON messages.conversation_id = conversations.id
@@ -71,7 +78,7 @@ export class ChatStore {
 
   getConversation(id: string): ZetroChatConversation | undefined {
     const row = this.database.prepare(`
-      SELECT conversations.id, conversations.title, conversations.created_at, conversations.updated_at,
+      SELECT conversations.id, conversations.title, conversations.pinned, conversations.created_at, conversations.updated_at,
         COUNT(messages.id) AS message_count
       FROM zetro_conversations AS conversations
       LEFT JOIN zetro_messages AS messages ON messages.conversation_id = conversations.id
@@ -94,6 +101,20 @@ export class ChatStore {
     this.database.prepare("UPDATE zetro_conversations SET updated_at = ? WHERE id = ?").run(now, conversationId);
     return message;
   }
+
+  updateConversation(id: string, update: { pinned?: boolean; title?: string }): ZetroChatConversation | undefined {
+    const current = this.getConversation(id);
+    if (!current) return undefined;
+    const now = Date.now();
+    const title = update.title ?? current.title;
+    const pinned = update.pinned ?? current.pinned;
+    this.database.prepare("UPDATE zetro_conversations SET title = ?, pinned = ?, updated_at = ? WHERE id = ?").run(title, Number(pinned), now, id);
+    return this.getConversation(id);
+  }
+
+  deleteConversation(id: string): boolean {
+    return this.database.prepare("DELETE FROM zetro_conversations WHERE id = ?").run(id).changes > 0;
+  }
 }
 
 function toIso(timestamp: number): string {
@@ -101,7 +122,7 @@ function toIso(timestamp: number): string {
 }
 
 function toConversation(row: ConversationRow): ZetroChatConversation {
-  return { id: row.id, title: row.title, createdAt: toIso(row.created_at), updatedAt: toIso(row.updated_at), messageCount: Number(row.message_count) };
+  return { id: row.id, title: row.title, pinned: Boolean(row.pinned), createdAt: toIso(row.created_at), updatedAt: toIso(row.updated_at), messageCount: Number(row.message_count) };
 }
 
 function toMessage(row: MessageRow): ZetroChatMessage {

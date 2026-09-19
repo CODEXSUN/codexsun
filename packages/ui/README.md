@@ -192,8 +192,8 @@ See the [sidebar record](../../assist/records/zetro/2026-09-10-sidebar-integrati
   accept an optional avatar URL and use the first name letter as the fallback.
 - The profile panel includes one matching theme button. Its laptop, sun, or moon
   icon reflects System, Light, or Dark and cycles through those shared modes.
-- The default application launcher exposes working Platform, UI, Docs, Orship,
-  and Zetro destinations. Local development links use each application's
+  - The default application launcher exposes working Platform, UI, Docs, and
+    Zetro destinations. Local development links use each application's
   documented port; deployed applications can replace them through `apps`.
 - The notification trigger uses an unframed ghost icon. Its unread indicator combines a softly
   pulsing center dot with a slower ripple that fades fully before restarting.
@@ -205,7 +205,7 @@ See the [sidebar record](../../assist/records/zetro/2026-09-10-sidebar-integrati
   border lines, preserving the canvas surface while giving the transition slim depth.
 - Framer Motion owns the unread ripple because it needs a repeated value sequence.
 - Inline CSS variables are limited to runtime sidebar width and topology marker colors.
-- `MainWorkspace` binds the shared theme provider for Platform, Docs, Orship, and Zetro.
+  - `MainWorkspace` binds the shared theme provider for Platform, Docs, and Zetro.
 - The appearance panel contains the shared mode and color selector.
 - The MDI sidebar starts with application navigation. It does not repeat the
   application identity from the command bar.

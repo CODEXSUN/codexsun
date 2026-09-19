@@ -5,8 +5,6 @@ import {
   createPlatformRuntime,
   readDocsApiRuntimeConfig,
   readDocsWebRuntimeConfig,
-  readGarmentsApiRuntimeConfig,
-  readGarmentsWebRuntimeConfig,
   ModuleEnablementPolicy,
   PlatformRuntimeRegistry,
   readApiRuntimeConfig,
@@ -107,25 +105,6 @@ test("validates each host configuration without exposing server values to client
     "http://127.0.0.1:6030",
   );
   assert.equal(
-    readGarmentsApiRuntimeConfig({
-      PLATFORM_HOST: "127.0.0.1",
-      GARMENTS_API_PORT: "6050",
-      GARMENTS_DATABASE_URL: "sqlite://garments",
-      GARMENTS_FRAPPE_URL: "https://logicx.tmnext.in",
-      GARMENTS_INDEX_PATH: "../../../storage/apps/private/garments/index.sqlite",
-      GARMENTS_WEB_ORIGIN: "http://127.0.0.1:6060",
-    }).GARMENTS_API_PORT,
-    6050,
-  );
-  assert.equal(
-    readGarmentsWebRuntimeConfig({
-      PLATFORM_HOST: "127.0.0.1",
-      GARMENTS_WEB_PORT: "6060",
-      VITE_GARMENTS_API_URL: "http://127.0.0.1:6050",
-    }).VITE_GARMENTS_API_URL,
-    "http://127.0.0.1:6050",
-  );
-  assert.equal(
     readDesktopRuntimeConfig({
       PLATFORM_HOST: "127.0.0.1",
       PLATFORM_DESKTOP_PORT: "6103",
@@ -137,10 +116,7 @@ test("validates each host configuration without exposing server values to client
     readMobileRuntimeConfig({ PLATFORM_MOBILE_API_URL: "http://127.0.0.1:6100" }).PLATFORM_MOBILE_API_URL,
     "http://127.0.0.1:6100",
   );
-  assert.equal(
-    readUiuxWebRuntimeConfig({ PLATFORM_HOST: "127.0.0.1", UIUX_WEB_PORT: "6102" }).UIUX_WEB_PORT,
-    6102,
-  );
+  assert.equal(readUiuxWebRuntimeConfig({ PLATFORM_HOST: "127.0.0.1", UIUX_WEB_PORT: "6102" }).UIUX_WEB_PORT, 6102);
   assert.equal(readRedisRuntimeConfig({ REDIS_URL: "redis://127.0.0.1:6379" }).REDIS_URL, "redis://127.0.0.1:6379");
   assert.throws(() => readRedisRuntimeConfig({ REDIS_URL: "https://127.0.0.1:6379" }));
   assert.throws(() => readWebRuntimeConfig({ PLATFORM_HOST: "", PLATFORM_WEB_PORT: "0" }));

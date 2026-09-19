@@ -9,7 +9,8 @@ Read `planning.md` before work starts.
   - Owner: `packages/ui` with Gallery composition in `apps/uiux/web`.
   - Delivered: a published Tiptap rich text editor with write, Markdown, HTML,
     and preview modes plus format, list, alignment, link, image, and history
-    controls. The Gallery provides a live Form component preview.
+    controls. It saves drafts in memory and exposes an optional application save
+    callback. The Gallery provides a live Form component preview.
   - Exclusions: product content persistence, file uploads, and application
     business behavior.
   - Verification: UI and UIUX type checks, UI lint, UIUX production build,

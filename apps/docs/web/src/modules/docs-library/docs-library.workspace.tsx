@@ -16,7 +16,6 @@ import {
   Network,
   PackageIcon,
   ServerIcon,
-  WorkflowIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -124,8 +123,6 @@ function getDocsGroupIcon(groupId: string): LucideIcon {
       return BookOpen;
     case "apps-zetro":
       return BotIcon;
-    case "apps-orship":
-      return WorkflowIcon;
     default:
       return FolderTreeIcon;
   }

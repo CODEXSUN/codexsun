@@ -12,10 +12,10 @@ import { MarkdownContent } from "@codexsun/ui/components/markdown-content";
 import { MessageScroller, MessageScrollerButton, MessageScrollerViewport } from "@codexsun/ui/components/message-scroller";
 import { TopologyRegion } from "@codexsun/ui/features/interface-topology";
 import { useMdiTopology } from "@codexsun/ui/layouts/mdi-main";
-import type { ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatStreamEvent, ZetroCodexDeviceCode } from "@codexsun/zetro-contracts";
+import type { ZetroChatAttachment, ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatStreamEvent, ZetroCodexDeviceCode } from "@codexsun/zetro-contracts";
 import type { InterfaceTopologySection } from "@codexsun/ui/features/interface-topology";
 import { BotIcon, ClockIcon, CopyIcon, FileTextIcon, Layers3Icon, LightbulbIcon, MessageSquareIcon, PanelsTopLeftIcon, RotateCcwIcon, SettingsIcon, Share2Icon } from "lucide-react";
-import { createConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, listConversations, streamMessage, updateChatRuntime } from "./chat-api.js";
+import { createConversation, deleteConversation as deleteStoredConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, listConversations, streamMessage, updateChatRuntime, updateConversation as updateStoredConversation } from "./chat-api.js";
 
 type VoiceRecognizer = {
   continuous: boolean;
@@ -68,7 +68,6 @@ export function App() {
   const [conversation, setConversation] = useState<ZetroChatConversation>();
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<ChatComposerAttachment[]>([]);
-  const [pinnedConversationIds, setPinnedConversationIds] = useState<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [steerQueue, setSteerQueue] = useState<string[]>([]);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -111,8 +110,8 @@ export function App() {
   }, [isLoading, steerQueue]);
 
   const history = useMemo(() => (
-    <ZetroHistory activeConversationId={conversation?.id} conversations={conversations} pinnedConversationIds={pinnedConversationIds} onCreate={startConversation} onDelete={deleteConversation} onRename={renameConversation} onSelect={selectConversation} onTogglePin={toggleConversationPin} />
-  ), [conversation?.id, conversations, pinnedConversationIds]);
+    <ZetroHistory activeConversationId={conversation?.id} conversations={conversations} onCreate={startConversation} onDelete={deleteConversation} onRename={renameConversation} onSelect={selectConversation} onTogglePin={toggleConversationPin} />
+  ), [conversation?.id, conversations]);
 
   function selectConversation(id: string): void {
     const selected = conversations.find((item) => item.id === id);
@@ -137,9 +136,8 @@ export function App() {
   }
 
   async function submit(): Promise<void> {
-    const attachmentSummary = attachments.map((attachment) => `[Attached: ${attachment.name}]`).join(" ");
-    const content = [draft.trim(), attachmentSummary].filter(Boolean).join("\n");
-    if (!content || isLoading) return;
+    const content = draft.trim();
+    if ((!content && !attachments.length) || isLoading) return;
     if (!runtime.connected) {
       setExecutionEvents([{ type: "error", message: runtime.message }]);
       return;
@@ -150,9 +148,10 @@ export function App() {
     setConversation(current);
     setConversations((items) => [current, ...items.filter((item) => item.id !== current.id)]);
     setDraft("");
+    const submittedAttachments = await serializeAttachments(attachments);
     setAttachments([]);
     setElapsedSeconds(0);
-    void runStream(current.id, content);
+    void runStream(current.id, content || "Please review the attached material.", submittedAttachments);
   }
 
   function addAttachments(files: File[]): void {
@@ -160,6 +159,7 @@ export function App() {
       ...items,
       ...files.map((file) => ({
         id: crypto.randomUUID(),
+        file,
         name: file.name,
         previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
         type: file.type,
@@ -175,21 +175,27 @@ export function App() {
     });
   }
 
-  function toggleConversationPin(id: string): void {
-    setPinnedConversationIds((items) => items.includes(id) ? items.filter((item) => item !== id) : [id, ...items]);
+  async function toggleConversationPin(id: string): Promise<void> {
+    const current = conversations.find((item) => item.id === id);
+    if (!current) return;
+    const { conversation: updated } = await updateStoredConversation(id, { title: current.title, pinned: !current.pinned });
+    setConversations((items) => items.map((item) => item.id === id ? updated : item));
+    setConversation((item) => item?.id === id ? updated : item);
   }
 
-  function renameConversation(id: string): void {
+  async function renameConversation(id: string): Promise<void> {
     const current = conversations.find((item) => item.id === id);
     const title = window.prompt("Rename conversation", current?.title);
     if (!title?.trim()) return;
-    setConversations((items) => items.map((item) => item.id === id ? { ...item, title: title.trim() } : item));
-    setConversation((item) => item?.id === id ? { ...item, title: title.trim() } : item);
+    if (!current) return;
+    const { conversation: updated } = await updateStoredConversation(id, { title: title.trim(), pinned: current.pinned });
+    setConversations((items) => items.map((item) => item.id === id ? updated : item));
+    setConversation((item) => item?.id === id ? updated : item);
   }
 
-  function deleteConversation(id: string): void {
+  async function deleteConversation(id: string): Promise<void> {
+    await deleteStoredConversation(id);
     setConversations((items) => items.filter((item) => item.id !== id));
-    setPinnedConversationIds((items) => items.filter((item) => item !== id));
     setMessagesByConversation((items) => Object.fromEntries(Object.entries(items).filter(([key]) => key !== id)));
     if (activeConversationIdRef.current === id) {
       activeConversationIdRef.current = undefined;
@@ -303,24 +309,29 @@ export function App() {
 
   const handoverItems = messages.filter((message) => handoverMessageIds.includes(message.id) && message.role === "assistant" && message.content).map((message) => ({ id: message.id, content: message.content }));
 
-  async function runStream(conversationId: string | undefined, content: string): Promise<void> {
+  async function runStream(conversationId: string | undefined, content: string, attachments: ZetroChatAttachment[] = []): Promise<void> {
     if (!conversationId) return;
     const controller = new AbortController();
     streamAbortRef.current = controller;
     setIsStreaming(true);
     setExecutionEvents([]);
     const createdAt = new Date().toISOString();
-    setMessages((items) => [...items, { id: crypto.randomUUID(), conversationId, role: "user", content, createdAt }, { id: crypto.randomUUID(), conversationId, role: "assistant", content: "", createdAt }]);
+    if (activeConversationIdRef.current === conversationId) {
+      setMessages((items) => [...items, { id: crypto.randomUUID(), conversationId, role: "user", content, createdAt }, { id: crypto.randomUUID(), conversationId, role: "assistant", content: "", createdAt }]);
+    }
     try {
-      await streamMessage(conversationId, content, runtime, (event) => {
+      await streamMessage(conversationId, content, runtime, attachments, (event) => {
         setExecutionEvents((items) => [...items.slice(-80), event]);
-        if (event.type === "response") {
+        if (event.type === "response" && activeConversationIdRef.current === conversationId) {
           setMessages((items) => items.map((message, index) => index === items.length - 1 && message.role === "assistant" ? { ...message, content: event.message } : message));
         }
       }, controller.signal);
       const view = await getConversation(conversationId);
-      setConversation(view.conversation);
-      setMessages(view.messages);
+      setMessagesByConversation((items) => ({ ...items, [conversationId]: view.messages }));
+      if (activeConversationIdRef.current === conversationId) {
+        setConversation(view.conversation);
+        setMessages(view.messages);
+      }
       setConversations((items) => [view.conversation, ...items.filter((item) => item.id !== view.conversation.id)]);
     } catch (error) {
       if ((error as { name?: string }).name !== "AbortError") {
@@ -384,9 +395,19 @@ export function App() {
   );
 }
 
-function ZetroHistory({ activeConversationId, conversations, pinnedConversationIds, onCreate, onDelete, onRename, onSelect, onTogglePin }: { activeConversationId?: string; conversations: ZetroChatConversation[]; pinnedConversationIds: string[]; onCreate: () => void; onDelete: (id: string) => void; onRename: (id: string) => void; onSelect: (id: string) => void; onTogglePin: (id: string) => void }) {
+async function serializeAttachments(attachments: ChatComposerAttachment[]): Promise<ZetroChatAttachment[]> {
+  return Promise.all(attachments.map(async (attachment) => ({ name: attachment.name, type: attachment.type, content: arrayBufferToBase64(await attachment.file.arrayBuffer()) })));
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  let value = "";
+  for (const byte of new Uint8Array(buffer)) value += String.fromCharCode(byte);
+  return btoa(value);
+}
+
+function ZetroHistory({ activeConversationId, conversations, onCreate, onDelete, onRename, onSelect, onTogglePin }: { activeConversationId?: string; conversations: ZetroChatConversation[]; onCreate: () => void; onDelete: (id: string) => void; onRename: (id: string) => void; onSelect: (id: string) => void; onTogglePin: (id: string) => void }) {
   const topology = useMdiTopology();
-  return <TopologyRegion as="div" className="flex min-h-0 flex-1" id="z01" topology={topology}><ChatHistory activeId={activeConversationId} items={conversations.map((item) => ({ id: item.id, pinned: pinnedConversationIds.includes(item.id), title: item.title }))} onCreate={onCreate} onDelete={onDelete} onPin={onTogglePin} onRename={onRename} onSelect={onSelect} /></TopologyRegion>;
+  return <TopologyRegion as="div" className="flex min-h-0 flex-1" id="z01" topology={topology}><ChatHistory activeId={activeConversationId} items={conversations.map((item) => ({ id: item.id, pinned: item.pinned, title: item.title }))} onCreate={onCreate} onDelete={onDelete} onPin={onTogglePin} onRename={onRename} onSelect={onSelect} /></TopologyRegion>;
 }
 
 function ZetroWorkspace({ attachments, conversation, draft, elapsedSeconds, executionEvents, handoverCount, isRecording, isWorking, messages, queuedSteerCount, runtime, onAddAttachments, onDraftChange, onOpenHandoverStack, onReconnect, onRemoveAttachment, onRuntimeChange, onSteer, onStop, onSubmit, onToggleHandover, onVoiceToggle, selectedHandoverMessageIds }: { attachments: ChatComposerAttachment[]; conversation?: ZetroChatConversation; draft: string; elapsedSeconds: number; executionEvents: ZetroChatStreamEvent[]; handoverCount: number; isRecording: boolean; isWorking: boolean; messages: ZetroChatMessage[]; queuedSteerCount: number; runtime: ZetroChatRuntime; onAddAttachments: (files: File[]) => void; onDraftChange: (value: string) => void; onOpenHandoverStack: () => void; onReconnect: () => void; onRemoveAttachment: (id: string) => void; onRuntimeChange: (runtime: ZetroChatRuntime) => void; onSteer: () => void; onStop: () => void; onSubmit: () => void; onToggleHandover: (id: string) => void; onVoiceToggle: () => void; selectedHandoverMessageIds: string[] }) {

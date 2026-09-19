@@ -1,9 +1,9 @@
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { createInterface } from "node:readline";
-import type { ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatRuntimeSelection, ZetroChatStreamEvent, ZetroCodexDeviceCode } from "@codexsun/zetro-contracts";
+import type { ZetroChatAttachment, ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatRuntimeSelection, ZetroChatStreamEvent, ZetroCodexDeviceCode } from "@codexsun/zetro-contracts";
 import { ChatStore } from "./chat-store.js";
 import { CodexDeviceCode } from "./codex-device-code.js";
 
@@ -17,6 +17,14 @@ export class ChatService {
 
   listConversations(): ZetroChatConversation[] {
     return this.store.listConversations();
+  }
+
+  updateConversation(id: string, update: { pinned?: boolean; title?: string }): ZetroChatConversation | undefined {
+    return this.store.updateConversation(id, update);
+  }
+
+  deleteConversation(id: string): boolean {
+    return this.store.deleteConversation(id);
   }
 
   getConversation(id: string): ChatConversation | undefined {
@@ -67,13 +75,13 @@ export class ChatService {
     return result;
   }
 
-  async streamMessage(conversationId: string, content: string, publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection): Promise<ChatConversation> {
+  async streamMessage(conversationId: string, content: string, publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection, attachments: ZetroChatAttachment[] = []): Promise<ChatConversation> {
     if (!this.store.getConversation(conversationId)) throw new ConversationNotFoundError();
     this.store.addMessage(conversationId, "user", content);
 
     try {
       publish({ type: "processing", message: runtimeLabel(runtime) });
-      const response = await runLocalCodexStream(this.transcript(conversationId), publish, signal, runtime);
+      const response = await runWithAttachments(this.transcript(conversationId), attachments, publish, signal, runtime);
       this.store.addMessage(conversationId, "assistant", response);
       publish({ type: "complete", message: "Codex response saved to this conversation." });
     } catch (error) {
@@ -95,6 +103,26 @@ export class ChatService {
   private transcript(conversationId: string): string {
     const conversation = this.store.listMessages(conversationId).map((message) => `${message.role}: ${message.content}`).join("\n\n");
     return `Use the $zetro-idea-workshop skill. You are Zetro, a concise collaborative idea partner. Stay in the idea stage. Do not create tasks, plans, worktrees, code changes, commands, or approvals. Help the user explore, revise, compare, and finish an idea.\n\n${conversation}`;
+  }
+}
+
+async function runWithAttachments(prompt: string, attachments: ZetroChatAttachment[], publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection): Promise<string> {
+  if (!attachments.length) return runLocalCodexStream(prompt, publish, signal, runtime);
+  const directory = mkdtempSync(join(homedir(), ".codex", "zetro-attachments-"));
+  try {
+    const images: string[] = [];
+    const text: string[] = [];
+    for (const attachment of attachments) {
+      const path = join(directory, basename(attachment.name));
+      const data = Buffer.from(attachment.content, "base64");
+      writeFileSync(path, data);
+      if (attachment.type.startsWith("image/")) images.push(path);
+      else if (attachment.type.startsWith("text/") || attachment.type === "application/json") text.push(`Attachment ${attachment.name}:\n${data.toString("utf8")}`);
+      else text.push(`Attachment ${attachment.name} was supplied as ${attachment.type}.`);
+    }
+    return runLocalCodexStream([prompt, ...text].join("\n\n"), publish, signal, runtime, images);
+  } finally {
+    rmSync(directory, { force: true, recursive: true });
   }
 }
 
@@ -124,13 +152,13 @@ function runLocalCodex(prompt: string, runtime?: ZetroChatRuntimeSelection): Pro
   });
 }
 
-function runLocalCodexStream(prompt: string, publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection): Promise<string> {
+function runLocalCodexStream(prompt: string, publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection, images: string[] = []): Promise<string> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(new Error("Codex response was stopped."));
       return;
     }
-    const child = spawn(codexCommand(), codexArguments(prompt, true, runtime), { shell: false, windowsHide: true });
+    const child = spawn(codexCommand(), codexArguments(prompt, true, runtime, images), { shell: false, windowsHide: true });
     child.stdin.end();
     const stopChild = () => child.kill();
     signal?.addEventListener("abort", stopChild, { once: true });
@@ -176,9 +204,10 @@ function redact(value: string): string {
   return value.replace(/(api[_-]?key|access[_-]?token|token|secret|password)\s*[:=]\s*[^\s,}"']+/gi, "$1=[REDACTED]");
 }
 
-function codexArguments(prompt: string, json: boolean, runtime?: ZetroChatRuntimeSelection): string[] {
+function codexArguments(prompt: string, json: boolean, runtime?: ZetroChatRuntimeSelection, images: string[] = []): string[] {
   const argumentsList = ["exec", "--ephemeral", "--sandbox", "read-only"];
   if (json) argumentsList.push("--json");
+  for (const image of images) argumentsList.push("--image", image);
   if (runtime?.model && runtime.model !== "Default") argumentsList.push("--model", runtime.model);
   if (runtime?.reasoning && runtime.reasoning !== "Default") argumentsList.push("--config", `model_reasoning_effort=${JSON.stringify(runtime.reasoning.toLowerCase())}`);
   argumentsList.push(prompt);
@@ -237,8 +266,7 @@ function updateTomlValue(config: string, key: string, value: string): string {
 }
 
 function parseModel(config: string, key: string): ZetroChatRuntimeSelection["model"] | undefined {
-  const value = readTomlString(config, key);
-  return value && ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-6-astra"].includes(value) ? value as ZetroChatRuntimeSelection["model"] : undefined;
+  return readTomlString(config, key);
 }
 
 function parseReasoning(config: string, key: string): ZetroChatRuntimeSelection["reasoning"] | undefined {
@@ -252,7 +280,7 @@ function readTomlString(config: string, key: string): string | undefined {
 }
 
 function orderedModels(selected: ZetroChatRuntimeSelection["model"]): ZetroChatRuntimeSelection["model"][] {
-  return [selected, ...["gpt-5.6-sol", "gpt-5.6-terra", "gpt-6-astra"].filter((model) => model !== selected) as ZetroChatRuntimeSelection["model"][]];
+  return [selected, ...["gpt-5.6-sol", "gpt-5.6-terra", "gpt-6-astra"].filter((model) => model !== selected)];
 }
 
 function runtimeLabel(runtime?: ZetroChatRuntimeSelection): string {

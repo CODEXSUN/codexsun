@@ -36,7 +36,7 @@ Split a file by a meaningful module concern before it exceeds the limit. Do not 
 - All applications, add-ons, packages, modules, client hosts, and tools must use the single root `dist/` directory.
 - Local `dist/` directories are prohibited everywhere below the repository root.
 - Write Turborepo cache files only to `dist/.turbo/<scope>/`.
-- Use the approved scope names: `platform`, `docs`, `orship`, `zetro`, `uiux`, `packages`, and `workspace`.
+- Use the approved scope names: `platform`, `docs`, `zetro`, `uiux`, `packages`, and `workspace`.
 - Do not write build artifacts, generated declarations, or cache files into source folders.
 - Keep exactly one TypeScript configuration in each app API host and one in each app web host.
 - Use `apps/<app>/api/tsconfig.json` for the API host and `apps/<app>/web/tsconfig.json` for the web host.

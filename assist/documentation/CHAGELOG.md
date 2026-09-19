@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.20
+Current version: 1.0.21
 
-Release tag: v-1.0.20
+Release tag: v-1.0.21
 
-Changelog label: v 1.0.20
+Changelog label: v 1.0.21
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
@@ -24,6 +24,14 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
   write, Markdown, HTML, and preview modes with package-owned formatting tools.
   UIUX Gallery now shows a live editor specimen. No UI positions changed.
 
+- Added in-memory Rich Text Editor draft saves. Applications can provide an
+  async draft-save callback. A status circle at the toolbar end shows pending,
+  saving, saved, and failed states. Replaced browser prompts with editor forms.
+
+- Completed Rich Text Editor Markdown conversion for headings, marks, links,
+  images, lists, quotes, and code blocks. Image upload now uses an optional
+  application-owned callback.
+
 - Split Zetro Codex Settings into separate Local Codex and Device code cards.
   Local rechecks visibly refresh the installed CLI session state, while the
   device-code generator is explicitly enabled with a connection-mode switch.
@@ -36,6 +44,11 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Replaced Zetro's runtime placeholders with the active local Codex model and
   reasoning settings. Model and reasoning selections now update the user-owned
   Codex configuration and are re-read after every reconnect.
+- Made Zetro chat behavior durable and agent-safe: conversation rename, pin,
+  and delete actions now persist in SQLite; an active response cannot overwrite
+  a conversation selected mid-stream; handover selections remain browser-local.
+  Images are passed to Codex as real image inputs and text attachments are
+  explicitly added to the turn context through temporary, removed-on-complete files.
 
 - Added the repository-owned `zetro-idea-workshop` skill. Zetro now invokes it
   for local Codex idea conversations. The skill supports idea discovery,
@@ -90,8 +103,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 - Wired all browser workspaces to their owned shared shell. Docs now mounts the
   Documentation Workspace. Zetro now mounts the Agent Workspace inside
-  `MdiMain`. Platform web, Platform desktop, and Orship now use the current
-  `MdiMain` contract. The MDI catalog recognizes UIUX as the UI workspace.
+  `MdiMain`. Platform web and Platform desktop now use the current `MdiMain`
+  contract. The MDI catalog recognizes UIUX as the UI workspace.
   Docs accepts root or app-local web port configuration. Added missing Docs
   Catalog and Zetro Chat module records. Application architecture and module
   boundary checks pass. No database change.
@@ -185,11 +198,27 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added the generated shadcn `sidebar-16` navigation block under the versioned
   `sidemenu/v16` package path, with public header and sidebar exports plus UIUX
   gallery preview coverage. No database change.
-- Added the standalone Orship `MdiMain` workspace shell. The starting screen
-  contains no workflow, API, verification, approval, or deployment controls.
-- Added isolated Orship startup preflight targets. The API reserves port `6090`
-  and the web host reserves port `6091`; the web host proxies `/api` to the
-  configured API URL. No database change.
+
+## v-1.0.21
+
+### [v 1.0.21] 2026-09-19 8:24 am - Zetro agent chat and workspace alignment
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Updated Zetro's private SQLite conversation schema with persistent pin state.
+  Existing local databases add the column at startup; no shared deployment
+  database is changed by this release.
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.21.
+- Released the current workspace alignment: removed the retired Garments and
+  Orship application trees, updated app and package manifests, and refreshed
+  Framework, Platform, UIUX, Assist, runtime tooling, and architecture records.
+- Added Zetro local-agent chat improvements: persistent history actions,
+  streamed Codex responses, local runtime controls, browser-local handover
+  selections, and temporary attachment inputs for image and text context.
 
 ## v-1.0.20
 
@@ -294,7 +323,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 #### App Codebase Changes
 
 - Bumped CODEXSUN workspace version to 1.0.16.
-- Verified the clean Zetro and Orship worktrees through the required pre-development lifecycle checks.
+- Verified the clean Zetro worktree through the required pre-development lifecycle checks.
 - Added the verified worktree gate, short app task IDs, app planning and task registers, and add-on record templates.
 - Kept active Docs and UIUX task work outside this release because their worktrees contain unreviewed changes.
 
@@ -334,7 +363,6 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added a required read-only worktree verification stage before agent development begins.
 - Added standard per-app planning and task records, short task-ID prefixes, phased execution status, and add-on planning templates.
 - Replaced legacy Zetro planning and task records with the agentic IDE governance plan and phased task register. No Zetro runtime code changed.
-- Replaced legacy Orship planning and task records with Platform-first infrastructure, monitoring, and deployment phases. No Orship runtime or Docker configuration changed.
 - Added the Platform-specific runtime, module, host, deployment, and extension planning phases with a phased task register. No Platform runtime code changed.
 - Added Framework shared-package planning and task records with compatibility and consumer-review gates. No Framework code changed.
 - Added UIUX catalog, visual-quality, accessibility, and design-system handoff phases with a phased task register. No UIUX code changed.
@@ -353,7 +381,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 #### App Codebase Changes
 
 - Bumped CODEXSUN workspace version to 1.0.13.
-- Added app-scoped Turbo commands and root cache namespaces for Platform, Docs, Orship, Zetro, UIUX, and shared packages.
+- Added app-scoped Turbo commands and root cache namespaces for Platform, Docs, Zetro, UIUX, and shared packages.
 - Added isolated worktree, local environment, shared-package review, and manual merge rules for parallel development.
 - Added `check:app-architecture` and its test suite to the required root check.
 - The audit verifies declared app profiles, host configuration, public `@codexsun/ui` composition, provider ownership, module tests, private imports, and event declarations.
@@ -400,7 +428,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 #### App Codebase Changes
 
 - Bumped CODEXSUN workspace version to 1.0.10.
-- Verified Platform, Docs, Orship, Zetro, and UIUX source checks in the root workspace.
+- Verified Platform, Docs, Zetro, and UIUX source checks in the root workspace.
 - Verified the Platform workspace browser flow with the root Playwright installation.
 - Verified public UI and API contract usage plus module route ownership checks.
 - Verified the non-desktop and non-mobile application build outputs under the root `dist/` directory.
@@ -421,13 +449,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Bumped CODEXSUN workspace version to 1.0.9.
 - Added the completed shared UI theme, registry, base components, composition layers, Platform MDI integration, and standalone UIUX gallery.
 - Added the public API contracts package, centralized route composition, stable API error codes, and Platform module visibility.
-- Added Docs, Zetro, and Orship documentation records supplied in this workspace.
-- Added the standalone Orship API and web hosts with isolated local ports,
-  Orship host configuration, Platform Core composition, and the first guarded
-  orchestration state machine. Completed O-1201 without a database change.
-- Added Orship revision-bound private attempt records and typed verification
-  checks. Required failed checks now block approval requests. Completed O-1202
-  without a database change.
+- Added Docs and Zetro documentation records supplied in this workspace.
 - Added the Playwright Platform workspace test source and root command. It requires the declared package to be installed before it can run locally.
 - Added the optional Redis runtime configuration scaffold and operator runbook. Database-backed outbox delivery remains the current queue direction; no Redis service, worker, or database change was introduced.
 - Added the Platform Operations module with the unrun `operations.001` migration for outbox, idempotent-consumer, and audit tables. Database update: Yes when a selected deployment runs this migration.

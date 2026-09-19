@@ -56,7 +56,7 @@ The web file defines `WEB_HOST` and `WEB_PORT`. The selected runtime plan
 supplies `VITE_DOCS_API_URL`. The index mode is `filesystem`, `database`, or
 `hybrid`; the default is `hybrid`.
 
-The API uses the shared Platform Core observability adapter for Pino logs, request correlation, HTTP telemetry, and safe shutdown. Production JSON output is captured by the runtime holder for Orship.
+The API uses the shared Platform Core observability adapter for Pino logs, request correlation, HTTP telemetry, and safe shutdown.
 
 The default vault is `apps/docs/content`. The API also discovers Markdown, MDX, and text
 files below the repository root, excluding generated, dependency, storage, and Git directories.

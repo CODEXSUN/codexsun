@@ -15,8 +15,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@codexsun/contracts": resolve(import.meta.dirname, "../../../packages/contracts/src/index.ts"),
-      "@codexsun/garments-contracts": resolve(import.meta.dirname, "../../../packages/garments-contracts/src/index.ts"),
-      "@codexsun/garments-web/dashboard": resolve(import.meta.dirname, "../../garments/web/src/index.ts"),
     },
   },
   server: { host: runtimeConfig.PLATFORM_HOST, port: runtimeConfig.PLATFORM_WEB_PORT, strictPort: true },

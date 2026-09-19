@@ -65,8 +65,8 @@ templates and application routes must not replace this title.
 Applications import layouts through their public `@codexsun/ui/layouts/*`
 entry points.
 
-The default MDI application catalog links Platform, UI, Docs, Orship, and
-Zetro. It uses the documented local ports when the current host is localhost
+The default MDI application catalog links Platform, UI, Docs, and Zetro. It
+uses the documented local ports when the current host is localhost
 or `127.0.0.1`. Applications can provide `apps` to replace these destinations
 for a deployed environment.
 

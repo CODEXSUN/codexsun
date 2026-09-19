@@ -20,7 +20,7 @@ No task is active.
   - Status: planned. Requires plan review and approval.
   - Owner: UI package maintainer.
   - Data impact: no migration.
-  - Required review: Platform, Docs, Orship, Zetro, UIUX, desktop, and mobile consumers.
+  - Required review: Platform, Docs, Zetro, UIUX, desktop, and mobile consumers.
   - Verification: UI registry tests, accessibility checks, consumer checks, visual evidence, root validation, and shared-package review.
 
 ## Completion Rule

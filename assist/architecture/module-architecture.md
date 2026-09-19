@@ -92,7 +92,6 @@ Every deployable application uses the same foundation where its target applies:
 | --- | --- | --- | --- |
 | Platform | Framework and Platform Core | `@codexsun/ui` | Platform system capabilities |
 | Docs | Framework and Platform Core | `@codexsun/ui` | Repository document catalog |
-| Orship | Framework and Platform Core | `@codexsun/ui` | Deployment orchestration |
 | Zetro | Framework and Platform Core | `@codexsun/ui` | Governed task and storage capabilities |
 | UIUX | UI-only catalog profile | `@codexsun/ui` | Design-system gallery only |
 

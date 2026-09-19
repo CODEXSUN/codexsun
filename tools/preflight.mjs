@@ -42,22 +42,6 @@ const targets = {
     envKey: "ZETRO_WEB_PORT",
     workspace: "@codexsun/zetro-web",
   },
-  "orship-api": {
-    displayName: "Orship API",
-    application: "orship",
-    environmentDirectory: "api",
-    envKey: "ORSHIP_API_PORT",
-    hostKey: "ORSHIP_HOST",
-    workspace: "@codexsun/orship-api",
-  },
-  "orship-web": {
-    displayName: "Orship web",
-    application: "orship",
-    environmentDirectory: "web",
-    envKey: "ORSHIP_WEB_PORT",
-    hostKey: "ORSHIP_HOST",
-    workspace: "@codexsun/orship-web",
-  },
   "platform-desktop": {
     displayName: "Platform desktop",
     environmentDirectory: "desktop",
@@ -83,20 +67,6 @@ const targets = {
     environmentDirectory: "web",
     envKey: "DOCS_WEB_PORT",
     workspace: "@codexsun/docs-web",
-  },
-  "garments-api": {
-    displayName: "Garments API",
-    application: "garments",
-    environmentDirectory: "api",
-    envKey: "GARMENTS_API_PORT",
-    workspace: "@codexsun/garments-api",
-  },
-  "garments-web": {
-    displayName: "Garments web",
-    application: "garments",
-    environmentDirectory: "web",
-    envKey: "GARMENTS_WEB_PORT",
-    workspace: "@codexsun/garments-web",
   },
 };
 

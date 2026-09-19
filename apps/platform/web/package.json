@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/platform-web",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@codexsun/contracts": "file:../../../packages/contracts",
-    "@codexsun/garments-web": "file:../../garments/web",
     "@codexsun/platform-core": "file:../../../packages/platform-core",
     "@codexsun/ui": "file:../../../packages/ui",
     "dotenv": "^17.0.0",

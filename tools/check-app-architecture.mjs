@@ -9,7 +9,6 @@ const sourceExtensions = new Set([".ts", ".tsx"]);
 export const applicationProfiles = {
   platform: { hosts: ["api", "web", "desktop", "mobile"] },
   docs: { hosts: ["api", "web"] },
-  orship: { hosts: ["api", "web"] },
   zetro: { hosts: ["api", "web"] },
   uiux: { hosts: ["web"], role: "visual-catalog" },
 };
@@ -45,7 +44,9 @@ function checkHost(root, app, host, hostPath) {
   const label = `apps/${app}/${host}`;
   const required = ["README.md", "package.json", "tsconfig.json"];
   if (["api", "web", "desktop", "mobile"].includes(host)) required.push(".app.env.example");
-  const violations = required.filter((file) => !existsSync(resolve(hostPath, file))).map((file) => `${label}: missing ${file}`);
+  const violations = required
+    .filter((file) => !existsSync(resolve(hostPath, file)))
+    .map((file) => `${label}: missing ${file}`);
 
   if (host === "api") violations.push(...checkApiHost(root, app, hostPath));
   if (["web", "desktop", "mobile"].includes(host)) violations.push(...checkClientHost(root, app, host, hostPath));
@@ -54,9 +55,9 @@ function checkHost(root, app, host, hostPath) {
 
 function checkApiHost(root, app, hostPath) {
   const label = `apps/${app}/api`;
-  const violations = ["src/config.ts", "src/server.ts", "src/modules"].filter((file) => !existsSync(resolve(hostPath, file))).map(
-    (file) => `${label}: missing ${file}`,
-  );
+  const violations = ["src/config.ts", "src/server.ts", "src/modules"]
+    .filter((file) => !existsSync(resolve(hostPath, file)))
+    .map((file) => `${label}: missing ${file}`);
   const dependencies = packageDependencies(hostPath);
 
   for (const dependency of ["@codexsun/framework", "@codexsun/platform-core"]) {
@@ -68,14 +69,17 @@ function checkApiHost(root, app, hostPath) {
 
 function checkClientHost(root, app, host, hostPath) {
   const label = `apps/${app}/${host}`;
-  const violations = ["src/app.tsx", "src/main.tsx"].filter((file) => !existsSync(resolve(hostPath, file))).map(
-    (file) => `${label}: missing ${file}`,
-  );
+  const violations = ["src/app.tsx", "src/main.tsx"]
+    .filter((file) => !existsSync(resolve(hostPath, file)))
+    .map((file) => `${label}: missing ${file}`);
 
   if (host === "web" && !packageDependencies(hostPath).has("@codexsun/ui")) {
     violations.push(`${label}: missing shared @codexsun/ui dependency`);
   }
-  if (host === "web" && !readSourceFiles(resolve(hostPath, "src")).some((file) => reads(file).includes('"@codexsun/ui"'))) {
+  if (
+    host === "web" &&
+    !readSourceFiles(resolve(hostPath, "src")).some((file) => reads(file).includes('"@codexsun/ui"'))
+  ) {
     violations.push(`${label}: does not compose public @codexsun/ui exports`);
   }
   if (existsSync(resolve(hostPath, "src/modules"))) violations.push(...checkModules(root, app, host, hostPath));

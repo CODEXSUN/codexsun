@@ -20,7 +20,7 @@ No task is active.
   - Status: planned. Requires plan review and approval.
   - Owner: Framework maintainer.
   - Data impact: no migration.
-  - Required review: Platform, Docs, Orship, Zetro, UIUX, desktop, and mobile consumers.
+  - Required review: Platform, Docs, Zetro, UIUX, desktop, and mobile consumers.
   - Verification: Framework tests, affected consumer checks, module-boundary checks, and root validation.
 
 ## Completion Rule
