@@ -49,22 +49,22 @@ export type CreateInfraInput = {
   readonly summary: string;
 };
 
-export async function fetchInfras(): Promise<OrshipInfraRecord[]> {
-  const response = await fetch("/api/v1/orship/infras", { signal: AbortSignal.timeout(5_000) });
+export async function fetchInfras(request: typeof fetch): Promise<OrshipInfraRecord[]> {
+  const response = await request("/api/v1/orship/infras", { signal: AbortSignal.timeout(5_000) });
   if (!response.ok) throw new Error(`Infras request failed: ${response.status}`);
   const body = await response.json() as { infras: OrshipInfraRecord[] };
   return body.infras;
 }
 
-export async function fetchInfra(uuid: string): Promise<OrshipInfraRecord> {
-  const response = await fetch(`/api/v1/orship/infras/${uuid}`, { signal: AbortSignal.timeout(5_000) });
+export async function fetchInfra(request: typeof fetch, uuid: string): Promise<OrshipInfraRecord> {
+  const response = await request(`/api/v1/orship/infras/${uuid}`, { signal: AbortSignal.timeout(5_000) });
   if (!response.ok) throw new Error(`Infra request failed: ${response.status}`);
   const body = await response.json() as { infra: OrshipInfraRecord };
   return body.infra;
 }
 
-export async function createInfra(input: CreateInfraInput): Promise<OrshipInfraRecord> {
-  const response = await fetch("/api/v1/orship/infras", {
+export async function createInfra(request: typeof fetch, input: CreateInfraInput): Promise<OrshipInfraRecord> {
+  const response = await request("/api/v1/orship/infras", {
     body: JSON.stringify(input),
     headers: { "content-type": "application/json" },
     method: "POST",

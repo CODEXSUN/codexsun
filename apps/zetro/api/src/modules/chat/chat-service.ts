@@ -135,8 +135,8 @@ export class ConversationNotFoundError extends Error {
 
 function runLocalCodex(prompt: string, runtime?: ZetroChatRuntimeSelection): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(codexCommand(), codexArguments(prompt, false, runtime), { shell: false, windowsHide: true });
-    child.stdin.end();
+    const child = spawn(codexCommand(), codexArguments(false, runtime), { shell: false, windowsHide: true });
+    child.stdin.end(prompt);
     let stdout = "";
     let stderr = "";
     child.stdout.setEncoding("utf8");
@@ -152,13 +152,14 @@ function runLocalCodex(prompt: string, runtime?: ZetroChatRuntimeSelection): Pro
 }
 
 function runLocalCodexStream(prompt: string, publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection, images: string[] = [], cwd?: string): Promise<string> {
+  if (!images.length) return runLocalCodexAppServer(prompt, publish, signal, runtime, cwd);
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(new Error("Codex response was stopped."));
       return;
     }
-    const child = spawn(codexCommand(), codexArguments(prompt, true, runtime, images), { cwd, shell: false, windowsHide: true });
-    child.stdin.end();
+    const child = spawn(codexCommand(), codexArguments(true, runtime, images), { cwd, shell: false, windowsHide: true });
+    child.stdin.end(prompt);
     const stopChild = () => child.kill();
     signal?.addEventListener("abort", stopChild, { once: true });
     const output: string[] = [];
@@ -182,6 +183,135 @@ function runLocalCodexStream(prompt: string, publish: (event: ZetroChatStreamEve
   });
 }
 
+function runLocalCodexAppServer(prompt: string, publish: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal, runtime?: ZetroChatRuntimeSelection, cwd?: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error("Codex response was stopped."));
+      return;
+    }
+
+    const child = spawn(codexCommand(), ["app-server"], { cwd, shell: false, windowsHide: true });
+    let settled = false;
+    let stderr = "";
+    let threadId: string | undefined;
+    let turnId: string | undefined;
+    let response = "";
+
+    const send = (message: unknown) => child.stdin.write(`${JSON.stringify(message)}\n`);
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      signal?.removeEventListener("abort", stopChild);
+      child.kill();
+      if (error) reject(error);
+      else if (response.trim()) resolve(response.trim());
+      else reject(new Error(redact(stderr.trim() || "Local Codex did not return a reply.")));
+    };
+    const stopChild = () => {
+      if (threadId && turnId) {
+        send({ method: "turn/interrupt", id: 3, params: { threadId, turnId } });
+        return;
+      }
+      child.kill();
+    };
+
+    signal?.addEventListener("abort", stopChild, { once: true });
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (chunk: string) => (stderr += chunk));
+    child.once("error", () => finish(new Error("Zetro could not start the local Codex CLI. Set ZETRO_CODEX_COMMAND or sign in to Codex locally.")));
+    child.once("close", () => {
+      if (settled) return;
+      finish(signal?.aborted ? new Error("Codex response was stopped.") : undefined);
+    });
+    createInterface({ input: child.stdout }).on("line", (line) => {
+      const event = parseAppServerEvent(line);
+      if (!event) return;
+
+      if (event.id === 0 && event.result) {
+        send({ method: "initialized", params: {} });
+        send({ method: "thread/start", id: 1, params: runtime?.model && runtime.model !== "Default" ? { model: runtime.model } : {} });
+        return;
+      }
+      if (event.id === 1 && event.result?.thread?.id) {
+        threadId = event.result.thread.id;
+        send({
+          method: "turn/start",
+          id: 2,
+          params: {
+            threadId,
+            input: [{ type: "text", text: prompt }],
+            cwd,
+            approvalPolicy: "never",
+            sandboxPolicy: { type: "readOnly" },
+            ...(runtime?.model && runtime.model !== "Default" ? { model: runtime.model } : {}),
+            ...(runtime?.reasoning && runtime.reasoning !== "Default" ? { effort: runtime.reasoning.toLowerCase() } : {}),
+          },
+        });
+        return;
+      }
+      if (event.id === 2 && event.result?.turn?.id) {
+        turnId = event.result.turn.id;
+        return;
+      }
+      if (event.method === "item/agentMessage/delta" && event.params?.delta) {
+        response += event.params.delta;
+        publish({ type: "response", message: response, raw: redact(line) });
+        return;
+      }
+      if (event.method === "item/completed" && event.params?.item?.type === "agentMessage" && event.params.item.text && !response) {
+        response = event.params.item.text;
+        publish({ type: "response", message: response, raw: redact(line) });
+        return;
+      }
+      if (event.method === "turn/completed") {
+        if (event.params?.turn?.status === "failed") {
+          finish(new Error(redact(event.params?.turn?.error?.message || "Local Codex did not return a reply.")));
+        } else {
+          finish();
+        }
+        return;
+      }
+
+      const streamEvent = parseAppServerStreamEvent(event, line);
+      if (streamEvent) publish(streamEvent);
+    });
+    send({ method: "initialize", id: 0, params: { clientInfo: { name: "zetro", title: "Zetro", version: "1.0.26" } } });
+  });
+}
+
+type AppServerEvent = {
+  id?: number;
+  method?: string;
+  result?: { thread?: { id?: string }; turn?: { id?: string } };
+  params?: {
+    delta?: string;
+    item?: { command?: string; path?: string; query?: string; text?: string; type?: string };
+    turn?: { error?: { message?: string }; status?: string };
+  };
+};
+
+function parseAppServerEvent(line: string): AppServerEvent | undefined {
+  try {
+    return JSON.parse(line) as AppServerEvent;
+  } catch {
+    return undefined;
+  }
+}
+
+function parseAppServerStreamEvent(event: AppServerEvent, line: string): ZetroChatStreamEvent | undefined {
+  const item = event.params?.item;
+  const itemType = item?.type;
+  const raw = redact(line);
+  if (event.method === "item/reasoning/summaryTextDelta") return { type: "review", message: "Reviewing the idea and constraints.", raw };
+  if (event.method === "item/commandExecution/outputDelta") return { type: "command", message: "Running a read-only command.", raw };
+  if (itemType === "commandExecution") return { type: "command", message: redact(item?.command || "Running a read-only command."), raw };
+  if (itemType === "reasoning") return { type: "review", message: "Reviewing the idea and constraints.", raw };
+  if (itemType === "webSearch" || itemType === "mcpToolCall") return { type: "request", message: redact(item?.query || itemType), raw };
+  if (itemType === "fileChange") return { type: "change", message: redact(item?.path || "Changed files."), raw };
+  return event.method ? { type: "processing", message: event.method, raw } : undefined;
+}
+
 function parseCodexEvent(line: string): ZetroChatStreamEvent | undefined {
   try {
     const event = JSON.parse(line) as { item?: { command?: string; path?: string; query?: string; text?: string; type?: string }; type?: string };
@@ -203,13 +333,13 @@ function redact(value: string): string {
   return value.replace(/(api[_-]?key|access[_-]?token|token|secret|password)\s*[:=]\s*[^\s,}"']+/gi, "$1=[REDACTED]");
 }
 
-function codexArguments(prompt: string, json: boolean, runtime?: ZetroChatRuntimeSelection, images: string[] = []): string[] {
+function codexArguments(json: boolean, runtime?: ZetroChatRuntimeSelection, images: string[] = []): string[] {
   const argumentsList = ["exec", "--ephemeral", "--sandbox", "read-only"];
   if (json) argumentsList.push("--json");
   for (const image of images) argumentsList.push("--image", image);
   if (runtime?.model && runtime.model !== "Default") argumentsList.push("--model", runtime.model);
   if (runtime?.reasoning && runtime.reasoning !== "Default") argumentsList.push("--config", `model_reasoning_effort=${JSON.stringify(runtime.reasoning.toLowerCase())}`);
-  argumentsList.push(prompt);
+  argumentsList.push("-");
   return argumentsList;
 }
 

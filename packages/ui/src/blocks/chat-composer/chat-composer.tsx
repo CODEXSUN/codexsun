@@ -1,5 +1,5 @@
 import { FileImageIcon, MicIcon, PaperclipIcon, SquareIcon, XIcon } from 'lucide-react'
-import { useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type KeyboardEvent, type RefObject } from 'react'
 
 import { Button } from '../../components/button'
 import { Textarea } from '../../components/textarea'
@@ -20,6 +20,7 @@ export type ChatComposerProps = {
   isRecording?: boolean
   isWorking?: boolean
   onAddFiles?: (files: File[]) => void
+  onLongTextPaste?: (file: File) => void
   onRemoveAttachment?: (id: string) => void
   onSteer?: () => void
   onStop?: () => void
@@ -28,6 +29,7 @@ export type ChatComposerProps = {
   onVoiceToggle?: () => void
   placeholder?: string
   queuedSteerCount?: number
+  textareaRef?: RefObject<HTMLTextAreaElement | null>
   value: string
 }
 
@@ -38,6 +40,7 @@ export function ChatComposer({
   isRecording = false,
   isWorking = false,
   onAddFiles,
+  onLongTextPaste,
   onRemoveAttachment,
   onSteer,
   onStop,
@@ -46,6 +49,7 @@ export function ChatComposer({
   onVoiceToggle,
   placeholder = 'Share an idea, question, or draft…',
   queuedSteerCount = 0,
+  textareaRef,
   value,
 }: ChatComposerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -75,8 +79,14 @@ export function ChatComposer({
   }
 
   function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>): void {
-    if (!event.clipboardData.files.length) return
-    addFiles(event.clipboardData.files)
+    if (event.clipboardData.files.length) {
+      addFiles(event.clipboardData.files)
+      return
+    }
+    const text = event.clipboardData.getData('text/plain')
+    if (text.length < 12_000 || !onLongTextPaste) return
+    event.preventDefault()
+    onLongTextPaste(new File([text], `zetro-paste-${Date.now()}.txt`, { type: 'text/plain' }))
   }
 
   return (
@@ -110,6 +120,7 @@ export function ChatComposer({
         disabled={disabled}
         placeholder={isDragging ? 'Drop files to attach' : placeholder}
         rows={5}
+        ref={textareaRef}
         value={value}
         onChange={(event) => onValueChange(event.target.value)}
         onKeyDown={handleKeyDown}

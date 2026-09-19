@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { MainWorkspace } from "@codexsun/ui";
+import { SessionBoundary } from "@codexsun/ui/blocks/auth";
+import { PrivilegedDesk } from "@codexsun/ui/blocks/auth/privileged-desk";
+import { IdentityManagementDesk } from "@codexsun/ui/blocks/auth/identity-management-desk";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@codexsun/ui/components/card";
 import { LayoutDashboardIcon, ServerCogIcon } from "lucide-react";
 import { useState } from "react";
@@ -33,7 +36,11 @@ const overviewItems: OverviewItem[] = [
 ];
 
 export function App() {
-  const health = useQuery({ queryKey: ["orship", "health"], queryFn: readHealth });
+  return <SessionBoundary applicationId="orship" applicationName="Orship" autoLoginPath="/api/v1/orship/auth/development-login" loginPath="/api/v1/orship/auth/login">{(session) => session.portal === "user" ? <OrshipDesk request={session.fetch} logout={session.logout} /> : session.portal === "super-admin" ? <IdentityManagementDesk applicationId="orship" applicationName="Orship" logout={session.logout} request={session.fetch} /> : <PrivilegedDesk applicationId="orship" applicationName="Orship" logout={session.logout} portal={session.portal} />}</SessionBoundary>;
+}
+
+function OrshipDesk({ request, logout }: { request: typeof fetch; logout: () => void }) {
+  const health = useQuery({ queryKey: ["orship", "health"], queryFn: () => readHealth(request) });
   const [page, setPage] = useState<WorkspacePage>("overview");
   const [selectedInfraUuid, setSelectedInfraUuid] = useState<string>();
 
@@ -56,6 +63,7 @@ export function App() {
     <MainWorkspace
       applicationId="orship"
       applicationName="Orship"
+      user={{ initials: "O", name: "Orship user", onSignOut: logout }}
       navigation={[
         {
           items: [
@@ -93,6 +101,7 @@ export function App() {
           onCreate={showInfrasUpsert}
           onSaved={(uuid) => showInfra(uuid)}
           onSelect={showInfra}
+          request={request}
         />
       )}
     </MainWorkspace>
@@ -148,8 +157,8 @@ function statusLabel(health: ReturnType<typeof useQuery<Health>>): string {
   return `API ${health.data.status}`;
 }
 
-async function readHealth(): Promise<Health> {
-  const response = await fetch("/api/v1/orship/health", { signal: AbortSignal.timeout(5_000) });
+async function readHealth(request: typeof fetch): Promise<Health> {
+  const response = await request("/api/v1/orship/health", { signal: AbortSignal.timeout(5_000) });
   if (!response.ok) throw new Error(`Health request failed: ${response.status}`);
   return response.json() as Promise<Health>;
 }

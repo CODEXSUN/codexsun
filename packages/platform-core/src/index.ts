@@ -29,8 +29,28 @@ export { ModuleStorage, StorageProvider } from "./storage-provider.js";
 export type { StorageVisibility } from "./storage-provider.js";
 export { createOperationLogEntry } from "./observability.js";
 export type { OperationLogEntry } from "./observability.js";
+export { fastifyHelmetOptions } from "./http-security.js";
 export { createPlatformJwtToken, defaultPlatformJwtAudience, defaultPlatformJwtIssuer } from "./platform-jwt.js";
-export type { PlatformJwtConfiguration, PlatformJwtTokenInput } from "./platform-jwt.js";
+export type { PlatformJwtClaims, PlatformJwtConfiguration, PlatformJwtTokenInput } from "./platform-jwt.js";
+export {
+  hashIdentityPassword,
+  identityBrowserSessionIdSchema,
+  identityErrorResponseSchema,
+  identityLoginResponseSchema,
+  identityLoginSchema,
+  identityPasswordResetAcceptedSchema,
+  identityPasswordResetConfirmationSchema,
+  identityPasswordResetRequestSchema,
+  readPlatformJwtClaims,
+  verifyIdentityPassword,
+  verifyPlatformJwt,
+} from "./identity-security.js";
+export type { IdentityLogin, IdentityLoginResponse, IdentityPasswordResetConfirmation, IdentityPasswordResetRequest } from "./identity-security.js";
+export { IdentityLoginRateLimitError, LocalIdentityStore } from "./local-identity.js";
+export type { IdentityPermissionAssignment, IdentityRoleAssignment, IdentitySeed, IdentityUserState, IdentityUserUpsert, LocalIdentityConfiguration, ManagedIdentityUser, PasswordResetRequest } from "./local-identity.js";
+export { registerIdentityManagementRoutes } from "./identity-management-http.js";
+export type { IdentityManagementRouteOptions } from "./identity-management-http.js";
+export { readLocalIdentityConfiguration } from "./identity-configuration.js";
 export { ModuleDataLifecyclePolicy } from "./data-lifecycle-policy.js";
 export type {
   DataCompatibilityLevel,

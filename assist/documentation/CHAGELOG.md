@@ -2,17 +2,85 @@
 
 ## Version State
 
-Current version: 1.0.25
+Current version: 1.0.27
 
-Release tag: v-1.0.25
+Release tag: v-1.0.27
 
-Changelog label: v 1.0.25
+Changelog label: v 1.0.27
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
 
-## v-1.0.26 (checkpoint)
+## v-1.0.27
+
+### [v 1.0.27] 2026-09-19 5:25 pm - Application-local RBAC administration
+
+#### Database Changes
+
+- Added `identity.004`, which stores each identity user's `active` or `disabled` state.
+- Disabling a user revokes active server sessions and prevents future authentication.
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.27.
+- Added protected, application-local RBAC APIs for users, roles, permissions,
+  user-role assignments, and role-permission assignments.
+- Added the shared super-admin identity desk using the package-owned Table and
+  Form blocks. All installed identity apps now expose its five RBAC pages.
+- New application scaffolds include the same protected RBAC API and super-admin
+  identity desk.
+
+## v-1.0.26
+
+### [v 1.0.26] 2026-09-19 3:45 pm - App-scoped identity sessions
+
+#### Database Changes
+
+- Added `identity_login_limits`, `identity_password_reset_tokens`, and
+  `identity_audit_events` through `identity.003`.
+- Login limits, reset-token hashes, audit records, and server sessions now use
+  each application SQLite database. No in-memory identity state is used.
+- Added app-scoped identity roles, permissions, role assignments, user role
+  assignments, and session records.
+- Added one server session ID and one browser session ID for each login.
+- Development starts identity migrations and optional seed refreshes.
+- Production verifies the identity schema. It does not create tables or seed users.
+- `npm run identity:migrate -- <application-id>` applies identity schema changes before production startup.
+
+#### App Codebase Changes
+
+- Added three role-checked login portals: `/login`, `/admin/login`, and
+  `/sa/login`.
+- Added separate normal-user, administrator, and super-administrator desks.
+  Administrator menus hide maintenance and higher-end reporting controls.
+- Added optional normal-user seed variables to each identity app example.
+- Added one shared Fastify Helmet policy for the Platform API, installed
+  identity APIs, and future app scaffolds.
+- The policy blocks objects and framing, limits sources to self, and sends a
+  no-referrer policy. It keeps the internal Swagger reference usable.
+- Added username-or-email login, durable failed-login limits, and safe audit
+  events for login, logout, and password-reset actions.
+- Added password-reset request and confirmation API contracts. The request
+  response does not reveal whether an account exists.
+- A successful password reset consumes its token and revokes active sessions.
+- Added configurable identity login and reset-token lifetime variables to app
+  examples and the app scaffold.
+- Added app claims and session claims to login tokens.
+- API requests now validate the app ID, server session ID, and browser session ID.
+- Logout now revokes the server session before the browser returns to login.
+- Browser session storage restores a valid session for 15 minutes without using URLs or query strings.
+- An authenticated Q Cafe user who returns to `/` redirects to `/overview`.
+- Added login, development login, logout, and protected API wiring for Q Cafe,
+  CRM, DOCX, Orship, HIMSX, LMS, and Sites.
+- Added `PLATFORM_JWT_SECRET` and `REFRESH_IDENTITY_SEED` to the app examples.
+- Login now accepts a seeded username or email address. App examples include
+  explicit usernames for each seeded account.
+- Added tests for session isolation, wildcard permission checks, logout revocation,
+  and production database protection.
+- Bumped CODEXSUN workspace version to 1.0.26.
+
+## Identity checkpoint before v-1.0.26
 
 ### [v 1.0.26] 2026-09-19 - Q Cafe and CRM identity/database boundary approved
 

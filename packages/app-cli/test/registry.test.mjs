@@ -51,6 +51,12 @@ test("creates an API and web foundation that is ready for a new application", ()
 
   assert.equal(application.id, "inventory");
   assert.equal(existsSync(resolve(root, "apps", "inventory", "api", "src", "server.ts")), true);
+  assert.match(readFileSync(resolve(root, "apps", "inventory", "api", ".app.env.example"), "utf8"), /APP_MODE=development/u);
+  assert.match(readFileSync(resolve(root, "apps", "inventory", "api", ".app.env.example"), "utf8"), /AUTO_LOGIN=0/u);
+  assert.match(readFileSync(resolve(root, "apps", "inventory", "api", ".app.env.example"), "utf8"), /PLATFORM_JWT_SECRET=/u);
+  assert.match(readFileSync(resolve(root, "apps", "inventory", "api", ".app.env.example"), "utf8"), /SUPER_ADMIN_LOGIN=/u);
+  assert.match(readFileSync(resolve(root, "apps", "inventory", "api", ".app.env.example"), "utf8"), /SUPER_ADMIN_USERNAME=superadmin/u);
+  assert.match(readFileSync(resolve(root, "apps", "inventory", "api", ".app.env.example"), "utf8"), /IDENTITY_LOGIN_MAX_FAILURES=5/u);
   assert.equal(existsSync(resolve(root, "apps", "inventory", "api", "node_modules")), false);
   assert.equal(existsSync(resolve(root, "apps", "inventory", "web", "node_modules")), false);
   assert.match(readFileSync(resolve(root, "apps", "inventory", "agent", "skills.md"), "utf8"), /repository root only/u);
@@ -58,10 +64,20 @@ test("creates an API and web foundation that is ready for a new application", ()
   const webSource = readFileSync(resolve(root, "apps", "inventory", "web", "src", "app.tsx"), "utf8");
   assert.match(webSource, /label: "Overview"/u);
   assert.match(webSource, /Inventory overview/u);
+  assert.match(webSource, /SessionBoundary/u);
+  assert.match(webSource, /IdentityManagementDesk/u);
   const serverSource = readFileSync(resolve(root, "apps", "inventory", "api", "src", "server.ts"), "utf8");
   assert.match(serverSource, /swaggerUi/u);
   assert.match(serverSource, /loadEnabledAddonProviders/u);
-  assert.match(serverSource, /app\.register\(helmet\)/u);
+  assert.match(serverSource, /app\.register\(helmet, fastifyHelmetOptions\)/u);
+  assert.match(serverSource, /LocalIdentityStore/u);
+  assert.match(serverSource, /auth\/logout/u);
+  assert.match(serverSource, /auth\/password-reset\/request/u);
+  assert.match(serverSource, /IdentityLoginRateLimitError/u);
+  assert.match(serverSource, /fastifyHelmetOptions/u);
+  assert.match(serverSource, /auth\/:portal\/login/u);
+  assert.match(serverSource, /registerIdentityManagementRoutes/u);
+  assert.match(readFileSync(resolve(root, "apps", "inventory", "api", ".app.env.example"), "utf8"), /USER_USERNAME=user/u);
   assert.equal(existsSync(resolve(root, "apps", "inventory", "api", "src", "mariadb.integration.test.ts")), true);
   assert.match(readFileSync(resolve(root, "apps", "inventory", "api", "src", "modules", "foundation", "provider.ts"), "utf8"), /published: \[\], consumed: \[\]/u);
   assert.match(readFileSync(resolve(root, "packages", "ui", "src", "layouts", "mdi-main", "mdi-app-catalog.generated.ts"), "utf8"), /inventory/u);

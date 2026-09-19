@@ -39,6 +39,8 @@ export interface AuthorizationDecision {
 
 export function authorize(actor: Actor, requirement: AuthorizationRequirement): AuthorizationDecision {
   const assigned = new Set(actor.permissions);
-  const missingPermissions = requirement.permissions.filter((permission) => !assigned.has(permission));
+  const missingPermissions = requirement.permissions.filter(
+    (permission) => !assigned.has("*") && !assigned.has(permission),
+  );
   return { allowed: missingPermissions.length === 0, missingPermissions };
 }

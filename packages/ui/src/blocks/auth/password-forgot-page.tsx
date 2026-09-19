@@ -7,7 +7,7 @@ import { AuthPageLayout } from './auth-page-layout'
 export interface PasswordForgotPageProps {
   backHref: string
   embedded?: boolean
-  onSubmit(email: string): void
+  onSubmit(identifier: string): void
 }
 
 export function PasswordForgotPage({
@@ -15,32 +15,32 @@ export function PasswordForgotPage({
   embedded = false,
   onSubmit,
 }: PasswordForgotPageProps) {
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   return (
     <AuthPageLayout embedded={embedded} variant="v1">
       <form
         className="grid gap-6"
         onSubmit={(event: FormEvent) => {
           event.preventDefault()
-          onSubmit(email)
+          onSubmit(identifier)
         }}
       >
         <header className="grid gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">Reset your password</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Enter your email address. The response does not reveal whether an account exists.
+            Enter your username or email. The response does not reveal whether an account exists.
           </p>
         </header>
         <div className="border-t" />
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="recovery-email">Email</FieldLabel>
+            <FieldLabel htmlFor="recovery-identifier">Username or email</FieldLabel>
             <Input
               className="h-11"
-              id="recovery-email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              id="recovery-identifier"
+              type="text"
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
               required
             />
           </Field>

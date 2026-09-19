@@ -35,7 +35,7 @@ const ideaLabels: Record<IdeaPage, string> = {
   shared: "Shared packages and apps",
 };
 
-export function DocxDocumentationPortal() {
+export function DocxDocumentationPortal({ logout }: { logout: () => void }) {
   const [activeDocumentId, setActiveDocumentId] = useState(portalDocuments[0].id);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
@@ -58,6 +58,7 @@ export function DocxDocumentationPortal() {
       searchPlaceholder="Search titles and paths"
       searchValue={query}
       statusLabel="Documentation ready"
+      user={{ initials: "D", name: "DOCX user", onSignOut: logout }}
       workspaceTitle="Documentation portal"
     >
       {view === "editor" ? (

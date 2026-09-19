@@ -69,21 +69,21 @@ export function LoginPage({
             {description ??
               (variant === 'v2'
                 ? 'Sign in to continue to your CODEXSUN workspace.'
-                : 'Use your admin email and password for this desk.')}
+                : 'Use your admin username or email and password for this desk.')}
           </p>
         </header>
         {variant === 'v1' ? <div className="border-t" /> : null}
         <FieldGroup>
           <Field>
             <FieldLabel htmlFor={`login-${variant}-identifier`}>
-              Username, email, or mobile
+              Username or email
             </FieldLabel>
             <Input
               autoComplete="username"
               className="h-11"
               id={`login-${variant}-identifier`}
               onChange={(event) => setIdentifier(event.target.value)}
-              placeholder={variant === 'v2' ? 'Username, email, or mobile' : undefined}
+              placeholder={variant === 'v2' ? 'Username or email' : undefined}
               required
               type="text"
               value={identifier}

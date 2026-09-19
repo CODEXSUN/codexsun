@@ -8,6 +8,7 @@ import { fetchInfra, fetchInfras, type OrshipInfraMetric, type OrshipInfraRecord
 import { InfrasUpsertPage } from "./infras-upsert";
 
 export type InfrasWorkspaceProps = {
+  readonly request: typeof fetch;
   readonly selectedUuid?: string;
   readonly view: "infras-list" | "infras-show" | "infras-upsert";
   readonly onBack: () => void;
@@ -16,20 +17,20 @@ export type InfrasWorkspaceProps = {
   readonly onSelect: (uuid: string) => void;
 };
 
-export function InfrasWorkspace({ selectedUuid, view, onBack, onCreate, onSaved, onSelect }: InfrasWorkspaceProps) {
+export function InfrasWorkspace({ request, selectedUuid, view, onBack, onCreate, onSaved, onSelect }: InfrasWorkspaceProps) {
   if (view === "infras-upsert") {
-    return <InfrasUpsertPage onBack={onBack} onSaved={(infra) => onSaved(infra.uuid)} />;
+    return <InfrasUpsertPage request={request} onBack={onBack} onSaved={(infra) => onSaved(infra.uuid)} />;
   }
 
   if (view === "infras-show" && selectedUuid) {
-    return <InfrasShowPage uuid={selectedUuid} onBack={onBack} onCreate={onCreate} />;
+    return <InfrasShowPage request={request} uuid={selectedUuid} onBack={onBack} onCreate={onCreate} />;
   }
 
-  return <InfrasListPage onCreate={onCreate} onSelect={onSelect} />;
+  return <InfrasListPage request={request} onCreate={onCreate} onSelect={onSelect} />;
 }
 
-function InfrasListPage({ onCreate, onSelect }: { onCreate: () => void; onSelect: (uuid: string) => void }) {
-  const infras = useQuery({ queryKey: ["orship", "infras"], queryFn: fetchInfras });
+function InfrasListPage({ request, onCreate, onSelect }: { request: typeof fetch; onCreate: () => void; onSelect: (uuid: string) => void }) {
+  const infras = useQuery({ queryKey: ["orship", "infras"], queryFn: () => fetchInfras(request) });
 
   return (
     <main className="size-full overflow-y-auto bg-background p-6">
@@ -56,8 +57,8 @@ function InfrasListPage({ onCreate, onSelect }: { onCreate: () => void; onSelect
   );
 }
 
-function InfrasShowPage({ uuid, onBack, onCreate }: { uuid: string; onBack: () => void; onCreate: () => void }) {
-  const infra = useQuery({ queryKey: ["orship", "infras", uuid], queryFn: () => fetchInfra(uuid) });
+function InfrasShowPage({ request, uuid, onBack, onCreate }: { request: typeof fetch; uuid: string; onBack: () => void; onCreate: () => void }) {
+  const infra = useQuery({ queryKey: ["orship", "infras", uuid], queryFn: () => fetchInfra(request, uuid) });
 
   return (
     <main className="size-full overflow-y-auto bg-background p-6">

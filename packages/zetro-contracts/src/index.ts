@@ -43,7 +43,7 @@ export const zetroChatMessageSchema = z.object({
   id: z.string().uuid(),
   conversationId: z.string().uuid(),
   role: zetroChatRoleSchema,
-  content: z.string().min(1),
+  content: z.string().min(1).max(250_000),
   createdAt: z.string().datetime(),
 });
 
@@ -79,7 +79,7 @@ export const zetroChatRuntimeSelectionSchema = z.object({
 });
 
 export const zetroCreateChatMessageSchema = z.object({
-  content: z.string().trim().min(1).max(20_000),
+  content: z.string().trim().min(1).max(250_000),
   attachments: z.array(z.object({ name: z.string().min(1).max(240), type: z.string().max(120), content: z.string().min(1).max(14_000_000) })).max(5).optional(),
   runtime: zetroChatRuntimeSelectionSchema.optional(),
 });
@@ -187,8 +187,8 @@ export const zetroAgentTaskResponseSchema = zetroSuccessSchema(z.object({ task: 
 
 export const zetroChatStreamEventSchema = z.object({
   type: z.enum(["processing", "request", "review", "command", "change", "response", "error", "complete"]),
-  message: z.string().min(1).max(20_000),
-  raw: z.string().max(20_000).optional(),
+  message: z.string().min(1).max(250_000),
+  raw: z.string().max(250_000).optional(),
 });
 
 export type ZetroChatConversation = z.infer<typeof zetroChatConversationSchema>;

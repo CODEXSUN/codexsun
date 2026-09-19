@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.25",
+  "version": "1.0.27",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -53,6 +53,7 @@
     "lint": "eslint .",
     "version:bump": "node tools/version-bump.mjs",
     "platform:jwt-token": "tsx tools/platform-jwt-token.ts",
+    "identity:migrate": "tsx tools/identity-migrate.ts",
     "fix:line-endings": "node tools/line-endings.mjs fix",
     "codexsun": "node tools/codexsun.mjs",
     "app:worktree": "node tools/codexsun.mjs app",

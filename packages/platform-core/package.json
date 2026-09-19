@@ -1,10 +1,11 @@
 {
   "name": "@codexsun/platform-core",
-  "version": "1.0.25",
+  "version": "1.0.27",
   "private": true,
   "type": "module",
   "dependencies": {
     "@codexsun/framework": "file:../framework",
+    "fastify": "^5.0.0",
     "kysely": "^0.29.6",
     "mysql2": "^3.24.4",
     "zod": "^3.25.76"
@@ -18,7 +19,7 @@
   "scripts": {
     "check": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src test",
-    "test": "tsx --test test/runtime-registry.test.ts test/platform-jwt.test.ts test/kysely-data-provider.test.ts test/sqlite-data-provider.test.ts test/mariadb-data-provider.test.ts test/mariadb-migration-runner.integration.test.ts test/data-lifecycle-policy.test.ts test/migration-runner.test.ts test/identity-contracts.test.ts",
+    "test": "tsx --test test/runtime-registry.test.ts test/platform-jwt.test.ts test/kysely-data-provider.test.ts test/sqlite-data-provider.test.ts test/mariadb-data-provider.test.ts test/mariadb-migration-runner.integration.test.ts test/data-lifecycle-policy.test.ts test/identity-contracts.test.ts test/local-identity.test.ts test/http-security.test.ts",
     "test:mariadb": "node -e \"if (!process.env.MARIADB_INTEGRATION_URL) throw new Error('Set MARIADB_INTEGRATION_URL.');\" && tsx --test test/mariadb-migration-runner.integration.test.ts"
   }
 }

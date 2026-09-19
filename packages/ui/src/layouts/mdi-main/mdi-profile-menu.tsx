@@ -97,7 +97,7 @@ export function MdiProfileMenu({ user }: { user: MdiUser }) {
             onClick={user.onSignOut}
           >
             <LogOutIcon />
-            Sign out
+            Log out
           </Button>
         </div>
       </PopoverContent>

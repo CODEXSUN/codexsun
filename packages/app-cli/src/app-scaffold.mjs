@@ -57,10 +57,10 @@ function writeApplicationFiles(root, application) {
   write(root, `apps/${application.id}/agent/exec/${application.id}-task.md`, agentTaskSource(application));
   write(root, `apps/${application.id}/api/package.json`, apiPackage(application, version));
   write(root, `apps/${application.id}/api/tsconfig.json`, '{ "extends": "../../../tsconfig.base.json", "include": ["src", "test"] }\n');
-  write(root, `apps/${application.id}/api/.app.env.example`, `PLATFORM_HOST=127.0.0.1\n${api.envKey}=${api.defaultPort}\n${key}_WEB_ORIGIN=http://127.0.0.1:${web.defaultPort}\n${key}_API_REFERENCE_TOKEN=change-this-local-token\n`);
+  write(root, `apps/${application.id}/api/.app.env.example`, `PLATFORM_HOST=127.0.0.1\n${api.envKey}=${api.defaultPort}\n${key}_WEB_ORIGIN=http://127.0.0.1:${web.defaultPort}\n${key}_API_REFERENCE_TOKEN=change-this-local-token\nAPP_MODE=development\nAUTO_LOGIN=0\nREFRESH_IDENTITY_SEED=0\nIDENTITY_LOGIN_MAX_FAILURES=5\nIDENTITY_LOGIN_WINDOW_SECONDS=900\nIDENTITY_LOGIN_LOCKOUT_SECONDS=900\nIDENTITY_PASSWORD_RESET_TOKEN_TTL_SECONDS=900\nIDENTITY_EXPOSE_DEVELOPMENT_RESET_TOKEN=0\nPLATFORM_JWT_SECRET=change-this-to-a-32-character-minimum-secret\nSUPER_ADMIN_NAME=super-admin\nSUPER_ADMIN_LOGIN=superadmin@superadmin.com\nSUPER_ADMIN_USERNAME=superadmin\nSUPER_ADMIN_PASSWORD=change_pass\nADMIN_NAME=Admin\nADMIN_LOGIN=admin@changepass.com\nADMIN_USERNAME=admin\nADMIN_PASSWORD=change_pass\nUSER_NAME=User\nUSER_LOGIN=user@changepass.com\nUSER_USERNAME=user\nUSER_PASSWORD=change_pass\n`);
   write(root, `apps/${application.id}/api/README.md`, `# ${application.label} API\n\nThe API exposes typed Zod routes and a protected internal OpenAPI reference.\n`);
   write(root, `apps/${application.id}/api/src/config.ts`, apiConfigSource(application));
-  write(root, `apps/${application.id}/api/src/server.ts`, apiSourceV3(application));
+  write(root, `apps/${application.id}/api/src/server.ts`, apiSourceV5(application));
   write(root, `apps/${application.id}/api/src/server.test.ts`, apiTestSource(application));
   write(root, `apps/${application.id}/api/src/mariadb.integration.test.ts`, mariaDbTestSource(application));
   write(root, `apps/${application.id}/api/src/modules/foundation/provider.ts`, providerSource(application));
@@ -101,8 +101,26 @@ function webPackage(application, version) {
   return { name: `@codexsun/${application.id}-web`, version, private: true, type: "module", scripts: { build: "vite build", check: "tsc -p tsconfig.json --noEmit", dev: "vite", lint: "eslint src", test: "tsx --test" }, dependencies: { "@codexsun/ui": "file:../../../packages/ui", "@tailwindcss/vite": "^4.0.0", "@tanstack/react-query": "^5.103.1", "@vitejs/plugin-react": "^5.0.0", dotenv: "^17.0.0", react: "^19.0.0", "react-dom": "^19.0.0", vite: "^7.0.0" } };
 }
 
+function legacyWebAppSource(application) {
+  return `import { useQuery } from "@tanstack/react-query";\nimport { MainWorkspace } from "@codexsun/ui";\nimport { SessionBoundary } from "@codexsun/ui/blocks/auth";\nimport { LayoutDashboardIcon } from "lucide-react";\n\ntype Health = { status: "ok"; providers: string[] };\n\nexport function App() {\n  return <SessionBoundary applicationId="${application.id}" applicationName="${application.label}" autoLoginPath="/api/v1/${application.id}/auth/development-login" loginPath="/api/v1/${application.id}/auth/login">{(session) => <Desk request={session.fetch} logout={session.logout} />}</SessionBoundary>;\n}\n\nfunction Desk({ request, logout }: { request: typeof fetch; logout: () => void }) {\n  const health = useQuery({ queryKey: ["${application.id}", "health"], queryFn: () => readHealth(request) });\n  const status = health.isPending ? "Connecting to API…" : health.isError ? "API connection failed." : \`API ready: \${health.data.status}\`;\n\n  return (\n    <MainWorkspace applicationId="${application.id}" applicationName="${application.label}" primaryAction={{ icon: LayoutDashboardIcon, label: "Overview" }} user={{ initials: "${application.label[0]}", name: "${application.label} user", onSignOut: logout }} workspaceTitle="Overview">\n      <main className="p-6">\n        <h1 className="text-lg font-semibold">${application.label} overview</h1>\n        <p className="mt-1 text-sm text-muted-foreground">Start ${application.label} with app-owned modules, routes, and views in one workspace.</p>\n        <p className="mt-3 text-sm text-muted-foreground">{status}</p>\n      </main>\n    </MainWorkspace>\n  );\n}\n\nasync function readHealth(request: typeof fetch): Promise<Health> {\n  const response = await request("/api/v1/${application.id}/health", { signal: AbortSignal.timeout(5_000) });\n  if (!response.ok) throw new Error(\`Health request failed: \${response.status}\`);\n  return response.json() as Promise<Health>;\n}\n`;
+}
+
 function webAppSource(application) {
-  return `import { useQuery } from "@tanstack/react-query";\nimport { MainWorkspace } from "@codexsun/ui";\nimport { LayoutDashboardIcon } from "lucide-react";\n\ntype Health = { status: "ok"; providers: string[] };\n\nexport function App() {\n  const health = useQuery({ queryKey: ["${application.id}", "health"], queryFn: readHealth });\n  const status = health.isPending ? "Connecting to API…" : health.isError ? "API connection failed." : \`API ready: \${health.data.status}\`;\n\n  return (\n    <MainWorkspace applicationId="${application.id}" applicationName="${application.label}" primaryAction={{ icon: LayoutDashboardIcon, label: "Overview" }} workspaceTitle="Overview">\n      <main className="p-6">\n        <h1 className="text-lg font-semibold">${application.label} overview</h1>\n        <p className="mt-1 text-sm text-muted-foreground">Start ${application.label} with app-owned modules, routes, and views in one workspace.</p>\n        <p className="mt-3 text-sm text-muted-foreground">{status}</p>\n      </main>\n    </MainWorkspace>\n  );\n}\n\nasync function readHealth(): Promise<Health> {\n  const response = await fetch("/api/v1/${application.id}/health", { signal: AbortSignal.timeout(5_000) });\n  if (!response.ok) throw new Error(\`Health request failed: \${response.status}\`);\n  return response.json() as Promise<Health>;\n}\n`;
+  return `import { MainWorkspace } from "@codexsun/ui";
+import { SessionBoundary } from "@codexsun/ui/blocks/auth";
+import { IdentityManagementDesk } from "@codexsun/ui/blocks/auth/identity-management-desk";
+import { PrivilegedDesk } from "@codexsun/ui/blocks/auth/privileged-desk";
+
+export function App() {
+  return <SessionBoundary applicationId="${application.id}" applicationName="${application.label}" autoLoginPath="/api/v1/${application.id}/auth/development-login" loginPath="/api/v1/${application.id}/auth/login">
+    {(session) => session.portal === "super-admin" ? <IdentityManagementDesk applicationId="${application.id}" applicationName="${application.label}" logout={session.logout} request={session.fetch} /> : session.portal === "admin" ? <PrivilegedDesk applicationId="${application.id}" applicationName="${application.label}" logout={session.logout} portal={session.portal} /> : <Desk logout={session.logout} />}
+  </SessionBoundary>;
+}
+
+function Desk({ logout }: { logout(): void }) {
+  return <MainWorkspace applicationId="${application.id}" applicationName="${application.label}" primaryAction={{ label: "Overview" }} user={{ initials: "${application.label[0]}", name: "${application.label} user", onSignOut: logout }} workspaceTitle="Overview"><main className="p-6"><h1 className="text-lg font-semibold">${application.label} overview</h1><p className="mt-1 text-sm text-muted-foreground">Start with application-owned modules and shared identity access.</p></main></MainWorkspace>;
+}
+`;
 }
 
 function providerSource(application) {
@@ -113,7 +131,7 @@ function providerSource(application) {
 function apiConfigSource(application) {
   const [api] = application.hosts;
   const key = environmentKey(application.id);
-  return `import { config } from "dotenv";\nimport { resolve } from "node:path";\n\nexport function readConfig() {\n  config({ path: resolve(process.cwd(), "../../../.env") });\n  config({ path: resolve(process.cwd(), ".app.env"), override: true });\n  const port = Number(process.env.${api.envKey});\n  if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("Set ${api.envKey} to a valid port.");\n  const host = process.env.PLATFORM_HOST;\n  if (!host) throw new Error("Set PLATFORM_HOST.");\n  const apiReferenceToken = process.env.${key}_API_REFERENCE_TOKEN;\n  if (!apiReferenceToken) throw new Error("Set ${key}_API_REFERENCE_TOKEN.");\n  return { apiReferenceToken, host, port };\n}\n`;
+  return `import { readLocalIdentityConfiguration } from "@codexsun/platform-core";\nimport { config } from "dotenv";\nimport { resolve } from "node:path";\n\nexport function readConfig() {\n  config({ path: resolve(process.cwd(), "../../../.env") });\n  config({ path: resolve(process.cwd(), ".app.env"), override: true });\n  const port = Number(process.env.${api.envKey});\n  if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("Set ${api.envKey} to a valid port.");\n  const host = process.env.PLATFORM_HOST;\n  if (!host) throw new Error("Set PLATFORM_HOST.");\n  const apiReferenceToken = process.env.${key}_API_REFERENCE_TOKEN;\n  if (!apiReferenceToken) throw new Error("Set ${key}_API_REFERENCE_TOKEN.");\n  return { apiReferenceToken, host, port, ...readLocalIdentityConfiguration(process.env, { applicationId: "${application.id}", databasePath: resolve(process.cwd(), "../../../storage/apps/${application.id}/private/data/${application.id}_db.sqlite") }) };\n}\n`;
 }
 
 function apiSourceV2(application) {
@@ -129,6 +147,100 @@ function apiSourceV3(application) {
 
 // Kept temporarily so applications generated before the hardened template remain traceable.
 void apiSourceV2;
+
+function apiSourceV4(application) {
+  const name = className(application.id);
+  const key = environmentKey(application.id);
+  return `import cors from "@fastify/cors";\nimport helmet from "@fastify/helmet";\nimport swagger from "@fastify/swagger";\nimport swaggerUi from "@fastify/swagger-ui";\nimport Fastify from "fastify";\nimport { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from "fastify-type-provider-zod";\nimport { z } from "zod";\nimport { createPlatformRuntime, identityBrowserSessionIdSchema, identityErrorResponseSchema, identityLoginResponseSchema, identityLoginSchema, loadEnabledAddonProviders, LocalIdentityStore, readApplicationDeployableProfile } from "@codexsun/platform-core";\nimport { readConfig } from "./config.js";\nimport { ${name}FoundationProvider } from "./modules/foundation/provider.js";\n\nconst config = readConfig();\nconst identity = new LocalIdentityStore(config);\nawait identity.initialize();\nconst provider = new ${name}FoundationProvider();\nconst profile = readApplicationDeployableProfile({ applicationId: "${application.id}", availableProviderIds: ["platform.core", provider.manifest.id] });\nconst runtime = createPlatformRuntime(profile, [provider, ...(await loadEnabledAddonProviders(profile))]);\nruntime.start();\nconst app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();\napp.setValidatorCompiler(validatorCompiler);\napp.setSerializerCompiler(serializerCompiler);\nawait app.register(helmet);\nawait app.register(cors, { origin: process.env.${key}_WEB_ORIGIN, methods: ["GET", "HEAD", "OPTIONS", "POST"], allowedHeaders: ["Authorization", "Content-Type", "X-Codexsun-Browser-Session"] });\nawait app.register(swagger, { openapi: { info: { title: "${application.label} API", version: "1.0.0" }, openapi: "3.0.3" }, transform: jsonSchemaTransform });\nawait app.register(swaggerUi, { routePrefix: "/api/internal/reference", uiHooks: { onRequest: (request, reply, done) => { if (request.headers.authorization !== \`Bearer \${config.apiReferenceToken}\`) return reply.code(401).send({ error: "Authentication required." }); done(); } } });\napp.setErrorHandler((error, _request, reply) => { app.log.error(error); return reply.code(500).send({ error: "Internal server error.", code: "server.internal" }); });\napp.post("/api/v1/${application.id}/auth/login", { schema: { body: identityLoginSchema, response: { 200: identityLoginResponseSchema, 400: identityErrorResponseSchema, 401: identityErrorResponseSchema } } }, async (request, reply) => {\n  const credentials = identityLoginSchema.safeParse(request.body);\n  const browserSessionId = identityBrowserSessionIdSchema.safeParse(request.headers["x-codexsun-browser-session"]);\n  if (!credentials.success || !browserSessionId.success) return reply.code(400).send({ error: "Invalid login request." });\n  const session = await identity.login(credentials.data.identifier, credentials.data.password, browserSessionId.data);\n  return session ?? reply.code(401).send({ error: "Invalid login." });\n});\napp.post("/api/v1/${application.id}/auth/development-login", async (request, reply) => {\n  const browserSessionId = identityBrowserSessionIdSchema.safeParse(request.headers["x-codexsun-browser-session"]);\n  if (!config.autoLogin || !browserSessionId.success) return reply.code(404).send();\n  return (await identity.autoLogin(browserSessionId.data)) ?? reply.code(401).send({ error: "Development login is unavailable." });\n});\napp.addHook("onRequest", async (request, reply) => {\n  if (isPublicPath(request.url)) return;\n  if (!identity.authenticate(request.headers.authorization, request.headers["x-codexsun-browser-session"])) return reply.code(401).send({ error: "Authentication required." });\n});\napp.post("/api/v1/${application.id}/auth/logout", async (request, reply) => reply.code(identity.logout(request.headers.authorization, request.headers["x-codexsun-browser-session"]) ? 204 : 401).send());\napp.get("/api/v1/${application.id}/health", { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } }, async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }));\napp.addHook("onClose", () => { identity.close(); runtime.stop(); });\nawait app.listen({ host: config.host, port: config.port });\n\nfunction isPublicPath(url: string): boolean {\n  const path = new URL(url, "http://localhost").pathname;\n  return path === "/api/v1/${application.id}/auth/login"\n    || path === "/api/v1/${application.id}/auth/development-login"\n    || path === "/api/v1/${application.id}/health"\n    || path === "/api/internal/reference"\n    || path.startsWith("/api/internal/reference/");\n}\n`;
+}
+
+function apiSourceV5(application) {
+  const name = className(application.id);
+  const key = environmentKey(application.id);
+  return `import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
+import swagger from "@fastify/swagger";
+import swaggerUi from "@fastify/swagger-ui";
+import Fastify from "fastify";
+import { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from "fastify-type-provider-zod";
+import { z } from "zod";
+import { createPlatformRuntime, fastifyHelmetOptions, IdentityLoginRateLimitError, identityBrowserSessionIdSchema, identityErrorResponseSchema, identityLoginResponseSchema, identityLoginSchema, identityPasswordResetAcceptedSchema, identityPasswordResetConfirmationSchema, identityPasswordResetRequestSchema, loadEnabledAddonProviders, LocalIdentityStore, readApplicationDeployableProfile, registerIdentityManagementRoutes } from "@codexsun/platform-core";
+import { readConfig } from "./config.js";
+import { ${name}FoundationProvider } from "./modules/foundation/provider.js";
+
+const config = readConfig();
+const identity = new LocalIdentityStore(config);
+await identity.initialize();
+const provider = new ${name}FoundationProvider();
+const profile = readApplicationDeployableProfile({ applicationId: "${application.id}", availableProviderIds: ["platform.core", provider.manifest.id] });
+const runtime = createPlatformRuntime(profile, [provider, ...(await loadEnabledAddonProviders(profile))]);
+runtime.start();
+const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
+app.setValidatorCompiler(validatorCompiler);
+app.setSerializerCompiler(serializerCompiler);
+await app.register(helmet, fastifyHelmetOptions);
+await app.register(cors, { origin: process.env.${key}_WEB_ORIGIN, methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT"], allowedHeaders: ["Authorization", "Content-Type", "X-Codexsun-Browser-Session"] });
+await app.register(swagger, { openapi: { info: { title: "${application.label} API", version: "1.0.0" }, openapi: "3.0.3" }, transform: jsonSchemaTransform });
+await app.register(swaggerUi, { routePrefix: "/api/internal/reference", uiHooks: { onRequest: (request, reply, done) => { if (request.headers.authorization !== \`Bearer \${config.apiReferenceToken}\`) return reply.code(401).send({ error: "Authentication required." }); done(); } } });
+app.setErrorHandler((error, _request, reply) => { app.log.error(error); return reply.code(500).send({ error: "Internal server error.", code: "server.internal" }); });
+app.post("/api/v1/${application.id}/auth/login", { schema: { body: identityLoginSchema, response: { 200: identityLoginResponseSchema, 400: identityErrorResponseSchema, 401: identityErrorResponseSchema, 429: identityErrorResponseSchema } } }, async (request, reply) => {
+  const credentials = identityLoginSchema.safeParse(request.body);
+  const browserSessionId = identityBrowserSessionIdSchema.safeParse(request.headers["x-codexsun-browser-session"]);
+  if (!credentials.success || !browserSessionId.success) return reply.code(400).send({ error: "Invalid login request." });
+  try {
+    const session = await identity.login(credentials.data.identifier, credentials.data.password, browserSessionId.data, "user");
+    return session ?? reply.code(401).send({ error: "Invalid login." });
+  } catch (error) {
+    if (error instanceof IdentityLoginRateLimitError) return reply.code(429).send({ error: "Too many sign-in attempts. Try again later." });
+    throw error;
+  }
+});
+app.post("/api/v1/${application.id}/auth/:portal/login", { schema: { params: z.object({ portal: z.enum(["admin", "super-admin"]) }), body: identityLoginSchema, response: { 200: identityLoginResponseSchema, 400: identityErrorResponseSchema, 401: identityErrorResponseSchema, 429: identityErrorResponseSchema } } }, async (request, reply) => {
+  const credentials = identityLoginSchema.safeParse(request.body);
+  const portal = z.object({ portal: z.enum(["admin", "super-admin"]) }).safeParse(request.params);
+  const browserSessionId = identityBrowserSessionIdSchema.safeParse(request.headers["x-codexsun-browser-session"]);
+  if (!credentials.success || !portal.success || !browserSessionId.success) return reply.code(400).send({ error: "Invalid login request." });
+  try { const session = await identity.login(credentials.data.identifier, credentials.data.password, browserSessionId.data, portal.data.portal); return session ?? reply.code(401).send({ error: "Invalid login." }); } catch (error) { if (error instanceof IdentityLoginRateLimitError) return reply.code(429).send({ error: "Too many sign-in attempts. Try again later." }); throw error; }
+});
+app.post("/api/v1/${application.id}/auth/password-reset/request", { schema: { body: identityPasswordResetRequestSchema, response: { 202: identityPasswordResetAcceptedSchema } } }, async (request, reply) => {
+  const requestBody = identityPasswordResetRequestSchema.safeParse(request.body);
+  const reset = requestBody.success ? await identity.requestPasswordReset(requestBody.data.identifier) : undefined;
+  return reply.code(202).send({ message: "If the account exists, a reset request was created.", ...(config.exposeDevelopmentResetToken && reset ? { developmentToken: reset.token } : {}) });
+});
+app.post("/api/v1/${application.id}/auth/password-reset/confirm", { schema: { body: identityPasswordResetConfirmationSchema, response: { 204: z.null(), 400: identityErrorResponseSchema } } }, async (request, reply) => {
+  const confirmation = identityPasswordResetConfirmationSchema.safeParse(request.body);
+  if (!confirmation.success || !(await identity.resetPassword(confirmation.data.token, confirmation.data.password))) return reply.code(400).send({ error: "The reset token is invalid or expired." });
+  return reply.code(204).send(null);
+});
+app.post("/api/v1/${application.id}/auth/development-login", async (request, reply) => {
+  const browserSessionId = identityBrowserSessionIdSchema.safeParse(request.headers["x-codexsun-browser-session"]);
+  if (!config.autoLogin || !browserSessionId.success) return reply.code(404).send();
+  return (await identity.autoLogin(browserSessionId.data)) ?? reply.code(401).send({ error: "Development login is unavailable." });
+});
+app.addHook("onRequest", async (request, reply) => {
+  if (isPublicPath(request.url)) return;
+  if (!identity.authenticate(request.headers.authorization, request.headers["x-codexsun-browser-session"])) return reply.code(401).send({ error: "Authentication required." });
+});
+app.post("/api/v1/${application.id}/auth/logout", async (request, reply) => reply.code(identity.logout(request.headers.authorization, request.headers["x-codexsun-browser-session"]) ? 204 : 401).send());
+registerIdentityManagementRoutes({ app, identity, prefix: "/api/v1/${application.id}" });
+app.get("/api/v1/${application.id}/health", { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } }, async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }));
+app.addHook("onClose", () => { identity.close(); runtime.stop(); });
+await app.listen({ host: config.host, port: config.port });
+
+function isPublicPath(url: string): boolean {
+  const path = new URL(url, "http://localhost").pathname;
+  return path === "/api/v1/${application.id}/auth/login"
+    || path === "/api/v1/${application.id}/auth/admin/login"
+    || path === "/api/v1/${application.id}/auth/super-admin/login"
+    || path === "/api/v1/${application.id}/auth/development-login"
+    || path === "/api/v1/${application.id}/auth/password-reset/request"
+    || path === "/api/v1/${application.id}/auth/password-reset/confirm"
+    || path === "/api/v1/${application.id}/health"
+    || path === "/api/internal/reference"
+    || path.startsWith("/api/internal/reference/");
+}
+`;
+}
 
 function viteSourceV2(application) {
   const [api, web] = application.hosts;

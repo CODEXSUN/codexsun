@@ -8,27 +8,29 @@ import { useState } from "react";
 import { createInfra, type CreateInfraInput, type OrshipInfraRecord } from "./infras-api";
 
 type InfrasUpsertPageProps = {
+  readonly request: typeof fetch;
   readonly onBack: () => void;
   readonly onSaved: (infra: OrshipInfraRecord) => void;
 };
 
-const initialDraft: CreateInfraInput = {
+type InfraCreateDraft = Omit<CreateInfraInput, "port">;
+
+const initialDraft: InfraCreateDraft = {
   composeYaml: composeYaml("orship-mariadb-next", "mariadb:11", "3307:3306"),
   containerName: "orship-mariadb-next",
   description: "Managed MariaDB container prepared from Orship.",
   image: "mariadb:11",
   name: "MariaDB next",
-  port: 3307,
   ports: "3307:3306",
   rootUser: "root",
   summary: "Database container setup",
 };
 
-export function InfrasUpsertPage({ onBack, onSaved }: InfrasUpsertPageProps) {
-  const [draft, setDraft] = useState<CreateInfraInput>(initialDraft);
-  const create = useMutation({ mutationFn: createInfra, onSuccess: onSaved });
+export function InfrasUpsertPage({ request, onBack, onSaved }: InfrasUpsertPageProps) {
+  const [draft, setDraft] = useState<InfraCreateDraft>(initialDraft);
+  const create = useMutation({ mutationFn: (input: CreateInfraInput) => createInfra(request, input), onSuccess: onSaved });
 
-  function update<K extends keyof CreateInfraInput>(key: K, value: CreateInfraInput[K]): void {
+  function update<K extends keyof InfraCreateDraft>(key: K, value: InfraCreateDraft[K]): void {
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
@@ -37,7 +39,7 @@ export function InfrasUpsertPage({ onBack, onSaved }: InfrasUpsertPageProps) {
   }
 
   function submit(): void {
-    create.mutate({ ...draft, port: portFromMapping(draft.ports) });
+    create.mutate(toCreateInfraInput(draft));
   }
 
   return (
@@ -53,24 +55,30 @@ export function InfrasUpsertPage({ onBack, onSaved }: InfrasUpsertPageProps) {
             Define one container, review its YAML, store it, and prepare it to run from Orship.
           </p>
         </header>
-        <section className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <section className="grid gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
           <Card>
             <CardHeader>
               <CardTitle>Container setup</CardTitle>
               <CardDescription>Each record represents one container.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-3">
+            <CardContent className="grid gap-4">
               <Field label="Display name" value={draft.name} onChange={(value) => update("name", value)} />
               <Field label="Container name" value={draft.containerName} onChange={(value) => update("containerName", value)} />
-              <Field label="Image" value={draft.image} onChange={(value) => update("image", value)} />
-              <Field label="Ports" value={draft.ports} onChange={(value) => update("ports", value)} />
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <Field label="Image" value={draft.image} onChange={(value) => update("image", value)} />
+                <Field label="Ports" value={draft.ports} onChange={(value) => update("ports", value)} />
+              </div>
               <Field label="Root user" value={draft.rootUser} onChange={(value) => update("rootUser", value)} />
               <Field label="Summary" value={draft.summary} onChange={(value) => update("summary", value)} />
-              <label className="grid gap-2 text-sm font-medium">
-                Description
-                <Textarea value={draft.description} onChange={(event) => update("description", event.target.value)} />
+              <label className="grid gap-1.5 text-sm font-medium text-muted-foreground/70">
+                <span>Description</span>
+                <Textarea
+                  className="min-h-20 rounded-md border-border bg-background text-sm font-medium text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-2"
+                  value={draft.description}
+                  onChange={(event) => update("description", event.target.value)}
+                />
               </label>
-              <Button type="button" variant="outline" onClick={regenerateYaml}>
+              <Button className="mt-1 justify-start" type="button" variant="outline" onClick={regenerateYaml}>
                 <WandSparklesIcon />
                 Build YAML from inputs
               </Button>
@@ -102,8 +110,8 @@ export function InfrasUpsertPage({ onBack, onSaved }: InfrasUpsertPageProps) {
 
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
-    <label className="grid gap-2 text-sm font-medium">
-      {label}
+    <label className="grid gap-1.5 text-sm font-medium text-muted-foreground/70">
+      <span>{label}</span>
       <Input value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
@@ -127,6 +135,10 @@ function YamlEditor({ value, onChange }: { value: string; onChange: (value: stri
       />
     </div>
   );
+}
+
+function toCreateInfraInput(draft: InfraCreateDraft): CreateInfraInput {
+  return { ...draft, port: portFromMapping(draft.ports) };
 }
 
 function composeYaml(containerName: string, image: string, ports: string): string {

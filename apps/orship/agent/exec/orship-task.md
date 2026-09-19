@@ -138,3 +138,12 @@ Use these host commands when live verification is required.
 npm.cmd run dev:orship-api
 npm.cmd run dev:orship-web
 ```
+
+## Current Implementation Notes
+
+- Infrastructure records are managed as Orship-owned data.
+- Each infrastructure card represents one container record.
+- The create page keeps form draft data separate from the API create payload.
+- The create page derives the host port from the port mapping before it sends data to the API.
+- The create page includes a YAML editor so an operator can review or edit the compose scaffold before storing the record.
+- A shared `@codexsun/ui` input style update is allowed for this task because the user requested a standard input reset.

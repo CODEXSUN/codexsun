@@ -1,5 +1,6 @@
 import { config } from "dotenv";
 import { resolve } from "node:path";
+import { readLocalIdentityConfiguration } from "@codexsun/platform-core";
 
 export function readConfig() {
   config({ path: resolve(process.cwd(), "../../../.env") });
@@ -10,5 +11,13 @@ export function readConfig() {
   if (!host) throw new Error("Set PLATFORM_HOST.");
   const apiReferenceToken = process.env.ORSHIP_API_REFERENCE_TOKEN;
   if (!apiReferenceToken) throw new Error("Set ORSHIP_API_REFERENCE_TOKEN.");
-  return { apiReferenceToken, host, port };
+  return {
+    apiReferenceToken,
+    host,
+    port,
+    ...readLocalIdentityConfiguration(process.env, {
+      applicationId: "orship",
+      databasePath: resolve(process.cwd(), "../../../storage/apps/orship/private/data/orship_db.sqlite"),
+    }),
+  };
 }
