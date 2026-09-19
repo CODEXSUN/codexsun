@@ -22,7 +22,7 @@ export function App() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        <h1>Mobile workspace</h1>
+        <h1>Platform mobile overview</h1>
         <p>Public API contracts support this Ionic and Capacitor host.</p>
         <IonList inset>
           <IonItem>

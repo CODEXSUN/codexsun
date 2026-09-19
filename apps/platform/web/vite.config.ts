@@ -11,6 +11,7 @@ config({ path: resolve(import.meta.dirname, ".app.env"), override: true });
 const runtimeConfig = readWebRuntimeConfig(process.env);
 
 export default defineConfig({
+  cacheDir: "../../../dist/.vite/platform/web",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

@@ -29,7 +29,7 @@ function PlatformWorkspace({ apiUrl }: { apiUrl: string | undefined }) {
       navigation={[
         {
           items: [
-            { active: true, icon: LayoutDashboardIcon, label: "Workspace" },
+            { active: true, icon: LayoutDashboardIcon, label: "Overview" },
             { icon: BlocksIcon, label: "Apps" },
             { icon: SettingsIcon, label: "Settings" },
           ],
@@ -40,7 +40,7 @@ function PlatformWorkspace({ apiUrl }: { apiUrl: string | undefined }) {
         <p className="px-2 text-xs text-muted-foreground">Platform modules are composed through declared providers.</p>
       }
       statusLabel={`${state.status} · ${session.state}`}
-      workspaceTitle="Platform workspace"
+      workspaceTitle="Overview"
     >
       <PlatformDashboard providers={health.data?.providers ?? []} modules={modules.data?.providers ?? []} state={state} />
     </MainWorkspace>
@@ -51,8 +51,8 @@ function PlatformDashboard({ providers, modules, state }: { providers: string[];
   return (
     <section className="size-full overflow-y-auto p-6">
       <header className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight">Workspace</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Provider health and enabled platform capabilities.</p>
+        <h1 className="text-xl font-semibold tracking-tight">Platform overview</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Provider health and enabled platform capabilities in one workspace.</p>
       </header>
       <section aria-labelledby="platform-runtime-heading">
         <h2 className="text-base font-medium" id="platform-runtime-heading">

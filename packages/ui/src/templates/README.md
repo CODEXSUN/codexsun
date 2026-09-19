@@ -9,4 +9,4 @@ routes, business entities, persistence, or workflows.
 - `documentation-sidebar` contains the data-driven documentation navigation
   template shared by documentation applications.
 - `ui-page` contains the generic documentation-page composition shared by UI and
-  Docs applications.
+  documentation applications.

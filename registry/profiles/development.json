@@ -4,19 +4,18 @@
   "label": "Development",
   "enabledApplications": [
     "crm",
-    "docs",
     "docx",
+    "himsx",
+    "lms",
+    "orship",
     "platform",
     "qcafe",
+    "sites",
     "uiux",
     "zetro"
   ],
   "enabledAddons": [],
   "enabledProviders": {
-    "docs": [
-      "platform.core",
-      "docs.catalog"
-    ],
     "platform": [
       "platform.core",
       "platform.logger",
@@ -44,6 +43,22 @@
     "crm": [
       "platform.core",
       "crm.foundation"
+    ],
+    "himsx": [
+      "platform.core",
+      "himsx.foundation"
+    ],
+    "lms": [
+      "platform.core",
+      "lms.foundation"
+    ],
+    "sites": [
+      "platform.core",
+      "sites.foundation"
+    ],
+    "orship": [
+      "platform.core",
+      "orship.foundation"
     ]
   }
 }

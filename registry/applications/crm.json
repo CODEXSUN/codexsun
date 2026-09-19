@@ -22,7 +22,7 @@
       "environmentDirectory": "api",
       "envKey": "CRM_API_PORT",
       "workspace": "@codexsun/crm-api",
-      "defaultPort": 6204
+      "defaultPort": 6230
     },
     {
       "kind": "web",
@@ -31,7 +31,7 @@
       "environmentDirectory": "web",
       "envKey": "CRM_WEB_PORT",
       "workspace": "@codexsun/crm-web",
-      "defaultPort": 6205
+      "defaultPort": 6231
     }
   ]
 }

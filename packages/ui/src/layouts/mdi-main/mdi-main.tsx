@@ -54,7 +54,7 @@ export function MainWorkspace({
   navigation = defaultNavigation,
   notificationCount = 1,
   notifications = [],
-  primaryAction = { label: "New workspace" },
+  primaryAction = { icon: LayoutDashboardIcon, label: "Overview" },
   searchPlaceholder = `Search ${applicationName}`,
   searchValue,
   settingsContent,

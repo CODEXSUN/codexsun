@@ -11,6 +11,7 @@ config({ path: resolve(import.meta.dirname, ".app.env"), override: true });
 const runtimeConfig = readDesktopRuntimeConfig(process.env);
 
 export default defineConfig({
+  cacheDir: "../../../dist/.vite/platform/desktop",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: { "@codexsun/contracts": resolve(import.meta.dirname, "../../../packages/contracts/src/index.ts") },

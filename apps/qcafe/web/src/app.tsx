@@ -1,15 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { MainWorkspace } from "@codexsun/ui";
-
-type Health = { status: "ok"; providers: string[] };
+import { createQcafeNavigation, getQcafePages, QcafeWorkspaceView } from "./qcafe-workspace";
+import { readWorkspace, type QcafePageId } from "./qcafe-api";
 
 export function App() {
-  const health = useQuery({ queryKey: ["qcafe", "health"], queryFn: readHealth });
-  return <MainWorkspace applicationId="qcafe" applicationName="Q Cafe" workspaceTitle="Q Cafe"><main className="p-6"><h1 className="text-lg font-semibold">Q Cafe</h1><p className="text-sm text-muted-foreground">{health.isPending ? "Connecting to API…" : health.isError ? "API connection failed." : `API ready: ${health.data.status}`}</p></main></MainWorkspace>;
-}
+  const [activePageId, setActivePageId] = useState<QcafePageId>("overview");
+  const workspace = useQuery({ queryKey: ["qcafe", "workspace"], queryFn: readWorkspace });
+  const pages = getQcafePages(workspace.data);
+  const activePage = pages.find((page) => page.id === activePageId) ?? pages[0];
+  const navigation = useMemo(() => createQcafeNavigation(activePageId, pages, setActivePageId), [activePageId, pages]);
+  const connectionState = workspace.isPending ? "connecting" : workspace.isError ? "failed" : "connected";
 
-async function readHealth(): Promise<Health> {
-  const response = await fetch("/api/v1/qcafe/health", { signal: AbortSignal.timeout(5_000) });
-  if (!response.ok) throw new Error(`Health request failed: ${response.status}`);
-  return response.json() as Promise<Health>;
+  return (
+    <MainWorkspace
+      applicationId="qcafe"
+      applicationName="Q Cafe"
+      navigation={navigation}
+      primaryAction={null}
+      searchPlaceholder="Search Q Cafe"
+      sidebarStateKey="codexsun.qcafe.sidebar"
+      statusLabel={connectionState === "connected" ? "API ready" : "Connecting"}
+      workspaceTitle={activePage?.label ?? "Overview"}
+    >
+      <QcafeWorkspaceView activePageId={activePageId} connectionState={connectionState} workspace={workspace.data} />
+    </MainWorkspace>
+  );
 }

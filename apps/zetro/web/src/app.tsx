@@ -18,7 +18,7 @@ import { TopologyRegion } from "@codexsun/ui/features/interface-topology";
 import { useMdiTopology } from "@codexsun/ui/layouts/mdi-main";
 import type { ZetroAgentTask, ZetroChatAttachment, ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatStreamEvent, ZetroCodexDeviceCode, ZetroIdeaBrief } from "@codexsun/zetro-contracts";
 import type { InterfaceTopologySection } from "@codexsun/ui/features/interface-topology";
-import { ArchiveIcon, BotIcon, ClockIcon, CopyIcon, FileTextIcon, Layers3Icon, ListTodoIcon, MessageSquareIcon, PanelsTopLeftIcon, RotateCcwIcon, SettingsIcon, Share2Icon } from "lucide-react";
+import { ArchiveIcon, BotIcon, ClockIcon, CopyIcon, FileTextIcon, Layers3Icon, LayoutDashboardIcon, ListTodoIcon, MessageSquareIcon, PanelsTopLeftIcon, RotateCcwIcon, SettingsIcon, Share2Icon } from "lucide-react";
 import { createAgentTask, createConversation, deleteArchivedConversations, deleteConversation as deleteStoredConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, getIdeaBrief, listAgentTasks, listConversations, saveIdeaBrief, streamMessage, updateChatRuntime, updateConversation as updateStoredConversation } from "./chat-api.js";
 
 type VoiceRecognizer = {
@@ -521,7 +521,7 @@ export function App() {
           ],
         },
       ]}
-      primaryAction={{ label: "New conversation", onSelect: startConversation }}
+      primaryAction={{ icon: LayoutDashboardIcon, label: "Overview", onSelect: showActiveConversations }}
       sidebarContent={history}
       sidebarFooter={<div className="grid gap-1 p-1"><Button className="w-full justify-start" size="sm" variant={workspaceView === "archive" ? "secondary" : "ghost"} onClick={() => void showArchivedConversations()}><ArchiveIcon /> Archive</Button>{isLoading || steerQueue.length ? <p className="px-1 text-xs text-muted-foreground">{isLoading ? `Working for ${elapsedSeconds}s` : `${steerQueue.length} steer queued`}</p> : null}</div>}
       sidebarStateKey="codexsun.zetro.sidebar"

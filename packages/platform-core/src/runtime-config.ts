@@ -40,26 +40,6 @@ export const webRuntimeConfigSchema = z.object({
   VITE_PLATFORM_API_URL: urlSchema,
 });
 
-export const docsApiRuntimeConfigSchema = z.object({
-  NODE_ENV: z.string().trim().min(1).default("development"),
-  PLATFORM_HOST: hostSchema,
-  DOCS_API_PORT: portSchema,
-  DOCS_DATABASE_URL: z
-    .string()
-    .url()
-    .refine((value) => new URL(value).protocol === "sqlite:", {
-      message: "DOCS_DATABASE_URL must use sqlite://.",
-    }),
-  DOCS_INDEX_PATH: z.string().trim().min(1),
-  DOCS_WEB_ORIGIN: urlSchema,
-});
-
-export const docsWebRuntimeConfigSchema = z.object({
-  PLATFORM_HOST: hostSchema,
-  DOCS_WEB_PORT: portSchema,
-  VITE_DOCS_API_URL: urlSchema,
-});
-
 export const zetroApiRuntimeConfigSchema = z.object({
   NODE_ENV: z.string().trim().min(1).default("development"),
   PLATFORM_HOST: hostSchema,
@@ -105,8 +85,6 @@ export const redisRuntimeConfigSchema = z.object({
 
 export type ApiRuntimeConfig = z.infer<typeof apiRuntimeConfigSchema>;
 export type WebRuntimeConfig = z.infer<typeof webRuntimeConfigSchema>;
-export type DocsApiRuntimeConfig = z.infer<typeof docsApiRuntimeConfigSchema>;
-export type DocsWebRuntimeConfig = z.infer<typeof docsWebRuntimeConfigSchema>;
 export type ZetroApiRuntimeConfig = z.infer<typeof zetroApiRuntimeConfigSchema>;
 export type ZetroWebRuntimeConfig = z.infer<typeof zetroWebRuntimeConfigSchema>;
 export type UiuxWebRuntimeConfig = z.infer<typeof uiuxWebRuntimeConfigSchema>;
@@ -120,14 +98,6 @@ export function readApiRuntimeConfig(environment: NodeJS.ProcessEnv): ApiRuntime
 
 export function readWebRuntimeConfig(environment: NodeJS.ProcessEnv): WebRuntimeConfig {
   return webRuntimeConfigSchema.parse(environment);
-}
-
-export function readDocsApiRuntimeConfig(environment: NodeJS.ProcessEnv): DocsApiRuntimeConfig {
-  return docsApiRuntimeConfigSchema.parse(environment);
-}
-
-export function readDocsWebRuntimeConfig(environment: NodeJS.ProcessEnv): DocsWebRuntimeConfig {
-  return docsWebRuntimeConfigSchema.parse(environment);
 }
 
 export function readZetroApiRuntimeConfig(environment: NodeJS.ProcessEnv): ZetroApiRuntimeConfig {

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "himsx",
+  "label": "HIMSX",
+  "owner": "apps/himsx",
+  "taskPrefix": "h",
+  "providers": [
+    "platform.core",
+    "himsx.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_HIMSX_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "himsx-api",
+      "displayName": "HIMSX API",
+      "environmentDirectory": "api",
+      "envKey": "HIMSX_API_PORT",
+      "workspace": "@codexsun/himsx-api",
+      "defaultPort": 6240
+    },
+    {
+      "kind": "web",
+      "target": "himsx-web",
+      "displayName": "HIMSX web",
+      "environmentDirectory": "web",
+      "envKey": "HIMSX_WEB_PORT",
+      "workspace": "@codexsun/himsx-web",
+      "defaultPort": 6241
+    }
+  ]
+}

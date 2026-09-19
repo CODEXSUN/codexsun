@@ -11,7 +11,7 @@ Use one app scope for each task:
 | Scope      | Applications                           |
 | ---------- | -------------------------------------- |
 | `platform` | Platform API, web, desktop, and mobile |
-| `docs`     | Docs API and web                       |
+| `docx`     | DOCX API and web                       |
 | `zetro`    | Zetro API and web                      |
 | `uiux`     | UIUX web                               |
 

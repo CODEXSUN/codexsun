@@ -56,19 +56,18 @@ export function MdiSidebar({
         className={cn("scrollbar-gutter-stable scrollbar-slim pt-0", sidebarContentClassName)}
         {...scrollPosition}
       >
+        {primaryAction ? (
+          <TopologyRegion as={SidebarGroup} className="px-3 pt-3" id="02.2" topology={topology}>
+            <Button className="w-full justify-start" variant="secondary" onClick={primaryAction.onSelect}>
+              <PrimaryActionIcon />
+              {primaryAction.label}
+            </Button>
+          </TopologyRegion>
+        ) : null}
         {sidebarContent !== undefined ? (
           sidebarContent
         ) : (
-          <>
-            {primaryAction ? (
-              <TopologyRegion as={SidebarGroup} className="px-3 pt-3" id="02.2" topology={topology}>
-                <Button className="w-full justify-start" variant="secondary" onClick={primaryAction.onSelect}>
-                  <PrimaryActionIcon />
-                  {primaryAction.label}
-                </Button>
-              </TopologyRegion>
-            ) : null}
-            <TopologyRegion as="div" className="min-h-0 flex-1" id="02.3" topology={topology}>
+          <TopologyRegion as="div" className="min-h-0 flex-1" id="02.3" topology={topology}>
               {navigation.map((section, index) => (
                 <NavigationSection
                   key={section.label ?? index}
@@ -76,8 +75,7 @@ export function MdiSidebar({
                   stateKey={stateKey ? `${stateKey}:section:${section.label ?? index}` : undefined}
                 />
               ))}
-            </TopologyRegion>
-          </>
+          </TopologyRegion>
         )}
       </SidebarContent>
       {sidebarFooter === undefined ? (

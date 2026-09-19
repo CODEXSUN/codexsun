@@ -12,6 +12,26 @@ This changelog starts fresh from the CODEXSUN foundation. Earlier copied applica
 
 New entries must keep database-facing work and application code work separate.
 
+## v-1.0.26 (checkpoint)
+
+### [v 1.0.26] 2026-09-19 - Q Cafe and CRM identity/database boundary approved
+
+#### Database Changes
+
+- Planned separate SQLite databases for Q Cafe and CRM.
+- Q Cafe will own `storage/apps/qcafe/private/data/qcafe_db.sqlite`.
+- CRM will own `storage/apps/crm/private/data/crm_db.sqlite`.
+- Each application database will contain its own identity, session, role,
+  permission, and business tables.
+
+#### App Codebase Changes
+
+- Approved login-only access for Q Cafe and CRM. Registration remains disabled.
+- Platform remains the shared framework and contract owner. It will not own
+  Q Cafe or CRM database tables.
+- The applications will reuse `@codexsun/ui/blocks/auth` for login screens.
+- This is a rollback checkpoint before identity and database implementation.
+
 #### Database Changes
 
 Records schema, migration, seed, tenant provisioning, and data compatibility changes.
@@ -208,6 +228,14 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Database update: No (manual).
 
 #### App Codebase Changes
+
+- Removed the Docs application and its dedicated contracts package. DOCX is now
+  the active documentation application and owns the documentation portal.
+
+- Replaced the DOCX web health placeholder with an application-owned
+  documentation portal. It now composes the shared documentation workspace and
+  rich-text editor with documentation-style navigation, reader actions, document helper,
+  Ideas pages, and in-memory authoring drafts. No database change.
 
 - Bumped CODEXSUN workspace version to 1.0.25.
 - Installed DOCX, Q Cafe, and CRM through the app builder.

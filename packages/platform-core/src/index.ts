@@ -61,12 +61,8 @@ export type {
 } from "./identity-contracts.js";
 export {
   apiRuntimeConfigSchema,
-  docsApiRuntimeConfigSchema,
-  docsWebRuntimeConfigSchema,
   desktopRuntimeConfigSchema,
   mobileRuntimeConfigSchema,
-  readDocsApiRuntimeConfig,
-  readDocsWebRuntimeConfig,
   readZetroApiRuntimeConfig,
   readZetroWebRuntimeConfig,
   readRedisRuntimeConfig,
@@ -83,8 +79,6 @@ export {
 } from "./runtime-config.js";
 export type {
   ApiRuntimeConfig,
-  DocsApiRuntimeConfig,
-  DocsWebRuntimeConfig,
   DesktopRuntimeConfig,
   MobileRuntimeConfig,
   RedisRuntimeConfig,

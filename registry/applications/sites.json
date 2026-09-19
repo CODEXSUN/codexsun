@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "sites",
+  "label": "Sites",
+  "owner": "apps/sites",
+  "taskPrefix": "s",
+  "providers": [
+    "platform.core",
+    "sites.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_SITES_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "sites-api",
+      "displayName": "Sites API",
+      "environmentDirectory": "api",
+      "envKey": "SITES_API_PORT",
+      "workspace": "@codexsun/sites-api",
+      "defaultPort": 6260
+    },
+    {
+      "kind": "web",
+      "target": "sites-web",
+      "displayName": "Sites web",
+      "environmentDirectory": "web",
+      "envKey": "SITES_WEB_PORT",
+      "workspace": "@codexsun/sites-web",
+      "defaultPort": 6261
+    }
+  ]
+}

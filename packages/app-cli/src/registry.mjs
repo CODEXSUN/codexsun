@@ -5,7 +5,6 @@ const idPattern = /^[a-z][a-z0-9-]*$/u;
 const hostKinds = new Set(["api", "web", "desktop", "mobile"]);
 const packageWorkspaces = [
   "@codexsun/contracts",
-  "@codexsun/docs-contracts",
   "@codexsun/framework",
   "@codexsun/platform-core",
   "@codexsun/ui",

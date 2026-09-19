@@ -10,8 +10,8 @@ npm run app:verify
 npm run app:create -- inventory --label "Inventory" --api-port 6200 --web-port 6201
 npm run app:remove -- inventory
 npm run app:sync
-npm run app -- build docs
-npm run app -- dev docs api --check
+npm run app -- build docx
+npm run app -- dev docx api --check
 npm run app:disable -- zetro --profile development
 npm run app:install -- zetro --profile development
 ```

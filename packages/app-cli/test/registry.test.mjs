@@ -51,6 +51,13 @@ test("creates an API and web foundation that is ready for a new application", ()
 
   assert.equal(application.id, "inventory");
   assert.equal(existsSync(resolve(root, "apps", "inventory", "api", "src", "server.ts")), true);
+  assert.equal(existsSync(resolve(root, "apps", "inventory", "api", "node_modules")), false);
+  assert.equal(existsSync(resolve(root, "apps", "inventory", "web", "node_modules")), false);
+  assert.match(readFileSync(resolve(root, "apps", "inventory", "agent", "skills.md"), "utf8"), /repository root only/u);
+  assert.equal(existsSync(resolve(root, "apps", "inventory", "agent", "exec", "inventory-task.md")), true);
+  const webSource = readFileSync(resolve(root, "apps", "inventory", "web", "src", "app.tsx"), "utf8");
+  assert.match(webSource, /label: "Overview"/u);
+  assert.match(webSource, /Inventory overview/u);
   const serverSource = readFileSync(resolve(root, "apps", "inventory", "api", "src", "server.ts"), "utf8");
   assert.match(serverSource, /swaggerUi/u);
   assert.match(serverSource, /loadEnabledAddonProviders/u);
@@ -61,6 +68,7 @@ test("creates an API and web foundation that is ready for a new application", ()
   assert.ok(verifyRegistry(root).applications.includes("inventory"));
   assert.equal(JSON.parse(readFileSync(resolve(root, "apps", "inventory", "api", "package.json"), "utf8")).version, "9.8.7");
   assert.equal(JSON.parse(readFileSync(resolve(root, "package.json"), "utf8")).scripts["dev:inventory-api"], "node tools/preflight.mjs inventory-api --restart");
+  assert.match(readFileSync(resolve(root, "apps", "inventory", "web", "vite.config.ts"), "utf8"), /cacheDir: "\.\.\/\.\.\/\.\.\/dist\/\.vite\/apps\/inventory\/web"/u);
   assert.ok(JSON.parse(readFileSync(resolve(root, "turbo.json"), "utf8")).tasks["@codexsun/inventory-web#build"]);
   assert.ok(JSON.parse(readFileSync(resolve(root, "package-lock.json"), "utf8")).packages["apps/inventory/api"]);
 });

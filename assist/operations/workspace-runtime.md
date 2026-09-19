@@ -29,9 +29,12 @@ dist/<app-name>/desktop/
 dist/<app-name>/mobile/
 dist/packages/<package>/
 dist/.turbo/<scope>/
+dist/.vite/<app-or-package>/<host>/
 ```
 
 `dist/.turbo/` is the only Turborepo cache location. Each Turbo scope writes to `dist/.turbo/<scope>/`.
+
+Vite cache files must write under `dist/.vite/`. The application scaffold sets this path for every generated web host.
 
 Use these scope names: `platform`, `docs`, `zetro`, `uiux`, `packages`, and `workspace`.
 

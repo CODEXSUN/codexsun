@@ -19,7 +19,7 @@ export default defineConfig(() => {
   const webPort = readRequiredPort(environment, "WEB_PORT");
 
   return {
-    cacheDir: "../../../node_modules/.cache/vite/uiux-web",
+    cacheDir: "../../../dist/.vite/apps/uiux/web",
     envDir: projectRoot,
     plugins: [react(), tailwindcss()],
     server: { host: webHost, port: webPort, strictPort: true },

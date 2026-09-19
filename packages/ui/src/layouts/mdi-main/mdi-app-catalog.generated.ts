@@ -17,17 +17,31 @@ export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
     "path": "/"
   },
   {
-    "icon": "docs",
-    "id": "docs",
-    "label": "Docs",
-    "localUrlKey": "VITE_DOCS_WEB_URL",
-    "path": "/"
-  },
-  {
     "icon": "application",
     "id": "docx",
     "label": "DOCX",
     "localUrlKey": "VITE_DOCX_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
+    "id": "himsx",
+    "label": "HIMSX",
+    "localUrlKey": "VITE_HIMSX_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
+    "id": "lms",
+    "label": "LMS",
+    "localUrlKey": "VITE_LMS_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
+    "id": "orship",
+    "label": "Orship",
+    "localUrlKey": "VITE_ORSHIP_WEB_URL",
     "path": "/"
   },
   {
@@ -42,6 +56,13 @@ export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
     "id": "qcafe",
     "label": "Q Cafe",
     "localUrlKey": "VITE_QCAFE_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
+    "id": "sites",
+    "label": "Sites",
+    "localUrlKey": "VITE_SITES_WEB_URL",
     "path": "/"
   },
   {

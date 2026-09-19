@@ -18,16 +18,6 @@
         "../../../dist/platform/web/**"
       ]
     },
-    "@codexsun/docs-api#build": {
-      "outputs": [
-        "../../../dist/docs/api/**"
-      ]
-    },
-    "@codexsun/docs-web#build": {
-      "outputs": [
-        "../../../dist/docs/web/**"
-      ]
-    },
     "@codexsun/platform-desktop#build": {
       "outputs": [
         "../../../dist/platform/desktop/**"
@@ -90,6 +80,46 @@
     "@codexsun/crm-web#build": {
       "outputs": [
         "../../../dist/apps/crm/web/**"
+      ]
+    },
+    "@codexsun/himsx-api#build": {
+      "outputs": [
+        "../../../dist/himsx/api/**"
+      ]
+    },
+    "@codexsun/himsx-web#build": {
+      "outputs": [
+        "../../../dist/apps/himsx/web/**"
+      ]
+    },
+    "@codexsun/lms-api#build": {
+      "outputs": [
+        "../../../dist/lms/api/**"
+      ]
+    },
+    "@codexsun/lms-web#build": {
+      "outputs": [
+        "../../../dist/apps/lms/web/**"
+      ]
+    },
+    "@codexsun/sites-api#build": {
+      "outputs": [
+        "../../../dist/sites/api/**"
+      ]
+    },
+    "@codexsun/sites-web#build": {
+      "outputs": [
+        "../../../dist/apps/sites/web/**"
+      ]
+    },
+    "@codexsun/orship-api#build": {
+      "outputs": [
+        "../../../dist/orship/api/**"
+      ]
+    },
+    "@codexsun/orship-web#build": {
+      "outputs": [
+        "../../../dist/apps/orship/web/**"
       ]
     }
   }

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "lms",
+  "label": "LMS",
+  "owner": "apps/lms",
+  "taskPrefix": "l",
+  "providers": [
+    "platform.core",
+    "lms.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_LMS_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "lms-api",
+      "displayName": "LMS API",
+      "environmentDirectory": "api",
+      "envKey": "LMS_API_PORT",
+      "workspace": "@codexsun/lms-api",
+      "defaultPort": 6250
+    },
+    {
+      "kind": "web",
+      "target": "lms-web",
+      "displayName": "LMS web",
+      "environmentDirectory": "web",
+      "envKey": "LMS_WEB_PORT",
+      "workspace": "@codexsun/lms-web",
+      "defaultPort": 6251
+    }
+  ]
+}

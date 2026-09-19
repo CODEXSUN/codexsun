@@ -8,6 +8,7 @@ config({ path: resolve(import.meta.dirname, "../../../.env") });
 config({ path: resolve(import.meta.dirname, ".app.env"), override: true });
 
 export default defineConfig({
+  cacheDir: "../../../dist/.vite/apps/qcafe/web",
   plugins: [react(), tailwindcss()],
   server: {
     host: process.env.PLATFORM_HOST ?? "127.0.0.1",

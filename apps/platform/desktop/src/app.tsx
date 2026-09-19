@@ -29,7 +29,7 @@ export function App() {
       navigation={[
         {
           items: [
-            { active: true, icon: LayoutDashboardIcon, label: "Workspace" },
+            { active: true, icon: LayoutDashboardIcon, label: "Overview" },
             { icon: MonitorCogIcon, label: "Native status" },
           ],
         },
@@ -37,11 +37,11 @@ export function App() {
       primaryAction={null}
       sidebarFooter={<p className="px-2 text-xs text-muted-foreground">Native access stays in narrow Rust commands.</p>}
       statusLabel={health?.status ?? "offline"}
-      workspaceTitle="Desktop workspace"
+      workspaceTitle="Overview"
     >
       <section className="size-full overflow-y-auto p-6">
         <header className="mb-6">
-          <h1 className="text-xl font-semibold tracking-tight">Desktop workspace</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Platform desktop overview</h1>
           <p className="mt-1 text-sm text-muted-foreground">A Tauri host that uses public contracts and shared UI.</p>
         </header>
         <div className="grid gap-4 md:grid-cols-2">

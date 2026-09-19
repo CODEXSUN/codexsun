@@ -11,6 +11,7 @@ config({ path: resolve(import.meta.dirname, ".app.env"), override: true });
 const runtimeConfig = readZetroWebRuntimeConfig(process.env);
 
 export default defineConfig({
+  cacheDir: "../../../dist/.vite/zetro/web",
   plugins: [react(), tailwindcss()],
   server: {
     host: runtimeConfig.PLATFORM_HOST,

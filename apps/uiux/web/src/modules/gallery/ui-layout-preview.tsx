@@ -156,7 +156,7 @@ function DocumentationWorkspaceLayoutPreview() {
     <div className="h-[clamp(34rem,62vw,52rem)] min-w-0 overflow-hidden border bg-background shadow-xs">
       <DocumentationWorkspace
         embedded
-        applicationId="docs-preview"
+        applicationId="docx-preview"
         navigation={documentationNavigation}
         searchPlaceholder="Search guides and architecture"
         showAppearancePanel={false}
@@ -184,8 +184,7 @@ function DocumentationWorkspaceLayoutPreview() {
             <section className="grid gap-2">
               <h3 className="text-lg font-semibold">Keep product behavior local</h3>
               <p className="text-muted-foreground">
-                The Docs application continues to own discovery, editing, navigation state, and repository-backed
-                content.
+                Documentation applications own discovery, editing, navigation state, and repository-backed content.
               </p>
             </section>
           </div>

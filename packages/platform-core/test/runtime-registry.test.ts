@@ -6,8 +6,6 @@ import test from "node:test";
 import type { ModuleProvider } from "@codexsun/framework";
 import {
   createPlatformRuntime,
-  readDocsApiRuntimeConfig,
-  readDocsWebRuntimeConfig,
   ModuleEnablementPolicy,
   PlatformRuntimeRegistry,
   readApiRuntimeConfig,
@@ -115,25 +113,6 @@ test("validates each host configuration without exposing server values to client
   assert.equal(api.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, undefined);
   assert.equal(web.VITE_PLATFORM_API_URL, "http://127.0.0.1:6100");
   assert.equal("DATABASE_URL" in web, false);
-  assert.equal(
-    readDocsApiRuntimeConfig({
-      PLATFORM_HOST: "127.0.0.1",
-      DOCS_API_PORT: "6030",
-      DOCS_DATABASE_URL: "sqlite://docs",
-      DOCS_INDEX_PATH: "../../../storage/apps/private/docs/index.sqlite",
-      DOCS_WEB_ORIGIN: "http://127.0.0.1:6040",
-    }).DOCS_API_PORT,
-    6030,
-  );
-  assert.equal(
-    readDocsWebRuntimeConfig({
-      PLATFORM_HOST: "127.0.0.1",
-      DOCS_WEB_PORT: "6040",
-      VITE_DOCS_API_URL: "http://127.0.0.1:6030",
-      DATABASE_URL: "sqlite://private",
-    }).VITE_DOCS_API_URL,
-    "http://127.0.0.1:6030",
-  );
   assert.equal(
     readDesktopRuntimeConfig({
       PLATFORM_HOST: "127.0.0.1",

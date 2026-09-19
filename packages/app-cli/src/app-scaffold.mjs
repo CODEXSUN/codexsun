@@ -52,7 +52,9 @@ function writeApplicationFiles(root, application) {
   const [api, web] = application.hosts;
   const key = environmentKey(application.id);
   const version = workspaceVersion(root);
-  write(root, `apps/${application.id}/README.md`, `# ${application.label}\n\nThis application owns its product modules and composition.\n`);
+  write(root, `apps/${application.id}/README.md`, `# ${application.label}\n\nThis application owns its product modules and composition.\n\nRun dependency installation only from the repository root. The app never owns a node_modules, dist, or .turbo directory.\n`);
+  write(root, `apps/${application.id}/agent/skills.md`, agentSkillsSource(application));
+  write(root, `apps/${application.id}/agent/exec/${application.id}-task.md`, agentTaskSource(application));
   write(root, `apps/${application.id}/api/package.json`, apiPackage(application, version));
   write(root, `apps/${application.id}/api/tsconfig.json`, '{ "extends": "../../../tsconfig.base.json", "include": ["src", "test"] }\n');
   write(root, `apps/${application.id}/api/.app.env.example`, `PLATFORM_HOST=127.0.0.1\n${api.envKey}=${api.defaultPort}\n${key}_WEB_ORIGIN=http://127.0.0.1:${web.defaultPort}\n${key}_API_REFERENCE_TOKEN=change-this-local-token\n`);
@@ -67,10 +69,10 @@ function writeApplicationFiles(root, application) {
   write(root, `apps/${application.id}/web/package.json`, webPackage(application, version));
   write(root, `apps/${application.id}/web/tsconfig.json`, '{ "extends": "../../../tsconfig.base.json", "compilerOptions": { "module": "ESNext", "moduleResolution": "Bundler", "jsx": "react-jsx", "noEmit": true, "types": ["vite/client"] }, "include": ["src", "vite.config.ts"] }\n');
   write(root, `apps/${application.id}/web/.app.env.example`, `PLATFORM_HOST=127.0.0.1\n${web.envKey}=${web.defaultPort}\nVITE_${key}_API_URL=http://127.0.0.1:${api.defaultPort}\n`);
-  write(root, `apps/${application.id}/web/README.md`, `# ${application.label} Web\n\nThe web host composes the shared MDI workspace.\n`);
+  write(root, `apps/${application.id}/web/README.md`, `# ${application.label} Web\n\nThe web host composes the shared MDI workspace. Vite cache files write to dist/.vite/apps/${application.id}/web.\n`);
   write(root, `apps/${application.id}/web/index.html`, '<div id="root"></div><script type="module" src="/src/main.tsx"></script>\n');
   write(root, `apps/${application.id}/web/src/main.tsx`, 'import "@codexsun/ui/globals.css";\nimport { QueryClient, QueryClientProvider } from "@tanstack/react-query";\nimport { createRoot } from "react-dom/client";\nimport { App } from "./app";\n\nconst queryClient = new QueryClient({ defaultOptions: { queries: { retry: 2, staleTime: 15_000, refetchOnWindowFocus: false } } });\ncreateRoot(document.getElementById("root")!).render(<QueryClientProvider client={queryClient}><App /></QueryClientProvider>);\n');
-  write(root, `apps/${application.id}/web/src/app.tsx`, `import { useQuery } from "@tanstack/react-query";\nimport { MainWorkspace } from "@codexsun/ui";\n\ntype Health = { status: "ok"; providers: string[] };\n\nexport function App() {\n  const health = useQuery({ queryKey: ["${application.id}", "health"], queryFn: readHealth });\n  return <MainWorkspace applicationId="${application.id}" applicationName="${application.label}" workspaceTitle="${application.label}"><main className="p-6"><h1 className="text-lg font-semibold">${application.label}</h1><p className="text-sm text-muted-foreground">{health.isPending ? "Connecting to API…" : health.isError ? "API connection failed." : \`API ready: \${health.data.status}\`}</p></main></MainWorkspace>;\n}\n\nasync function readHealth(): Promise<Health> {\n  const response = await fetch("/api/v1/${application.id}/health", { signal: AbortSignal.timeout(5_000) });\n  if (!response.ok) throw new Error(\`Health request failed: \${response.status}\`);\n  return response.json() as Promise<Health>;\n}\n`);
+  write(root, `apps/${application.id}/web/src/app.tsx`, webAppSource(application));
   write(root, `apps/${application.id}/web/vite.config.ts`, viteSourceV2(application));
 }
 
@@ -97,6 +99,10 @@ function apiPackage(application, version) {
 
 function webPackage(application, version) {
   return { name: `@codexsun/${application.id}-web`, version, private: true, type: "module", scripts: { build: "vite build", check: "tsc -p tsconfig.json --noEmit", dev: "vite", lint: "eslint src", test: "tsx --test" }, dependencies: { "@codexsun/ui": "file:../../../packages/ui", "@tailwindcss/vite": "^4.0.0", "@tanstack/react-query": "^5.103.1", "@vitejs/plugin-react": "^5.0.0", dotenv: "^17.0.0", react: "^19.0.0", "react-dom": "^19.0.0", vite: "^7.0.0" } };
+}
+
+function webAppSource(application) {
+  return `import { useQuery } from "@tanstack/react-query";\nimport { MainWorkspace } from "@codexsun/ui";\nimport { LayoutDashboardIcon } from "lucide-react";\n\ntype Health = { status: "ok"; providers: string[] };\n\nexport function App() {\n  const health = useQuery({ queryKey: ["${application.id}", "health"], queryFn: readHealth });\n  const status = health.isPending ? "Connecting to API…" : health.isError ? "API connection failed." : \`API ready: \${health.data.status}\`;\n\n  return (\n    <MainWorkspace applicationId="${application.id}" applicationName="${application.label}" primaryAction={{ icon: LayoutDashboardIcon, label: "Overview" }} workspaceTitle="Overview">\n      <main className="p-6">\n        <h1 className="text-lg font-semibold">${application.label} overview</h1>\n        <p className="mt-1 text-sm text-muted-foreground">Start ${application.label} with app-owned modules, routes, and views in one workspace.</p>\n        <p className="mt-3 text-sm text-muted-foreground">{status}</p>\n      </main>\n    </MainWorkspace>\n  );\n}\n\nasync function readHealth(): Promise<Health> {\n  const response = await fetch("/api/v1/${application.id}/health", { signal: AbortSignal.timeout(5_000) });\n  if (!response.ok) throw new Error(\`Health request failed: \${response.status}\`);\n  return response.json() as Promise<Health>;\n}\n`;
 }
 
 function providerSource(application) {
@@ -127,7 +133,15 @@ void apiSourceV2;
 function viteSourceV2(application) {
   const [api, web] = application.hosts;
   const key = environmentKey(application.id);
-  return `import { config } from "dotenv";\nimport { resolve } from "node:path";\nimport react from "@vitejs/plugin-react";\nimport tailwindcss from "@tailwindcss/vite";\nimport { defineConfig } from "vite";\n\nconfig({ path: resolve(import.meta.dirname, "../../../.env") });\nconfig({ path: resolve(import.meta.dirname, ".app.env"), override: true });\n\nexport default defineConfig({\n  plugins: [react(), tailwindcss()],\n  server: {\n    host: process.env.PLATFORM_HOST ?? "127.0.0.1",\n    port: Number(process.env.${web.envKey} ?? ${web.defaultPort}),\n    proxy: { "/api": process.env.VITE_${key}_API_URL ?? "http://127.0.0.1:${api.defaultPort}" },\n    strictPort: true,\n  },\n  build: { outDir: "../../../dist/apps/${application.id}/web", emptyOutDir: true },\n});\n`;
+  return `import { config } from "dotenv";\nimport { resolve } from "node:path";\nimport react from "@vitejs/plugin-react";\nimport tailwindcss from "@tailwindcss/vite";\nimport { defineConfig } from "vite";\n\nconfig({ path: resolve(import.meta.dirname, "../../../.env") });\nconfig({ path: resolve(import.meta.dirname, ".app.env"), override: true });\n\nexport default defineConfig({\n  cacheDir: "../../../dist/.vite/apps/${application.id}/web",\n  plugins: [react(), tailwindcss()],\n  server: {\n    host: process.env.PLATFORM_HOST ?? "127.0.0.1",\n    port: Number(process.env.${web.envKey} ?? ${web.defaultPort}),\n    proxy: { "/api": process.env.VITE_${key}_API_URL ?? "http://127.0.0.1:${api.defaultPort}" },\n    strictPort: true,\n  },\n  build: { outDir: "../../../dist/apps/${application.id}/web", emptyOutDir: true },\n});\n`;
+}
+
+function agentSkillsSource(application) {
+  return `# ${application.label} Agent Skills\n\nWork only inside apps/${application.id} unless a public platform or framework contract requires a reviewed change.\n\nKeep product modules owned by this application. Use shared UI, identity, and platform contracts instead of copying them.\n\nRun dependency installation from the repository root only. Do not create app-local node_modules, dist, or .turbo folders.\n\nVerify the affected API and web hosts. Run node tools/check-root-layout.mjs before completion.\n`;
+}
+
+function agentTaskSource(application) {
+  return `# ${application.label} Task Guide\n\n1. Read apps/${application.id}/agent/skills.md.\n2. Keep changes inside apps/${application.id}.\n3. Use package public contracts for shared capabilities.\n4. Start hosts through root dev:${application.id}-api and dev:${application.id}-web commands.\n5. Run the application tests and node tools/check-root-layout.mjs.\n`;
 }
 
 function apiTestSource(application) {

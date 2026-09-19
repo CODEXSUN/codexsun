@@ -22,7 +22,7 @@
       "environmentDirectory": "api",
       "envKey": "QCAFE_API_PORT",
       "workspace": "@codexsun/qcafe-api",
-      "defaultPort": 6202
+      "defaultPort": 6220
     },
     {
       "kind": "web",
@@ -31,7 +31,7 @@
       "environmentDirectory": "web",
       "envKey": "QCAFE_WEB_PORT",
       "workspace": "@codexsun/qcafe-web",
-      "defaultPort": 6203
+      "defaultPort": 6221
     }
   ]
 }
