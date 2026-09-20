@@ -38,7 +38,7 @@ const serviceChannelSchema = z.object({
   code: z.string(),
   enabled: z.boolean(),
   id: z.string(),
-  kind: z.enum(["counter", "dine_in", "takeaway"]),
+  kind: z.enum(["counter", "dine_in", "takeaway", "qr", "delivery", "event", "marketplace"]),
   name: z.string(),
 });
 

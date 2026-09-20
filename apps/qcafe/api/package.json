@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/qcafe-api",
-  "version": "1.0.31",
+  "version": "1.0.32",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
     "database:verify": "tsx src/database-verify.ts",
     "dev": "tsx watch src/server.ts",
     "lint": "eslint src",
-    "test": "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/qcafe-provider-catalog.test.ts src/modules/foundation/test/provider.test.ts src/modules/foundation/test/qcafe-persistence.test.ts src/modules/foundation/test/qcafe-database-verifier.test.ts src/modules/foundation/test/foundation-setup.test.ts src/modules/menu/test/menu.service.test.ts src/modules/settings/test/settings.service.test.ts"
+    "test": "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/qcafe-provider-catalog.test.ts src/modules/foundation/test/provider.test.ts src/modules/foundation/test/qcafe-persistence.test.ts src/modules/foundation/test/qcafe-database-verifier.test.ts src/modules/foundation/test/foundation-setup.test.ts src/modules/menu/test/menu.service.test.ts src/modules/menu/test/menu-policy.service.test.ts src/modules/menu/test/menu-campaign.service.test.ts src/modules/settings/test/settings.service.test.ts"
   },
   "dependencies": {
     "@codexsun/framework": "file:../../../packages/framework",

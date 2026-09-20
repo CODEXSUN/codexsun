@@ -217,8 +217,9 @@ export class LocalIdentityStore {
     return true;
   }
 
-  async autoLogin(browserSessionId: string): Promise<LocalIdentityLogin | undefined> {
+  async autoLogin(browserSessionId: string, requestedDesk?: string | readonly string[]): Promise<LocalIdentityLogin | undefined> {
     if (this.config.appMode !== "development") return undefined;
+    if (requestedDesk !== undefined && (Array.isArray(requestedDesk) || requestedDesk !== this.config.autoLoginDesk)) return undefined;
     const seed = this.config.seeds.find((item) => item.role === this.config.autoLoginDesk);
     return seed ? this.login(seed.login, seed.password, browserSessionId) : undefined;
   }

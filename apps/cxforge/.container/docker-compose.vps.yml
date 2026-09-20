@@ -10,16 +10,12 @@ services:
       - "127.0.0.1:7301:7301"
       - "127.0.0.1:7302:7302"
       - "127.0.0.1:7303:7303"
-    volumes:
-      - cxforge-workspaces:/workspace
-      - cxforge-repositories:/repositories:ro
     secrets:
       - openai_api_key
       - credential_encryption_key
     networks: [cxforge-private]
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
-    read_only: true
     tmpfs: [/tmp]
     pids_limit: 256
     mem_limit: 2g
@@ -33,10 +29,6 @@ services:
 networks:
   cxforge-private:
     driver: bridge
-
-volumes:
-  cxforge-workspaces:
-  cxforge-repositories:
 
 secrets:
   openai_api_key:

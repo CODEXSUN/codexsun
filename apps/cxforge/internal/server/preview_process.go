@@ -17,6 +17,16 @@ func (app *App) startPreview(waitContext context.Context, task Task, repository,
 	if strings.TrimSpace(previewCommand) == "" {
 		return task, nil
 	}
+	app.store.RLock()
+	for id := range app.store.previews {
+		previous := app.store.tasks[id]
+		if previous.PreviewStatus == "ready" {
+			task.PreviewStatus, task.PreviewInternalPort = previous.PreviewStatus, previous.PreviewInternalPort
+			app.store.RUnlock()
+			return task, nil
+		}
+	}
+	app.store.RUnlock()
 	port, err := freeTCPPort()
 	if err != nil {
 		return task, err
@@ -26,7 +36,7 @@ func (app *App) startPreview(waitContext context.Context, task Task, repository,
 	process := exec.CommandContext(previewContext, "sh", "-lc", command)
 	process.Dir = repository
 	process.Env = append(os.Environ(), "PORT="+strconv.Itoa(port), "HOST=0.0.0.0")
-	logPath := filepath.Join(app.config.WorkspaceRoot, task.ID, "preview.log")
+	logPath := filepath.Join(app.config.WorkspaceRoot, "preview.log")
 	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		cancel()
@@ -64,9 +74,11 @@ func (app *App) waitForPreviewProcess(taskID string, port int, process *exec.Cmd
 	app.store.Lock()
 	delete(app.store.previews, taskID)
 	task := app.store.tasks[taskID]
-	if task.PreviewInternalPort == port {
-		task.PreviewStatus = "stopped"
-		app.store.tasks[taskID] = task
+	for id, current := range app.store.tasks {
+		if current.PreviewInternalPort == port {
+			current.PreviewStatus = "stopped"
+			app.store.tasks[id] = current
+		}
 	}
 	app.store.Unlock()
 	app.saveState()
@@ -82,13 +94,15 @@ func (app *App) recoverPreviews() {
 	app.store.RLock()
 	var tasks []Task
 	for _, task := range app.store.tasks {
-		if task.PreviewStatus == "ready" && (task.Status == "review" || task.Status == "approved") {
+		if task.ID == app.store.workspaceTaskID && task.PreviewStatus == "ready" && (task.Status == "review" || task.Status == "approved") {
 			tasks = append(tasks, task)
 		}
 	}
 	app.store.RUnlock()
 	for _, task := range tasks {
 		go func(task Task) {
+			app.workspace.Lock()
+			defer app.workspace.Unlock()
 			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 			defer cancel()
 			repository := taskRepository(app.config, task.ID)

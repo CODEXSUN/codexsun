@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 set -eu
 
-script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-repository_root="$(CDPATH= cd -- "$script_dir/../../.." && pwd)"
+script_dir="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
+repository_root="$(CDPATH='' cd -- "$script_dir/../../.." && pwd)"
 compose_file="$script_dir/compose.yml"
-project_name="cxforgefresh"
+project_name="${CXFORGE_PROJECT_NAME:-cxforgefresh}"
 network_name="codexsun-network"
 
 require_command() {
@@ -38,7 +38,7 @@ docker network inspect "$network_name" >/dev/null 2>&1 || {
 }
 
 git_root="$(git -C "$repository_root" rev-parse --show-toplevel)"
-[ "$(CDPATH= cd -- "$git_root" && pwd)" = "$repository_root" ] || {
+[ "$(CDPATH='' cd -- "$git_root" && pwd)" = "$repository_root" ] || {
   printf 'The script is outside the expected Git repository.\n' >&2
   exit 1
 }
@@ -51,7 +51,25 @@ version="${base_version}-${revision}${dirty_suffix}"
 
 export CXFORGE_VERSION="$version"
 docker compose -p "$project_name" -f "$compose_file" build --pull
-docker compose -p "$project_name" -f "$compose_file" up -d --force-recreate --remove-orphans
+previous="$(docker compose -p "$project_name" -f "$compose_file" ps --all -q cxforge)"
+backup=""
+if [ -n "$previous" ]; then
+  backup="$(mktemp -d "${TMPDIR:-/tmp}/cxforge-update.XXXXXX")"
+  chmod 700 "$backup"
+  docker stop "$previous" >/dev/null
+  if ! docker cp -a "$previous:/workspace/." "$backup/"; then
+    docker start "$previous" >/dev/null
+    printf 'Backup failed. Existing container restarted.\n' >&2
+    exit 1
+  fi
+  printf 'Workspace backup retained at %s\n' "$backup"
+fi
+docker compose -p "$project_name" -f "$compose_file" create --force-recreate
+replacement="$(docker compose -p "$project_name" -f "$compose_file" ps --all -q cxforge)"
+if [ -n "$backup" ]; then
+  docker cp -a "$backup/." "$replacement:/workspace/"
+fi
+docker compose -p "$project_name" -f "$compose_file" start
 
 container_id="$(docker compose -p "$project_name" -f "$compose_file" ps -q cxforge)"
 [ -n "$container_id" ] || {
@@ -63,4 +81,4 @@ wait_for_health "$container_id"
 short_id="$(docker inspect --format '{{.Id}}' "$container_id" | cut -c1-12)"
 printf 'CXForge update is healthy.\n'
 printf 'Version: %s\n' "$version"
-printf 'Container: cxforge (%s)\n' "$short_id"
+printf 'Container: %s (%s)\n' "${CXFORGE_CONTAINER_NAME:-cxforge}" "$short_id"

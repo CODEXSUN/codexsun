@@ -37,7 +37,7 @@ const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
 await app.register(helmet, fastifyHelmetOptions);
-await app.register(cors, { origin: config.webOrigin, methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT", "DELETE"], allowedHeaders: ["Authorization", "Content-Type", "X-Codexsun-Browser-Session"] });
+await app.register(cors, { origin: config.webOrigin, methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT", "DELETE"], allowedHeaders: ["Authorization", "Content-Type", "X-Codexsun-Browser-Session", "X-Codexsun-Auto-Login-Desk"] });
 await app.register(swagger, { openapi: { info: { title: "Orship API", version: "1.0.0" }, openapi: "3.0.3" }, transform: jsonSchemaTransform });
 await app.register(swaggerUi, { routePrefix: "/api/internal/reference", uiHooks: { onRequest: (request, reply, done) => { if (request.headers.authorization !== `Bearer ${config.apiReferenceToken}`) return reply.code(401).send({ error: "Authentication required." }); done(); } } });
 app.setErrorHandler((error, _request, reply) => {
@@ -79,7 +79,7 @@ app.post("/api/v1/orship/auth/password-reset/confirm", { schema: { body: identit
 app.post("/api/v1/orship/auth/development-login", async (request, reply) => {
   const browserSessionId = identityBrowserSessionIdSchema.safeParse(request.headers["x-codexsun-browser-session"]);
   if (!config.autoLogin || !browserSessionId.success) return reply.code(404).send();
-  return (await identity.autoLogin(browserSessionId.data)) ?? reply.code(401).send({ error: "Development login is unavailable." });
+  return (await identity.autoLogin(browserSessionId.data, request.headers["x-codexsun-auto-login-desk"])) ?? reply.code(401).send({ error: "Development login is unavailable." });
 });
 app.addHook("onRequest", async (request, reply) => {
   if (isPublicPath(request.url)) return;

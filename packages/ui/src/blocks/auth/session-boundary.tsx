@@ -62,7 +62,7 @@ export function SessionBoundary({
 
   useEffect(() => {
     if (!autoLoginPath || session) return;
-    void authenticate(autoLoginPath, undefined, undefined, browserSessionId, setBusy, setError, setSession, onAuthenticated, true);
+    void authenticate(autoLoginPath, undefined, undefined, browserSessionId, setBusy, setError, setSession, onAuthenticated, true, portal);
   }, [autoLoginPath, browserSessionId, onAuthenticated, session]);
 
   useEffect(() => {
@@ -115,6 +115,7 @@ async function authenticate(
   setSession: (value: Session) => void,
   onAuthenticated: (() => void) | undefined,
   ignoreUnavailable: boolean,
+  autoLoginDesk?: AuthenticatedSession["portal"],
 ): Promise<void> {
   setBusy(true);
   setError(undefined);
@@ -124,6 +125,7 @@ async function authenticate(
       body: JSON.stringify(hasCredentials ? { identifier, password } : {}),
       headers: {
         "x-codexsun-browser-session": browserSessionId,
+        ...(autoLoginDesk ? { "x-codexsun-auto-login-desk": autoLoginDesk } : {}),
         "content-type": "application/json",
       },
       method: "POST",

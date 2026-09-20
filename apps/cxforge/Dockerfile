@@ -19,5 +19,4 @@ ENV GOCACHE=/workspace/.cache/go-build GOMODCACHE=/workspace/.cache/go-mod
 USER cxforge
 WORKDIR /workspace
 EXPOSE 6400 7300 7301 7302 7303
-VOLUME ["/workspace"]
 ENTRYPOINT ["/usr/local/bin/cxforge"]

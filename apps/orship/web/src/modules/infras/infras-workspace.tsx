@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@code
 import { ArrowLeftIcon, BotIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
 import { InfraTabScaffold, InfraTabs, type InfraShowTab } from "./infra-tabs";
-import { fetchDockerContainers, fetchDockerSnapshot, fetchInfra, fetchInfras, type DockerContainerSnapshot, type OrshipInfraMetric, type OrshipInfraRecord } from "./infras-api";
+import { fetchDockerContainers, fetchDockerSnapshot, fetchInfra, fetchInfras, type DockerContainer, type DockerContainerSnapshot, type OrshipInfraMetric, type OrshipInfraRecord } from "./infras-api";
 import { InfrasUpsertPage } from "./infras-upsert";
 
 export type InfrasWorkspaceProps = {
@@ -31,6 +31,7 @@ export function InfrasWorkspace({ request, selectedUuid, view, onBack, onCreate,
 
 function InfrasListPage({ request, onCreate, onSelect }: { request: typeof fetch; onCreate: () => void; onSelect: (uuid: string) => void }) {
   const infras = useQuery({ queryKey: ["orship", "infras"], queryFn: () => fetchInfras(request) });
+  const containers = useQuery({ queryKey: ["orship", "docker", "containers"], queryFn: () => fetchDockerContainers(request), refetchInterval: 5_000 });
 
   return (
     <main className="size-full overflow-y-auto bg-background p-6">
@@ -48,7 +49,7 @@ function InfrasListPage({ request, onCreate, onSelect }: { request: typeof fetch
         {infras.data ? (
           <section className="grid gap-4 md:grid-cols-3" aria-label="Infras list">
             {infras.data.map((infra) => (
-              <InfraCard infra={infra} key={infra.uuid} onSelect={onSelect} />
+              <InfraCard container={containers.data?.find((item) => item.name === infra.detail.containerName)} infra={infra} key={infra.uuid} onSelect={onSelect} request={request} />
             ))}
           </section>
         ) : null}
@@ -75,7 +76,13 @@ function InfrasShowPage({ request, uuid, onBack, onCreate }: { request: typeof f
   );
 }
 
-function InfraCard({ infra, onSelect }: { infra: OrshipInfraRecord; onSelect: (uuid: string) => void }) {
+function InfraCard({ container, infra, onSelect, request }: { container?: DockerContainer; infra: OrshipInfraRecord; onSelect: (uuid: string) => void; request: typeof fetch }) {
+  const snapshot = useQuery({
+    enabled: container?.state === "running",
+    queryKey: ["orship", "docker", "snapshot", container?.id],
+    queryFn: () => fetchDockerSnapshot(request, container?.id ?? ""),
+    refetchInterval: 5_000,
+  });
   function select(): void {
     onSelect(infra.uuid);
   }
@@ -98,18 +105,19 @@ function InfraCard({ infra, onSelect }: { infra: OrshipInfraRecord; onSelect: (u
         <div className="flex items-start justify-between gap-3">
           <div className="grid gap-1">
             <CardTitle className="text-base">{infra.name}</CardTitle>
-            <CardDescription>{infra.summary}</CardDescription>
+            <CardDescription>{container ? `${container.image} · ${formatPorts(container)}` : "Container not found on the connected Docker host."}</CardDescription>
           </div>
-          <StatusPill label={infra.status} />
+          <StatusPill label={container?.state ?? "not found"} />
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <p className="text-sm leading-6 text-muted-foreground">{infra.description}</p>
+        <p className="text-sm leading-6 text-muted-foreground">{container?.status ?? "The persisted record is waiting for a live Docker container."}</p>
         <MetricGrid
           items={[
-            ["Container", infra.detail.containerName],
-            ["Port", String(infra.detail.port)],
-            ["Latency", `${infra.detail.latencyMs} ms`],
+            ["Container", container?.name ?? infra.detail.containerName],
+            ["CPU", snapshot.data ? `${snapshot.data.metrics.cpuPercent.toFixed(1)}%` : "--"],
+            ["Memory", snapshot.data ? `${snapshot.data.metrics.memoryPercent.toFixed(1)}%` : "--"],
+            ["Updated", snapshot.data ? new Date(snapshot.data.metrics.collectedAt).toLocaleTimeString() : "Waiting for live metrics"],
           ]}
         />
       </CardContent>
@@ -118,7 +126,6 @@ function InfraCard({ infra, onSelect }: { infra: OrshipInfraRecord; onSelect: (u
 }
 
 function InfraDetails({ infra, onCreate, request }: { infra: OrshipInfraRecord; onCreate: () => void; request: typeof fetch }) {
-  const metrics = visibleMetrics(infra.metrics);
   const [activeTab, setActiveTab] = useState<InfraShowTab>("details");
   const containers = useQuery({ queryKey: ["orship", "docker", "containers"], queryFn: () => fetchDockerContainers(request), refetchInterval: 10_000 });
   const dockerContainer = containers.data?.find((container) => container.name === infra.detail.containerName);
@@ -128,7 +135,7 @@ function InfraDetails({ infra, onCreate, request }: { infra: OrshipInfraRecord; 
     queryFn: () => fetchDockerSnapshot(request, dockerContainer?.id ?? ""),
     refetchInterval: 5_000,
   });
-  const displayMetrics = snapshot.data ? liveMetrics(snapshot.data, infra.metrics) : metrics;
+  const displayMetrics = snapshot.data ? liveMetrics(snapshot.data, infra.metrics) : [];
 
   return (
     <div className="grid gap-6">
@@ -138,11 +145,12 @@ function InfraDetails({ infra, onCreate, request }: { infra: OrshipInfraRecord; 
         <>
           <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]" aria-label="Infra status">
             <div className="grid gap-4 md:grid-cols-2">
-              {displayMetrics.map((metric) => (
-                <MetricCard key={metric.label} metric={metric} />
-              ))}
+              {displayMetrics.length > 0
+                ? displayMetrics.map((metric) => <MetricCard key={metric.label} metric={metric} />)
+                : <StateMessage message="Waiting for live Docker metrics." />}
+              <LiveRuntimeCard container={dockerContainer} snapshot={snapshot.data} />
             </div>
-            <ContainerDetailsCard infra={infra} snapshot={snapshot.data} />
+            <ContainerDetailsCard container={dockerContainer} infra={infra} snapshot={snapshot.data} />
           </section>
           <ContainerLogsCard infra={infra} snapshot={snapshot.data} />
         </>
@@ -170,9 +178,31 @@ function MetricCard({ metric }: { metric: OrshipInfraMetric }) {
   );
 }
 
-function ContainerDetailsCard({ infra, snapshot }: { infra: OrshipInfraRecord; snapshot?: DockerContainerSnapshot }) {
-  const metrics = snapshot ? liveMetrics(snapshot, infra.metrics) : infra.metrics;
-  const status = snapshot?.container.state ?? infra.status;
+function LiveRuntimeCard({ container, snapshot }: { container?: DockerContainer; snapshot?: DockerContainerSnapshot }) {
+  return (
+    <Card>
+      <CardHeader className="gap-2">
+        <CardTitle>Runtime health</CardTitle>
+        <CardDescription>Live facts from the connected Docker host.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <MetricGrid
+          items={[
+            ["State", container?.state ?? "Not found"],
+            ["Image", container?.image ?? "Waiting for container"],
+            ["Published ports", container ? formatPorts(container) : "Waiting for container"],
+            ["Log lines", snapshot ? String(snapshot.logs.length) : "Waiting for snapshot"],
+            ["Last sample", snapshot ? new Date(snapshot.metrics.collectedAt).toLocaleTimeString() : "Waiting for snapshot"],
+          ]}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function ContainerDetailsCard({ container, infra, snapshot }: { container?: DockerContainer; infra: OrshipInfraRecord; snapshot?: DockerContainerSnapshot }) {
+  const metrics = snapshot ? liveMetrics(snapshot, infra.metrics) : [];
+  const status = snapshot?.container.state ?? container?.state ?? "not found";
   return (
     <Card>
       <CardHeader className="gap-3">
@@ -186,19 +216,19 @@ function ContainerDetailsCard({ infra, snapshot }: { infra: OrshipInfraRecord; s
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="grid gap-2 text-sm">
-          <p className="font-medium text-primary">{infra.detail.port}:{infra.detail.port}</p>
-          <p className="font-medium text-primary">Terminal</p>
+          <p className="font-medium text-primary">{container ? formatPorts(container) : "No live container ports"}</p>
+          <p className="text-muted-foreground">{container?.status ?? "Container not found on the connected Docker host."}</p>
         </div>
         <MetricGrid
           items={[
-            ["CPU", metrics.find((metric) => metric.label === "CPU usage")?.value ?? "0%"],
-            ["RAM", metrics.find((metric) => metric.label === "Memory usage")?.value ?? "0 MB"],
-            ["Incoming traffic", metrics.find((metric) => metric.label === "Incoming traffic")?.value ?? "0 GB"],
-            ["Outgoing traffic", metrics.find((metric) => metric.label === "Outgoing traffic")?.value ?? "0 GB"],
+            ["CPU", metrics.find((metric) => metric.label === "CPU usage")?.value ?? "Waiting for metrics"],
+            ["RAM", metrics.find((metric) => metric.label === "Memory usage")?.value ?? "Waiting for metrics"],
+            ["Incoming traffic", metrics.find((metric) => metric.label === "Incoming traffic")?.value ?? "Waiting for metrics"],
+            ["Outgoing traffic", metrics.find((metric) => metric.label === "Outgoing traffic")?.value ?? "Waiting for metrics"],
             ["Root user", infra.detail.rootUser],
             ["Password", infra.detail.rootPasswordHidden],
-            ["Connection", infra.detail.connectionStrength],
-            ["Latency", `${infra.detail.latencyMs} ms`],
+            ["Image", container?.image ?? "Waiting for container"],
+            ["Collected", snapshot ? new Date(snapshot.metrics.collectedAt).toLocaleTimeString() : "Waiting for snapshot"],
           ]}
         />
       </CardContent>
@@ -235,7 +265,7 @@ function ContainerLogsCard({ infra, snapshot }: { infra: OrshipInfraRecord; snap
             <CopyIcon className="size-4 text-neutral-300" />
           </div>
           <pre className="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-xs leading-5">
-            {logs.join("\n")}
+            {logs.map(sanitizeLogLine).join("\n")}
           </pre>
         </div>
       </CardContent>
@@ -302,11 +332,21 @@ function StateMessage({ message }: { message: string }) {
 }
 
 function StatusPill({ label }: { label: string }) {
+  const healthy = label === "running";
+  const missing = label === "not found" || label === "unknown";
   return (
-    <span className="inline-flex h-7 shrink-0 items-center rounded-md border border-emerald-200 bg-emerald-50 px-2.5 text-xs font-medium capitalize text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-300">
+    <span className={`inline-flex h-7 shrink-0 items-center rounded-md border px-2.5 text-xs font-medium capitalize ${healthy ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-300" : missing ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-300" : "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"}`}>
       {label}
     </span>
   );
+}
+
+function formatPorts(container: DockerContainer): string {
+  if (container.ports.length === 0) return "No published ports";
+  return container.ports.map((port) => port.publicPort
+    ? `${port.ip ? `${port.ip}:` : ""}${port.publicPort}->${port.privatePort}/${port.type}`
+    : `${port.privatePort}/${port.type}`,
+  ).join(", ");
 }
 
 function sparklinePoints(series: number[], width: number, height: number): string {
@@ -320,11 +360,6 @@ function sparklinePoints(series: number[], width: number, height: number): strin
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
     .join(" ");
-}
-
-function visibleMetrics(metrics: OrshipInfraMetric[]): OrshipInfraMetric[] {
-  const labels = ["CPU usage", "Memory usage", "Outgoing traffic", "Disk usage"];
-  return labels.flatMap((label) => metrics.find((metric) => metric.label === label) ?? []);
 }
 
 function liveMetrics(snapshot: DockerContainerSnapshot, fallback: OrshipInfraMetric[]): OrshipInfraMetric[] {
@@ -342,6 +377,13 @@ function liveMetrics(snapshot: DockerContainerSnapshot, fallback: OrshipInfraMet
     series: [...(byLabel.get(label)?.series ?? [0, 0]).slice(-10), percent ?? 0],
     value,
   }));
+}
+
+function sanitizeLogLine(line: string): string {
+  return Array.from(line).filter((character) => {
+    const code = character.charCodeAt(0);
+    return !(code < 0x20 && code !== 0x09) && code !== 0x7f;
+  }).join("");
 }
 
 function formatBytes(value: number): string {

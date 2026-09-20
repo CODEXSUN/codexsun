@@ -60,7 +60,8 @@ compose() {
 wait_for_health() {
   attempt=1
   while [ "$attempt" -le 30 ]; do
-    if compose exec -T zuno-api node -e "fetch('http://127.0.0.1:6410/api/v1/zuno/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"; then
+    if compose exec -T zuno-api node -e "fetch('http://127.0.0.1:6410/api/v1/zuno/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))" \
+      && compose exec -T zuno-web wget -qO- http://127.0.0.1:6411/ >/dev/null; then
       echo "Zuno is running at http://127.0.0.1:${ZUNO_WEB_HOST_PORT:-6411}"
       return
     fi

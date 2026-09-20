@@ -3,6 +3,7 @@ package dockerapi
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -320,14 +321,48 @@ func (client *Client) Logs(id string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read Docker logs: %w", err)
 	}
-	lines := strings.Split(strings.ReplaceAll(string(body), "\r\n", "\n"), "\n")
+	lines := strings.Split(strings.ReplaceAll(decodeLogStream(body), "\r\n", "\n"), "\n")
 	filtered := make([]string, 0, len(lines))
 	for _, line := range lines {
 		if line != "" {
-			filtered = append(filtered, line)
+			filtered = append(filtered, sanitizeLogLine(line))
 		}
 	}
 	return filtered, nil
+}
+
+func decodeLogStream(body []byte) string {
+	var decoded strings.Builder
+	offset := 0
+	for offset+8 <= len(body) {
+		if body[offset+1] != 0 || body[offset+2] != 0 || body[offset+3] != 0 {
+			return string(body)
+		}
+		length := int(binary.BigEndian.Uint32(body[offset+4 : offset+8]))
+		start := offset + 8
+		end := start + length
+		if end > len(body) {
+			return string(body)
+		}
+		decoded.Write(body[start:end])
+		offset = end
+	}
+	if offset != len(body) {
+		return string(body)
+	}
+	return decoded.String()
+}
+
+func sanitizeLogLine(line string) string {
+	return strings.Map(func(r rune) rune {
+		if r < 0x20 && r != '\t' {
+			return -1
+		}
+		if r == 0x7f {
+			return -1
+		}
+		return r
+	}, line)
 }
 
 func (client *Client) request(method, path string) (*http.Response, error) {

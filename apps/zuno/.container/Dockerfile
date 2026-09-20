@@ -16,6 +16,13 @@ ENV VITE_ZUNO_VERSION=${ZUNO_VERSION}
 RUN npm run build --workspace @codexsun/zuno-api \
   && npm run build --workspace @codexsun/zuno-web
 
+FROM node:22-bookworm-slim AS api-runtime-dependencies
+
+WORKDIR /runtime
+
+RUN npm init -y \
+  && npm install --omit=dev --ignore-scripts @fastify/swagger-ui@6.1.1
+
 FROM docker:29-cli AS docker-cli
 
 FROM node:22-bookworm-slim AS api
@@ -31,7 +38,7 @@ RUN apt-get update \
 
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=docker-cli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
-COPY --from=build /build/node_modules /app/node_modules
+COPY --from=api-runtime-dependencies /runtime/node_modules /app/node_modules
 COPY --from=build /build/dist/zuno/api/server.js /app/dist/zuno/api/server.js
 COPY --from=build /build/registry /app/registry
 

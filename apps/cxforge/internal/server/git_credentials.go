@@ -174,6 +174,11 @@ func (app *App) gitConnectionAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) pullTask(w http.ResponseWriter, id string) {
+	if !app.workspace.TryLock() {
+		jsonError(w, http.StatusConflict, errors.New("workspace is executing a command"))
+		return
+	}
+	defer app.workspace.Unlock()
 	app.store.RLock()
 	task, exists := app.store.tasks[id]
 	app.store.RUnlock()
@@ -207,7 +212,17 @@ func (app *App) pullTask(w http.ResponseWriter, id string) {
 		jsonError(w, http.StatusBadGateway, fmt.Errorf("git pull failed: %w", err))
 		return
 	}
-	app.emitEvent(task.ID, "git.pulled", task.Status, "Task workspace updated from its remote.")
+	app.store.Lock()
+	for taskID, current := range app.store.tasks {
+		if current.Status == "approved" || current.Status == "review" {
+			current.Status = "blocked"
+			current.Revision++
+			current.Report = "Source updated. Run verification again before approval."
+			app.store.tasks[taskID] = current
+		}
+	}
+	app.store.Unlock()
+	app.emitEvent(task.ID, "git.pulled", "updated", "Workspace updated. Previous review approvals are invalidated.")
 	jsonResponse(w, http.StatusOK, map[string]string{"status": "updated", "output": output})
 }
 

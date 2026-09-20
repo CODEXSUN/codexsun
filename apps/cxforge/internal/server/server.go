@@ -49,11 +49,15 @@ type MergeRequestDraft struct {
 }
 
 type Task struct {
+	Revision            int                `json:"revision"`
 	ID                  string             `json:"id"`
 	Title               string             `json:"title"`
 	AppName             string             `json:"appName"`
 	Prompt              string             `json:"prompt"`
 	Repository          string             `json:"repository"`
+	RepositoryProfileID string             `json:"repositoryProfileId,omitempty"`
+	BaseBranch          string             `json:"baseBranch,omitempty"`
+	BaseCommitSHA       string             `json:"baseCommitSha,omitempty"`
 	GitConnectionID     string             `json:"gitConnectionId,omitempty"`
 	OwnedPaths          []string           `json:"ownedPaths"`
 	Status              string             `json:"status"`
@@ -120,26 +124,42 @@ type GitConnection struct {
 	UpdatedAt          string         `json:"updatedAt"`
 }
 
+type RepositoryProfile struct {
+	ID              string `json:"id"`
+	Name            string `json:"name"`
+	Repository      string `json:"repository"`
+	GitConnectionID string `json:"gitConnectionId"`
+	DefaultBranch   string `json:"defaultBranch"`
+	WorkspaceStatus string `json:"workspaceStatus"`
+	CommitSHA       string `json:"commitSha,omitempty"`
+	UpdatedAt       string `json:"updatedAt,omitempty"`
+}
+
 type Store struct {
 	sync.RWMutex
-	tasks          map[string]Task
-	artifacts      map[string]Artifact
-	skills         map[string]Skill
-	cancels        map[string]context.CancelFunc
-	events         map[string][]TaskEvent
-	subscribers    map[string]map[chan TaskEvent]struct{}
-	previews       map[string]context.CancelFunc
-	nextPreview    int
-	metrics        RuntimeMetrics
-	gitConnections map[string]GitConnection
-	gitSecrets     map[string]string
-	config         Config
+	workspaceTaskID string
+	messages        map[string][]TaskMessage
+	tasks           map[string]Task
+	artifacts       map[string]Artifact
+	skills          map[string]Skill
+	cancels         map[string]context.CancelFunc
+	events          map[string][]TaskEvent
+	subscribers     map[string]map[chan TaskEvent]struct{}
+	previews        map[string]context.CancelFunc
+	nextPreview     int
+	metrics         RuntimeMetrics
+	gitConnections  map[string]GitConnection
+	gitSecrets      map[string]string
+	repositories    map[string]RepositoryProfile
+	config          Config
 }
 type App struct {
-	store   *Store
-	config  Config
-	queue   chan Task
-	persist sync.Mutex
+	workspace sync.Mutex
+	control   sync.Mutex
+	store     *Store
+	config    Config
+	queue     chan Task
+	persist   sync.Mutex
 }
 
 func ConfigFromEnvironment() Config {
@@ -147,10 +167,7 @@ func ConfigFromEnvironment() Config {
 	if timeout < 1 {
 		timeout = 300
 	}
-	maxWorkers, _ := strconv.Atoi(env("CXFORGE_MAX_WORKERS", "2"))
-	if maxWorkers < 1 {
-		maxWorkers = 1
-	}
+	maxWorkers := 1
 	maxTurns, _ := strconv.Atoi(env("CXFORGE_MAX_AGENT_TURNS", "4"))
 	if maxTurns < 1 {
 		maxTurns = 1
@@ -178,18 +195,17 @@ func ConfigFromEnvironment() Config {
 }
 
 func New(config Config) *App {
-	if config.MaxWorkers < 1 {
-		config.MaxWorkers = 1
-	}
+	config.MaxWorkers = 1
 	if config.MaxAgentTurns < 1 {
 		config.MaxAgentTurns = 1
 	}
-	store := &Store{tasks: map[string]Task{}, artifacts: map[string]Artifact{}, skills: map[string]Skill{}, cancels: map[string]context.CancelFunc{}, events: map[string][]TaskEvent{}, subscribers: map[string]map[chan TaskEvent]struct{}{}, previews: map[string]context.CancelFunc{}, gitConnections: map[string]GitConnection{}, gitSecrets: map[string]string{}, config: config}
+	store := &Store{tasks: map[string]Task{}, artifacts: map[string]Artifact{}, skills: map[string]Skill{}, cancels: map[string]context.CancelFunc{}, events: map[string][]TaskEvent{}, subscribers: map[string]map[chan TaskEvent]struct{}{}, previews: map[string]context.CancelFunc{}, gitConnections: map[string]GitConnection{}, gitSecrets: map[string]string{}, repositories: map[string]RepositoryProfile{}, config: config}
 	for _, skill := range []Skill{{"repo.read", "Read repository", true}, {"code.edit", "Edit owned files", true}, {"code.test", "Run tests", true}, {"preview.web", "Start preview", true}} {
 		store.skills[skill.ID] = skill
 	}
 	app := &App{store: store, config: config, queue: make(chan Task, 256)}
 	app.loadState()
+	app.initializeSingleWorkspace()
 	app.startWorkers()
 	app.recoverQueue()
 	app.recoverPreviews()
@@ -211,6 +227,9 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/v1/cxforge/control/git-connections/", app.auth(app.updateGitConnection))
 	mux.HandleFunc("DELETE /api/v1/cxforge/control/git-connections/", app.auth(app.deleteGitConnection))
 	mux.HandleFunc("POST /api/v1/cxforge/control/git-connections/", app.auth(app.gitConnectionAction))
+	mux.HandleFunc("GET /api/v1/cxforge/control/repositories", app.auth(app.listRepositories))
+	mux.HandleFunc("POST /api/v1/cxforge/control/repositories", app.auth(app.createRepository))
+	mux.HandleFunc("POST /api/v1/cxforge/control/repositories/", app.auth(app.repositoryAction))
 	mux.HandleFunc("POST /api/v1/cxforge/control/tasks", app.auth(app.createTask))
 	mux.HandleFunc("POST /api/v1/cxforge/control/tasks/", app.auth(app.taskAction))
 	return logging(mux)
@@ -253,11 +272,12 @@ func (app *App) overview(w http.ResponseWriter, _ *http.Request) {
 	app.store.RLock()
 	defer app.store.RUnlock()
 	jsonResponse(w, http.StatusOK, map[string]any{
+		"executionTopology": "single-workspace", "maxWorkers": 1, "workspaceTaskId": app.store.workspaceTaskID, "taskMessages": app.store.messages,
 		"agents":    []map[string]any{{"id": "agent-" + shortID(app.config.ServerID), "name": "CXForge worker", "status": "ready", "capabilities": []string{"workspace", "runner", "preview"}}},
 		"artifacts": sortedArtifacts(app.store.artifacts), "components": []string{"api", "runner", "workspace", "model", "tests", "preview", "git"},
 		"containerId": app.config.ContainerID, "containerName": app.config.ContainerName, "version": app.config.Version, "mode": "local-edge", "previewPorts": app.config.PreviewPorts,
 		"runnerUrl": "http://127.0.0.1:6402", "serverId": app.config.ServerID, "skills": sortedSkills(app.store.skills), "tasks": sortedTasks(app.store.tasks),
-		"gitConnections": sortedGitConnections(app.store.gitConnections), "credentialEncryptionConfigured": len(app.config.CredentialEncryptionKey) >= 32,
+		"gitConnections": sortedGitConnections(app.store.gitConnections), "repositories": sortedRepositories(app.store.repositories), "credentialEncryptionConfigured": len(app.config.CredentialEncryptionKey) >= 32,
 	})
 }
 func (app *App) skills(w http.ResponseWriter, _ *http.Request) {
@@ -295,6 +315,10 @@ func (app *App) createTask(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, err)
 		return
 	}
+	if err := app.hydrateTaskRepository(&task); err != nil {
+		jsonError(w, http.StatusBadRequest, err)
+		return
+	}
 	if err := validateTask(task); err != nil {
 		jsonError(w, http.StatusBadRequest, err)
 		return
@@ -308,6 +332,14 @@ func (app *App) createTask(w http.ResponseWriter, r *http.Request) {
 	task.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	task.Report = "Task contract created and waiting for worker execution."
 	app.store.Lock()
+	for _, existing := range app.store.tasks {
+		if existing.Repository != task.Repository {
+			app.store.Unlock()
+			jsonError(w, http.StatusConflict, errors.New("all tasks in this container must use the same repository"))
+			return
+		}
+	}
+	task.Revision = 1
 	app.store.tasks[task.ID] = task
 	app.store.metrics.TasksCreated++
 	app.store.Unlock()
@@ -317,12 +349,25 @@ func (app *App) createTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) taskAction(w http.ResponseWriter, r *http.Request) {
+	app.control.Lock()
+	defer app.control.Unlock()
 	id, action, ok := parseTaskAction(r.URL.Path)
 	if !ok {
 		jsonError(w, http.StatusNotFound, errors.New("unknown task action"))
 		return
 	}
+	app.store.RLock()
+	owner := app.store.workspaceTaskID
+	app.store.RUnlock()
+	if owner != "" && owner != id && (action == "approve" || action == "prepare-merge" || action == "create-pull-request" || action == "complete" || action == "record-merged") {
+		jsonError(w, http.StatusConflict, errors.New("task is historical; another task owns this container"))
+		return
+	}
 	switch action {
+	case "complete":
+		app.completeTask(w, id)
+	case "messages":
+		app.continueTask(w, r, id)
 	case "queue":
 		app.queueTask(w, id)
 	case "approve":
@@ -361,10 +406,15 @@ func (app *App) queueTask(w http.ResponseWriter, id string) {
 		jsonError(w, http.StatusServiceUnavailable, errors.New("no preview ports are configured"))
 		return
 	}
-	port := app.config.PreviewPorts[app.store.nextPreview%len(app.config.PreviewPorts)]
+	port := app.config.PreviewPorts[0]
+	if configured, err := strconv.Atoi(os.Getenv("CXFORGE_PREVIEW_PUBLIC_PORT")); err == nil && configured > 0 {
+		port = configured
+	}
 	app.store.nextPreview++
 	task.Status = "queued"
-	task.PreviewURL = fmt.Sprintf("%s:%d/preview/%s/", app.config.PreviewOrigin, port, id)
+	if task.PreviewURL == "" {
+		task.PreviewURL = fmt.Sprintf("%s:%d/preview/%s/", app.config.PreviewOrigin, port, id)
+	}
 	task.Report = "Accepted by CXForge. Workspace preparation is queued."
 	app.store.tasks[id] = task
 	app.store.artifacts[id+":workspace"] = Artifact{id + ":workspace", "Workspace " + shortID(id), "workspace", "pending"}
@@ -380,6 +430,11 @@ func (app *App) queueTask(w http.ResponseWriter, id string) {
 }
 
 func (app *App) reviewTask(w http.ResponseWriter, id, status, report string) {
+	if !app.workspace.TryLock() {
+		jsonError(w, http.StatusConflict, errors.New("workspace is executing a command"))
+		return
+	}
+	defer app.workspace.Unlock()
 	app.store.Lock()
 	task, ok := app.store.tasks[id]
 	if !ok {
@@ -402,6 +457,11 @@ func (app *App) reviewTask(w http.ResponseWriter, id, status, report string) {
 }
 
 func (app *App) prepareMergeRequest(w http.ResponseWriter, id string) {
+	if !app.workspace.TryLock() {
+		jsonError(w, http.StatusConflict, errors.New("workspace is executing a command"))
+		return
+	}
+	defer app.workspace.Unlock()
 	app.store.RLock()
 	task, ok := app.store.tasks[id]
 	if !ok {
@@ -421,9 +481,17 @@ func (app *App) prepareMergeRequest(w http.ResponseWriter, id string) {
 		jsonError(w, http.StatusConflict, err)
 		return
 	}
+	baseBranch := task.BaseBranch
+	if baseBranch == "" {
+		baseBranch = "main"
+	}
+	previous := task.MergeRequest
 	task.MergeRequest = &MergeRequestDraft{
-		Title: task.Title, Description: mergeRequestDescription(task), BaseBranch: "main",
+		Title: task.Title, Description: mergeRequestDescription(task), BaseBranch: baseBranch,
 		SourceBranch: sourceBranch, BranchPublished: published, Status: "draft",
+	}
+	if previous != nil && previous.Status == "open" {
+		task.MergeRequest.Provider, task.MergeRequest.ExternalID, task.MergeRequest.URL, task.MergeRequest.Status = previous.Provider, previous.ExternalID, previous.URL, previous.Status
 	}
 	task.Report = "Merge request draft prepared. Choose a Git provider to create it."
 	app.store.Lock()
@@ -490,7 +558,7 @@ func (app *App) retryTask(w http.ResponseWriter, id string) {
 		jsonError(w, http.StatusNotFound, errors.New("task not found"))
 		return
 	}
-	if task.Status != "blocked" {
+	if task.Status != "blocked" || app.store.cancels[id] != nil {
 		app.store.Unlock()
 		jsonError(w, http.StatusConflict, errors.New("only a blocked task can be retried"))
 		return
@@ -554,12 +622,15 @@ func (app *App) finish(task Task, status, report string) {
 }
 
 type persistedState struct {
-	Tasks          map[string]Task          `json:"tasks"`
-	Artifacts      map[string]Artifact      `json:"artifacts"`
-	Events         map[string][]TaskEvent   `json:"events,omitempty"`
-	Metrics        RuntimeMetrics           `json:"metrics,omitempty"`
-	GitConnections map[string]GitConnection `json:"gitConnections,omitempty"`
-	GitSecrets     map[string]string        `json:"gitSecrets,omitempty"`
+	WorkspaceTaskID string                       `json:"workspaceTaskId,omitempty"`
+	Messages        map[string][]TaskMessage     `json:"messages,omitempty"`
+	Tasks           map[string]Task              `json:"tasks"`
+	Artifacts       map[string]Artifact          `json:"artifacts"`
+	Events          map[string][]TaskEvent       `json:"events,omitempty"`
+	Metrics         RuntimeMetrics               `json:"metrics,omitempty"`
+	GitConnections  map[string]GitConnection     `json:"gitConnections,omitempty"`
+	GitSecrets      map[string]string            `json:"gitSecrets,omitempty"`
+	Repositories    map[string]RepositoryProfile `json:"repositories,omitempty"`
 }
 
 func (app *App) loadState() {
@@ -586,6 +657,11 @@ func (app *App) loadState() {
 	if state.GitSecrets != nil {
 		app.store.gitSecrets = state.GitSecrets
 	}
+	if state.Repositories != nil {
+		app.store.repositories = state.Repositories
+	}
+	app.store.workspaceTaskID = state.WorkspaceTaskID
+	app.store.messages = state.Messages
 	app.store.metrics = state.Metrics
 }
 
@@ -607,7 +683,7 @@ func (app *App) saveState() {
 	app.persist.Lock()
 	defer app.persist.Unlock()
 	app.store.RLock()
-	data, err := json.MarshalIndent(persistedState{Tasks: app.store.tasks, Artifacts: app.store.artifacts, Events: app.store.events, Metrics: app.store.metrics, GitConnections: app.store.gitConnections, GitSecrets: app.store.gitSecrets}, "", "  ")
+	data, err := json.MarshalIndent(persistedState{WorkspaceTaskID: app.store.workspaceTaskID, Messages: app.store.messages, Tasks: app.store.tasks, Artifacts: app.store.artifacts, Events: app.store.events, Metrics: app.store.metrics, GitConnections: app.store.gitConnections, GitSecrets: app.store.gitSecrets, Repositories: app.store.repositories}, "", "  ")
 	app.store.RUnlock()
 	if err != nil {
 		return

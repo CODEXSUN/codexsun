@@ -6,8 +6,8 @@ CXForge is the isolated coding worker server for Zuno. It owns task execution, r
 
 1. A client creates a task contract.
 2. CXForge assigns a preview port.
-3. CXForge creates a clean task workspace.
-4. CXForge clones the requested Git repository.
+3. CXForge opens the container's shared workspace and executes one task at a time.
+4. CXForge clones the requested Git repository only if the checkout does not exist.
 5. A bounded agent loop requests structured file changes from the configured model.
 6. CXForge rejects changes outside the owned paths.
 7. CXForge runs the configured verification command.
@@ -20,7 +20,11 @@ CXForge is the isolated coding worker server for Zuno. It owns task execution, r
 14. CXForge can create a GitHub pull request or accept a pull request URL recorded by Zuno.
 15. The pull request is recorded as merged only after user confirmation.
 
-CXForge stores task state in `/workspace/.cxforge-state.json`. Each task uses `/workspace/<task-id>/repo`.
+CXForge stores task state in `/workspace/.cxforge-state.json`. All tasks use `/workspace/repo`. Multiple tasks and follow-up commands share the files, branch, dependencies, and preview. Use another container for parallel work or another repository.
+
+Send follow-ups to `POST /api/v1/cxforge/control/tasks/<id>/messages` with `messageId`, `prompt`, and `expectedTaskRevision`. Repeated message IDs are idempotent. Commands received during execution wait until that run ends. Each applied follow-up requires a new review. Approve and prepare the pull request from the latest task that changed the workspace.
+
+There is no required workspace volume or mirror. Restart retains the checkout, but container removal destroys it. The update script backs up and restores `/workspace` and prints the retained backup path. Keep that backup secure because it includes service state. Old per-task checkouts are not automatically migrated into the shared checkout.
 
 ## Local Docker
 
@@ -31,6 +35,34 @@ sh apps/cxforge/.container/cxforge-setup.sh
 ```
 
 The script creates `codexsun-network` when required. It then builds and starts the local container.
+
+## Manual maintenance
+
+Install CXForge or start the current version:
+
+```sh
+sh apps/cxforge/.container/cxforge-setup.sh
+```
+
+Set `CXFORGE_NO_CACHE=true` when the setup must ignore the shared Docker build cache.
+
+Update the development container without deleting task data:
+
+```sh
+sh apps/cxforge/.container/cxforge-update.sh
+```
+
+The update tag contains the value from `VERSION`, the current Git SHA, and `-dirty` when CXForge has uncommitted changes.
+
+Stop CXForge and permanently delete its project volumes and local images:
+
+```sh
+sh apps/cxforge/.container/cxforge-drop.sh
+```
+
+The drop script asks for `DROP CXFORGE`. For unattended use, set `CXFORGE_CONFIRM_DROP=yes`.
+
+Docker does not provide a safe project-only build cache purge. Set `CXFORGE_PURGE_GLOBAL_BUILD_CACHE=true` only when deleting cache for every Docker project is acceptable.
 
 - API: `http://127.0.0.1:6400`
 - Preview ports: `http://127.0.0.1:7300` through `http://127.0.0.1:7303`
@@ -49,6 +81,8 @@ The local image includes these development tools:
 - Make
 
 Go uses `/workspace/.cache/go-build` and `/workspace/.cache/go-mod`. These paths remain writable when the container root filesystem is read-only.
+
+CXForge stores one direct checkout under `/workspace/repo` for all commands in this container.
 
 ## OpenAI model provider
 
@@ -89,7 +123,7 @@ CXForge sends this JSON object to standard input:
 ```json
 {
   "prompt": "Change the requested behavior.",
-  "repository": "/workspace/<task-id>/repo",
+  "repository": "/workspace/repo",
   "ownedPaths": ["src/"]
 }
 ```
@@ -167,6 +201,28 @@ CXForge rejects the pull if the workspace has uncommitted changes. This protects
 
 `CXFORGE_GIT_TOKEN` remains a legacy server-wide fallback. New deployments should use scoped Git connections.
 
+## Repository registration
+
+Register a repository after its Git connection exists:
+
+```text
+GET  /api/v1/cxforge/control/repositories
+POST /api/v1/cxforge/control/repositories
+```
+
+```json
+{
+  "name": "Product",
+  "repository": "https://github.com/example/product.git",
+  "gitConnectionId": "git-connection-uuid",
+  "defaultBranch": "main"
+}
+```
+
+Registration clones directly into `/workspace/repo` and records the initial commit SHA. A second repository requires another container.
+
+Use the task pull action to update the checkout. Pull is fast-forward only and refuses dirty files. Successful pull invalidates previous review approvals. Pull requests target the remote Git provider.
+
 ## Verification
 
 Set `CXFORGE_TEST_COMMAND` to the command that validates the repository. CXForge runs the command in the cloned repository.
@@ -222,7 +278,7 @@ Set `CXFORGE_ALERT_WEBHOOK_URL` to receive blocked-task and cost-threshold event
 
 The container runs as a non-root user. Compose removes Linux capabilities and blocks privilege escalation.
 
-The root filesystem is read-only. Only the workspace volume and temporary filesystem are writable.
+The container filesystem is writable for the non-root runtime user. Workspace data lives in the container, without a required volume.
 
 The container has CPU, memory, process, and command time limits. It does not mount the Docker socket.
 

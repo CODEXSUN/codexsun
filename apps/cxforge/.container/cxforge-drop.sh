@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 set -eu
 
-script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+script_dir="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 compose_file="$script_dir/compose.yml"
-project_name="cxforgefresh"
+project_name="${CXFORGE_PROJECT_NAME:-cxforgefresh}"
 
 confirm_drop() {
   [ "${CXFORGE_CONFIRM_DROP:-}" = "yes" ] && return 0
@@ -20,10 +20,11 @@ confirm_drop() {
 }
 
 remove_cxforge_images() {
-  image_ids="$(docker image ls --filter 'label=org.opencontainers.image.title=CXForge' --format '{{.ID}}' | sort -u)"
+  image_repository="${CXFORGE_IMAGE:-cxforge}"
+  image_ids="$(docker image ls "$image_repository" --format '{{.ID}}' | sort -u)"
   [ -z "$image_ids" ] && return 0
   for image_id in $image_ids; do
-    docker image rm --force "$image_id" >/dev/null 2>&1 || true
+    docker image rm "$image_id" >/dev/null 2>&1 || printf 'Kept image in use: %s\n' "$image_id"
   done
 }
 
@@ -43,5 +44,5 @@ if [ "${CXFORGE_PURGE_GLOBAL_BUILD_CACHE:-false}" = "true" ]; then
   docker builder prune --force
 fi
 
-printf 'CXForge containers, project volumes, and local images were removed.\n'
+printf 'CXForge containers, project volumes, and unused local images were removed.\n'
 printf 'Run cxforge-setup.sh with CXFORGE_NO_CACHE=true for a clean build.\n'

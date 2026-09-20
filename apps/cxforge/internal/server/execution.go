@@ -33,23 +33,39 @@ type modelOutput struct {
 }
 
 func (app *App) execute(task Task) {
+	app.workspace.Lock()
+	defer app.workspace.Unlock()
 	ctx, cancel := contextWithTimeout(app.config.CommandTimeout)
 	app.store.Lock()
-	task.Status, task.Report = "running", "Preparing isolated workspace."
+	current, exists := app.store.tasks[task.ID]
+	if !exists || current.Status != "queued" {
+		app.store.Unlock()
+		cancel()
+		return
+	}
+	task = current
+	app.store.workspaceTaskID = task.ID
+	task.Status, task.Report = "running", "Opening persistent workspace."
 	app.store.tasks[task.ID] = task
 	app.store.cancels[task.ID] = cancel
 	app.store.Unlock()
 	app.saveState()
 	app.emitEvent(task.ID, "task.running", "running", task.Report)
-	defer app.clearCancellation(task.ID, cancel)
+	defer func() {
+		app.clearCancellation(task.ID, cancel)
+		app.scheduleFollowups(task.ID)
+	}()
 
 	repository, err := app.prepareRepository(ctx, task)
 	if err != nil {
 		app.finish(task, "blocked", err.Error())
 		return
 	}
+	app.store.RLock()
+	task = app.store.tasks[task.ID]
+	app.store.RUnlock()
 
-	app.emitEvent(task.ID, "workspace.ready", "running", "Isolated Git workspace is ready.")
+	app.emitEvent(task.ID, "workspace.ready", "running", "Persistent Git workspace is ready.")
 	policy, err := loadRepositoryPolicy(repository, app.config)
 	if err != nil {
 		app.finish(task, "blocked", err.Error())
@@ -60,6 +76,9 @@ func (app *App) execute(task Task) {
 
 func (app *App) runAgentLoop(ctx context.Context, task Task, repository string, policy repositoryPolicy) {
 	changedSet := map[string]bool{}
+	for _, path := range task.ChangedFiles {
+		changedSet[path] = true
+	}
 	feedback := ""
 	for turn := 1; turn <= app.config.MaxAgentTurns; turn++ {
 		if ctx.Err() != nil {
@@ -77,7 +96,7 @@ func (app *App) runAgentLoop(ctx context.Context, task Task, repository string, 
 		for _, path := range changed {
 			changedSet[path] = true
 		}
-		task.AgentTurns = turn
+		task.AgentTurns++
 		task.InputTokens += usage.InputTokens
 		task.OutputTokens += usage.OutputTokens
 		app.recordModelUsage(usage)
@@ -155,8 +174,22 @@ func (app *App) prepareRepository(ctx context.Context, task Task) (string, error
 	if !within(config.WorkspaceRoot, destination) {
 		return "", errors.New("task workspace is outside the workspace root")
 	}
-	if err := os.RemoveAll(destination); err != nil {
-		return "", fmt.Errorf("could not reset workspace: %w", err)
+	if _, err := os.Stat(destination); err == nil {
+		if _, err := runProcess(ctx, destination, "git", "rev-parse", "--verify", "HEAD"); err != nil {
+			return "", errors.New("existing workspace is incomplete; files preserved for recovery")
+		}
+		if config.ExecutionMode != "demo" {
+			source, err := repositorySource(config.SourceRoot, task.Repository)
+			if err != nil {
+				return "", err
+			}
+			if err := verifyWorkspaceOrigin(ctx, destination, source); err != nil {
+				return "", err
+			}
+		}
+		return destination, nil
+	} else if !os.IsNotExist(err) {
+		return "", err
 	}
 	if err := os.MkdirAll(taskRoot, 0o755); err != nil {
 		return "", fmt.Errorf("could not prepare workspace: %w", err)
@@ -190,9 +223,19 @@ func (app *App) prepareRepository(ctx context.Context, task Task) (string, error
 	if err != nil {
 		return "", err
 	}
-	if _, err := runGitProcess(ctx, taskRoot, access, "clone", "--no-hardlinks", "--", source, destination); err != nil {
-		return "", fmt.Errorf("could not clone repository: %w", err)
+	if _, err := runGitProcess(ctx, taskRoot, access, "clone", "--branch", task.BaseBranch, "--", source, destination); err != nil {
+		return "", err
 	}
+	commit, err := runProcess(ctx, destination, "git", "rev-parse", "HEAD")
+	if err != nil {
+		return "", err
+	}
+	task.BaseCommitSHA = commit
+	app.store.Lock()
+	app.store.tasks[task.ID] = task
+	app.store.Unlock()
+	app.saveState()
+	app.emitEvent(task.ID, "workspace.cloned", "running", "Repository cloned at "+shortID(commit)+".")
 	configureGitIdentity(ctx, destination)
 	return destination, nil
 }
@@ -202,8 +245,11 @@ func (app *App) prepareMergeBranch(task Task) (string, bool, error) {
 	defer cancel()
 	repository := taskRepository(app.config, task.ID)
 	branch := "cxforge/" + task.ID
-	if _, err := runProcess(ctx, repository, "git", "switch", "-c", branch); err != nil {
-		return "", false, fmt.Errorf("could not create merge branch: %w", err)
+	currentBranch, _ := runProcess(ctx, repository, "git", "branch", "--show-current")
+	if currentBranch != branch {
+		if _, err := runProcess(ctx, repository, "git", "switch", "-c", branch); err != nil {
+			return "", false, fmt.Errorf("could not create merge branch: %w", err)
+		}
 	}
 	if _, err := runProcess(ctx, repository, "git", "add", "--all"); err != nil {
 		return "", false, fmt.Errorf("could not stage worker changes: %w", err)
@@ -416,15 +462,21 @@ func runCommand(ctx context.Context, command, directory string) (string, error) 
 }
 
 func gitDiff(ctx context.Context, directory string, changed []string) string {
-	process := exec.CommandContext(ctx, "git", "diff", "--no-ext-diff", "--no-color")
+	process := exec.CommandContext(ctx, "git", "diff", "HEAD", "--no-ext-diff", "--no-color")
 	process.Dir = directory
 	output, _ := process.Output()
-	if text := strings.TrimSpace(string(output)); text != "" {
-		return text
-	}
-
 	var diffs []string
-	for _, path := range changed {
+	if text := strings.TrimSpace(string(output)); text != "" {
+		diffs = append(diffs, text)
+	}
+	// Include untracked files from every command in the shared checkout.
+	process = exec.CommandContext(ctx, "git", "ls-files", "--others", "--exclude-standard", "-z")
+	process.Dir = directory
+	untracked, _ := process.Output()
+	for _, path := range strings.Split(string(untracked), "\x00") {
+		if path == "" {
+			continue
+		}
 		process = exec.CommandContext(ctx, "git", "diff", "--no-index", "--no-color", "--", os.DevNull, filepath.Clean(path))
 		process.Dir = directory
 		output, _ = process.Output()
@@ -443,5 +495,5 @@ func contextWithTimeout(seconds int) (context.Context, context.CancelFunc) {
 }
 
 func taskRepository(config Config, taskID string) string {
-	return filepath.Join(config.WorkspaceRoot, taskID, "repo")
+	return filepath.Join(config.WorkspaceRoot, "repo")
 }

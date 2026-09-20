@@ -52,6 +52,7 @@ export type DataTableBlockProps<TData extends RowData> = {
   searchPlaceholder?: string;
   showSerialNumber?: boolean;
   showHeaderDivider?: boolean;
+  searchTopSpacing?: boolean;
   summary?: React.ReactNode;
   tableFooter?: React.ReactNode;
   title?: string;
@@ -91,6 +92,7 @@ export function DataTableBlock<TData extends RowData>({
   searchPlaceholder = "Search",
   showSerialNumber = true,
   showHeaderDivider = true,
+  searchTopSpacing = false,
   summary,
   tableFooter,
   title,
@@ -149,7 +151,7 @@ export function DataTableBlock<TData extends RowData>({
     title || description || primaryAction ? (
       <header
         className={cn(
-          "flex flex-col gap-4 pb-4 sm:flex-row sm:items-start sm:justify-between",
+          "flex flex-col gap-4 pb-4 sm:flex-row sm:items-center sm:justify-between",
           showHeaderDivider && "border-b",
           isSection && "px-4 py-3",
           topologyIds?.header === "27.1.1" && "h-12 pb-0",
@@ -166,7 +168,7 @@ export function DataTableBlock<TData extends RowData>({
     ) : null;
 
   const searchRegion = withToolbar ? (
-    <div className={cn(isSection && "border-b p-2")}>
+    <div className={cn(searchTopSpacing && "pt-16", isSection && "border-b p-2")}>
       <DataTableToolbar
         columns={table
           .getAllColumns()

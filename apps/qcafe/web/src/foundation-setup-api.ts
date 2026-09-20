@@ -4,7 +4,7 @@ export type FoundationServiceChannel = {
   code: string;
   enabled: boolean;
   id: string;
-  kind: "counter" | "dine_in" | "takeaway";
+  kind: "counter" | "dine_in" | "takeaway" | "qr" | "delivery" | "event" | "marketplace";
   name: string;
 };
 

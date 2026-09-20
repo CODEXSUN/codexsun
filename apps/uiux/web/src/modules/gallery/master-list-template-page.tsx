@@ -165,6 +165,7 @@ export function MasterListTemplatePage({ pageVariant }: { pageVariant: MasterLis
                   records={records}
                   showHeader={pageVariant !== "v4"}
                   showHeaderDivider={pageVariant !== "v1"}
+                  searchTopSpacing={pageVariant === "v1"}
                   title="Categories"
                   topology={topology}
                   topologyIds={{

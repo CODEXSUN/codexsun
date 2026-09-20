@@ -50,6 +50,15 @@ func (app *App) recoverQueue() {
 			app.emitEvent(task.ID, "task.recovered", "queued", task.Report)
 		}
 	}
+	app.store.RLock()
+	var pending []string
+	for id := range app.store.messages {
+		pending = append(pending, id)
+	}
+	app.store.RUnlock()
+	for _, id := range pending {
+		app.scheduleFollowups(id)
+	}
 }
 
 func (app *App) emitEvent(taskID, eventType, status, message string) {

@@ -73,6 +73,7 @@ test("auto-login uses only the configured desk seed", async () => {
 
   try {
     await identity.initialize();
+    assert.equal(await identity.autoLogin(randomUUID(), "admin"), undefined);
     const login = await identity.autoLogin(randomUUID());
     assert.ok(login);
     assert.deepEqual(login.actor.roles, ["user"]);

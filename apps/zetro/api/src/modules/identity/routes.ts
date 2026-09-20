@@ -29,7 +29,7 @@ export function registerZetroIdentityRoutes(app: FastifyInstance, identity: Loca
   app.post(`${prefix}/auth/development-login`, async (request, reply) => {
     const browserSessionId = identityBrowserSessionIdSchema.safeParse(request.headers["x-codexsun-browser-session"]);
     if (!identity.autoLogin || !browserSessionId.success) return reply.code(404).send();
-    return (await identity.autoLogin(browserSessionId.data)) ?? reply.code(401).send({ error: "Development login is unavailable." });
+    return (await identity.autoLogin(browserSessionId.data, request.headers["x-codexsun-auto-login-desk"])) ?? reply.code(401).send({ error: "Development login is unavailable." });
   });
   app.addHook("onRequest", async (request, reply) => {
     if (isPublicZetroPath(request.url)) return;

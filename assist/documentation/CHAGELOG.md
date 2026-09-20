@@ -2,15 +2,27 @@
 
 ## Version State
 
-Current version: 1.0.31
+Current version: 1.0.32
 
-Release tag: v-1.0.31
+Release tag: v-1.0.32
 
-Changelog label: v 1.0.31
+Changelog label: v 1.0.32
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
+
+## v-1.0.32
+
+### [v 1.0.32] 2026-09-20 10:40 pm - working on cxforge
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.32.
 
 ## v-1.0.31
 
@@ -34,6 +46,10 @@ New entries must keep database-facing work and application code work separate.
   identity configuration remains portable under TypeScript project checks.
 - Verified all nine identity-enabled API projects compile with the selected
   auto-login desk configuration.
+- Restricted development auto-login to the requested desk from each browser
+  tab. Opening another desk now requires its normal login flow.
+- Added the auto-login desk header to API CORS allowlists and generated app
+  servers.
 - Added the Q Cafe Settings provider, database lifecycle diagnostics,
   persisted cloud-sync policy, connector registry, and correlated audit events.
 - Added dedicated Database, Cloud sync, and Connectors pages behind the fixed
@@ -43,6 +59,32 @@ New entries must keep database-facing work and application code work separate.
 - Added typed Kysely records for the complete Menu schema, expanded menu items
   with the packaged type, and retained the existing effective-price behavior.
 - Added migration coverage for all M01-M15 tables and repeated-run idempotency.
+- Added Platform Storage-backed Menu image uploads, authenticated image reads,
+  SHA-256 metadata, MIME signature validation, item assignments, and activity events.
+- Added a Menu image manager with private authenticated thumbnails and usage,
+  dimensions, ordering, and checksum details.
+- Added M13 Menu availability commands and effective-rule lookup by outlet,
+  service channel, variant, and time window, with correlated activity events.
+- Added a shared availability guard for future POS order entry and a Menu
+  manager panel for scheduled unavailable periods and available overrides.
+- Added M08-M10 modifier groups, options, price adjustments, and idempotent
+  item or variant assignments with manager APIs and audit events.
+- Added M14-M15 allergen masters and idempotent item or variant declarations,
+  plus a tabbed Modifiers and Allergens manager workspace.
+- Added the `qcafe.menu.saleability.v1` decision contract and reusable POS guard
+  for catalog, outlet, channel, price-book, effective-price, availability, and
+  required-modifier validation with stable blocking reason codes.
+- Added the Menu manager saleability checker for item, variant, outlet,
+  service-channel, price-book, and sale-time diagnostics.
+- Added focused Menu rejection and boundary coverage for inclusive price dates,
+  owner-scoped duplicate codes, inactive catalog levels, availability start and
+  end semantics, and invalid cross-outlet service-channel rules.
+- Completed M06-M07 campaign pricing with business or outlet scope, schedules,
+  priorities, fixed or percentage rules, usage limits, audit events, and
+  deterministic duplicate-target rejection.
+- Integrated campaign pricing into the authoritative saleability result while
+  preserving the normal price as the audit baseline, and added the Campaign
+  pricing manager workspace with effective promotional amounts.
 
 ## v-1.0.30
 

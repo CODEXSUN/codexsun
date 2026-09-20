@@ -1,10 +1,10 @@
 {
   "name": "@codexsun/zuno-api",
-  "version": "1.0.31",
+  "version": "1.0.32",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --external:@fastify/* --external:dotenv --external:fastify --external:fastify-type-provider-zod --external:kysely --external:mysql2 --external:zod --outfile=../../../dist/zuno/api/server.js",
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --external:@fastify/swagger-ui --banner:js=\"import { createRequire } from 'node:module'; import { fileURLToPath } from 'node:url'; import path from 'node:path'; const require = createRequire(import.meta.url); const __filename = fileURLToPath(import.meta.url); const __dirname = path.dirname(__filename);\" --outfile=../../../dist/zuno/api/server.js",
     "check": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx watch src/server.ts",
     "lint": "eslint src",

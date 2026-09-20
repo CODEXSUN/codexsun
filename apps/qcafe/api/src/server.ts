@@ -37,6 +37,16 @@ import { registerFoundationSetupRoutes } from "./modules/foundation/routes/found
 import { ActivityRepository } from "./modules/foundation/repository/activity.repository.js";
 import { MenuRepository } from "./modules/menu/repository/menu.repository.js";
 import { MenuService } from "./modules/menu/services/menu.service.js";
+import { MenuMediaService } from "./modules/menu/services/menu-media.service.js";
+import { MenuAvailabilityService } from "./modules/menu/services/menu-availability.service.js";
+import { MenuAvailabilityRepository } from "./modules/menu/repository/menu-availability.repository.js";
+import { MenuCustomizationRepository } from "./modules/menu/repository/menu-customization.repository.js";
+import { MenuCampaignRepository } from "./modules/menu/repository/menu-campaign.repository.js";
+import { MenuSaleabilityRepository } from "./modules/menu/repository/menu-saleability.repository.js";
+import { MenuCustomizationService } from "./modules/menu/services/menu-customization.service.js";
+import { MenuCampaignService } from "./modules/menu/services/menu-campaign.service.js";
+import { MenuSaleabilityService } from "./modules/menu/services/menu-saleability.service.js";
+import { MenuMediaStorage } from "./modules/menu/persistence/menu-media.storage.js";
 import { registerMenuRoutes } from "./modules/menu/routes/menu-route.js";
 import { createQcafeLifecyclePlans } from "./qcafe-lifecycle-plans.js";
 import type { Actor } from "@codexsun/platform-core";
@@ -54,7 +64,9 @@ const profile = readApplicationDeployableProfile({
   applicationId: "qcafe",
   availableProviderIds: ["platform.core", ...providers.map((provider) => provider.manifest.id)],
 });
-const runtime = createPlatformRuntime(profile, [...providers, ...(await loadEnabledAddonProviders(profile))]);
+const runtime = createPlatformRuntime(profile, [...providers, ...(await loadEnabledAddonProviders(profile))], {
+  storageRoot: config.storageRoot,
+});
 runtime.start();
 const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
 app.setValidatorCompiler(validatorCompiler);
@@ -63,7 +75,13 @@ await app.register(helmet, fastifyHelmetOptions);
 await app.register(cors, {
   origin: process.env.QCAFE_WEB_ORIGIN,
   methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Authorization", "Content-Type", "X-Codexsun-Browser-Session", "X-Correlation-Id"],
+  allowedHeaders: [
+    "Authorization",
+    "Content-Type",
+    "X-Codexsun-Browser-Session",
+    "X-Codexsun-Auto-Login-Desk",
+    "X-Correlation-Id",
+  ],
 });
 await app.register(swagger, {
   openapi: { info: { title: "Q Cafe API", version: "1.0.0" }, openapi: "3.0.3" },
@@ -156,7 +174,7 @@ app.post(
 app.post("/api/v1/qcafe/auth/development-login", async (request, reply) => {
   const browserSessionId = identityBrowserSessionIdSchema.safeParse(request.headers["x-codexsun-browser-session"]);
   if (!config.autoLogin || !browserSessionId.success) return reply.code(404).send();
-  const session = await identity.autoLogin(browserSessionId.data);
+  const session = await identity.autoLogin(browserSessionId.data, request.headers["x-codexsun-auto-login-desk"]);
   return session ?? reply.code(401).send({ error: "Development login is unavailable." });
 });
 app.post(
@@ -214,13 +232,42 @@ const foundationSetup = new FoundationSetupService(
   activity,
 );
 await registerFoundationSetupRoutes(app, foundationSetup, contextFor);
-const menu = new MenuService(new MenuRepository(persistence.database()), activity);
-await registerMenuRoutes(app, menu, contextFor);
-const settings = new SettingsService(
-  new SettingsRepository(persistence.database()),
+const menuRepository = new MenuRepository(persistence.database());
+const menu = new MenuService(menuRepository, activity);
+const menuMedia = new MenuMediaService(
+  menuRepository,
+  menu,
+  runtime.engine.require<MenuMediaStorage>("qcafe.menu.media-storage"),
   activity,
-  config.persistence,
-  () => persistence.verify(),
+);
+const menuAvailability = new MenuAvailabilityService(
+  new MenuAvailabilityRepository(persistence.database()),
+  menu,
+  activity,
+);
+const menuCustomization = new MenuCustomizationService(
+  new MenuCustomizationRepository(persistence.database()),
+  menu,
+  activity,
+);
+const menuCampaigns = new MenuCampaignService(new MenuCampaignRepository(persistence.database()), menu, activity);
+const menuSaleability = new MenuSaleabilityService(
+  new MenuSaleabilityRepository(persistence.database()),
+  menuAvailability,
+  menuCampaigns,
+);
+await registerMenuRoutes(
+  app,
+  menu,
+  menuMedia,
+  menuAvailability,
+  menuCustomization,
+  menuCampaigns,
+  menuSaleability,
+  contextFor,
+);
+const settings = new SettingsService(new SettingsRepository(persistence.database()), activity, config.persistence, () =>
+  persistence.verify(),
 );
 await registerSettingsRoutes(app, settings, contextFor);
 app.get(

@@ -54,12 +54,19 @@ const runtimeLogsSchema = z.object({ lines: z.array(z.string()) });
 interface CxforgeClientOptions {
   readonly baseUrl: string;
   readonly clientKey: string;
-  readonly gitProvider: GitProvider;
+  readonly gitProvider?: GitProvider;
   readonly runtimeManager: CxforgeRuntimeManager;
 }
 
 export function registerCxforgeRoutes(app: FastifyInstance, options: CxforgeClientOptions): void {
   const client = new CxforgeClient(options);
+
+  // Legacy clients must not bypass the revision-bound control portal.
+  app.addHook("onRequest", async (request, reply) => {
+    if (request.method === "POST" && /^\/api\/v1\/zuno\/cxforge\/tasks(?:\/|$)/u.test(request.url)) {
+      return reply.code(410).send({ error: "Use the server-scoped control portal for task submission and revision-bound decisions." });
+    }
+  });
 
   app.get("/api/v1/zuno/cxforge/health", { schema: { response: { 200: healthSchema } } }, async () => client.get("/api/v1/cxforge/health", healthSchema));
   app.get("/api/v1/zuno/cxforge/runtime", { schema: { response: { 200: runtimeStatusSchema } } }, async () => options.runtimeManager.status());
@@ -98,7 +105,7 @@ export function registerCxforgeRoutes(app: FastifyInstance, options: CxforgeClie
     return client.post(`/api/v1/cxforge/control/tasks/${z.object({ id: z.string().uuid() }).parse(request.params).id}/prepare-merge`, {}, taskSchema);
   });
   app.post("/api/v1/zuno/cxforge/tasks/:id/open-merge-request", { schema: { params: taskParamsSchema, response: providerTaskResponses } }, async (request, reply) => {
-    if (!options.gitProvider.configured) return reply.code(503).send({ error: "Configure ZUNO_GITHUB_TOKEN before creating pull requests." });
+    if (!options.gitProvider?.configured) return reply.code(503).send({ error: "Publication is owned by CXForge. Use the control portal." });
     const id = taskParamsSchema.parse(request.params).id;
     const task = await client.task(id);
     if (!task) return reply.code(404).send({ error: "Task not found." });
@@ -115,7 +122,7 @@ export function registerCxforgeRoutes(app: FastifyInstance, options: CxforgeClie
     }
   });
   app.post("/api/v1/zuno/cxforge/tasks/:id/merge", { schema: { params: taskParamsSchema, response: providerTaskResponses } }, async (request, reply) => {
-    if (!options.gitProvider.configured) return reply.code(503).send({ error: "Configure ZUNO_GITHUB_TOKEN before merging pull requests." });
+    if (!options.gitProvider?.configured) return reply.code(503).send({ error: "Provider merge is owned by CXForge. Use the control portal." });
     const id = taskParamsSchema.parse(request.params).id;
     const task = await client.task(id);
     if (!task) return reply.code(404).send({ error: "Task not found." });

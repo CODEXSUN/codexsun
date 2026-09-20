@@ -121,6 +121,10 @@ function defaultChannels(locationId: string, now: string) {
     { code: "COUNTER", kind: "counter" as const, name: "Counter", enabled: 1 },
     { code: "DINE_IN", kind: "dine_in" as const, name: "Dine in", enabled: 1 },
     { code: "TAKEAWAY", kind: "takeaway" as const, name: "Takeaway", enabled: 1 },
+    { code: "QR", kind: "qr" as const, name: "QR ordering", enabled: 1 },
+    { code: "DELIVERY", kind: "delivery" as const, name: "Delivery", enabled: 1 },
+    { code: "EVENT", kind: "event" as const, name: "Event", enabled: 1 },
+    { code: "MARKETPLACE", kind: "marketplace" as const, name: "Marketplace", enabled: 1 },
   ].map((channel) => ({ ...channel, created_at: now, id: randomUUID(), location_id: locationId }));
 }
 

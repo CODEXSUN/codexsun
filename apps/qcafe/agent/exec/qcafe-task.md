@@ -52,14 +52,16 @@
   - Acceptance: `qcafe.menu.002` enriches the original catalog records and creates campaigns, modifiers, media metadata, availability, and allergen records on SQLite and MariaDB with a verified SHA lifecycle record.
 - [x] `QC-0101` Add category, item, variant, price book, and effective menu price records.
   - Acceptance: the API selects an effective price by location, channel, and date.
-- [ ] `QC-0102` Add menu image metadata through Platform Storage.
+- [x] `QC-0102` Add menu image metadata through Platform Storage.
   - Acceptance: the API stores an object reference and checksum, not image binary data.
-- [ ] `QC-0103` Add item availability by location, service channel, and time window.
+- [x] `QC-0103` Add item availability by location, service channel, and time window.
   - Acceptance: an unavailable item cannot enter an order.
-- [ ] `QC-0104` Add manager APIs and pages for item, price, image, and availability setup.
+- [x] `QC-0104` Add manager APIs and pages for item, price, image, and availability setup.
   - Acceptance: inactive or invalid records cannot become saleable.
-- [ ] `QC-0105` Add menu tests for price dates, duplicate codes, inactive items, and availability rules.
+- [x] `QC-0105` Add menu tests for price dates, duplicate codes, inactive items, and availability rules.
   - Acceptance: focused API tests cover each rejected case.
+- [x] `QC-0106` Add M06-M07 campaign and special pricing workflows.
+  - Acceptance: active scheduled campaigns resolve from a normal server-owned price by priority, outlet, variant, and usage limit without overwriting price history.
 
 ## Phase 2: Core POS and Takeaway
 
@@ -179,9 +181,8 @@
 
 ## Work First
 
-1. Implement `QC-0102` against the migrated M11-M12 media tables and Platform Storage contract.
-2. Implement `QC-0103` against M13, then expose M08-M10 modifiers and M14-M15 allergens through manager contracts.
-3. Complete manager validation and focused tests in `QC-0104` through `QC-0105`.
-4. Complete Phase 1 before the POS UI becomes interactive.
-5. Complete Phase 2 before KOT, booking, payment, or printing work.
-6. Complete Phase 4 before advance vouchers, event deposits, or accounting work.
+1. Add the complete service-channel model in `QC-0201`.
+2. Add durable order and takeaway records in `QC-0202`.
+3. Build the POS workflow in `QC-0203` only after the order API is authoritative.
+4. Complete Phase 2 before KOT, booking, payment, or printing work.
+5. Complete Phase 4 before advance vouchers, event deposits, or accounting work.

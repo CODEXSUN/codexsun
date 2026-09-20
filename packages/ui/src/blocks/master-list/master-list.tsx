@@ -21,6 +21,7 @@ export type MasterListProps = {
   variant?: "table" | "cards";
   showHeader?: boolean;
   showHeaderDivider?: boolean;
+  searchTopSpacing?: boolean;
   topology?: InterfaceTopologyController;
   topologyIds?: {
     header: string;
@@ -38,6 +39,7 @@ export type MasterListProps = {
   onView?: (record: MasterRecord) => void;
   onEdit?: (record: MasterRecord) => void;
   onDelete?: (record: MasterRecord) => void;
+  onSuspend?: (record: MasterRecord) => void;
 };
 
 const columnHelper = createDataTableColumnHelper<MasterRecord>();
@@ -53,6 +55,7 @@ function recordActions(record: MasterRecord, props: MasterListProps) {
   return [
     ...(props.onView ? [{ id: "view", label: "View", onSelect: () => props.onView?.(record) }] : []),
     ...(props.onEdit ? [{ id: "edit", label: "Edit", onSelect: () => props.onEdit?.(record) }] : []),
+    ...(props.onSuspend ? [{ id: "suspend", label: "Suspend", onSelect: () => props.onSuspend?.(record) }] : []),
     ...(props.onDelete
       ? [
           {
@@ -137,7 +140,7 @@ export function MasterList(props: MasterListProps) {
     const result: DataTableColumn<MasterRecord>[] = visibleFields.map((field) =>
       columnHelper.display({ id: field.id, header: field.label, cell: ({ row }) => displayValue(field, row.original) }),
     );
-    if (props.onView || props.onEdit || props.onDelete) {
+    if (props.onView || props.onEdit || props.onSuspend || props.onDelete) {
       result.push(
         columnHelper.display({
           id: "actions",
@@ -153,7 +156,7 @@ export function MasterList(props: MasterListProps) {
       );
     }
     return result;
-  }, [visibleFields, props.onView, props.onEdit, props.onDelete]);
+  }, [visibleFields, props.onView, props.onEdit, props.onSuspend, props.onDelete]);
 
   if (props.variant === "cards") return <MasterCards {...props} visibleFields={visibleFields} />;
   return (
@@ -169,6 +172,7 @@ export function MasterList(props: MasterListProps) {
       itemLabel="records"
       pageWidth="full"
       showHeaderDivider={props.showHeaderDivider}
+      searchTopSpacing={props.searchTopSpacing}
       primaryAction={
         props.showHeader === false ? undefined : props.onCreate ? (
           <Button onClick={props.onCreate}>
