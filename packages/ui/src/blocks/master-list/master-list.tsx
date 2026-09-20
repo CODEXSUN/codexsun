@@ -1,15 +1,15 @@
-import { useMemo, useState } from 'react';
-import { MoreHorizontal, Plus } from 'lucide-react';
-import { Button } from '@codexsun/ui/components/button';
-import { Input } from '@codexsun/ui/components/input';
+import { useMemo, useState } from "react";
+import { MoreHorizontal, Plus } from "lucide-react";
+import { Button } from "@codexsun/ui/components/button";
+import { Input } from "@codexsun/ui/components/input";
 import {
   createDataTableColumnHelper,
   DataTableBlock,
   DataTableRowActions,
   type DataTableColumn,
-} from '@codexsun/ui/blocks/table';
-import type { InterfaceTopologyController } from '@codexsun/ui/features/interface-topology';
-import type { MasterField, MasterRecord, MasterValue } from './types';
+} from "@codexsun/ui/blocks/table";
+import type { InterfaceTopologyController } from "@codexsun/ui/features/interface-topology";
+import type { MasterField, MasterRecord, MasterValue } from "./types";
 
 export type MasterListProps = {
   fields: readonly MasterField[];
@@ -18,8 +18,9 @@ export type MasterListProps = {
   description?: string;
   emptyMessage?: string;
   createLabel?: string;
-  variant?: 'table' | 'cards';
+  variant?: "table" | "cards";
   showHeader?: boolean;
+  showHeaderDivider?: boolean;
   topology?: InterfaceTopologyController;
   topologyIds?: {
     header: string;
@@ -44,20 +45,20 @@ const columnHelper = createDataTableColumnHelper<MasterRecord>();
 function displayValue(field: MasterField, record: MasterRecord) {
   const value: MasterValue = record[field.id];
   if (field.format) return field.format(value, record);
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  return value ?? '—';
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return value ?? "—";
 }
 
 function recordActions(record: MasterRecord, props: MasterListProps) {
   return [
-    ...(props.onView ? [{ id: 'view', label: 'View', onSelect: () => props.onView?.(record) }] : []),
-    ...(props.onEdit ? [{ id: 'edit', label: 'Edit', onSelect: () => props.onEdit?.(record) }] : []),
+    ...(props.onView ? [{ id: "view", label: "View", onSelect: () => props.onView?.(record) }] : []),
+    ...(props.onEdit ? [{ id: "edit", label: "Edit", onSelect: () => props.onEdit?.(record) }] : []),
     ...(props.onDelete
       ? [
           {
-            id: 'delete',
-            label: 'Delete',
-            tone: 'destructive' as const,
+            id: "delete",
+            label: "Delete",
+            tone: "destructive" as const,
             separatorBefore: true,
             onSelect: () => props.onDelete?.(record),
           },
@@ -67,11 +68,11 @@ function recordActions(record: MasterRecord, props: MasterListProps) {
 }
 
 function MasterCards(props: MasterListProps & { visibleFields: readonly MasterField[] }) {
-  const [search, setSearch] = useState('');
-  const headingField = props.visibleFields.find((field) => field.id === 'name') ?? props.visibleFields[0];
+  const [search, setSearch] = useState("");
+  const headingField = props.visibleFields.find((field) => field.id === "name") ?? props.visibleFields[0];
   const filtered = props.records.filter((record) =>
     props.visibleFields.some((field) =>
-      String(record[field.id] ?? '')
+      String(record[field.id] ?? "")
         .toLowerCase()
         .includes(search.trim().toLowerCase()),
     ),
@@ -87,7 +88,7 @@ function MasterCards(props: MasterListProps & { visibleFields: readonly MasterFi
           {props.onCreate ? (
             <Button onClick={props.onCreate}>
               <Plus />
-              {props.createLabel ?? 'Add record'}
+              {props.createLabel ?? "Add record"}
             </Button>
           ) : null}
         </header>
@@ -122,7 +123,7 @@ function MasterCards(props: MasterListProps & { visibleFields: readonly MasterFi
         </div>
       ) : (
         <p className="rounded-lg border p-8 text-center text-sm text-muted-foreground">
-          {props.emptyMessage ?? 'No records found.'}
+          {props.emptyMessage ?? "No records found."}
         </p>
       )}
     </section>
@@ -131,7 +132,7 @@ function MasterCards(props: MasterListProps & { visibleFields: readonly MasterFi
 
 export function MasterList(props: MasterListProps) {
   const visibleFields = useMemo(() => props.fields.filter((field) => field.showInList !== false), [props.fields]);
-  const statusField = visibleFields.find((field) => field.id === 'status');
+  const statusField = visibleFields.find((field) => field.id === "status");
   const columns = useMemo(() => {
     const result: DataTableColumn<MasterRecord>[] = visibleFields.map((field) =>
       columnHelper.display({ id: field.id, header: field.label, cell: ({ row }) => displayValue(field, row.original) }),
@@ -139,7 +140,7 @@ export function MasterList(props: MasterListProps) {
     if (props.onView || props.onEdit || props.onDelete) {
       result.push(
         columnHelper.display({
-          id: 'actions',
+          id: "actions",
           header: () => <MoreHorizontal aria-label="Actions" size={16} />,
           enableHiding: false,
           cell: ({ row }) => (
@@ -154,24 +155,25 @@ export function MasterList(props: MasterListProps) {
     return result;
   }, [visibleFields, props.onView, props.onEdit, props.onDelete]);
 
-  if (props.variant === 'cards') return <MasterCards {...props} visibleFields={visibleFields} />;
+  if (props.variant === "cards") return <MasterCards {...props} visibleFields={visibleFields} />;
   return (
     <DataTableBlock
       columns={columns}
       data={[...props.records]}
       description={props.showHeader === false ? undefined : props.description}
-      emptyMessage={props.emptyMessage ?? 'No records found.'}
+      emptyMessage={props.emptyMessage ?? "No records found."}
       getRowId={(row) => row.id}
-      getSearchText={(row) => visibleFields.map((field) => String(row[field.id] ?? '')).join(' ')}
+      getSearchText={(row) => visibleFields.map((field) => String(row[field.id] ?? "")).join(" ")}
       filterOptions={statusField?.options}
-      getFilterValue={(row) => String(row.status ?? '')}
+      getFilterValue={(row) => String(row.status ?? "")}
       itemLabel="records"
       pageWidth="full"
+      showHeaderDivider={props.showHeaderDivider}
       primaryAction={
         props.showHeader === false ? undefined : props.onCreate ? (
           <Button onClick={props.onCreate}>
             <Plus />
-            {props.createLabel ?? 'Add record'}
+            {props.createLabel ?? "Add record"}
           </Button>
         ) : undefined
       }

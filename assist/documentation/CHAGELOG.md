@@ -2,17 +2,141 @@
 
 ## Version State
 
-Current version: 1.0.28
+Current version: 1.0.31
 
-Release tag: v-1.0.28
+Release tag: v-1.0.31
 
-Changelog label: v 1.0.28
+Changelog label: v 1.0.31
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
 
+## v-1.0.31
+
+### [v 1.0.31] 2026-09-20 8:34 pm - Complete auto-login desk wiring
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Added `qcafe.settings.001` for runtime policy and safe connector metadata.
+- Added the append-only `qcafe.menu.002` migration. It completes the M01-M15
+  Menu schema for catalog hierarchy, scoped price books, campaigns, modifiers,
+  storage-backed media metadata, availability windows, and allergens.
+- Applied and SHA-verified all seven Q Cafe lifecycle records on the configured
+  SQLite and MariaDB databases.
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.31.
+- Completed shared `AUTO_LOGIN_DESK` wiring for all identity-enabled apps.
+- Added explicit configuration return types to every app API so the shared
+  identity configuration remains portable under TypeScript project checks.
+- Verified all nine identity-enabled API projects compile with the selected
+  auto-login desk configuration.
+- Added the Q Cafe Settings provider, database lifecycle diagnostics,
+  persisted cloud-sync policy, connector registry, and correlated audit events.
+- Added dedicated Database, Cloud sync, and Connectors pages behind the fixed
+  Q Cafe sidebar Settings entry.
+- Preserved the shared MDI feature switches on a dedicated Workspace settings
+  page and kept them wired to the existing persisted interface state.
+- Added typed Kysely records for the complete Menu schema, expanded menu items
+  with the packaged type, and retained the existing effective-price behavior.
+- Added migration coverage for all M01-M15 tables and repeated-run idempotency.
+
+## v-1.0.30
+
+### [v 1.0.30] 2026-09-20 8:30 pm - Configurable development auto-login desk
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.30.
+- Added `AUTO_LOGIN_DESK` to the shared identity configuration. It accepts
+  `user`, `admin`, or `super-admin` and selects exactly one development desk.
+- Kept auto-login development-only. Production ignores auto-login settings.
+- Added the variable to every installed app environment example, local app
+  environment, and the application scaffold template.
+- Added coverage proving auto-login uses only the configured desk seed.
+
+## v-1.0.29
+
+### [v 1.0.29] 2026-09-20 8:18 pm - Repository flow verification and migration gate cleanup
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Added SHA-recorded Q Cafe activity and Menu migrations for audit events,
+  categories, items, variants, price books, and effective-dated prices.
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.29.
+- Verified the framework, Platform Core, Platform API, Platform Web, UI,
+  Zetro, Zuno, desktop, mobile, CLI, module, boundary, architecture, and
+  build test gates.
+- Fixed stale worktree and app-build tests that used the removed `docs` scope.
+  Both tests now use the registered `qcafe` application scope.
+- Removed 55 forbidden generated directories under `apps/temp`. The root
+  layout and version alignment checks now pass.
+- Confirmed MariaDB integration tests remain opt-in and skip without an
+  explicit test database URL.
+- Verified DOCX, Q Cafe, CRM, HIMSX, LMS, Sites, and Orship application test
+  suites. Each suite passed its available tests.
+- Updated Q Cafe Foundation verification fixtures to include the recorded
+  activity migration and its lifecycle record.
+- Approved Q Cafe platform capability boundaries and added authenticated,
+  correlated audit events to Foundation and Menu commands.
+- Added the Menu setup API and workspace for categories, items, variants,
+  price books, and location or service-channel prices.
+
 ## v-1.0.28
+
+### [v 1.0.28] 2026-09-20 - Q Cafe Foundation Setup module
+
+#### Database Changes
+
+- Database update: Yes.
+- Added repeat-safe Q Cafe Foundation migrations for businesses, locations,
+  business days, service channels, and document number sequences.
+- Added Kysely table types and repositories that support local SQLite and
+  cloud MariaDB through the platform data-provider contracts.
+- Added a repository `DB_DRIVER` switch, explicit Q Cafe SQLite and identity
+  storage paths, and a credential-safe smoke verifier for both drivers.
+- Added the global `platform_lifecycle_state` recorder with serial migration and
+  seeder positions, SHA-256 integrity checks, timestamps, and seeder run counts.
+- Added the repeat-safe `qcafe.foundation.seed.001` readiness seeder and a
+  legacy migration-state adoption path for existing SQLite and MariaDB stores.
+
+#### App Codebase Changes
+
+- Removed the retired MDI profile theme selector and temporary canvas-end spacer
+  prop while keeping the shared theme provider available to application settings.
+- Verified the UIUX production chunk split: the largest JavaScript chunk is below
+  the documented 400 KB warning budget.
+
+- Revised the Master List gallery to expose four working variants, including the
+  restored v4 route with a full-width application header and centered list body.
+- Added ITO coverage for Master List desk headers, titles, actions, quick filters,
+  column filter rows, table regions, and pagination controls.
+- Added delete wiring to the generic gallery preview and documented the new
+  Master List variant and ITO layers.
+
+- Added authenticated Foundation Setup read and command APIs for the first
+  business and outlet, additional outlets, and business-day opening.
+- Added the Business setup workspace with deployment-mode and sync status,
+  default service channels, default document sequences, and outlet controls.
+- Kept Overview as the first standalone menu, followed by Foundation and the
+  Cafe group for POS, KOT, and Booking.
+- Added Foundation service and persistence tests and browser-verified the
+  desktop and mobile workspace without console errors or horizontal overflow.
+- Wired Q Cafe MariaDB mode to the shared root `DB_*` settings instead of an
+  application-specific connection URL.
+- Added explicit Q Cafe migration and verification commands. Development runs
+  lifecycle updates; production startup verifies state and fails closed.
 
 ### [v 1.0.28] 2026-09-20 6:28 pm - working on zetro , zuno ,cxforge
 
@@ -23,6 +147,17 @@ New entries must keep database-facing work and application code work separate.
 #### App Codebase Changes
 
 - Bumped CODEXSUN workspace version to 1.0.28.
+- Added shared provider contracts for messaging, chat, printing, object storage, search, webhooks, data exchange, localization, secrets, tenant resolution, and workflow transitions.
+- Added explicit environment secret resolution, HMAC webhook helpers, and CSV import/export utilities with spreadsheet formula protection.
+- Documented capability ownership and adapter boundaries. No vendor credentials, app business schemas, or tenant isolation were added.
+- Added one shared MariaDB connection resolver for repository services. It accepts the DB_* settings and keeps app-level DATABASE_URL overrides.
+- Moved Platform Identity startup to its Kysely database repository with migration and seed execution in development.
+- Added a production migration-state check that refuses to change schema at startup.
+- Documented the master-database and per-application-database deployment topology.
+- Added optional scoped file and database session/cache providers with secure cookie defaults and migration-backed database tables.
+- Extended application-local identity migration records with SHA-256 checksums
+  and serial positions. Production now rejects missing or changed identity
+  history instead of modifying the database during startup.
 
 ## v-1.0.27
 

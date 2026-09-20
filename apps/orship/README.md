@@ -32,10 +32,15 @@ Orship stores application files only through approved storage providers. It must
 
 ## Hosts
 
-Orship has two current hosts.
+Orship has two browser/API hosts and one internal service.
 
 - `apps/orship/api` owns API routes, providers, configuration, health checks, and operational services.
 - `apps/orship/web` owns the browser workspace and operator interface.
+- `apps/orship/docker` owns the Go Docker manager used by the local container stack.
+
+The Docker manager reads container state and performs start, stop, and restart operations through the Docker Engine socket. The authenticated API exposes these operations at `/api/v1/orship/docker/containers`; the manager itself is available only on the private compose network.
+
+The manager also owns the local MariaDB sample lifecycle. Its sample definition is derived from `apps/temp/cxapp/.container/database/mariadb` and uses the shared external `codexsun-network`. Through the authenticated API, operators can install, drop, and reinstall the sample at `/api/v1/orship/docker/samples/mariadb/{install,drop,reinstall}`. The sample binds host port `3308` so it can coexist with the CXApp database on port `3307`.
 
 The application registry defines the Orship API and web hosts. Root scripts start the hosts through repository tooling.
 

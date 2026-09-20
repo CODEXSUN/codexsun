@@ -16,6 +16,7 @@ export interface UnitOfWork {
 }
 
 export interface MigrationDescriptor {
+  readonly checksum: string;
   readonly id: string;
   readonly owner: string;
   readonly description: string;
@@ -24,6 +25,7 @@ export interface MigrationDescriptor {
 }
 
 export interface SeederDescriptor {
+  readonly checksum: string;
   readonly id: string;
   readonly owner: string;
   readonly description: string;

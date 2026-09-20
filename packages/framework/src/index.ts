@@ -10,9 +10,11 @@ export interface ProviderReadiness {
 }
 
 export * from "./contracts.js";
+export * from "./capabilities.js";
 export * from "./dependency-container.js";
 export * from "./event-bus.js";
 export * from "./persistence-contracts.js";
+export * from "./session-cache.js";
 
 export interface ProviderManifest {
   readonly id: string;

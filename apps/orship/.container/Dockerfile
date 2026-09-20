@@ -28,6 +28,19 @@ RUN npm ci --ignore-scripts --include=optional \
 RUN npm run build --workspace @codexsun/orship-api
 RUN npm run build --workspace @codexsun/orship-web
 
+FROM golang:1.23-bookworm AS docker-manager-build
+WORKDIR /src
+COPY apps/orship/docker/go.mod ./go.mod
+COPY apps/orship/docker/cmd ./cmd
+COPY apps/orship/docker/internal ./internal
+RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /out/orship-docker ./cmd/orship-docker
+
+FROM alpine:3.21 AS docker-manager
+COPY --from=docker-manager-build /out/orship-docker /usr/local/bin/orship-docker
+COPY apps/orship/docker/samples /etc/orship/samples
+EXPOSE 6302
+ENTRYPOINT ["/usr/local/bin/orship-docker"]
+
 FROM node:26-bookworm-slim AS api
 
 WORKDIR /workspace/apps/orship/api

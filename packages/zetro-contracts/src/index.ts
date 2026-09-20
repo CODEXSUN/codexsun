@@ -131,9 +131,7 @@ export const zetroIdeaBriefSchema = z.object({
   if (value.projectScope === "project" && !value.projectReference) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "Choose a referred project for project scope.", path: ["projectReference"] });
   }
-  if (value.status === "final" && !value.sourceMessageIds.length) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "Final briefs require at least one source response.", path: ["sourceMessageIds"] });
-  }
+  addFinalBriefReadinessIssues(value, context);
 });
 
 export const zetroUpsertIdeaBriefSchema = z.object({
@@ -153,29 +151,33 @@ export const zetroUpsertIdeaBriefSchema = z.object({
   if (value.projectScope === "project" && !value.projectReference) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "Choose a referred project for project scope.", path: ["projectReference"] });
   }
-  if (value.status === "final" && !value.sourceMessageIds.length) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "Final briefs require at least one source response.", path: ["sourceMessageIds"] });
-  }
+  addFinalBriefReadinessIssues(value, context);
 });
 
 export const zetroIdeaBriefResponseSchema = zetroSuccessSchema(z.object({ brief: zetroIdeaBriefSchema.nullable() }));
+
+export const zetroAgentTaskStatusSchema = z.enum(["prepared", "delivering", "delivered", "failed"]);
 
 export const zetroAgentTaskSchema = z.object({
   acceptanceCriteria: z.string().trim().max(2_000),
   briefId: z.string().uuid(),
   createdAt: z.string().datetime(),
+  deliveredAt: z.string().datetime().nullable(),
+  deliveryAttemptedAt: z.string().datetime().nullable(),
+  deliveryError: z.string().max(2_000).nullable(),
   id: z.string().uuid(),
   projectReference: z.string().trim().max(240).nullable(),
   projectScope: z.enum(["project", "all-projects"]),
   priority: z.enum(["low", "medium", "high"]),
-  status: z.literal("prepared"),
+  status: zetroAgentTaskStatusSchema,
   summary: z.string().trim().min(1).max(4_000),
   title: z.string().trim().min(1).max(160),
   updatedAt: z.string().datetime(),
+  zunoHandoffId: z.string().uuid().nullable(),
 });
 
 export const zetroCreateAgentTaskSchema = z.object({
-  acceptanceCriteria: z.string().trim().max(2_000),
+  acceptanceCriteria: z.string().trim().min(1).max(2_000),
   briefId: z.string().uuid(),
   projectReference: z.string().trim().max(240).nullable(),
   projectScope: z.enum(["project", "all-projects"]),
@@ -190,6 +192,63 @@ export const zetroCreateAgentTaskSchema = z.object({
 
 export const zetroAgentTaskListResponseSchema = zetroSuccessSchema(z.object({ tasks: z.array(zetroAgentTaskSchema) }));
 export const zetroAgentTaskResponseSchema = zetroSuccessSchema(z.object({ task: zetroAgentTaskSchema }));
+
+export const zetroPreparedTaskHandoffSchema = z.object({
+  brief: z.object({
+    audience: z.string().trim().min(1).max(1_000),
+    constraints: z.string().trim().min(1).max(4_000),
+    exclusions: z.string().trim().min(1).max(4_000),
+    id: z.string().uuid(),
+    outcome: z.string().trim().min(1).max(4_000),
+    projectReference: z.string().trim().max(240).nullable(),
+    projectScope: z.enum(["project", "all-projects"]),
+    risks: z.string().trim().min(1).max(4_000),
+    scope: z.string().trim().min(1).max(4_000),
+    sourceMessageIds: z.array(z.string().uuid()).min(1).max(100),
+    successSignals: z.string().trim().min(1).max(4_000),
+    title: z.string().trim().min(1).max(160),
+    updatedAt: z.string().datetime(),
+  }),
+  idempotencyKey: z.string().uuid(),
+  kind: z.literal("zetro.prepared-task"),
+  preparedAt: z.string().datetime(),
+  source: z.literal("zetro"),
+  target: z.literal("zuno"),
+  task: z.object({
+    acceptanceCriteria: z.string().trim().min(1).max(2_000),
+    id: z.string().uuid(),
+    priority: z.enum(["low", "medium", "high"]),
+    projectReference: z.string().trim().max(240).nullable(),
+    projectScope: z.enum(["project", "all-projects"]),
+    summary: z.string().trim().min(1).max(4_000),
+    title: z.string().trim().min(1).max(160),
+  }),
+  version: z.literal(1),
+}).superRefine((value, context) => {
+  if (value.idempotencyKey !== value.task.id) context.addIssue({ code: z.ZodIssueCode.custom, message: "The idempotency key must match the prepared task ID.", path: ["idempotencyKey"] });
+  if (value.brief.projectScope !== value.task.projectScope || value.brief.projectReference !== value.task.projectReference) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "The task project scope must match the final brief.", path: ["task", "projectScope"] });
+  }
+});
+
+export const zetroHandoffReceiptSchema = z.object({
+  acceptedAt: z.string().datetime(),
+  idempotencyKey: z.string().uuid(),
+  status: z.literal("accepted"),
+  zunoHandoffId: z.string().uuid(),
+});
+
+export const zetroHandoffReceiptResponseSchema = zetroSuccessSchema(z.object({ receipt: zetroHandoffReceiptSchema }));
+
+export const zunoAcceptedZetroHandoffSchema = z.object({
+  acceptedAt: z.string().datetime(),
+  handoff: zetroPreparedTaskHandoffSchema,
+  zunoHandoffId: z.string().uuid(),
+});
+
+export const zunoAcceptedZetroHandoffListResponseSchema = zetroSuccessSchema(z.object({
+  handoffs: z.array(zunoAcceptedZetroHandoffSchema),
+}));
 
 export type ZetroChatConversation = z.infer<typeof zetroChatConversationSchema>;
 export type ZetroIdeaStage = z.infer<typeof zetroIdeaStageSchema>;
@@ -211,3 +270,22 @@ export interface ZetroFinalBriefReader {
 }
 export type ZetroAgentTask = z.infer<typeof zetroAgentTaskSchema>;
 export type ZetroCreateAgentTask = z.infer<typeof zetroCreateAgentTaskSchema>;
+export type ZetroPreparedTaskHandoff = z.infer<typeof zetroPreparedTaskHandoffSchema>;
+export type ZetroHandoffReceipt = z.infer<typeof zetroHandoffReceiptSchema>;
+export type ZunoAcceptedZetroHandoff = z.infer<typeof zunoAcceptedZetroHandoffSchema>;
+
+function addFinalBriefReadinessIssues(value: { audience: string; constraints: string; exclusions: string; risks: string; scope: string; sourceMessageIds: string[]; status: "draft" | "final"; successSignals: string }, context: z.RefinementCtx): void {
+  if (value.status !== "final") return;
+  const required = [
+    ["audience", value.audience, "Final briefs require an audience."],
+    ["scope", value.scope, "Final briefs require scope boundaries."],
+    ["exclusions", value.exclusions, "Final briefs require explicit exclusions."],
+    ["constraints", value.constraints, "Final briefs require known constraints."],
+    ["risks", value.risks, "Final briefs require risks."],
+    ["successSignals", value.successSignals, "Final briefs require success signals."],
+  ] as const;
+  for (const [path, content, message] of required) {
+    if (!content.trim()) context.addIssue({ code: z.ZodIssueCode.custom, message, path: [path] });
+  }
+  if (!value.sourceMessageIds.length) context.addIssue({ code: z.ZodIssueCode.custom, message: "Final briefs require at least one source response.", path: ["sourceMessageIds"] });
+}

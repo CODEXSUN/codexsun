@@ -8,8 +8,10 @@ export async function registerBriefRoutes(app: FastifyInstance, service: BriefSe
   );
 
   app.put<{ Body: unknown; Params: { conversationId: string } }>("/api/zetro/v1/conversations/:conversationId/brief", async (request, reply) => {
+    const input = zetroUpsertIdeaBriefSchema.safeParse(request.body);
+    if (!input.success) return reply.code(400).send({ error: input.error.issues[0]?.message ?? "The idea brief is invalid.", code: "zetro.brief-invalid" });
     try {
-      const brief = service.saveBrief(request.params.conversationId, zetroUpsertIdeaBriefSchema.parse(request.body));
+      const brief = service.saveBrief(request.params.conversationId, input.data);
       return zetroIdeaBriefResponseSchema.parse({ data: { brief }, version: zetroApiVersion });
     } catch (error) {
       if (error instanceof BriefReferenceError) return reply.code(400).send({ error: error.message, code: "zetro.brief-reference" });

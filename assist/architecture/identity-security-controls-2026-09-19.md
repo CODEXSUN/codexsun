@@ -23,6 +23,10 @@ desk and menu.
 The reset service stores only a keyed token hash. A successful reset consumes
 the token and revokes active server sessions for that user.
 
+Development auto-login is controlled by `AUTO_LOGIN`. `AUTO_LOGIN_DESK` selects
+exactly one seeded desk: `user`, `admin`, or `super-admin`. Production disables
+auto-login regardless of these variables.
+
 ## Alternatives
 
 The applications do not use in-memory rate-limit state. It would reset on a
@@ -33,8 +37,12 @@ the token through an approved out-of-band channel.
 
 ## Consequences
 
-Identity migration `identity.003` adds three application-local tables. An
-application must run the identity migration before production startup.
+Application identity migrations are recorded in serial order with a SHA-256
+checksum for each definition. Development applies missing migrations and
+repeat-safe seeds in order. Production startup is read-only: it verifies the
+complete recorder history and rejects missing, reordered, or changed records.
+An application must run the explicit identity migration command before
+production startup after an upgrade.
 
 The audit table does not store passwords, bearer tokens, reset tokens, browser
 session IDs, or private storage paths.

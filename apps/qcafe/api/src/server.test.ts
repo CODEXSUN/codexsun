@@ -7,7 +7,11 @@ import { registerQcafeWorkspaceRoute } from "./modules/foundation/routes/qcafe-w
 
 test("qcafe API declares its owned health contract", () => {
   const provider = new QcafeFoundationProvider();
-  assert.deepEqual(provider.manifest.contracts, ["qcafe.health"]);
+  assert.deepEqual(provider.manifest.contracts, [
+    "qcafe.health",
+    "qcafe.foundation.setup.v1",
+    "qcafe.foundation.activity.v1",
+  ]);
   assert.equal(provider.manifest.owner, "apps/qcafe/api/modules/foundation");
 });
 
@@ -26,6 +30,8 @@ test("qcafe workspace route returns first navigation pages", async () => {
     body.pages.map((page: { id: string; label: string }) => [page.id, page.label]),
     [
       ["overview", "Overview"],
+      ["setup", "Business setup"],
+      ["menu", "Menu setup"],
       ["pos", "POS"],
       ["kot", "KOT"],
       ["booking", "Booking"],

@@ -1,0 +1,34 @@
+name: ${MARIADB_NAME}
+
+services:
+  mariadb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MARIADB_VERSION: ${MARIADB_VERSION}
+    image: ${MARIADB_IMAGE}
+    container_name: ${MARIADB_NAME}
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_ROOT_HOST: "%"
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+    ports:
+      - "${MARIADB_BIND_ADDRESS}:${MARIADB_HOST_PORT}:${MARIADB_CONTAINER_PORT}"
+    volumes:
+      - ${MARIADB_DATA_VOLUME}:/var/lib/mysql
+      - ${MARIADB_BACKUP_VOLUME}:/backups
+    networks:
+      - mariadb
+    restart: ${MARIADB_RESTART_POLICY}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+networks:
+  mariadb:
+    name: ${MARIADB_NETWORK}
+    external: true

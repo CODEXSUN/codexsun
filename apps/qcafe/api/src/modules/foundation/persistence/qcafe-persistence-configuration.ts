@@ -1,32 +1,24 @@
 import { z } from "zod";
+import { readDatabaseConnectionUrl } from "@codexsun/platform-core";
 import type { QcafePersistenceConfiguration } from "./qcafe-persistence.js";
 
-const modeSchema = z.enum(["cloud", "local"]);
+const driverSchema = z.enum(["mariadb", "sqlite"]);
 const urlSchema = z.string().url();
 
 export function readQcafePersistenceConfiguration(
   environment: NodeJS.ProcessEnv,
   localDatabasePath: string,
 ): QcafePersistenceConfiguration {
-  const mode = modeSchema.parse(environment.QCAFE_DATA_MODE ?? "local");
+  const driver = driverSchema.parse(environment.DB_DRIVER ?? "sqlite");
   const syncCloudUrl = optionalUrl(environment.QCAFE_SYNC_CLOUD_URL);
-  if (mode === "local") return withSyncCloudUrl({ localDatabasePath, mode }, syncCloudUrl);
+  if (driver === "sqlite") return withSyncCloudUrl({ localDatabasePath, mode: "local" }, syncCloudUrl);
 
-  const cloudDatabaseUrl = requiredUrl(
-    environment.QCAFE_CLOUD_DATABASE_URL,
-    "Set QCAFE_CLOUD_DATABASE_URL for cloud mode.",
-  );
-  if (new URL(cloudDatabaseUrl).protocol !== "mysql:") throw new Error("QCAFE_CLOUD_DATABASE_URL must use mysql://.");
-  return withSyncCloudUrl({ cloudDatabaseUrl, localDatabasePath, mode }, syncCloudUrl);
+  const cloudDatabaseUrl = readDatabaseConnectionUrl(environment);
+  return withSyncCloudUrl({ cloudDatabaseUrl, localDatabasePath, mode: "cloud" }, syncCloudUrl);
 }
 
 function optionalUrl(value: string | undefined): string | undefined {
   return value ? urlSchema.parse(value) : undefined;
-}
-
-function requiredUrl(value: string | undefined, message: string): string {
-  if (!value) throw new Error(message);
-  return urlSchema.parse(value);
 }
 
 function withSyncCloudUrl(

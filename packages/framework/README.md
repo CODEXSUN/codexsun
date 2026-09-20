@@ -8,6 +8,9 @@ The engine registers providers, starts them in dependency order, and stops them
 in reverse lifecycle order. Apps compose their providers; modules retain their
 own routes, services, repositories, migrations, seeders, and tests.
 
+Migration and seeder descriptors include a stable owner, ID, description, and
+SHA-256 checksum. Platform adapters own execution and lifecycle recording.
+
 Providers can register values or lazy singleton factories. A request can create
 an isolated dependency scope that reads shared values and owns request values.
 

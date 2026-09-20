@@ -67,6 +67,21 @@ test("seeds a normal user for the standard login portal", async () => {
   }
 });
 
+test("auto-login uses only the configured desk seed", async () => {
+  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-auto-login-test-"));
+  const identity = new LocalIdentityStore({ ...createConfiguration(join(directory, "identity.sqlite")), autoLogin: true, autoLoginDesk: "user" });
+
+  try {
+    await identity.initialize();
+    const login = await identity.autoLogin(randomUUID());
+    assert.ok(login);
+    assert.deepEqual(login.actor.roles, ["user"]);
+  } finally {
+    identity.close();
+    rmSync(directory, { force: true, recursive: true });
+  }
+});
+
 test("waits to seed an optional user until its password is configured", () => {
   const configuration = readLocalIdentityConfiguration({
     ADMIN_LOGIN: "admin@example.test",
@@ -79,9 +94,11 @@ test("waits to seed an optional user until its password is configured", () => {
     USER_LOGIN: "admin@user.com",
     USER_NAME: "User",
     USER_PASSWORD: "",
+    AUTO_LOGIN_DESK: "admin",
   }, { applicationId: "qcafe", databasePath: ":memory:" });
 
   assert.equal(configuration.seeds.length, 2);
+  assert.equal(configuration.autoLoginDesk, "admin");
 });
 
 test("uses the normal user name as the default username", () => {
@@ -150,6 +167,29 @@ test("allows an explicit migration before production startup", async () => {
       production.close();
     }
   } finally {
+    rmSync(directory, { force: true, recursive: true });
+  }
+});
+
+test("rejects changed application identity migration checksums in production", async () => {
+  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-checksum-test-"));
+  const databasePath = join(directory, "production.sqlite");
+  const development = new LocalIdentityStore(createConfiguration(databasePath));
+  try {
+    await development.initialize();
+  } finally {
+    development.close();
+  }
+
+  const database = new DatabaseSync(databasePath);
+  database.prepare("UPDATE identity_migration_state SET checksum = ? WHERE id = ?").run("changed", "identity.001");
+  database.close();
+
+  const production = new LocalIdentityStore({ ...createConfiguration(databasePath), appMode: "production" });
+  try {
+    await assert.rejects(() => production.initialize(), /checksum or order changed/u);
+  } finally {
+    production.close();
     rmSync(directory, { force: true, recursive: true });
   }
 });
@@ -270,6 +310,7 @@ function createConfiguration(databasePath: string): LocalIdentityConfiguration {
     appMode: "development",
     applicationId: "qcafe",
     autoLogin: false,
+    autoLoginDesk: "super-admin",
     databasePath,
     exposeDevelopmentResetToken: false,
     loginLockoutSeconds: 60,

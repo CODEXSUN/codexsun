@@ -12,6 +12,7 @@ export function readLocalIdentityConfiguration(
     appMode,
     applicationId: options.applicationId,
     autoLogin: appMode === "development" && environment.AUTO_LOGIN === "1",
+    autoLoginDesk: readAutoLoginDesk(environment),
     databasePath: options.databasePath,
     exposeDevelopmentResetToken: appMode === "development" && environment.IDENTITY_EXPOSE_DEVELOPMENT_RESET_TOKEN === "1",
     loginLockoutSeconds: positiveInteger(environment, "IDENTITY_LOGIN_LOCKOUT_SECONDS", 900),
@@ -38,6 +39,12 @@ export function readLocalIdentityConfiguration(
       ...readUserSeed(environment),
     ],
   };
+}
+
+function readAutoLoginDesk(environment: NodeJS.ProcessEnv): LocalIdentityConfiguration["autoLoginDesk"] {
+  const value = environment.AUTO_LOGIN_DESK?.trim() || "user";
+  if (value === "user" || value === "admin" || value === "super-admin") return value;
+  throw new Error("Set AUTO_LOGIN_DESK to user, admin, or super-admin.");
 }
 
 function readUserSeed(environment: NodeJS.ProcessEnv) {

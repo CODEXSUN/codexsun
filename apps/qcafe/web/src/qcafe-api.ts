@@ -1,4 +1,4 @@
-export type QcafePageId = "overview" | "pos" | "kot" | "booking";
+export type QcafePageId = "overview" | "setup" | "menu" | "pos" | "kot" | "booking";
 
 export type QcafeWorkspacePage = {
   description: string;

@@ -2,7 +2,9 @@ import { config } from "dotenv";
 import { resolve } from "node:path";
 import { readLocalIdentityConfiguration } from "@codexsun/platform-core";
 
-export function readConfig() {
+type CrmConfiguration = ReturnType<typeof readLocalIdentityConfiguration> & { readonly apiReferenceToken: string; readonly host: string; readonly port: number };
+
+export function readConfig(): CrmConfiguration {
   config({ path: resolve(process.cwd(), "../../../.env") });
   config({ path: resolve(process.cwd(), ".app.env"), override: true });
   const port = Number(process.env.CRM_API_PORT);

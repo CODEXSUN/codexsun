@@ -1,0 +1,45 @@
+services:
+  cxforge:
+    image: "${CXFORGE_IMAGE:-ghcr.io/codexsun/cxforge:1.0.0}"
+    env_file:
+      - "${CXFORGE_ENV_FILE:-vps.env}"
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6400:6400"
+      - "127.0.0.1:7300:7300"
+      - "127.0.0.1:7301:7301"
+      - "127.0.0.1:7302:7302"
+      - "127.0.0.1:7303:7303"
+    volumes:
+      - cxforge-workspaces:/workspace
+      - cxforge-repositories:/repositories:ro
+    secrets:
+      - openai_api_key
+      - credential_encryption_key
+    networks: [cxforge-private]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 2.0
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:6400/api/v1/cxforge/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+networks:
+  cxforge-private:
+    driver: bridge
+
+volumes:
+  cxforge-workspaces:
+  cxforge-repositories:
+
+secrets:
+  openai_api_key:
+    file: "${CXFORGE_OPENAI_API_KEY_PATH:-./secrets/openai_api_key}"
+  credential_encryption_key:
+    file: "${CXFORGE_CREDENTIAL_ENCRYPTION_KEY_PATH:-./secrets/credential_encryption_key}"

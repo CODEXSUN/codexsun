@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
-import type { ZetroChatConversationReader, ZetroUpsertIdeaBrief } from "@codexsun/zetro-contracts";
+import { zetroUpsertIdeaBriefSchema, type ZetroChatConversationReader, type ZetroUpsertIdeaBrief } from "@codexsun/zetro-contracts";
 import { BriefReferenceError, BriefService } from "../brief-service.js";
 import { BriefStore } from "../brief-store.js";
 
@@ -30,4 +30,10 @@ test("rejects source messages from another conversation", () => {
   } finally {
     service.close();
   }
+});
+
+test("rejects an incomplete final brief but permits an incomplete draft", () => {
+  const incomplete = { ...input(randomUUID()), audience: "", risks: "", status: "final" as const };
+  assert.equal(zetroUpsertIdeaBriefSchema.safeParse(incomplete).success, false);
+  assert.equal(zetroUpsertIdeaBriefSchema.safeParse({ ...incomplete, status: "draft" }).success, true);
 });

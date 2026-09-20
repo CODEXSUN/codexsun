@@ -1,68 +1,116 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Kysely } from "kysely";
-import { MigrationRunner, createSqliteDataProvider, type DatabaseLifecyclePlan } from "../src/index.js";
+import {
+  createLifecycleChecksum,
+  createSqliteDataProvider,
+  MigrationRunner,
+  type DatabaseLifecyclePlan,
+  type DatabaseMigration,
+} from "../src/index.js";
 
 interface TestDatabase {
   example_records: { id: string; value: string };
 }
 
-test("runs clean and upgrade migrations once, then repeats seeders safely", async () => {
+test("runs migrations and repeat-safe seeders serially with recorded checksums", async () => {
   const provider = createSqliteDataProvider<TestDatabase>({ filename: ":memory:" });
   const database = provider.queryDatabase();
   const runner = new MigrationRunner(database, () => new Date("2026-09-17T00:00:00.000Z"));
 
-  const clean = await runner.run(plan(database, [createRecordsMigration]));
-  assert.deepEqual(clean, ["test.records.001"]);
-  assert.equal(await recordCount(database), 1);
+  assert.deepEqual(await runner.run(plan([createRecordsMigration])), ["test.records.001"]);
+  assert.deepEqual(await runner.run(plan([createRecordsMigration])), []);
+  assert.deepEqual(await runner.run(plan([createRecordsMigration, addSecondRecordMigration])), ["test.records.002"]);
+  assert.equal(await recordCount(database), 3);
 
-  const repeat = await runner.run(plan(database, [createRecordsMigration]));
-  assert.deepEqual(repeat, []);
-  assert.equal(await recordCount(database), 1);
-
-  const upgraded = await runner.run(plan(database, [createRecordsMigration, addSecondRecordMigration]));
-  assert.deepEqual(upgraded, ["test.records.002"]);
-  assert.equal(await recordCount(database), 2);
+  const records = await runner.verify(plan([createRecordsMigration, addSecondRecordMigration]));
+  const seeder = records.find((record) => record.kind === "seeder");
+  assert.equal(seeder?.runCount, 3);
+  assert.deepEqual(
+    records.filter((record) => record.kind === "migration").map((record) => record.descriptorId),
+    ["test.records.001", "test.records.002"],
+  );
   await provider.destroy();
 });
 
-const createRecordsMigration = {
+test("rejects changed checksums and reordered applied migrations", async () => {
+  const provider = createSqliteDataProvider<TestDatabase>({ filename: ":memory:" });
+  const runner = new MigrationRunner(provider.queryDatabase());
+  await runner.run(plan([createRecordsMigration, addSecondRecordMigration]));
+
+  const changed = { ...createRecordsMigration, checksum: createLifecycleChecksum("changed historical migration") };
+  await assert.rejects(runner.run(plan([changed, addSecondRecordMigration])), /checksum changed/u);
+  await assert.rejects(runner.run(plan([addSecondRecordMigration, createRecordsMigration])), /history changed/u);
+  await provider.destroy();
+});
+
+test("adopts legacy migration records without rerunning schema changes", async () => {
+  const provider = createSqliteDataProvider<TestDatabase>({ filename: ":memory:" });
+  const database = provider.queryDatabase();
+  await createRecordsMigration.apply(database);
+  await database.schema
+    .createTable("platform_migration_state")
+    .addColumn("id", "varchar(160)", (column) => column.primaryKey())
+    .addColumn("owner", "varchar(160)", (column) => column.notNull())
+    .addColumn("applied_at", "varchar(40)", (column) => column.notNull())
+    .execute();
+  await database
+    .insertInto("platform_migration_state" as never)
+    .values({ applied_at: "2026-09-16T00:00:00.000Z", id: createRecordsMigration.id, owner: "test.records" } as never)
+    .execute();
+
+  const runner = new MigrationRunner(database);
+  assert.deepEqual(await runner.run(plan([createRecordsMigration])), []);
+  const records = await runner.verify(plan([createRecordsMigration]));
+  assert.equal(records.find((record) => record.kind === "migration")?.checksum, createRecordsMigration.checksum);
+  await provider.destroy();
+});
+
+const createRecordsMigration: DatabaseMigration<TestDatabase> = {
+  checksum: createLifecycleChecksum(
+    "test.records.001|example_records:id text primary key,value text not null|insert initial record",
+  ),
+  description: "Create the example records table and initial migration row.",
   id: "test.records.001",
   owner: "test.records",
-  async apply(database: Kysely<TestDatabase>): Promise<void> {
+  async apply(database) {
     await database.schema
       .createTable("example_records")
       .addColumn("id", "text", (column) => column.primaryKey())
       .addColumn("value", "text", (column) => column.notNull())
       .execute();
+    await database.insertInto("example_records").values({ id: "migration-one", value: "initial" }).execute();
   },
 };
 
-const addSecondRecordMigration = {
+const addSecondRecordMigration: DatabaseMigration<TestDatabase> = {
+  checksum: createLifecycleChecksum("test.records.002|insert migration-two upgrade record"),
+  description: "Add the second migration record.",
   id: "test.records.002",
   owner: "test.records",
-  async apply(database: Kysely<TestDatabase>): Promise<void> {
-    await database.insertInto("example_records").values({ id: "migration", value: "upgrade" }).execute();
+  async apply(database) {
+    await database.insertInto("example_records").values({ id: "migration-two", value: "upgrade" }).execute();
   },
 };
 
-function plan(
-  database: Kysely<TestDatabase>,
-  migrations: DatabaseLifecyclePlan<TestDatabase>["migrations"],
-): DatabaseLifecyclePlan<TestDatabase> {
+function plan(migrations: readonly DatabaseMigration<TestDatabase>[]): DatabaseLifecyclePlan<TestDatabase> {
   return {
-    moduleId: "test.records",
     migrations,
+    moduleId: "test.records",
     seeders: [
       {
+        checksum: createLifecycleChecksum("test.records.seed.001|insert seed when missing"),
+        description: "Insert the repeat-safe seed record.",
         id: "test.records.seed.001",
         owner: "test.records",
-        async seed() {
-          await database
-            .insertInto("example_records")
-            .values({ id: "seed", value: "default" })
-            .onConflict((conflict) => conflict.column("id").doNothing())
-            .execute();
+        async seed(database) {
+          const existing = await database
+            .selectFrom("example_records")
+            .select("id")
+            .where("id", "=", "seed")
+            .executeTakeFirst();
+          if (!existing)
+            await database.insertInto("example_records").values({ id: "seed", value: "default" }).execute();
         },
       },
     ],

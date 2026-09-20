@@ -1,14 +1,19 @@
-import type { ModuleProvider } from "@codexsun/framework";
+import type { ModuleProvider, ProviderRegistrationContext } from "@codexsun/framework";
+import type { StorageProvider } from "@codexsun/platform-core";
+import { MenuMediaStorage } from "./persistence/menu-media.storage.js";
 
 export class QcafeMenuProvider implements ModuleProvider {
   readonly manifest = {
     id: "qcafe.menu",
     owner: "apps/qcafe/api/modules/menu",
-    version: "1.0.0",
+    version: "1.2.0",
     dependencies: ["qcafe.foundation"],
-    contracts: [],
+    contracts: ["qcafe.menu.catalog.v1", "qcafe.menu.effective-price.v1", "qcafe.menu.media.v1"],
     events: { published: [], consumed: [] },
   };
 
-  register(): void {}
+  register(context: ProviderRegistrationContext): void {
+    const storage = context.require<StorageProvider>("storage").forModule("qcafe", "menu");
+    context.provide("qcafe.menu.media-storage", new MenuMediaStorage(storage));
+  }
 }

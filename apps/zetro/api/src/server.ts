@@ -25,7 +25,7 @@ const applicationProviders = [
   new ZetroStorageProvider(config.ZETRO_DATABASE_PATH),
   new ZetroChatProvider(config.ZETRO_DATABASE_PATH),
   new ZetroBriefProvider(config.ZETRO_DATABASE_PATH),
-  new ZetroTaskProvider(config.ZETRO_DATABASE_PATH),
+  new ZetroTaskProvider(config.ZETRO_DATABASE_PATH, config.zunoApiUrl, config.zunoClientKey),
 ];
 const profile = readApplicationDeployableProfile({
   applicationId: "zetro",

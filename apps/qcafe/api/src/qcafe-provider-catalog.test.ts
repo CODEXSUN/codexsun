@@ -10,6 +10,7 @@ test("declares the Q Cafe owner module catalog", () => {
     [
       "qcafe.foundation",
       "qcafe.menu",
+      "qcafe.settings",
       "qcafe.pos",
       "qcafe.kitchen",
       "qcafe.booking",

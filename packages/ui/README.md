@@ -146,7 +146,8 @@ a separate sampler implementation.
 - `@codexsun/ui/theme` exports the shared provider, selector, mode, and color contracts.
 - Light, dark, and system modes use the shared `.dark` class contract.
 - Neutral, blue, violet, emerald, and orange compositions update semantic OKLCH tokens.
-- Theme preferences persist in every MDI application through shared storage keys.
+- Theme preferences remain available through the shared provider for application settings;
+  the MDI profile menu does not expose a theme selector.
 - Components use semantic colors such as `primary`, `success`, `warning`, and `destructive`.
 
 ## Included features
@@ -190,11 +191,11 @@ See the [sidebar record](../../assist/records/zetro/2026-09-10-sidebar-integrati
 - The MDI top menu provides matching notification, application launcher, and
   profile controls. Notifications accept optional app-owned records. Profiles
   accept an optional avatar URL and use the first name letter as the fallback.
-- The profile panel includes one matching theme button. Its laptop, sun, or moon
-  icon reflects System, Light, or Dark and cycles through those shared modes.
+- The profile panel contains account identity and account actions only. Theme changes
+  belong in application settings and ITO controls.
   - The default application launcher exposes working Platform, UI, Docs, and
     Zetro destinations. Local development links use each application's
-  documented port; deployed applications can replace them through `apps`.
+    documented port; deployed applications can replace them through `apps`.
 - The notification trigger uses an unframed ghost icon. Its unread indicator combines a softly
   pulsing center dot with a slower ripple that fades fully before restarting.
 - The compact global search button opens with a pointer or `Ctrl+K`. The dialog

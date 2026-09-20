@@ -3,10 +3,10 @@
 Zetro is the CODEXSUN idea workspace. It helps a person explore, revise, and
 finish an idea before a later governed delivery workflow.
 
-Zetro currently owns idea chat and local Codex connection controls. It does not
-own task creation, worker dispatch, worktrees, product business logic, or
-approval records. It must not run arbitrary unsandboxed commands or import
-private files from another application.
+Zetro owns idea chat, final briefs, prepared handoff records, and delivery
+receipts from Zuno. It does not own executable task validation, worker dispatch,
+worktrees, product business logic, or approval records. It must not run
+arbitrary unsandboxed commands or import private files from another application.
 
 Zetro stores conversations in its private SQLite database. It uses the shared
 storage provider for temporary attachments. Future data modules must own their

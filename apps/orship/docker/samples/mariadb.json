@@ -1,0 +1,13 @@
+{
+  "name": "orship-mariadb-sample",
+  "image": "mariadb:11.8",
+  "network": "codexsun-network",
+  "hostIp": "127.0.0.1",
+  "hostPort": "3308",
+  "containerPort": "3306",
+  "rootPassword": "orship_sample_root_password",
+  "dataVolume": "orship-mariadb-sample-data",
+  "backupVolume": "orship-mariadb-sample-backups",
+  "database": "orship_sample",
+  "restartPolicy": "unless-stopped"
+}

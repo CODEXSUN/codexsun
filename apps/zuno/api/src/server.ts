@@ -9,13 +9,18 @@ import { createPlatformRuntime, fastifyHelmetOptions, IdentityLoginRateLimitErro
 import { readConfig } from "./config.js";
 import { ZunoFoundationProvider } from "./modules/foundation/provider.js";
 import { registerCxforgeRoutes } from "./modules/cxforge/routes.js";
+import { GitHubProvider } from "./modules/cxforge/github-provider.js";
+import { CxforgeRuntimeManager } from "./modules/cxforge/runtime-manager.js";
+import { ZunoHandoffService } from "./modules/handoff/handoff-service.js";
+import { ZunoHandoffProvider } from "./modules/handoff/provider.js";
+import { registerZetroHandoffRoutes } from "./modules/handoff/routes.js";
 
 const config = readConfig();
 const identity = new LocalIdentityStore(config);
 await identity.initialize();
-const provider = new ZunoFoundationProvider();
-const profile = readApplicationDeployableProfile({ applicationId: "zuno", availableProviderIds: ["platform.core", provider.manifest.id] });
-const runtime = createPlatformRuntime(profile, [provider, ...(await loadEnabledAddonProviders(profile))]);
+const providers = [new ZunoFoundationProvider(), new ZunoHandoffProvider(config.handoffDatabasePath)];
+const profile = readApplicationDeployableProfile({ applicationId: "zuno", availableProviderIds: ["platform.core", ...providers.map((provider) => provider.manifest.id)] });
+const runtime = createPlatformRuntime(profile, [...providers, ...(await loadEnabledAddonProviders(profile))]);
 runtime.start();
 const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
 app.setValidatorCompiler(validatorCompiler);
@@ -61,17 +66,18 @@ app.post("/api/v1/zuno/auth/development-login", async (request, reply) => {
   return (await identity.login(user.login, user.password, browserSessionId.data, "user")) ?? reply.code(401).send({ error: "Development login is unavailable." });
 });
 app.addHook("onRequest", async (request, reply) => {
-  if (isPublicPath(request.url)) return;
+  if (isPublicPath(request.url, request.method)) return;
   if (!identity.authenticate(request.headers.authorization, request.headers["x-codexsun-browser-session"])) return reply.code(401).send({ error: "Authentication required." });
 });
 app.post("/api/v1/zuno/auth/logout", async (request, reply) => reply.code(identity.logout(request.headers.authorization, request.headers["x-codexsun-browser-session"]) ? 204 : 401).send());
 registerIdentityManagementRoutes({ app, identity, prefix: "/api/v1/zuno" });
 app.get("/api/v1/zuno/health", { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } }, async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }));
-registerCxforgeRoutes(app, { baseUrl: config.cxforgeUrl, clientKey: config.cxforgeClientKey });
+registerCxforgeRoutes(app, { baseUrl: config.cxforgeUrl, clientKey: config.cxforgeClientKey, gitProvider: new GitHubProvider({ apiUrl: config.githubApiUrl, token: config.githubToken }), runtimeManager: new CxforgeRuntimeManager({ repositoryRoot: config.repositoryRoot }) });
+registerZetroHandoffRoutes(app, runtime.engine.require<ZunoHandoffService>("zuno.handoff"), config.zetroClientKey);
 app.addHook("onClose", () => { identity.close(); runtime.stop(); });
 await app.listen({ host: config.host, port: config.port });
 
-function isPublicPath(url: string): boolean {
+function isPublicPath(url: string, method: string): boolean {
   const path = new URL(url, "http://localhost").pathname;
   return path === "/api/v1/zuno/auth/login"
     || path === "/api/v1/zuno/auth/admin/login"
@@ -80,6 +86,7 @@ function isPublicPath(url: string): boolean {
     || path === "/api/v1/zuno/auth/password-reset/request"
     || path === "/api/v1/zuno/auth/password-reset/confirm"
     || path === "/api/v1/zuno/health"
+    || (method === "POST" && path === "/api/v1/zuno/handoffs/zetro")
     || path === "/api/internal/reference"
     || path.startsWith("/api/internal/reference/");
 }

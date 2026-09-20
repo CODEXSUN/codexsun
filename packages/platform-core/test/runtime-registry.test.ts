@@ -106,6 +106,7 @@ test("validates each host configuration without exposing server values to client
   });
 
   assert.equal(api.NODE_ENV, "development");
+  assert.equal(api.APP_MODE, "development");
   assert.equal(api.PLATFORM_DEPLOYMENT_MODE, "single");
   assert.equal(api.PLATFORM_WEB_ORIGIN, "http://127.0.0.1:6101");
   assert.equal(api.PLATFORM_JWT_ISSUER, "codexsun-platform");

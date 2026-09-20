@@ -33,6 +33,9 @@ function validateOwnedDescriptors(
   const ids = new Set<string>();
   for (const descriptor of descriptors) {
     const id = requireValue(descriptor.id, `Module ${moduleId} has a ${kind} without an ID.`);
+    if (!/^[a-f0-9]{64}$/u.test(descriptor.checksum)) {
+      throw new Error(`Module ${moduleId} ${kind} ${id} requires a SHA-256 checksum.`);
+    }
     if (descriptor.owner !== moduleId) {
       throw new Error(`Module ${moduleId} cannot declare ${kind} owned by ${descriptor.owner}.`);
     }

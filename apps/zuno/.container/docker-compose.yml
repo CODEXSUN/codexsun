@@ -1,0 +1,95 @@
+services:
+  zuno-api:
+    image: ${ZUNO_API_IMAGE:-codexsun/zuno-api}:${ZUNO_IMAGE_TAG:-development}
+    container_name: ${ZUNO_API_CONTAINER_NAME:-zuno-api}
+    build:
+      context: ../../..
+      dockerfile: apps/zuno/.container/Dockerfile
+      target: api
+      args:
+        ZUNO_VERSION: ${ZUNO_VERSION:-development}
+    environment:
+      APP_MODE: development
+      AUTO_LOGIN: "1"
+      PLATFORM_HOST: 0.0.0.0
+      ZUNO_API_PORT: "6410"
+      ZUNO_WEB_ORIGIN: http://127.0.0.1:${ZUNO_WEB_HOST_PORT:-6411}
+      ZUNO_API_REFERENCE_TOKEN: local-zuno-reference-token
+      ZUNO_CXFORGE_API_URL: http://cxforge:6400
+      ZUNO_CXFORGE_CLIENT_KEY: local-zuno-to-cxforge-client-key-32chars
+      ZUNO_ZETRO_CLIENT_KEY: development-zetro-zuno-client-key
+      ZUNO_GITHUB_API_URL: https://api.github.com
+      ZUNO_GITHUB_TOKEN: ${ZUNO_GITHUB_TOKEN:-}
+      ZUNO_REPOSITORY_ROOT: /repository
+      ZUNO_DATA_ROOT: /data
+      PLATFORM_JWT_SECRET: local-zuno-jwt-secret-with-32-characters
+      REFRESH_IDENTITY_SEED: "0"
+      IDENTITY_EXPOSE_DEVELOPMENT_RESET_TOKEN: "0"
+      USER_NAME: Local User
+      USER_LOGIN: user@zuno.local
+      USER_USERNAME: user
+      USER_PASSWORD: local_zuno_user
+      ADMIN_NAME: Local Admin
+      ADMIN_LOGIN: admin@zuno.local
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: local_zuno_admin
+      SUPER_ADMIN_NAME: Local Super Admin
+      SUPER_ADMIN_LOGIN: superadmin@zuno.local
+      SUPER_ADMIN_USERNAME: superadmin
+      SUPER_ADMIN_PASSWORD: local_zuno_superadmin
+    ports:
+      - "127.0.0.1:${ZUNO_API_HOST_PORT:-6410}:6410"
+    volumes:
+      - zuno-data:/data
+      - ../../..:/repository:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - codexsun-network
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,noexec,nosuid
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:6410/api/v1/zuno/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  zuno-web:
+    image: ${ZUNO_WEB_IMAGE:-codexsun/zuno-web}:${ZUNO_IMAGE_TAG:-development}
+    container_name: ${ZUNO_WEB_CONTAINER_NAME:-zuno-web}
+    build:
+      context: ../../..
+      dockerfile: apps/zuno/.container/Dockerfile
+      target: web
+      args:
+        ZUNO_VERSION: ${ZUNO_VERSION:-development}
+    depends_on:
+      zuno-api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${ZUNO_WEB_HOST_PORT:-6411}:6411"
+    networks:
+      - codexsun-network
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:size=32m,noexec,nosuid
+      - /var/run:size=4m,noexec,nosuid
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:6411/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+networks:
+  codexsun-network:
+    name: ${ZUNO_DOCKER_NETWORK:-codexsun-network}
+    external: true
+
+volumes:
+  zuno-data:

@@ -1,7 +1,11 @@
+import { createLifecycleChecksum } from "@codexsun/platform-core";
 import type { Kysely } from "kysely";
 import type { IdentityDatabase } from "../identity.database.js";
 
 export const identityMigration = {
+  checksum: createLifecycleChecksum(
+    "identity.001|identity_actors,identity_roles,identity_actor_roles,identity_actor_permissions|actor and role primary keys",
+  ),
   id: "identity.001",
   owner: "platform.identity",
   description: "Create identity actors, roles, and explicit permissions.",

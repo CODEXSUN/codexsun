@@ -7,7 +7,8 @@
   "taskPrefix": "n",
   "providers": [
     "platform.core",
-    "zuno.foundation"
+    "zuno.foundation",
+    "zuno.handoff"
   ],
   "mdi": {
     "icon": "application",

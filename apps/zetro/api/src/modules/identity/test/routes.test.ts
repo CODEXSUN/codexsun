@@ -48,6 +48,7 @@ function configuration(databasePath: string): LocalIdentityConfiguration {
     appMode: "development",
     applicationId: "zetro",
     autoLogin: false,
+    autoLoginDesk: "super-admin",
     databasePath,
     exposeDevelopmentResetToken: false,
     loginLockoutSeconds: 60,

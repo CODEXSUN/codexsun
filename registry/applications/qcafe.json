@@ -7,7 +7,9 @@
   "taskPrefix": "q",
   "providers": [
     "platform.core",
-    "qcafe.foundation"
+    "qcafe.foundation",
+    "qcafe.menu",
+    "qcafe.settings"
   ],
   "mdi": {
     "icon": "application",

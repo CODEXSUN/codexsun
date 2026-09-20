@@ -4,7 +4,7 @@ import { ChatRuntimeControls } from "@codexsun/ui/blocks/chat-runtime-controls";
 import { ChatRuntimeTrace } from "@codexsun/ui/blocks/chat-runtime-trace";
 import { CodexConnectionSettings } from "@codexsun/ui/blocks/codex-connection-settings";
 import { HandoverStack } from "@codexsun/ui/blocks/handover-stack";
-import { IdeaHandoverWorkspace, type IdeaBriefDraft, type IdeaHandoverTask, type IdeaTaskDraft } from "@codexsun/ui/blocks/idea-handover";
+import { IdeaHandoverWorkspace, type IdeaBriefDraft, type IdeaTaskDraft } from "@codexsun/ui/blocks/idea-handover";
 import { AgentTaskWorkspace } from "@codexsun/ui/blocks/agent-task-workspace";
 import { ArchivedChatWorkspace } from "@codexsun/ui/blocks/archived-chat-workspace";
 import { SessionBoundary, type AuthenticatedRequest } from "@codexsun/ui/blocks/auth";
@@ -23,7 +23,8 @@ import { useMdiTopology } from "@codexsun/ui/layouts/mdi-main";
 import type { ZetroAgentTask, ZetroChatAttachment, ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatStreamEvent, ZetroCodexDeviceCode, ZetroIdeaBrief } from "@codexsun/zetro-contracts";
 import type { InterfaceTopologySection } from "@codexsun/ui/features/interface-topology";
 import { ArchiveIcon, BotIcon, ClockIcon, CopyIcon, FileTextIcon, Layers3Icon, LayoutDashboardIcon, ListTodoIcon, MessageSquareIcon, PanelsTopLeftIcon, PresentationIcon, RotateCcwIcon, SettingsIcon, Share2Icon } from "lucide-react";
-import { configureZetroApiRequest, createAgentTask, createConversation, deleteArchivedConversations, deleteConversation as deleteStoredConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, getIdeaBrief, listAgentTasks, listConversations, saveIdeaBrief, streamMessage, updateChatRuntime, updateConversation as updateStoredConversation } from "./chat-api.js";
+import { fillBriefFromSources } from "./brief-autofill.js";
+import { configureZetroApiRequest, createAgentTask, createConversation, deleteArchivedConversations, deleteConversation as deleteStoredConversation, deliverAgentTask, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, getIdeaBrief, listAgentTasks, listConversations, saveIdeaBrief, streamMessage, updateChatRuntime, updateConversation as updateStoredConversation } from "./chat-api.js";
 
 type VoiceRecognizer = {
   continuous: boolean;
@@ -106,7 +107,7 @@ function ZetroApp({ logout, request }: { logout: () => void; request: Authentica
   const [briefOpen, setBriefOpen] = useState(false);
   const [brief, setBrief] = useState<IdeaBriefDraft>(emptyBrief());
   const [taskDraft, setTaskDraft] = useState<IdeaTaskDraft>(emptyTaskDraft());
-  const [agentTask, setAgentTask] = useState<IdeaHandoverTask>();
+  const [agentTask, setAgentTask] = useState<ZetroAgentTask>();
   const [agentTasks, setAgentTasks] = useState<ZetroAgentTask[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string>();
   const [isSavingBrief, setIsSavingBrief] = useState(false);
@@ -393,21 +394,38 @@ function ZetroApp({ logout, request }: { logout: () => void; request: Authentica
     }
   }
 
+  async function deliverTaskToZuno(): Promise<void> {
+    if (!agentTask || agentTask.status === "delivered") return;
+    setIsSavingBrief(true);
+    setAgentTask((current) => current ? { ...current, status: "delivering" } : current);
+    try {
+      const delivered = await deliverAgentTask(agentTask.id);
+      setAgentTask(delivered);
+      setAgentTasks((items) => items.map((item) => item.id === delivered.id ? delivered : item));
+      appendExecutionEvent({ type: "complete", message: "Zuno accepted the prepared task." });
+    } catch (error) {
+      const tasks = await listAgentTasks().catch(() => []);
+      const failed = tasks.find((task) => task.id === agentTask.id);
+      if (failed) {
+        setAgentTask(failed);
+        setAgentTasks(tasks);
+      }
+      appendExecutionEvent({ type: "error", message: error instanceof Error ? error.message : "Zuno could not accept the prepared task." });
+    } finally {
+      setIsSavingBrief(false);
+    }
+  }
+
   function copyHandoffPackage(): void {
     if (!conversation) return;
-    const handoffPackage = {
-      kind: "zetro.prepared-task",
-      version: 1,
-      conversationId: conversation.id,
-      conversationTitle: conversation.title,
-      brief,
-      task: normalizeTaskDraft(taskDraft, brief),
-      target: "zuno",
-      executionOwner: "cxforge",
-      exclusions: ["repository validation", "git worktree creation", "model execution", "build checks", "preview hosting", "merge request creation"],
-    };
-    void navigator.clipboard.writeText(JSON.stringify(handoffPackage, null, 2));
+    void navigator.clipboard.writeText(createHandoffPackageJson(conversation, brief, taskDraft));
     appendExecutionEvent({ type: "complete", message: "Copied the Zuno handoff package." });
+  }
+
+  function autoFillBrief(): void {
+    const nextBrief = { ...fillBriefFromSources(brief, ideaSources), status: "draft" as const };
+    setBrief(nextBrief);
+    setTaskDraft((current) => current.title || current.summary ? current : taskDraftFromBriefDraft(nextBrief));
   }
 
   function toggleVoiceInput(): void {
@@ -512,7 +530,9 @@ function ZetroApp({ logout, request }: { logout: () => void; request: Authentica
     await runStream(conversation.id, `Consolidate the selected Zetro responses below into one revised idea. Preserve useful decisions, resolve conflicts, state assumptions, and finish with a concise final brief. Stay in the idea stage; do not create tasks or execute work.\n\n${sourceMessages.map((message, index) => `Source response ${index + 1} (${message.id}):\n${message.content}`).join("\n\n")}`);
   }
 
-  const handoverItems = messages.filter((message) => handoverMessageIds.includes(message.id) && message.role === "assistant" && message.content).map((message) => ({ id: message.id, content: message.content }));
+  const ideaSources = messages.filter((message) => message.role === "assistant" && message.content).map((message) => ({ content: message.content, id: message.id }));
+  const handoverItems = ideaSources.filter((message) => handoverMessageIds.includes(message.id));
+  const handoffPackagePreview = conversation ? createHandoffPackageJson(conversation, brief, taskDraft) : "";
 
   function appendExecutionEvent(event: ZetroChatStreamEvent): void {
     setExecutionEvents((items) => {
@@ -612,7 +632,7 @@ function ZetroApp({ logout, request }: { logout: () => void; request: Authentica
       user={{ initials: "Z", name: "Zetro user", onSignOut: logout }}
       workspaceTitle="Zetro workspace"
     >
-      {workspaceView === "archive" ? <ArchivedChatWorkspace chats={archivedConversations} onDelete={forceDeleteArchivedConversation} onDeleteAll={forceDeleteAllArchivedConversations} onOpen={openArchivedConversation} onRestore={restoreConversation} /> : workspaceView === "tasks" ? <AgentTaskWorkspace selectedTaskId={selectedTaskId} tasks={agentTasks} onBack={showActiveConversations} onSelectTask={setSelectedTaskId} /> : briefOpen ? <IdeaHandoverWorkspace brief={brief} currentStage={conversation?.stage ?? "explore"} saving={isSavingBrief} sources={messages.filter((message) => message.role === "assistant" && message.content).map((message) => ({ content: message.content, id: message.id }))} task={agentTask} taskDraft={taskDraft} onArchiveConversation={conversation && agentTask ? () => void archiveConversation(conversation.id) : undefined} onBack={() => setBriefOpen(false)} onBriefChange={setBrief} onCopyHandoffPackage={copyHandoffPackage} onCreateTask={handOverToAgentTask} onSaveBrief={saveBrief} onStageChange={changeIdeaStage} onTaskDraftChange={setTaskDraft} /> : <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onLongTextPaste={submitLongPaste} onOpenBrief={openBrief} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRegenerate={regenerateResponse} onRemoveAttachment={removeAttachment} onRuntimeChange={updateRuntimeSelection} onStageChange={changeIdeaStage} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />}
+      {workspaceView === "archive" ? <ArchivedChatWorkspace chats={archivedConversations} onDelete={forceDeleteArchivedConversation} onDeleteAll={forceDeleteAllArchivedConversations} onOpen={openArchivedConversation} onRestore={restoreConversation} /> : workspaceView === "tasks" ? <AgentTaskWorkspace selectedTaskId={selectedTaskId} tasks={agentTasks} onBack={showActiveConversations} onSelectTask={setSelectedTaskId} /> : briefOpen ? <IdeaHandoverWorkspace brief={brief} currentStage={conversation?.stage ?? "explore"} handoffPackagePreview={handoffPackagePreview} saving={isSavingBrief} sources={ideaSources} task={agentTask} taskDraft={taskDraft} onArchiveConversation={conversation && agentTask ? () => void archiveConversation(conversation.id) : undefined} onAutoFillBrief={autoFillBrief} onBack={() => setBriefOpen(false)} onBriefChange={setBrief} onCopyHandoffPackage={copyHandoffPackage} onCreateTask={handOverToAgentTask} onDeliverTask={deliverTaskToZuno} onSaveBrief={saveBrief} onStageChange={changeIdeaStage} onTaskDraftChange={setTaskDraft} /> : <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onLongTextPaste={submitLongPaste} onOpenBrief={openBrief} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRegenerate={regenerateResponse} onRemoveAttachment={removeAttachment} onRuntimeChange={updateRuntimeSelection} onStageChange={changeIdeaStage} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />}
       <CodexConnectionSettings connected={runtime.connected} deviceCode={deviceCode} message={runtime.message} open={settingsOpen} onConnectLocal={recheckLocalCodex} onCopyCode={copyDeviceCode} onCopyUrl={copyDeviceUrl} onGenerateDeviceCode={generateDeviceCode} onOpenBrowser={openDeviceBrowser} onOpenChange={setSettingsOpen} />
       <HandoverStack items={handoverItems} open={handoverStackOpen} working={isLoading} onConsolidate={consolidateHandover} onOpenChange={setHandoverStackOpen} onRemove={toggleHandoverMessage} />
     </MainWorkspace>
@@ -764,4 +784,18 @@ function normalizeTaskDraft(task: IdeaTaskDraft, brief: Pick<IdeaBriefDraft, "ou
     summary: task.summary.trim() || brief.outcome.trim(),
     title: task.title.trim() || brief.title.trim(),
   };
+}
+
+function createHandoffPackageJson(conversation: Pick<ZetroChatConversation, "id" | "title">, brief: IdeaBriefDraft, taskDraft: IdeaTaskDraft): string {
+  return JSON.stringify({
+    kind: "zetro.prepared-task",
+    version: 1,
+    conversationId: conversation.id,
+    conversationTitle: conversation.title,
+    brief,
+    task: normalizeTaskDraft(taskDraft, brief),
+    target: "zuno",
+    executionOwner: "cxforge",
+    exclusions: ["repository validation", "git worktree creation", "model execution", "build checks", "preview hosting", "merge request creation"],
+  }, null, 2);
 }

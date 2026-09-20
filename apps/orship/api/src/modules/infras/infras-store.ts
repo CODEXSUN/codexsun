@@ -37,7 +37,7 @@ export type OrshipInfraRecord = {
   readonly metrics: OrshipInfraMetric[];
   readonly name: string;
   readonly composeYaml: string;
-  readonly status: "running";
+  readonly status: string;
   readonly summary: string;
   readonly uuid: string;
 };

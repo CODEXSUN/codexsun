@@ -1,13 +1,16 @@
 import type { MdiNavigationSection } from "@codexsun/ui/layouts/main-workspace";
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
-import { CalendarClockIcon, ChefHatIcon, LayoutDashboardIcon, ReceiptTextIcon } from "lucide-react";
+import { BookOpenIcon, CalendarClockIcon, ChefHatIcon, LayoutDashboardIcon, ReceiptTextIcon, StoreIcon } from "lucide-react";
 import type { QcafePageId, QcafeWorkspace, QcafeWorkspacePage } from "./qcafe-api";
+import { FoundationSetupPage } from "./foundation-setup-page";
+import { MenuPage } from "./menu-page";
 
 type QcafeWorkspaceViewProps = {
   activePageId: QcafePageId;
   connectionState: "connected" | "connecting" | "failed";
   workspace?: QcafeWorkspace;
+  request: typeof fetch;
 };
 
 const fallbackPages: QcafeWorkspacePage[] = [
@@ -17,6 +20,21 @@ const fallbackPages: QcafeWorkspacePage[] = [
     label: "Overview",
     status: "Connecting",
     title: "Restaurant overview",
+  },
+  {
+    description: "Maintain categories, sale items, variants, price books, and effective prices.",
+    id: "menu",
+    label: "Menu setup",
+    status: "Menu module",
+    title: "Menu and pricing",
+  },
+  {
+    description:
+      "Set the business, outlets, service channels, business days, and document sequences before restaurant service starts.",
+    id: "setup",
+    label: "Business setup",
+    status: "Foundation module",
+    title: "Business and location setup",
   },
   {
     description: "Build the touch-first order screen for restaurant sales.",
@@ -44,8 +62,10 @@ const fallbackPages: QcafeWorkspacePage[] = [
 const pageIcons = {
   booking: CalendarClockIcon,
   kot: ChefHatIcon,
+  menu: BookOpenIcon,
   overview: LayoutDashboardIcon,
   pos: ReceiptTextIcon,
+  setup: StoreIcon,
 } as const;
 
 export function createQcafeNavigation(
@@ -55,6 +75,7 @@ export function createQcafeNavigation(
 ): MdiNavigationSection[] {
   const pageMap = new Map(pages.map((page) => [page.id, page]));
   const overview = pageMap.get("overview") ?? fallbackPages[0];
+  const setup = pageMap.get("setup") ?? getFallbackPage("setup");
   const cafePages = (["pos", "kot", "booking"] as const).map(
     (pageId) => pageMap.get(pageId) ?? getFallbackPage(pageId),
   );
@@ -67,6 +88,24 @@ export function createQcafeNavigation(
           icon: pageIcons.overview,
           label: overview.label,
           onSelect: () => onSelectPage("overview"),
+        },
+      ],
+    },
+    {
+      defaultOpen: true,
+      label: "Foundation",
+      items: [
+        {
+          active: activePageId === "setup",
+          icon: pageIcons.setup,
+          label: setup.label,
+          onSelect: () => onSelectPage("setup"),
+        },
+        {
+          active: activePageId === "menu",
+          icon: pageIcons.menu,
+          label: (pageMap.get("menu") ?? getFallbackPage("menu")).label,
+          onSelect: () => onSelectPage("menu"),
         },
       ],
     },
@@ -87,7 +126,7 @@ export function getQcafePages(workspace?: QcafeWorkspace): QcafeWorkspacePage[] 
   return workspace?.pages.length ? workspace.pages : fallbackPages;
 }
 
-export function QcafeWorkspaceView({ activePageId, connectionState, workspace }: QcafeWorkspaceViewProps) {
+export function QcafeWorkspaceView({ activePageId, connectionState, request, workspace }: QcafeWorkspaceViewProps) {
   const pages = getQcafePages(workspace);
   const activePage = pages.find((page) => page.id === activePageId) ?? pages[0];
   const providers = workspace?.providers ?? [];
@@ -107,6 +146,10 @@ export function QcafeWorkspaceView({ activePageId, connectionState, workspace }:
 
       {activePage.id === "overview" ? (
         <OverviewPage pages={pages} providers={providers} />
+      ) : activePage.id === "setup" ? (
+        <FoundationSetupPage request={request} />
+      ) : activePage.id === "menu" ? (
+        <MenuPage request={request} />
       ) : (
         <ScaffoldPage page={activePage} />
       )}

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { MigrationRunner, createMariaDbDataProvider } from "../src/index.js";
+import { createLifecycleChecksum, MigrationRunner, createMariaDbDataProvider } from "../src/index.js";
 
 const connectionUrl = process.env.PLATFORM_MARIADB_INTEGRATION_URL;
 
@@ -16,6 +16,10 @@ test("runs a migration against an explicitly configured MariaDB test database", 
     moduleId: "platform.integration",
     migrations: [
       {
+        checksum: createLifecycleChecksum(
+          "platform.integration.001|create migration_runner_integration id varchar(120) primary key",
+        ),
+        description: "Create the MariaDB migration runner integration table.",
         id: "platform.integration.001",
         owner: "platform.integration",
         async apply(database) {

@@ -3,6 +3,7 @@ import { createPlatformRuntime, loadEnabledAddonProviders, readApplicationDeploy
 import { createPlatformApiApplication } from "./application.js";
 import { LoggerProvider, platformLoggerOptionsKey } from "./logger.js";
 import { IdentityModuleProvider } from "./modules/identity/provider.js";
+import { createPlatformIdentityStore } from "./modules/identity/identity-store.js";
 import { OperationsModuleProvider } from "./modules/operations/provider.js";
 import { SettingsModuleProvider } from "./modules/settings/provider.js";
 import { SystemModuleProvider } from "./modules/system/provider.js";
@@ -11,6 +12,11 @@ import { createServerShutdown, installServerShutdownHandlers } from "./server-sh
 import { createPlatformTelemetry } from "./telemetry.js";
 
 const config = readConfig();
+const identityStore = await createPlatformIdentityStore({
+  connectionUrl: config.DATABASE_URL,
+  sqliteFilename: resolve(process.cwd(), config.STORAGE_ROOT, "private", "platform", "data", "platform.db"),
+  appMode: config.APP_MODE,
+});
 const applicationProviders = [
   new LoggerProvider(config.NODE_ENV),
   new IdentityModuleProvider(
@@ -23,6 +29,7 @@ const applicationProviders = [
       deploymentName: config.PLATFORM_DEPLOYMENT_NAME,
       bootstrapAdminEmail: config.PLATFORM_BOOTSTRAP_ADMIN_EMAIL,
     },
+    identityStore.repository,
   ),
   new OperationsModuleProvider(),
   new SettingsModuleProvider({ deploymentName: config.PLATFORM_DEPLOYMENT_NAME }),
@@ -48,6 +55,7 @@ const app = await createPlatformApiApplication({
   stopRuntime: async () => {
     runtime.stop();
     await telemetry.stop();
+    await identityStore.close();
   },
 });
 installServerShutdownHandlers(createServerShutdown(app));

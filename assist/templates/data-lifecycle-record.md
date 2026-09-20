@@ -8,15 +8,23 @@
 
 ## Migrations
 
-| Order | ID  | Description | Fresh check | Upgrade check |
-| ----- | --- | ----------- | ----------- | ------------- |
-|       |     |             |             |               |
+List migrations in immutable execution order. Include the owner, stable ID,
+canonical checksum definition, SHA-256 checksum, compatibility effect, and
+rollback limit. Append new migrations; do not edit recorded entries.
+
+| Order | ID  | SHA-256 | Description | Fresh check | Upgrade check |
+| ----: | --- | ------- | ----------- | ----------- | ------------- |
+|       |     |         |             |             |               |
 
 ## Seeders
 
-| ID  | Description | Repeat-safe check |
-| --- | ----------- | ----------------- |
-|     |             |                   |
+List repeat-safe seeders in immutable execution order. Include the owner,
+stable ID, canonical checksum definition, SHA-256 checksum, and expected result
+after repeated execution.
+
+| Order | ID  | SHA-256 | Description | Repeat-safe check |
+| ----: | --- | ------- | ----------- | ----------------- |
+|       |     |         |             |                   |
 
 ## Compatibility
 

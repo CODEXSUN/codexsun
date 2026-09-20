@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@code
 import { ArrowLeftIcon, BotIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
 import { InfraTabScaffold, InfraTabs, type InfraShowTab } from "./infra-tabs";
-import { fetchInfra, fetchInfras, type OrshipInfraMetric, type OrshipInfraRecord } from "./infras-api";
+import { fetchDockerContainers, fetchDockerSnapshot, fetchInfra, fetchInfras, type DockerContainerSnapshot, type OrshipInfraMetric, type OrshipInfraRecord } from "./infras-api";
 import { InfrasUpsertPage } from "./infras-upsert";
 
 export type InfrasWorkspaceProps = {
@@ -69,7 +69,7 @@ function InfrasShowPage({ request, uuid, onBack, onCreate }: { request: typeof f
         </Button>
         {infra.isPending ? <StateMessage message="Loading infra details." /> : null}
         {infra.isError ? <StateMessage message="Infra record is unavailable." /> : null}
-        {infra.data ? <InfraDetails infra={infra.data} onCreate={onCreate} /> : null}
+        {infra.data ? <InfraDetails infra={infra.data} onCreate={onCreate} request={request} /> : null}
       </section>
     </main>
   );
@@ -117,9 +117,18 @@ function InfraCard({ infra, onSelect }: { infra: OrshipInfraRecord; onSelect: (u
   );
 }
 
-function InfraDetails({ infra, onCreate }: { infra: OrshipInfraRecord; onCreate: () => void }) {
+function InfraDetails({ infra, onCreate, request }: { infra: OrshipInfraRecord; onCreate: () => void; request: typeof fetch }) {
   const metrics = visibleMetrics(infra.metrics);
   const [activeTab, setActiveTab] = useState<InfraShowTab>("details");
+  const containers = useQuery({ queryKey: ["orship", "docker", "containers"], queryFn: () => fetchDockerContainers(request), refetchInterval: 10_000 });
+  const dockerContainer = containers.data?.find((container) => container.name === infra.detail.containerName);
+  const snapshot = useQuery({
+    enabled: Boolean(dockerContainer),
+    queryKey: ["orship", "docker", "snapshot", dockerContainer?.id],
+    queryFn: () => fetchDockerSnapshot(request, dockerContainer?.id ?? ""),
+    refetchInterval: 5_000,
+  });
+  const displayMetrics = snapshot.data ? liveMetrics(snapshot.data, infra.metrics) : metrics;
 
   return (
     <div className="grid gap-6">
@@ -129,16 +138,16 @@ function InfraDetails({ infra, onCreate }: { infra: OrshipInfraRecord; onCreate:
         <>
           <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]" aria-label="Infra status">
             <div className="grid gap-4 md:grid-cols-2">
-              {metrics.map((metric) => (
+              {displayMetrics.map((metric) => (
                 <MetricCard key={metric.label} metric={metric} />
               ))}
             </div>
-            <ContainerDetailsCard infra={infra} />
+            <ContainerDetailsCard infra={infra} snapshot={snapshot.data} />
           </section>
-          <ContainerLogsCard infra={infra} />
+          <ContainerLogsCard infra={infra} snapshot={snapshot.data} />
         </>
       ) : (
-        <InfraTabScaffold tab={activeTab} onCreate={onCreate} />
+        <InfraTabScaffold tab={activeTab} onCreate={onCreate} request={request} />
       )}
     </div>
   );
@@ -161,7 +170,9 @@ function MetricCard({ metric }: { metric: OrshipInfraMetric }) {
   );
 }
 
-function ContainerDetailsCard({ infra }: { infra: OrshipInfraRecord }) {
+function ContainerDetailsCard({ infra, snapshot }: { infra: OrshipInfraRecord; snapshot?: DockerContainerSnapshot }) {
+  const metrics = snapshot ? liveMetrics(snapshot, infra.metrics) : infra.metrics;
+  const status = snapshot?.container.state ?? infra.status;
   return (
     <Card>
       <CardHeader className="gap-3">
@@ -170,7 +181,7 @@ function ContainerDetailsCard({ infra }: { infra: OrshipInfraRecord }) {
             <CardDescription>Container details</CardDescription>
             <CardTitle className="mt-3 text-base">{infra.detail.containerName}</CardTitle>
           </div>
-          <StatusPill label={infra.status} />
+          <StatusPill label={status} />
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -180,10 +191,10 @@ function ContainerDetailsCard({ infra }: { infra: OrshipInfraRecord }) {
         </div>
         <MetricGrid
           items={[
-            ["CPU", infra.metrics.find((metric) => metric.label === "CPU usage")?.value ?? "0%"],
-            ["RAM", infra.metrics.find((metric) => metric.label === "Memory usage")?.value ?? "0 MB"],
-            ["Incoming traffic", infra.metrics.find((metric) => metric.label === "Incoming traffic")?.value ?? "0 GB"],
-            ["Outgoing traffic", infra.metrics.find((metric) => metric.label === "Outgoing traffic")?.value ?? "0 GB"],
+            ["CPU", metrics.find((metric) => metric.label === "CPU usage")?.value ?? "0%"],
+            ["RAM", metrics.find((metric) => metric.label === "Memory usage")?.value ?? "0 MB"],
+            ["Incoming traffic", metrics.find((metric) => metric.label === "Incoming traffic")?.value ?? "0 GB"],
+            ["Outgoing traffic", metrics.find((metric) => metric.label === "Outgoing traffic")?.value ?? "0 GB"],
             ["Root user", infra.detail.rootUser],
             ["Password", infra.detail.rootPasswordHidden],
             ["Connection", infra.detail.connectionStrength],
@@ -195,7 +206,8 @@ function ContainerDetailsCard({ infra }: { infra: OrshipInfraRecord }) {
   );
 }
 
-function ContainerLogsCard({ infra }: { infra: OrshipInfraRecord }) {
+function ContainerLogsCard({ infra, snapshot }: { infra: OrshipInfraRecord; snapshot?: DockerContainerSnapshot }) {
+  const logs = snapshot?.logs ?? infra.logs.map((log) => `[${log.time}] ${infra.detail.containerName}: [${log.level}] ${log.line}`);
   return (
     <Card>
       <CardHeader className="gap-4">
@@ -223,7 +235,7 @@ function ContainerLogsCard({ infra }: { infra: OrshipInfraRecord }) {
             <CopyIcon className="size-4 text-neutral-300" />
           </div>
           <pre className="max-h-80 overflow-auto whitespace-pre-wrap font-mono text-xs leading-5">
-            {infra.logs.map((log) => `[${log.time}] ${infra.detail.containerName}: [${log.level}] ${log.line}`).join("\n")}
+            {logs.join("\n")}
           </pre>
         </div>
       </CardContent>
@@ -313,4 +325,33 @@ function sparklinePoints(series: number[], width: number, height: number): strin
 function visibleMetrics(metrics: OrshipInfraMetric[]): OrshipInfraMetric[] {
   const labels = ["CPU usage", "Memory usage", "Outgoing traffic", "Disk usage"];
   return labels.flatMap((label) => metrics.find((metric) => metric.label === label) ?? []);
+}
+
+function liveMetrics(snapshot: DockerContainerSnapshot, fallback: OrshipInfraMetric[]): OrshipInfraMetric[] {
+  const byLabel = new Map(fallback.map((metric) => [metric.label, metric]));
+  const values: Array<[string, string, number?]> = [
+    ["CPU usage", `${snapshot.metrics.cpuPercent.toFixed(1)}%`, snapshot.metrics.cpuPercent],
+    ["Memory usage", `${formatBytes(snapshot.metrics.memoryUsageBytes)} / ${formatBytes(snapshot.metrics.memoryLimitBytes)}`, snapshot.metrics.memoryPercent],
+    ["Incoming traffic", formatBytes(snapshot.metrics.networkRxBytes)],
+    ["Outgoing traffic", formatBytes(snapshot.metrics.networkTxBytes)],
+    ["Disk usage", `Read ${formatBytes(snapshot.metrics.blockReadBytes)} / Write ${formatBytes(snapshot.metrics.blockWriteBytes)}`],
+  ];
+  return values.map(([label, value, percent]) => ({
+    label,
+    percent,
+    series: [...(byLabel.get(label)?.series ?? [0, 0]).slice(-10), percent ?? 0],
+    value,
+  }));
+}
+
+function formatBytes(value: number): string {
+  if (value < 1024) return `${value} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let amount = value;
+  let unit = -1;
+  while (amount >= 1024 && unit < units.length - 1) {
+    amount /= 1024;
+    unit += 1;
+  }
+  return `${amount.toFixed(amount >= 10 ? 0 : 1)} ${units[unit]}`;
 }

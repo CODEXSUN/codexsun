@@ -2,8 +2,24 @@ import { readLocalIdentityConfiguration } from "@codexsun/platform-core";
 import { config } from "dotenv";
 import { resolve } from "node:path";
 
-export function readConfig() {
-  config({ path: resolve(process.cwd(), "../../../.env") });
+type ZunoConfig = ReturnType<typeof readLocalIdentityConfiguration> & {
+  readonly apiReferenceToken: string;
+  readonly cxforgeClientKey: string;
+  readonly cxforgeUrl: string;
+  readonly dataRoot: string;
+  readonly githubApiUrl: string;
+  readonly githubToken: string | undefined;
+  readonly handoffDatabasePath: string;
+  readonly host: string;
+  readonly port: number;
+  readonly repositoryRoot: string;
+  readonly zetroClientKey: string;
+};
+
+export function readConfig(): ZunoConfig {
+  const repositoryRoot = resolve(process.env.ZUNO_REPOSITORY_ROOT?.trim() || resolve(process.cwd(), "../../.."));
+  const dataRoot = resolve(process.env.ZUNO_DATA_ROOT?.trim() || resolve(repositoryRoot, "storage/apps/zuno/private/data"));
+  config({ path: resolve(repositoryRoot, ".env") });
   config({ path: resolve(process.cwd(), ".app.env"), override: true });
   const port = Number(process.env.ZUNO_API_PORT);
   if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("Set ZUNO_API_PORT to a valid port.");
@@ -14,7 +30,18 @@ export function readConfig() {
   const cxforgeUrl = readUrl(process.env.ZUNO_CXFORGE_API_URL, "ZUNO_CXFORGE_API_URL");
   const cxforgeClientKey = process.env.ZUNO_CXFORGE_CLIENT_KEY;
   if (!cxforgeClientKey || cxforgeClientKey.length < 32) throw new Error("Set ZUNO_CXFORGE_CLIENT_KEY to a value with at least 32 characters.");
-  return { apiReferenceToken, cxforgeClientKey, cxforgeUrl, host, port, ...readLocalIdentityConfiguration(process.env, { applicationId: "zuno", databasePath: resolve(process.cwd(), "../../../storage/apps/zuno/private/data/zuno_db.sqlite") }) };
+  const githubApiUrl = readEndpoint(process.env.ZUNO_GITHUB_API_URL ?? "https://api.github.com", "ZUNO_GITHUB_API_URL");
+  const githubToken = process.env.ZUNO_GITHUB_TOKEN?.trim() || undefined;
+  const zetroClientKey = readServiceKey(process.env.ZUNO_ZETRO_CLIENT_KEY, "ZUNO_ZETRO_CLIENT_KEY");
+  return { apiReferenceToken, cxforgeClientKey, cxforgeUrl, dataRoot, githubApiUrl, githubToken, handoffDatabasePath: resolve(dataRoot, "zuno_handoffs.sqlite"), host, port, repositoryRoot, zetroClientKey, ...readLocalIdentityConfiguration(process.env, { applicationId: "zuno", databasePath: resolve(dataRoot, "zuno_db.sqlite") }) };
+}
+
+function readEndpoint(value: string, key: string): string {
+  try {
+    return new URL(value).toString().replace(/\/$/u, "");
+  } catch {
+    throw new Error(`Set ${key} to a valid URL.`);
+  }
 }
 
 function readUrl(value: string | undefined, key: string): string {
@@ -23,4 +50,10 @@ function readUrl(value: string | undefined, key: string): string {
   } catch {
     throw new Error(`Set ${key} to a valid URL.`);
   }
+}
+
+function readServiceKey(value: string | undefined, key: string): string {
+  const resolved = value?.trim() || (process.env.APP_MODE === "production" ? "" : "development-zetro-zuno-client-key");
+  if (resolved.length < 32) throw new Error(`Set ${key} to a value with at least 32 characters.`);
+  return resolved;
 }

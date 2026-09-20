@@ -1,14 +1,14 @@
 {
   "name": "@codexsun/zetro-web",
-  "version": "1.0.28",
+  "version": "1.0.31",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --configLoader runner",
     "check": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
-    "test": "tsx --test src/chat-api.test.ts"
+    "test": "tsx --test src/chat-api.test.ts src/brief-autofill.test.ts"
   },
   "dependencies": {
     "@codexsun/ui": "file:../../../packages/ui",

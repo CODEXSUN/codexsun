@@ -33,20 +33,24 @@
 
 ### 0.2 Finish the foundation
 
-- [ ] `QC-0010` Confirm platform contracts for identity, tenancy, storage, audit, device trust, sync, and delivery.
+- [x] `QC-0010` Confirm platform contracts for identity, tenancy, storage, audit, device trust, sync, and delivery.
   - Acceptance: each external dependency has an owner, public contract, and failure behavior.
 - [x] `QC-0011` Register Q Cafe module manifests for foundation, menu, POS, kitchen, booking, inventory, billing, and devices.
   - Acceptance: no Q Cafe module imports another module's private store or table.
 - [x] `QC-0012` Add a Q Cafe database provider, migration runner, and transaction boundary.
-  - Acceptance: a clean install and repeated migration run both pass.
-- [ ] `QC-0013` Add the business, location, business-day, service-channel, and number-sequence records.
+  - Acceptance: `DB_DRIVER` switches SQLite and MariaDB, storage paths are explicit, serial SHA-verified migrations and seeders are recorded, and both database smoke checks pass.
+- [x] `QC-0013` Add the business, location, business-day, service-channel, and number-sequence records.
   - Acceptance: one business can operate multiple locations without duplicate setup data.
-- [ ] `QC-0014` Add Q Cafe activity events and structured audit references.
+- [x] `QC-0014` Add Q Cafe activity events and structured audit references.
   - Acceptance: every state-changing command has an actor, subject, event type, and correlation identifier.
+- [x] `QC-0015` Add database diagnostics, cloud-sync policy, and connector settings pages.
+  - Acceptance: Settings exposes dedicated database, cloud-sync, and connector pages without exposing or storing secret values.
 
 ## Phase 1: Menu and Outlet Setup
 
-- [ ] `QC-0101` Add category, item, variant, price book, and effective menu price records.
+- [x] `QC-0100` Add the complete M01-M15 Menu schema as an append-only migration.
+  - Acceptance: `qcafe.menu.002` enriches the original catalog records and creates campaigns, modifiers, media metadata, availability, and allergen records on SQLite and MariaDB with a verified SHA lifecycle record.
+- [x] `QC-0101` Add category, item, variant, price book, and effective menu price records.
   - Acceptance: the API selects an effective price by location, channel, and date.
 - [ ] `QC-0102` Add menu image metadata through Platform Storage.
   - Acceptance: the API stores an object reference and checksum, not image binary data.
@@ -175,8 +179,9 @@
 
 ## Work First
 
-1. Start `QC-0010` and approve Q Cafe's platform contracts.
-2. Complete `QC-0012` through `QC-0014` before application data work.
-3. Complete Phase 1 before the POS UI becomes interactive.
-4. Complete Phase 2 before KOT, booking, payment, or printing work.
-5. Complete Phase 4 before advance vouchers, event deposits, or accounting work.
+1. Implement `QC-0102` against the migrated M11-M12 media tables and Platform Storage contract.
+2. Implement `QC-0103` against M13, then expose M08-M10 modifiers and M14-M15 allergens through manager contracts.
+3. Complete manager validation and focused tests in `QC-0104` through `QC-0105`.
+4. Complete Phase 1 before the POS UI becomes interactive.
+5. Complete Phase 2 before KOT, booking, payment, or printing work.
+6. Complete Phase 4 before advance vouchers, event deposits, or accounting work.

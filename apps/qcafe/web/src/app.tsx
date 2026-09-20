@@ -6,6 +6,7 @@ import { IdentityManagementDesk } from "@codexsun/ui/blocks/auth/identity-manage
 import { LayoutDashboardIcon, ShieldCheckIcon, WrenchIcon } from "lucide-react";
 import { createQcafeNavigation, getQcafePages, QcafeWorkspaceView } from "./qcafe-workspace";
 import { readWorkspace, type QcafePageId } from "./qcafe-api";
+import { QcafeSettingsWorkspace } from "./settings-workspace";
 
 export function App() {
   const [location, setLocation] = useState(readLocation);
@@ -52,32 +53,75 @@ function QcafeAuthenticated({
   logout: () => void;
   onNavigate: (path: string) => void;
 }) {
-  if (portal === "super-admin") return <IdentityManagementDesk applicationId="qcafe" applicationName="Q Cafe" logout={logout} request={request} />;
+  if (portal === "super-admin")
+    return <IdentityManagementDesk applicationId="qcafe" applicationName="Q Cafe" logout={logout} request={request} />;
   if (portal === "admin") return <QcafePrivilegedDesk portal={portal} logout={logout} />;
   useEffect(() => {
     if (pathnameOf(location) === "/login") onNavigate("/overview");
   }, [location, onNavigate]);
 
   if (pathnameOf(location) === "/login") return null;
-  return <QcafeDesk activePageId={pageFromLocation(location)} request={request} logout={logout} onNavigate={onNavigate} />;
+  return (
+    <QcafeDesk activePageId={pageFromLocation(location)} request={request} logout={logout} onNavigate={onNavigate} />
+  );
 }
 
 function QcafePrivilegedDesk({ portal, logout }: { portal: "admin" | "super-admin"; logout: () => void }) {
   const navigation = portal === "super-admin" ? superAdminNavigation() : adminNavigation();
   const title = portal === "super-admin" ? "Q Cafe Super Admin Desk" : "Q Cafe Admin Desk";
-  const description = portal === "super-admin"
-    ? "Maintenance, platform controls, and higher-end operational reports."
-    : "Manager controls, approvals, and operational reports.";
-  useEffect(() => { document.title = `${title}`; }, [title]);
-  return <MainWorkspace applicationId="qcafe" applicationName="Q Cafe" navigation={navigation} primaryAction={null} user={{ initials: portal === "super-admin" ? "SA" : "A", name: portal === "super-admin" ? "Super administrator" : "Administrator", onSignOut: logout }} workspaceTitle={title}><main className="p-6"><h1 className="text-lg font-semibold">{title}</h1><p className="mt-1 text-sm text-muted-foreground">{description}</p></main></MainWorkspace>;
+  const description =
+    portal === "super-admin"
+      ? "Maintenance, platform controls, and higher-end operational reports."
+      : "Manager controls, approvals, and operational reports.";
+  useEffect(() => {
+    document.title = `${title}`;
+  }, [title]);
+  return (
+    <MainWorkspace
+      applicationId="qcafe"
+      applicationName="Q Cafe"
+      navigation={navigation}
+      primaryAction={null}
+      user={{
+        initials: portal === "super-admin" ? "SA" : "A",
+        name: portal === "super-admin" ? "Super administrator" : "Administrator",
+        onSignOut: logout,
+      }}
+      workspaceTitle={title}
+    >
+      <main className="p-6">
+        <h1 className="text-lg font-semibold">{title}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      </main>
+    </MainWorkspace>
+  );
 }
 
 function adminNavigation(): MdiNavigationSection[] {
-  return [{ items: [{ active: true, icon: LayoutDashboardIcon, label: "Overview" }], label: "Desk" }, { items: [{ icon: ShieldCheckIcon, label: "Approvals" }, { icon: LayoutDashboardIcon, label: "Reports" }], label: "Administration" }];
+  return [
+    { items: [{ active: true, icon: LayoutDashboardIcon, label: "Overview" }], label: "Desk" },
+    {
+      items: [
+        { icon: ShieldCheckIcon, label: "Approvals" },
+        { icon: LayoutDashboardIcon, label: "Reports" },
+      ],
+      label: "Administration",
+    },
+  ];
 }
 
 function superAdminNavigation(): MdiNavigationSection[] {
-  return [{ items: [{ active: true, icon: LayoutDashboardIcon, label: "Overview" }], label: "Maintenance" }, { items: [{ icon: WrenchIcon, label: "System maintenance" }, { icon: ShieldCheckIcon, label: "Access audit" }, { icon: LayoutDashboardIcon, label: "Higher-end reports" }], label: "Platform" }];
+  return [
+    { items: [{ active: true, icon: LayoutDashboardIcon, label: "Overview" }], label: "Maintenance" },
+    {
+      items: [
+        { icon: WrenchIcon, label: "System maintenance" },
+        { icon: ShieldCheckIcon, label: "Access audit" },
+        { icon: LayoutDashboardIcon, label: "Higher-end reports" },
+      ],
+      label: "Platform",
+    },
+  ];
 }
 
 function QcafeDesk({
@@ -92,6 +136,7 @@ function QcafeDesk({
   onNavigate: (path: string) => void;
 }) {
   const workspace = useQuery({ queryKey: ["qcafe", "workspace"], queryFn: () => readWorkspace(request) });
+  const [settingsPageLabel, setSettingsPageLabel] = useState<string>();
   const pages = getQcafePages(workspace.data);
   const activePage = pages.find((page) => page.id === activePageId) ?? pages[0];
   const navigation = useMemo(
@@ -100,7 +145,9 @@ function QcafeDesk({
   );
   const connectionState = workspace.isPending ? "connecting" : workspace.isError ? "failed" : "connected";
 
-  useEffect(() => { document.title = `Q Cafe | ${activePage?.label ?? "Overview"}`; }, [activePage?.label]);
+  useEffect(() => {
+    document.title = `Q Cafe | ${settingsPageLabel ?? activePage?.label ?? "Overview"}`;
+  }, [activePage?.label, settingsPageLabel]);
 
   return (
     <MainWorkspace
@@ -110,18 +157,44 @@ function QcafeDesk({
       navigation={navigation}
       primaryAction={null}
       searchPlaceholder="Search Q Cafe"
+      settingsContent={({ features, onBack, onFeatureChange }) => (
+        <QcafeSettingsWorkspace
+          features={features}
+          onBack={onBack}
+          onFeatureChange={onFeatureChange}
+          onPageChange={setSettingsPageLabel}
+          request={request}
+        />
+      )}
       sidebarStateKey="codexsun.qcafe.sidebar"
       statusLabel={connectionState === "connected" ? "API ready" : "Connecting"}
-      workspaceTitle={activePage?.label ?? "Overview"}
+      workspaceTitle={settingsPageLabel ?? activePage?.label ?? "Overview"}
     >
-      <QcafeWorkspaceView activePageId={activePageId} connectionState={connectionState} workspace={workspace.data} />
+      <QcafeWorkspaceView
+        activePageId={activePageId}
+        connectionState={connectionState}
+        request={request}
+        workspace={workspace.data}
+      />
     </MainWorkspace>
   );
 }
 
 function QcafeHome({ onLogin }: { onLogin: () => void }) {
-  useEffect(() => { document.title = "Q Cafe | Home"; }, []);
-  return <main className="grid min-h-svh place-items-center bg-muted p-6"><section className="max-w-md rounded-lg border bg-background p-8 shadow-sm"><h1 className="text-2xl font-semibold">Q Cafe</h1><p className="mt-2 text-sm text-muted-foreground">Restaurant operations desk for your team.</p><button className="mt-6 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground" onClick={onLogin}>Log in</button></section></main>;
+  useEffect(() => {
+    document.title = "Q Cafe | Home";
+  }, []);
+  return (
+    <main className="grid min-h-svh place-items-center bg-muted p-6">
+      <section className="max-w-md rounded-lg border bg-background p-8 shadow-sm">
+        <h1 className="text-2xl font-semibold">Q Cafe</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Restaurant operations desk for your team.</p>
+        <button className="mt-6 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground" onClick={onLogin}>
+          Log in
+        </button>
+      </section>
+    </main>
+  );
 }
 
 function navigate(path: string, setLocation: (location: string) => void): void {
@@ -135,7 +208,8 @@ function pathFromPage(page: QcafePageId): string {
 
 function pageFromLocation(location: string): QcafePageId {
   const pathname = pathnameOf(location);
-  if (pathname === "/pos" || pathname === "/kot" || pathname === "/booking") return pathname.slice(1) as QcafePageId;
+  if (pathname === "/setup" || pathname === "/menu" || pathname === "/pos" || pathname === "/kot" || pathname === "/booking")
+    return pathname.slice(1) as QcafePageId;
   return "overview";
 }
 

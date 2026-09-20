@@ -40,7 +40,9 @@
     ],
     "qcafe": [
       "platform.core",
-      "qcafe.foundation"
+      "qcafe.foundation",
+      "qcafe.menu",
+      "qcafe.settings"
     ],
     "crm": [
       "platform.core",
@@ -69,7 +71,8 @@
     ],
     "zuno": [
       "platform.core",
-      "zuno.foundation"
+      "zuno.foundation",
+      "zuno.handoff"
     ]
   }
 }

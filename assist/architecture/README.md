@@ -12,6 +12,10 @@ Read the [application catalog](application-catalog.md) for host and add-on selec
 
 Read the [contracts and events guide](contracts-and-events.md) for public integration rules.
 
+Read the [shared capabilities guide](shared-capabilities.md) for cross-application provider ports and their implementation boundaries.
+
+Read the [deployment database topology](deployment-database-topology.md) for master and application database ownership.
+
 ## Repository layout
 
 - `apps/` contains independently deployable applications.

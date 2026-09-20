@@ -72,6 +72,8 @@ The API health route is `/api/v1/orship/health`.
 
 The web host composes the shared workspace from `@codexsun/ui`.
 
+The Go Docker manager lives in `apps/orship/docker` and runs as a private service in the local compose stack.
+
 ## Starting Task
 
 Build Orship from its current foundation into an operations workspace.
@@ -155,6 +157,9 @@ npm.cmd run dev:orship-web
 - `apps/orship/VERSION` owns the Orship development version; the root `package.json` owns the global repository release version.
 - The web status bar shows the Orship development version at its right edge.
 - `orship-update.sh` reads `apps/orship/VERSION`, rebuilds, and recreates the local Docker stack for live updates.
+- The Go Docker manager reads container state and handles start, stop, and restart through the mounted Docker Engine socket; authenticated API routes proxy requests to it.
+- The Go Docker manager includes the CXApp-derived MariaDB sample lifecycle. It creates `orship-mariadb-sample` on the external `codexsun-network`, with install, drop, and reinstall routes exposed through the Orship API. The sample definition lives in `apps/orship/docker/samples/mariadb.json` and uses host port `3308`.
+- The Docker manager has no published host port. Its token is shared only by the manager and Orship API.
 - Docker live updates must run through `orship-update.sh`. The agent watches and maintains this local update path only; do not change VPS or production state without user approval.
 - The container smoke path is: web home, health, development login, list infras, create infra, show infra.
 - The Docker build stage defines non-secret `VITE_*_WEB_URL` local ports so shared MDI navigation can render inside the Orship web container without copying root `.env`.

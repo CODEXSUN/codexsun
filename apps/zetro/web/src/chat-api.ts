@@ -70,6 +70,11 @@ export async function listAgentTasks(): Promise<ZetroAgentTask[]> {
   return zetroAgentTaskListResponseSchema.parse(await read(response)).data.tasks;
 }
 
+export async function deliverAgentTask(id: string): Promise<ZetroAgentTask> {
+  const response = await request(`/api/zetro/v1/tasks/${id}/deliver`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  return zetroAgentTaskResponseSchema.parse(await read(response)).data.task;
+}
+
 export async function deleteConversation(id: string): Promise<void> {
   const response = await request(`${conversationUrl}/${id}`, { method: "DELETE" });
   if (!response.ok) throw new Error(`Zetro could not delete this conversation (${response.status}).`);

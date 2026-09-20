@@ -1,6 +1,55 @@
 name: orship
 
 services:
+  mariadb:
+    build:
+      context: ../docker/mariadb
+      dockerfile: Dockerfile
+      args:
+        MARIADB_VERSION: ${ORSHIP_MARIADB_VERSION:-11.8}
+    image: ${ORSHIP_MARIADB_IMAGE:-orship/mariadb:11.8}
+    container_name: orship-database
+    environment:
+      MARIADB_ROOT_PASSWORD: ${ORSHIP_MARIADB_ROOT_PASSWORD:-change-this-root-password}
+      MARIADB_ROOT_HOST: "%"
+      MARIADB_DATABASE: ${ORSHIP_MARIADB_DATABASE:-orship_db}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    ports:
+      - "${ORSHIP_MARIADB_BIND_ADDRESS:-127.0.0.1}:${ORSHIP_MARIADB_HOST_PORT:-3309}:3306"
+    networks:
+      - default
+      - runtime
+    restart: unless-stopped
+    volumes:
+      - orship-database-data:/var/lib/mysql
+      - orship-database-backups:/backups
+
+  docker-manager:
+    build:
+      context: ../../..
+      dockerfile: apps/orship/.container/Dockerfile
+      target: docker-manager
+    container_name: orship-docker-manager
+    environment:
+      ORSHIP_DOCKER_ADDRESS: :6302
+      ORSHIP_DOCKER_SOCKET: /var/run/docker.sock
+      ORSHIP_DOCKER_TOKEN: ${ORSHIP_DOCKER_TOKEN:-orship-local-docker-token}
+      ORSHIP_MARIADB_SAMPLE_ROOT_PASSWORD: ${ORSHIP_MARIADB_SAMPLE_ROOT_PASSWORD:-orship_sample_root_password}
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/orship-docker", "healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
   api:
     build:
       context: ../../..
@@ -15,6 +64,14 @@ services:
       PLATFORM_JWT_SECRET: ${PLATFORM_JWT_SECRET:-orship-local-jwt-secret-change-before-production}
       ORSHIP_API_PORT: 6300
       ORSHIP_API_REFERENCE_TOKEN: ${ORSHIP_API_REFERENCE_TOKEN:-orship-local-reference-token}
+      ORSHIP_DOCKER_MANAGER_URL: http://docker-manager:6302
+      ORSHIP_DOCKER_TOKEN: ${ORSHIP_DOCKER_TOKEN:-orship-local-docker-token}
+      DATABASE_URL: mysql://root:${ORSHIP_MARIADB_ROOT_PASSWORD:-change-this-root-password}@orship-database:3306/${ORSHIP_MARIADB_DATABASE:-orship_db}
+      ORSHIP_MARIADB_CONTAINER_NAME: orship-database
+      ORSHIP_MARIADB_DATABASE: ${ORSHIP_MARIADB_DATABASE:-orship_db}
+      ORSHIP_MARIADB_HOST_PORT: ${ORSHIP_MARIADB_HOST_PORT:-3309}
+      ORSHIP_MARIADB_IMAGE: ${ORSHIP_MARIADB_IMAGE:-orship/mariadb:11.8}
+      ORSHIP_MARIADB_NETWORK: ${ORSHIP_MARIADB_NETWORK:-codexsun-network}
       ORSHIP_WEB_ORIGIN: ${ORSHIP_WEB_ORIGIN:-http://127.0.0.1:6301}
       IDENTITY_LOGIN_MAX_FAILURES: "5"
       IDENTITY_LOGIN_WINDOW_SECONDS: "900"
@@ -43,6 +100,14 @@ services:
       start_period: 10s
     ports:
       - "${ORSHIP_API_PUBLISHED_PORT:-6300}:6300"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      docker-manager:
+        condition: service_healthy
+    networks:
+      - default
+      - runtime
     restart: unless-stopped
     volumes:
       - orship-storage:/workspace/storage
@@ -69,4 +134,11 @@ services:
     restart: unless-stopped
 
 volumes:
+  orship-database-data:
+  orship-database-backups:
   orship-storage:
+
+networks:
+  runtime:
+    name: ${ORSHIP_MARIADB_NETWORK:-codexsun-network}
+    external: true

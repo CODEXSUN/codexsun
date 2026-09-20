@@ -49,6 +49,18 @@ Read `planning.md` before work starts.
     tests passed. Live verification created a final brief with one source UUID
     and a prepared task scoped to `codexsun`.
 
+- [x] Z-1206: Final Brief Readiness and Zuno Delivery
+  - Status: complete on 2026-09-20.
+  - Owners: `packages/zetro-contracts`, `apps/zetro/api/modules/task`,
+    `apps/zuno/api/modules/handoff`, and the shared handover workspace.
+  - Delivered: API-enforced final-brief readiness, a versioned handoff package,
+    service-key authentication, idempotent Zuno intake, durable delivery state,
+    retry support, and a Zuno receipt in the Zetro task view.
+  - Boundary: Zuno accepts the package but does not dispatch it during intake.
+    Repository validation, approval, execution, and merge stay outside Zetro.
+  - Verification: contract, Zetro API, Zetro web, Zuno API, and shared UI checks
+    and tests pass.
+
 ## Completion Rule
 
 Mark a task complete only after its acceptance criteria and named verification

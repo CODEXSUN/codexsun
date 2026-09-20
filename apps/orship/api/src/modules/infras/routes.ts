@@ -1,6 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import type { InfrasStore } from "./infras-store.js";
+import type { CreateInfraInput, OrshipInfraRecord } from "./infras-store.js";
+
+type InfrasStorePort = {
+  create(input: CreateInfraInput): OrshipInfraRecord | Promise<OrshipInfraRecord>;
+  get(uuid: string): OrshipInfraRecord | undefined | Promise<OrshipInfraRecord | undefined>;
+  list(): OrshipInfraRecord[] | Promise<OrshipInfraRecord[]>;
+};
 
 const infraDetailSchema = z.object({
   connectionStrength: z.string(),
@@ -36,7 +42,7 @@ const infraSchema = z.object({
   logs: z.array(infraLogSchema),
   metrics: z.array(infraMetricSchema),
   name: z.string(),
-  status: z.literal("running"),
+  status: z.string(),
   summary: z.string(),
   uuid: z.string().uuid(),
 });
@@ -53,11 +59,11 @@ const createInfraSchema = z.object({
   summary: z.string().min(1),
 });
 
-export async function registerInfrasRoutes(app: FastifyInstance, store: InfrasStore): Promise<void> {
+export async function registerInfrasRoutes(app: FastifyInstance, store: InfrasStorePort): Promise<void> {
   app.get(
     "/api/v1/orship/infras",
     { schema: { response: { 200: z.object({ infras: z.array(infraSchema) }) }, tags: ["Infras"] } },
-    async () => ({ infras: store.list() }),
+    async () => ({ infras: await store.list() }),
   );
 
   app.post(
@@ -71,7 +77,7 @@ export async function registerInfrasRoutes(app: FastifyInstance, store: InfrasSt
     },
     async (request, reply) => {
       const input = createInfraSchema.parse(request.body);
-      return reply.code(201).send({ infra: store.create(input) });
+      return reply.code(201).send({ infra: await store.create(input) });
     },
   );
 
@@ -86,7 +92,7 @@ export async function registerInfrasRoutes(app: FastifyInstance, store: InfrasSt
     },
     async (request, reply) => {
       const { uuid } = request.params as { uuid: string };
-      const infra = store.get(uuid);
+      const infra = await store.get(uuid);
       if (!infra) return reply.code(404).send({ error: "Infra record not found.", code: "infras.not_found" });
       return { infra };
     },

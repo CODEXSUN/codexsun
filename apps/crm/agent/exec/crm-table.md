@@ -1,400 +1,287 @@
-# CRM Local-First Table Plan
+# CRM Table Plan
 
 ## 1. Planning Boundary
 
 | Item | Decision |
 | --- | --- |
 | Purpose | Plan CRM tables before any migration, API, or UI code. |
-| Source review | Use the moved plan in `apps/crm/agent/exec/crm-table.md` and the developed app under `apps/temp/crm`. |
-| Current app behavior | The temp app reads and writes CRM records through live Frappe gateways. |
-| Target behavior | CRM stores records locally first, then posts to Frappe when the live connection is available. |
-| Scope | Sales CRM, service CRM, enquiry workflow, leads, campaigns, pipeline, forecasts, quotations, estimates, contracts, field service, reporting, import, automation, and Frappe sync. |
-| Excluded work | No code, migration file, API route, UI, generated schema, or data movement in this document. |
-| Owner rule | CRM owns CRM product data under `apps/crm`. |
-| Identity rule | Platform Identity owns users. CRM stores actor IDs and Frappe actor links only. |
-| Audit rule | Platform Operations can own global audit. CRM stores business status history and sync logs. |
-| Tenant rule | Do not add `tenant_id` until a tenant decision record exists. |
-| Organization rule | Support multiple users, teams, queues, branches, territories, and customer organizations now. |
-| Frappe rule | Do not write directly to Frappe without a committed local CRM record and a sync outbox entry. |
+| Product scope | Build a complete local CRM for sales, service, field work, collection, quality, AI help, and CRM-linked HR duty. |
+| Main workflow | Campaign to lead to enquiry to estimate to quotation to assignment to field work to collection to verification. |
+| App boundary | CRM owns product tables under `apps/crm`. |
+| Identity boundary | Platform Identity owns users, roles, login, and global permissions. CRM stores actor IDs only. |
+| Messaging boundary | CRM stores customer communication records. Shared chat infrastructure can deliver messages later. |
+| Notification boundary | CRM raises CRM events. The platform can deliver push, email, or in-app alerts. |
+| AI boundary | CRM stores assistant runs and approved outputs. The assistant does not own CRM records. |
+| HR boundary | CRM stores duty, attendance links, and performance data needed for service delivery only. |
+| Tenant boundary | Do not add tenant fields until a tenant decision record exists. |
+| No external dependency | Do not require any live external system for the first CRM data model. |
 
-## 2. Developed App Findings
+## 2. Table Group Review
 
-| Area In `apps/temp/crm` | Current Tables Or Types | Current Source Of Truth | New CRM Decision | Why | Pros |
-| --- | --- | --- | --- | --- | --- |
-| Identity | `users`, `roles`, `permissions`, `user_roles`, `role_permissions` | Local platform database | Do not copy into CRM. Reference Platform actor IDs. | CRM must not own identity. | Keeps permissions reusable across apps. |
-| User Frappe mapping | Frappe fields on `users` | Local platform database plus Frappe verification | Move to a CRM or integration actor-link table that references platform actors. | CRM needs Employee/User mapping for posting. | Keeps Frappe details out of product records. |
-| Notifications | `notifications`, `notification_outbox`, `notification_device_tokens` | Local platform database | Treat as platform dependency. CRM emits events. | Notifications are cross-module. | Avoids duplicate notification tables. |
-| Messaging | `conversations`, `conversation_members`, `messages`, `message_receipts`, `message_reactions` | Local platform database | Treat as platform or collaboration dependency. Link CRM records if needed. | Chat is not CRM-owned data. | Reuses real-time messaging. |
-| Assistant | `ai_honey_threads`, `ai_honey_messages`, `ai_honey_skills`, `ai_honey_settings` | Local platform database | Do not include in CRM migration order. | Assistant is separate product support. | Keeps CRM schema focused. |
-| Enquiry | `CrmEnquiry` types and Frappe gateway | Live Frappe | Create local `crm_enquiries` and child tables first. | Enquiries are the main CRM work item. | Offline and local workflow become possible. |
-| Enquiry messages | Frappe child doctype `Enquiry Message` | Live Frappe | Create local `crm_enquiry_messages`. | Comments and replies must survive offline use. | Reliable team collaboration. |
-| Job execution | Frappe doctype `Job Execution` | Live Frappe | Create local `crm_job_executions`. | Service work and cost must be local before posting. | Supports mobile job start and stop. |
-| Customers and suppliers | Frappe doctypes `Customer` and `Supplier` | Live Frappe | Create local parties and keep Frappe references. | Enquiries, estimates, and quotations need party lookup. | Supports local customer 360. |
-| Enquiry setup | Frappe doctypes `Enquiry Group` and `Enquiry Status` | Live Frappe | Create local setup tables with optional Frappe import. | Status and group drive workflow. | Admin can work without live Frappe. |
-| Estimates | Frappe doctype `Estimate` | Live Frappe | Create local `crm_estimates`. | Purchase or vendor cost estimates belong to CRM workflow. | Local quote preparation becomes possible. |
-| Quotations | Frappe doctype `Quotation` and child items | Live Frappe | Create local `crm_quotations` and `crm_quotation_items`. | Quotes must be local before live posting. | Controlled sales workflow. |
-| HR staff requests | Frappe staff request gateway | Live Frappe | Keep outside CRM core or create optional support tables later. | This is staff operations, not core CRM. | Avoids bloating Phase 1. |
-| SOP duties | Frappe SOP duty gateway | Live Frappe | Keep outside CRM core unless service delivery needs it. | This is operations workflow. | CRM launch stays focused. |
+| Group | Keep | Add | Why |
+| --- | --- | --- | --- |
+| Campaign and lead | Campaign, lead, source, score, status history | Campaign cost, campaign member, duplicate review | This starts the funnel and supports attribution. |
+| Customer 360 | Account, contact, address, contact method | Preference, consent, duplicate set | Sales and service need one customer view. |
+| Enquiry | Enquiry, note, message, assignment, schedule, attachment, activity | Priority, SLA, commitment, timeline event | The enquiry is the main work record. |
+| Communication | Call, email, SMS, WhatsApp, chat app records | Template, send attempt, delivery receipt, consent | Customer interaction must be auditable. |
+| Supplier estimate | Supplier, estimate request, estimate line | Comparison, selection, supplier commitment | Quotation needs real cost and availability. |
+| Quotation | Quotation, line, tax, discount, terms | Version, approval, send record, response | Sales teams need controlled quote history. |
+| Assignment and schedule | Assignment, queue, team, duty roster | Follow-up queue, workload snapshot, escalation | Assigner and assignee work must scale. |
+| Field service | Work order, task, appointment, check-in, check-out | Location record, proof, part use, issue, revisit | Service teams need site proof and completion control. |
+| Collection | Collection plan, promise, attempt, payment record | Balance snapshot, escalation | Teams need payment commitments and recovery work. |
+| Completion and quality | Verification, checklist, outcome, reopen | Recording metadata, review score, coaching action | Closed work needs proof and review. |
+| AI assistant | Assistant session, request, suggestion, approval | Draft reply, quote helper, follow-up helper | AI should help users, not replace approval. |
+| CRM-linked HR | Staff profile reference, skill, duty, attendance link | Performance metric, duty exception | Field service needs capacity and duty control. |
+| Reports and admin | Saved view, report snapshot, metric snapshot | Automation rule, custom field, picklist, layout | Large CRM teams need configuration later. |
 
-## 3. Local-First Frappe Flow
+## 3. Shared Field Groups
 
-| Step | Local Action | Frappe Action | Required Table Support | Failure Behavior | Why |
-| --- | --- | --- | --- | --- | --- |
-| 1 | User creates or edits a CRM record locally. | None yet. | Product table and status history. | Local save succeeds if validation passes. | Local CRM must work without live Frappe. |
-| 2 | CRM writes a sync item. | None yet. | `crm_sync_outbox`. | Item stays pending. | Sync is durable and retryable. |
-| 3 | Sync worker reads pending item. | Posts to Frappe if enabled. | `crm_frappe_connections`, `crm_frappe_actor_links`. | Item retries with backoff. | Frappe is a live target, not the first write. |
-| 4 | Frappe returns a name and modified time. | Record exists or updates in Frappe. | `crm_external_references`. | Save failure details for review. | Local and Frappe records stay mapped. |
-| 5 | CRM stores sync result. | None. | `crm_sync_attempts`, sync fields on product tables. | Mark conflict or failed after policy limit. | Operations can fix bad data. |
-| 6 | Optional live refresh imports changes. | Pulls Frappe deltas. | `crm_import_batches`, `crm_import_rows`. | Stage conflicts instead of overwriting local edits. | Existing Frappe data can seed CRM safely. |
-
-## 4. Frappe Compatibility Contract
-
-| Frappe Concept | Frappe Doctype Or Endpoint | Local Table | Required Mapping Fields | Direction | Notes |
-| --- | --- | --- | --- | --- | --- |
-| Enquiry | `Enquiry` | `crm_enquiries` | `frappe_name`, `frappe_modified_at`, `frappe_last_synced_at` | Local to Frappe, then refresh | Main work record. |
-| Enquiry message | `Enquiry Message` child rows | `crm_enquiry_messages` | `frappe_name`, `parent_frappe_name`, `parent_message_frappe_name` | Local to Frappe | Supports comments and replies. |
-| Job execution | `Job Execution` | `crm_job_executions` | `frappe_name`, `enquiry_frappe_name` | Local to Frappe | Supports start, stop, cost, and status. |
-| Customer | `Customer` | `crm_parties` or `crm_accounts` | `frappe_name`, `party_type` | Import and reference, optional create later | Used by enquiry and quotation. |
-| Supplier | `Supplier` | `crm_parties` | `frappe_name`, `party_type` | Import and reference, optional create later | Used by estimates. |
-| Employee | `Employee` | `crm_frappe_actor_links` | `actor_id`, `frappe_employee_code`, `frappe_user` | Verify and refresh | Required for assignment and job execution. |
-| Enquiry group | `Enquiry Group` | `crm_enquiry_groups` | `frappe_name` | Import and local edit | Drives enquiry classification. |
-| Enquiry status | `Enquiry Status` | `crm_enquiry_statuses` | `frappe_name`, `status_group` | Import and local edit | Drives workflow. |
-| Estimate | `Estimate` | `crm_estimates` | `frappe_name` | Local to Frappe | Supplier cost record. |
-| Quotation | `Quotation` | `crm_quotations` | `frappe_name` | Local to Frappe | Customer offer record. |
-| Quotation item | Quotation child item | `crm_quotation_items` | `frappe_name` | Local to Frappe | One or more quote lines. |
-| Query reports | Frappe query reports | `crm_report_snapshots` | `report_name`, `source_system` | Import as snapshot | Local dashboards should not depend on live report calls. |
-
-## 5. Shared Field Groups
-
-| Group | Fields | Why | Where | Pros |
+| Field Group | Fields | Why | Where Used | Pros |
 | --- | --- | --- | --- | --- |
-| Core | `id`, `uuid`, `created_at`, `created_by_actor_id`, `updated_at`, `updated_by_actor_id` | Trace local changes. | All CRM-owned tables. | Good support trail. |
-| Archive | `archived_at`, `archived_by_actor_id` | Soft delete CRM records. | Master and transaction tables. | Records stay recoverable. |
-| Ownership | `owner_actor_id`, `team_id`, `queue_id`, `territory_id` | Route work to people and groups. | Enquiries, opportunities, cases, quotes. | Supports many users. |
-| Local status | `local_status`, `lifecycle_status` | Control active, suspended, archived, and deleted states. | Work tables. | Avoids relying on Frappe status only. |
-| Sync status | `sync_status`, `sync_error_code`, `sync_error_message`, `frappe_last_synced_at` | Track posting state. | Frappe-posted tables. | Clear offline and retry state. |
-| Frappe identity | `frappe_name`, `frappe_doctype`, `frappe_modified_at` | Map local records to live Frappe. | Tables that post to Frappe. | Prevents duplicate remote records. |
-| Status history | `from_status`, `to_status`, `reason`, `changed_at`, `changed_by_actor_id` | Explain workflow changes. | Status history tables. | Useful for sales and service audits. |
-| Money | `amount`, `currency`, `exchange_rate` | Store financial values safely. | Estimate, quote, opportunity, contract tables. | Multi-currency ready. |
-| Safe JSON | `payload_json`, `filter_json`, `result_json` | Store flexible import, report, and sync data. | Integration and reporting tables. | Reduces early churn. |
+| Core | `id`, `created_at`, `created_by_actor_id`, `updated_at`, `updated_by_actor_id` | Track record ownership and change history. | All CRM-owned tables. | Clear support trail. |
+| Archive | `archived_at`, `archived_by_actor_id`, `archive_reason` | Hide records without hard delete. | Master and transaction tables. | Records stay recoverable. |
+| Ownership | `owner_actor_id`, `team_id`, `queue_id`, `territory_id` | Route work to people and teams. | Leads, enquiries, quotes, work orders, cases. | Scales multi-user work. |
+| Status | `status`, `status_reason`, `status_changed_at`, `status_changed_by_actor_id` | Make workflow state explicit. | Lead, enquiry, quote, work, collection, verification. | Better reporting and audit. |
+| Money | `amount`, `currency`, `exchange_rate`, `tax_amount`, `discount_amount`, `total_amount` | Store commercial values safely. | Estimates, quotes, collections, contracts. | Multi-currency ready. |
+| Contact | `phone`, `mobile`, `email`, `whatsapp`, `preferred_channel` | Reach customers through the right channel. | Accounts, contacts, enquiries, communications. | Faster follow-up. |
+| Time | `due_at`, `scheduled_start_at`, `scheduled_end_at`, `completed_at` | Track promises and service work. | Assignments, visits, tasks, collection. | Good SLA control. |
+| Location | `latitude`, `longitude`, `address_text`, `accuracy_meters`, `captured_at` | Prove field visits and collections. | Check-in, check-out, location history. | Better site accountability. |
+| Evidence | `storage_ref`, `file_name`, `mime_type`, `size_bytes`, `captured_by_actor_id` | Attach proof to work. | Attachments, work proof, payment proof. | Stronger verification. |
+| Safe JSON | `metadata_json`, `criteria_json`, `result_json` | Store controlled flexible data. | Reports, automation, AI, import. | Reduces early churn. |
 
-## 6. Phase Plan And Migration Order
+## 4. Migration Order
 
-| Phase | Order | Migration ID | Table Group | First Work | Why First |
-| --- | --- | --- | --- | --- | --- |
-| 1 | 001 | `crm.foundation.001` | Module registration, number sequences | Define CRM local table ownership. | Creates stable foundation. |
-| 1 | 010 | `crm.integration.001` | Frappe connection refs, actor links, external refs, sync outbox | Build local-first sync contracts. | Every Frappe-posted table depends on this. |
-| 1 | 020 | `crm.setup.001` | Sources, tags, enquiry groups, enquiry statuses | Import or seed Frappe-compatible setup. | Enquiry workflow depends on status and group. |
-| 1 | 030 | `crm.organization.001` | Teams, team members, queues, territories, shares | Define ownership and routing. | Enquiries need assignment. |
-| 1 | 040 | `crm.party.001` | Parties, accounts, contacts, contact methods | Store Customer and Supplier references locally. | Enquiries, estimates, and quotes need parties. |
-| 1 | 050 | `crm.enquiry.001` | Enquiries, messages, schedules, calls, notes, files, activities | Build local enquiry source of truth. | This replaces live-only Frappe CRM flow. |
-| 1 | 060 | `crm.job.001` | Job executions | Support mobile job work locally. | Temp app already depends on jobs. |
-| 1 | 070 | `crm.estimate.001` | Estimates | Store supplier pricing locally. | Needed before quotation decisions. |
-| 1 | 080 | `crm.quotation.001` | Quotations and quotation items | Store offers locally before posting. | Needed for sales workflow. |
-| 1 | 090 | `crm.reporting.001` | Saved views, report snapshots, metrics | Replace live report dependency with snapshots. | Dashboards must be fast and stable. |
-| 1 | 100 | `crm.import.001` | Import batches, rows, mappings, conflicts | Stage existing Frappe data into local CRM. | Migration needs reviewable batches. |
-| 2 | 110 | `crm.activity.001` | General activities, reminders, participants, email metadata | Unify tasks, calls, meetings, and email. | Adds Salesforce-style productivity. |
-| 2 | 120 | `crm.marketing.001` | Campaigns, campaign members, lead scoring | Add lead generation and attribution. | Connects marketing to sales. |
-| 2 | 130 | `crm.lead.001` | Leads, qualification, conversion links | Add pre-account sales intake. | Keeps unqualified data out of accounts. |
-| 2 | 140 | `crm.pipeline.001` | Products, price books, opportunities, stage history | Add sales pipeline beyond enquiry. | Supports larger sales teams. |
-| 2 | 150 | `crm.forecast.001` | Forecast periods, quotas, forecast entries, targets | Add sales planning and manager commits. | Improves revenue visibility. |
-| 2 | 160 | `crm.revenue.001` | Approvals, handoffs, orders, contracts, subscriptions, assets | Add controlled revenue workflow. | Connects CRM to billing and service. |
-| 3 | 170 | `crm.service.001` | Cases, SLA checkpoints, entitlements, escalations | Add service-sector CRM. | Supports support teams. |
-| 3 | 180 | `crm.field-service.001` | Work orders, service resources, appointments, parts | Add field service execution. | Supports service teams outside the office. |
-| 3 | 190 | `crm.knowledge.001` | Knowledge articles and record links | Improve service and sales enablement. | Reduces repeated work. |
-| 3 | 200 | `crm.feedback.001` | Surveys and responses | Add customer feedback. | Feeds account health. |
-| 4 | 210 | `crm.automation.001` | Assignment rules, approval rules, workflow rules, actions | Add configurable CRM automation. | Reduces manual work. |
-| 4 | 220 | `crm.admin-metadata.001` | Layouts, fields, picklists, validation rules | Add admin metadata for future customization. | Helps many CRM levels use one base. |
-| 4 | 230 | `crm.quality.001` | Duplicate rules, duplicate sets, merge staging | Improve data quality. | Helps large migrations. |
+| Order | Migration ID | Table Group | First Work | Why First |
+| --- | --- | --- | --- | --- |
+| 001 | `crm.foundation.001` | Number sequences, sources, tags, picklists, saved views | Create shared setup. | Other records need stable references. |
+| 010 | `crm.organization.001` | Teams, members, queues, territories, shares | Create routing foundation. | Work assignment needs teams and queues. |
+| 020 | `crm.party.001` | Accounts, contacts, addresses, contact methods, preferences | Create customer 360. | Enquiries and quotes need customers. |
+| 030 | `crm.campaign.001` | Campaigns, members, costs, lead sources | Create marketing intake. | Leads need campaign attribution. |
+| 040 | `crm.lead.001` | Leads, scores, qualification, duplicate reviews, conversion links | Create lead workflow. | Qualified leads create enquiries. |
+| 050 | `crm.enquiry.001` | Enquiries, messages, notes, schedules, activities, attachments | Create the main work record. | Most CRM work starts here. |
+| 060 | `crm.communication.001` | Calls, emails, SMS, WhatsApp, chat app messages, templates | Create customer timeline. | Every follow-up must be visible. |
+| 070 | `crm.supplier.001` | Suppliers, estimate requests, supplier estimates, comparisons | Create cost capture. | Quotation needs supplier input. |
+| 080 | `crm.quotation.001` | Quotations, lines, terms, versions, approvals, send records | Create customer offers. | Sales teams need quote control. |
+| 090 | `crm.assignment.001` | Assignments, follow-ups, schedules, commitments, escalations | Create work control. | Managers need assigner and assignee queues. |
+| 100 | `crm.field-service.001` | Work orders, tasks, appointments, check-in, check-out, proof, parts | Create site execution. | Engineers need field workflow. |
+| 110 | `crm.collection.001` | Collection plans, promises, attempts, payments, balance snapshots | Create commercial follow-up. | Teams need payment visibility. |
+| 120 | `crm.verification.001` | Completion rules, checklists, verification outcomes, reopen records | Create close control. | Work must be verified before close. |
+| 130 | `crm.quality.001` | Recording metadata, review scores, issues, coaching actions | Create quality review. | Calls and visits need review. |
+| 140 | `crm.ai.001` | Assistant sessions, requests, suggestions, approvals, draft outputs | Create AI support trail. | AI output needs review and audit. |
+| 150 | `crm.hr-service.001` | Staff profile refs, skills, duty roster, attendance links, exceptions | Create CRM-linked HR support. | Scheduling needs staff availability. |
+| 160 | `crm.reporting.001` | Metric snapshots, report snapshots, dashboards | Create reporting layer. | Managers need fast overview. |
+| 170 | `crm.automation.001` | Assignment rules, reminder rules, approval rules, workflow actions | Create configurable workflows. | Automation should follow stable core tables. |
+| 180 | `crm.admin-metadata.001` | Custom fields, layouts, validation rules, field access rules | Create enterprise configuration. | Customization should not block core launch. |
 
-## 7. Phase 1 Required Tables
+## 5. Required Tables
 
-### 7.1 Integration And Sync
+### 5.1 Foundation And Routing
 
 | Table | Required Fields | Why | Where Used | Short Example | Pros |
 | --- | --- | --- | --- | --- | --- |
-| `crm_frappe_connections` | Core, `connection_name`, `base_url`, `enabled`, `verification_status`, `last_checked_at`, `last_verified_at`, `credential_ref` | Store non-secret connection metadata. | Sync worker and admin settings. | `Live Frappe` is online. | Keeps secrets outside product tables. |
-| `crm_frappe_actor_links` | Core, `actor_id`, `frappe_user`, `frappe_employee_code`, `verification_status`, `last_checked_at`, `last_verified_at`, `credential_ref` | Link platform actors to Frappe Employee. | Assignment, job execution, posting. | Actor maps to `EMP-0007`. | Supports per-user live posting. |
-| `crm_external_references` | Core, `record_type`, `record_id`, `external_system`, `external_doctype`, `external_name`, `external_modified_at`, `last_synced_at`, `status` | Map local records to Frappe records. | All sync flows. | Local enquiry maps to `ENQ-00045`. | Prevents duplicate posting. |
-| `crm_sync_outbox` | Core, `event_type`, `record_type`, `record_id`, `operation`, `payload_json`, `status`, `available_at`, `attempt_count`, `locked_at`, `locked_by` | Queue local changes for live posting. | Sync worker. | Post new quotation to Frappe. | Durable retries. |
-| `crm_sync_attempts` | Core, `outbox_id`, `attempt_number`, `status`, `request_json`, `response_json`, `error_code`, `error_message`, `started_at`, `finished_at` | Debug failed sync. | Admin sync monitor. | Frappe rejected missing customer. | Faster support. |
-| `crm_sync_conflicts` | Core, `record_type`, `record_id`, `external_reference_id`, `local_payload_json`, `remote_payload_json`, `status`, `resolution_note` | Review local and Frappe mismatch. | Import and refresh. | Remote status changed after local edit. | Avoids silent overwrite. |
-
-### 7.2 Setup And Routing
-
-| Table | Required Fields | Why | Where Used | Short Example | Pros |
-| --- | --- | --- | --- | --- | --- |
-| `crm_sources` | Core, Archive, `name`, `description`, `is_active`, `sort_order` | Track source of enquiry or lead. | Enquiries, leads, reports. | `Website`, `Phone Call`. | Clear source reporting. |
-| `crm_tags` | Core, Archive, `name`, `color_token`, `description` | Label records. | Lists and reports. | `VIP`, `At Risk`. | Flexible segmentation. |
-| `crm_record_tags` | `id`, `tag_id`, `record_type`, `record_id`, `created_at`, `created_by_actor_id` | Link tags to any CRM record. | Lists and detail pages. | Enquiry gets `Urgent`. | One tag system. |
-| `crm_number_sequences` | Core, `record_type`, `prefix`, `next_number`, `padding`, `is_active` | Generate readable local numbers. | Enquiries, jobs, estimates, quotes, cases. | `ENQ-000142`. | Human-friendly references. |
-| `crm_enquiry_groups` | Core, Archive, Frappe identity, `name`, `description`, `is_active`, `sort_order` | Local copy of Frappe Enquiry Group. | Enquiry form and filters. | `Calls`. | Offline setup. |
-| `crm_enquiry_statuses` | Core, Archive, Frappe identity, `name`, `status_key`, `status_group`, `is_closed`, `is_active`, `sort_order` | Local copy of Frappe Enquiry Status. | Enquiry workflow. | `Re Open` maps to `reopen`. | Stable status logic. |
-| `crm_teams` | Core, Archive, `name`, `team_type`, `parent_team_id`, `description` | Group internal users. | Ownership and reports. | Enterprise Sales. | Scales user management. |
-| `crm_team_members` | Core, `team_id`, `actor_id`, `role`, `started_at`, `ended_at` | Link actors to teams. | Assignment and visibility. | Arun is Sales Manager. | Uses Platform actors safely. |
-| `crm_queues` | Core, Archive, `name`, `queue_type`, `team_id`, `description` | Hold unassigned work. | Enquiry and service queues. | Open Calls queue. | High-volume routing. |
-| `crm_queue_members` | Core, `queue_id`, `actor_id`, `role`, `is_active` | Link actors to queues. | Claim workflow. | Agent can claim calls. | Simple assignment. |
-| `crm_territories` | Core, Archive, `name`, `parent_territory_id`, `region_code`, `description` | Segment markets. | Accounts, enquiries, reports. | South India. | Regional reporting. |
+| `crm_number_sequences` | Core, `record_type`, `prefix`, `next_number`, `padding`, `is_active` | Generate readable numbers. | Enquiries, quotes, work orders. | `ENQ-000142`. | Easy human reference. |
+| `crm_sources` | Core, Archive, `name`, `source_type`, `is_active`, `sort_order` | Track origin. | Campaign, lead, enquiry. | Website, phone, referral. | Better source reports. |
+| `crm_tags` | Core, Archive, `name`, `color_token`, `description` | Label records. | Lists and reports. | VIP, urgent. | Flexible segmentation. |
+| `crm_record_tags` | `id`, `tag_id`, `record_type`, `record_id`, `created_at`, `created_by_actor_id` | Link tags to records. | All record detail pages. | Add VIP to account. | One tag model. |
+| `crm_picklists` | Core, `record_type`, `field_key`, `name`, `is_active` | Define option sets. | Forms and filters. | Enquiry priority. | Cleaner data entry. |
+| `crm_picklist_values` | Core, `picklist_id`, `value_key`, `label`, `sort_order`, `is_default`, `is_active` | Store option values. | Forms and filters. | Priority urgent. | Stable labels. |
+| `crm_teams` | Core, Archive, `name`, `team_type`, `parent_team_id`, `description` | Group users. | Assignment and reports. | Chennai service team. | Supports hierarchy. |
+| `crm_team_members` | Core, `team_id`, `actor_id`, `role`, `started_at`, `ended_at` | Link actors to teams. | Queues and visibility. | Arun is service manager. | Uses platform actors safely. |
+| `crm_queues` | Core, Archive, `name`, `queue_type`, `team_id`, `description` | Hold unassigned work. | Lead, enquiry, service queues. | Open enquiries queue. | Better workload control. |
+| `crm_queue_members` | Core, `queue_id`, `actor_id`, `role`, `is_active` | Link actors to queues. | Claim and assign. | Seller can claim leads. | Simple routing. |
+| `crm_territories` | Core, Archive, `name`, `parent_territory_id`, `region_code`, `description` | Segment markets and service areas. | Accounts, leads, work orders. | South zone. | Regional reporting. |
 | `crm_record_shares` | Core, `record_type`, `record_id`, `share_type`, `share_target_id`, `access_level`, `expires_at` | Share records with actors or teams. | Collaboration. | Share enquiry with manager. | Controlled visibility. |
 
-### 7.3 Parties And Customer 360
+### 5.2 Customer 360
 
 | Table | Required Fields | Why | Where Used | Short Example | Pros |
 | --- | --- | --- | --- | --- | --- |
-| `crm_parties` | Core, Archive, Frappe identity, `party_type`, `party_number`, `display_name`, `legal_name`, `mobile`, `email`, `status`, `source_id`, `parent_party_id` | Store customers and suppliers locally. | Enquiries, estimates, quotes. | Customer Acme and Supplier S1. | One local party reference. |
-| `crm_accounts` | Core, Archive, Ownership, `account_number`, `party_id`, `name`, `industry`, `website_url`, `phone`, `email`, `annual_revenue_amount`, `annual_revenue_currency`, `employee_count` | Store richer customer organization data. | Sales and service. | Acme Pvt Ltd. | Customer 360 beyond Frappe lookup. |
-| `crm_contacts` | Core, Archive, Ownership, `first_name`, `last_name`, `display_name`, `job_title`, `primary_email`, `primary_phone`, `mobile_phone`, `preferred_contact_method`, `do_not_email`, `do_not_call` | Store people. | Account, enquiry, quote, service pages. | Meera Rao, CFO. | Person data is reusable. |
-| `crm_account_contacts` | Core, `account_id`, `contact_id`, `role`, `is_primary`, `started_at`, `ended_at` | Link contacts to accounts. | Customer 360. | CFO on Acme account. | Supports many contacts. |
-| `crm_contact_methods` | Core, Archive, `record_type`, `record_id`, `method_type`, `label`, `value`, `is_primary`, `is_verified` | Store extra channels. | Communication and mobile lookup. | WhatsApp number. | Extensible contact data. |
-| `crm_party_external_aliases` | Core, `party_id`, `external_system`, `external_doctype`, `external_name`, `display_name`, `mobile` | Keep Frappe party references and historical names. | Import and sync. | Frappe Customer `CUST-0004`. | Better matching and de-duplication. |
+| `crm_accounts` | Core, Archive, Ownership, `account_number`, `name`, `account_type`, `industry`, `website_url`, `phone`, `email`, `status`, `territory_id` | Store customer organizations. | Leads, enquiries, quotes, service. | Acme Pvt Ltd. | One customer record. |
+| `crm_contacts` | Core, Archive, Ownership, `first_name`, `last_name`, `display_name`, `job_title`, `primary_email`, `primary_phone`, `mobile_phone`, `preferred_contact_method`, `do_not_call`, `do_not_email` | Store people. | Account, enquiry, quote, communication. | Meera Rao, CFO. | Reusable contact data. |
+| `crm_account_contacts` | Core, `account_id`, `contact_id`, `role`, `is_primary`, `started_at`, `ended_at` | Link people to accounts. | Customer 360. | Main billing contact. | Supports many contacts. |
+| `crm_addresses` | Core, Archive, `record_type`, `record_id`, `address_type`, `line1`, `line2`, `city`, `state`, `postal_code`, `country`, `latitude`, `longitude`, `is_primary` | Store billing and service addresses. | Visits, quotes, invoices. | Service site address. | Accurate site planning. |
+| `crm_contact_methods` | Core, Archive, `record_type`, `record_id`, `method_type`, `label`, `value`, `is_primary`, `is_verified` | Store channel details. | Communication and lookup. | WhatsApp number. | Channel-ready contact data. |
+| `crm_customer_preferences` | Core, `account_id`, `contact_id`, `preferred_channel`, `preferred_time`, `language`, `notes` | Respect customer contact choices. | Follow-up and automation. | Call after 3 PM. | Better customer experience. |
+| `crm_consents` | Core, `record_type`, `record_id`, `consent_type`, `status`, `given_at`, `expires_at`, `note` | Track consent for contact and recording. | Calls, recordings, campaigns. | Consent for call recording. | Safer compliance. |
+| `crm_duplicate_sets` | Core, `record_type`, `status`, `score`, `reviewed_by_actor_id`, `reviewed_at` | Store possible duplicates. | Lead, account, contact review. | Two Acme accounts. | Safer cleanup. |
+| `crm_duplicate_items` | `id`, `duplicate_set_id`, `record_id`, `match_reason_json`, `created_at` | Link duplicate records. | Merge review. | Same mobile number. | Clear evidence. |
+| `crm_merge_requests` | Core, `record_type`, `winner_record_id`, `loser_record_ids_json`, `status`, `requested_by_actor_id`, `approved_by_actor_id`, `merge_plan_json` | Control merges. | Data admin. | Merge two contacts. | Prevents data loss. |
 
-### 7.4 Enquiry Core
-
-| Table | Required Fields | Why | Where Used | Short Example | Pros |
-| --- | --- | --- | --- | --- | --- |
-| `crm_enquiries` | Core, Archive, Ownership, Frappe identity, `enquiry_number`, `title`, `workspace`, `party_id`, `customer_name_snapshot`, `mobile`, `enquiry_date`, `due_date`, `enquiry_group_id`, `status_id`, `status_key`, `status_group`, `status_details`, `priority`, `local_status`, `has_unread_assignment`, `last_activity_at` | Local source of truth for Frappe Enquiry. | CRM desk, mobile call capture, sync. | Incoming call creates local enquiry. | Works offline and posts later. |
-| `crm_enquiry_messages` | Core, Archive, Frappe identity, `enquiry_id`, `parent_message_id`, `message_type`, `comment`, `plain_text`, `is_suspended`, `frappe_created_by`, `frappe_created_at` | Store comments and replies locally. | Timeline and Frappe child rows. | Agent replies to latest comment. | No message loss offline. |
-| `crm_enquiry_schedules` | Core, Frappe identity, `enquiry_id`, `scheduled_on`, `status`, `note` | Store due dates and follow-up schedules. | Enquiry detail and reminders. | Follow up tomorrow. | Better scheduling than one due date. |
-| `crm_enquiry_calls` | Core, `enquiry_id`, `direction`, `phone`, `called_at`, `duration_seconds`, `summary`, `mobile_capture_payload_json` | Store mobile call captures. | Call history and enquiry creation. | Outgoing call lasted 90 seconds. | Mobile-first workflow. |
-| `crm_enquiry_emails` | Core, `enquiry_id`, `direction`, `subject`, `recipient`, `body`, `message_ref`, `sent_at` | Store enquiry email metadata or body by policy. | Timeline. | Proposal email sent. | Better communication trail. |
-| `crm_enquiry_tasks` | Core, `enquiry_id`, `title`, `due_on`, `status`, `completed_at`, `completed_by_actor_id` | Store enquiry tasks. | Work queue. | Send brochure. | Follow-up control. |
-| `crm_enquiry_notes` | Core, Archive, `enquiry_id`, `note`, `visibility` | Store internal notes. | Detail page. | Customer prefers WhatsApp. | Captures context. |
-| `crm_enquiry_attachments` | Core, Archive, `enquiry_id`, `file_name`, `storage_ref`, `file_url`, `mime_type`, `size_bytes` | Store files and links. | Detail page and Frappe attachment posting. | Site photo attached. | Keeps evidence with enquiry. |
-| `crm_enquiry_activities` | Core, `enquiry_id`, `action`, `details`, `source_system`, `source_name`, `activity_at`, `actor_display_name` | Store timeline events from local actions and Frappe docinfo. | Timeline and audit view. | Status changed to Pending. | Complete activity history. |
-| `crm_enquiry_status_history` | `id`, `enquiry_id`, Status history | Track status changes. | Reports and audit. | New to Pending. | Pipeline and service metrics. |
-| `crm_enquiry_assignments` | Core, `enquiry_id`, `from_actor_id`, `to_actor_id`, `from_employee_code`, `to_employee_code`, `reason`, `accepted_at` | Track assignment changes. | Assignment notifications and audit. | Assigned to `EMP-0007`. | Clear work ownership. |
-
-### 7.5 Job Execution
+### 5.3 Campaign And Lead
 
 | Table | Required Fields | Why | Where Used | Short Example | Pros |
 | --- | --- | --- | --- | --- | --- |
-| `crm_job_executions` | Core, Archive, Frappe identity, `job_number`, `enquiry_id`, `employee_actor_id`, `employee_code`, `date`, `start_time`, `stop_time`, `status`, `employee_cost_per_hour`, `hours`, `total_cost` | Store service work done against an enquiry. | Mobile job control and Frappe posting. | Running job starts at 10:30. | Reliable field-service record. |
-| `crm_job_execution_events` | Core, `job_execution_id`, `event_type`, `event_at`, `payload_json` | Track start, stop, cancel, and correction events. | Job audit and conflict review. | Stop event failed to post. | Strong debug trail. |
+| `crm_campaigns` | Core, Archive, Ownership, `campaign_number`, `name`, `campaign_type`, `status`, `start_date`, `end_date`, `budget_amount`, `actual_cost_amount`, `target_segment`, `goal` | Track marketing and outreach. | Lead generation and reports. | Diwali service campaign. | Clear campaign ROI. |
+| `crm_campaign_members` | Core, `campaign_id`, `lead_id`, `contact_id`, `status`, `responded_at`, `response_note` | Track campaign audience. | Campaign detail. | Contact responded by WhatsApp. | Better conversion tracking. |
+| `crm_campaign_costs` | Core, `campaign_id`, `cost_type`, `amount`, `currency`, `spent_at`, `note` | Track spend. | Campaign report. | Ad spend 5000 INR. | True cost reporting. |
+| `crm_leads` | Core, Archive, Ownership, `lead_number`, `campaign_id`, `source_id`, `company_name`, `contact_name`, `mobile`, `email`, `lead_status`, `rating`, `score`, `need_summary`, `territory_id` | Store unqualified prospects. | Lead desk and conversion. | Website lead asks for service. | Keeps early leads separate. |
+| `crm_lead_scores` | Core, `lead_id`, `score`, `score_reason`, `scored_at`, `scored_by_actor_id` | Track lead quality. | Qualification. | Score 80 due to budget. | Better prioritization. |
+| `crm_lead_status_history` | `id`, `lead_id`, Status | Track lead movement. | Lead audit. | New to qualified. | Clear funnel history. |
+| `crm_lead_qualification` | Core, `lead_id`, `need`, `budget`, `authority`, `timeline`, `fit_status`, `qualification_note` | Qualify leads. | Lead conversion. | Has budget and need. | Better conversion quality. |
+| `crm_lead_conversions` | Core, `lead_id`, `account_id`, `contact_id`, `enquiry_id`, `converted_at`, `converted_by_actor_id` | Link lead to customer records. | Audit and reports. | Lead became enquiry. | No lost attribution. |
 
-### 7.6 Estimates And Quotations
-
-| Table | Required Fields | Why | Where Used | Short Example | Pros |
-| --- | --- | --- | --- | --- | --- |
-| `crm_estimates` | Core, Archive, Frappe identity, `estimate_number`, `enquiry_id`, `supplier_party_id`, `supplier_name_snapshot`, `item_name`, `price`, `currency`, `estimate_date`, `status` | Store supplier estimates locally. | Enquiry cost and quote preparation. | Supplier quotes 5000 INR. | Local cost visibility. |
-| `crm_quotations` | Core, Archive, Ownership, Frappe identity, `quotation_number`, `enquiry_id`, `account_id`, `party_id`, `customer_name_snapshot`, `company`, `owner_actor_id`, `transaction_date`, `valid_till`, `currency`, `subtotal_amount`, `discount_amount`, `tax_amount`, `grand_total`, `remarks`, `status` | Store customer offers locally. | Quote workflow and Frappe posting. | Quote for Acme valid 30 days. | Controlled sales offer. |
-| `crm_quotation_items` | Core, Frappe identity, `quotation_id`, `line_number`, `item_code`, `item_name`, `quantity`, `rate`, `unit`, `discount_amount`, `tax_amount`, `amount` | Store quote line snapshots. | Quote totals and posting. | Item `SUPPORT` quantity 2. | Repeatable quote math. |
-| `crm_quote_approvals` | Core, `quotation_id`, `approval_status`, `requested_by_actor_id`, `requested_at`, `approver_actor_id`, `decided_at`, `decision_note` | Control discount or high-value quote approval. | Quote workflow. | Manager approves discount. | Better margin control. |
-| `crm_sales_handoffs` | Core, `quotation_id`, `target_system`, `target_contract_version`, `status`, `submitted_at`, `submitted_by_actor_id`, `accepted_at`, `target_reference`, `failure_code`, `failure_message` | Stage accepted quote for billing or ERP. | Post-sale handoff. | Quote maps to billing ID. | Keeps app boundary clean. |
-
-### 7.7 Reporting And Import
+### 5.4 Enquiry And Timeline
 
 | Table | Required Fields | Why | Where Used | Short Example | Pros |
 | --- | --- | --- | --- | --- | --- |
-| `crm_saved_views` | Core, Archive, Ownership, `name`, `record_type`, `visibility`, `filter_json`, `sort_json`, `column_json`, `is_default` | Store list views. | All CRM lists. | My open calls. | User productivity. |
-| `crm_report_snapshots` | `id`, `report_type`, `source_system`, `name`, `requested_by_actor_id`, `period_start`, `period_end`, `filter_json`, `result_json`, `created_at`, `archived_at` | Store stable report results. | Dashboards and Frappe report imports. | Owner status snapshot. | Fast dashboards. |
-| `crm_metric_snapshots` | Core, `metric_name`, `period_start`, `period_end`, `scope_type`, `scope_id`, `value_number`, `value_json` | Store computed metrics. | Overview cards and dashboards. | Oldest active enquiry is 12 days. | Fast overview. |
-| `crm_import_batches` | Core, `import_type`, `source_system`, `source_filename`, `status`, `total_rows`, `valid_rows`, `invalid_rows`, `imported_rows`, `started_at`, `finished_at`, `failure_message` | Stage imports from Frappe or CSV. | Migration and admin import. | Import 500 enquiries. | Safe onboarding. |
-| `crm_import_rows` | Core, `batch_id`, `row_number`, `external_name`, `raw_json`, `normalized_json`, `status`, `error_code`, `error_message`, `target_record_type`, `target_record_id` | Review each imported row. | Import correction. | Row 42 has missing status. | Clear repair workflow. |
-| `crm_import_mappings` | Core, Ownership, `name`, `import_type`, `mapping_json`, `is_default` | Reuse mappings. | CSV and Frappe import. | Legacy enquiry mapping. | Saves admin time. |
+| `crm_enquiries` | Core, Archive, Ownership, `enquiry_number`, `title`, `description`, `account_id`, `contact_id`, `source_id`, `lead_id`, `priority`, `status`, `due_at`, `customer_location_id`, `last_activity_at` | Store the main customer request. | CRM desk and reports. | Repair request from Acme. | One main work item. |
+| `crm_enquiry_status_history` | `id`, `enquiry_id`, Status | Track status changes. | Audit and reports. | Open to assigned. | Clear work history. |
+| `crm_enquiry_messages` | Core, Archive, `enquiry_id`, `parent_message_id`, `message_type`, `body`, `author_actor_id`, `author_contact_id`, `is_internal` | Store comments and replies. | Enquiry timeline. | Customer asked for quote. | Full context. |
+| `crm_enquiry_notes` | Core, Archive, `enquiry_id`, `note_type`, `body`, `is_private` | Store internal notes. | Team handoff. | Customer prefers morning visit. | Better team memory. |
+| `crm_enquiry_schedules` | Core, `enquiry_id`, `scheduled_at`, `schedule_type`, `status`, `note` | Track follow-up dates. | Calendar and reminders. | Call tomorrow. | Fewer missed follow-ups. |
+| `crm_enquiry_activities` | Core, `enquiry_id`, `activity_type`, `title`, `details`, `activity_at`, `actor_id` | Store timeline events. | Enquiry detail. | Quote sent. | Easy audit. |
+| `crm_enquiry_attachments` | Core, Archive, `enquiry_id`, Evidence | Store files. | Detail and proof. | Site photo attached. | Evidence stays with work. |
+| `crm_enquiry_commitments` | Core, `enquiry_id`, `commitment_type`, `promised_by_type`, `promised_by_id`, `due_at`, `status`, `note` | Track promises. | Follow-up and reports. | Customer promised payment Friday. | Promises are visible. |
+| `crm_sla_policies` | Core, Archive, `name`, `record_type`, `priority`, `first_response_minutes`, `resolution_minutes`, `is_active` | Define service targets. | Enquiries and cases. | Urgent response in 30 minutes. | SLA-ready workflow. |
+| `crm_sla_checkpoints` | Core, `record_type`, `record_id`, `checkpoint_type`, `due_at`, `met_at`, `status` | Track SLA deadlines. | Overview and escalations. | Response due by noon. | Better service control. |
 
-## 8. Phase 2 To 4 Expansion Tables
-
-| Area | Tables | Why | Where | Short Example | Pros |
-| --- | --- | --- | --- | --- | --- |
-| Marketing and leads | `crm_campaigns`, `crm_campaign_members`, `crm_campaign_costs`, `crm_leads`, `crm_lead_status_history`, `crm_lead_scores`, `crm_lead_conversion_links` | Capture demand before account and opportunity creation. | Lead inbox, campaign ROI, sales intake. | Expo campaign creates 150 leads. | Clean prospect workflow. |
-| Generic activities | `crm_activities`, `crm_activity_links`, `crm_activity_participants`, `crm_activity_reminders`, `crm_email_messages` | Unify tasks, calls, meetings, notes, and emails. | Timelines and work queues. | Call linked to account and quote. | Salesforce-style productivity. |
-| Sales pipeline | `crm_pipelines`, `crm_pipeline_stages`, `crm_opportunities`, `crm_opportunity_contacts`, `crm_opportunity_line_items`, `crm_opportunity_stage_history`, `crm_opportunity_competitors`, `crm_forecast_entries` | Manage deals beyond enquiries. | Sales board and forecast. | Deal moves to Negotiation. | Better forecast visibility. |
-| Products and prices | `crm_products`, `crm_price_books`, `crm_price_book_entries`, `crm_discount_rules` | Standardize quote items and prices. | Opportunity and quote lines. | Support plan has INR price. | Consistent quoting. |
-| Forecasts and quotas | `crm_forecast_periods`, `crm_quotas`, `crm_forecast_categories`, `crm_forecast_entries`, `crm_forecast_adjustments` | Track targets, commits, and forecast rollups. | Manager forecast dashboard. | Manager commits 50 lakh for Q1. | Better sales planning. |
-| CPQ and pricing | `crm_product_bundles`, `crm_product_bundle_items`, `crm_quote_versions`, `crm_quote_terms`, `crm_quote_taxes`, `crm_quote_discounts` | Support complex quotes and approvals. | Quote builder. | Hardware bundle with service plan. | Safer quote control. |
-| Orders and fulfillment | `crm_orders`, `crm_order_items`, `crm_fulfillment_requests`, `crm_delivery_milestones` | Track accepted quote execution before billing handoff. | Sales operations. | Accepted quote creates order. | Clear post-sale follow-through. |
-| Contracts and revenue | `crm_contracts`, `crm_contract_terms`, `crm_subscriptions`, `crm_customer_assets`, `crm_renewal_opportunities` | Track won commitments. | Account and renewal views. | One-year support contract. | Retention workflow. |
-| Service CRM | `crm_service_cases`, `crm_case_comments`, `crm_case_status_history`, `crm_case_sla_checkpoints`, `crm_entitlements`, `crm_case_escalations`, `crm_case_queues` | Support service-sector teams. | Service console. | Case due in 4 hours. | SLA-ready support. |
-| Field service | `crm_work_orders`, `crm_work_order_tasks`, `crm_service_resources`, `crm_service_territories`, `crm_service_appointments`, `crm_service_parts` | Plan and complete on-site service work. | Field service console and mobile app. | Technician visits customer site. | Better service execution. |
-| Knowledge | `crm_knowledge_articles`, `crm_knowledge_links` | Help agents and sellers answer faster. | Case and enquiry side panel. | Reset article linked to case. | Less repeated work. |
-| Feedback | `crm_surveys`, `crm_survey_responses`, `crm_customer_health_scores` | Measure customer quality and risk. | Account health dashboard. | CSAT 5 after service case. | Better retention signal. |
-| Automation | `crm_assignment_rules`, `crm_escalation_rules`, `crm_approval_rules`, `crm_workflow_rules`, `crm_workflow_actions`, `crm_automation_runs` | Configure routing, approvals, and actions without code. | Admin automation screens. | Urgent case goes to Tier 2. | Less manual work. |
-| Admin metadata | `crm_custom_fields`, `crm_picklists`, `crm_picklist_values`, `crm_page_layouts`, `crm_validation_rules`, `crm_record_types` | Prepare for multi-level CRM customization. | Admin setup and future UI. | Enterprise deal layout differs from retail layout. | One CRM can serve many sectors. |
-| Security and sharing | `crm_role_hierarchies`, `crm_sharing_rules`, `crm_record_shares`, `crm_field_access_rules` | Add CRM-level sharing without owning identity. | Authorization checks. | Manager sees team accounts. | Better enterprise access control. |
-| Data quality | `crm_duplicate_rules`, `crm_duplicate_sets`, `crm_duplicate_items`, `crm_merge_requests` | Control duplicates. | Import and admin review. | Two Acme accounts look same. | Safer cleanup. |
-
-## 8.1 Salesforce-Style Missing Table Catalog
-
-### 8.1.1 Marketing And Leads
+### 5.5 Communication
 
 | Table | Required Fields | Why | Where Used | Short Example | Pros |
 | --- | --- | --- | --- | --- | --- |
-| `crm_campaigns` | Core, Archive, Ownership, `campaign_number`, `name`, `campaign_type`, `status`, `start_date`, `end_date`, `budget_amount`, `budget_currency`, `expected_revenue_amount`, `description` | Track marketing campaigns. | Lead source and ROI reports. | 2027 Expo campaign. | Connects spend to pipeline. |
-| `crm_campaign_members` | Core, `campaign_id`, `member_type`, `member_id`, `status`, `responded_at`, `source_detail` | Link leads and contacts to campaigns. | Campaign detail and lead detail. | Lead attended Expo. | Measures campaign response. |
-| `crm_campaign_costs` | Core, `campaign_id`, `cost_type`, `amount`, `currency`, `spent_at`, `note` | Track campaign spend. | ROI reports. | Booth rental cost. | Better budget review. |
-| `crm_leads` | Core, Archive, Ownership, `lead_number`, `company_name`, `first_name`, `last_name`, `display_name`, `job_title`, `email`, `phone`, `mobile`, `campaign_id`, `source_id`, `status`, `qualification_rating`, `score`, `estimated_value_amount`, `estimated_value_currency`, `expected_close_date`, `description`, `disqualification_reason`, `converted_account_id`, `converted_contact_id`, `converted_opportunity_id`, `converted_at`, `converted_by_actor_id` | Store prospects before conversion. | Lead inbox and qualification. | Website lead requests demo. | Keeps unqualified data separate. |
-| `crm_lead_status_history` | `id`, `lead_id`, Status history | Track lead movement. | Lead audit and reports. | New to Qualified. | Shows qualification quality. |
-| `crm_lead_scores` | Core, `lead_id`, `score`, `score_model`, `reason_json`, `calculated_at` | Rank leads. | Lead queue. | Lead score is 91. | Helps sellers focus. |
-| `crm_lead_conversion_links` | Core, `lead_id`, `target_type`, `target_id`, `conversion_note` | Store conversion targets. | Conversion audit. | Lead creates account and deal. | Safe lead conversion. |
+| `crm_communication_threads` | Core, `record_type`, `record_id`, `channel`, `subject`, `status`, `last_message_at` | Group customer conversations. | Enquiry and account detail. | WhatsApp thread for enquiry. | Cleaner timeline. |
+| `crm_communications` | Core, `thread_id`, `record_type`, `record_id`, `channel`, `direction`, `from_value`, `to_value`, `subject`, `body`, `status`, `sent_at`, `received_at`, `actor_id` | Store customer interactions. | Timeline and reports. | SMS sent to customer. | One communication history. |
+| `crm_call_logs` | Core, `record_type`, `record_id`, `direction`, `phone_number`, `started_at`, `ended_at`, `duration_seconds`, `outcome`, `actor_id`, `note` | Store voice calls. | Enquiry and collection. | Outbound collection call. | Call history is searchable. |
+| `crm_message_templates` | Core, Archive, `name`, `channel`, `record_type`, `subject_template`, `body_template`, `is_active` | Store repeat messages. | Send and AI draft screens. | Quote follow-up template. | Faster replies. |
+| `crm_send_attempts` | Core, `communication_id`, `channel`, `provider`, `status`, `attempted_at`, `error_code`, `error_message` | Track send attempts. | Delivery support. | WhatsApp send failed. | Easier troubleshooting. |
+| `crm_delivery_receipts` | Core, `communication_id`, `status`, `received_at`, `provider_message_id`, `raw_status_json` | Track delivery status. | Message timeline. | Delivered and read. | Clear communication proof. |
 
-### 8.1.2 Sales Pipeline And Forecasts
-
-| Table | Required Fields | Why | Where Used | Short Example | Pros |
-| --- | --- | --- | --- | --- | --- |
-| `crm_pipelines` | Core, Archive, `name`, `description`, `is_default`, `is_active` | Store sales processes. | Opportunity boards. | Enterprise Sales pipeline. | Supports many sales motions. |
-| `crm_pipeline_stages` | Core, `pipeline_id`, `name`, `description`, `sort_order`, `default_probability`, `is_won_stage`, `is_lost_stage`, `is_active` | Store ordered stages. | Opportunity workflow. | Proposal at 60 percent. | Consistent stage reports. |
-| `crm_opportunities` | Core, Archive, Ownership, `opportunity_number`, `name`, `account_id`, `primary_contact_id`, `source_id`, `campaign_id`, `pipeline_id`, `stage_id`, `status`, `amount`, `currency`, `probability`, `forecast_category_id`, `expected_close_date`, `actual_close_date`, `lost_reason`, `description` | Store deals. | Pipeline, forecast, account detail. | Acme renewal deal. | Central sales value record. |
-| `crm_opportunity_contacts` | Core, `opportunity_id`, `contact_id`, `role`, `is_primary`, `influence_level` | Link deal stakeholders. | Deal detail. | CFO is decision maker. | Maps buying committee. |
-| `crm_opportunity_line_items` | Core, `opportunity_id`, `product_id`, `price_book_entry_id`, `line_number`, `item_code`, `item_name`, `quantity`, `unit_price`, `discount_amount`, `tax_amount`, `line_total`, `currency` | Store deal item snapshots. | Deal value and quote draft. | 10 support licenses. | Better forecast detail. |
-| `crm_opportunity_stage_history` | `id`, `opportunity_id`, `from_stage_id`, `to_stage_id`, `from_status`, `to_status`, `reason`, `changed_at`, `changed_by_actor_id` | Track deal movement. | Sales audit. | Proposal to Negotiation. | Shows pipeline velocity. |
-| `crm_opportunity_competitors` | Core, `opportunity_id`, `competitor_name`, `strength`, `weakness`, `is_primary` | Track competitors. | Deal strategy. | Competing with Vendor X. | Helps sales coaching. |
-| `crm_forecast_periods` | Core, `name`, `period_type`, `start_date`, `end_date`, `status` | Define forecast windows. | Forecast dashboard. | FY 2027 Q1. | Consistent reporting periods. |
-| `crm_forecast_categories` | Core, `name`, `sort_order`, `probability_min`, `probability_max`, `is_commit_category` | Classify forecast values. | Opportunity forecast. | Commit, Best Case, Pipeline. | Clear manager forecast. |
-| `crm_quotas` | Core, `period_id`, `owner_actor_id`, `team_id`, `amount`, `currency`, `quota_type` | Store sales targets. | Quota attainment reports. | Seller quota is 25 lakh. | Goal tracking. |
-| `crm_forecast_entries` | Core, `period_id`, `owner_actor_id`, `team_id`, `amount`, `currency`, `forecast_category_id`, `source_type`, `source_id`, `note` | Store forecast rows. | Forecast rollups. | Manager commits 50 lakh. | Manager control. |
-| `crm_forecast_adjustments` | Core, `forecast_entry_id`, `adjusted_amount`, `currency`, `reason`, `adjusted_by_actor_id`, `adjusted_at` | Store manager adjustments. | Forecast review. | Manager reduces commit. | Transparent forecast changes. |
-
-### 8.1.3 Products, CPQ, Orders, And Contracts
+### 5.6 Suppliers And Estimates
 
 | Table | Required Fields | Why | Where Used | Short Example | Pros |
 | --- | --- | --- | --- | --- | --- |
-| `crm_products` | Core, Archive, Frappe identity, `product_code`, `name`, `product_type`, `status`, `description`, `unit_of_measure` | Store sellable products. | Opportunity and quote lines. | Premium Support Plan. | Enables local quoting. |
-| `crm_price_books` | Core, Archive, `name`, `currency`, `is_default`, `is_active`, `description` | Group prices. | Quotes and deals. | India INR price book. | Supports regional pricing. |
-| `crm_price_book_entries` | Core, `price_book_id`, `product_id`, `unit_price`, `currency`, `valid_from`, `valid_until`, `is_active` | Store product prices. | Quote line pricing. | Yearly support price. | Avoids manual prices. |
-| `crm_discount_rules` | Core, Archive, `name`, `criteria_json`, `max_discount_percent`, `approval_required`, `is_active` | Control discounts. | Quote approvals. | Above 10 percent needs approval. | Better margin control. |
-| `crm_product_bundles` | Core, Archive, `bundle_code`, `name`, `description`, `status` | Sell grouped products. | CPQ and quote builder. | Starter service bundle. | Faster quote creation. |
-| `crm_product_bundle_items` | Core, `bundle_id`, `product_id`, `quantity`, `is_required`, `sort_order` | Define bundle contents. | Quote builder. | Bundle includes setup service. | Consistent bundles. |
-| `crm_quote_versions` | Core, `quotation_id`, `version_number`, `status`, `snapshot_json`, `created_by_actor_id` | Track quote revisions. | Quote audit. | Version 2 changes price. | Clear negotiation history. |
-| `crm_quote_terms` | Core, `quotation_id`, `term_type`, `term_text`, `sort_order` | Store legal and commercial terms. | Quote PDF and approval. | Payment due in 30 days. | Better offer control. |
-| `crm_quote_taxes` | Core, `quotation_id`, `tax_name`, `tax_rate`, `tax_amount`, `tax_scope` | Store tax details. | Quote totals. | GST line on quote. | Clear totals. |
-| `crm_quote_discounts` | Core, `quotation_id`, `discount_type`, `discount_value`, `discount_amount`, `reason`, `approved_by_actor_id` | Store discounts. | Approval and margin reports. | 5 percent renewal discount. | Transparent pricing. |
-| `crm_orders` | Core, Archive, Ownership, `order_number`, `quotation_id`, `account_id`, `party_id`, `status`, `order_date`, `currency`, `total_amount`, `fulfillment_status` | Track accepted quotes. | Sales operations. | Quote creates order. | Clear post-sale work. |
-| `crm_order_items` | Core, `order_id`, `product_id`, `item_code`, `item_name`, `quantity`, `unit_price`, `amount`, `fulfillment_status` | Store order lines. | Fulfillment. | Two licenses pending delivery. | Item-level tracking. |
-| `crm_fulfillment_requests` | Core, `order_id`, `target_system`, `status`, `submitted_at`, `target_reference`, `failure_code`, `failure_message` | Send orders to delivery or ERP. | Operations handoff. | Order sent to ERP. | Clear boundary. |
-| `crm_delivery_milestones` | Core, `order_id`, `name`, `due_date`, `completed_at`, `status`, `owner_actor_id` | Track delivery promises. | Account and order detail. | Install due next week. | Better customer follow-up. |
-| `crm_contracts` | Core, Archive, Ownership, `contract_number`, `account_id`, `contact_id`, `opportunity_id`, `quotation_id`, `order_id`, `status`, `start_date`, `end_date`, `total_amount`, `currency`, `terms` | Store won agreements. | Account and renewal views. | One-year support contract. | Connects sales to retention. |
-| `crm_contract_terms` | Core, `contract_id`, `term_type`, `term_text`, `sort_order` | Store contract terms. | Contract detail. | Cancellation notice is 30 days. | Better agreement tracking. |
-| `crm_subscriptions` | Core, Archive, `contract_id`, `product_id`, `status`, `billing_frequency`, `start_date`, `next_renewal_date`, `quantity`, `amount`, `currency` | Track recurring commitments. | Renewal workflow. | Annual service subscription. | Supports renewal pipeline. |
-| `crm_customer_assets` | Core, Archive, `account_id`, `contact_id`, `product_id`, `serial_number`, `asset_name`, `status`, `installed_at`, `warranty_until` | Track sold or supported assets. | Service cases and account view. | Installed POS terminal. | Service knows customer assets. |
-| `crm_renewal_opportunities` | Core, `subscription_id`, `opportunity_id`, `renewal_due_date`, `status` | Link subscriptions to renewal deals. | Renewal pipeline. | Renewal due in 60 days. | Better recurring revenue. |
+| `crm_suppliers` | Core, Archive, Ownership, `supplier_number`, `name`, `status`, `phone`, `email`, `territory_id`, `rating` | Store supplier parties. | Estimates and service parts. | ABC Spares. | Supplier lookup is local. |
+| `crm_supplier_contacts` | Core, `supplier_id`, `contact_id`, `role`, `is_primary` | Link supplier people. | Estimate requests. | Sales contact. | Faster supplier follow-up. |
+| `crm_estimate_requests` | Core, `enquiry_id`, `request_number`, `status`, `needed_by`, `requested_by_actor_id`, `note` | Ask suppliers for pricing. | Estimate workflow. | Request laptop repair cost. | Controlled sourcing. |
+| `crm_estimate_request_lines` | Core, `request_id`, `item_name`, `description`, `quantity`, `unit`, `target_price` | Store requested items. | Supplier estimate comparison. | Two replacement parts. | Clear supplier asks. |
+| `crm_supplier_estimates` | Core, Archive, `request_id`, `supplier_id`, `estimate_number`, `status`, `valid_till`, `currency`, `subtotal_amount`, `tax_amount`, `total_amount`, `delivery_days`, `warranty_terms` | Store supplier offers. | Quotation preparation. | Supplier quotes 5000 INR. | Multiple supplier comparison. |
+| `crm_supplier_estimate_lines` | Core, `supplier_estimate_id`, `item_name`, `quantity`, `unit_cost`, `tax_amount`, `total_amount`, `delivery_note` | Store supplier line details. | Estimate detail. | Sensor at 1200 INR. | Accurate cost rollup. |
+| `crm_estimate_comparisons` | Core, `request_id`, `selected_supplier_estimate_id`, `comparison_json`, `decision_note`, `decided_by_actor_id`, `decided_at` | Compare supplier offers. | Manager approval. | Choose lower cost with warranty. | Better margin control. |
+| `crm_supplier_commitments` | Core, `supplier_id`, `enquiry_id`, `commitment_type`, `promised_at`, `due_at`, `status`, `note` | Track supplier promises. | Follow-up and reports. | Part delivery Monday. | Less missed dependency work. |
 
-### 8.1.4 Service, Field Service, And Customer Success
+### 5.7 Quotation And Commercial Offer
 
 | Table | Required Fields | Why | Where Used | Short Example | Pros |
 | --- | --- | --- | --- | --- | --- |
-| `crm_service_cases` | Core, Archive, Ownership, `case_number`, `account_id`, `contact_id`, `contract_id`, `asset_id`, `subject`, `description`, `case_type`, `priority`, `status`, `origin`, `opened_at`, `first_response_due_at`, `resolution_due_at`, `resolved_at`, `resolved_by_actor_id`, `resolution_summary` | Store support cases. | Service console. | Printer not working. | Strong service support. |
-| `crm_case_comments` | Core, Archive, `case_id`, `comment_type`, `body`, `author_actor_id`, `author_contact_id` | Store case conversations. | Case timeline. | Agent asks for screenshot. | Complete support context. |
-| `crm_case_status_history` | `id`, `case_id`, Status history | Track case movement. | Service audit. | Open to Pending Customer. | Better case reporting. |
-| `crm_case_sla_checkpoints` | Core, `case_id`, `checkpoint_type`, `due_at`, `met_at`, `status` | Store SLA deadlines. | SLA dashboard. | First response due 2 PM. | SLA-ready service. |
-| `crm_entitlements` | Core, Archive, `account_id`, `contract_id`, `name`, `support_level`, `start_date`, `end_date`, `case_limit`, `is_active` | Store support rights. | Case validation. | Gold support entitlement. | Prevents unsupported work. |
-| `crm_case_escalations` | Core, `case_id`, `from_team_id`, `to_team_id`, `reason`, `escalated_at`, `resolved_at` | Track escalations. | Support management. | Tier 1 to Tier 2. | Better service performance. |
-| `crm_work_orders` | Core, Archive, Ownership, `work_order_number`, `case_id`, `account_id`, `asset_id`, `subject`, `description`, `status`, `priority`, `scheduled_start_at`, `scheduled_end_at`, `completed_at` | Plan field work. | Field service console. | Replace device at site. | Connects cases to site work. |
-| `crm_work_order_tasks` | Core, `work_order_id`, `title`, `status`, `estimated_minutes`, `completed_at`, `sort_order` | Store job checklist. | Technician app. | Check wiring. | Better field quality. |
-| `crm_service_resources` | Core, `actor_id`, `resource_type`, `name`, `status`, `home_territory_id`, `skill_json` | Store field resources. | Scheduling. | Technician with printer skill. | Better dispatch. |
-| `crm_service_territories` | Core, `name`, `parent_territory_id`, `region_code`, `operating_hours_json` | Store service coverage. | Dispatch and SLA. | Chennai North service area. | Better field routing. |
-| `crm_service_appointments` | Core, `work_order_id`, `resource_id`, `territory_id`, `status`, `scheduled_start_at`, `scheduled_end_at`, `actual_start_at`, `actual_end_at` | Schedule field visits. | Dispatch calendar. | Visit booked at 4 PM. | Better technician planning. |
-| `crm_service_parts` | Core, `work_order_id`, `product_id`, `quantity_planned`, `quantity_used`, `unit_cost`, `status` | Track parts used. | Field service and cost. | Replaced one sensor. | Better service costing. |
-| `crm_success_plans` | Core, Archive, Ownership, `account_id`, `name`, `status`, `start_date`, `end_date`, `health_goal`, `note` | Track customer success plans. | Account health. | Onboarding plan for Acme. | Better retention work. |
-| `crm_success_plan_tasks` | Core, `success_plan_id`, `title`, `owner_actor_id`, `due_at`, `status` | Track success work. | Customer success queue. | Complete onboarding call. | Clear account follow-up. |
+| `crm_quotations` | Core, Archive, Ownership, `quotation_number`, `enquiry_id`, `account_id`, `contact_id`, `status`, `transaction_date`, `valid_till`, `currency`, `subtotal_amount`, `discount_amount`, `tax_amount`, `grand_total`, `margin_amount`, `remarks` | Store customer offers. | Quote builder and reports. | Quote for Acme service. | Controlled sales offer. |
+| `crm_quotation_lines` | Core, `quotation_id`, `line_number`, `item_code`, `item_name`, `description`, `quantity`, `unit`, `rate`, `discount_amount`, `tax_amount`, `amount`, `source_estimate_line_id` | Store quote lines. | Quote math and preview. | Service charge line. | Repeatable totals. |
+| `crm_quotation_terms` | Core, `quotation_id`, `term_type`, `term_text`, `sort_order` | Store terms. | Quote preview. | Payment within 7 days. | Clear customer terms. |
+| `crm_quotation_versions` | Core, `quotation_id`, `version_number`, `status`, `snapshot_json`, `created_by_actor_id` | Keep revisions. | Quote history. | Version 2 adds discount. | Full history. |
+| `crm_quotation_approvals` | Core, `quotation_id`, `approval_type`, `status`, `requested_by_actor_id`, `approved_by_actor_id`, `requested_at`, `decided_at`, `decision_note` | Control margin and discount risk. | Quote workflow. | Manager approves discount. | Safer pricing. |
+| `crm_quotation_sends` | Core, `quotation_id`, `communication_id`, `channel`, `sent_to`, `sent_at`, `sent_by_actor_id`, `status` | Track sent quotes. | Timeline and reports. | Sent by email. | Proof of send. |
+| `crm_quotation_responses` | Core, `quotation_id`, `response_status`, `responded_at`, `responded_by_contact_id`, `note` | Track customer response. | Sales follow-up. | Accepted by customer. | Clear next step. |
 
-### 8.1.5 Knowledge, Feedback, Quality, And Automation
+### 5.8 Assignment, Duty, And Field Service
 
 | Table | Required Fields | Why | Where Used | Short Example | Pros |
 | --- | --- | --- | --- | --- | --- |
-| `crm_knowledge_articles` | Core, Archive, Ownership, `article_number`, `title`, `summary`, `body`, `status`, `category`, `published_at` | Store sales and service knowledge. | Case help and seller enablement. | Reset device article. | Faster answers. |
-| `crm_knowledge_links` | Core, `article_id`, `record_type`, `record_id`, `link_reason` | Link articles to records. | Case and enquiry pages. | Article linked to case. | Contextual help. |
-| `crm_surveys` | Core, Archive, `name`, `survey_type`, `status`, `question_json` | Store survey definitions. | CSAT and feedback. | Case closure CSAT. | Measures experience. |
-| `crm_survey_responses` | Core, `survey_id`, `record_type`, `record_id`, `contact_id`, `score`, `response_json`, `submitted_at` | Store survey answers. | Reports and account health. | Customer rates case 5. | Quality signal. |
-| `crm_customer_health_scores` | Core, `account_id`, `score`, `score_label`, `reason_json`, `calculated_at` | Track customer risk. | Account health. | Acme health is 82. | Retention signal. |
-| `crm_duplicate_rules` | Core, `record_type`, `name`, `match_json`, `action`, `is_active` | Define duplicate checks. | Leads, contacts, accounts. | Match contacts by email. | Better data quality. |
-| `crm_duplicate_sets` | Core, `record_type`, `status`, `score`, `reviewed_by_actor_id`, `reviewed_at` | Store duplicate groups. | Merge review. | Two Acme accounts look same. | Controlled cleanup. |
-| `crm_duplicate_items` | `id`, `duplicate_set_id`, `record_id`, `match_reason_json`, `created_at` | Link records to duplicate sets. | Merge review. | Acme A and Acme B. | Transparent evidence. |
-| `crm_merge_requests` | Core, `record_type`, `winner_record_id`, `loser_record_ids_json`, `status`, `requested_by_actor_id`, `approved_by_actor_id`, `merge_plan_json` | Control record merge. | Data admin. | Merge duplicate contacts. | Safer cleanup. |
-| `crm_assignment_rules` | Core, `record_type`, `rule_name`, `priority`, `criteria_json`, `target_type`, `target_id`, `is_active` | Route work by criteria. | Leads, enquiries, cases. | Web leads go to Inside Sales. | Less manual routing. |
-| `crm_escalation_rules` | Core, `record_type`, `rule_name`, `criteria_json`, `target_team_id`, `deadline_minutes`, `is_active` | Escalate overdue work. | Cases and enquiries. | Urgent case escalates after 30 minutes. | Better SLA control. |
-| `crm_approval_rules` | Core, `record_type`, `rule_name`, `criteria_json`, `approver_type`, `approver_id`, `is_active` | Configure approvals. | Quotes and discounts. | Discount above 10 percent needs approval. | Less hardcoded logic. |
-| `crm_workflow_rules` | Core, `record_type`, `rule_name`, `trigger_event`, `criteria_json`, `is_active` | Trigger CRM actions. | Automation engine. | Status change sends notification. | Configurable operations. |
-| `crm_workflow_actions` | Core, `workflow_rule_id`, `action_type`, `action_json`, `sort_order` | Store actions for workflow rules. | Automation engine. | Create task after won deal. | Multi-step automation. |
-| `crm_automation_runs` | Core, `rule_id`, `record_type`, `record_id`, `status`, `started_at`, `finished_at`, `error_message` | Track automation runs. | Admin monitor. | Assignment rule failed. | Debuggable automation. |
+| `crm_assignments` | Core, Ownership, `record_type`, `record_id`, `assigner_actor_id`, `assignee_actor_id`, `queue_id`, `status`, `priority`, `assigned_at`, `accepted_at`, `due_at` | Assign work. | Enquiry, work order, collection. | Assign engineer to visit. | Clear accountability. |
+| `crm_assignment_status_history` | `id`, `assignment_id`, Status | Track assignment movement. | Audit and reports. | Assigned to accepted. | Better follow-up. |
+| `crm_follow_ups` | Core, `record_type`, `record_id`, `owner_actor_id`, `follow_up_type`, `due_at`, `status`, `result_note` | Track next actions. | My follow-up and manager queue. | Call customer tomorrow. | Fewer missed tasks. |
+| `crm_duty_rosters` | Core, `actor_id`, `team_id`, `shift_date`, `shift_start_at`, `shift_end_at`, `status`, `backup_actor_id` | Store CRM duty plan. | Scheduling and dispatch. | Engineer on morning duty. | Assigns available staff. |
+| `crm_staff_skills` | Core, `actor_id`, `skill_key`, `skill_level`, `certified_until`, `is_active` | Match work to skills. | Dispatch and workload. | AC repair skill. | Better assignment quality. |
+| `crm_workload_snapshots` | Core, `actor_id`, `team_id`, `open_count`, `overdue_count`, `scheduled_minutes`, `snapshot_at` | Show current load. | Assignment screen. | Engineer has five open tasks. | Balanced work. |
+| `crm_work_orders` | Core, Archive, Ownership, `work_order_number`, `enquiry_id`, `quotation_id`, `account_id`, `contact_id`, `subject`, `status`, `priority`, `scheduled_start_at`, `scheduled_end_at`, `completed_at` | Plan field or remote work. | Service console. | Repair device at site. | Connects enquiry to execution. |
+| `crm_work_order_tasks` | Core, `work_order_id`, `title`, `description`, `status`, `estimated_minutes`, `completed_at`, `sort_order` | Store task checklist. | Engineer app. | Check wiring. | Better field quality. |
+| `crm_service_appointments` | Core, `work_order_id`, `assignee_actor_id`, `customer_address_id`, `status`, `scheduled_start_at`, `scheduled_end_at`, `actual_start_at`, `actual_end_at` | Schedule visits. | Calendar and engineer queue. | Visit booked at 4 PM. | Better time planning. |
+| `crm_check_ins` | Core, `appointment_id`, `actor_id`, `check_in_at`, Location, `device_id`, `note` | Record arrival. | Field proof and attendance. | Engineer reached site. | Site presence proof. |
+| `crm_check_outs` | Core, `appointment_id`, `actor_id`, `check_out_at`, Location, `work_result`, `customer_note` | Record departure and result. | Completion and reports. | Work completed at 6 PM. | Clear finish proof. |
+| `crm_location_records` | Core, `record_type`, `record_id`, Location, `source`, `purpose` | Store location events. | Field service and collection. | Visit check-in location. | Location audit. |
+| `crm_work_proofs` | Core, `work_order_id`, `proof_type`, Evidence, `note` | Store photos, files, and signatures. | Verification. | Customer signature. | Strong completion proof. |
+| `crm_service_parts` | Core, `work_order_id`, `item_code`, `item_name`, `quantity_planned`, `quantity_used`, `unit_cost`, `status` | Track parts. | Cost and stock handoff. | One sensor used. | Better service cost. |
+| `crm_field_issues` | Core, `work_order_id`, `issue_type`, `severity`, `status`, `owner_actor_id`, `due_at`, `resolution_note` | Track field blockers. | Revisit and escalation. | Customer unavailable. | Clear next action. |
 
-### 8.1.6 Admin Metadata And Enterprise Controls
+### 5.9 Collection, Completion, And Quality
 
 | Table | Required Fields | Why | Where Used | Short Example | Pros |
 | --- | --- | --- | --- | --- | --- |
-| `crm_record_types` | Core, `record_type`, `name`, `description`, `is_default`, `is_active` | Support different business processes per object. | Layouts, picklists, workflow. | Enterprise Deal and Retail Deal. | One CRM fits many sectors. |
-| `crm_custom_fields` | Core, `record_type`, `field_key`, `label`, `field_type`, `is_required`, `default_value`, `config_json`, `is_active` | Add controlled custom fields later. | Admin setup and dynamic views. | Account GST number. | Flexible without schema churn. |
-| `crm_picklists` | Core, `record_type`, `field_key`, `name`, `is_active` | Define controlled option sets. | Forms and filters. | Case priority list. | Cleaner data entry. |
-| `crm_picklist_values` | Core, `picklist_id`, `value_key`, `label`, `sort_order`, `is_default`, `is_active` | Store option values. | Forms and filters. | Priority `urgent`. | Stable labels. |
-| `crm_page_layouts` | Core, `record_type`, `record_type_id`, `layout_name`, `layout_json`, `is_default`, `is_active` | Store future form layouts. | Web UI. | Service case layout. | Sector-specific screens. |
-| `crm_validation_rules` | Core, `record_type`, `rule_name`, `criteria_json`, `error_message`, `is_active` | Validate records by configuration. | Save workflow. | Close date required for won deal. | Better data quality. |
-| `crm_role_hierarchies` | Core, `parent_actor_id`, `child_actor_id`, `scope_type`, `scope_id`, `started_at`, `ended_at` | Model sales management visibility. | CRM authorization. | Manager sees seller pipeline. | Better enterprise sharing. |
-| `crm_sharing_rules` | Core, `record_type`, `rule_name`, `criteria_json`, `share_target_type`, `share_target_id`, `access_level`, `is_active` | Configure record sharing. | CRM authorization. | South team sees South accounts. | Less manual sharing. |
-| `crm_field_access_rules` | Core, `record_type`, `field_key`, `target_type`, `target_id`, `access_level` | Control sensitive fields. | Forms and API. | Hide margin from sellers. | Safer enterprise use. |
-| `crm_audit_snapshots` | Core, `record_type`, `record_id`, `event_type`, `snapshot_json`, `actor_id` | Store important business snapshots. | Audit and compliance. | Quote accepted snapshot. | Stronger review trail. |
+| `crm_collection_plans` | Core, Ownership, `record_type`, `record_id`, `expected_amount`, `currency`, `due_at`, `mode`, `status`, `owner_actor_id` | Plan collections. | Quote, enquiry, work order. | Collect 10000 INR Friday. | Payment follow-up is visible. |
+| `crm_payment_commitments` | Core, `collection_plan_id`, `promised_amount`, `promised_at`, `promised_by_contact_id`, `promise_note`, `status` | Track promises. | Collection queue. | Customer promises Monday. | Better recovery work. |
+| `crm_collection_attempts` | Core, `collection_plan_id`, `attempt_type`, `communication_id`, `visited_address_id`, `attempted_at`, `outcome`, `note` | Track follow-up attempts. | Collection history. | Call for overdue payment. | Complete effort log. |
+| `crm_payments` | Core, `collection_plan_id`, `amount`, `currency`, `mode`, `reference_number`, `received_by_actor_id`, `received_at`, `proof_storage_ref`, `status` | Record received money. | Collection and reports. | UPI payment received. | Proof of collection. |
+| `crm_balance_snapshots` | Core, `record_type`, `record_id`, `quoted_amount`, `collected_amount`, `pending_amount`, `overdue_amount`, `snapshot_at` | Store commercial state. | Overview and reports. | Pending 3000 INR. | Fast dashboard. |
+| `crm_completion_rules` | Core, `record_type`, `name`, `criteria_json`, `is_active` | Define when work can complete. | Work order and enquiry close. | Proof required before complete. | Clear close control. |
+| `crm_verification_checklists` | Core, `record_type`, `record_id`, `name`, `status`, `assigned_verifier_actor_id`, `due_at` | Define review steps. | Verification queue. | Verify site work. | Better quality gate. |
+| `crm_verification_items` | Core, `checklist_id`, `title`, `status`, `evidence_required`, `result_note`, `sort_order` | Store checklist rows. | Verification UI. | Customer signature checked. | Detailed proof. |
+| `crm_verification_outcomes` | Core, `checklist_id`, `outcome`, `decided_by_actor_id`, `decided_at`, `note` | Store final result. | Close workflow. | Verified. | Explicit close decision. |
+| `crm_reopen_records` | Core, `record_type`, `record_id`, `reason`, `reopened_by_actor_id`, `reopened_at`, `new_assignment_id` | Reopen failed work. | Verification failure. | Missing proof. | Controlled rework. |
+| `crm_recordings` | Core, `record_type`, `record_id`, `channel`, `storage_ref`, `duration_seconds`, `recorded_at`, `consent_id`, `retain_until`, `status` | Store call or visit recording metadata. | Quality review. | Recorded support call. | Recording is controlled. |
+| `crm_quality_reviews` | Core, `record_type`, `record_id`, `recording_id`, `reviewer_actor_id`, `score`, `result`, `reviewed_at`, `review_note` | Review calls and visits. | Quality dashboard. | Call score 82. | Improves service. |
+| `crm_quality_issues` | Core, `quality_review_id`, `issue_type`, `severity`, `owner_actor_id`, `due_at`, `status`, `resolution_note` | Track corrective action. | Coaching and reports. | Poor greeting issue. | Actionable quality review. |
 
-## 9. Existing Local Platform Tables To Reuse
+### 5.10 AI Assistant, HR Link, Reports, And Admin
 
-| Existing Table | Fields Seen In Temp App | CRM Use | New Plan |
+| Table | Required Fields | Why | Where Used | Short Example | Pros |
+| --- | --- | --- | --- | --- | --- |
+| `crm_assistant_sessions` | Core, `actor_id`, `record_type`, `record_id`, `purpose`, `status`, `started_at`, `ended_at` | Group AI help. | Enquiry, quote, quality. | Assistant helps draft quote. | Clear AI context. |
+| `crm_assistant_requests` | Core, `session_id`, `request_type`, `input_summary`, `status`, `requested_at` | Store AI requests. | AI audit. | Summarize enquiry. | Traceable assistance. |
+| `crm_assistant_suggestions` | Core, `request_id`, `suggestion_type`, `suggestion_text`, `suggestion_json`, `confidence`, `status` | Store AI output. | User review. | Suggested follow-up. | User can approve or reject. |
+| `crm_assistant_approvals` | Core, `suggestion_id`, `approved_by_actor_id`, `decision`, `decided_at`, `decision_note` | Require human approval. | Quote and message drafts. | User approves WhatsApp draft. | AI stays advisory. |
+| `crm_staff_profiles` | Core, `actor_id`, `employee_code`, `display_name`, `team_id`, `role_name`, `service_area`, `work_status` | Store CRM staff reference. | Duty, assignment, reports. | Field engineer profile. | CRM need not own users. |
+| `crm_attendance_links` | Core, `actor_id`, `duty_roster_id`, `check_in_id`, `check_out_id`, `attendance_date`, `status` | Link duty to field work. | Attendance review. | Check-in counted for duty. | Better service HR view. |
+| `crm_duty_exceptions` | Core, `actor_id`, `duty_roster_id`, `exception_type`, `status`, `reviewer_actor_id`, `note` | Track duty problems. | Manager review. | Late check-in. | Better accountability. |
+| `crm_performance_metrics` | Core, `actor_id`, `team_id`, `metric_period`, `metric_key`, `metric_value`, `calculated_at` | Store performance rollups. | Manager dashboard. | First-time fix rate. | Fast reports. |
+| `crm_saved_views` | Core, `actor_id`, `record_type`, `name`, `filter_json`, `sort_json`, `is_default` | Store user lists. | CRM desks. | My overdue work. | Faster daily work. |
+| `crm_metric_snapshots` | Core, `metric_name`, `record_type`, `period_start`, `period_end`, `filter_json`, `result_json`, `created_at` | Store report data. | Overview and dashboards. | Open enquiries by team. | Fast dashboard load. |
+| `crm_automation_rules` | Core, `record_type`, `rule_name`, `trigger_event`, `criteria_json`, `is_active` | Configure repeat workflows. | Assignment and reminders. | Auto-assign urgent enquiry. | Less manual work. |
+| `crm_automation_actions` | Core, `rule_id`, `action_type`, `action_json`, `sort_order` | Store rule actions. | Automation engine. | Create follow-up task. | Multi-step automation. |
+| `crm_custom_fields` | Core, `record_type`, `field_key`, `label`, `field_type`, `is_required`, `config_json`, `is_active` | Add controlled custom data later. | Admin and forms. | GST number field. | Sector fit without early churn. |
+| `crm_page_layouts` | Core, `record_type`, `layout_name`, `layout_json`, `is_default`, `is_active` | Store future layouts. | Web UI. | Service enquiry layout. | Fits many CRM levels. |
+| `crm_field_access_rules` | Core, `record_type`, `field_key`, `target_type`, `target_id`, `access_level` | Protect sensitive fields. | API and forms. | Hide margin from seller. | Safer enterprise use. |
+
+## 6. Workflow Examples
+
+| Workflow | Table Path | Why | Pros |
 | --- | --- | --- | --- |
-| `users` | Identity, status, role, Frappe credential fields | Actor identity and Frappe user mapping | Platform owns users. Move Frappe mapping to actor-link or platform identity extension. |
-| `roles` | Key, label, description, status | Permission grouping | Platform owns roles. CRM defines permission keys only. |
-| `permissions` | Key, label, description, status | CRM access rules | Platform owns permissions. CRM contributes seeds later. |
-| `user_roles` | User and role link | Access control | Platform owns relation. |
-| `role_permissions` | Role and permission link | Access control | Platform owns relation. |
-| `notifications` | Recipient, actor, type, title, body, resource, status | CRM assignment, comment, reply, status alerts | Platform owns notifications. CRM publishes events. |
-| `notification_outbox` | Notification, status, attempts | Push delivery | Platform owns notification delivery. |
-| `notification_device_tokens` | User token | Push delivery | Platform owns device tokens. |
-| `conversations` | Type, title, status, metadata | Optional CRM chat threads | Platform or collaboration owns chat. CRM links records later if needed. |
-| `conversation_members` | Conversation, user, role, read state | Optional team chat | Platform or collaboration owns members. |
-| `messages` | Conversation, sender, content, status, metadata | Optional chat messages | Platform or collaboration owns messages. |
-| `message_receipts` | Message and user read data | Optional chat read state | Platform or collaboration owns receipts. |
-| `message_reactions` | Message and emoji | Optional chat reactions | Platform or collaboration owns reactions. |
-| `ai_honey_*` | Assistant threads, messages, skills, settings | Not required for CRM tables | Exclude from CRM migration plan. |
+| Campaign to lead | `crm_campaigns` to `crm_campaign_members` to `crm_leads` | Track marketing source and response. | Campaign ROI is visible. |
+| Lead to enquiry | `crm_leads` to `crm_lead_qualification` to `crm_lead_conversions` to `crm_enquiries` | Convert only qualified work. | Cleaner customer records. |
+| Customer communication | `crm_communication_threads` to `crm_communications` to `crm_delivery_receipts` | Keep all contact history. | Complete customer timeline. |
+| Call recording review | `crm_call_logs` to `crm_recordings` to `crm_quality_reviews` | Review service quality. | Coaching becomes traceable. |
+| Estimate to quote | `crm_estimate_requests` to `crm_supplier_estimates` to `crm_quotations` | Build quotes from real cost. | Better margin control. |
+| Quote send and response | `crm_quotations` to `crm_quotation_sends` to `crm_quotation_responses` | Track customer offer state. | Sales next step is clear. |
+| Assignment to field work | `crm_assignments` to `crm_work_orders` to `crm_service_appointments` | Connect manager assignment to execution. | Assignee and assigner see the same state. |
+| Engineer site visit | `crm_service_appointments` to `crm_check_ins` to `crm_check_outs` to `crm_work_proofs` | Record visit proof. | Site work is auditable. |
+| Collection follow-up | `crm_collection_plans` to `crm_payment_commitments` to `crm_collection_attempts` to `crm_payments` | Track payment promises and results. | Better cash recovery. |
+| Completion and verification | `crm_work_orders` to `crm_verification_checklists` to `crm_verification_outcomes` | Close only verified work. | Fewer false closures. |
+| AI assisted follow-up | `crm_assistant_requests` to `crm_assistant_suggestions` to `crm_assistant_approvals` | Make AI output reviewable. | Users stay in control. |
 
-## 10. Workflow Examples
-
-| Workflow | Local Table Path | Frappe Posting | Why | Pros |
-| --- | --- | --- | --- | --- |
-| Mobile call to enquiry | `crm_enquiries` to `crm_enquiry_calls` to `crm_sync_outbox` | Create `Enquiry` when live. | Field staff can capture calls locally. | No lost calls. |
-| Enquiry comment | `crm_enquiry_messages` to `crm_sync_outbox` | Update `Enquiry Message` child rows. | Comments need ordered local history. | Offline collaboration. |
-| Assignment | `crm_enquiry_assignments` to `crm_enquiries` to notifications | Update `assigned_to_employee`. | Assignment must notify local users first. | Faster work routing. |
-| Job start and stop | `crm_job_executions` to `crm_job_execution_events` | Create or update `Job Execution`. | Work time and cost must persist locally. | Better mobile reliability. |
-| Estimate to quote | `crm_estimates` to `crm_quotations` and `crm_quotation_items` | Post `Estimate` and `Quotation`. | Supplier cost informs customer offer. | Better margin control. |
-| Frappe import | `crm_import_batches` to `crm_import_rows` to target tables | Read Frappe pages and map references. | Existing live data must come local safely. | Reviewable migration. |
-| Sync conflict | `crm_sync_conflicts` plus target table | Pause remote overwrite. | Local and Frappe can change at same time. | Data loss prevention. |
-
-## 11. Performance Plan
+## 7. Performance Plan
 
 | Concern | Table Area | Plan | Why | Pros |
 | --- | --- | --- | --- | --- |
-| Enquiry lists | `crm_enquiries` | Index `status_group`, `status_id`, `owner_actor_id`, `queue_id`, `team_id`, `priority`, `enquiry_date`, `created_at`, `mobile`, `frappe_name`. | Lists filter by these fields. | Fast CRM desk. |
-| Mobile lookup | `crm_enquiries`, `crm_parties`, `crm_contact_methods` | Index normalized mobile fields. | Mobile history searches by phone. | Fast call capture. |
-| Timeline load | Messages, calls, notes, activities | Index `enquiry_id` and event dates. | Detail pages load by enquiry. | Fast record view. |
-| Sync worker | Sync outbox | Index `status`, `available_at`, `locked_at`, `record_type`, `record_id`. | Worker must claim pending items fast. | Predictable posting. |
-| External refs | `crm_external_references` | Unique index by system, doctype, external name. | Prevent duplicate Frappe maps. | Safer sync. |
-| Reports | Snapshots and metrics | Use snapshot tables for heavy reports. | Live reports can be expensive. | Stable dashboards. |
-| Imports | Import rows | Process and validate in pages. | Large Frappe imports need retries. | Safer migration. |
-| Logs | Sync attempts | Retain full attempts for a defined period only. | Logs grow fast. | Controlled storage. |
+| CRM desks | Leads, enquiries, assignments, work orders | Index `status`, `owner_actor_id`, `team_id`, `queue_id`, `priority`, `due_at`, `created_at`. | Lists filter by these fields. | Fast daily work views. |
+| Customer lookup | Accounts, contacts, contact methods | Index normalized phone, mobile, email, and account name. | Users search by phone and customer. | Fast call capture. |
+| Timeline load | Communications, notes, activities, attachments | Index `record_type`, `record_id`, and event dates. | Detail pages load timeline by record. | Fast record view. |
+| Field work | Appointments, check-ins, check-outs | Index assignee, schedule time, status, and location date. | Dispatch screens need date and actor filters. | Faster schedule planning. |
+| Collections | Collection plans, promises, payments | Index due date, owner, status, and record link. | Overdue work must surface quickly. | Better cash follow-up. |
+| Reports | Metric snapshots | Store periodic rollups. | Heavy dashboards should not scan all tables. | Stable dashboards. |
+| Attachments | Evidence tables | Store storage refs and metadata only. | File storage can stay outside CRM tables. | Smaller database. |
+| AI | Assistant requests and suggestions | Store summaries and approved outputs. | Avoid storing raw private data when not needed. | Safer AI audit. |
 
-## 12. Review Gates Before Code
+## 8. Review Gates Before Code
 
-| Gate | Question | Recommended Decision For Phase 1 | Impact |
+| Gate | Question | Recommended Decision | Impact |
 | --- | --- | --- | --- |
-| Source of truth | Is local CRM the source of truth? | Yes. Frappe is a live posting target. | Shapes every write path. |
-| Tenant model | Should CRM support true tenant isolation now? | No until a decision record exists. | Avoids premature tenant fields. |
-| User model | Should CRM own users? | No. Use Platform actors. | Keeps boundaries clean. |
-| Frappe credentials | Where should secrets live? | Secret store or platform identity, referenced by `credential_ref`. | Avoids secret leakage. |
-| Frappe import | Should existing Frappe data import before local launch? | Yes, through import batches. | Prevents missing history. |
-| Conflict policy | Can Frappe overwrite local edits? | No. Stage conflicts for review. | Prevents data loss. |
-| Generic links | Should `record_type` plus `record_id` be allowed? | Use only for tags, views, activities, external refs, and reports. | Balances flexibility and integrity. |
-| Party model | Should Customer and Supplier share one local table? | Yes for Phase 1 via `crm_parties`. | Matches Frappe references with less duplication. |
-| Email storage | Should CRM store email body or metadata only? | Decide before implementation. | Affects privacy and search. |
-| HR and SOP | Should staff request and SOP duty be CRM tables? | No for Phase 1. Keep as Frappe-adjacent or separate operations module. | Keeps CRM focused. |
-| Salesforce-style scope | Should all expanded modules ship together? | No. Ship Phase 1 first, then add Phase 2 to 4 in order. | Keeps local-first migration controlled. |
-| Automation | Should assignment, escalation, approval, and workflow rules be configurable? | Yes for Phase 4. Keep Phase 1 logic explicit. | Avoids early rule-engine complexity. |
-| Admin metadata | Should custom fields and page layouts exist in the first migration? | No. Add after core records are stable. | Avoids unstable schema and UI contracts. |
-| Field access | Should CRM add field-level access rules? | Yes for enterprise phase. Reuse Platform Identity. | Helps protect pricing and margin fields. |
+| Source of truth | Does CRM own its product data locally? | Yes. | Shapes every write path. |
+| Identity | Should CRM own users? | No. Use platform actors. | Keeps boundaries clean. |
+| Customer 360 | Should accounts and contacts ship early? | Yes. | Enquiry and quotation need stable customer data. |
+| Communication | Should CRM store full message bodies? | Decide by channel and privacy policy. | Affects search, privacy, and retention. |
+| Recording | Should recordings store files in the database? | No. Store metadata and storage refs. | Keeps database smaller. |
+| Location | Should location be mandatory for every visit? | Yes for check-in and check-out. | Gives field proof. |
+| AI | Can AI create CRM records directly? | No. It can draft and suggest only. | Keeps user approval clear. |
+| HR | Should full HR live inside CRM? | No. Store only CRM duty and service delivery links. | Keeps CRM focused. |
+| Custom fields | Should custom fields ship before core modules? | No. Add after core tables settle. | Reduces early complexity. |
+| Automation | Should automation ship before manual workflow? | No. Add after stable manual flow. | Prevents hidden workflow bugs. |
 
-## 13. First Work To Start After Approval
+## 9. First Work To Start After Approval
 
 | Work ID | Phase | Task | Output | Acceptance Criteria |
 | --- | --- | --- | --- | --- |
-| CRM-TABLE-001 | 1 | Approve local-first source-of-truth rule. | Final decision record or approved note. | No direct Frappe write occurs without local record and sync item. |
-| CRM-TABLE-002 | 1 | Approve Phase 1 table list. | Locked list for integration, setup, party, enquiry, job, estimate, quote, reporting, and import. | Each required temp app Frappe concept has a local table. |
-| CRM-TABLE-003 | 1 | Approve Frappe mapping fields. | Standard external reference and sync field contract. | Every Frappe-posted table can map back to doctype and name. |
-| CRM-TABLE-004 | 1 | Approve actor and credential boundary. | Platform actor plus CRM actor-link decision. | No CRM table stores raw API key or secret. |
-| CRM-TABLE-005 | 1 | Approve conflict and retry policy. | Sync status state machine. | Failed and conflicting posts are reviewable and retryable. |
-| CRM-TABLE-006 | 2 | Approve Salesforce-style Phase 2 table list. | Locked list for marketing, leads, activities, pipeline, forecasts, products, CPQ, orders, and contracts. | Sales Cloud style modules have clear owners and dependencies. |
-| CRM-TABLE-007 | 3 | Approve service expansion table list. | Locked list for cases, entitlements, field service, knowledge, feedback, and customer success. | Service Cloud style modules have clear owners and dependencies. |
-| CRM-TABLE-008 | 4 | Approve enterprise configuration table list. | Locked list for automation, custom fields, layouts, validation, sharing, and field access. | Admin metadata does not block Phase 1 local-first work. |
-| CRM-TABLE-009 | 1 | Start migrations only after approvals. | Migration implementation task. | Phase 1 planning gates are complete. |
+| CRM-TABLE-001 | 0 | Approve CRM-only source-of-truth rule. | Approved planning note. | CRM data does not depend on a live external system. |
+| CRM-TABLE-002 | 0 | Approve migration order. | Locked table group order. | Dependencies flow from setup to reports. |
+| CRM-TABLE-003 | 0 | Approve Phase 1 table list. | Foundation, routing, customer, campaign, lead, enquiry tables are locked. | The first CRM workflow can start. |
+| CRM-TABLE-004 | 0 | Approve communication storage policy. | Channel and retention decision. | Calls, messages, and recordings have privacy rules. |
+| CRM-TABLE-005 | 0 | Approve field service proof policy. | Location, photo, file, and signature rule. | Site work can be verified. |
+| CRM-TABLE-006 | 0 | Approve AI approval policy. | Assistant scope decision. | AI cannot change CRM records without user approval. |
+| CRM-TABLE-007 | 0 | Approve CRM-linked HR boundary. | Duty and attendance scope decision. | CRM does not become a full HR system. |
+| CRM-TABLE-008 | 1 | Start migrations only after approvals. | Migration implementation task. | Planning gates are complete. |

@@ -46,6 +46,7 @@ test("exposes driver-neutral repository, unit-of-work, and migration contracts",
   };
   const unitOfWork: UnitOfWork = { execute: async (work) => work(createTransaction([])) };
   const migration: MigrationDescriptor = {
+    checksum: "0".repeat(64),
     id: "settings.001",
     owner: "modules/settings",
     description: "Create settings records.",

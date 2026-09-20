@@ -31,6 +31,9 @@ Read the [module architecture](../architecture/module-architecture.md) and [repo
 - Version public HTTP APIs and document breaking changes.
 - Keep SQL queries behind an application-owned repository or port.
 - Add a migration for every persistent schema change.
+- Give every migration and seeder an explicit canonical definition and SHA-256 checksum.
+- Never edit, reorder, rename, or remove a descriptor after its checksum is recorded. Append a new serial descriptor.
+- Keep seeders repeat-safe and run them only after all declared migrations succeed.
 - Do not place credentials in source code, fixtures, logs, or documentation.
 
 ## Quality rules

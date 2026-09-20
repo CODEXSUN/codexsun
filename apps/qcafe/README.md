@@ -27,9 +27,20 @@ The web host composes the shared CODEXSUN MDI workspace.
 Shared UI, identity, storage, and platform features must come from public
 package contracts.
 
+Kysely is the primary typed SQL layer for Q Cafe application data. The same
+module repositories target local SQLite and cloud MariaDB through platform
+data providers. The repository `DB_DRIVER` setting selects `sqlite` or
+`mariadb`; synchronization remains a separate application workflow.
+
 ## Current State
 
-The current checkout contains the application scaffold.
+The API host has a Foundation Setup module for businesses, locations,
+business days, service channels, and document number sequences.
+The Menu module owns categories, items, variants, price books, and effective
+pricing. The Settings module exposes database lifecycle health, a persisted
+cloud-sync policy, and safe connector metadata with deployment secret
+references.
 
-The API host has a foundation module and a health contract.
-The web host shows the shared workspace and API health state.
+The web host exposes Overview first, then Foundation and Cafe navigation. Its
+fixed Settings entry opens dedicated Database, Cloud sync, and Connectors
+pages wired to authenticated API contracts.

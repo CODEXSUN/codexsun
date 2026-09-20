@@ -31,7 +31,7 @@ The application-owned gallery documents and previews the shared UI system.
 - Component selection: `/?component=<component-id>`.
 - Block selection: `/?block=<block-id>`.
 - Template selection: `/?template=<template-id>&variant=<variant-id>`.
-- Master List pages: `v1` table-first, `v2` dense Desk-style list, and `v3` the same dense list with its own page route.
+- Master List pages: `v1` table-first, `v2` dense Desk-style list, `v3` dense column-filter list, and `v4` full-width-header list.
 - Status template: `/?template=status&variant=default` renders the distinct standard colored check-mark badges.
 - Application launcher entry: `UI` at the root `.env` `UIUX_WEB_PORT` address during local development.
 - Browser title and MDI identity: `UI`.

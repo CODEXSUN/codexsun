@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { MigrationDescriptor, SeederDescriptor } from "@codexsun/framework";
-import { ModuleDataLifecyclePolicy, type ModuleDataLifecyclePlan } from "../src/index.js";
+import { createLifecycleChecksum, ModuleDataLifecyclePolicy, type ModuleDataLifecyclePlan } from "../src/index.js";
 
 test("accepts module-owned migrations, seeders, and compatibility records", () => {
   const policy = new ModuleDataLifecyclePolicy();
@@ -27,6 +27,13 @@ test("rejects duplicate descriptor IDs and incomplete compatibility records", ()
   assert.throws(() => policy.validate(incomplete), /rollback limit is required/u);
 });
 
+test("rejects lifecycle descriptors without a SHA-256 checksum", () => {
+  const policy = new ModuleDataLifecyclePolicy();
+  const invalid = migration("settings.001");
+
+  assert.throws(() => policy.validate(plan({ migrations: [{ ...invalid, checksum: "changed" }] })), /SHA-256/u);
+});
+
 function plan(overrides: Partial<ModuleDataLifecyclePlan> = {}): ModuleDataLifecyclePlan {
   return {
     moduleId: "platform.settings",
@@ -42,9 +49,21 @@ function plan(overrides: Partial<ModuleDataLifecyclePlan> = {}): ModuleDataLifec
 }
 
 function migration(id: string, owner = "platform.settings"): MigrationDescriptor {
-  return { id, owner, description: "Create settings records.", apply: async () => undefined };
+  return {
+    checksum: createLifecycleChecksum(`${id}|create settings records`),
+    id,
+    owner,
+    description: "Create settings records.",
+    apply: async () => undefined,
+  };
 }
 
 function seeder(id: string, owner = "platform.settings"): SeederDescriptor {
-  return { id, owner, description: "Seed settings records.", seed: async () => undefined };
+  return {
+    checksum: createLifecycleChecksum(`${id}|seed settings records`),
+    id,
+    owner,
+    description: "Seed settings records.",
+    seed: async () => undefined,
+  };
 }

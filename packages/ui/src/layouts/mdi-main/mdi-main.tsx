@@ -1,50 +1,50 @@
-import { BoxesIcon, FilesIcon, LayoutDashboardIcon, MessageSquareIcon } from 'lucide-react';
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { BoxesIcon, FilesIcon, LayoutDashboardIcon, MessageSquareIcon } from "lucide-react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
-import { SidebarInset, SidebarProvider } from '@codexsun/ui/components/sidebar';
-import { Toaster } from '@codexsun/ui/components/toast';
-import { cn } from '@codexsun/ui/lib/utils';
+import { SidebarInset, SidebarProvider } from "@codexsun/ui/components/sidebar";
+import { Toaster } from "@codexsun/ui/components/toast";
+import { cn } from "@codexsun/ui/lib/utils";
 import {
   TopologyInspectionControl,
   TopologyInspector,
   TopologyMarker,
   useInterfaceTopology,
-} from '../../features/interface-topology';
-import { ThemeProvider } from '../../theme';
-import { AgentActivityRail, AgentWorkspace } from '../agent-workspace';
-import { WorkspaceApplicationHeader } from '../../blocks/workspace/workspace-application-header';
+} from "../../features/interface-topology";
+import { ThemeProvider } from "../../theme";
+import { AgentActivityRail, AgentWorkspace } from "../agent-workspace";
+import { WorkspaceApplicationHeader } from "../../blocks/workspace/workspace-application-header";
 
-import { createDefaultMdiApps } from './mdi-app-catalog';
-import { MdiFeatureSettings } from './mdi-feature-settings';
-import { MdiSidebar } from './mdi-sidebar';
-import { MdiStatusBar } from './mdi-status-bar';
-import { MdiTopMenu } from './mdi-top-menu';
-import { mdiTopologySections, MdiTopologyProvider } from './mdi-topology';
-import type { MainWorkspaceProps, MdiNavigationSection, MdiUser } from './mdi-types';
-import { useMdiFeatures } from './use-mdi-features';
+import { createDefaultMdiApps } from "./mdi-app-catalog";
+import { MdiFeatureSettings } from "./mdi-feature-settings";
+import { MdiSidebar } from "./mdi-sidebar";
+import { MdiStatusBar } from "./mdi-status-bar";
+import { MdiTopMenu } from "./mdi-top-menu";
+import { mdiTopologySections, MdiTopologyProvider } from "./mdi-topology";
+import type { MainWorkspaceProps, MdiNavigationSection, MdiUser } from "./mdi-types";
+import { useMdiFeatures } from "./use-mdi-features";
 
 const defaultNavigation: MdiNavigationSection[] = [
   {
-    label: 'Workspace',
+    label: "Workspace",
     items: [
-      { active: true, icon: LayoutDashboardIcon, label: 'Overview' },
-      { icon: FilesIcon, label: 'Documents' },
-      { icon: MessageSquareIcon, label: 'Messages' },
+      { active: true, icon: LayoutDashboardIcon, label: "Overview" },
+      { icon: FilesIcon, label: "Documents" },
+      { icon: MessageSquareIcon, label: "Messages" },
     ],
   },
 ];
 
 const defaultUser: MdiUser = {
-  initials: 'C',
-  name: 'Workspace user',
+  initials: "C",
+  name: "Workspace user",
 };
 
 export function MainWorkspace({
   agentWorkspace,
   applicationIcon = BoxesIcon,
   applicationLogoUrl,
-  applicationId = 'platform',
-  applicationName = 'Workspace',
+  applicationId = "platform",
+  applicationName = "Workspace",
   applicationHeaderStart,
   applicationHeaderEnd,
   applicationHeaderMeta,
@@ -64,11 +64,10 @@ export function MainWorkspace({
   navigation = defaultNavigation,
   notificationCount = 1,
   notifications = [],
-  primaryAction = { icon: LayoutDashboardIcon, label: 'Overview' },
+  primaryAction = { icon: LayoutDashboardIcon, label: "Overview" },
   searchPlaceholder = `Search ${applicationName}`,
   searchValue,
   settingsContent,
-  showCanvasEndSpacer = false,
   showMdiOverview = false,
   showTopologyTools = true,
   sidebarContent,
@@ -76,11 +75,11 @@ export function MainWorkspace({
   sidebarFooter,
   sidebarFooterClassName,
   sidebarStateKey,
-  statusLabel = 'Ready',
+  statusLabel = "Ready",
   statusEnd,
   topologySections = [],
   user = defaultUser,
-  workspaceTitle = 'MDI Workspace',
+  workspaceTitle = "MDI Workspace",
   onSearchChange,
 }: MainWorkspaceProps) {
   useEffect(() => {
@@ -89,10 +88,10 @@ export function MainWorkspace({
 
   const [savedFeatures, setFeature] = useMdiFeatures(applicationId, defaultFeatures);
   const features = { ...savedFeatures, ...requiredFeatures };
-  const [view, setView] = useState<'settings' | 'workspace'>('workspace');
+  const [view, setView] = useState<"settings" | "workspace">("workspace");
   const topologyDesks = useMemo(
     () => [
-      ...(showMdiOverview ? [{ id: 'mdi-overview', name: 'MDI Overview', sections: mdiTopologySections }] : []),
+      ...(showMdiOverview ? [{ id: "mdi-overview", name: "MDI Overview", sections: mdiTopologySections }] : []),
       ...(topologySections.length
         ? [{ id: `${applicationId}-desk`, name: workspaceTitle, sections: topologySections }]
         : []),
@@ -109,14 +108,14 @@ export function MainWorkspace({
           <SidebarProvider
             defaultOpen={defaultSidebarOpen}
             className={cn(
-              'min-h-0 flex-col gap-px overflow-hidden bg-background text-foreground',
-              embedded ? 'h-full' : 'h-svh',
+              "min-h-0 flex-col gap-px overflow-hidden bg-background text-foreground",
+              embedded ? "h-full" : "h-svh",
             )}
             style={
               {
-                '--sidebar-width': '16rem',
-                '--sidebar-left-offset':
-                  agentWorkspace && view === 'workspace' && features.primaryActivityRail ? '3.5rem' : '0rem',
+                "--sidebar-width": "16rem",
+                "--sidebar-left-offset":
+                  agentWorkspace && view === "workspace" && features.primaryActivityRail ? "3.5rem" : "0rem",
               } as CSSProperties
             }
           >
@@ -139,23 +138,23 @@ export function MainWorkspace({
 
             <div
               className={cn(
-                'relative flex min-h-0 flex-1 overflow-hidden border-t border-border',
+                "relative flex min-h-0 flex-1 overflow-hidden border-t border-border",
                 deskRegionId && topology.highlightClassName(deskRegionId),
               )}
               {...(deskRegionId ? topology.regionProps(deskRegionId) : {})}
             >
               {deskRegionId ? <TopologyMarker id={deskRegionId} topology={topology} /> : null}
-              {view === 'workspace' && agentWorkspace ? (
+              {view === "workspace" && agentWorkspace ? (
                 <AgentActivityRail
                   rail={agentWorkspace.primaryRail}
                   side="left"
                   visible={features.primaryActivityRail}
                 />
               ) : null}
-              {view === 'workspace' ? (
+              {view === "workspace" ? (
                 <MdiSidebar
                   navigation={navigation}
-                  onOpenFeatures={() => setView('settings')}
+                  onOpenFeatures={() => setView("settings")}
                   primaryAction={primaryAction}
                   sidebarContent={sidebarContent}
                   sidebarContentClassName={sidebarContentClassName}
@@ -167,9 +166,9 @@ export function MainWorkspace({
               <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
                 <main
                   className={cn(
-                    'workspace-scrollbar-slim relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-background data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700',
+                    "workspace-scrollbar-slim relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-background data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700",
                   )}
-                  {...topology.regionProps('03')}
+                  {...topology.regionProps("03")}
                 >
                   <TopologyMarker id="03" topology={topology} />
                   {showApplicationHeader ? (
@@ -192,16 +191,16 @@ export function MainWorkspace({
                   ) : null}
                   <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                     <div className="min-h-0 flex-1">
-                      {view === 'settings' ? (
+                      {view === "settings" ? (
                         (settingsContent?.({
                           features,
-                          onBack: () => setView('workspace'),
+                          onBack: () => setView("workspace"),
                           onFeatureChange: setFeature,
                         }) ?? (
                           <MdiFeatureSettings
                             showAgentWorkspaceOptions={Boolean(agentWorkspace)}
                             features={features}
-                            onBack={() => setView('workspace')}
+                            onBack={() => setView("workspace")}
                             onFeatureChange={setFeature}
                           />
                         ))
@@ -217,7 +216,6 @@ export function MainWorkspace({
                         <div className="relative size-full min-h-0 min-w-0 overflow-hidden">{children}</div>
                       )}
                     </div>
-                    {showCanvasEndSpacer ? <div aria-hidden="true" className="h-[48px] shrink-0 bg-green-500" /> : null}
                   </div>
                 </main>
                 {features.statusBar ? (

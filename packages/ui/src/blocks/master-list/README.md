@@ -8,4 +8,4 @@ Define one `MasterField[]` for both the list and the form. Each record has a str
 
 `MasterListDesk` supports dense operational lists. It provides a compact toolbar, quick field filters, selectable rows, row menus for edit, suspend, and delete actions, page-size controls, and a load-more action.
 
-The owning application supplies records, draft values, persistence, permissions, domain validation, and delete confirmation. Neither block stores records or calls an API. The UIUX gallery provides three separate in-memory pages at `/?template=master-list&variant=v1`, `v2`, and `v3`.
+The owning application supplies records, draft values, persistence, permissions, domain validation, and delete confirmation. Neither block stores records or calls an API. The UIUX gallery provides four separate in-memory pages at `/?template=master-list&variant=v1`, `v2`, `v3`, and `v4`.

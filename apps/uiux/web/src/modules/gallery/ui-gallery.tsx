@@ -1,83 +1,83 @@
-import { lazy, Suspense } from 'react';
-import { findUiBlock } from './ui-blocks';
-import { findUiComponent } from './ui-components';
-import { findUiLayout } from './ui-layouts';
-import { findUiPage } from './ui-pages';
-import { findUiStaticPage } from './ui-static-pages';
-import { findUiTemplate } from './ui-templates';
+import { lazy, Suspense } from "react";
+import { findUiBlock } from "./ui-blocks";
+import { findUiComponent } from "./ui-components";
+import { findUiLayout } from "./ui-layouts";
+import { findUiPage } from "./ui-pages";
+import { findUiStaticPage } from "./ui-static-pages";
+import { findUiTemplate } from "./ui-templates";
 
-const UiMasterListV1 = lazy(() => import('./ui-master-list-v1').then((m) => ({ default: m.UiMasterListV1 })));
-const UiMasterListV2 = lazy(() => import('./ui-master-list-v2').then((m) => ({ default: m.UiMasterListV2 })));
-const UiMasterListV3 = lazy(() => import('./ui-master-list-v3').then((m) => ({ default: m.UiMasterListV3 })));
-const UiMasterListV4 = lazy(() => import('./ui-master-list-v4').then((m) => ({ default: m.UiMasterListV4 })));
-const UiStatusTemplate = lazy(() => import('./ui-status-template').then((m) => ({ default: m.UiStatusTemplate })));
+const UiMasterListV1 = lazy(() => import("./ui-master-list-v1").then((m) => ({ default: m.UiMasterListV1 })));
+const UiMasterListV2 = lazy(() => import("./ui-master-list-v2").then((m) => ({ default: m.UiMasterListV2 })));
+const UiMasterListV3 = lazy(() => import("./ui-master-list-v3").then((m) => ({ default: m.UiMasterListV3 })));
+const UiMasterListV4 = lazy(() => import("./ui-master-list-v4").then((m) => ({ default: m.UiMasterListV4 })));
+const UiStatusTemplate = lazy(() => import("./ui-status-template").then((m) => ({ default: m.UiStatusTemplate })));
 
 const UiExecutionStatusDocumentation = lazy(() =>
-  import('./ui-execution-status-doc').then((m) => ({ default: m.UiExecutionStatusDocumentation })),
+  import("./ui-execution-status-doc").then((m) => ({ default: m.UiExecutionStatusDocumentation })),
 );
 const UiComponentDisplayPage = lazy(() =>
-  import('./ui-component-display-page').then((m) => ({ default: m.UiComponentDisplayPage })),
+  import("./ui-component-display-page").then((m) => ({ default: m.UiComponentDisplayPage })),
 );
-const UiFormDocumentation = lazy(() => import('./ui-form-doc').then((m) => ({ default: m.UiFormDocumentation })));
-const UiLayoutDocumentation = lazy(() => import('./ui-layout-doc').then((m) => ({ default: m.UiLayoutDocumentation })));
-const UiOverview = lazy(() => import('./ui-overview').then((m) => ({ default: m.UiOverview })));
-const UiPageDocumentation = lazy(() => import('./ui-page-doc').then((m) => ({ default: m.UiPageDocumentation })));
-const UiTableDocumentation = lazy(() => import('./ui-table-doc').then((m) => ({ default: m.UiTableDocumentation })));
-const UiKanbanDocumentation = lazy(() => import('./ui-kanban-doc').then((m) => ({ default: m.UiKanbanDocumentation })));
+const UiFormDocumentation = lazy(() => import("./ui-form-doc").then((m) => ({ default: m.UiFormDocumentation })));
+const UiLayoutDocumentation = lazy(() => import("./ui-layout-doc").then((m) => ({ default: m.UiLayoutDocumentation })));
+const UiOverview = lazy(() => import("./ui-overview").then((m) => ({ default: m.UiOverview })));
+const UiPageDocumentation = lazy(() => import("./ui-page-doc").then((m) => ({ default: m.UiPageDocumentation })));
+const UiTableDocumentation = lazy(() => import("./ui-table-doc").then((m) => ({ default: m.UiTableDocumentation })));
+const UiKanbanDocumentation = lazy(() => import("./ui-kanban-doc").then((m) => ({ default: m.UiKanbanDocumentation })));
 const UiFileTreeDocumentation = lazy(() =>
-  import('./ui-file-tree-doc').then((m) => ({ default: m.UiFileTreeDocumentation })),
+  import("./ui-file-tree-doc").then((m) => ({ default: m.UiFileTreeDocumentation })),
 );
 const UiDropzoneDocumentation = lazy(() =>
-  import('./ui-dropzone-doc').then((m) => ({ default: m.UiDropzoneDocumentation })),
+  import("./ui-dropzone-doc").then((m) => ({ default: m.UiDropzoneDocumentation })),
 );
 const UiFilterBuilderDocumentation = lazy(() =>
-  import('./ui-filter-builder-doc').then((m) => ({ default: m.UiFilterBuilderDocumentation })),
+  import("./ui-filter-builder-doc").then((m) => ({ default: m.UiFilterBuilderDocumentation })),
 );
 const UiSiteHeaderDocumentation = lazy(() =>
-  import('./ui-site-header-doc').then((m) => ({ default: m.UiSiteHeaderDocumentation })),
+  import("./ui-site-header-doc").then((m) => ({ default: m.UiSiteHeaderDocumentation })),
 );
 const UiProductCardDocumentation = lazy(() =>
-  import('./ui-product-card-doc').then((m) => ({ default: m.UiProductCardDocumentation })),
+  import("./ui-product-card-doc").then((m) => ({ default: m.UiProductCardDocumentation })),
 );
 const UiPricingDocumentation = lazy(() =>
-  import('./ui-pricing-doc').then((m) => ({ default: m.UiPricingDocumentation })),
+  import("./ui-pricing-doc").then((m) => ({ default: m.UiPricingDocumentation })),
 );
 const UiEcommerceHeaderDocumentation = lazy(() =>
-  import('./ui-ecommerce-header-doc').then((m) => ({ default: m.UiEcommerceHeaderDocumentation })),
+  import("./ui-ecommerce-header-doc").then((m) => ({ default: m.UiEcommerceHeaderDocumentation })),
 );
 const UiBlogHeaderDocumentation = lazy(() =>
-  import('./ui-blog-header-doc').then((m) => ({ default: m.UiBlogHeaderDocumentation })),
+  import("./ui-blog-header-doc").then((m) => ({ default: m.UiBlogHeaderDocumentation })),
 );
-const UiCartDocumentation = lazy(() => import('./ui-cart-doc').then((m) => ({ default: m.UiCartDocumentation })));
+const UiCartDocumentation = lazy(() => import("./ui-cart-doc").then((m) => ({ default: m.UiCartDocumentation })));
 const UiCategoriesDocumentation = lazy(() =>
-  import('./ui-categories-doc').then((m) => ({ default: m.UiCategoriesDocumentation })),
+  import("./ui-categories-doc").then((m) => ({ default: m.UiCategoriesDocumentation })),
 );
 const UiCheckoutDocumentation = lazy(() =>
-  import('./ui-checkout-doc').then((m) => ({ default: m.UiCheckoutDocumentation })),
+  import("./ui-checkout-doc").then((m) => ({ default: m.UiCheckoutDocumentation })),
 );
 const UiComparisonDocumentation = lazy(() =>
-  import('./ui-comparison-doc').then((m) => ({ default: m.UiComparisonDocumentation })),
+  import("./ui-comparison-doc").then((m) => ({ default: m.UiComparisonDocumentation })),
 );
 const UiCouponWalletDocumentation = lazy(() =>
-  import('./ui-coupon-wallet-doc').then((m) => ({ default: m.UiCouponWalletDocumentation })),
+  import("./ui-coupon-wallet-doc").then((m) => ({ default: m.UiCouponWalletDocumentation })),
 );
 const UiDeliveryTrackerDocumentation = lazy(() =>
-  import('./ui-delivery-tracker-doc').then((m) => ({ default: m.UiDeliveryTrackerDocumentation })),
+  import("./ui-delivery-tracker-doc").then((m) => ({ default: m.UiDeliveryTrackerDocumentation })),
 );
 const UiPaymentMethodsDocumentation = lazy(() =>
-  import('./ui-payment-methods-doc').then((m) => ({ default: m.UiPaymentMethodsDocumentation })),
+  import("./ui-payment-methods-doc").then((m) => ({ default: m.UiPaymentMethodsDocumentation })),
 );
 const UiPriceHistoryDocumentation = lazy(() =>
-  import('./ui-price-history-doc').then((m) => ({ default: m.UiPriceHistoryDocumentation })),
+  import("./ui-price-history-doc").then((m) => ({ default: m.UiPriceHistoryDocumentation })),
 );
 const UiReviewsDocumentation = lazy(() =>
-  import('./ui-reviews-doc').then((m) => ({ default: m.UiReviewsDocumentation })),
+  import("./ui-reviews-doc").then((m) => ({ default: m.UiReviewsDocumentation })),
 );
 const UiWishlistDocumentation = lazy(() =>
-  import('./ui-wishlist-doc').then((m) => ({ default: m.UiWishlistDocumentation })),
+  import("./ui-wishlist-doc").then((m) => ({ default: m.UiWishlistDocumentation })),
 );
-const UiFooterDocumentation = lazy(() => import('./ui-footer-doc').then((m) => ({ default: m.UiFooterDocumentation })));
-const UiBlogDocumentation = lazy(() => import('./ui-blog-doc').then((m) => ({ default: m.UiBlogDocumentation })));
+const UiFooterDocumentation = lazy(() => import("./ui-footer-doc").then((m) => ({ default: m.UiFooterDocumentation })));
+const UiBlogDocumentation = lazy(() => import("./ui-blog-doc").then((m) => ({ default: m.UiBlogDocumentation })));
 
 function GalleryLoadingFallback() {
   return (
@@ -89,45 +89,45 @@ function GalleryLoadingFallback() {
 
 export function UiGallery() {
   const search = new URLSearchParams(window.location.search);
-  const layout = findUiLayout(search.get('layout'));
-  const page = findUiPage(search.get('page'));
-  const staticPage = findUiStaticPage(search.get('static'));
-  const template = findUiTemplate(search.get('template'));
-  const templateVariant = search.get('variant') ?? template?.defaultVariantId;
-  const requestedComponent = search.get('component');
-  const block = findUiBlock(search.get('block') ?? (requestedComponent === 'table' ? 'table' : null));
+  const layout = findUiLayout(search.get("layout"));
+  const page = findUiPage(search.get("page"));
+  const staticPage = findUiStaticPage(search.get("static"));
+  const template = findUiTemplate(search.get("template"));
+  const templateVariant = search.get("variant") ?? template?.defaultVariantId;
+  const requestedComponent = search.get("component");
+  const block = findUiBlock(search.get("block") ?? (requestedComponent === "table" ? "table" : null));
   const component = findUiComponent(requestedComponent);
 
   function renderContent() {
-    if (template?.id === 'master-list' && templateVariant === 'v2') return <UiMasterListV2 />;
-    if (template?.id === 'master-list' && templateVariant === 'v3') return <UiMasterListV3 />;
-    if (template?.id === 'master-list' && templateVariant === 'v4') return <UiMasterListV4 />;
-    if (template?.id === 'master-list') return <UiMasterListV1 />;
-    if (template?.id === 'status') return <UiStatusTemplate />;
-    if (staticPage?.id === 'site-header') return <UiSiteHeaderDocumentation />;
-    if (staticPage?.id === 'ecommerce-header') return <UiEcommerceHeaderDocumentation />;
-    if (staticPage?.id === 'blog-header') return <UiBlogHeaderDocumentation />;
-    if (block?.id === 'table') return <UiTableDocumentation />;
-    if (block?.id === 'form') return <UiFormDocumentation />;
-    if (block?.id === 'execution-status') return <UiExecutionStatusDocumentation />;
-    if (block?.id === 'kanban') return <UiKanbanDocumentation />;
-    if (block?.id === 'file-tree') return <UiFileTreeDocumentation />;
-    if (block?.id === 'dropzone') return <UiDropzoneDocumentation />;
-    if (block?.id === 'filter-builder') return <UiFilterBuilderDocumentation />;
-    if (block?.id === 'product-card') return <UiProductCardDocumentation />;
-    if (block?.id === 'pricing') return <UiPricingDocumentation />;
-    if (block?.id === 'cart') return <UiCartDocumentation />;
-    if (block?.id === 'categories') return <UiCategoriesDocumentation />;
-    if (block?.id === 'checkout') return <UiCheckoutDocumentation />;
-    if (block?.id === 'comparison') return <UiComparisonDocumentation />;
-    if (block?.id === 'coupon-wallet') return <UiCouponWalletDocumentation />;
-    if (block?.id === 'delivery-tracker') return <UiDeliveryTrackerDocumentation />;
-    if (block?.id === 'payment-methods') return <UiPaymentMethodsDocumentation />;
-    if (block?.id === 'price-history') return <UiPriceHistoryDocumentation />;
-    if (block?.id === 'reviews') return <UiReviewsDocumentation />;
-    if (block?.id === 'wishlist') return <UiWishlistDocumentation />;
-    if (block?.id === 'footer') return <UiFooterDocumentation />;
-    if (block?.id === 'blog') return <UiBlogDocumentation />;
+    if (template?.id === "master-list" && templateVariant === "v2") return <UiMasterListV2 />;
+    if (template?.id === "master-list" && templateVariant === "v3") return <UiMasterListV3 />;
+    if (template?.id === "master-list" && templateVariant === "v4") return <UiMasterListV4 />;
+    if (template?.id === "master-list") return <UiMasterListV1 />;
+    if (template?.id === "status") return <UiStatusTemplate />;
+    if (staticPage?.id === "site-header") return <UiSiteHeaderDocumentation />;
+    if (staticPage?.id === "ecommerce-header") return <UiEcommerceHeaderDocumentation />;
+    if (staticPage?.id === "blog-header") return <UiBlogHeaderDocumentation />;
+    if (block?.id === "table") return <UiTableDocumentation />;
+    if (block?.id === "form") return <UiFormDocumentation />;
+    if (block?.id === "execution-status") return <UiExecutionStatusDocumentation />;
+    if (block?.id === "kanban") return <UiKanbanDocumentation />;
+    if (block?.id === "file-tree") return <UiFileTreeDocumentation />;
+    if (block?.id === "dropzone") return <UiDropzoneDocumentation />;
+    if (block?.id === "filter-builder") return <UiFilterBuilderDocumentation />;
+    if (block?.id === "product-card") return <UiProductCardDocumentation />;
+    if (block?.id === "pricing") return <UiPricingDocumentation />;
+    if (block?.id === "cart") return <UiCartDocumentation />;
+    if (block?.id === "categories") return <UiCategoriesDocumentation />;
+    if (block?.id === "checkout") return <UiCheckoutDocumentation />;
+    if (block?.id === "comparison") return <UiComparisonDocumentation />;
+    if (block?.id === "coupon-wallet") return <UiCouponWalletDocumentation />;
+    if (block?.id === "delivery-tracker") return <UiDeliveryTrackerDocumentation />;
+    if (block?.id === "payment-methods") return <UiPaymentMethodsDocumentation />;
+    if (block?.id === "price-history") return <UiPriceHistoryDocumentation />;
+    if (block?.id === "reviews") return <UiReviewsDocumentation />;
+    if (block?.id === "wishlist") return <UiWishlistDocumentation />;
+    if (block?.id === "footer") return <UiFooterDocumentation />;
+    if (block?.id === "blog") return <UiBlogDocumentation />;
     if (component) return <UiComponentDisplayPage component={component} />;
     if (page) return <UiPageDocumentation page={page} />;
     return layout ? <UiLayoutDocumentation layout={layout} /> : <UiOverview />;

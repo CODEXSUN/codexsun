@@ -27,10 +27,6 @@ such as `ecommerce-search` or `ecommerce-navigation`.
 
   When an application omits `children`, MDI leaves the workspace canvas empty.
 
-  `showCanvasEndSpacer` is an optional preview-only switch. It adds a 48px canvas-end
-  spacer for viewport inspection and defaults to `false`. Production applications
-  should leave it disabled.
-
 - `agent-workspace` provides a fixed Primary Activity Rail, a center Workspace Canvas,
   and a fixed Secondary Utility Rail. Applications supply typed icon items and actions.
 

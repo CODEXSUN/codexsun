@@ -1,15 +1,28 @@
 services:
   cxforge:
     container_name: cxforge
+    image: "${CXFORGE_IMAGE:-cxforge}:${CXFORGE_VERSION:-1.0.0}"
     build:
       context: ../../..
       dockerfile: apps/cxforge/Dockerfile
+      args:
+        CXFORGE_VERSION: "${CXFORGE_VERSION:-1.0.0}"
     environment:
       CXFORGE_ADDRESS: ":6400"
       CXFORGE_ZUNO_CLIENT_KEY: local-zuno-to-cxforge-client-key-32chars
       CXFORGE_PREVIEW_ORIGIN: http://127.0.0.1
       CXFORGE_EXECUTION_MODE: demo
       CXFORGE_CONTAINER_NAME: cxforge
+      CXFORGE_VERSION: "${CXFORGE_VERSION:-1.0.0}"
+      CXFORGE_WORKSPACE_ROOT: /workspace
+      CXFORGE_SOURCE_ROOT: /repositories
+      CXFORGE_STATE_PATH: /workspace/.cxforge-state.json
+      CXFORGE_COMMAND_TIMEOUT: "300"
+      CXFORGE_MAX_WORKERS: "2"
+      CXFORGE_MAX_AGENT_TURNS: "4"
+      CXFORGE_ALLOW_REPO_COMMANDS: "false"
+      CXFORGE_CREDENTIAL_ENCRYPTION_KEY: local-cxforge-credential-key-change-before-production
+      CXFORGE_GIT_TOKEN: ${CXFORGE_GIT_TOKEN:-}
     ports:
       - "127.0.0.1:6400:6400"
       - "127.0.0.1:7300:7300"
@@ -18,9 +31,20 @@ services:
       - "127.0.0.1:7303:7303"
     volumes:
       - cxforge-workspaces:/workspace
+      - cxforge-repositories:/repositories:ro
     networks:
       - codexsun-network
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 2.0
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:6400/api/v1/cxforge/health"]
       interval: 5s
@@ -33,3 +57,4 @@ networks:
 
 volumes:
   cxforge-workspaces:
+  cxforge-repositories:

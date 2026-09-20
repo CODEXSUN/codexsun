@@ -3,13 +3,14 @@ import { actorSchema } from "@codexsun/platform-core";
 import { JwtIdentityAuthenticator, type JwtIdentityAuthenticationConfig } from "./auth/jwt-identity-authenticator.js";
 import { IdentityController } from "./controller/identity.controller.js";
 import { SingleTenantPolicy, type SingleTenantConfiguration } from "./policy/single-tenant-policy.js";
-import { InMemoryIdentityRepository } from "./repository/identity.repository.js";
+import { InMemoryIdentityRepository, type IdentityRepository } from "./repository/identity.repository.js";
 import { IdentityService } from "./service/identity.service.js";
 
 export class IdentityModuleProvider implements ModuleProvider {
   constructor(
     private readonly authentication: JwtIdentityAuthenticationConfig,
     private readonly singleTenant: SingleTenantConfiguration,
+    private readonly repository?: IdentityRepository,
   ) {}
 
   readonly manifest = {
@@ -22,7 +23,7 @@ export class IdentityModuleProvider implements ModuleProvider {
   };
 
   register(context: ProviderRegistrationContext): void {
-    const repository = new InMemoryIdentityRepository([platformOperator]);
+    const repository = this.repository ?? new InMemoryIdentityRepository([platformOperator]);
     const service = new IdentityService(repository);
     context.provide("identity.service", service);
     context.provide("identity.controller", new IdentityController(service));

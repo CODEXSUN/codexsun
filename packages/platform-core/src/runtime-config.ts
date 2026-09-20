@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readDatabaseConnectionUrl } from "./database-configuration.js";
 
 const defaultPlatformJwtIssuer = "codexsun-platform";
 const defaultPlatformJwtAudience = "codexsun-platform-api";
@@ -20,6 +21,7 @@ const redisUrlSchema = z
 
 export const apiRuntimeConfigSchema = z.object({
   NODE_ENV: z.string().trim().min(1).default("development"),
+  APP_MODE: z.enum(["development", "production"]).default("development"),
   PLATFORM_HOST: hostSchema,
   PLATFORM_API_PORT: portSchema,
   PLATFORM_WEB_ORIGIN: urlSchema.default("http://127.0.0.1:6101"),
@@ -93,7 +95,7 @@ export type MobileRuntimeConfig = z.infer<typeof mobileRuntimeConfigSchema>;
 export type RedisRuntimeConfig = z.infer<typeof redisRuntimeConfigSchema>;
 
 export function readApiRuntimeConfig(environment: NodeJS.ProcessEnv): ApiRuntimeConfig {
-  return apiRuntimeConfigSchema.parse(environment);
+  return apiRuntimeConfigSchema.parse({ ...environment, DATABASE_URL: readDatabaseConnectionUrl(environment) });
 }
 
 export function readWebRuntimeConfig(environment: NodeJS.ProcessEnv): WebRuntimeConfig {

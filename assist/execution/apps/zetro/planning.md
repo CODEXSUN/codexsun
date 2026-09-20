@@ -27,6 +27,7 @@ Zetro web chat -> Zetro public contracts -> Zetro chat provider
                                             -> local Codex CLI adapter
                                             -> source-linked final brief
                                             -> prepared agent task
+                                            -> durable Zuno receipt
 ```
 
 - The web workspace owns draft interaction and conversation selection only.
@@ -39,7 +40,8 @@ Zetro web chat -> Zetro public contracts -> Zetro chat provider
   only to the current browser user. It does not store the code in SQLite,
   storage, logs, or chat history.
 - The brief provider owns source-linked final briefs. The task provider creates
-  prepared task records from final briefs only. Neither provider can create
+  prepared task records from final briefs only. The task provider can send an
+  immutable package to Zuno and store its receipt. Neither provider can create
   repository work, a worktree, or a worker dispatch.
 
 ## Phases
@@ -50,6 +52,7 @@ Zetro web chat -> Zetro public contracts -> Zetro chat provider
 - [x] Z-1204 Local Codex connection status, device-code boundary, and secret
       redaction policy.
 - [x] Z-1205 Idea, revision, final-brief, and task-handover records.
+- [x] Z-1206 Final-brief readiness and idempotent Zuno delivery receipts.
 
 Exit: a person can create and finalize an idea without the chat being able to
 execute delivery work.
@@ -67,22 +70,19 @@ use a final brief and must retain the same project scope and reference.
 Prepared tasks do not execute work. Human review and the later task-control
 phase remain required before any agent execution.
 
-### Phase Z-1210: Governed Task Control
+### Phase Z-1210: Handoff Reliability
 
-- [ ] Z-1211 Plan, task, phase, approval, and audit records.
-- [ ] Z-1212 Review fingerprints, stale-plan detection, and change requests.
-- [ ] Z-1213 Single-scope task splitting and dependency ordering.
+- [ ] Z-1211 Read-only project catalog selection.
+- [ ] Z-1212 Immutable final-brief revisions.
+- [ ] Z-1213 Delivery history and Zuno receipt inspection.
 
-Exit: only a reviewed, approved short task ID can request a worker attempt.
+Exit: Zetro can prove which final brief and prepared task Zuno accepted.
 
-### Phase Z-1220: Controlled Execution
+## Ownership After Handoff
 
-- [ ] Z-1221 Immutable guidance snapshots with hashes and base revision.
-- [ ] Z-1222 Agent runtime adapter, capability policy, and action audit trail.
-- [ ] Z-1223 Worktree, evidence, review, deployment rehearsal, and manual merge
-      adapters.
-
-Exit: Zetro can prove an approved worker's bounded change and its verification.
+Zuno owns repository validation, task approval, dispatch, review, and merge
+coordination. CXForge owns worktrees, isolated execution, checks, evidence, and
+preview output. These controls must not be added to Zetro.
 
 ## Local Codex Authentication Decision
 

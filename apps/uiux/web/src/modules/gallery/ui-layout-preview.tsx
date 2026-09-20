@@ -118,7 +118,6 @@ export function UiLayoutPreview({ layoutId }: { layoutId: UiLayoutId }) {
         notifications={previewNotifications}
         primaryAction={{ icon: LayoutDashboardIcon, label: "Overview" }}
         searchPlaceholder="Search UI documentation"
-        showAppearancePanel={false}
         showTopologyTools={false}
         statusLabel="Ready"
         user={{ initials: "U", name: "UI workspace user" }}
@@ -159,7 +158,6 @@ function DocumentationWorkspaceLayoutPreview() {
         applicationId="docx-preview"
         navigation={documentationNavigation}
         searchPlaceholder="Search guides and architecture"
-        showAppearancePanel={false}
         showTopologyTools={false}
         user={{ initials: "D", name: "Documentation editor" }}
       >
@@ -245,7 +243,6 @@ function AgentWorkspaceLayoutPreview() {
         notifications={previewNotifications}
         primaryAction={{ icon: LayoutDashboardIcon, label: "Overview" }}
         searchPlaceholder="Search agent workspace"
-        showAppearancePanel={false}
         showTopologyTools={false}
         statusLabel="Connected"
         user={{ initials: "A", name: "Agent workspace user" }}

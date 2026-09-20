@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -10,6 +10,14 @@ import {
   type IdentityLoginResponse,
   verifyIdentityPassword,
 } from "./identity-security.js";
+
+const identityMigrationDefinitions = [
+  { id: "identity.001", definition: "identity users, roles, permissions, and sessions" },
+  { id: "identity.002", definition: "identity username and state compatibility" },
+  { id: "identity.003", definition: "identity password reset, login limit, and audit records" },
+  { id: "identity.004", definition: "identity browser session isolation" },
+  { id: "identity.005", definition: "identity migration recorder checksums and serial positions" },
+] as const;
 
 export type IdentitySeed = {
   readonly login: string;
@@ -25,6 +33,7 @@ export type LocalIdentityConfiguration = PlatformJwtConfiguration & {
   readonly applicationId: string;
   readonly appMode: "development" | "production";
   readonly autoLogin: boolean;
+  readonly autoLoginDesk: IdentityPortal;
   readonly databasePath: string;
   readonly exposeDevelopmentResetToken: boolean;
   readonly loginLockoutSeconds: number;
@@ -210,7 +219,7 @@ export class LocalIdentityStore {
 
   async autoLogin(browserSessionId: string): Promise<LocalIdentityLogin | undefined> {
     if (this.config.appMode !== "development") return undefined;
-    const seed = this.config.seeds.find((item) => item.role === "super-admin");
+    const seed = this.config.seeds.find((item) => item.role === this.config.autoLoginDesk);
     return seed ? this.login(seed.login, seed.password, browserSessionId) : undefined;
   }
 
@@ -359,7 +368,9 @@ export class LocalIdentityStore {
     this.database.exec(`
       CREATE TABLE IF NOT EXISTS identity_migration_state (
         id TEXT PRIMARY KEY,
-        applied_at TEXT NOT NULL
+        applied_at TEXT NOT NULL,
+        checksum TEXT NOT NULL DEFAULT '',
+        sequence INTEGER NOT NULL DEFAULT 0
       );
       CREATE TABLE IF NOT EXISTS identity_users (
         id TEXT PRIMARY KEY,
@@ -433,10 +444,8 @@ export class LocalIdentityStore {
     `);
     this.addUsernameToExistingUsers();
     this.addStateToExistingUsers();
-    this.recordMigration("identity.001");
-    this.recordMigration("identity.002");
-    this.recordMigration("identity.003");
-    this.recordMigration("identity.004");
+    this.ensureMigrationRecorderColumns();
+    for (const [sequence, migration] of identityMigrationDefinitions.entries()) this.recordMigration(migration.id, migration.definition, sequence);
   }
 
   private assertProductionSchema(): void {
@@ -468,6 +477,20 @@ export class LocalIdentityStore {
     const missingUserColumns = requiredUserColumns.filter((column) => !this.tableHasColumn("identity_users", column));
     if (missingUserColumns.length) {
       throw new Error(`Identity user schema is incomplete for ${this.config.applicationId}: ${missingUserColumns.join(", ")}.`);
+    }
+    const missingRecorderColumns = ["checksum", "sequence"].filter((column) => !this.tableHasColumn("identity_migration_state", column));
+    if (missingRecorderColumns.length) {
+      throw new Error(`Identity migration recorder is incomplete for ${this.config.applicationId}: ${missingRecorderColumns.join(", ")}.`);
+    }
+    const records = this.database.prepare("SELECT id, checksum, sequence FROM identity_migration_state ORDER BY sequence, id").all() as { id: string; checksum: string; sequence: number }[];
+    if (records.length !== identityMigrationDefinitions.length) {
+      throw new Error(`Identity migration history is incomplete for ${this.config.applicationId}.`);
+    }
+    for (const [sequence, migration] of identityMigrationDefinitions.entries()) {
+      const record = records[sequence];
+      if (!record || record.id !== migration.id || record.sequence !== sequence || record.checksum !== migrationChecksum(migration.definition)) {
+        throw new Error(`Identity migration checksum or order changed for ${this.config.applicationId} at ${migration.id}.`);
+      }
     }
   }
 
@@ -712,9 +735,20 @@ export class LocalIdentityStore {
     return actorSchema.parse({ id: user.id, kind: "user", permissions: permissions.map((row) => row.permission_id), roles: roles.map((row) => row.role_id) });
   }
 
-  private recordMigration(id: string): void {
-    this.database.prepare("INSERT OR IGNORE INTO identity_migration_state (id, applied_at) VALUES (?, ?)").run(id, new Date().toISOString());
+  private ensureMigrationRecorderColumns(): void {
+    if (!this.tableHasColumn("identity_migration_state", "checksum")) this.database.exec("ALTER TABLE identity_migration_state ADD COLUMN checksum TEXT NOT NULL DEFAULT '';");
+    if (!this.tableHasColumn("identity_migration_state", "sequence")) this.database.exec("ALTER TABLE identity_migration_state ADD COLUMN sequence INTEGER NOT NULL DEFAULT 0;");
   }
+
+  private recordMigration(id: string, definition: string, sequence: number): void {
+    const checksum = migrationChecksum(definition);
+    this.database.prepare("INSERT OR IGNORE INTO identity_migration_state (id, applied_at, checksum, sequence) VALUES (?, ?, ?, ?)").run(id, new Date().toISOString(), checksum, sequence);
+    this.database.prepare("UPDATE identity_migration_state SET checksum = ?, sequence = ? WHERE id = ? AND (checksum = '' OR checksum IS NULL)").run(checksum, sequence, id);
+  }
+}
+
+function migrationChecksum(definition: string): string {
+  return createHash("sha256").update(definition, "utf8").digest("hex");
 }
 
 type SessionRow = {

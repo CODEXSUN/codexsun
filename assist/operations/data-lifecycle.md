@@ -20,7 +20,9 @@ SQLite support does not authorize a module schema. A module still owns its
 migration, seeder, compatibility record, and rollback notes.
 
 For deployed shared data, use the Platform MariaDB factory with the validated
-root `DATABASE_URL`. It accepts a `mysql://` URL with a host and database name.
+root `DATABASE_URL`, or the shared `DB_DRIVER`, `DB_HOST`, `DB_PORT`, `DB_USER`,
+`DB_PASSWORD`, and `DB_MASTER_NAME` settings. MariaDB resolves to a `mysql://`
+URL with an encoded user, password, host, port, and database name.
 Do not put connection credentials in code, tests, or documentation. Creating a
 pool does not prove live connectivity. Verify a selected deployment with a
 dedicated MariaDB integration check.
@@ -50,6 +52,19 @@ module is accepted into a deployment plan.
 3. Run each seeder twice and verify repeat-safe behavior.
 4. Record destructive changes as a coordinated release with a manual rollback limit.
 5. Do not change an applied migration. Add a new migration instead.
+6. Give every migration and seeder a stable ID, description, owner, and SHA-256 checksum from an explicit canonical definition.
+7. Keep applied migrations and seeders append-only. Do not reorder, remove, rename, or edit a recorded descriptor.
+8. Execute migrations first and seeders second, one descriptor at a time in declared order.
+9. Record module ID, kind, sequence, checksum, timestamps, and run count in `platform_lifecycle_state`.
+10. Treat a checksum or sequence mismatch as a startup and deployment failure. Never repair it by editing the recorder.
+
+Repeat-safe seeders may run on every development migration pass. Change seed
+behavior by appending a new seeder ID. The recorder increments the run count
+only after the seeder succeeds.
+
+The migration command may adopt the legacy `platform_migration_state` history
+once. Adoption records the current checksums without rerunning schema changes
+and fails if legacy IDs do not match the declared ordered prefix.
 
 ## Tenant decision gate
 
@@ -67,6 +82,11 @@ Before a production migration, capture the current migration state and complete
 a database backup. After migration, verify the selected module data and record
 the result. A deployment profile must name the backup owner, retention period,
 restore owner, and restore verification date.
+
+Development may run the lifecycle plan at startup. Production startup must be
+read-only: it verifies the complete recorder and refuses traffic when records
+are missing or changed. Run the explicit migration command after backup and
+before starting the production process.
 
 ## Required checks
 
