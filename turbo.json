@@ -43,6 +43,26 @@
         "../../../dist/zetro/web/**"
       ]
     },
+    "@codexsun/cxforge-api#build": {
+      "outputs": [
+        "../../../dist/cxforge/api/**"
+      ]
+    },
+    "@codexsun/zuno-api#build": {
+      "outputs": [
+        "../../../dist/zuno/api/**"
+      ]
+    },
+    "@codexsun/zuno-web#build": {
+      "outputs": [
+        "../../../dist/apps/zuno/web/**"
+      ]
+    },
+    "@codexsun/zuno-desktop#build": {
+      "outputs": [
+        "../../../dist/zuno/desktop/**"
+      ]
+    },
     "check": {
       "dependsOn": [
         "^check"
@@ -120,6 +140,11 @@
     "@codexsun/orship-web#build": {
       "outputs": [
         "../../../dist/apps/orship/web/**"
+      ]
+    },
+    "@codexsun/zuno-mobile#build": {
+      "outputs": [
+        "../../../dist/zuno/mobile/**"
       ]
     }
   }

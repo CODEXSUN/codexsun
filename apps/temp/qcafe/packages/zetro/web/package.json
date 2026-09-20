@@ -1,0 +1,41 @@
+{
+  "name": "@codexsun/zetro-web",
+  "version": "1.1.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "dev": "vite --host 127.0.0.1",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@codexsun/ai-task-contracts": "*",
+    "@codexsun/devkit-ito": "*",
+    "@codexsun/platform-host-contracts": "*",
+    "@codexsun/ui": "*",
+    "@codexsun/ui-desk": "*",
+    "@codexsun/zetro-api": "*",
+    "@tanstack/react-query": "^5.102.8",
+    "@tauri-apps/api": "^2.10.0",
+    "@tauri-apps/plugin-opener": "^2.5.3",
+    "clsx": "latest",
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-resizable-panels": "^4.12.3",
+    "tailwind-merge": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "tailwindcss": "latest",
+    "vite": "latest",
+    "vitest": "latest"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

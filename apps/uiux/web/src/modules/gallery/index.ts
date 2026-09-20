@@ -8,4 +8,5 @@ export { uiLayoutDocs } from "./ui-layouts";
 export { uiStaticPageDocs } from "./ui-static-pages";
 export type { UiLayoutDoc, UiLayoutId } from "./ui-layouts";
 export { uiPageDocs } from "./ui-pages";
+export { uiTemplateDocs } from "./ui-templates";
 export type { UiPageDoc, UiPageId } from "./ui-pages";

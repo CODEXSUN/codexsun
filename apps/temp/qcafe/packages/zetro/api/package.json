@@ -1,0 +1,36 @@
+{
+  "name": "@codexsun/zetro-api",
+  "version": "1.1.2",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contracts": "./src/contracts.ts",
+    "./runs": "./src/run-contracts.ts",
+    "./work-cases": "./src/work-case-contracts.ts"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/server.ts",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@codexsun/ai-task-api": "*",
+    "@codexsun/zetro-knowledge": "*",
+    "@codexsun/platform-host-contracts": "*",
+    "@fastify/cors": "latest",
+    "@langchain/langgraph": "1.4.13",
+    "better-sqlite3": "^13.0.3",
+    "fastify": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "latest",
+    "tsup": "latest",
+    "tsx": "latest",
+    "vitest": "latest"
+  }
+}

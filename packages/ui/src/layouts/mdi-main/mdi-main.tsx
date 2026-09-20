@@ -1,49 +1,59 @@
-import { BoxesIcon, FilesIcon, LayoutDashboardIcon, MessageSquareIcon } from "lucide-react";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { BoxesIcon, FilesIcon, LayoutDashboardIcon, MessageSquareIcon } from 'lucide-react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 
-import { SidebarInset, SidebarProvider } from "@codexsun/ui/components/sidebar";
-import { cn } from "@codexsun/ui/lib/utils";
+import { SidebarInset, SidebarProvider } from '@codexsun/ui/components/sidebar';
+import { Toaster } from '@codexsun/ui/components/toast';
+import { cn } from '@codexsun/ui/lib/utils';
 import {
   TopologyInspectionControl,
   TopologyInspector,
   TopologyMarker,
   useInterfaceTopology,
-} from "../../features/interface-topology";
-import { ThemeProvider } from "../../theme";
-import { AgentActivityRail, AgentWorkspace } from "../agent-workspace";
+} from '../../features/interface-topology';
+import { ThemeProvider } from '../../theme';
+import { AgentActivityRail, AgentWorkspace } from '../agent-workspace';
+import { WorkspaceApplicationHeader } from '../../blocks/workspace/workspace-application-header';
 
-import { createDefaultMdiApps } from "./mdi-app-catalog";
-import { MdiFeatureSettings } from "./mdi-feature-settings";
-import { MdiSidebar } from "./mdi-sidebar";
-import { MdiStatusBar } from "./mdi-status-bar";
-import { MdiTopMenu } from "./mdi-top-menu";
-import { mdiTopologySections, MdiTopologyProvider } from "./mdi-topology";
-import { MdiTweakPanel, type MdiCanvas, type MdiDensity } from "./mdi-tweak-panel";
-import type { MainWorkspaceProps, MdiNavigationSection, MdiUser } from "./mdi-types";
-import { useMdiFeatures } from "./use-mdi-features";
+import { createDefaultMdiApps } from './mdi-app-catalog';
+import { MdiFeatureSettings } from './mdi-feature-settings';
+import { MdiSidebar } from './mdi-sidebar';
+import { MdiStatusBar } from './mdi-status-bar';
+import { MdiTopMenu } from './mdi-top-menu';
+import { mdiTopologySections, MdiTopologyProvider } from './mdi-topology';
+import type { MainWorkspaceProps, MdiNavigationSection, MdiUser } from './mdi-types';
+import { useMdiFeatures } from './use-mdi-features';
 
 const defaultNavigation: MdiNavigationSection[] = [
   {
-    label: "Workspace",
+    label: 'Workspace',
     items: [
-      { active: true, icon: LayoutDashboardIcon, label: "Overview" },
-      { icon: FilesIcon, label: "Documents" },
-      { icon: MessageSquareIcon, label: "Messages" },
+      { active: true, icon: LayoutDashboardIcon, label: 'Overview' },
+      { icon: FilesIcon, label: 'Documents' },
+      { icon: MessageSquareIcon, label: 'Messages' },
     ],
   },
 ];
 
 const defaultUser: MdiUser = {
-  initials: "C",
-  name: "Workspace user",
+  initials: 'C',
+  name: 'Workspace user',
 };
 
 export function MainWorkspace({
   agentWorkspace,
   applicationIcon = BoxesIcon,
   applicationLogoUrl,
-  applicationId = "platform",
-  applicationName = "Workspace",
+  applicationId = 'platform',
+  applicationName = 'Workspace',
+  applicationHeaderStart,
+  applicationHeaderEnd,
+  applicationHeaderMeta,
+  applicationHeaderBelow,
+  applicationHeaderStatus,
+  applicationHeaderTitle,
+  showApplicationIdentity = true,
+  showApplicationHeader = false,
+  showWorkspaceTitleInHeader = true,
   apps,
   children,
   defaultFeatures,
@@ -54,11 +64,10 @@ export function MainWorkspace({
   navigation = defaultNavigation,
   notificationCount = 1,
   notifications = [],
-  primaryAction = { icon: LayoutDashboardIcon, label: "Overview" },
+  primaryAction = { icon: LayoutDashboardIcon, label: 'Overview' },
   searchPlaceholder = `Search ${applicationName}`,
   searchValue,
   settingsContent,
-  showAppearancePanel = true,
   showCanvasEndSpacer = false,
   showMdiOverview = false,
   showTopologyTools = true,
@@ -67,25 +76,23 @@ export function MainWorkspace({
   sidebarFooter,
   sidebarFooterClassName,
   sidebarStateKey,
-  statusLabel = "Ready",
+  statusLabel = 'Ready',
   statusEnd,
   topologySections = [],
   user = defaultUser,
-  workspaceTitle = "MDI Workspace",
+  workspaceTitle = 'MDI Workspace',
   onSearchChange,
 }: MainWorkspaceProps) {
   useEffect(() => {
     if (!embedded) document.title = applicationName;
   }, [applicationName, embedded]);
 
-  const [canvas, setCanvas] = useState<MdiCanvas>("plain");
-  const [density, setDensity] = useState<MdiDensity>("compact");
   const [savedFeatures, setFeature] = useMdiFeatures(applicationId, defaultFeatures);
   const features = { ...savedFeatures, ...requiredFeatures };
-  const [view, setView] = useState<"settings" | "workspace">("workspace");
+  const [view, setView] = useState<'settings' | 'workspace'>('workspace');
   const topologyDesks = useMemo(
     () => [
-      ...(showMdiOverview ? [{ id: "mdi-overview", name: "MDI Overview", sections: mdiTopologySections }] : []),
+      ...(showMdiOverview ? [{ id: 'mdi-overview', name: 'MDI Overview', sections: mdiTopologySections }] : []),
       ...(topologySections.length
         ? [{ id: `${applicationId}-desk`, name: workspaceTitle, sections: topologySections }]
         : []),
@@ -97,124 +104,137 @@ export function MainWorkspace({
 
   return (
     <ThemeProvider>
-      <MdiTopologyProvider value={topology}>
-        <SidebarProvider
-          defaultOpen={defaultSidebarOpen}
-          className={cn(
-            "min-h-0 flex-col gap-px overflow-hidden bg-background text-foreground",
-            embedded ? "h-full" : "h-svh",
-          )}
-          style={
-            {
-              "--sidebar-width": density === "comfortable" ? "18rem" : "16rem",
-              "--sidebar-left-offset":
-                agentWorkspace && view === "workspace" && features.primaryActivityRail ? "3.5rem" : "0rem",
-            } as CSSProperties
-          }
-        >
-          {features.topMenu ? (
-            <MdiTopMenu
-              applicationIcon={applicationIcon}
-              applicationLogoUrl={applicationLogoUrl}
-              applicationName={applicationName}
-              apps={applicationApps}
-              features={features}
-              notificationCount={notificationCount}
-              notifications={notifications}
-              navigation={navigation}
-              searchPlaceholder={searchPlaceholder}
-              searchValue={searchValue}
-              user={user}
-              onSearchChange={onSearchChange}
-            />
-          ) : null}
-
-          <div
+      <Toaster>
+        <MdiTopologyProvider value={topology}>
+          <SidebarProvider
+            defaultOpen={defaultSidebarOpen}
             className={cn(
-              "relative flex min-h-0 flex-1 overflow-hidden border-t border-border",
-              deskRegionId && topology.highlightClassName(deskRegionId),
+              'min-h-0 flex-col gap-px overflow-hidden bg-background text-foreground',
+              embedded ? 'h-full' : 'h-svh',
             )}
-            {...(deskRegionId ? topology.regionProps(deskRegionId) : {})}
+            style={
+              {
+                '--sidebar-width': '16rem',
+                '--sidebar-left-offset':
+                  agentWorkspace && view === 'workspace' && features.primaryActivityRail ? '3.5rem' : '0rem',
+              } as CSSProperties
+            }
           >
-            {deskRegionId ? <TopologyMarker id={deskRegionId} topology={topology} /> : null}
-            {view === "workspace" && agentWorkspace ? (
-              <AgentActivityRail rail={agentWorkspace.primaryRail} side="left" visible={features.primaryActivityRail} />
-            ) : null}
-            {view === "workspace" ? (
-              <MdiSidebar
+            {features.topMenu ? (
+              <MdiTopMenu
+                applicationIcon={applicationIcon}
+                applicationLogoUrl={applicationLogoUrl}
+                applicationName={applicationName}
+                apps={applicationApps}
+                features={features}
+                notificationCount={notificationCount}
+                notifications={notifications}
                 navigation={navigation}
-                onOpenFeatures={() => setView("settings")}
-                primaryAction={primaryAction}
-                sidebarContent={sidebarContent}
-                sidebarContentClassName={sidebarContentClassName}
-                sidebarFooter={sidebarFooter}
-                sidebarFooterClassName={sidebarFooterClassName}
-                stateKey={sidebarStateKey}
+                searchPlaceholder={searchPlaceholder}
+                searchValue={searchValue}
+                user={user}
+                onSearchChange={onSearchChange}
               />
             ) : null}
-            <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
-              <main
-                className={cn(
-                  "workspace-scrollbar-slim relative min-h-0 min-w-0 flex-1 overflow-y-auto bg-background data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700",
-                  canvas === "grid" &&
-                    "bg-[radial-gradient(circle,var(--border)_1px,transparent_1px)] bg-size-[20px_20px]",
-                )}
-                {...topology.regionProps("03")}
-              >
-                <TopologyMarker id="03" topology={topology} />
-                <div className="flex size-full min-h-0 min-w-0 flex-col">
-                  <div className="min-h-0 flex-1">
-                    {view === "settings" ? (
-                      (settingsContent?.({
-                        features,
-                        onBack: () => setView("workspace"),
-                        onFeatureChange: setFeature,
-                      }) ?? (
-                        <MdiFeatureSettings
-                          showAgentWorkspaceOptions={Boolean(agentWorkspace)}
-                          features={features}
-                          onBack={() => setView("workspace")}
-                          onFeatureChange={setFeature}
-                        />
-                      ))
-                    ) : agentWorkspace ? (
-                      <AgentWorkspace
-                        {...agentWorkspace}
-                        showPrimaryRail={false}
-                        showSecondaryRail={features.secondaryUtilityRail}
-                      >
-                        {children}
-                      </AgentWorkspace>
-                    ) : (
-                      <div className="relative size-full min-h-0 min-w-0 overflow-hidden">{children}</div>
-                    )}
-                  </div>
-                  {showCanvasEndSpacer ? <div aria-hidden="true" className="h-[48px] shrink-0 bg-green-500" /> : null}
-                </div>
-              </main>
-              {features.statusBar ? (
-                <MdiStatusBar statusEnd={statusEnd} statusLabel={statusLabel} workspaceTitle={workspaceTitle} />
-              ) : null}
-            </SidebarInset>
-          </div>
 
-          {showAppearancePanel ? (
-            <MdiTweakPanel
-              canvas={canvas}
-              density={density}
-              onCanvasChange={setCanvas}
-              onDensityChange={setDensity}
-              onOpenFeatures={() => setView("settings")}
-            />
-          ) : null}
-          {showTopologyTools ? (
-            <>
-              <TopologyInspector topology={topology} />
-              <TopologyInspectionControl topology={topology} />
-            </>
-          ) : null}
-        </SidebarProvider>
-      </MdiTopologyProvider>
+            <div
+              className={cn(
+                'relative flex min-h-0 flex-1 overflow-hidden border-t border-border',
+                deskRegionId && topology.highlightClassName(deskRegionId),
+              )}
+              {...(deskRegionId ? topology.regionProps(deskRegionId) : {})}
+            >
+              {deskRegionId ? <TopologyMarker id={deskRegionId} topology={topology} /> : null}
+              {view === 'workspace' && agentWorkspace ? (
+                <AgentActivityRail
+                  rail={agentWorkspace.primaryRail}
+                  side="left"
+                  visible={features.primaryActivityRail}
+                />
+              ) : null}
+              {view === 'workspace' ? (
+                <MdiSidebar
+                  navigation={navigation}
+                  onOpenFeatures={() => setView('settings')}
+                  primaryAction={primaryAction}
+                  sidebarContent={sidebarContent}
+                  sidebarContentClassName={sidebarContentClassName}
+                  sidebarFooter={sidebarFooter}
+                  sidebarFooterClassName={sidebarFooterClassName}
+                  stateKey={sidebarStateKey}
+                />
+              ) : null}
+              <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
+                <main
+                  className={cn(
+                    'workspace-scrollbar-slim relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-background data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700',
+                  )}
+                  {...topology.regionProps('03')}
+                >
+                  <TopologyMarker id="03" topology={topology} />
+                  {showApplicationHeader ? (
+                    <>
+                      <WorkspaceApplicationHeader
+                        applicationIcon={applicationIcon}
+                        applicationLogoUrl={applicationLogoUrl}
+                        applicationName={applicationName}
+                        end={applicationHeaderEnd}
+                        meta={applicationHeaderMeta}
+                        status={applicationHeaderStatus}
+                        showIdentity={showApplicationIdentity}
+                        showWorkspaceTitle={showWorkspaceTitleInHeader}
+                        start={applicationHeaderStart}
+                        title={applicationHeaderTitle}
+                        workspaceTitle={workspaceTitle}
+                      />
+                      {applicationHeaderBelow}
+                    </>
+                  ) : null}
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <div className="min-h-0 flex-1">
+                      {view === 'settings' ? (
+                        (settingsContent?.({
+                          features,
+                          onBack: () => setView('workspace'),
+                          onFeatureChange: setFeature,
+                        }) ?? (
+                          <MdiFeatureSettings
+                            showAgentWorkspaceOptions={Boolean(agentWorkspace)}
+                            features={features}
+                            onBack={() => setView('workspace')}
+                            onFeatureChange={setFeature}
+                          />
+                        ))
+                      ) : agentWorkspace ? (
+                        <AgentWorkspace
+                          {...agentWorkspace}
+                          showPrimaryRail={false}
+                          showSecondaryRail={features.secondaryUtilityRail}
+                        >
+                          {children}
+                        </AgentWorkspace>
+                      ) : (
+                        <div className="relative size-full min-h-0 min-w-0 overflow-hidden">{children}</div>
+                      )}
+                    </div>
+                    {showCanvasEndSpacer ? <div aria-hidden="true" className="h-[48px] shrink-0 bg-green-500" /> : null}
+                  </div>
+                </main>
+                {features.statusBar ? (
+                  <MdiStatusBar statusEnd={statusEnd} statusLabel={statusLabel} workspaceTitle={workspaceTitle} />
+                ) : null}
+              </SidebarInset>
+            </div>
+
+            {showTopologyTools && features.ito ? (
+              <div className="pointer-events-none fixed inset-0 z-[60] bg-transparent">
+                <TopologyInspector topology={topology} />
+                <TopologyInspectionControl topology={topology} />
+              </div>
+            ) : null}
+          </SidebarProvider>
+        </MdiTopologyProvider>
+      </Toaster>
     </ThemeProvider>
   );
 }

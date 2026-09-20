@@ -25,6 +25,7 @@ const managedUserSchema = z.object({
   login: z.string(),
   name: z.string(),
   roles: z.array(z.string()),
+  protected: z.boolean(),
   state: z.enum(["active", "disabled"]),
   username: z.string(),
 });
@@ -68,6 +69,18 @@ export function registerIdentityManagementRoutes({ app, identity, prefix }: Iden
       return user ? reply.send(user) : reply.code(404).send({ error: "Identity user was not found." });
     } catch {
       return reply.code(409).send({ error: "Login or username is already in use." });
+    }
+  });
+  app.delete(`${prefix}/identity/users/:id`, { schema: { params: z.object({ id: userIdSchema }), response: { 204: z.null(), 403: errorSchema, 404: errorSchema } } }, (request, reply) => {
+    if (!requireManager(request, reply)) return;
+    const params = z.object({ id: userIdSchema }).safeParse(request.params);
+    if (!params.success) return reply.code(404).send({ error: "Identity user was not found." });
+    try {
+      return identity.forceDeleteManagedUser(params.data.id)
+        ? reply.code(204).send(null)
+        : reply.code(404).send({ error: "Identity user was not found." });
+    } catch {
+      return reply.code(403).send({ error: "Default identity users cannot be deleted." });
     }
   });
 

@@ -1,10 +1,11 @@
-import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
-import type { InterfaceTopologySection } from "../../features/interface-topology";
-import type { AgentWorkspaceProps } from "../agent-workspace";
+import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+import type { InterfaceTopologySection } from '../../features/interface-topology';
+import type { AgentWorkspaceProps } from '../agent-workspace';
 
 export type MdiFeatures = {
   appSwitcher: boolean;
+  ito: boolean;
   notifications: boolean;
   primaryActivityRail: boolean;
   profileMenu: boolean;
@@ -51,8 +52,10 @@ export type MdiNotification = {
   description?: string;
   id: string;
   read?: boolean;
+  severity?: 'info' | 'success' | 'warning' | 'error';
   time?: string;
   title: string;
+  onRead?: () => void;
   onSelect?: () => void;
 };
 
@@ -66,11 +69,20 @@ export type MdiUser = {
 };
 
 export type MainWorkspaceProps = {
-  agentWorkspace?: Omit<AgentWorkspaceProps, "children" | "showPrimaryRail" | "showSecondaryRail">;
+  agentWorkspace?: Omit<AgentWorkspaceProps, 'children' | 'showPrimaryRail' | 'showSecondaryRail'>;
   applicationIcon?: LucideIcon;
   applicationLogoUrl?: string;
   applicationId?: string;
   applicationName?: string;
+  applicationHeaderStart?: ReactNode;
+  applicationHeaderEnd?: ReactNode;
+  applicationHeaderMeta?: ReactNode;
+  applicationHeaderBelow?: ReactNode;
+  applicationHeaderStatus?: ReactNode;
+  applicationHeaderTitle?: ReactNode;
+  showApplicationIdentity?: boolean;
+  showApplicationHeader?: boolean;
+  showWorkspaceTitleInHeader?: boolean;
   apps?: MdiAppItem[];
   children?: ReactNode;
   defaultFeatures?: Partial<MdiFeatures>;
@@ -84,6 +96,7 @@ export type MainWorkspaceProps = {
   primaryAction?: MdiPrimaryAction | null;
   searchPlaceholder?: string;
   searchValue?: string;
+  /** @deprecated Appearance/theme controls are removed; use ITO settings. */
   showAppearancePanel?: boolean;
   showCanvasEndSpacer?: boolean;
   showMdiOverview?: boolean;
@@ -110,6 +123,7 @@ export type MdiSettingsContentProps = {
 
 export const defaultMdiFeatures: MdiFeatures = {
   appSwitcher: true,
+  ito: true,
   notifications: true,
   primaryActivityRail: true,
   profileMenu: true,

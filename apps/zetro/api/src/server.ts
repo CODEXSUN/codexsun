@@ -1,6 +1,7 @@
 import Fastify from "fastify";
+import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from "fastify-type-provider-zod";
 import { resolve } from "node:path";
-import { createPlatformRuntime, loadEnabledAddonProviders, readApplicationDeployableProfile } from "@codexsun/platform-core";
+import { createPlatformRuntime, loadEnabledAddonProviders, LocalIdentityStore, readApplicationDeployableProfile } from "@codexsun/platform-core";
 import { readConfig } from "./config.js";
 import { ZetroFoundationProvider } from "./modules/foundation/provider.js";
 import { registerZetroHealthRoute } from "./modules/foundation/routes/zetro-health-route.js";
@@ -14,8 +15,11 @@ import { BriefService } from "./modules/brief/brief-service.js";
 import { ZetroTaskProvider } from "./modules/task/provider.js";
 import { registerAgentTaskRoutes } from "./modules/task/routes.js";
 import { AgentTaskService } from "./modules/task/task-service.js";
+import { registerZetroIdentityRoutes } from "./modules/identity/routes.js";
 
 const config = readConfig();
+const identity = new LocalIdentityStore(config);
+await identity.initialize();
 const applicationProviders = [
   new ZetroFoundationProvider(),
   new ZetroStorageProvider(config.ZETRO_DATABASE_PATH),
@@ -34,8 +38,11 @@ const runtime = createPlatformRuntime(
 );
 
 runtime.start();
-const app = Fastify({ logger: true });
-app.addHook("onClose", () => runtime.stop());
+const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
+app.setValidatorCompiler(validatorCompiler);
+app.setSerializerCompiler(serializerCompiler);
+await registerZetroIdentityRoutes(app, identity);
+app.addHook("onClose", () => { identity.close(); runtime.stop(); });
 await registerZetroHealthRoute(app, runtime.engine);
 await registerChatRoutes(app, runtime.engine.require<ChatService>("zetro.chat"));
 await registerBriefRoutes(app, runtime.engine.require<BriefService>("zetro.brief"));

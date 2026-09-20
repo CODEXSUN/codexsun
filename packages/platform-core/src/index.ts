@@ -25,6 +25,13 @@ export type { DatabaseOutboxSchema, OutboxMessage, OutboxState, OutboxStateCount
 export { DatabaseOutboxWorker } from "./database-outbox-worker.js";
 export type { DatabaseOutboxHandler, DatabaseOutboxWorkerConfiguration } from "./database-outbox-worker.js";
 export { DatabaseOutboxEventBridge } from "./database-outbox-event-bridge.js";
+export { DatabaseOutboxEventDispatcher } from "./database-outbox-event-dispatcher.js";
+export { DatabaseJobQueue } from "./database-job-queue.js";
+export type { DatabaseJob, DatabaseJobQueueSchema, DatabaseJobState, DatabaseJobStateCounts } from "./database-job-queue.js";
+export { DatabaseJobWorker } from "./database-job-worker.js";
+export type { DatabaseJobHandler, DatabaseJobWorkerConfiguration, DatabaseJobWorkerResult } from "./database-job-worker.js";
+export { DatabaseNotificationStore } from "./database-notifications.js";
+export type { DatabaseNotificationSchema, NotificationListOptions, NotificationSeverity, PlatformNotification } from "./database-notifications.js";
 export { ModuleStorage, StorageProvider } from "./storage-provider.js";
 export type { StorageVisibility } from "./storage-provider.js";
 export { createOperationLogEntry } from "./observability.js";

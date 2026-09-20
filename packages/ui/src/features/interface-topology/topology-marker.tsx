@@ -1,24 +1,18 @@
-import type { CSSProperties } from 'react'
-import type { InterfaceTopologyController } from './interface-topology.types'
+import type { CSSProperties } from 'react';
+import type { InterfaceTopologyController } from './interface-topology.types';
 
-const hues = [215, 145, 185, 42, 198, 112, 28]
+const itoAccent = 'hsl(265 85% 52% / 0.9)';
+const itoAccentSoft = 'hsl(265 92% 94% / 0.95)';
 
-export function TopologyMarker({
-  id,
-  topology,
-}: {
-  id: string
-  topology: InterfaceTopologyController
-}) {
-  const section = topology.sections.find((candidate) => candidate.id === id)
-  if (!section || !topology.labelsVisible || !isLabelVisible(id, topology)) return null
-  const selected = topology.open && topology.selected === id
-  const isBanner = !id.includes('.')
-  const hue = hues[sectionIndex(id) % hues.length]
+export function TopologyMarker({ id, topology }: { id: string; topology: InterfaceTopologyController }) {
+  const section = topology.sections.find((candidate) => candidate.id === id);
+  if (!section || !topology.labelsVisible || !isLabelVisible(id, topology)) return null;
+  const selected = topology.open && topology.selected === id;
+  const isBanner = !id.includes('.');
   const style = {
-    '--ito-sticker': `hsl(${hue} 82% 42% / 0.82)`,
-    '--ito-sticker-soft': `hsl(${hue} 92% 92% / 0.72)`,
-  } as CSSProperties
+    '--ito-sticker': itoAccent,
+    '--ito-sticker-soft': itoAccentSoft,
+  } as CSSProperties;
 
   return (
     <button
@@ -27,9 +21,9 @@ export function TopologyMarker({
       data-ito-marker={id}
       data-selected={selected}
       onClick={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        topology.inspect(id)
+        event.preventDefault();
+        event.stopPropagation();
+        topology.inspect(id);
       }}
       onPointerDown={(event) => event.stopPropagation()}
       style={style}
@@ -39,19 +33,15 @@ export function TopologyMarker({
       <span>{displayId(id)}</span>
       {isBanner && <span className="truncate font-semibold">{section.name}</span>}
     </button>
-  )
+  );
 }
 
 function displayId(id: string) {
-  return id.replace(/^[a-z]+/i, '').padStart(2, '0')
-}
-
-function sectionIndex(id: string) {
-  return Number.parseInt(id.replace(/^[a-z]+/i, ''), 10) || 0
+  return id.replace(/^[a-z]+/i, '').padStart(2, '0');
 }
 
 function isLabelVisible(id: string, topology: InterfaceTopologyController) {
-  if (!id.includes('.')) return true
-  if (!topology.highlighting) return false
-  return id === topology.selected || id.slice(0, id.lastIndexOf('.')) === topology.selected
+  if (!id.includes('.')) return true;
+  if (!topology.highlighting) return false;
+  return id === topology.selected || id.slice(0, id.lastIndexOf('.')) === topology.selected;
 }

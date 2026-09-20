@@ -1,8 +1,9 @@
 import { BellIcon, XIcon } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@codexsun/ui/components/button'
+import { toast } from '@codexsun/ui/components/toast'
 import { Popover, PopoverContent, PopoverTrigger } from '@codexsun/ui/components/popover'
 import { cn } from '@codexsun/ui/lib/utils'
 import { TopologyMarker } from '../../features/interface-topology'
@@ -18,12 +19,32 @@ export function MdiNotificationsMenu({
   notifications: readonly MdiNotification[]
 }) {
   const [open, setOpen] = useState(false)
+  const knownNotificationIds = useRef<Set<string> | null>(null)
   const reduceMotion = useReducedMotion()
   const topology = useMdiTopology()
   const unreadCount =
     notifications.length > 0
       ? notifications.filter((notification) => !notification.read).length
       : count
+
+  useEffect(() => {
+    const unread = notifications.filter((notification) => !notification.read)
+    if (!knownNotificationIds.current) {
+      knownNotificationIds.current = new Set(notifications.map((notification) => notification.id))
+      return
+    }
+    const known = knownNotificationIds.current
+    for (const notification of newUnreadNotifications(known, unread)) {
+      toast.add({
+        description: notification.description,
+        id: `notification:${notification.id}`,
+        priority: notification.severity === 'error' ? 'high' : 'low',
+        title: notification.title,
+        type: notification.severity ?? 'info',
+      })
+    }
+    knownNotificationIds.current = new Set(notifications.map((notification) => notification.id))
+  }, [notifications])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -101,6 +122,13 @@ export function MdiNotificationsMenu({
   )
 }
 
+export function newUnreadNotifications(
+  knownIds: ReadonlySet<string>,
+  notifications: readonly MdiNotification[],
+): MdiNotification[] {
+  return notifications.filter((notification) => !knownIds.has(notification.id))
+}
+
 function UnreadIndicator({ reduceMotion }: { reduceMotion: boolean }) {
   return (
     <span className="absolute top-1.5 right-1.5 grid size-2 place-items-center" aria-hidden="true">
@@ -142,6 +170,7 @@ function NotificationRow({
       className="flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       onClick={() => {
         notification.onSelect?.()
+        notification.onRead?.()
         onClose()
       }}
       type="button"

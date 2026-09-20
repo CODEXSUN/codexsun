@@ -18,6 +18,7 @@ export type ChatRuntimeTraceProps = {
 
 export function ChatRuntimeTrace({ className, elapsedSeconds, events, isWorking }: ChatRuntimeTraceProps) {
   const [open, setOpen] = useState(isWorking)
+  const latestEvent = events.at(-1)
 
   useEffect(() => setOpen(isWorking), [isWorking])
 
@@ -27,7 +28,7 @@ export function ChatRuntimeTrace({ className, elapsedSeconds, events, isWorking 
     <Collapsible className={cn("w-full shrink-0 border-y border-border/50", className)} open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="group/runtime-trace flex w-full items-center gap-2 py-2 text-left text-xs text-muted-foreground hover:text-foreground">
         <TerminalIcon className="size-3 shrink-0" />
-        <span className={isWorking ? 'shimmer shimmer-orange font-medium' : 'font-medium'}>{isWorking ? `Compacting auto · Working for ${elapsedSeconds}s` : `Compacted · Worked for ${elapsedSeconds}s`}</span>
+        <span className={isWorking ? 'shimmer shimmer-orange font-medium' : 'font-medium'}>{isWorking ? `${phaseLabel(latestEvent?.type)} · Working for ${elapsedSeconds}s` : `Completed · ${events.length} visible events`}</span>
         <span className="ml-auto">{events.length} events</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="pb-2">
@@ -37,6 +38,14 @@ export function ChatRuntimeTrace({ className, elapsedSeconds, events, isWorking 
       </CollapsibleContent>
     </Collapsible>
   )
+}
+
+function phaseLabel(type?: string): string {
+  if (type === 'command') return 'Running read-only command'
+  if (type === 'request') return 'Checking sources'
+  if (type === 'review') return 'Reviewing context'
+  if (type === 'change') return 'Recording file activity'
+  return 'Compacting auto'
 }
 
 function TraceEvent({ event }: { event: ChatRuntimeTraceEvent }) {

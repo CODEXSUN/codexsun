@@ -1,10 +1,10 @@
 {
   "name": "@codexsun/orship-api",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/orship/api/server.js",
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --banner:js=\"import { createRequire as __nodeCreateRequire } from 'node:module'; import { fileURLToPath as __nodeFileURLToPath } from 'node:url'; import { dirname as __nodePathDirname } from 'node:path'; const require = __nodeCreateRequire(import.meta.url); const __filename = __nodeFileURLToPath(import.meta.url); const __dirname = __nodePathDirname(__filename);\" --outfile=../../../dist/orship/api/server.js",
     "check": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx watch src/server.ts",
     "lint": "eslint src",

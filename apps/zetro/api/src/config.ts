@@ -1,5 +1,6 @@
 import { config } from "dotenv";
 import { resolve } from "node:path";
+import { readLocalIdentityConfiguration } from "@codexsun/platform-core";
 import { readZetroApiRuntimeConfig } from "@codexsun/platform-core/runtime-config";
 
 export function readConfig() {
@@ -7,7 +8,13 @@ export function readConfig() {
   config({ path: resolve(process.cwd(), ".app.env"), override: true });
   const runtimeConfig = readZetroApiRuntimeConfig(process.env);
   assertLocalHost(runtimeConfig.PLATFORM_HOST);
-  return runtimeConfig;
+  return {
+    ...runtimeConfig,
+    ...readLocalIdentityConfiguration(process.env, {
+      applicationId: "zetro",
+      databasePath: runtimeConfig.ZETRO_DATABASE_PATH,
+    }),
+  };
 }
 
 export function assertLocalHost(host: string): void {

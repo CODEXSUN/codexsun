@@ -65,6 +65,15 @@ export class PdfProvider {
       cursor += 5;
     }
 
+    const pageCount = document.getNumberOfPages();
+    for (let page = 1; page <= pageCount; page += 1) {
+      document.setPage(page);
+      document.setFontSize(8);
+      document.setTextColor(110);
+      document.text(`Zetro · ${page} / ${pageCount}`, margin, document.internal.pageSize.getHeight() - 10);
+      document.setTextColor(0);
+    }
+
     return new File([document.output("blob")], `${toFileName(title)}.pdf`, { type: "application/pdf" });
   }
 

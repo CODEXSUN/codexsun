@@ -48,6 +48,7 @@ export type ManagedIdentityUser = {
   readonly id: string;
   readonly login: string;
   readonly name: string;
+  readonly protected: boolean;
   readonly roles: readonly string[];
   readonly state: IdentityUserState;
   readonly username: string;
@@ -225,6 +226,7 @@ export class LocalIdentityStore {
       id: user.id,
       login: user.login,
       name: user.name,
+      protected: this.isProtectedIdentity(user.id),
       roles: this.roleIdsForUser(user.id),
       state: user.state,
       username: user.username,
@@ -285,6 +287,25 @@ export class LocalIdentityStore {
     }
     this.recordAuditEvent("identity.user.updated", "success", undefined, id);
     return this.managedUser(id);
+  }
+
+  forceDeleteManagedUser(id: string): boolean {
+    if (!this.userRow(id)) return false;
+    if (this.isProtectedIdentity(id)) throw new Error("Default identity users cannot be deleted.");
+    this.database.exec("BEGIN");
+    try {
+      this.database.prepare("DELETE FROM identity_sessions WHERE actor_id = ?").run(id);
+      this.database.prepare("DELETE FROM identity_password_reset_tokens WHERE user_id = ?").run(id);
+      this.database.prepare("DELETE FROM identity_user_roles WHERE user_id = ?").run(id);
+      this.database.prepare("DELETE FROM identity_audit_events WHERE actor_id = ?").run(id);
+      this.database.prepare("DELETE FROM identity_users WHERE id = ?").run(id);
+      this.database.exec("COMMIT");
+    } catch (error) {
+      this.database.exec("ROLLBACK");
+      throw error;
+    }
+    this.recordAuditEvent("identity.user.force-deleted", "success", undefined, id);
+    return true;
   }
 
   createRole(id: string): string {
@@ -632,6 +653,7 @@ export class LocalIdentityStore {
       id: user.id,
       login: user.login,
       name: user.name,
+      protected: this.isProtectedIdentity(id),
       roles: this.roleIdsForUser(id),
       state: user.state,
       username: user.username,
@@ -671,6 +693,10 @@ export class LocalIdentityStore {
 
   private isUserActive(userId: string): boolean {
     return Boolean(this.database.prepare("SELECT 1 FROM identity_users WHERE id = ? AND state = 'active'").get(userId));
+  }
+
+  private isProtectedIdentity(userId: string): boolean {
+    return this.roleIdsForUser(userId).some((roleId) => roleId === "admin" || roleId === "super-admin");
   }
 
   private tableHasColumn(table: string, column: string): boolean {

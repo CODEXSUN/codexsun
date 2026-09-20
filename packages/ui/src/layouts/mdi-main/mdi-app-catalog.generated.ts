@@ -18,6 +18,13 @@ export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
   },
   {
     "icon": "application",
+    "id": "cxforge",
+    "label": "CXForge",
+    "localUrlKey": "VITE_CXFORGE_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
     "id": "docx",
     "label": "DOCX",
     "localUrlKey": "VITE_DOCX_WEB_URL",
@@ -78,5 +85,12 @@ export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
     "label": "Zetro",
     "localUrlKey": "VITE_ZETRO_WEB_URL",
     "path": "/zetro"
+  },
+  {
+    "icon": "application",
+    "id": "zuno",
+    "label": "Zuno",
+    "localUrlKey": "VITE_ZUNO_WEB_URL",
+    "path": "/"
   }
 ] as const;

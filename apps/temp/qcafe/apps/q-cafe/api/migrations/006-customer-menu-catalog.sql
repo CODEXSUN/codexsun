@@ -1,0 +1,2 @@
+-- The customer catalogue is intentionally empty. Add categories and items in
+-- Q Cafe Masters after first setup.

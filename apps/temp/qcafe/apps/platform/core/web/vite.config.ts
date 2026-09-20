@@ -1,0 +1,41 @@
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { defineConfig } from "vite";
+import { createViteDevelopmentServer } from "../../../../tools/vite-development.mjs";
+
+const releaseVersion = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../../../package.json"), "utf8")).version;
+
+export default defineConfig({
+  define: {
+    __CODEXSUN_VERSION__: JSON.stringify(releaseVersion),
+  },
+  plugins: [react(), tailwindcss()],
+  publicDir: path.resolve(import.meta.dirname, "../../../../packages/ui/desk/public"),
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: "react-runtime", test: /node_modules[\\/](?:react|react-dom|scheduler)[\\/]/, priority: 40 },
+            { name: "radix-ui", test: /node_modules[\\/]@radix-ui[\\/]/, priority: 35 },
+            { name: "tanstack-query", test: /node_modules[\\/]@tanstack[\\/]/, priority: 35 },
+            { name: "mermaid", test: /node_modules[\\/]mermaid[\\/]/, priority: 34 },
+            { name: "icons", test: /node_modules[\\/]lucide-react[\\/]/, priority: 30 },
+          ],
+        },
+      },
+    },
+  },
+  resolve: {
+    alias: {
+      "@/blocks/sidebar-08": path.resolve(import.meta.dirname, "../../../../packages/ui/desk/src/blocks/sidebar-08"),
+      "@": path.resolve(import.meta.dirname, "src"),
+    },
+  },
+  server: {
+    ...createViteDevelopmentServer({ host: "127.0.0.1", port: 5173, proxy: { "/api/v1/docs": "http://127.0.0.1:4185", "/api/v1/zetro": "http://127.0.0.1:4150", "/api/v1/ai-tasks": "http://127.0.0.1:4150", "/dcs": { target: "http://127.0.0.1:4170", rewrite: path => path.replace(/^\/dcs/u, ""), ws: true }, "/health": "http://127.0.0.1:4100", "/api": "http://127.0.0.1:4100" } }),
+    fs: { allow: [path.resolve(import.meta.dirname, "../../../..")] },
+  },
+});

@@ -1,0 +1,35 @@
+services:
+  cxforge:
+    container_name: cxforge
+    build:
+      context: ../../..
+      dockerfile: apps/cxforge/Dockerfile
+    environment:
+      CXFORGE_ADDRESS: ":6400"
+      CXFORGE_ZUNO_CLIENT_KEY: local-zuno-to-cxforge-client-key-32chars
+      CXFORGE_PREVIEW_ORIGIN: http://127.0.0.1
+      CXFORGE_EXECUTION_MODE: demo
+      CXFORGE_CONTAINER_NAME: cxforge
+    ports:
+      - "127.0.0.1:6400:6400"
+      - "127.0.0.1:7300:7300"
+      - "127.0.0.1:7301:7301"
+      - "127.0.0.1:7302:7302"
+      - "127.0.0.1:7303:7303"
+    volumes:
+      - cxforge-workspaces:/workspace
+    networks:
+      - codexsun-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:6400/api/v1/cxforge/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+networks:
+  codexsun-network:
+    external: true
+
+volumes:
+  cxforge-workspaces:

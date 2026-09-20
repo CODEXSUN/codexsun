@@ -35,7 +35,7 @@ const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
 await app.register(helmet, fastifyHelmetOptions);
-await app.register(cors, { origin: process.env.CRM_WEB_ORIGIN, methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT"], allowedHeaders: ["Authorization", "Content-Type", "X-Codexsun-Browser-Session"] });
+await app.register(cors, { origin: process.env.CRM_WEB_ORIGIN, methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT", "DELETE"], allowedHeaders: ["Authorization", "Content-Type", "X-Codexsun-Browser-Session"] });
 await app.register(swagger, { openapi: { info: { title: "CRM API", version: "1.0.0" }, openapi: "3.0.3" }, transform: jsonSchemaTransform });
 await app.register(swaggerUi, { routePrefix: "/api/internal/reference", uiHooks: { onRequest: (request, reply, done) => { if (request.headers.authorization !== `Bearer ${config.apiReferenceToken}`) return reply.code(401).send({ error: "Authentication required." }); done(); } } });
 app.setErrorHandler((error, _request, reply) => { app.log.error(error); return reply.code(500).send({ error: "Internal server error.", code: "server.internal" }); });

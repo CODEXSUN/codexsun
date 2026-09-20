@@ -131,9 +131,42 @@ test("resolves lazy singleton factories and request scopes", () => {
   assert.deepEqual(request.require("service"), { region: "local" });
 });
 
-test("dispatches declared events only to declared consumers", async () => {
+test("resolves scoped factories once for each request scope", () => {
   const fixture = createProviderFixture();
-  let publisher: { emit<T>(name: string, payload: T): Promise<void> } | undefined;
+  let factoryCalls = 0;
+  fixture.engine.provideScopedFactory("request.context", (dependencies) => {
+    factoryCalls += 1;
+    return { id: dependencies.require<string>("request.id") };
+  });
+
+  assert.throws(() => fixture.engine.require("request.context"), /requires a scope/u);
+
+  const first = fixture.engine.createScope();
+  first.provide("request.id", "first");
+  assert.deepEqual(first.require("request.context"), { id: "first" });
+  assert.deepEqual(first.require("request.context"), { id: "first" });
+
+  const second = fixture.engine.createScope();
+  second.provide("request.id", "second");
+  assert.deepEqual(second.require("request.context"), { id: "second" });
+  assert.equal(factoryCalls, 2);
+});
+
+test("rejects cyclic and failing dependency factories with the provider key", () => {
+  const fixture = createProviderFixture();
+  fixture.engine.provideFactory("first", (dependencies) => dependencies.require("second"));
+  fixture.engine.provideFactory("second", (dependencies) => dependencies.require("first"));
+  assert.throws(() => fixture.engine.require("first"), /Provider factory dependency cycle: first -> second -> first/u);
+
+  fixture.engine.provideFactory("failing", () => {
+    throw new Error("expected");
+  });
+  assert.throws(() => fixture.engine.require("failing"), /Provider factory failed: failing/u);
+});
+
+test("dispatches declared events only to declared consumers with correlation metadata", async () => {
+  const fixture = createProviderFixture();
+  let publisher: { emit<T>(name: string, payload: T, options?: { correlationId?: string }): Promise<void> } | undefined;
   const delivered: string[] = [];
   fixture.engine.register(
     fixture.provider(manifest("consumer", [], { published: [], consumed: ["example.created.v1"] }), {
@@ -150,7 +183,7 @@ test("dispatches declared events only to declared consumers", async () => {
     }),
   );
 
-  await publisher?.emit("example.created.v1", { id: "one" });
+  await publisher?.emit("example.created.v1", { id: "one" }, { correlationId: "request-1" });
   assert.deepEqual(delivered, ["one"]);
   await assert.rejects(() => publisher!.emit("example.deleted.v1", { id: "one" }), /did not declare published event/u);
 });

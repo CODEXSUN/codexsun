@@ -1,0 +1,144 @@
+# TechMedia
+
+TechMedia is a standalone, single-client CRM application connected to live Frappe. It is a
+self-contained npm monorepo: the application, Framework runtime, and UI design system all live in
+this repository.
+
+The runtime contains:
+
+- Identity: users, roles, permissions, user roles, and role permissions.
+- Settings: one `.env` Frappe connection plus per-user Frappe credentials on user records.
+- CRM: live Frappe enquiry workflows with no local CRM business database.
+- Estimate: live Frappe Estimate list, create, and update workflows with no local business database.
+
+TechMedia uses one MariaDB database configured by `DB_NAME`; only Identity is persisted locally.
+Settings, CRM, and Estimate own no tables. The app has one `/login` route and one `/app` desk.
+Application code consumes only the public exports of the internal `packages/framework` and
+`packages/ui` workspaces; no parent-folder package is required for install, development, build, or
+deployment.
+
+The workspace uses only the repository-root `node_modules` and `dist` directories. Framework
+runtime output is written to `dist/packages/framework`; API and web output is written to
+`dist/platform/api` and `dist/platform/web`.
+
+## Development
+
+Copy `.env.example` to `.env`, fill the database, JWT, encryption, administrator, and Frappe
+settings, then run:
+
+```sh
+npm install
+npm run dev
+```
+
+Default endpoints:
+
+- API: `http://127.0.0.1:7050`
+- Web: `http://127.0.0.1:7060`
+
+Database commands:
+
+```sh
+npm run db:migrate
+npm run db:seed
+npm run db:migrations:list
+```
+
+`db:drop` and `dbmigrate:fresh` require the explicit reset guard documented in `.env.example`.
+
+## Local Docker deployment
+
+Run the interactive installer from the repository root:
+
+```sh
+./setup.sh
+```
+
+On Windows, use Git Bash explicitly when `bash` resolves to WSL but no Linux distribution is
+installed:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" setup.sh
+```
+
+Before prompting, the installer creates the root `.env` from `.env.example` when it is missing.
+The interactive flow reviews Docker resource names, bind address, host ports, MariaDB identity, and
+the protected administrator. Public URLs, encryption, and Frappe connection values are read
+directly from the root `.env`; Frappe is always enabled and those values are not prompted. Existing
+secrets can be kept without displaying them. Setup detects unavailable API or web host ports and
+asks for replacements. It can either create a dedicated TechMedia network and MariaDB volume or
+reuse an explicitly named running MariaDB container on an existing Docker network. Reused networks
+are marked external, and setup never disconnects, stops, removes, or recreates those existing
+infrastructure resources.
+
+After deployment:
+
+- Web: the configured `TECHMEDIA_BIND_ADDRESS` and `TECHMEDIA_WEB_HOST_PORT`
+- API health: `/health` on the configured API host endpoint
+- Runtime configuration: `.env`
+- Docker/deployment configuration: `.container/deploy.env`
+
+### Updating an existing Docker deployment
+
+After pulling or copying the updated repository source, run:
+
+```sh
+bash update.sh
+```
+
+For a non-interactive update:
+
+```sh
+bash update.sh --yes
+```
+
+To validate the current deployment without rebuilding anything:
+
+```sh
+bash update.sh --check
+```
+
+The updater deploys committed source by default. For an explicitly accepted emergency build from
+an uncommitted checkout, use `bash update.sh --allow-dirty`; the dirty state and source commit are
+recorded in the deployment metadata.
+
+On Windows with Git Bash:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" update.sh
+```
+
+The updater requires the existing root `.env`, `.container/deploy.env`, and Compose-owned
+TechMedia containers. Before each release, update `TECHMEDIA_VERSION`, `TECHMEDIA_IMAGE_TAG`, and
+`TECHMEDIA_MIGRATION_COMPATIBLE_VERSION` in `.container/deploy.env` to the exact `package.json`
+version after reviewing migrations and repeatable seeds for compatibility with the running image.
+Mixed source/image versions are refused.
+
+Before downtime, the updater validates container ownership, runtime-file access, committed source,
+available backup/build storage, and an exclusive host update lock. It runs the production build and
+repository checks in Docker with development dependencies, rebuilds the versioned API and Web
+images, creates a timestamped MariaDB dump, verifies its SHA-256 checksum, and runs migrations plus
+repeatable seeds with the new API image. It then recreates only the two application containers,
+waits for Docker health, and probes both published HTTP endpoints. A failed replacement restores
+the prior API and Web images automatically; applied database changes are not automatically reversed.
+The SQL backup, checksum sidecar, and per-attempt deployment JSON are retained for audited manual
+recovery. `TECHMEDIA_BACKUP_RETENTION` controls retained backup sets; the two
+`TECHMEDIA_UPDATE_MIN_*_FREE_MB` settings control disk-space preflight thresholds.
+
+The updater does not rerun interactive setup, modify either environment file, change credentials,
+recreate MariaDB, remove volumes, or touch shared infrastructure.
+
+## Verification
+
+```sh
+npm run check
+npm run build
+npm run dependencies:check
+npm run test:e2e:runtime
+```
+
+The runtime smoke test uses the configured MariaDB and administrator credentials, starts the built
+API twice, and verifies health, anonymous-session rejection, login, authenticated session recovery,
+logout, and restart persistence.
+
+Read `assist/AGENT-GUIDE.md` before changing architecture or module ownership.

@@ -5,6 +5,7 @@ export {
 } from './component-registry'
 export { designSystemBlocks, getDesignSystemBlock } from './block-registry'
 export { designSystemPages, getDesignSystemPage } from './page-registry'
+export { designSystemTemplates, getDesignSystemTemplate } from './template-registry'
 export {
   createDesignSystemSelection,
   defaultDesignSystemSelection,
@@ -20,6 +21,7 @@ export type {
   DesignSystemCategory,
   DesignSystemComponentDefinition,
   DesignSystemPageDefinition,
+  DesignSystemTemplateDefinition,
   DesignSystemSelection,
   DesignSystemSelectionInput,
   DesignSystemVariantDefinition,

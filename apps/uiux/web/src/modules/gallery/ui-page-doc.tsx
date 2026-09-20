@@ -1,23 +1,14 @@
-import { useEffect, useState } from 'react'
-import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main'
-import { UiTemplatePage } from '@codexsun/ui/templates/ui-page'
-import { createUiPageCode } from './ui-page-code'
-import { UiPageVariantCard } from './ui-page-variant-card'
-import { uiPageDocs, type UiPageDoc } from './ui-pages'
+import { useMdiTopology } from '@codexsun/ui/layouts/mdi-main';
+import { UiTemplatePage } from '@codexsun/ui/templates/ui-page';
+import { createUiPageCode } from './ui-page-code';
+import { UiPagePreview } from './ui-page-preview';
+import { uiPageDocs, type UiPageDoc } from './ui-pages';
 
 export function UiPageDocumentation({ page }: { page: UiPageDoc }) {
-  const topology = useMdiTopology()
-  const [defaultVariantId, setDefaultVariantId] = useState(() => readDefaultVariant(page))
-  const index = uiPageDocs.findIndex(({ id }) => id === page.id)
-  const previous = uiPageDocs[index - 1]
-  const next = uiPageDocs[index + 1]
-
-  useEffect(() => setDefaultVariantId(readDefaultVariant(page)), [page])
-
-  function setDefault() {
-    setDefaultVariantId(page.variantId)
-    window.localStorage.setItem(storageKey(page), page.variantId)
-  }
+  const topology = useMdiTopology();
+  const index = uiPageDocs.findIndex(({ id }) => id === page.id);
+  const previous = uiPageDocs[index - 1];
+  const next = uiPageDocs[index + 1];
 
   return (
     <UiTemplatePage
@@ -29,40 +20,19 @@ export function UiPageDocumentation({ page }: { page: UiPageDoc }) {
         previous: previous
           ? { href: `/?page=${previous.id}`, name: previous.name }
           : { href: '/?layout=agent-workspace', name: 'Agent Workspace' },
-        next: next
-          ? { href: `/?page=${next.id}`, name: next.name }
-          : { href: '/?block=table', name: 'Table' },
+        next: next ? { href: `/?page=${next.id}`, name: next.name } : { href: '/?block=table', name: 'Table' },
       }}
-      preview={
-        <UiPageVariantCard
-          isDefault={page.variantId === defaultVariantId}
-          onSetDefault={setDefault}
-          page={page}
-        />
-      }
+      preview={<UiPagePreview page={page} />}
       showCode={false}
       topology={topology}
       topologyIds={{ page: '25', preview: '25.1', usage: '25.2' }}
       usageDescription={
         <p>
-          Connect the public page block to the owning application route, authentication service, or
-          notification state. The selected default is resolved programmatically for this page
-          family.
+          Connect the public page block to the owning application route, authentication service, or notification state.
+          The selected default is resolved programmatically for this page family.
         </p>
       }
       usageTitle={`${page.name} usage`}
     />
-  )
-}
-
-function readDefaultVariant(page: UiPageDoc) {
-  if (typeof window === 'undefined') return page.family.defaultVariantId
-  const stored = window.localStorage.getItem(storageKey(page))
-  return page.family.variants.some(({ id }) => id === stored)
-    ? stored!
-    : page.family.defaultVariantId
-}
-
-function storageKey(page: UiPageDoc) {
-  return `codexsun.ui.page-default.${page.family.id}`
+  );
 }

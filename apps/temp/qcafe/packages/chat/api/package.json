@@ -1,0 +1,28 @@
+{
+  "name": "@codexsun/chat-api",
+  "version": "1.1.2",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@codexsun/chat-contracts": "*",
+    "@codexsun/platform-host-contracts": "*",
+    "@fastify/cors": "latest",
+    "fastify": "latest",
+    "ioredis": "^6.0.0",
+    "mysql2": "^3.24.3",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/ws": "^8.18.1",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

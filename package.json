@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -12,7 +12,7 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "npm run test:framework && npm run test:platform-core && npm run test:platform-api && npm run test:platform-web && npm run test:ui && npm run test:zetro-api && npm run test:zetro-web && npm run test:platform-desktop && npm run test:platform-mobile && npm run test:app-cli && npm run test:module-generator && npm run test:turbo-scope && npm run test:module-boundaries && npm run test:app-architecture && npm run test:versions && npm run test:line-endings && npm run test:app-worktree && npm run test:app-build",
+    "test": "npm run test:framework && npm run test:platform-core && npm run test:platform-api && npm run test:platform-web && npm run test:ui && npm run test:zetro-api && npm run test:zetro-web && npm run test:platform-desktop && npm run test:platform-mobile && npm run test:cxforge && npm run test:zuno && npm run test:app-cli && npm run test:module-generator && npm run test:turbo-scope && npm run test:module-boundaries && npm run test:app-architecture && npm run test:versions && npm run test:line-endings && npm run test:app-worktree && npm run test:app-build",
     "github:now": "node tools/github-helper.mjs",
     "dev:api": "node tools/preflight.mjs platform-api --restart",
     "dev:web": "node tools/preflight.mjs platform-web --restart",
@@ -21,6 +21,11 @@
     "dev:uiux": "node tools/preflight.mjs uiux-web --restart",
     "dev:zetro-api": "node tools/preflight.mjs zetro-api --restart",
     "dev:zetro-web": "node tools/preflight.mjs zetro-web --restart",
+    "dev:cxforge-api": "node tools/preflight.mjs cxforge-api --restart",
+    "dev:zuno-api": "node tools/preflight.mjs zuno-api --restart",
+    "dev:zuno-web": "node tools/preflight.mjs zuno-web --restart",
+    "dev:zuno-desktop": "node tools/preflight.mjs zuno-desktop --restart",
+    "dev:zuno-mobile": "node tools/preflight.mjs zuno-mobile --restart",
     "dev:desktop": "node tools/preflight.mjs platform-desktop --restart",
     "dev:mobile": "node tools/preflight.mjs platform-mobile --restart",
     "build": "npm run clean:root-layout && turbo run build && npm run clean:root-layout && node tools/check-root-layout.mjs",
@@ -75,6 +80,8 @@
     "test:ui": "npm run test --workspace @codexsun/ui",
     "test:zetro-api": "npm run test --workspace @codexsun/zetro-api",
     "test:zetro-web": "npm run test --workspace @codexsun/zetro-web",
+    "test:cxforge": "npm run test --workspace @codexsun/cxforge-api",
+    "test:zuno": "npm run test --workspace @codexsun/zuno-api && npm run test --workspace @codexsun/zuno-web && npm run test --workspace @codexsun/zuno-desktop && npm run test --workspace @codexsun/zuno-mobile",
     "test:platform-desktop": "npm run test --workspace @codexsun/platform-desktop",
     "test:platform-mobile": "npm run test --workspace @codexsun/platform-mobile",
     "test:e2e": "playwright test",

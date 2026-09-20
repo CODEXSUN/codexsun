@@ -6,10 +6,13 @@ import { IdentityManagementDesk } from "@codexsun/ui/blocks/auth/identity-manage
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@codexsun/ui/components/card";
 import { LayoutDashboardIcon, ServerCogIcon } from "lucide-react";
 import { useState } from "react";
+import developmentVersion from "../../VERSION?raw";
 import { InfrasWorkspace } from "./modules/infras/infras-workspace";
 
 type Health = { status: "ok"; providers: string[] };
 type WorkspacePage = "overview" | "infras-list" | "infras-show" | "infras-upsert";
+
+const ORSHIP_DEVELOPMENT_VERSION = developmentVersion.trim();
 
 type OverviewItem = {
   readonly description: string;
@@ -88,6 +91,7 @@ function OrshipDesk({ request, logout }: { request: typeof fetch; logout: () => 
       ]}
       primaryAction={null}
       showTopologyTools={false}
+      statusEnd={<span aria-label="Orship development version">{ORSHIP_DEVELOPMENT_VERSION}</span>}
       statusLabel={statusLabel(health)}
       workspaceTitle={page === "overview" ? "Overview" : page === "infras-list" ? "Infras" : page === "infras-upsert" ? "Create infra" : "Infra details"}
     >

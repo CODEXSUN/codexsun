@@ -2,17 +2,80 @@
 
 ## Version State
 
-Current version: 1.0.27
+Current version: 1.0.28
 
-Release tag: v-1.0.27
+Release tag: v-1.0.28
 
-Changelog label: v 1.0.27
+Changelog label: v 1.0.28
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
 
+## v-1.0.28
+
+### [v 1.0.28] 2026-09-20 6:28 pm - working on zetro , zuno ,cxforge
+
+#### Database Changes
+
+- Database update: Yes (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.28.
+
 ## v-1.0.27
+
+### [v 1.0.27] 2026-09-20 - Q Cafe owner module catalog
+
+#### App Codebase Changes
+
+- Added Q Cafe provider declarations for menu, POS, kitchen, booking, inventory, billing, and devices.
+- Added Q Cafe module ownership documentation and an application provider catalog test.
+- Registered Q Cafe provider declarations through the Q Cafe API composition root.
+- Added Q Cafe local SQLite and cloud MariaDB persistence configuration with repeat-safe foundation migrations.
+
+### [v 1.0.27] 2026-09-20 - Master list template
+
+#### App Codebase Changes
+
+- Added reusable Master List and Master Form blocks with configurable fields, table and card views, and create/edit callbacks.
+- Added a UIUX Templates section with an interactive Master List preview. Preview records remain in memory; applications own persistence.
+- Added Master List v1, v2, and v3 as separate UIUX pages under one expandable side-menu item.
+- Updated Master List v2 with the Frappe Desk list structure: compact actions, quick filters, dense selectable rows, activity metadata, and load-more controls.
+- Darkened master-list row hover states for clearer scanning and aligned v3 with the v2 Desk-style list layout.
+- Removed the temporary page-version switcher from Master List previews and moved the shared workspace-appearance control to the lower edge.
+- Replaced dense-list activity metadata with a reusable row action menu for Edit, Suspend, and Delete on Master List v2 and v3.
+- Added the reusable StatusBadge component and a separate UIUX Status Template page with colored check-mark states.
+- Simplified the Status Template preview to show only distinct badge variants.
+- Wired the shared StatusBadge rendering into Master List v1, v2, and v3 status fields.
+- Added a separate first filter row below the unchanged Master List v3 column header and removed its top filter strip; v2 keeps the top filters.
+- Marked the v3 filter strip as a dedicated first data-table row, separate from the header row.
+- Standardized Master List table border colors and changed filter inputs to small rounded corners.
+- Matched the v3 filter row bottom border to the light data-row separator.
+- Darkened the table header bottom border, removed the filter-row bottom border, and removed visible filter placeholders.
+- Hid the UIUX topology-inspection button and positioned the workspace-appearance control above the status bar.
+- Replaced the UIUX workspace-appearance button with the ITO inspection control.
+- Moved the ITO control down to sit just above the status bar.
+- Shifted the ITO control slightly left for clearer visibility.
+- Removed the shared theme/appearance button and wired ITO visibility to MDI workspace settings for all apps and forms.
+- Removed page variant cards and their theme/default controls from the UIUX page documentation preview.
+- Added global status variants for draft, open, won, lost, pending, processing, failed, cancelled, archived, suspended, queued, attention, and idle, with spacing around the Status Template preview.
+- Added Master List v4 with the v1 table and its title and New action moved into the application header.
+- Adjusted the v4 application header to sit flush with the preview top edge, added its bottom border, and spaced the search strip below it.
+- Scoped ITO inspection to the active template preview canvas so only its boundary and metadata are shown.
+- Added current-preview ITO sections for the application header, search strip, data table, and pagination, with highlighted boundaries brought above the preview content.
+- Raised the ITO inspector above the preview with a translucent glass surface and backdrop blur.
+- Moved the ITO inspector and control into a dedicated transparent overlay layer above the canvas.
+- Removed ITO backdrop blur and restored the visible current-preview component names in the inspector list.
+- Moved ITO borders into a top overlay layer and matched each border hue to its component badge.
+- Standardized all ITO markers and highlight borders to the shared purple accent.
+- Added per-section copy buttons to the ITO sidebar for copying technical names.
+- Added a leading icon to the New category action and kept ITO child-section badges on the shared purple accent.
+- Added nested ITO entries for title, New button, search bar, column filter, row header, rows, page size, and page navigation.
+- Wired nested ITO highlights to the search controls, table header and rows, and pagination controls.
+- Improved Master List v4 responsiveness with a wider search bar, status filter menu, icon-only action column, fixed serial/action lanes, and hidden horizontal scrollbar.
+- Removed the redundant Master List readiness message from the preview footer.
 
 ### [v 1.0.27] 2026-09-19 5:25 pm - Application-local RBAC administration
 

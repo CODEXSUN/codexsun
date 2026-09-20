@@ -144,6 +144,16 @@ export class DatabaseOutbox {
     return Number(result.numInsertedOrUpdatedRows) === 1;
   }
 
+  async hasConsumed(consumerId: string, messageId: string): Promise<boolean> {
+    const consumption = await this.database
+      .selectFrom("platform_event_consumptions")
+      .select("message_id")
+      .where("consumer_id", "=", consumerId)
+      .where("message_id", "=", messageId)
+      .executeTakeFirst();
+    return Boolean(consumption);
+  }
+
   async stateCounts(): Promise<OutboxStateCounts> {
     const rows = await this.database
       .selectFrom("platform_outbox_messages")

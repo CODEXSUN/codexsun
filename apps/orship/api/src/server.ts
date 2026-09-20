@@ -26,10 +26,19 @@ const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
 await app.register(helmet, fastifyHelmetOptions);
-await app.register(cors, { origin: process.env.ORSHIP_WEB_ORIGIN, methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT"], allowedHeaders: ["Authorization", "Content-Type", "X-Codexsun-Browser-Session"] });
+await app.register(cors, { origin: config.webOrigin, methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT", "DELETE"], allowedHeaders: ["Authorization", "Content-Type", "X-Codexsun-Browser-Session"] });
 await app.register(swagger, { openapi: { info: { title: "Orship API", version: "1.0.0" }, openapi: "3.0.3" }, transform: jsonSchemaTransform });
 await app.register(swaggerUi, { routePrefix: "/api/internal/reference", uiHooks: { onRequest: (request, reply, done) => { if (request.headers.authorization !== `Bearer ${config.apiReferenceToken}`) return reply.code(401).send({ error: "Authentication required." }); done(); } } });
-app.setErrorHandler((error, _request, reply) => { app.log.error(error); return reply.code(500).send({ error: "Internal server error.", code: "server.internal" }); });
+app.setErrorHandler((error, _request, reply) => {
+  const statusCode = readHttpStatusCode(error);
+  if (statusCode && statusCode < 500) {
+    app.log.warn({ err: error }, "Request rejected.");
+    return reply.code(statusCode).send({ error: readErrorMessage(error), code: "request.invalid" });
+  }
+  app.log.error(error);
+  return reply.code(500).send({ error: "Internal server error.", code: "server.internal" });
+});
+app.get("/", async (_request, reply) => reply.redirect(config.webOrigin));
 app.post("/api/v1/orship/auth/login", { schema: { body: identityLoginSchema, response: { 200: identityLoginResponseSchema, 400: identityErrorResponseSchema, 401: identityErrorResponseSchema, 429: identityErrorResponseSchema } } }, async (request, reply) => {
   const credentials = identityLoginSchema.safeParse(request.body);
   const browserSessionId = identityBrowserSessionIdSchema.safeParse(request.headers["x-codexsun-browser-session"]);
@@ -75,7 +84,8 @@ await app.listen({ host: config.host, port: config.port });
 
 function isPublicPath(url: string): boolean {
   const path = new URL(url, "http://localhost").pathname;
-  return path === "/api/v1/orship/auth/login"
+  return path === "/"
+    || path === "/api/v1/orship/auth/login"
     || path === "/api/v1/orship/auth/admin/login"
     || path === "/api/v1/orship/auth/super-admin/login"
     || path === "/api/v1/orship/auth/development-login"
@@ -84,4 +94,13 @@ function isPublicPath(url: string): boolean {
     || path === "/api/v1/orship/health"
     || path === "/api/internal/reference"
     || path.startsWith("/api/internal/reference/");
+}
+
+function readHttpStatusCode(error: unknown): number | undefined {
+  if (!error || typeof error !== "object" || !("statusCode" in error)) return undefined;
+  return typeof error.statusCode === "number" ? error.statusCode : undefined;
+}
+
+function readErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Invalid request.";
 }

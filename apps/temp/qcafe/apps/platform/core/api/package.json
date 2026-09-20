@@ -1,0 +1,35 @@
+{
+  "name": "@codexsun/core-api",
+  "version": "1.1.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/server.ts",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@codexsun/contracts": "*",
+    "@codexsun/identity-contracts": "*",
+    "@codexsun/platform-host-contracts": "*",
+    "@codexsun/runtime": "*",
+    "@fastify/cors": "latest",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "bullmq": "^6.3.4",
+    "fastify": "latest",
+    "hostinger-api-mcp": "^1.52.0",
+    "ioredis": "^6.0.0",
+    "jose": "^6.2.10",
+    "kysely": "^0.29.5",
+    "mysql2": "^3.24.3",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "tsup": "latest",
+    "tsx": "latest",
+    "vitest": "latest"
+  }
+}

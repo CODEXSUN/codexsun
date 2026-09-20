@@ -1,20 +1,26 @@
-import { ArrowLeftIcon } from 'lucide-react'
+import { ArrowLeftIcon } from 'lucide-react';
 
-import { Button } from '@codexsun/ui/components/button'
-import { Separator } from '@codexsun/ui/components/separator'
-import { Switch } from '@codexsun/ui/components/switch'
-import { TopologyMarker, TopologyRegion } from '../../features/interface-topology'
+import { Button } from '@codexsun/ui/components/button';
+import { Separator } from '@codexsun/ui/components/separator';
+import { Switch } from '@codexsun/ui/components/switch';
+import { TopologyMarker, TopologyRegion } from '../../features/interface-topology';
 
-import type { MdiFeatureKey, MdiFeatures } from './mdi-types'
-import { useMdiTopology } from './mdi-topology'
+import type { MdiFeatureKey, MdiFeatures } from './mdi-types';
+import { useMdiTopology } from './mdi-topology';
 
 const featureOptions: Array<{
-  agentWorkspaceOnly?: boolean
-  description: string
-  key: MdiFeatureKey
-  label: string
-  topologyId: string
+  agentWorkspaceOnly?: boolean;
+  description: string;
+  key: MdiFeatureKey;
+  label: string;
+  topologyId: string;
 }> = [
+  {
+    key: 'ito',
+    label: 'ITO inspection',
+    description: 'Show the Interface Topology inspection control above the status bar.',
+    topologyId: '06.2.0',
+  },
   {
     key: 'topMenu',
     label: 'Top menu',
@@ -59,14 +65,14 @@ const featureOptions: Array<{
     description: 'Show supporting agent tools along the right edge of the workspace.',
     topologyId: '06.2.7',
   },
-]
+];
 
 type MdiFeatureSettingsProps = {
-  features: MdiFeatures
-  onBack: () => void
-  onFeatureChange: (feature: MdiFeatureKey, enabled: boolean) => void
-  showAgentWorkspaceOptions?: boolean
-}
+  features: MdiFeatures;
+  onBack: () => void;
+  onFeatureChange: (feature: MdiFeatureKey, enabled: boolean) => void;
+  showAgentWorkspaceOptions?: boolean;
+};
 
 export function MdiFeatureSettings({
   features,
@@ -74,10 +80,8 @@ export function MdiFeatureSettings({
   onFeatureChange,
   showAgentWorkspaceOptions = false,
 }: MdiFeatureSettingsProps) {
-  const topology = useMdiTopology()
-  const visibleOptions = featureOptions.filter(
-    (option) => !option.agentWorkspaceOnly || showAgentWorkspaceOptions,
-  )
+  const topology = useMdiTopology();
+  const visibleOptions = featureOptions.filter((option) => !option.agentWorkspaceOnly || showAgentWorkspaceOptions);
   return (
     <section
       className="relative h-full overflow-auto bg-background data-[ito-highlighted=true]:ring-2 data-[ito-highlighted=true]:ring-inset data-[ito-highlighted=true]:ring-violet-700"
@@ -111,10 +115,7 @@ export function MdiFeatureSettings({
                   <span id={`${option.key}-label`} className="text-sm font-semibold">
                     {option.label}
                   </span>
-                  <span
-                    id={`${option.key}-description`}
-                    className="text-sm leading-5 text-muted-foreground"
-                  >
+                  <span id={`${option.key}-description`} className="text-sm leading-5 text-muted-foreground">
                     {option.description}
                   </span>
                 </span>
@@ -130,5 +131,5 @@ export function MdiFeatureSettings({
         </TopologyRegion>
       </div>
     </section>
-  )
+  );
 }

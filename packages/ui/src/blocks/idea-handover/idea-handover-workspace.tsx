@@ -1,5 +1,5 @@
 import type React from "react";
-import { ArchiveIcon, CheckCircle2Icon, ChevronLeftIcon, FileCheck2Icon, ListTodoIcon, NetworkIcon, SendIcon } from "lucide-react";
+import { ArchiveIcon, CheckCircle2Icon, ChevronLeftIcon, ClipboardIcon, FileCheck2Icon, ListTodoIcon, NetworkIcon, SendIcon } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@codexsun/ui/components/card";
 import { Input } from "@codexsun/ui/components/input";
@@ -25,10 +25,19 @@ export type IdeaBriefDraft = {
 };
 
 export type IdeaHandoverTask = {
+  acceptanceCriteria?: string;
   id: string;
   projectReference: string | null;
   projectScope: "project" | "all-projects";
+  summary?: string;
   status: string;
+  title: string;
+};
+
+export type IdeaTaskDraft = {
+  acceptanceCriteria: string;
+  priority: "low" | "medium" | "high";
+  summary: string;
   title: string;
 };
 
@@ -43,12 +52,15 @@ export type IdeaHandoverWorkspaceProps = {
   onBack: () => void;
   onArchiveConversation?: () => void;
   onBriefChange: (brief: IdeaBriefDraft) => void;
+  onCopyHandoffPackage: () => void;
   onCreateTask: () => void;
   onSaveBrief: (status: "draft" | "final") => void;
   onStageChange: (stage: IdeaStage) => void;
   saving?: boolean;
   sources: readonly IdeaHandoverSource[];
   task?: IdeaHandoverTask;
+  taskDraft: IdeaTaskDraft;
+  onTaskDraftChange: (taskDraft: IdeaTaskDraft) => void;
 };
 
 const stages: readonly { id: IdeaStage; label: string }[] = [
@@ -58,9 +70,11 @@ const stages: readonly { id: IdeaStage; label: string }[] = [
   { id: "final", label: "Final brief" },
 ];
 
-export function IdeaHandoverWorkspace({ brief, currentStage, onArchiveConversation, onBack, onBriefChange, onCreateTask, onSaveBrief, onStageChange, saving, sources, task }: IdeaHandoverWorkspaceProps) {
+export function IdeaHandoverWorkspace({ brief, currentStage, onArchiveConversation, onBack, onBriefChange, onCopyHandoffPackage, onCreateTask, onSaveBrief, onStageChange, onTaskDraftChange, saving, sources, task, taskDraft }: IdeaHandoverWorkspaceProps) {
   const update = <K extends keyof IdeaBriefDraft>(key: K, value: IdeaBriefDraft[K]) => onBriefChange({ ...brief, [key]: value });
+  const updateTask = <K extends keyof IdeaTaskDraft>(key: K, value: IdeaTaskDraft[K]) => onTaskDraftChange({ ...taskDraft, [key]: value });
   const isProjectScope = brief.projectScope === "project";
+  const canPrepareTask = brief.status === "final" && taskDraft.title.trim() && taskDraft.summary.trim();
 
   return <section className="flex size-full min-h-0 flex-col bg-background">
     <header className="flex shrink-0 items-center gap-3 border-b px-4 py-3 sm:px-6">
@@ -84,7 +98,14 @@ export function IdeaHandoverWorkspace({ brief, currentStage, onArchiveConversati
           <SourcePicker selected={brief.sourceMessageIds} sources={sources} onChange={(sourceMessageIds) => update("sourceMessageIds", sourceMessageIds)} />
           <div className="flex flex-wrap justify-end gap-2"><Button disabled={saving} variant="outline" onClick={() => onSaveBrief("draft")}>Save draft</Button><Button disabled={saving || !brief.outcome.trim() || !brief.sourceMessageIds.length || (isProjectScope && !brief.projectReference)} onClick={() => onSaveBrief("final")}><CheckCircle2Icon /> Finalize brief</Button></div>
         </CardContent></Card>
-        <Card size="sm"><CardHeader><CardTitle>Agent task</CardTitle><CardDescription>A prepared task retains the finalized brief reference and project scope. It does not start an agent.</CardDescription></CardHeader><CardContent>{task ? <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/40 p-3"><ListTodoIcon className="size-4 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="font-medium">{task.title}</p><p className="text-xs text-muted-foreground">{task.status} · {task.projectScope === "all-projects" ? "All projects" : task.projectReference}</p></div>{onArchiveConversation ? <Button size="sm" variant="outline" onClick={onArchiveConversation}><ArchiveIcon /> Archive conversation</Button> : null}</div> : <Button disabled={saving || brief.status !== "final"} onClick={onCreateTask}><SendIcon /> Hand over to agent task</Button>}</CardContent></Card>
+        <Card size="sm"><CardHeader><CardTitle>Prepared task</CardTitle><CardDescription>Prepare the handoff for Zuno. This keeps the scope and acceptance criteria but does not start a runner.</CardDescription></CardHeader><CardContent className="grid gap-4">
+          {task ? <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/40 p-3"><ListTodoIcon className="size-4 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="font-medium">{task.title}</p><p className="text-xs text-muted-foreground">{task.status} · {task.projectScope === "all-projects" ? "All projects" : task.projectReference}</p></div>{onArchiveConversation ? <Button size="sm" variant="outline" onClick={onArchiveConversation}><ArchiveIcon /> Archive conversation</Button> : null}</div> : <>
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]"><Field label="Task title"><Input value={taskDraft.title} onChange={(event) => updateTask("title", event.target.value)} /></Field><Field label="Priority"><Select value={taskDraft.priority} onValueChange={(value) => updateTask("priority", value as IdeaTaskDraft["priority"])}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select></Field></div>
+            <Field label="Task summary"><Textarea value={taskDraft.summary} onChange={(event) => updateTask("summary", event.target.value)} /></Field>
+            <Field label="Acceptance criteria"><Textarea value={taskDraft.acceptanceCriteria} onChange={(event) => updateTask("acceptanceCriteria", event.target.value)} /></Field>
+            <div className="flex flex-wrap justify-end gap-2"><Button disabled={saving || brief.status !== "final"} variant="outline" onClick={onCopyHandoffPackage}><ClipboardIcon /> Copy Zuno package</Button><Button disabled={saving || !canPrepareTask} onClick={onCreateTask}><SendIcon /> Prepare task</Button></div>
+          </>}
+        </CardContent></Card>
       </div>
     </main>
   </section>;

@@ -4,4 +4,8 @@ export { designTokens } from "./tokens/index";
 export { MainWorkspace, type MainWorkspaceProps, type MdiNavigationSection } from "./layouts/main-workspace";
 export { Mdi, type MdiProps } from "./layouts/mdi";
 export { DocumentationWorkspace, type DocumentationWorkspaceProps } from "./layouts/documentation-workspace";
+export {
+  WorkspaceApplicationHeader,
+  type WorkspaceApplicationHeaderProps,
+} from "./blocks/workspace";
 export { useMdiTopology, type MdiNavigationItem } from "./layouts/main-workspace";

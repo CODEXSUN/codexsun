@@ -3,3 +3,7 @@ export { WorkspaceMetricCard, WorkspaceMetricGrid } from './workspace-metric-car
 export type { WorkspaceMetricTone, WorkspaceMetricTrend } from './workspace-metric-card'
 export { WorkspacePageHeader } from './workspace-page-header'
 export { WorkspaceSectionCard } from './workspace-section-card'
+export {
+  WorkspaceApplicationHeader,
+  type WorkspaceApplicationHeaderProps,
+} from './workspace-application-header'

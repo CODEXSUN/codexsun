@@ -1,6 +1,6 @@
-import type { DatabaseOutboxSchema } from "@codexsun/platform-core";
+import type { DatabaseJobQueueSchema, DatabaseNotificationSchema, DatabaseOutboxSchema } from "@codexsun/platform-core";
 
-export interface OperationsDatabase extends DatabaseOutboxSchema {
+export interface OperationsDatabase extends DatabaseJobQueueSchema, DatabaseNotificationSchema, DatabaseOutboxSchema {
   platform_audit_entries: {
     id: string;
     module: string;

@@ -27,18 +27,21 @@ import {
   registerIdentityManagementRoutes,
 } from "@codexsun/platform-core";
 import { readConfig } from "./config.js";
-import { QcafeFoundationProvider } from "./modules/foundation/provider.js";
 import { registerQcafeWorkspaceRoute } from "./modules/foundation/routes/qcafe-workspace-route.js";
+import { createQcafeProviders } from "./qcafe-provider-catalog.js";
+import { createQcafePersistence } from "./modules/foundation/persistence/qcafe-persistence.js";
 
 const config = readConfig();
+const persistence = createQcafePersistence(config.persistence);
+await persistence.initialize();
 const identity = new LocalIdentityStore(config);
 await identity.initialize();
-const provider = new QcafeFoundationProvider();
+const providers = createQcafeProviders();
 const profile = readApplicationDeployableProfile({
   applicationId: "qcafe",
-  availableProviderIds: ["platform.core", provider.manifest.id],
+  availableProviderIds: ["platform.core", ...providers.map((provider) => provider.manifest.id)],
 });
-const runtime = createPlatformRuntime(profile, [provider, ...(await loadEnabledAddonProviders(profile))]);
+const runtime = createPlatformRuntime(profile, [...providers, ...(await loadEnabledAddonProviders(profile))]);
 runtime.start();
 const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
 app.setValidatorCompiler(validatorCompiler);
@@ -46,7 +49,7 @@ app.setSerializerCompiler(serializerCompiler);
 await app.register(helmet, fastifyHelmetOptions);
 await app.register(cors, {
   origin: process.env.QCAFE_WEB_ORIGIN,
-  methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT"],
+  methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Authorization", "Content-Type", "X-Codexsun-Browser-Session"],
 });
 await app.register(swagger, {
@@ -133,7 +136,7 @@ app.get(
   async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }),
 );
 await registerQcafeWorkspaceRoute(app, [...runtime.enabledProviderIds]);
-app.addHook("onClose", () => { identity.close(); runtime.stop(); });
+app.addHook("onClose", async () => { identity.close(); runtime.stop(); await persistence.destroy(); });
 await app.listen({ host: config.host, port: config.port });
 
 function isPublicPath(url: string): boolean {

@@ -3,7 +3,6 @@ import { lstatSync } from "node:fs";
 import { parse, resolve } from "node:path";
 
 const pathExpression = /(?:[A-Za-z]:\\[^\r\n"'<>|?*]+|\\\\[^\r\n"'<>|?*]+)/;
-const excludedNames = new Set([".git", "node_modules", "dist", "build", "coverage"]);
 
 export type AnalysisRoot = { path: string; prompt: string };
 

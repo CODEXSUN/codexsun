@@ -42,6 +42,7 @@ export function SessionBoundary({
   const [error, setError] = useState<string>();
   const [session, setSession] = useState<Session | undefined>(() => readSession(applicationId));
   const [busy, setBusy] = useState(Boolean(autoLoginPath));
+  const requiresPortalLogin = !session || !sessionCanAccessPortal(session.roles, portal);
 
   useEffect(() => {
     const restoreBrowserSession = (event: PageTransitionEvent) => {
@@ -56,15 +57,26 @@ export function SessionBoundary({
   }, [applicationId, session]);
 
   useEffect(() => {
-    if (!session) document.title = `${applicationName} | Login`;
-  }, [applicationName, session]);
+    if (requiresPortalLogin) document.title = `${applicationName} | Login`;
+  }, [applicationName, requiresPortalLogin]);
 
   useEffect(() => {
     if (!autoLoginPath || session) return;
     void authenticate(autoLoginPath, undefined, undefined, browserSessionId, setBusy, setError, setSession, onAuthenticated, true);
   }, [autoLoginPath, browserSessionId, onAuthenticated, session]);
 
-  if (!session) {
+  useEffect(() => {
+    if (!session || sessionCanAccessPortal(session.roles, portal)) return;
+    window.location.replace(authenticatedRouteForRoles(session.roles));
+  }, [portal, session]);
+
+  useEffect(() => {
+    if (!requiresPortalLogin || isPortalLoginPath(portal)) return;
+    window.history.replaceState({}, "", portalLoginRoute(portal));
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, [portal, requiresPortalLogin]);
+
+  if (requiresPortalLogin) {
     if (unauthenticated) return <>{unauthenticated}</>;
     return (
       <LoginPage
@@ -109,10 +121,10 @@ async function authenticate(
   try {
     const hasCredentials = identifier !== undefined;
     const response = await fetch(path, {
-      body: hasCredentials ? JSON.stringify({ identifier, password }) : undefined,
+      body: JSON.stringify(hasCredentials ? { identifier, password } : {}),
       headers: {
         "x-codexsun-browser-session": browserSessionId,
-        ...(hasCredentials ? { "content-type": "application/json" } : {}),
+        "content-type": "application/json",
       },
       method: "POST",
     });
@@ -121,7 +133,8 @@ async function authenticate(
     const roles = Array.isArray(body?.actor?.roles) && body.actor.roles.every((role) => typeof role === "string") ? body.actor.roles : undefined;
     if (!response.ok || !body?.token || !body.session?.expiresAt || !roles) throw new Error(body?.error ?? "Sign in failed.");
     setSession({ expiresAt: body.session.expiresAt, roles, token: body.token });
-    onAuthenticated?.();
+    if (ignoreUnavailable) completeAuthentication(sessionPortal(roles), onAuthenticated);
+    else onAuthenticated?.();
   } catch (reason) {
     if (!ignoreUnavailable) setError(reason instanceof Error ? reason.message : "Sign in failed.");
   } finally {
@@ -197,6 +210,23 @@ function portalFromLocation(): AuthenticatedSession["portal"] {
   return "user";
 }
 
+export function sessionCanAccessPortal(
+  roles: readonly string[],
+  portal: AuthenticatedSession["portal"],
+): boolean {
+  return sessionPortal(roles) === portal;
+}
+
+function isPortalLoginPath(portal: AuthenticatedSession["portal"]): boolean {
+  return window.location.pathname === portalLoginRoute(portal);
+}
+
+function portalLoginRoute(portal: AuthenticatedSession["portal"]): string {
+  if (portal === "super-admin") return "/sa/login";
+  if (portal === "admin") return "/admin/login";
+  return "/login";
+}
+
 function portalTitle(portal: AuthenticatedSession["portal"]): string {
   if (portal === "super-admin") return "Super administrator sign in";
   if (portal === "admin") return "Administrator sign in";
@@ -217,6 +247,15 @@ function sessionPortal(roles: readonly string[]): AuthenticatedSession["portal"]
 
 function completeAuthentication(portal: AuthenticatedSession["portal"], onAuthenticated: (() => void) | undefined): void {
   if (onAuthenticated) return onAuthenticated();
-  const path = portal === "super-admin" ? "/sa/desk" : portal === "admin" ? "/admin/desk" : "/overview";
-  window.history.replaceState({}, "", path);
+  window.history.replaceState({}, "", authenticatedRouteForPortal(portal));
+}
+
+export function authenticatedRouteForRoles(roles: readonly string[]): string {
+  return authenticatedRouteForPortal(sessionPortal(roles));
+}
+
+function authenticatedRouteForPortal(portal: AuthenticatedSession["portal"]): string {
+  if (portal === "super-admin") return "/sa/desk";
+  if (portal === "admin") return "/admin/desk";
+  return "/overview";
 }

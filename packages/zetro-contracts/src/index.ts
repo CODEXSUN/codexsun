@@ -26,6 +26,11 @@ export interface ZetroSqliteReadiness {
 
 export const zetroChatRoleSchema = z.enum(["user", "assistant", "error"]);
 export const zetroIdeaStageSchema = z.enum(["explore", "compare", "revise", "final"]);
+export const zetroChatStreamEventSchema = z.object({
+  type: z.enum(["processing", "request", "review", "command", "change", "response", "error", "complete"]),
+  message: z.string().min(1).max(250_000),
+  raw: z.string().max(250_000).optional(),
+});
 
 export const zetroChatConversationSchema = z.object({
   analysisRoot: z.string().nullable(),
@@ -45,6 +50,7 @@ export const zetroChatMessageSchema = z.object({
   role: zetroChatRoleSchema,
   content: z.string().min(1).max(250_000),
   createdAt: z.string().datetime(),
+  trace: z.array(zetroChatStreamEventSchema).max(2_000).optional(),
 });
 
 export const zetroChatConversationListResponseSchema = zetroSuccessSchema(
@@ -184,12 +190,6 @@ export const zetroCreateAgentTaskSchema = z.object({
 
 export const zetroAgentTaskListResponseSchema = zetroSuccessSchema(z.object({ tasks: z.array(zetroAgentTaskSchema) }));
 export const zetroAgentTaskResponseSchema = zetroSuccessSchema(z.object({ task: zetroAgentTaskSchema }));
-
-export const zetroChatStreamEventSchema = z.object({
-  type: z.enum(["processing", "request", "review", "command", "change", "response", "error", "complete"]),
-  message: z.string().min(1).max(250_000),
-  raw: z.string().max(250_000).optional(),
-});
 
 export type ZetroChatConversation = z.infer<typeof zetroChatConversationSchema>;
 export type ZetroIdeaStage = z.infer<typeof zetroIdeaStageSchema>;

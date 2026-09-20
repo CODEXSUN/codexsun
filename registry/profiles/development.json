@@ -4,6 +4,7 @@
   "label": "Development",
   "enabledApplications": [
     "crm",
+    "cxforge",
     "docx",
     "himsx",
     "lms",
@@ -12,7 +13,8 @@
     "qcafe",
     "sites",
     "uiux",
-    "zetro"
+    "zetro",
+    "zuno"
   ],
   "enabledAddons": [],
   "enabledProviders": {
@@ -58,7 +60,16 @@
     ],
     "orship": [
       "platform.core",
-      "orship.foundation"
+      "orship.foundation",
+      "orship.infras"
+    ],
+    "cxforge": [
+      "platform.core",
+      "cxforge.foundation"
+    ],
+    "zuno": [
+      "platform.core",
+      "zuno.foundation"
     ]
   }
 }

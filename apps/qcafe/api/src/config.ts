@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 import { resolve } from "node:path";
 import { readLocalIdentityConfiguration } from "@codexsun/platform-core";
+import { readQcafePersistenceConfiguration } from "./modules/foundation/persistence/qcafe-persistence-configuration.js";
 
 export function readConfig() {
   config({ path: resolve(process.cwd(), "../../../.env") });
@@ -11,10 +12,12 @@ export function readConfig() {
   if (!host) throw new Error("Set PLATFORM_HOST.");
   const apiReferenceToken = process.env.QCAFE_API_REFERENCE_TOKEN;
   if (!apiReferenceToken) throw new Error("Set QCAFE_API_REFERENCE_TOKEN.");
+  const localDatabasePath = resolve(process.cwd(), "../../../storage/apps/qcafe/private/data/qcafe.sqlite");
   return {
     apiReferenceToken,
     host,
     port,
+    persistence: readQcafePersistenceConfiguration(process.env, localDatabasePath),
     ...readLocalIdentityConfiguration(process.env, {
       applicationId: "qcafe",
       databasePath: resolve(process.cwd(), "../../../storage/apps/qcafe/private/data/qcafe_db.sqlite"),

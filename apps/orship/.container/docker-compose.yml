@@ -1,0 +1,72 @@
+name: orship
+
+services:
+  api:
+    build:
+      context: ../../..
+      dockerfile: apps/orship/.container/Dockerfile
+      target: api
+    container_name: orship-api
+    environment:
+      APP_MODE: ${APP_MODE:-development}
+      AUTO_LOGIN: ${AUTO_LOGIN:-1}
+      REFRESH_IDENTITY_SEED: ${REFRESH_IDENTITY_SEED:-0}
+      PLATFORM_HOST: 0.0.0.0
+      PLATFORM_JWT_SECRET: ${PLATFORM_JWT_SECRET:-orship-local-jwt-secret-change-before-production}
+      ORSHIP_API_PORT: 6300
+      ORSHIP_API_REFERENCE_TOKEN: ${ORSHIP_API_REFERENCE_TOKEN:-orship-local-reference-token}
+      ORSHIP_WEB_ORIGIN: ${ORSHIP_WEB_ORIGIN:-http://127.0.0.1:6301}
+      IDENTITY_LOGIN_MAX_FAILURES: "5"
+      IDENTITY_LOGIN_WINDOW_SECONDS: "900"
+      IDENTITY_LOGIN_LOCKOUT_SECONDS: "900"
+      IDENTITY_PASSWORD_RESET_TOKEN_TTL_SECONDS: "900"
+      IDENTITY_EXPOSE_DEVELOPMENT_RESET_TOKEN: "0"
+      SUPER_ADMIN_NAME: ${SUPER_ADMIN_NAME:-Orship Super Admin}
+      SUPER_ADMIN_LOGIN: ${SUPER_ADMIN_LOGIN:-superadmin@orship.local}
+      SUPER_ADMIN_USERNAME: ${SUPER_ADMIN_USERNAME:-superadmin}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-change_pass}
+      ADMIN_NAME: ${ADMIN_NAME:-Orship Admin}
+      ADMIN_LOGIN: ${ADMIN_LOGIN:-admin@orship.local}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change_pass}
+      USER_NAME: ${USER_NAME:-Orship User}
+      USER_LOGIN: ${USER_LOGIN:-user@orship.local}
+      USER_USERNAME: ${USER_USERNAME:-user}
+      USER_PASSWORD: ${USER_PASSWORD:-change_pass}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - node -e "fetch('http://127.0.0.1:6300/api/v1/orship/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    ports:
+      - "${ORSHIP_API_PUBLISHED_PORT:-6300}:6300"
+    restart: unless-stopped
+    volumes:
+      - orship-storage:/workspace/storage
+
+  web:
+    build:
+      context: ../../..
+      dockerfile: apps/orship/.container/Dockerfile
+      target: web
+    container_name: orship-web
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1/ >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    ports:
+      - "${ORSHIP_WEB_PUBLISHED_PORT:-6301}:80"
+    restart: unless-stopped
+
+volumes:
+  orship-storage:

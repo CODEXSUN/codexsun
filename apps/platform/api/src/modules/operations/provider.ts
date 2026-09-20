@@ -8,7 +8,7 @@ export class OperationsModuleProvider implements ModuleProvider {
     owner: "apps/platform/api/modules/operations",
     version: "1.0.9",
     dependencies: ["platform.core"],
-    contracts: ["platform.operations.audit", "platform.operations.storage", "platform.operations.outbox"],
+    contracts: ["platform.operations.audit", "platform.operations.storage", "platform.operations.outbox", "platform.operations.jobs", "platform.operations.notifications"],
     events: { published: ["platform.operation-recorded.v1"], consumed: [] },
   };
 

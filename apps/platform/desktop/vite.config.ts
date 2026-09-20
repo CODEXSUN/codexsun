@@ -9,10 +9,11 @@ config({ path: resolve(import.meta.dirname, "../../../.env") });
 config({ path: resolve(import.meta.dirname, ".app.env"), override: true });
 
 const runtimeConfig = readDesktopRuntimeConfig(process.env);
+const reactSourceFiles = /(?:apps[\\/]platform[\\/]desktop[\\/]src|packages[\\/]ui[\\/]src)[\\/].*\.[jt]sx?$/u;
 
 export default defineConfig({
   cacheDir: "../../../dist/.vite/platform/desktop",
-  plugins: [react(), tailwindcss()],
+  plugins: [react({ include: reactSourceFiles }), tailwindcss()],
   resolve: {
     alias: { "@codexsun/contracts": resolve(import.meta.dirname, "../../../packages/contracts/src/index.ts") },
   },

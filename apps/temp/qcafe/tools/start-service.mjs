@@ -1,0 +1,86 @@
+#!/usr/bin/env node
+
+import { spawn } from "node:child_process";
+import { resolve } from "node:path";
+import { runPreflight } from "./preflight.mjs";
+
+const ROOT = resolve(import.meta.dirname, "..");
+const service = process.argv[2];
+const definitions = {
+  api: {
+    args: ["watch", "apps/platform/core/api/src/server.ts"],
+    bin: resolve(ROOT, "node_modules", "tsx", "dist", "cli.mjs"),
+    portIndex: 0,
+  },
+  web: {
+    args: ["apps/platform/core/web", "--config", "apps/platform/core/web/vite.config.ts"],
+    bin: resolve(ROOT, "node_modules", "vite", "bin", "vite.js"),
+    portIndex: 1,
+  },
+  devkit: {
+    args: ["apps/devkit/web", "--config", "apps/devkit/web/vite.config.ts"],
+    bin: resolve(ROOT, "node_modules", "vite", "bin", "vite.js"),
+    portIndex: 2,
+  },
+  chat: {
+    args: ["packages/chat/web", "--config", "packages/chat/web/vite.config.ts"],
+    bin: resolve(ROOT, "node_modules", "vite", "bin", "vite.js"),
+    portIndex: 3,
+  },
+  "chat-api": {
+    args: ["packages/chat/api/src/server.ts"],
+    bin: resolve(ROOT, "node_modules", "tsx", "dist", "cli.mjs"),
+    portIndex: 4,
+  },
+  "zetro-api": {
+    args: ["packages/zetro/api/src/server.ts"],
+    bin: resolve(ROOT, "node_modules", "tsx", "dist", "cli.mjs"),
+    portIndex: 3,
+  },
+  dcs: {
+    args: ["packages/dcs/src/server.mjs"],
+    bin: null,
+    portIndex: 4,
+  },
+  zetro: {
+    args: ["packages/zetro/web", "--config", "packages/zetro/web/vite.config.ts"],
+    bin: resolve(ROOT, "node_modules", "vite", "bin", "vite.js"),
+    portIndex: 4,
+  },
+  "docs-api": {
+    args: ["apps/docs/api/src/server.mjs"],
+    bin: null,
+    portIndex: 5,
+  },
+  docs: {
+    args: ["apps/docs/web", "--config", "apps/docs/web/vite.config.ts"],
+    bin: resolve(ROOT, "node_modules", "vite", "bin", "vite.js"),
+    portIndex: 6,
+  },
+};
+
+if (!service || !definitions[service]) {
+  console.error("Usage: node tools/start-service.mjs <api|web|devkit|chat|chat-api|zetro-api|dcs|zetro|docs-api|docs>");
+  process.exit(1);
+}
+
+const definition = definitions[service];
+const servicePort = service === "api" ? 4100 : service === "zetro-api" ? 4150 : service === "chat-api" ? 4165 : service === "dcs" ? 4170 : service === "docs-api" ? 4185 : service === "web" ? 5173 : service === "devkit" ? 5174 : service === "chat" ? 5176 : service === "docs" ? 5185 : 5175;
+const { env, ports } = await runPreflight({ ports: [servicePort] });
+const child = spawn(process.execPath, [...(definition.bin ? [definition.bin] : []), ...definition.args], {
+  cwd: ROOT,
+  env: developmentServiceEnvironment(service, { ...env, ...process.env, OS_API_PORT: String(ports[0]) }),
+  stdio: "inherit",
+});
+
+for (const signal of ["SIGINT", "SIGTERM"]) process.once(signal, () => child.kill(signal));
+child.once("exit", (code) => process.exit(code ?? 0));
+
+function developmentServiceEnvironment(serviceName, environment) {
+  if (serviceName !== "dcs") return environment;
+  return {
+    ...environment,
+    DCS_DATABASE_FILE: environment.DCS_DATABASE_FILE || resolve(ROOT, ".local", "dcs", "dcs.db"),
+    DCS_DEVICES_FILE: environment.DCS_DEVICES_FILE || resolve(ROOT, ".local", "dcs", "devices.json"),
+  };
+}

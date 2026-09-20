@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Zuno desktop read-only client capability set.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

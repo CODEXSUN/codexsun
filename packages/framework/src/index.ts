@@ -1,5 +1,5 @@
 import { DependencyContainer, type DependencyFactory, DependencyScope } from "./dependency-container.js";
-import { EventBus, type EventHandler } from "./event-bus.js";
+import { EventBus, type EventDispatchOptions, type EventHandler, type EventPublishOptions, type FrameworkEvent } from "./event-bus.js";
 
 export type ProviderLifecycleStage = "register" | "start" | "stop";
 export type ProviderRuntimeState = "registered" | "starting" | "started" | "stopping" | "stopped" | "failed";
@@ -65,6 +65,10 @@ export class ProviderRegistrationContext {
     this.engine.provideFactory(key, factory);
   }
 
+  provideScopedFactory<T>(key: string, factory: DependencyFactory<T>): void {
+    this.engine.provideScopedFactory(key, factory);
+  }
+
   require<T>(key: string): T {
     return this.engine.require<T>(key);
   }
@@ -77,8 +81,8 @@ export class ProviderRegistrationContext {
     this.engine.subscribe(this.manifest, name, handler);
   }
 
-  emit<T>(name: string, payload: T): Promise<void> {
-    return this.engine.publish(this.manifest, name, payload);
+  emit<T>(name: string, payload: T, options?: EventPublishOptions): Promise<void> {
+    return this.engine.publish(this.manifest, name, payload, options);
   }
 }
 
@@ -178,6 +182,10 @@ export class ProviderEngine {
     this.dependencies.provideFactory(key, factory);
   }
 
+  provideScopedFactory<T>(key: string, factory: DependencyFactory<T>): void {
+    this.dependencies.provideScopedFactory(key, factory);
+  }
+
   require<T>(key: string): T {
     return this.dependencies.require<T>(key);
   }
@@ -190,8 +198,12 @@ export class ProviderEngine {
     this.events.subscribe(manifest.id, manifest.events.consumed, name, handler as EventHandler);
   }
 
-  publish<T>(manifest: ProviderManifest, name: string, payload: T): Promise<void> {
-    return this.events.publish(manifest.id, manifest.events.published, name, payload);
+  publish<T>(manifest: ProviderManifest, name: string, payload: T, options?: EventPublishOptions): Promise<void> {
+    return this.events.publish(manifest.id, manifest.events.published, name, payload, options);
+  }
+
+  dispatch(event: FrameworkEvent, options?: EventDispatchOptions): Promise<void> {
+    return this.events.dispatch(event, options);
   }
 
   ids(): string[] {

@@ -56,3 +56,15 @@ Do not create `node_modules`, `dist`, or `.turbo` folders inside Orship.
 Keep Orship changes inside `apps/orship` unless a public package contract needs a reviewed change.
 
 Run focused API and web checks before handoff.
+
+## Development Version
+
+The repository `package.json` owns the global CODEXSUN release version.
+
+`apps/orship/VERSION` owns the Orship development version. The web status bar
+shows this value at its right edge. Local development and Docker builds use the
+same source file.
+
+Use `apps/orship/.container/orship-update.sh` to apply a local Docker update.
+Keep Docker live-update work in that script. Do not make VPS or production
+changes without explicit approval.

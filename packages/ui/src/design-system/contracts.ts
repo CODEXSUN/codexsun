@@ -41,6 +41,8 @@ export type DesignSystemPageDefinition = {
   variants: readonly DesignSystemVariantDefinition[]
 }
 
+export type DesignSystemTemplateDefinition = DesignSystemPageDefinition
+
 export type DesignSystemSelection = {
   blocks: Readonly<Record<string, string>>
   components: Readonly<Record<string, string>>

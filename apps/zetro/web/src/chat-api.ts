@@ -22,78 +22,84 @@ import {
 
 const chatUrl = "/api/zetro/v1/chat";
 const conversationUrl = `${chatUrl}/conversations`;
+type ZetroApiRequest = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+let request: ZetroApiRequest = (input, init) => fetch(input, init);
 export type ConversationView = { conversation: ZetroChatConversation; messages: ZetroChatMessage[] };
 
+export function configureZetroApiRequest(nextRequest: ZetroApiRequest): void {
+  request = nextRequest;
+}
+
 export async function listConversations(archived = false): Promise<ZetroChatConversation[]> {
-  const response = await fetch(archived ? `${conversationUrl}?archived=true` : conversationUrl);
+  const response = await request(archived ? `${conversationUrl}?archived=true` : conversationUrl);
   return zetroChatConversationListResponseSchema.parse(await read(response)).data.conversations;
 }
 
 export async function createConversation(): Promise<ConversationView> {
-  const response = await fetch(conversationUrl, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  const response = await request(conversationUrl, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
   return zetroChatConversationResponseSchema.parse(await read(response)).data;
 }
 
 export async function getConversation(id: string): Promise<ConversationView> {
-  return zetroChatConversationResponseSchema.parse(await read(await fetch(`${conversationUrl}/${id}`))).data;
+  return zetroChatConversationResponseSchema.parse(await read(await request(`${conversationUrl}/${id}`))).data;
 }
 
 export async function updateConversation(id: string, update: Partial<Pick<ZetroChatConversation, "archived" | "pinned" | "stage" | "title">>): Promise<ConversationView> {
-  return zetroChatConversationResponseSchema.parse(await read(await fetch(`${conversationUrl}/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(update) }))).data;
+  return zetroChatConversationResponseSchema.parse(await read(await request(`${conversationUrl}/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(update) }))).data;
 }
 
 export async function getIdeaBrief(conversationId: string): Promise<ZetroIdeaBrief | undefined> {
-  const response = await fetch(`/api/zetro/v1/conversations/${conversationId}/brief`);
+  const response = await request(`/api/zetro/v1/conversations/${conversationId}/brief`);
   return zetroIdeaBriefResponseSchema.parse(await read(response)).data.brief ?? undefined;
 }
 
 export async function saveIdeaBrief(conversationId: string, brief: ZetroUpsertIdeaBrief): Promise<ZetroIdeaBrief> {
-  const response = await fetch(`/api/zetro/v1/conversations/${conversationId}/brief`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(brief) });
+  const response = await request(`/api/zetro/v1/conversations/${conversationId}/brief`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(brief) });
   const saved = zetroIdeaBriefResponseSchema.parse(await read(response)).data.brief;
   if (!saved) throw new Error("Zetro did not save the final brief.");
   return saved;
 }
 
 export async function createAgentTask(input: ZetroCreateAgentTask): Promise<ZetroAgentTask> {
-  const response = await fetch("/api/zetro/v1/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+  const response = await request("/api/zetro/v1/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
   return zetroAgentTaskResponseSchema.parse(await read(response)).data.task;
 }
 
 export async function listAgentTasks(): Promise<ZetroAgentTask[]> {
-  const response = await fetch("/api/zetro/v1/tasks");
+  const response = await request("/api/zetro/v1/tasks");
   return zetroAgentTaskListResponseSchema.parse(await read(response)).data.tasks;
 }
 
 export async function deleteConversation(id: string): Promise<void> {
-  const response = await fetch(`${conversationUrl}/${id}`, { method: "DELETE" });
+  const response = await request(`${conversationUrl}/${id}`, { method: "DELETE" });
   if (!response.ok) throw new Error(`Zetro could not delete this conversation (${response.status}).`);
 }
 
 export async function deleteArchivedConversations(): Promise<number> {
-  const response = await fetch(`${conversationUrl}?archived=true`, { method: "DELETE" });
+  const response = await request(`${conversationUrl}?archived=true`, { method: "DELETE" });
   const payload = await read(response) as { data?: { deleted?: unknown } };
   if (typeof payload.data?.deleted !== "number") throw new Error("Zetro did not confirm archived conversation deletion.");
   return payload.data.deleted;
 }
 
 export async function getChatRuntime(): Promise<ZetroChatRuntime> {
-  return zetroChatRuntimeResponseSchema.parse(await read(await fetch(`${chatUrl}/runtime`))).data;
+  return zetroChatRuntimeResponseSchema.parse(await read(await request(`${chatUrl}/runtime`))).data;
 }
 
 export async function updateChatRuntime(runtime: ZetroChatRuntimeSelection): Promise<ZetroChatRuntime> {
-  return zetroChatRuntimeResponseSchema.parse(await read(await fetch(`${chatUrl}/runtime`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(runtime) }))).data;
+  return zetroChatRuntimeResponseSchema.parse(await read(await request(`${chatUrl}/runtime`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(runtime) }))).data;
 }
 
 export async function getCodexDeviceCode(): Promise<ZetroCodexDeviceCode> {
-  return zetroCodexDeviceCodeResponseSchema.parse(await read(await fetch(`${chatUrl}/runtime/device-code`))).data;
+  return zetroCodexDeviceCodeResponseSchema.parse(await read(await request(`${chatUrl}/runtime/device-code`))).data;
 }
 
 export async function generateCodexDeviceCode(): Promise<ZetroCodexDeviceCode> {
-  return zetroCodexDeviceCodeResponseSchema.parse(await read(await fetch(`${chatUrl}/runtime/device-code`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }))).data;
+  return zetroCodexDeviceCodeResponseSchema.parse(await read(await request(`${chatUrl}/runtime/device-code`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }))).data;
 }
 
 export async function sendMessage(id: string, content: string, runtime?: ZetroChatRuntimeSelection): Promise<ConversationView> {
-  const response = await fetch(`${conversationUrl}/${id}/messages`, {
+  const response = await request(`${conversationUrl}/${id}/messages`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ content, runtime }),
@@ -102,7 +108,7 @@ export async function sendMessage(id: string, content: string, runtime?: ZetroCh
 }
 
 export async function streamMessage(id: string, content: string, runtime: ZetroChatRuntimeSelection, attachments: ZetroChatAttachment[], onEvent: (event: ZetroChatStreamEvent) => void, signal?: AbortSignal): Promise<void> {
-  const response = await fetch(`${conversationUrl}/${id}/messages/stream`, {
+  const response = await request(`${conversationUrl}/${id}/messages/stream`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "text/event-stream" },
     body: JSON.stringify({ attachments, content, runtime }),

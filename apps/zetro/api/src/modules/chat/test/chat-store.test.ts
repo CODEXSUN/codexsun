@@ -20,6 +20,21 @@ test("stores a conversation and its message history", () => {
   }
 });
 
+test("persists the native Codex thread and visible execution trace", () => {
+  const store = new ChatStore(":memory:");
+
+  try {
+    const conversation = store.createConversation("Native thread");
+    store.setCodexThreadId(conversation.id, "thr_zetro_test");
+    store.addMessage(conversation.id, "assistant", "A grounded response.", [{ type: "review", message: "Reviewing project context." }]);
+
+    assert.equal(store.getCodexThreadId(conversation.id), "thr_zetro_test");
+    assert.deepEqual(store.listMessages(conversation.id)[0]?.trace, [{ type: "review", message: "Reviewing project context." }]);
+  } finally {
+    store.close();
+  }
+});
+
 test("persists conversation title and pin changes, then deletes the conversation", () => {
   const store = new ChatStore(":memory:");
 

@@ -11,10 +11,13 @@ export function readConfig() {
   if (!host) throw new Error("Set PLATFORM_HOST.");
   const apiReferenceToken = process.env.ORSHIP_API_REFERENCE_TOKEN;
   if (!apiReferenceToken) throw new Error("Set ORSHIP_API_REFERENCE_TOKEN.");
+  const webOrigin = process.env.ORSHIP_WEB_ORIGIN;
+  if (!webOrigin) throw new Error("Set ORSHIP_WEB_ORIGIN.");
   return {
     apiReferenceToken,
     host,
     port,
+    webOrigin,
     ...readLocalIdentityConfiguration(process.env, {
       applicationId: "orship",
       databasePath: resolve(process.cwd(), "../../../storage/apps/orship/private/data/orship_db.sqlite"),

@@ -1,5 +1,5 @@
-import { Check, ChevronRight, Copy, Eye, EyeOff, Highlighter, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Check, ChevronRight, Copy, Eye, EyeOff, Highlighter, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import {
   Select,
   SelectContent,
@@ -7,22 +7,18 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@codexsun/ui/components/select'
-import type {
-  InterfaceTopologyController,
-  InterfaceTopologySection,
-} from './interface-topology.types'
+} from '@codexsun/ui/components/select';
+import type { InterfaceTopologyController, InterfaceTopologySection } from './interface-topology.types';
 
 export function TopologyInspector({ topology }: { topology: InterfaceTopologyController }) {
-  if (!topology.open) return null
-  const selected =
-    topology.sections.find(({ id }) => id === topology.selected) ?? topology.sections[0]
-  if (!selected) return null
+  if (!topology.open) return null;
+  const selected = topology.sections.find(({ id }) => id === topology.selected) ?? topology.sections[0];
+  if (!selected) return null;
 
   return (
     <aside
       aria-label="Interface Topology Overlay"
-      className="fixed top-4 right-14 bottom-20 z-50 flex w-88 max-w-[calc(100vw-4.5rem)] flex-col overflow-hidden rounded-xl border border-border bg-white text-neutral-950 shadow-xl"
+      className="pointer-events-auto absolute top-4 right-14 bottom-20 flex w-88 max-w-[calc(100vw-4.5rem)] flex-col overflow-hidden rounded-xl border border-border bg-white text-neutral-950 shadow-xl"
     >
       <InspectorHeader topology={topology} />
       <SelectedSectionDetails section={selected} topology={topology} />
@@ -30,29 +26,31 @@ export function TopologyInspector({ topology }: { topology: InterfaceTopologyCon
         aria-label="Topology sections"
         className="min-h-0 flex-1 overflow-y-auto px-2 py-2 [scrollbar-color:#a78bfa_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-violet-400 [&::-webkit-scrollbar]:w-1"
       >
-        {topology.sections.filter(isRootSection).map((section) => (
-          <TopologyGroup key={section.id} section={section} topology={topology} />
-        ))}
+        {topology.sections
+          .filter((section) => isRootSection(section, topology.sections))
+          .map((section) => (
+            <TopologyGroup key={section.id} section={section} topology={topology} />
+          ))}
       </nav>
     </aside>
-  )
+  );
 }
 
 function SelectedSectionDetails({
   section,
   topology,
 }: {
-  section: InterfaceTopologySection
-  topology: InterfaceTopologyController
+  section: InterfaceTopologySection;
+  topology: InterfaceTopologyController;
 }) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
-  useEffect(() => setCopied(false), [section.id])
+  useEffect(() => setCopied(false), [section.id]);
   useEffect(() => {
-    if (!copied) return
-    const timer = window.setTimeout(() => setCopied(false), 1_500)
-    return () => window.clearTimeout(timer)
-  }, [copied])
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1_500);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
 
   return (
     <div className="border-b border-border px-3 py-3">
@@ -63,8 +61,8 @@ function SelectedSectionDetails({
         aria-label={`Copy ${section.technicalName}`}
         className="mt-1 flex w-full cursor-pointer items-center gap-2 rounded-md py-1 text-left text-violet-700 transition hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
         onClick={() => {
-          topology.copyTechnicalName(section.id)
-          setCopied(true)
+          topology.copyTechnicalName(section.id);
+          setCopied(true);
         }}
         title="Copy technical name"
         type="button"
@@ -76,7 +74,7 @@ function SelectedSectionDetails({
         </span>
       </button>
     </div>
-  )
+  );
 }
 
 function InspectorHeader({ topology }: { topology: InterfaceTopologyController }) {
@@ -86,7 +84,7 @@ function InspectorHeader({ topology }: { topology: InterfaceTopologyController }
         <Select
           items={topology.desks.map((desk) => ({ label: desk.name, value: desk.id }))}
           onValueChange={(value) => {
-            if (value) topology.selectDesk(value)
+            if (value) topology.selectDesk(value);
           }}
           value={topology.activeDeskId}
         >
@@ -126,7 +124,7 @@ function InspectorHeader({ topology }: { topology: InterfaceTopologyController }
         </HeaderAction>
       </div>
     </header>
-  )
+  );
 }
 
 function HeaderAction({
@@ -135,10 +133,10 @@ function HeaderAction({
   label,
   onClick,
 }: {
-  active?: boolean
-  children: React.ReactNode
-  label: string
-  onClick: () => void
+  active?: boolean;
+  children: React.ReactNode;
+  label: string;
+  onClick: () => void;
 }) {
   return (
     <button
@@ -152,53 +150,66 @@ function HeaderAction({
     >
       {children}
     </button>
-  )
+  );
 }
 
 function TopologyGroup({
   section,
   topology,
 }: {
-  section: InterfaceTopologySection
-  topology: InterfaceTopologyController
+  section: InterfaceTopologySection;
+  topology: InterfaceTopologyController;
 }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(false);
   const children = topology.sections.filter(
     ({ id }) => id.includes('.') && id.slice(0, id.lastIndexOf('.')) === section.id,
-  )
-  const selected = topology.selected === section.id
+  );
+  const selected = topology.selected === section.id;
+  const scopedToCurrentRegion = topology.sections.length < topology.allSections.length;
   const expanded =
     !collapsed &&
-    topology.highlighting &&
-    (selected || topology.selected.startsWith(`${section.id}.`))
-  useEffect(() => setCollapsed(false), [topology.highlighting, topology.selected])
+    (scopedToCurrentRegion || (topology.highlighting && (selected || topology.selected.startsWith(`${section.id}.`))));
+  useEffect(() => setCollapsed(false), [topology.highlighting, topology.selected]);
 
   return (
     <div>
-      <button
-        aria-expanded={children.length ? expanded : undefined}
-        className="grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 data-[selected=true]:bg-neutral-200 data-[selected=true]:text-violet-800"
-        data-selected={selected}
-        onClick={() => {
-          if (children.length && expanded) setCollapsed(true)
-          else {
-            setCollapsed(false)
-            topology.inspect(section.id)
-          }
-        }}
-        title={`Inspect and copy ${section.technicalName}`}
-        type="button"
-      >
-        <b className="min-w-7 rounded bg-violet-700 px-1.5 py-1 text-center text-xs text-white">
-          {section.id}
-        </b>
-        <span className="truncate">{section.name}</span>
-        {children.length ? (
-          <ChevronRight className={expanded ? 'rotate-90' : ''} size={15} />
-        ) : selected ? (
-          <Check size={15} />
-        ) : null}
-      </button>
+      <div className="flex items-center gap-1">
+        <button
+          aria-expanded={children.length ? expanded : undefined}
+          className="grid min-w-0 flex-1 cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 data-[selected=true]:bg-neutral-200 data-[selected=true]:text-violet-800"
+          data-selected={selected}
+          onClick={() => {
+            if (children.length && expanded) setCollapsed(true);
+            else {
+              setCollapsed(false);
+              topology.inspect(section.id);
+            }
+          }}
+          title={`Inspect ${section.technicalName}`}
+          type="button"
+        >
+          <b className="min-w-7 rounded bg-violet-700 px-1.5 py-1 text-center text-xs text-white">{section.id}</b>
+          <span className="truncate">{section.name}</span>
+          {children.length ? (
+            <ChevronRight className={expanded ? 'rotate-90' : ''} size={15} />
+          ) : selected ? (
+            <Check size={15} />
+          ) : null}
+        </button>
+        <button
+          aria-label={`Copy ${section.technicalName}`}
+          className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-md text-violet-700 transition hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+          onClick={(event) => {
+            event.stopPropagation();
+            topology.copyTechnicalName(section.id);
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          title={`Copy ${section.technicalName}`}
+          type="button"
+        >
+          <Copy aria-hidden="true" size={14} />
+        </button>
+      </div>
       {expanded ? (
         <div className="ml-4 border-l border-border pl-1">
           {children.map((child) => (
@@ -207,9 +218,11 @@ function TopologyGroup({
         </div>
       ) : null}
     </div>
-  )
+  );
 }
 
-function isRootSection(section: InterfaceTopologySection) {
-  return !section.id.includes('.')
+function isRootSection(section: InterfaceTopologySection, sections: readonly InterfaceTopologySection[]) {
+  if (!section.id.includes('.')) return true;
+  const parentId = section.id.slice(0, section.id.lastIndexOf('.'));
+  return !sections.some((candidate) => candidate.id === parentId);
 }

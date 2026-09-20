@@ -10,6 +10,7 @@ import {
   authorize,
   IdentityLoginRateLimitError,
   LocalIdentityStore,
+  readLocalIdentityConfiguration,
   registerIdentityManagementRoutes,
   readPlatformJwtClaims,
   type LocalIdentityConfiguration,
@@ -44,6 +45,79 @@ test("keeps each app and browser session isolated, then revokes logout server-si
     assert.equal(identity.authenticate(`Bearer ${login.token}`, browserSessionId), undefined);
     assert.equal(identity.logout(`Bearer ${replacementLogin.token}`, browserSessionId), true);
     assert.equal(identity.authenticate(`Bearer ${replacementLogin.token}`, browserSessionId), undefined);
+  } finally {
+    identity.close();
+    rmSync(directory, { force: true, recursive: true });
+  }
+});
+
+test("seeds a normal user for the standard login portal", async () => {
+  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-user-seed-test-"));
+  const identity = new LocalIdentityStore(createConfiguration(join(directory, "identity.sqlite")));
+
+  try {
+    await identity.initialize();
+    const login = await identity.login("user", "development-password", randomUUID(), "user");
+    assert.ok(login);
+    assert.deepEqual(login.actor.roles, ["user"]);
+    assert.equal(await identity.login("user", "development-password", randomUUID(), "admin"), undefined);
+  } finally {
+    identity.close();
+    rmSync(directory, { force: true, recursive: true });
+  }
+});
+
+test("waits to seed an optional user until its password is configured", () => {
+  const configuration = readLocalIdentityConfiguration({
+    ADMIN_LOGIN: "admin@example.test",
+    ADMIN_NAME: "Admin",
+    ADMIN_PASSWORD: "development-password",
+    PLATFORM_JWT_SECRET: "platform-jwt-test-secret-platform-jwt-test",
+    SUPER_ADMIN_LOGIN: "superadmin@example.test",
+    SUPER_ADMIN_NAME: "Super admin",
+    SUPER_ADMIN_PASSWORD: "development-password",
+    USER_LOGIN: "admin@user.com",
+    USER_NAME: "User",
+    USER_PASSWORD: "",
+  }, { applicationId: "qcafe", databasePath: ":memory:" });
+
+  assert.equal(configuration.seeds.length, 2);
+});
+
+test("uses the normal user name as the default username", () => {
+  const configuration = readLocalIdentityConfiguration({
+    ADMIN_LOGIN: "admin@example.test",
+    ADMIN_NAME: "Admin",
+    ADMIN_PASSWORD: "development-password",
+    PLATFORM_JWT_SECRET: "platform-jwt-test-secret-platform-jwt-test",
+    SUPER_ADMIN_LOGIN: "superadmin@example.test",
+    SUPER_ADMIN_NAME: "Super admin",
+    SUPER_ADMIN_PASSWORD: "development-password",
+    USER_LOGIN: "admin@user.com",
+    USER_NAME: "User",
+    USER_PASSWORD: "development-password",
+  }, { applicationId: "qcafe", databasePath: ":memory:" });
+
+  assert.equal(configuration.seeds[2]?.username, "User");
+});
+
+test("seeds a normal user whose email local part matches the administrator username", async () => {
+  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-user-collision-test-"));
+  const configuration = createConfiguration(join(directory, "identity.sqlite"));
+  const identity = new LocalIdentityStore({
+    ...configuration,
+    seeds: [...configuration.seeds.slice(0, 2), {
+      login: "admin@user.com",
+      name: "User",
+      password: "development-password",
+      role: "user",
+      username: "User",
+    }],
+  });
+
+  try {
+    await identity.initialize();
+    assert.ok(await identity.login("admin@user.com", "development-password", randomUUID(), "user"));
   } finally {
     identity.close();
     rmSync(directory, { force: true, recursive: true });
@@ -138,6 +212,11 @@ test("creates, updates, and assigns local RBAC records", async () => {
     const updated = await identity.updateUser(user.id, { login: user.login, name: "Disabled manager", state: "disabled", username: user.username });
     assert.equal(updated?.state, "disabled");
     assert.equal(await identity.login("manager", "development-password", randomUUID(), "user"), undefined);
+    assert.equal(updated?.protected, false);
+    assert.equal(identity.listUsers().find((item) => item.username === "superadmin")?.protected, true);
+    assert.throws(() => identity.forceDeleteManagedUser(identity.listUsers().find((item) => item.username === "superadmin")!.id), /Default identity users/);
+    assert.equal(identity.forceDeleteManagedUser(user.id), true);
+    assert.equal(identity.listUsers().some((item) => item.id === user.id), false);
   } finally {
     identity.close();
     rmSync(directory, { force: true, recursive: true });
@@ -173,6 +252,10 @@ test("manages RBAC through protected HTTP list and CRUD routes", async () => {
     const users = await app.inject({ headers, method: "GET", url: "/api/v1/qcafe/identity/users" });
     assert.equal(users.statusCode, 200);
     assert.ok((users.json() as { username: string; roles: string[] }[]).some((item) => item.username === userName && item.roles.includes(role)));
+    assert.equal((await app.inject({ headers, method: "DELETE", url: `/api/v1/qcafe/identity/users/${user.id}` })).statusCode, 204);
+    const protectedUser = identity.listUsers().find((item) => item.username === "superadmin");
+    assert.ok(protectedUser);
+    assert.equal((await app.inject({ headers, method: "DELETE", url: `/api/v1/qcafe/identity/users/${protectedUser.id}` })).statusCode, 403);
     const denied = await app.inject({ method: "GET", url: "/api/v1/qcafe/identity/users" });
     assert.equal(denied.statusCode, 403);
   } finally {

@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
-import { TopologyRegion, type InterfaceTopologyController } from "../../features/interface-topology";
-import { cn } from "../../lib/utils";
-import { UiBrowserFrame } from "./ui-browser-frame";
-import { UiTemplateCode } from "./ui-template-code";
-import { UiTemplateHeader, type UiTemplateKind } from "./ui-template-header";
-import { UiTemplateNavigation, type UiTemplateNavigationItem } from "./ui-template-navigation";
+import { useEffect, type ReactNode } from 'react';
+import { TopologyRegion, type InterfaceTopologyController } from '../../features/interface-topology';
+import { cn } from '../../lib/utils';
+import { UiBrowserFrame } from './ui-browser-frame';
+import { UiTemplateCode } from './ui-template-code';
+import { UiTemplateHeader, type UiTemplateKind } from './ui-template-header';
+import { UiTemplateNavigation, type UiTemplateNavigationItem } from './ui-template-navigation';
 
 export type UiTemplatePageProps = {
   code: string;
@@ -44,6 +44,13 @@ export function UiTemplatePage({
   usageDescription,
   usageTitle,
 }: UiTemplatePageProps) {
+  const { setScope } = topology;
+
+  useEffect(() => {
+    setScope(topologyIds.preview);
+    return () => setScope(null);
+  }, [setScope, topologyIds.preview]);
+
   return (
     <TopologyRegion
       as="main"
@@ -60,11 +67,11 @@ export function UiTemplatePage({
       <div className="grid min-w-0 gap-10 pt-12 pb-8">
         <TopologyRegion
           as="section"
-          className={cn("mx-auto w-[90%] min-w-0", previewClassName)}
+          className={cn('mx-auto w-[90%] min-w-0', previewClassName)}
           id={topologyIds.preview}
           topology={topology}
         >
-          <UiBrowserFrame className={kind === "Layout" ? "rounded-none" : undefined} title={name}>
+          <UiBrowserFrame className={kind === 'Layout' ? 'rounded-none' : undefined} title={name}>
             {preview}
           </UiBrowserFrame>
         </TopologyRegion>

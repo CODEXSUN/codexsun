@@ -4,9 +4,12 @@ import { ChatRuntimeControls } from "@codexsun/ui/blocks/chat-runtime-controls";
 import { ChatRuntimeTrace } from "@codexsun/ui/blocks/chat-runtime-trace";
 import { CodexConnectionSettings } from "@codexsun/ui/blocks/codex-connection-settings";
 import { HandoverStack } from "@codexsun/ui/blocks/handover-stack";
-import { IdeaHandoverWorkspace, type IdeaBriefDraft, type IdeaHandoverTask } from "@codexsun/ui/blocks/idea-handover";
+import { IdeaHandoverWorkspace, type IdeaBriefDraft, type IdeaHandoverTask, type IdeaTaskDraft } from "@codexsun/ui/blocks/idea-handover";
 import { AgentTaskWorkspace } from "@codexsun/ui/blocks/agent-task-workspace";
 import { ArchivedChatWorkspace } from "@codexsun/ui/blocks/archived-chat-workspace";
+import { SessionBoundary, type AuthenticatedRequest } from "@codexsun/ui/blocks/auth";
+import { IdentityManagementDesk } from "@codexsun/ui/blocks/auth/identity-management-desk";
+import { PrivilegedDesk } from "@codexsun/ui/blocks/auth/privileged-desk";
 import { AnalysisContext } from "@codexsun/ui/blocks/analysis-context";
 import { ChatDateDivider, ChatResponseProgress, ChatTurnDivider } from "@codexsun/ui/blocks/chat-response-progress";
 import { ChatComposer, type ChatComposerAttachment } from "@codexsun/ui/blocks/chat-composer";
@@ -20,7 +23,7 @@ import { useMdiTopology } from "@codexsun/ui/layouts/mdi-main";
 import type { ZetroAgentTask, ZetroChatAttachment, ZetroChatConversation, ZetroChatMessage, ZetroChatRuntime, ZetroChatStreamEvent, ZetroCodexDeviceCode, ZetroIdeaBrief } from "@codexsun/zetro-contracts";
 import type { InterfaceTopologySection } from "@codexsun/ui/features/interface-topology";
 import { ArchiveIcon, BotIcon, ClockIcon, CopyIcon, FileTextIcon, Layers3Icon, LayoutDashboardIcon, ListTodoIcon, MessageSquareIcon, PanelsTopLeftIcon, PresentationIcon, RotateCcwIcon, SettingsIcon, Share2Icon } from "lucide-react";
-import { createAgentTask, createConversation, deleteArchivedConversations, deleteConversation as deleteStoredConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, getIdeaBrief, listAgentTasks, listConversations, saveIdeaBrief, streamMessage, updateChatRuntime, updateConversation as updateStoredConversation } from "./chat-api.js";
+import { configureZetroApiRequest, createAgentTask, createConversation, deleteArchivedConversations, deleteConversation as deleteStoredConversation, generateCodexDeviceCode, getChatRuntime, getCodexDeviceCode, getConversation, getIdeaBrief, listAgentTasks, listConversations, saveIdeaBrief, streamMessage, updateChatRuntime, updateConversation as updateStoredConversation } from "./chat-api.js";
 
 type VoiceRecognizer = {
   continuous: boolean;
@@ -71,6 +74,11 @@ const codexDeviceLoginUrl = "https://auth.openai.com/codex/device";
 const idleDeviceCode: ZetroCodexDeviceCode = { status: "idle", message: "Generate a device code to connect Codex." };
 
 export function App() {
+  return <SessionBoundary applicationId="zetro" applicationName="Zetro" autoLoginPath="/api/zetro/v1/auth/development-login" loginPath="/api/zetro/v1/auth/login">{(session) => session.portal === "user" ? <ZetroApp logout={session.logout} request={session.fetch} /> : session.portal === "super-admin" ? <IdentityManagementDesk applicationId="zetro" applicationName="Zetro" logout={session.logout} request={session.fetch} /> : <PrivilegedDesk applicationId="zetro" applicationName="Zetro" logout={session.logout} portal={session.portal} />}</SessionBoundary>;
+}
+
+function ZetroApp({ logout, request }: { logout: () => void; request: AuthenticatedRequest }) {
+  configureZetroApiRequest(request);
   const [conversations, setConversations] = useState<ZetroChatConversation[]>([]);
   const [archivedConversations, setArchivedConversations] = useState<ZetroChatConversation[]>([]);
   const [historyMode, setHistoryMode] = useState<"active" | "archived">("active");
@@ -97,6 +105,7 @@ export function App() {
   const [handoverMessageIds, setHandoverMessageIds] = useState<string[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);
   const [brief, setBrief] = useState<IdeaBriefDraft>(emptyBrief());
+  const [taskDraft, setTaskDraft] = useState<IdeaTaskDraft>(emptyTaskDraft());
   const [agentTask, setAgentTask] = useState<IdeaHandoverTask>();
   const [agentTasks, setAgentTasks] = useState<ZetroAgentTask[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string>();
@@ -160,6 +169,7 @@ export function App() {
     setSteerQueue([]);
     setAttachments([]);
     setBrief(emptyBrief());
+    setTaskDraft(emptyTaskDraft());
     setAgentTask(undefined);
   }
 
@@ -210,7 +220,7 @@ export function App() {
     const responseIndex = messages.findIndex((message) => message.id === id);
     const prompt = messages.slice(0, responseIndex).reverse().find((message) => message.role === "user" && message.content);
     if (!prompt) return;
-    void runStream(conversation.id, prompt.content);
+    void runStream(conversation.id, "Regenerate the previous response with a genuinely different, equally practical direction. Keep the established context and make the differences clear.");
   }
 
   function removeAttachment(id: string): void {
@@ -314,15 +324,19 @@ export function App() {
     try {
       const storedBrief = await getIdeaBrief(conversationId);
       setBrief(storedBrief ? toBriefDraft(storedBrief) : emptyBrief());
+      setTaskDraft(storedBrief ? taskDraftFromBrief(storedBrief) : emptyTaskDraft());
       try {
         const tasks = await listAgentTasks();
-        setAgentTask(storedBrief ? tasks.find((task) => task.briefId === storedBrief.id) : undefined);
+        const storedTask = storedBrief ? tasks.find((task) => task.briefId === storedBrief.id) : undefined;
+        setAgentTask(storedTask);
+        if (storedTask) setTaskDraft(taskDraftFromTask(storedTask));
       } catch {
         setAgentTask(undefined);
       }
       return storedBrief;
     } catch {
       setBrief(emptyBrief());
+      setTaskDraft(emptyTaskDraft());
       setAgentTask(undefined);
       return undefined;
     }
@@ -331,7 +345,11 @@ export function App() {
   async function openBrief(): Promise<void> {
     if (!conversation) return;
     const storedBrief = await loadBrief(conversation.id);
-    if (!storedBrief) setBrief({ ...emptyBrief(), sourceMessageIds: handoverMessageIds });
+    if (!storedBrief) {
+      const nextBrief = { ...emptyBrief(), sourceMessageIds: handoverMessageIds, title: conversation.title === "Untitled idea" ? "" : conversation.title };
+      setBrief(nextBrief);
+      setTaskDraft(taskDraftFromBriefDraft(nextBrief));
+    }
     setBriefOpen(true);
   }
 
@@ -341,6 +359,7 @@ export function App() {
     try {
       const saved = await saveIdeaBrief(conversation.id, { ...brief, status });
       setBrief(toBriefDraft(saved));
+      setTaskDraft((current) => current.title || current.summary ? current : taskDraftFromBrief(saved));
       if (status === "final") {
         const { conversation: updated } = await updateStoredConversation(conversation.id, { stage: "final" });
         setConversation(updated);
@@ -363,13 +382,32 @@ export function App() {
     setIsSavingBrief(true);
     try {
       const saved = await saveIdeaBrief(conversation.id, brief);
-      const task = await createAgentTask({ acceptanceCriteria: saved.successSignals, briefId: saved.id, priority: "medium", projectReference: saved.projectReference, projectScope: saved.projectScope, summary: saved.outcome, title: saved.title });
+      const nextTaskDraft = normalizeTaskDraft(taskDraft, saved);
+      setTaskDraft(nextTaskDraft);
+      const task = await createAgentTask({ ...nextTaskDraft, briefId: saved.id, projectReference: saved.projectReference, projectScope: saved.projectScope });
       setAgentTask(task);
       setAgentTasks((items) => [task, ...items.filter((item) => item.id !== task.id)]);
       setSelectedTaskId(task.id);
     } finally {
       setIsSavingBrief(false);
     }
+  }
+
+  function copyHandoffPackage(): void {
+    if (!conversation) return;
+    const handoffPackage = {
+      kind: "zetro.prepared-task",
+      version: 1,
+      conversationId: conversation.id,
+      conversationTitle: conversation.title,
+      brief,
+      task: normalizeTaskDraft(taskDraft, brief),
+      target: "zuno",
+      executionOwner: "cxforge",
+      exclusions: ["repository validation", "git worktree creation", "model execution", "build checks", "preview hosting", "merge request creation"],
+    };
+    void navigator.clipboard.writeText(JSON.stringify(handoffPackage, null, 2));
+    appendExecutionEvent({ type: "complete", message: "Copied the Zuno handoff package." });
   }
 
   function toggleVoiceInput(): void {
@@ -480,7 +518,7 @@ export function App() {
     setExecutionEvents((items) => {
       const previous = items.at(-1);
       if (previous?.type === event.type && previous.message === event.message) return items;
-      return [...items.slice(-40), event];
+      return [...items, event];
     });
   }
 
@@ -571,9 +609,10 @@ export function App() {
       statusLabel="Ready"
       showMdiOverview
       topologySections={zetroTopologySections}
+      user={{ initials: "Z", name: "Zetro user", onSignOut: logout }}
       workspaceTitle="Zetro workspace"
     >
-      {workspaceView === "archive" ? <ArchivedChatWorkspace chats={archivedConversations} onDelete={forceDeleteArchivedConversation} onDeleteAll={forceDeleteAllArchivedConversations} onOpen={openArchivedConversation} onRestore={restoreConversation} /> : workspaceView === "tasks" ? <AgentTaskWorkspace selectedTaskId={selectedTaskId} tasks={agentTasks} onBack={showActiveConversations} onSelectTask={setSelectedTaskId} /> : briefOpen ? <IdeaHandoverWorkspace brief={brief} currentStage={conversation?.stage ?? "explore"} saving={isSavingBrief} sources={messages.filter((message) => message.role === "assistant" && message.content).map((message) => ({ content: message.content, id: message.id }))} task={agentTask} onArchiveConversation={conversation && agentTask ? () => void archiveConversation(conversation.id) : undefined} onBack={() => setBriefOpen(false)} onBriefChange={setBrief} onCreateTask={handOverToAgentTask} onSaveBrief={saveBrief} onStageChange={changeIdeaStage} /> : <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onLongTextPaste={submitLongPaste} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRegenerate={regenerateResponse} onRemoveAttachment={removeAttachment} onRuntimeChange={updateRuntimeSelection} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />}
+      {workspaceView === "archive" ? <ArchivedChatWorkspace chats={archivedConversations} onDelete={forceDeleteArchivedConversation} onDeleteAll={forceDeleteAllArchivedConversations} onOpen={openArchivedConversation} onRestore={restoreConversation} /> : workspaceView === "tasks" ? <AgentTaskWorkspace selectedTaskId={selectedTaskId} tasks={agentTasks} onBack={showActiveConversations} onSelectTask={setSelectedTaskId} /> : briefOpen ? <IdeaHandoverWorkspace brief={brief} currentStage={conversation?.stage ?? "explore"} saving={isSavingBrief} sources={messages.filter((message) => message.role === "assistant" && message.content).map((message) => ({ content: message.content, id: message.id }))} task={agentTask} taskDraft={taskDraft} onArchiveConversation={conversation && agentTask ? () => void archiveConversation(conversation.id) : undefined} onBack={() => setBriefOpen(false)} onBriefChange={setBrief} onCopyHandoffPackage={copyHandoffPackage} onCreateTask={handOverToAgentTask} onSaveBrief={saveBrief} onStageChange={changeIdeaStage} onTaskDraftChange={setTaskDraft} /> : <ZetroWorkspace attachments={attachments} conversation={conversation} draft={draft} elapsedSeconds={elapsedSeconds} executionEvents={executionEvents} handoverCount={handoverItems.length} isRecording={isRecording} isWorking={isLoading} messages={messages} queuedSteerCount={steerQueue.length} runtime={runtime} onAddAttachments={addAttachments} onDraftChange={setDraft} onLongTextPaste={submitLongPaste} onOpenBrief={openBrief} onOpenHandoverStack={() => setHandoverStackOpen(true)} onReconnect={reconnect} onRegenerate={regenerateResponse} onRemoveAttachment={removeAttachment} onRuntimeChange={updateRuntimeSelection} onStageChange={changeIdeaStage} onSteer={steer} onStop={stop} onSubmit={submit} onToggleHandover={toggleHandoverMessage} onVoiceToggle={toggleVoiceInput} selectedHandoverMessageIds={handoverMessageIds} />}
       <CodexConnectionSettings connected={runtime.connected} deviceCode={deviceCode} message={runtime.message} open={settingsOpen} onConnectLocal={recheckLocalCodex} onCopyCode={copyDeviceCode} onCopyUrl={copyDeviceUrl} onGenerateDeviceCode={generateDeviceCode} onOpenBrowser={openDeviceBrowser} onOpenChange={setSettingsOpen} />
       <HandoverStack items={handoverItems} open={handoverStackOpen} working={isLoading} onConsolidate={consolidateHandover} onOpenChange={setHandoverStackOpen} onRemove={toggleHandoverMessage} />
     </MainWorkspace>
@@ -595,7 +634,7 @@ function ZetroHistory({ activeConversationId, archived, conversations, onArchive
   return <TopologyRegion as="div" className="flex min-h-0 flex-1" id="z01" topology={topology}><ChatHistory activeId={activeConversationId} emptyLabel={archived ? "No archived handovers" : "No conversations yet"} items={conversations.map((item) => ({ id: item.id, pinned: item.pinned, title: item.title }))} onArchive={archived ? undefined : onArchive} onCreate={onCreate} onPin={onTogglePin} onRename={onRename} onSelect={onSelect} /></TopologyRegion>;
 }
 
-function ZetroWorkspace({ attachments, conversation, draft, elapsedSeconds, executionEvents, handoverCount, isRecording, isWorking, messages, queuedSteerCount, runtime, onAddAttachments, onDraftChange, onLongTextPaste, onOpenHandoverStack, onReconnect, onRegenerate, onRemoveAttachment, onRuntimeChange, onSteer, onStop, onSubmit, onToggleHandover, onVoiceToggle, selectedHandoverMessageIds }: { attachments: ChatComposerAttachment[]; conversation?: ZetroChatConversation; draft: string; elapsedSeconds: number; executionEvents: ZetroChatStreamEvent[]; handoverCount: number; isRecording: boolean; isWorking: boolean; messages: ZetroChatMessage[]; queuedSteerCount: number; runtime: ZetroChatRuntime; onAddAttachments: (files: File[]) => void; onDraftChange: (value: string) => void; onLongTextPaste: (file: File) => void; onOpenHandoverStack: () => void; onReconnect: () => void; onRegenerate: (id: string) => void; onRemoveAttachment: (id: string) => void; onRuntimeChange: (runtime: ZetroChatRuntime) => void; onSteer: () => void; onStop: () => void; onSubmit: () => void; onToggleHandover: (id: string) => void; onVoiceToggle: () => void; selectedHandoverMessageIds: string[] }) {
+function ZetroWorkspace({ attachments, conversation, draft, elapsedSeconds, executionEvents, handoverCount, isRecording, isWorking, messages, queuedSteerCount, runtime, onAddAttachments, onDraftChange, onLongTextPaste, onOpenBrief, onOpenHandoverStack, onReconnect, onRegenerate, onRemoveAttachment, onRuntimeChange, onStageChange, onSteer, onStop, onSubmit, onToggleHandover, onVoiceToggle, selectedHandoverMessageIds }: { attachments: ChatComposerAttachment[]; conversation?: ZetroChatConversation; draft: string; elapsedSeconds: number; executionEvents: ZetroChatStreamEvent[]; handoverCount: number; isRecording: boolean; isWorking: boolean; messages: ZetroChatMessage[]; queuedSteerCount: number; runtime: ZetroChatRuntime; onAddAttachments: (files: File[]) => void; onDraftChange: (value: string) => void; onLongTextPaste: (file: File) => void; onOpenBrief: () => void; onOpenHandoverStack: () => void; onReconnect: () => void; onRegenerate: (id: string) => void; onRemoveAttachment: (id: string) => void; onRuntimeChange: (runtime: ZetroChatRuntime) => void; onStageChange: (stage: ZetroChatConversation["stage"]) => void; onSteer: () => void; onStop: () => void; onSubmit: () => void; onToggleHandover: (id: string) => void; onVoiceToggle: () => void; selectedHandoverMessageIds: string[] }) {
   const topology = useMdiTopology();
   const messageViewportRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -627,22 +666,46 @@ function ZetroWorkspace({ attachments, conversation, draft, elapsedSeconds, exec
   }, [isWorking]);
 
   return <TopologyRegion as="section" className="flex size-full min-h-0 flex-col bg-background" id="z02" topology={topology}>
-    <TopologyRegion as="header" className="flex shrink-0 items-center gap-4 border-b border-border px-4 py-3 sm:px-6" id="z02.1" topology={topology}>
-      <h1 className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight">{conversation?.title ?? "Start with an idea"}</h1>
+    <TopologyRegion as="header" className="grid shrink-0 gap-3 border-b border-border px-4 py-3 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center" id="z02.1" topology={topology}>
+      <div className="min-w-0"><h1 className="truncate text-sm font-semibold tracking-tight">{conversation?.title ?? "Start with an idea"}</h1><IdeaStageRail currentStage={conversation?.stage ?? "explore"} disabled={!conversation || isWorking} onStageChange={onStageChange} /></div>
+      <div className="flex items-center justify-end gap-2">
       <Button aria-label={`Open handover stack (${handoverCount} responses)`} className="relative" size="icon-sm" variant="ghost" onClick={onOpenHandoverStack}><Layers3Icon />{handoverCount ? <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-primary text-[10px] text-primary-foreground">{handoverCount}</span> : null}</Button>
+      <Button disabled={!conversation} size="sm" variant="outline" onClick={onOpenBrief}><FileTextIcon /> Brief</Button>
       <ChatRuntimeControls connected={runtime.connected} message={runtime.message} model={runtime.model} models={runtime.models} onModelChange={(model) => onRuntimeChange({ ...runtime, model: model as ZetroChatRuntime["model"] })} onProviderChange={(provider) => onRuntimeChange({ ...runtime, provider: provider as ZetroChatRuntime["provider"] })} onReasoningChange={(reasoning) => onRuntimeChange({ ...runtime, reasoning: reasoning as ZetroChatRuntime["reasoning"] })} onReconnect={onReconnect} provider={runtime.provider} providers={runtime.providers} reasoning={runtime.reasoning} reasoningLevels={runtime.reasoningLevels} />
+      </div>
     </TopologyRegion>
-    <TopologyRegion as="div" className="min-h-0 flex-1" id="z02.2" topology={topology}><MessageScroller><MessageScrollerViewport ref={messageViewportRef} className="px-6 py-7 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/70 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1" onScroll={updateScrollPosition}><AnalysisContext root={conversation?.analysisRoot} /><TopologyRegion as="div" className={`mx-auto flex w-4/5 flex-col ${isWorking ? "gap-1" : "gap-3"}`} id="z02.2.2" topology={topology}>{messages[0] ? <ChatDateDivider label={formatDateBadge(messages[0].createdAt)} /> : null}{messages.map((message, index) => { const isLiveAssistant = isWorking && message.role === "assistant" && index === messages.length - 1; return <div key={message.id} className="flex flex-col gap-0.5"><div className={`group flex flex-col ${message.role === "user" ? "w-fit max-w-[80%] self-end" : "w-full self-start"}`}><article className={message.role === "user" ? "rounded-sm bg-muted/60 px-4 py-3 text-foreground shadow-sm" : isLiveAssistant ? "px-4 pt-3 pb-0" : "px-4 py-3"}><p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">{message.role === "assistant" ? <BotIcon aria-hidden="true" className="size-3.5" /> : null}{message.role === "user" ? "You" : message.role === "error" ? "Connection" : "Zetro"}</p>{message.content ? message.role === "assistant" ? <MarkdownContent className="mt-1" content={message.content} /> : <p className="mt-1 whitespace-pre-wrap text-sm leading-6">{message.content}</p> : null}{isLiveAssistant ? <><ChatResponseProgress elapsedSeconds={elapsedSeconds} label="Working" tone="orange" /><ChatRuntimeTrace className="mt-2" elapsedSeconds={elapsedSeconds} events={executionEvents} isWorking /></> : null}</article>{!isLiveAssistant ? <MessageActions content={message.content} handoverSelected={selectedHandoverMessageIds.includes(message.id)} isWorking={isWorking} messageId={message.id} role={message.role} timestamp={message.createdAt} title={conversation?.title ?? "Zetro response"} onRegenerate={onRegenerate} onToggleHandover={onToggleHandover} /> : null}</div>{message.role !== "user" && !isLiveAssistant ? <ChatTurnDivider /> : null}</div>})}</TopologyRegion></MessageScrollerViewport>{canScrollToLatest ? <MessageScrollerButton aria-label="Scroll to latest message" className="invisible border-border/70 opacity-0 shadow-sm transition-opacity group-hover/message-scroller:visible group-hover:opacity-100 focus-visible:visible focus-visible:opacity-100" onClick={scrollToLatest} /> : null}</MessageScroller></TopologyRegion>
+    <TopologyRegion as="div" className="min-h-0 flex-1" id="z02.2" topology={topology}><MessageScroller><MessageScrollerViewport ref={messageViewportRef} className="px-6 py-7 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/70 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1" onScroll={updateScrollPosition}><AnalysisContext root={conversation?.analysisRoot} /><TopologyRegion as="div" className={`mx-auto flex w-4/5 flex-col ${isWorking ? "gap-1" : "gap-3"}`} id="z02.2.2" topology={topology}>{messages[0] ? <ChatDateDivider label={formatDateBadge(messages[0].createdAt)} /> : null}{messages.map((message, index) => { const isLiveAssistant = isWorking && message.role === "assistant" && index === messages.length - 1; const trace = message.trace ?? []; return <div key={message.id} className="flex flex-col gap-0.5"><div className={`group flex flex-col ${message.role === "user" ? "w-fit max-w-[80%] self-end" : "w-full self-start"}`}><article className={message.role === "user" ? "rounded-sm bg-muted/60 px-4 py-3 text-foreground shadow-sm" : isLiveAssistant ? "px-4 pt-3 pb-0" : "px-4 py-3"}><p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">{message.role === "assistant" ? <BotIcon aria-hidden="true" className="size-3.5" /> : null}{message.role === "user" ? "You" : message.role === "error" ? "Connection" : "Zetro"}</p>{message.content ? message.role === "assistant" ? <MarkdownContent className="mt-1" content={message.content} /> : <p className="mt-1 whitespace-pre-wrap text-sm leading-6">{message.content}</p> : null}{isLiveAssistant ? <><ChatResponseProgress elapsedSeconds={elapsedSeconds} label="Working" tone="orange" /><ChatRuntimeTrace className="mt-2" elapsedSeconds={elapsedSeconds} events={executionEvents} isWorking /></> : trace.length ? <ChatRuntimeTrace className="mt-2" elapsedSeconds={0} events={trace} isWorking={false} /> : null}</article>{!isLiveAssistant ? <MessageActions content={message.content} handoverSelected={selectedHandoverMessageIds.includes(message.id)} isWorking={isWorking} messageId={message.id} role={message.role} timestamp={message.createdAt} title={conversation?.title ?? "Zetro response"} onRegenerate={onRegenerate} onToggleHandover={onToggleHandover} /> : null}</div>{message.role !== "user" && !isLiveAssistant ? <ChatTurnDivider /> : null}</div>})}</TopologyRegion></MessageScrollerViewport>{canScrollToLatest ? <MessageScrollerButton aria-label="Scroll to latest message" className="invisible border-border/70 opacity-0 shadow-sm transition-opacity group-hover/message-scroller:visible group-hover:opacity-100 focus-visible:visible focus-visible:opacity-100" onClick={scrollToLatest} /> : null}</MessageScroller></TopologyRegion>
     <TopologyRegion as="footer" className="sticky bottom-0 z-10 shrink-0 bg-background px-6 py-4" id="z02.3" topology={topology}>
       <TopologyRegion as="div" id="z02.3.1" topology={topology}><ChatComposer attachments={attachments} isRecording={isRecording} isWorking={isWorking} queuedSteerCount={queuedSteerCount} textareaRef={composerRef} value={draft} onAddFiles={onAddAttachments} onLongTextPaste={onLongTextPaste} onRemoveAttachment={onRemoveAttachment} onSteer={onSteer} onStop={onStop} onSubmit={onSubmit} onValueChange={onDraftChange} onVoiceToggle={onVoiceToggle} /></TopologyRegion>
     </TopologyRegion>
   </TopologyRegion>;
 }
 
+const ideaStages: readonly { id: ZetroChatConversation["stage"]; label: string }[] = [
+  { id: "explore", label: "Explore" },
+  { id: "compare", label: "Compare" },
+  { id: "revise", label: "Revise" },
+  { id: "final", label: "Final" },
+];
+
+function IdeaStageRail({ currentStage, disabled, onStageChange }: { currentStage: ZetroChatConversation["stage"]; disabled: boolean; onStageChange: (stage: ZetroChatConversation["stage"]) => void }) {
+  return <div className="mt-2 flex flex-wrap gap-1">{ideaStages.map((stage) => <Button key={stage.id} className="h-7 px-2 text-xs" disabled={disabled} size="sm" variant={stage.id === currentStage ? "secondary" : "ghost"} onClick={() => onStageChange(stage.id)}>{stage.label}</Button>)}</div>;
+}
+
 function MessageActions({ content, handoverSelected, isWorking, messageId, role, timestamp, title, onRegenerate, onToggleHandover }: { content: string; handoverSelected: boolean; isWorking: boolean; messageId: string; role: ZetroChatMessage["role"]; timestamp: string; title: string; onRegenerate: (id: string) => void; onToggleHandover: (id: string) => void }) {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareError, setShareError] = useState<string>();
+  const [notice, setNotice] = useState("");
   const source = { content, title };
+
+  async function runAction(action: () => Promise<void> | void, success: string): Promise<void> {
+    try {
+      await action();
+      setNotice(success);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "That action could not complete.");
+    }
+  }
 
   async function share(channel: "email" | "whatsapp"): Promise<void> {
     try {
@@ -656,9 +719,9 @@ function MessageActions({ content, handoverSelected, isWorking, messageId, role,
   if (role === "error") return null;
 
   return <><div className="invisible mt-0.5 flex items-center gap-1 px-1 opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-    <Button aria-label="Copy message" size="icon-xs" variant="ghost" onClick={() => void PdfProvider.copyText(content)}><CopyIcon /></Button>
-    {role === "user" ? <><Button aria-label="Share message" size="icon-xs" variant="ghost" onClick={() => void PdfProvider.shareText(source)}><Share2Icon /></Button><span className="ml-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><ClockIcon className="size-3" />{formatMessageTime(timestamp)}</span></> : <><Button aria-label={handoverSelected ? "Remove from handover stack" : "Add to handover stack"} className={handoverSelected ? "text-primary" : undefined} disabled={isWorking} size="icon-xs" variant="ghost" onClick={() => onToggleHandover(messageId)}><Layers3Icon /></Button><Button aria-label="Regenerate response" disabled={isWorking} size="icon-xs" variant="ghost" onClick={() => onRegenerate(messageId)}><RotateCcwIcon /></Button><Button aria-label="Share response as PDF" disabled={isWorking} size="icon-xs" variant="ghost" onClick={() => setShareOpen(true)}><Share2Icon /></Button><Button aria-label="Print response to PDF" disabled={isWorking} size="icon-xs" variant="ghost" onClick={() => PdfProvider.print(source)}><PresentationIcon /></Button></>}
-  </div>{role === "assistant" ? <Dialog open={shareOpen} onOpenChange={setShareOpen}><DialogContent><DialogHeader><DialogTitle>Share response as PDF</DialogTitle><DialogDescription>Create a PDF from this response, then choose where to share it.</DialogDescription></DialogHeader>{shareError ? <p className="text-sm text-destructive">{shareError}</p> : null}<DialogFooter><Button variant="outline" onClick={() => void PdfProvider.download(source)}>Download PDF</Button><Button variant="outline" onClick={() => void share("email")}>Email PDF</Button><Button onClick={() => void share("whatsapp")}>WhatsApp PDF</Button></DialogFooter></DialogContent></Dialog> : null}</>;
+    <Button aria-label="Copy message" size="icon-xs" variant="ghost" onClick={() => void runAction(() => PdfProvider.copyText(content), "Copied message.")}><CopyIcon /></Button>
+    {role === "user" ? <><Button aria-label="Share message" size="icon-xs" variant="ghost" onClick={() => void runAction(() => PdfProvider.shareText(source), "Ready to share message.")}><Share2Icon /></Button><span className="ml-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><ClockIcon className="size-3" />{formatMessageTime(timestamp)}</span></> : <><Button aria-label={handoverSelected ? "Remove from handover stack" : "Add to handover stack"} className={handoverSelected ? "text-primary" : undefined} disabled={isWorking} size="icon-xs" variant="ghost" onClick={() => { onToggleHandover(messageId); setNotice(handoverSelected ? "Removed from handover stack." : "Added to handover stack."); }}><Layers3Icon /></Button><Button aria-label="Regenerate response" disabled={isWorking} size="icon-xs" variant="ghost" onClick={() => { onRegenerate(messageId); setNotice("Regenerating a new response."); }}><RotateCcwIcon /></Button><Button aria-label="Share response as PDF" disabled={isWorking} size="icon-xs" variant="ghost" onClick={() => setShareOpen(true)}><Share2Icon /></Button><Button aria-label="Print response to PDF" disabled={isWorking} size="icon-xs" variant="ghost" onClick={() => void runAction(() => PdfProvider.print(source), "Print dialog opened.")}><PresentationIcon /></Button></>}
+  </div><p aria-live="polite" className="sr-only">{notice}</p>{role === "assistant" ? <Dialog open={shareOpen} onOpenChange={setShareOpen}><DialogContent><DialogHeader><DialogTitle>Share response as PDF</DialogTitle><DialogDescription>Create a PDF from this response, then choose where to share it.</DialogDescription></DialogHeader>{shareError ? <p className="text-sm text-destructive">{shareError}</p> : null}<DialogFooter><Button variant="outline" onClick={() => void runAction(async () => { await PdfProvider.download(source); }, "PDF downloaded.")}>Download PDF</Button><Button variant="outline" onClick={() => void share("email")}>Email PDF</Button><Button onClick={() => void share("whatsapp")}>WhatsApp PDF</Button></DialogFooter></DialogContent></Dialog> : null}</>;
 }
 
 
@@ -674,6 +737,31 @@ function emptyBrief(): IdeaBriefDraft {
   return { audience: "", constraints: "", exclusions: "", outcome: "", projectReference: null, projectScope: "all-projects", risks: "", scope: "", sourceMessageIds: [], status: "draft", successSignals: "", title: "" };
 }
 
+function emptyTaskDraft(): IdeaTaskDraft {
+  return { acceptanceCriteria: "", priority: "medium", summary: "", title: "" };
+}
+
 function toBriefDraft(value: ZetroIdeaBrief): IdeaBriefDraft {
   return { audience: value.audience, constraints: value.constraints, exclusions: value.exclusions, outcome: value.outcome, projectReference: value.projectReference, projectScope: value.projectScope, risks: value.risks, scope: value.scope, sourceMessageIds: value.sourceMessageIds, status: value.status, successSignals: value.successSignals, title: value.title };
+}
+
+function taskDraftFromBrief(brief: ZetroIdeaBrief): IdeaTaskDraft {
+  return normalizeTaskDraft(emptyTaskDraft(), brief);
+}
+
+function taskDraftFromBriefDraft(brief: IdeaBriefDraft): IdeaTaskDraft {
+  return normalizeTaskDraft(emptyTaskDraft(), brief);
+}
+
+function taskDraftFromTask(task: ZetroAgentTask): IdeaTaskDraft {
+  return { acceptanceCriteria: task.acceptanceCriteria, priority: task.priority, summary: task.summary, title: task.title };
+}
+
+function normalizeTaskDraft(task: IdeaTaskDraft, brief: Pick<IdeaBriefDraft, "outcome" | "successSignals" | "title">): IdeaTaskDraft {
+  return {
+    acceptanceCriteria: task.acceptanceCriteria.trim() || brief.successSignals.trim(),
+    priority: task.priority,
+    summary: task.summary.trim() || brief.outcome.trim(),
+    title: task.title.trim() || brief.title.trim(),
+  };
 }

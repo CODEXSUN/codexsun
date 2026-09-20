@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 import { loadComponentEnvironment, readRequiredHost, readRequiredPort } from "../../../tools/vite-environment.mjs";
 
 const projectRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const reactSourceFiles = /(?:apps[\\/]uiux[\\/]web[\\/]src|packages[\\/]ui[\\/]src)[\\/].*\.[jt]sx?$/u;
 
 function vendorChunk(id: string) {
   const packageMatch = id.replaceAll("\\", "/").match(/\/node_modules\/((?:@[^/]+\/)?[^/]+)/);
@@ -21,7 +22,7 @@ export default defineConfig(() => {
   return {
     cacheDir: "../../../dist/.vite/apps/uiux/web",
     envDir: projectRoot,
-    plugins: [react(), tailwindcss()],
+    plugins: [react({ include: reactSourceFiles }), tailwindcss()],
     server: { host: webHost, port: webPort, strictPort: true },
     preview: { host: webHost, port: webPort, strictPort: true },
     build: {

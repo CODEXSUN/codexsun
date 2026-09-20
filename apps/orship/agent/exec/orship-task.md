@@ -147,3 +147,15 @@ npm.cmd run dev:orship-web
 - The create page derives the host port from the port mapping before it sends data to the API.
 - The create page includes a YAML editor so an operator can review or edit the compose scaffold before storing the record.
 - A shared `@codexsun/ui` input style update is allowed for this task because the user requested a standard input reset.
+- The Orship container scaffold lives in `apps/orship/.container`.
+- `docker-compose.yml` builds separate API and web targets from one Dockerfile.
+- The API container owns the SQLite path at `/workspace/storage/apps/orship/private/data/orship_db.sqlite`.
+- The web container serves the built Orship frontend and proxies `/api/*` to the API container.
+- `orship-setup.sh` builds and starts the local Orship stack.
+- `apps/orship/VERSION` owns the Orship development version; the root `package.json` owns the global repository release version.
+- The web status bar shows the Orship development version at its right edge.
+- `orship-update.sh` reads `apps/orship/VERSION`, rebuilds, and recreates the local Docker stack for live updates.
+- Docker live updates must run through `orship-update.sh`. The agent watches and maintains this local update path only; do not change VPS or production state without user approval.
+- The container smoke path is: web home, health, development login, list infras, create infra, show infra.
+- The Docker build stage defines non-secret `VITE_*_WEB_URL` local ports so shared MDI navigation can render inside the Orship web container without copying root `.env`.
+- Local development keeps `AUTO_LOGIN=1`; VPS or production hosting must set `APP_MODE=production` or `AUTO_LOGIN=0`.

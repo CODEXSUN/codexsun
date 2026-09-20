@@ -43,14 +43,13 @@ export function readLocalIdentityConfiguration(
 function readUserSeed(environment: NodeJS.ProcessEnv) {
   const names = ["USER_NAME", "USER_LOGIN", "USER_PASSWORD"];
   const provided = names.filter((name) => Boolean(environment[name]?.trim()));
-  if (!provided.length) return [];
-  if (provided.length !== names.length) throw new Error(`Set ${names.join(", ")} together.`);
+  if (provided.length !== names.length) return [];
   return [{
     login: required(environment, "USER_LOGIN"),
     name: required(environment, "USER_NAME"),
     password: required(environment, "USER_PASSWORD"),
     role: "user" as const,
-    username: optional(environment, "USER_USERNAME", environment.USER_LOGIN),
+    username: optional(environment, "USER_USERNAME", environment.USER_NAME),
   }];
 }
 

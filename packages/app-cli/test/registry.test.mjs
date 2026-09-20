@@ -77,6 +77,7 @@ test("creates an API and web foundation that is ready for a new application", ()
   assert.match(serverSource, /fastifyHelmetOptions/u);
   assert.match(serverSource, /auth\/:portal\/login/u);
   assert.match(serverSource, /registerIdentityManagementRoutes/u);
+  assert.match(serverSource, /"DELETE"/u);
   assert.match(readFileSync(resolve(root, "apps", "inventory", "api", ".app.env.example"), "utf8"), /USER_USERNAME=user/u);
   assert.equal(existsSync(resolve(root, "apps", "inventory", "api", "src", "mariadb.integration.test.ts")), true);
   assert.match(readFileSync(resolve(root, "apps", "inventory", "api", "src", "modules", "foundation", "provider.ts"), "utf8"), /published: \[\], consumed: \[\]/u);
