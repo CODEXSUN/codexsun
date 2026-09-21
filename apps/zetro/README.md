@@ -23,6 +23,25 @@ file is private under `storage/apps/private/zetro/runtime/zetro.sqlite`.
 Run `npm.cmd run test:zetro-api`, `npm.cmd run test:zetro-web`,
 `npm.cmd run preflight:zetro-api`, and `npm.cmd run preflight:zetro-web`.
 
+## Container development
+
+Run `docker compose -f .container/docker-compose.yml up --build` from this
+directory. The API and web services bind to `127.0.0.1:6130` and
+`127.0.0.1:6131` by default, and Zetro's SQLite database is retained in the
+`zetro-storage` Docker volume. Use the `ZETRO_*_BIND_ADDRESS` variables only
+when a non-loopback host binding is intended.
+
+Run `.container/zetro-setup.sh` to create the shared `codexsun-network` when
+needed, build, start, and health-check Zetro. Use `.container/zetro-update.sh`
+for an image rebuild and service recreation. `.container/zetro-drop.sh` stops
+and removes the services while retaining data; pass `--purge` to remove the
+SQLite volume as well.
+
+The container configuration permits the API to listen on its container network
+only through `ZETRO_CONTAINER_RUNTIME=1`; the published host ports remain
+loopback-bound by default. Configure `ZETRO_ZUNO_API_URL` and
+`ZETRO_ZUNO_CLIENT_KEY` for Zuno-dependent work.
+
 Read [agent skills](agent/SKILLS.md) before work. Read
 [Zetro planning](../../assist/execution/apps/zetro/planning.md) and
 [Zetro task register](../../assist/execution/apps/zetro/task.md) before an agent

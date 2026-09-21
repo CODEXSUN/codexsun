@@ -2,15 +2,36 @@
 
 ## Version State
 
-Current version: 1.0.32
+Current version: 1.0.33
 
-Release tag: v-1.0.32
+Release tag: v-1.0.33
 
-Changelog label: v 1.0.32
+Changelog label: v 1.0.33
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
+
+## v-1.0.33
+
+### [v 1.0.33] 2026-09-21 1:35 pm - Zetro container development lifecycle
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.33.
+- Added a Zetro multi-stage Docker build, Compose stack, Nginx API proxy, API
+  and web health checks, and loopback-only published development ports.
+- Added Zetro setup, update, and drop scripts. Setup creates or reuses the
+  shared external `codexsun-network`; drop retains SQLite data unless invoked
+  with `--purge`.
+- Added an explicit container-only API listener setting so the web container
+  can reach Zetro without relaxing the default local loopback restriction.
+- Documented Zetro container development, retained SQLite storage, and Zuno
+  connectivity configuration.
 
 ## v-1.0.32
 

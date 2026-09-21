@@ -8,3 +8,7 @@ test("allows only loopback Zetro API hosts", () => {
   assert.doesNotThrow(() => assertLocalHost("::1"));
   assert.throws(() => assertLocalHost("0.0.0.0"), /loopback/u);
 });
+
+test("allows the container listener only when explicitly enabled", () => {
+  assert.doesNotThrow(() => assertLocalHost("0.0.0.0", true));
+});

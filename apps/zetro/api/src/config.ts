@@ -9,7 +9,7 @@ export function readConfig(): ZetroConfiguration {
   config({ path: resolve(process.cwd(), "../../../.env") });
   config({ path: resolve(process.cwd(), ".app.env"), override: true });
   const runtimeConfig = readZetroApiRuntimeConfig(process.env);
-  assertLocalHost(runtimeConfig.PLATFORM_HOST);
+  assertLocalHost(runtimeConfig.PLATFORM_HOST, process.env.ZETRO_CONTAINER_RUNTIME === "1");
   const zunoApiUrl = readServiceUrl(process.env.ZETRO_ZUNO_API_URL);
   const zunoClientKey = readServiceKey(process.env.ZETRO_ZUNO_CLIENT_KEY);
   return {
@@ -37,7 +37,8 @@ function readServiceKey(value: string | undefined): string {
   return resolved;
 }
 
-export function assertLocalHost(host: string): void {
+export function assertLocalHost(host: string, containerRuntime = false): void {
+  if (containerRuntime && host === "0.0.0.0") return;
   if (["127.0.0.1", "::1", "localhost"].includes(host.toLowerCase())) return;
-  throw new Error("Zetro API must bind to a loopback PLATFORM_HOST because it controls the local Codex CLI.");
+  throw new Error("Zetro API must bind to a loopback PLATFORM_HOST unless ZETRO_CONTAINER_RUNTIME=1 because it controls the local Codex CLI.");
 }
