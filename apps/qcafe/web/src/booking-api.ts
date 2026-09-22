@@ -138,7 +138,7 @@ export function changeEventSales(request: typeof fetch, path: string, input: Rec
 async function operation<T>(request: typeof fetch, path: string, body?: Record<string, unknown>): Promise<T> {
   const response = await request(path, {
     body: body ? JSON.stringify(body) : undefined,
-    headers: body ? { "Content-Type": "application/json", "X-Correlation-Id": crypto.randomUUID() } : undefined,
+    headers: body ? { "Content-Type": "application/json", "X-Correlation-Id": createRandomId() } : undefined,
     method: body ? "POST" : "GET",
     signal: AbortSignal.timeout(8_000),
   });
@@ -148,3 +148,4 @@ async function operation<T>(request: typeof fetch, path: string, body?: Record<s
   }
   return response.json() as Promise<T>;
 }
+import { createRandomId } from "@codexsun/ui/lib/random-id";

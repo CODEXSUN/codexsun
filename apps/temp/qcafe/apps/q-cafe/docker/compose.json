@@ -5,7 +5,7 @@
       "build": { "context": "../../..", "dockerfile": "apps/q-cafe/docker/Dockerfile" },
       "image": "codexsun-q-cafe:local",
       "init": true,
-      "ports": ["127.0.0.1:5180:5180", "127.0.0.1:4180:4180"],
+      "ports": ["0.0.0.0:5180:5180", "0.0.0.0:4180:4180"],
       "volumes": ["q-cafe-data:/data"],
       "environment": { "QCAFE_ONLY": "true", "QCAFE_DEMO": "false", "QCAFE_DATABASE_PATH": "/data/q-cafe.sqlite", "QCAFE_IMAGE_DIRECTORY": "/data/images", "QCAFE_API_TOKEN": "${QCAFE_API_TOKEN:?Set a private Q Cafe operator key}", "OS_DEV_PORT_POLICY": "abort" },
       "cap_drop": ["ALL"],

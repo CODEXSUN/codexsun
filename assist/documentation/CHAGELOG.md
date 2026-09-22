@@ -2,15 +2,34 @@
 
 ## Version State
 
-Current version: 1.0.33
+Current version: 1.0.34
 
-Release tag: v-1.0.33
+Release tag: v-1.0.34
 
-Changelog label: v 1.0.33
+Changelog label: v 1.0.34
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
+
+## v-1.0.34
+
+### [v 1.0.34] 2026-09-22 2:14 pm - Q Cafe browser compatibility and container access
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.34.
+- Made Q Cafe's development auto-login unavailable from production builds.
+- Added a shared RFC 4122 v4 correlation-ID helper with compatibility fallbacks
+  for browsers that do not implement `crypto.randomUUID`.
+- Updated Q Cafe booking, foundation, menu, POS, and settings requests, plus
+  shared browser session IDs, to use the compatibility helper.
+- Exposed Q Cafe development and local container web ports on all interfaces
+  to allow access from the host network.
 
 ## v-1.0.33
 

@@ -39,7 +39,7 @@ export function setConnectorEnabled(request: typeof fetch, connectorId: string, 
 async function send<T>(request: typeof fetch, path: string, body?: Record<string, unknown>, method?: "POST" | "PUT"): Promise<T> {
   const response = await request(path, {
     body: body ? JSON.stringify(body) : undefined,
-    headers: body ? { "Content-Type": "application/json", "X-Correlation-Id": crypto.randomUUID() } : undefined,
+    headers: body ? { "Content-Type": "application/json", "X-Correlation-Id": createRandomId() } : undefined,
     method: method ?? "GET",
     signal: AbortSignal.timeout(8_000),
   });
@@ -49,3 +49,4 @@ async function send<T>(request: typeof fetch, path: string, body?: Record<string
   }
   return response.json() as Promise<T>;
 }
+import { createRandomId } from "@codexsun/ui/lib/random-id";

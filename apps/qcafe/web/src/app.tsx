@@ -22,7 +22,7 @@ export function App() {
     <SessionBoundary
       applicationId="qcafe"
       applicationName="Q Cafe"
-      autoLoginPath="/api/v1/qcafe/auth/development-login"
+      autoLoginPath={import.meta.env.DEV ? "/api/v1/qcafe/auth/development-login" : undefined}
       loginPath="/api/v1/qcafe/auth/login"
       logoutPath="/login"
       onAuthenticated={() => navigate(portalDeskPath(), setLocation)}

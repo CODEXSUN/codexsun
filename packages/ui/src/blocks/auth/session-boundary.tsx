@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { createRandomId } from "../../lib/random-id";
 import { LoginPage } from "./login-page";
 
 type Session = {
@@ -192,7 +193,7 @@ function readBrowserSessionId(applicationId: string): string {
   const key = `codexsun.${applicationId}.browser-session`;
   const existing = window.sessionStorage.getItem(key);
   if (existing) return existing;
-  const value = window.crypto.randomUUID();
+  const value = createRandomId();
   window.sessionStorage.setItem(key, value);
   return value;
 }
