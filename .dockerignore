@@ -1,10 +1,14 @@
 .git
+.env
+**/.env
+**/.app.env
 node_modules
 dist
 artifacts
 test-results
 apps/temp
 storage
+**/.container/update.local.backups
 **/node_modules
 **/dist
 **/target

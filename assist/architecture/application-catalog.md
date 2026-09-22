@@ -6,6 +6,8 @@ This catalog records applications, add-ons, and deployment selections.
 
 Do not add an application or add-on without a named owner, provider, public contract, and module register entry.
 
+Application source follows the manifest-owned directory. Platform and business applications use `apps/<application>`; developer-oriented applications use `apps/devkits/<application>`. The registry is the source of truth for this path.
+
 ## Initial application hosts
 
 | Host     | Role                                                                                                  | Client targets                    |
@@ -19,7 +21,8 @@ The listed folders are scaffolds. A deployment must explicitly select an applica
 
 ## Application creation
 
-Create a new application with `npm run app:create -- <id>`. The command creates
+Create a new business application with `npm run app:create -- <id>`. Use
+`--category devkit` for developer-oriented applications. The command creates
 the API and web hosts, an application manifest, a development profile provider
 selection, module foundation, route contract, API reference setup, tests, and
 an MDI catalog entry.

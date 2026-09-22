@@ -55,7 +55,7 @@
     },
     "@codexsun/zuno-web#build": {
       "outputs": [
-        "../../../dist/apps/zuno/web/**"
+        "../../../../dist/apps/devkits/zuno/web/**"
       ]
     },
     "@codexsun/zuno-desktop#build": {
@@ -79,7 +79,7 @@
     },
     "@codexsun/docx-web#build": {
       "outputs": [
-        "../../../dist/apps/docx/web/**"
+        "../../../../dist/apps/devkits/docx/web/**"
       ]
     },
     "@codexsun/qcafe-api#build": {
@@ -139,7 +139,7 @@
     },
     "@codexsun/orship-web#build": {
       "outputs": [
-        "../../../dist/apps/orship/web/**"
+        "../../../../dist/apps/devkits/orship/web/**"
       ]
     },
     "@codexsun/zuno-mobile#build": {

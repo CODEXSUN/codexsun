@@ -4,14 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/qcafe/api/server.js",
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --banner:js=\"import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url); const __dirname = import.meta.dirname;\" --outfile=../../../dist/qcafe/api/server.js",
+    "build:deployment": "npm run build && esbuild src/deployment-prepare.ts --bundle --platform=node --format=esm --banner:js=\"import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url); const __dirname = import.meta.dirname;\" --outfile=../../../dist/qcafe/api/deployment-prepare.js",
     "check": "tsc -p tsconfig.json --noEmit",
     "database:migrate": "tsx src/database-migrate.ts",
     "database:smoke": "tsx src/database-smoke.ts",
     "database:verify": "tsx src/database-verify.ts",
     "dev": "tsx watch src/server.ts",
     "lint": "eslint src",
-    "test": "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/qcafe-provider-catalog.test.ts src/modules/foundation/test/provider.test.ts src/modules/foundation/test/qcafe-persistence.test.ts src/modules/foundation/test/qcafe-database-verifier.test.ts src/modules/foundation/test/foundation-setup.test.ts src/modules/menu/test/menu.service.test.ts src/modules/menu/test/menu-policy.service.test.ts src/modules/menu/test/menu-campaign.service.test.ts src/modules/settings/test/settings.service.test.ts"
+    "test": "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/qcafe-provider-catalog.test.ts src/modules/foundation/test/provider.test.ts src/modules/foundation/test/qcafe-persistence.test.ts src/modules/foundation/test/qcafe-database-verifier.test.ts src/modules/foundation/test/foundation-setup.test.ts src/modules/menu/test/menu.service.test.ts src/modules/menu/test/menu-policy.service.test.ts src/modules/menu/test/menu-campaign.service.test.ts src/modules/pos/test/pos-kitchen-table.test.ts src/modules/billing/test/billing.service.test.ts src/modules/booking/test/guest-event.service.test.ts src/modules/settings/test/settings.service.test.ts"
   },
   "dependencies": {
     "@codexsun/framework": "file:../../../packages/framework",

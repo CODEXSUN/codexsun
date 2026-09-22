@@ -3,6 +3,7 @@
   "kind": "application",
   "id": "crm",
   "label": "CRM",
+  "category": "business",
   "owner": "apps/crm",
   "taskPrefix": "c",
   "providers": [

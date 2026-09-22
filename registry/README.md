@@ -10,7 +10,7 @@ Each file uses `schemaVersion: 1`. A profile can also select the provider IDs
 for each enabled API application. The runtime rejects a provider that is not
 available in that application.
 
-The registry owns composition metadata only. Application source remains in `apps/<application>` and reusable contracts remain in `packages`.
+The registry owns composition metadata only. Application source remains under its manifest `owner` path: platform and business apps use `apps/<application>`, while developer tooling uses `apps/devkits/<application>`. Reusable contracts remain in `packages`.
 
 Use these commands:
 

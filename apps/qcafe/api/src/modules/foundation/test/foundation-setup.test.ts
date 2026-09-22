@@ -17,24 +17,30 @@ test("creates a business, multiple locations, defaults, and a business day", asy
     () => new Date("2026-09-20T08:00:00.000Z"),
   );
 
-  let setup = await service.createBusiness({
-    businessName: "Q Cafe Central",
-    currency: "INR",
-    locationCode: "MAIN",
-    locationName: "Main Road",
-    timezone: "Asia/Calcutta",
-  }, context);
+  let setup = await service.createBusiness(
+    {
+      businessName: "Q Cafe Central",
+      currency: "INR",
+      locationCode: "MAIN",
+      locationName: "Main Road",
+      timezone: "Asia/Calcutta",
+    },
+    context,
+  );
   const business = setup.businesses[0];
   assert.ok(business);
-  assert.equal(business.locations[0]?.serviceChannels.length, 3);
-  assert.equal(business.locations[0]?.numberSequences.length, 3);
+  assert.equal(business.locations[0]?.serviceChannels.length, 7);
+  assert.equal(business.locations[0]?.numberSequences.length, 6);
 
-  setup = await service.createLocation({
-    businessId: business.id,
-    code: "AIRPORT",
-    name: "Airport Outlet",
-    timezone: "Asia/Calcutta",
-  }, context);
+  setup = await service.createLocation(
+    {
+      businessId: business.id,
+      code: "AIRPORT",
+      name: "Airport Outlet",
+      timezone: "Asia/Calcutta",
+    },
+    context,
+  );
   assert.equal(setup.businesses[0]?.locations.length, 2);
 
   const location = setup.businesses[0]?.locations[0];
@@ -45,6 +51,8 @@ test("creates a business, multiple locations, defaults, and a business day", asy
   assert.equal(setup.syncConfigured, true);
   const events = await persistence.database().selectFrom("qcafe_activity_events").selectAll().execute();
   assert.equal(events.length, 3);
-  assert.ok(events.every((event) => event.actor_id === context.actorId && event.correlation_id === context.correlationId));
+  assert.ok(
+    events.every((event) => event.actor_id === context.actorId && event.correlation_id === context.correlationId),
+  );
   await persistence.destroy();
 });

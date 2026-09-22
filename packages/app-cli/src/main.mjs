@@ -61,6 +61,7 @@ function create(args, rootDir) {
   const [id, ...options] = args;
   const application = createApplication(rootDir, {
     apiPort: optionValue(options, "--api-port"),
+    category: optionValue(options, "--category"),
     id,
     label: optionValue(options, "--label"),
     taskPrefix: optionValue(options, "--prefix"),

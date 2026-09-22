@@ -3,7 +3,8 @@
   "kind": "application",
   "id": "orship",
   "label": "Orship",
-  "owner": "apps/orship",
+  "category": "devkit",
+  "owner": "apps/devkits/orship",
   "taskPrefix": "o",
   "providers": [
     "platform.core",

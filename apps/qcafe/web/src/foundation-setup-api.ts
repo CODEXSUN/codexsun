@@ -20,7 +20,12 @@ export type FoundationLocation = {
   code: string;
   id: string;
   name: string;
-  numberSequences: Array<{ documentKind: "bill" | "kot" | "order"; id: string; nextValue: number; prefix: string }>;
+  numberSequences: Array<{
+    documentKind: "bill" | "event_quote" | "kot" | "order" | "receipt" | "voucher";
+    id: string;
+    nextValue: number;
+    prefix: string;
+  }>;
   serviceChannels: FoundationServiceChannel[];
   status: "active" | "inactive";
   timezone: string;

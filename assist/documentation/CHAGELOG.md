@@ -44,6 +44,10 @@ New entries must keep database-facing work and application code work separate.
 #### App Codebase Changes
 
 - Bumped CODEXSUN workspace version to 1.0.32.
+- Added the Q Cafe SQLite container deployment with production API and Nginx
+  images, explicit migration and identity preparation, persistent data and
+  backup volumes, guarded setup/update/drop scripts, health checks, and
+  restart-persistence verification.
 
 ## v-1.0.31
 

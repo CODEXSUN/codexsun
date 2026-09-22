@@ -9,6 +9,10 @@
     "apps/*/web",
     "apps/*/desktop",
     "apps/*/mobile",
+    "apps/devkits/*/api",
+    "apps/devkits/*/web",
+    "apps/devkits/*/desktop",
+    "apps/devkits/*/mobile",
     "packages/*"
   ],
   "scripts": {

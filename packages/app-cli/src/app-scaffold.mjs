@@ -1,13 +1,13 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { loadRegistry } from "./registry.mjs";
+import { applicationPath, loadRegistry } from "./registry.mjs";
 import { syncMdiCatalog } from "./mdi-catalog.mjs";
 
 export function createApplication(rootDir, options) {
   const registry = loadRegistry(rootDir);
   const application = createManifest(options, registry.applications);
-  const applicationPath = resolve(registry.root, "apps", application.id);
-  if (existsSync(applicationPath)) throw new Error(`Application already exists: apps/${application.id}.`);
+  const applicationPathValue = applicationPath(registry.root, application);
+  if (existsSync(applicationPathValue)) throw new Error(`Application already exists: ${application.owner}.`);
 
   writeApplicationFiles(registry.root, application);
   writeJson(resolve(registry.root, "registry", "applications", `${application.id}.json`), application);
@@ -32,12 +32,16 @@ function createManifest(options, applications) {
   if (apiPort === webPort) throw new Error("API and web ports must differ.");
   const label = String(options.label ?? titleCase(id)).trim();
   const key = environmentKey(id);
+  const category = String(options.category ?? "business").trim();
+  if (!["platform", "business", "devkit"].includes(category)) throw new Error("Application category must be platform, business, or devkit.");
+  const owner = category === "devkit" ? `apps/devkits/${id}` : `apps/${id}`;
   return {
     schemaVersion: 1,
     kind: "application",
     id,
     label,
-    owner: `apps/${id}`,
+    category,
+    owner,
     taskPrefix,
     providers: ["platform.core", `${id}.foundation`],
     mdi: { icon: "application", localUrlKey: `VITE_${key}_WEB_URL`, path: "/" },
@@ -52,28 +56,29 @@ function writeApplicationFiles(root, application) {
   const [api, web] = application.hosts;
   const key = environmentKey(application.id);
   const version = workspaceVersion(root);
-  write(root, `apps/${application.id}/README.md`, `# ${application.label}\n\nThis application owns its product modules and composition.\n\nRun dependency installation only from the repository root. The app never owns a node_modules, dist, or .turbo directory.\n`);
-  write(root, `apps/${application.id}/agent/skills.md`, agentSkillsSource(application));
-  write(root, `apps/${application.id}/agent/exec/${application.id}-task.md`, agentTaskSource(application));
-  write(root, `apps/${application.id}/api/package.json`, apiPackage(application, version));
-  write(root, `apps/${application.id}/api/tsconfig.json`, '{ "extends": "../../../tsconfig.base.json", "include": ["src", "test"] }\n');
-  write(root, `apps/${application.id}/api/.app.env.example`, `PLATFORM_HOST=127.0.0.1\n${api.envKey}=${api.defaultPort}\n${key}_WEB_ORIGIN=http://127.0.0.1:${web.defaultPort}\n${key}_API_REFERENCE_TOKEN=change-this-local-token\nAPP_MODE=development\nAUTO_LOGIN=0\nAUTO_LOGIN_DESK=user\nREFRESH_IDENTITY_SEED=0\nIDENTITY_LOGIN_MAX_FAILURES=5\nIDENTITY_LOGIN_WINDOW_SECONDS=900\nIDENTITY_LOGIN_LOCKOUT_SECONDS=900\nIDENTITY_PASSWORD_RESET_TOKEN_TTL_SECONDS=900\nIDENTITY_EXPOSE_DEVELOPMENT_RESET_TOKEN=0\nPLATFORM_JWT_SECRET=change-this-to-a-32-character-minimum-secret\nSUPER_ADMIN_NAME=super-admin\nSUPER_ADMIN_LOGIN=superadmin@superadmin.com\nSUPER_ADMIN_USERNAME=superadmin\nSUPER_ADMIN_PASSWORD=change_pass\nADMIN_NAME=Admin\nADMIN_LOGIN=admin@changepass.com\nADMIN_USERNAME=admin\nADMIN_PASSWORD=change_pass\nUSER_NAME=User\nUSER_LOGIN=user@changepass.com\nUSER_USERNAME=user\nUSER_PASSWORD=change_pass\n`);
-  write(root, `apps/${application.id}/api/README.md`, `# ${application.label} API\n\nThe API exposes typed Zod routes and a protected internal OpenAPI reference.\n`);
-  write(root, `apps/${application.id}/api/src/config.ts`, apiConfigSource(application));
-  write(root, `apps/${application.id}/api/src/server.ts`, apiSourceV5(application));
-  write(root, `apps/${application.id}/api/src/server.test.ts`, apiTestSource(application));
-  write(root, `apps/${application.id}/api/src/mariadb.integration.test.ts`, mariaDbTestSource(application));
-  write(root, `apps/${application.id}/api/src/modules/foundation/provider.ts`, providerSource(application));
-  write(root, `apps/${application.id}/api/src/modules/foundation/README.md`, `# ${application.label} Foundation Module\n\nThis module owns the application health provider.\n`);
-  write(root, `apps/${application.id}/api/src/modules/foundation/test/provider.test.ts`, providerTestSource(application));
-  write(root, `apps/${application.id}/web/package.json`, webPackage(application, version));
-  write(root, `apps/${application.id}/web/tsconfig.json`, '{ "extends": "../../../tsconfig.base.json", "compilerOptions": { "module": "ESNext", "moduleResolution": "Bundler", "jsx": "react-jsx", "noEmit": true, "types": ["vite/client"] }, "include": ["src", "vite.config.ts"] }\n');
-  write(root, `apps/${application.id}/web/.app.env.example`, `PLATFORM_HOST=127.0.0.1\n${web.envKey}=${web.defaultPort}\nVITE_${key}_API_URL=http://127.0.0.1:${api.defaultPort}\n`);
-  write(root, `apps/${application.id}/web/README.md`, `# ${application.label} Web\n\nThe web host composes the shared MDI workspace. Vite cache files write to dist/.vite/apps/${application.id}/web.\n`);
-  write(root, `apps/${application.id}/web/index.html`, '<div id="root"></div><script type="module" src="/src/main.tsx"></script>\n');
-  write(root, `apps/${application.id}/web/src/main.tsx`, 'import "@codexsun/ui/globals.css";\nimport { QueryClient, QueryClientProvider } from "@tanstack/react-query";\nimport { createRoot } from "react-dom/client";\nimport { App } from "./app";\n\nconst queryClient = new QueryClient({ defaultOptions: { queries: { retry: 2, staleTime: 15_000, refetchOnWindowFocus: false } } });\ncreateRoot(document.getElementById("root")!).render(<QueryClientProvider client={queryClient}><App /></QueryClientProvider>);\n');
-  write(root, `apps/${application.id}/web/src/app.tsx`, webAppSource(application));
-  write(root, `apps/${application.id}/web/vite.config.ts`, viteSourceV2(application));
+  const base = application.owner;
+  write(root, `${base}/README.md`, `# ${application.label}\n\nThis application owns its product modules and composition.\n\nRun dependency installation only from the repository root. The app never owns a node_modules, dist, or .turbo directory.\n`);
+  write(root, `${base}/agent/skills.md`, agentSkillsSource(application));
+  write(root, `${base}/agent/exec/${application.id}-task.md`, agentTaskSource(application));
+  write(root, `${base}/api/package.json`, apiPackage(application, version));
+  write(root, `${base}/api/tsconfig.json`, `{ "extends": "${rootPrefix(application)}tsconfig.base.json", "include": ["src", "test"] }\n`);
+  write(root, `${base}/api/.app.env.example`, `PLATFORM_HOST=127.0.0.1\n${api.envKey}=${api.defaultPort}\n${key}_WEB_ORIGIN=http://127.0.0.1:${web.defaultPort}\n${key}_API_REFERENCE_TOKEN=change-this-local-token\nAPP_MODE=development\nAUTO_LOGIN=0\nAUTO_LOGIN_DESK=user\nREFRESH_IDENTITY_SEED=0\nIDENTITY_LOGIN_MAX_FAILURES=5\nIDENTITY_LOGIN_WINDOW_SECONDS=900\nIDENTITY_LOGIN_LOCKOUT_SECONDS=900\nIDENTITY_PASSWORD_RESET_TOKEN_TTL_SECONDS=900\nIDENTITY_EXPOSE_DEVELOPMENT_RESET_TOKEN=0\nPLATFORM_JWT_SECRET=change-this-to-a-32-character-minimum-secret\nSUPER_ADMIN_NAME=super-admin\nSUPER_ADMIN_LOGIN=superadmin@superadmin.com\nSUPER_ADMIN_USERNAME=superadmin\nSUPER_ADMIN_PASSWORD=change_pass\nADMIN_NAME=Admin\nADMIN_LOGIN=admin@changepass.com\nADMIN_USERNAME=admin\nADMIN_PASSWORD=change_pass\nUSER_NAME=User\nUSER_LOGIN=user@changepass.com\nUSER_USERNAME=user\nUSER_PASSWORD=change_pass\n`);
+  write(root, `${base}/api/README.md`, `# ${application.label} API\n\nThe API exposes typed Zod routes and a protected internal OpenAPI reference.\n`);
+  write(root, `${base}/api/src/config.ts`, apiConfigSource(application));
+  write(root, `${base}/api/src/server.ts`, apiSourceV5(application));
+  write(root, `${base}/api/src/server.test.ts`, apiTestSource(application));
+  write(root, `${base}/api/src/mariadb.integration.test.ts`, mariaDbTestSource(application));
+  write(root, `${base}/api/src/modules/foundation/provider.ts`, providerSource(application));
+  write(root, `${base}/api/src/modules/foundation/README.md`, `# ${application.label} Foundation Module\n\nThis module owns the application health provider.\n`);
+  write(root, `${base}/api/src/modules/foundation/test/provider.test.ts`, providerTestSource(application));
+  write(root, `${base}/web/package.json`, webPackage(application, version));
+  write(root, `${base}/web/tsconfig.json`, `{ "extends": "${rootPrefix(application)}tsconfig.base.json", "compilerOptions": { "module": "ESNext", "moduleResolution": "Bundler", "jsx": "react-jsx", "noEmit": true, "types": ["vite/client"] }, "include": ["src", "vite.config.ts"] }\n`);
+  write(root, `${base}/web/.app.env.example`, `PLATFORM_HOST=127.0.0.1\n${web.envKey}=${web.defaultPort}\nVITE_${key}_API_URL=http://127.0.0.1:${api.defaultPort}\n`);
+  write(root, `${base}/web/README.md`, `# ${application.label} Web\n\nThe web host composes the shared MDI workspace. Vite cache files write to dist/.vite/${base}/web.\n`);
+  write(root, `${base}/web/index.html`, '<div id="root"></div><script type="module" src="/src/main.tsx"></script>\n');
+  write(root, `${base}/web/src/main.tsx`, 'import "@codexsun/ui/globals.css";\nimport { QueryClient, QueryClientProvider } from "@tanstack/react-query";\nimport { createRoot } from "react-dom/client";\nimport { App } from "./app";\n\nconst queryClient = new QueryClient({ defaultOptions: { queries: { retry: 2, staleTime: 15_000, refetchOnWindowFocus: false } } });\ncreateRoot(document.getElementById("root")!).render(<QueryClientProvider client={queryClient}><App /></QueryClientProvider>);\n');
+  write(root, `${base}/web/src/app.tsx`, webAppSource(application));
+  write(root, `${base}/web/vite.config.ts`, viteSourceV2(application));
 }
 
 function enableInDevelopmentProfile(root, application) {
@@ -94,11 +99,13 @@ function registerRootMdiPort(root, application) {
 }
 
 function apiPackage(application, version) {
-  return { name: `@codexsun/${application.id}-api`, version, private: true, type: "module", scripts: { build: "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/" + application.id + "/api/server.js", check: "tsc -p tsconfig.json --noEmit", dev: "tsx watch src/server.ts", lint: "eslint src", test: "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts" }, dependencies: { "@codexsun/framework": "file:../../../packages/framework", "@codexsun/platform-core": "file:../../../packages/platform-core", "@fastify/cors": "^11.3.0", "@fastify/helmet": "^13.1.1", "@fastify/swagger": "^9.8.1", "@fastify/swagger-ui": "^6.1.1", dotenv: "^17.0.0", fastify: "^5.0.0", "fastify-type-provider-zod": "^4.0.2", zod: "^3.25.76" } };
+  const prefix = rootPrefix(application);
+  return { name: `@codexsun/${application.id}-api`, version, private: true, type: "module", scripts: { build: `esbuild src/server.ts --bundle --platform=node --format=esm --outfile=${prefix}dist/${application.owner}/api/server.js`, check: "tsc -p tsconfig.json --noEmit", dev: "tsx watch src/server.ts", lint: "eslint src", test: "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts" }, dependencies: { "@codexsun/framework": `file:${prefix}packages/framework`, "@codexsun/platform-core": `file:${prefix}packages/platform-core`, "@fastify/cors": "^11.3.0", "@fastify/helmet": "^13.1.1", "@fastify/swagger": "^9.8.1", "@fastify/swagger-ui": "^6.1.1", dotenv: "^17.0.0", fastify: "^5.0.0", "fastify-type-provider-zod": "^4.0.2", zod: "^3.25.76" } };
 }
 
 function webPackage(application, version) {
-  return { name: `@codexsun/${application.id}-web`, version, private: true, type: "module", scripts: { build: "vite build", check: "tsc -p tsconfig.json --noEmit", dev: "vite", lint: "eslint src", test: "tsx --test" }, dependencies: { "@codexsun/ui": "file:../../../packages/ui", "@tailwindcss/vite": "^4.0.0", "@tanstack/react-query": "^5.103.1", "@vitejs/plugin-react": "^5.0.0", dotenv: "^17.0.0", react: "^19.0.0", "react-dom": "^19.0.0", vite: "^7.0.0" } };
+  const prefix = rootPrefix(application);
+  return { name: `@codexsun/${application.id}-web`, version, private: true, type: "module", scripts: { build: "vite build", check: "tsc -p tsconfig.json --noEmit", dev: "vite", lint: "eslint src", test: "tsx --test" }, dependencies: { "@codexsun/ui": `file:${prefix}packages/ui`, "@tailwindcss/vite": "^4.0.0", "@tanstack/react-query": "^5.103.1", "@vitejs/plugin-react": "^5.0.0", dotenv: "^17.0.0", react: "^19.0.0", "react-dom": "^19.0.0", vite: "^7.0.0" } };
 }
 
 function legacyWebAppSource(application) {
@@ -125,13 +132,13 @@ function Desk({ logout }: { logout(): void }) {
 
 function providerSource(application) {
   const name = className(application.id);
-  return `import type { ModuleProvider } from "@codexsun/framework";\n\nexport class ${name}FoundationProvider implements ModuleProvider {\n  readonly manifest = { id: "${application.id}.foundation", owner: "apps/${application.id}/api/modules/foundation", version: "1.0.0", dependencies: ["platform.core"], contracts: ["${application.id}.health"], events: { published: [], consumed: [] } };\n  register(): void {}\n}\n`;
+  return `import type { ModuleProvider } from "@codexsun/framework";\n\nexport class ${name}FoundationProvider implements ModuleProvider {\n  readonly manifest = { id: "${application.id}.foundation", owner: "${application.owner}/api/modules/foundation", version: "1.0.0", dependencies: ["platform.core"], contracts: ["${application.id}.health"], events: { published: [], consumed: [] } };\n  register(): void {}\n}\n`;
 }
 
 function apiConfigSource(application) {
   const [api] = application.hosts;
   const key = environmentKey(application.id);
-  return `import { readLocalIdentityConfiguration } from "@codexsun/platform-core";\nimport { config } from "dotenv";\nimport { resolve } from "node:path";\n\nexport function readConfig() {\n  config({ path: resolve(process.cwd(), "../../../.env") });\n  config({ path: resolve(process.cwd(), ".app.env"), override: true });\n  const port = Number(process.env.${api.envKey});\n  if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("Set ${api.envKey} to a valid port.");\n  const host = process.env.PLATFORM_HOST;\n  if (!host) throw new Error("Set PLATFORM_HOST.");\n  const apiReferenceToken = process.env.${key}_API_REFERENCE_TOKEN;\n  if (!apiReferenceToken) throw new Error("Set ${key}_API_REFERENCE_TOKEN.");\n  return { apiReferenceToken, host, port, ...readLocalIdentityConfiguration(process.env, { applicationId: "${application.id}", databasePath: resolve(process.cwd(), "../../../storage/apps/${application.id}/private/data/${application.id}_db.sqlite") }) };\n}\n`;
+  return `import { readLocalIdentityConfiguration } from "@codexsun/platform-core";\nimport { config } from "dotenv";\nimport { resolve } from "node:path";\n\nexport function readConfig() {\n  config({ path: resolve(process.cwd(), "${rootPrefix(application)}.env") });\n  config({ path: resolve(process.cwd(), ".app.env"), override: true });\n  const port = Number(process.env.${api.envKey});\n  if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("Set ${api.envKey} to a valid port.");\n  const host = process.env.PLATFORM_HOST;\n  if (!host) throw new Error("Set PLATFORM_HOST.");\n  const apiReferenceToken = process.env.${key}_API_REFERENCE_TOKEN;\n  if (!apiReferenceToken) throw new Error("Set ${key}_API_REFERENCE_TOKEN.");\n  return { apiReferenceToken, host, port, ...readLocalIdentityConfiguration(process.env, { applicationId: "${application.id}", databasePath: resolve(process.cwd(), "${rootPrefix(application)}storage/apps/${application.id}/private/data/${application.id}_db.sqlite") }) };\n}\n`;
 }
 
 function apiSourceV2(application) {
@@ -245,20 +252,20 @@ function isPublicPath(url: string): boolean {
 function viteSourceV2(application) {
   const [api, web] = application.hosts;
   const key = environmentKey(application.id);
-  return `import { config } from "dotenv";\nimport { resolve } from "node:path";\nimport react from "@vitejs/plugin-react";\nimport tailwindcss from "@tailwindcss/vite";\nimport { defineConfig } from "vite";\n\nconfig({ path: resolve(import.meta.dirname, "../../../.env") });\nconfig({ path: resolve(import.meta.dirname, ".app.env"), override: true });\n\nexport default defineConfig({\n  cacheDir: "../../../dist/.vite/apps/${application.id}/web",\n  plugins: [react(), tailwindcss()],\n  server: {\n    host: process.env.PLATFORM_HOST ?? "127.0.0.1",\n    port: Number(process.env.${web.envKey} ?? ${web.defaultPort}),\n    proxy: { "/api": process.env.VITE_${key}_API_URL ?? "http://127.0.0.1:${api.defaultPort}" },\n    strictPort: true,\n  },\n  build: { outDir: "../../../dist/apps/${application.id}/web", emptyOutDir: true },\n});\n`;
+  return `import { config } from "dotenv";\nimport { resolve } from "node:path";\nimport react from "@vitejs/plugin-react";\nimport tailwindcss from "@tailwindcss/vite";\nimport { defineConfig } from "vite";\n\nconfig({ path: resolve(import.meta.dirname, "${rootPrefix(application)}.env") });\nconfig({ path: resolve(import.meta.dirname, ".app.env"), override: true });\n\nexport default defineConfig({\n  cacheDir: "${rootPrefix(application)}dist/.vite/${application.owner}/web",\n  plugins: [react(), tailwindcss()],\n  server: {\n    host: process.env.PLATFORM_HOST ?? "127.0.0.1",\n    port: Number(process.env.${web.envKey} ?? ${web.defaultPort}),\n    proxy: { "/api": process.env.VITE_${key}_API_URL ?? "http://127.0.0.1:${api.defaultPort}" },\n    strictPort: true,\n  },\n  build: { outDir: "${rootPrefix(application)}dist/${application.owner}/web", emptyOutDir: true },\n});\n`;
 }
 
 function agentSkillsSource(application) {
-  return `# ${application.label} Agent Skills\n\nWork only inside apps/${application.id} unless a public platform or framework contract requires a reviewed change.\n\nKeep product modules owned by this application. Use shared UI, identity, and platform contracts instead of copying them.\n\nRun dependency installation from the repository root only. Do not create app-local node_modules, dist, or .turbo folders.\n\nVerify the affected API and web hosts. Run node tools/check-root-layout.mjs before completion.\n`;
+  return `# ${application.label} Agent Skills\n\nWork only inside ${application.owner} unless a public platform or framework contract requires a reviewed change.\n\nKeep product modules owned by this application. Use shared UI, identity, and platform contracts instead of copying them.\n\nRun dependency installation from the repository root only. Do not create app-local node_modules, dist, or .turbo folders.\n\nVerify the affected API and web hosts. Run node tools/check-root-layout.mjs before completion.\n`;
 }
 
 function agentTaskSource(application) {
-  return `# ${application.label} Task Guide\n\n1. Read apps/${application.id}/agent/skills.md.\n2. Keep changes inside apps/${application.id}.\n3. Use package public contracts for shared capabilities.\n4. Start hosts through root dev:${application.id}-api and dev:${application.id}-web commands.\n5. Run the application tests and node tools/check-root-layout.mjs.\n`;
+  return `# ${application.label} Task Guide\n\n1. Read ${application.owner}/agent/skills.md.\n2. Keep changes inside ${application.owner}.\n3. Use package public contracts for shared capabilities.\n4. Start hosts through root dev:${application.id}-api and dev:${application.id}-web commands.\n5. Run the application tests and node tools/check-root-layout.mjs.\n`;
 }
 
 function apiTestSource(application) {
   const name = className(application.id);
-  return `import test from "node:test";\nimport assert from "node:assert/strict";\nimport { ${name}FoundationProvider } from "./modules/foundation/provider.js";\n\ntest("${application.id} API declares its owned health contract", () => {\n  const provider = new ${name}FoundationProvider();\n  assert.deepEqual(provider.manifest.contracts, ["${application.id}.health"]);\n  assert.equal(provider.manifest.owner, "apps/${application.id}/api/modules/foundation");\n});\n`;
+  return `import test from "node:test";\nimport assert from "node:assert/strict";\nimport { ${name}FoundationProvider } from "./modules/foundation/provider.js";\n\ntest("${application.id} API declares its owned health contract", () => {\n  const provider = new ${name}FoundationProvider();\n  assert.deepEqual(provider.manifest.contracts, ["${application.id}.health"]);\n  assert.equal(provider.manifest.owner, "${application.owner}/api/modules/foundation");\n});\n`;
 }
 
 function mariaDbTestSource(application) {
@@ -304,7 +311,7 @@ function registerWorkspaceLock(root, application) {
   const version = workspaceVersion(root);
   const apiWorkspace = apiPackage(application, version);
   const webWorkspace = webPackage(application, version);
-  const entries = [[`apps/${application.id}/api`, apiWorkspace], [`apps/${application.id}/web`, webWorkspace]];
+  const entries = [[`${application.owner}/api`, apiWorkspace], [`${application.owner}/web`, webWorkspace]];
   for (const [workspacePath, workspace] of entries) {
     lock.packages[workspacePath] = workspace;
     lock.packages[`node_modules/${workspace.name}`] = { resolved: workspacePath, link: true };
@@ -330,8 +337,9 @@ function registerTurboOutputs(root, application) {
   if (!existsSync(path)) return;
   const turbo = JSON.parse(readFileSync(path, "utf8"));
   turbo.tasks ??= {};
-  turbo.tasks[`@codexsun/${application.id}-api#build`] = { outputs: [`../../../dist/${application.id}/api/**`] };
-  turbo.tasks[`@codexsun/${application.id}-web#build`] = { outputs: [`../../../dist/apps/${application.id}/web/**`] };
+  const prefix = rootPrefix(application);
+  turbo.tasks[`@codexsun/${application.id}-api#build`] = { outputs: [`${prefix}dist/${application.owner}/api/**`] };
+  turbo.tasks[`@codexsun/${application.id}-web#build`] = { outputs: [`${prefix}dist/${application.owner}/web/**`] };
   writeJson(path, turbo);
 }
 
@@ -339,6 +347,10 @@ function workspaceVersion(root) {
   const packagePath = resolve(root ?? process.cwd(), "package.json");
   if (!existsSync(packagePath)) throw new Error("Root package.json is required to scaffold an application.");
   return String(JSON.parse(readFileSync(packagePath, "utf8")).version);
+}
+
+function rootPrefix(application) {
+  return "../".repeat(application.owner.split("/").length + 1);
 }
 
 function requireText(path) {

@@ -65,62 +65,62 @@
 
 ## Phase 2: Core POS and Takeaway
 
-- [ ] `QC-0201` Add service channels for counter, dine-in, takeaway, QR, delivery, event, and marketplace sales.
+- [x] `QC-0201` Add service channels for counter, dine-in, takeaway, QR, delivery, event, and marketplace sales.
   - Acceptance: takeaway uses the normal order record and does not create a separate sale model.
-- [ ] `QC-0202` Add order, order line, order event, fulfillment job, and takeaway detail records.
+- [x] `QC-0202` Add order, order line, order event, fulfillment job, and takeaway detail records.
   - Acceptance: an open parcel order survives a browser refresh and shows its order history.
-- [ ] `QC-0203` Build the touch-first POS page using server-selected catalog and prices.
+- [x] `QC-0203` Build the touch-first POS page using server-selected catalog and prices.
   - Acceptance: a cashier can add, change, remove, and hold items without browser-held price authority.
-- [ ] `QC-0204` Add item notes, order notes, modifiers, discounts, and approval rules.
+- [x] `QC-0204` Add item notes, order notes, modifiers, discounts, and approval rules.
   - Acceptance: each price adjustment records the reason and approving actor.
-- [ ] `QC-0205` Add customer selection and pickup details for parcels.
+- [x] `QC-0205` Add customer selection and pickup details for parcels.
   - Acceptance: collection name, contact reference, and pickup code are available at handover.
-- [ ] `QC-0206` Verify the counter parcel flow from an authenticated browser through persisted order data.
+- [x] `QC-0206` Verify the counter parcel flow from an authenticated browser through persisted order data.
   - Acceptance: create, edit, hold, resume, and fulfill operations pass API and browser checks.
 
 ## Phase 3: KOT and Table Service
 
-- [ ] `QC-0301` Add dining areas, tables, table sessions, and table-session links.
+- [x] `QC-0301` Add dining areas, tables, table sessions, and table-session links.
   - Acceptance: table occupancy lives in Q Cafe records, not browser storage.
-- [ ] `QC-0302` Add kitchen stations and item-to-station routes.
+- [x] `QC-0302` Add kitchen stations and item-to-station routes.
   - Acceptance: one order can route food and beverages to different stations.
-- [ ] `QC-0303` Add kitchen ticket, line, and event records.
+- [x] `QC-0303` Add kitchen ticket, line, and event records.
   - Acceptance: a confirmed order creates durable tickets only for prepared items.
-- [ ] `QC-0304` Build the KOT screen and kitchen display actions.
+- [x] `QC-0304` Build the KOT screen and kitchen display actions.
   - Acceptance: staff can fire, accept, prepare, ready, serve, recall, and void with reasons.
-- [ ] `QC-0305` Add KOT print routing and reprint rules.
+- [x] `QC-0305` Add KOT print routing and reprint rules.
   - Acceptance: a reprint records a new print attempt and cannot remove the original ticket.
-- [ ] `QC-0306` Verify the table sale flow from seating to KOT, service, and release.
+- [x] `QC-0306` Verify the table sale flow from seating to KOT, service, and release.
   - Acceptance: a table becomes available only after its session closes.
 
 ## Phase 4: Billing, Payments, Receipts, and Settlement
 
-- [ ] `QC-0401` Add bill, bill line, tax, payment method, payment, tender detail, and receipt records.
+- [x] `QC-0401` Add bill, bill line, tax, payment method, payment, tender detail, and receipt records.
   - Acceptance: a posted bill stores immutable item, price, tax, and total snapshots.
-- [ ] `QC-0402` Add cash, card, UPI, bank, and approved digital payment methods.
+- [x] `QC-0402` Add cash, card, UPI, bank, and approved digital payment methods.
   - Acceptance: payment records store only safe provider and masked tender references.
-- [ ] `QC-0403` Add split payments, payment failure, void, refund, and correction rules.
+- [x] `QC-0403` Add split payments, payment failure, void, refund, and correction rules.
   - Acceptance: a posted payment is reversed by a new record, never edited in place.
-- [ ] `QC-0404` Add cash drawers, cash shifts, cash movements, shift settlements, and day close.
+- [x] `QC-0404` Add cash drawers, cash shifts, cash movements, shift settlements, and day close.
   - Acceptance: every shift variance has a reason and approver.
-- [ ] `QC-0405` Add advance vouchers and voucher applications.
+- [x] `QC-0405` Add advance vouchers and voucher applications.
   - Acceptance: an event advance can apply partly or fully to a later bill.
-- [ ] `QC-0406` Verify the full paid parcel flow and the partial-payment recovery flow.
+- [x] `QC-0406` Verify the full paid parcel flow and the partial-payment recovery flow.
   - Acceptance: orders, bills, payments, receipts, cash shift totals, and activity events reconcile.
 
 ## Phase 5: Booking, Guest, QR, and Function Sales
 
-- [ ] `QC-0501` Add customer, reservation, reservation-table, and reservation-event records.
+- [x] `QC-0501` Add customer, reservation, reservation-table, and reservation-event records.
   - Acceptance: the API rejects an overlapping confirmed reservation under the location policy.
-- [ ] `QC-0502` Add reservation lifecycle actions for requested, confirmed, seated, completed, canceled, and no-show.
+- [x] `QC-0502` Add reservation lifecycle actions for requested, confirmed, seated, completed, canceled, and no-show.
   - Acceptance: every transition records an event and an actor.
-- [ ] `QC-0503` Convert a seated reservation into a table session and POS order.
+- [x] `QC-0503` Convert a seated reservation into a table session and POS order.
   - Acceptance: the booking, session, order, and bill remain linked.
-- [ ] `QC-0504` Add rotatable table QR tokens and scanner profiles.
+- [x] `QC-0504` Add rotatable table QR tokens and scanner profiles.
   - Acceptance: a public QR token resolves through a validated route without exposing internal identifiers.
-- [ ] `QC-0505` Add event leads, follow-ups, bookings, requirements, quotes, tasks, schedules, and order links.
+- [x] `QC-0505` Add event leads, follow-ups, bookings, requirements, quotes, tasks, schedules, and order links.
   - Acceptance: a function moves from enquiry to quote, advance, plan, service, and final collection.
-- [ ] `QC-0506` Verify reservation conflict, QR entry, and event advance flows.
+- [x] `QC-0506` Verify reservation conflict, QR entry, and event advance flows.
   - Acceptance: API tests and a browser flow cover accepted and rejected states.
 
 ## Phase 6: Inventory, Recipes, and Daily Planning
@@ -181,8 +181,8 @@
 
 ## Work First
 
-1. Add the complete service-channel model in `QC-0201`.
-2. Add durable order and takeaway records in `QC-0202`.
-3. Build the POS workflow in `QC-0203` only after the order API is authoritative.
-4. Complete Phase 2 before KOT, booking, payment, or printing work.
-5. Complete Phase 4 before advance vouchers, event deposits, or accounting work.
+1. Add customer and reservation records with overlap protection in `QC-0501`.
+2. Add the complete reservation lifecycle and actor events in `QC-0502`.
+3. Link seated reservations to table sessions, POS orders, and bills in `QC-0503`.
+4. Add rotatable table QR tokens and validated scanner entry in `QC-0504`.
+5. Complete function sales from enquiry through advance, planning, service, and collection in `QC-0505` and `QC-0506`.

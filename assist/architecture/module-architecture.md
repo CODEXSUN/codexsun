@@ -33,7 +33,8 @@ The sequence describes discovery and composition. It does not allow a lower laye
 apps/
   platform/                 generic platform host
     modules/                platform-owned modules
-  <app>/                    independently deployable application
+  <app>/                    independently deployable business application
+  devkits/<app>/            developer-oriented application
     modules/                app-owned modules
 packages/
   framework/                runtime-neutral infrastructure contracts
@@ -44,7 +45,7 @@ storage/                    centralized application file storage
 deployment/                 environment deployment definitions
 ```
 
-`apps/platform` is the generic holder for selected applications. It owns platform capabilities such as identity, database management, Git repository management, and CLI integration.
+`apps/platform` is the generic holder for selected applications. It owns platform capabilities such as identity, database management, Git repository management, and CLI integration. Developer-oriented applications are grouped under `apps/devkits`; the registry manifest `owner` is the source of truth for tooling and generated paths.
 
 An application owns product composition. An application must not recreate central templates, business logic, shared contracts, or UI components that a package already owns.
 

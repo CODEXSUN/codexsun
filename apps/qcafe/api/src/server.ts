@@ -53,6 +53,24 @@ import type { Actor } from "@codexsun/platform-core";
 import { SettingsRepository } from "./modules/settings/repository/settings.repository.js";
 import { SettingsService } from "./modules/settings/services/settings.service.js";
 import { registerSettingsRoutes } from "./modules/settings/routes/settings-route.js";
+import { PosRepository } from "./modules/pos/repository/pos.repository.js";
+import { PosService } from "./modules/pos/services/pos.service.js";
+import { registerPosRoutes } from "./modules/pos/routes/pos-route.js";
+import { KitchenRepository } from "./modules/kitchen/repository/kitchen.repository.js";
+import { KitchenService } from "./modules/kitchen/services/kitchen.service.js";
+import { registerKitchenRoutes } from "./modules/kitchen/routes/kitchen-route.js";
+import { TableServiceRepository } from "./modules/booking/repository/table-service.repository.js";
+import { TableServiceService } from "./modules/booking/services/table-service.service.js";
+import { registerTableServiceRoutes } from "./modules/booking/routes/table-service-route.js";
+import { BillingRepository } from "./modules/billing/repository/billing.repository.js";
+import { BillingService } from "./modules/billing/services/billing.service.js";
+import { registerBillingRoutes } from "./modules/billing/routes/billing-route.js";
+import { GuestBookingRepository } from "./modules/booking/repository/guest-booking.repository.js";
+import { GuestBookingService } from "./modules/booking/services/guest-booking.service.js";
+import { registerGuestBookingRoutes } from "./modules/booking/routes/guest-booking-route.js";
+import { EventSalesRepository } from "./modules/booking/repository/event-sales.repository.js";
+import { EventSalesService } from "./modules/booking/services/event-sales.service.js";
+import { registerEventSalesRoutes } from "./modules/booking/routes/event-sales-route.js";
 
 const config = readConfig();
 const persistence = createQcafePersistence(config.persistence, createQcafeLifecyclePlans());
@@ -270,6 +288,37 @@ const settings = new SettingsService(new SettingsRepository(persistence.database
   persistence.verify(),
 );
 await registerSettingsRoutes(app, settings, contextFor);
+const pos = new PosService(new PosRepository(persistence.database()), menu, menuSaleability, activity);
+const kitchen = new KitchenService(new KitchenRepository(persistence.database()), pos, activity);
+const billing = new BillingService(new BillingRepository(persistence.database()), pos, activity);
+const tableService = new TableServiceService(
+  new TableServiceRepository(persistence.database()),
+  activity,
+  async (orderId) => {
+    const snapshot = await pos.snapshot(orderId);
+    return Boolean(snapshot && ["cancelled", "fulfilled"].includes(snapshot.order.status));
+  },
+);
+const guestBooking = new GuestBookingService(
+  new GuestBookingRepository(persistence.database()),
+  tableService,
+  pos,
+  activity,
+);
+const eventSales = new EventSalesService(new EventSalesRepository(persistence.database()), billing, activity);
+await registerPosRoutes(
+  app,
+  pos,
+  (orderId, context) => kitchen.fireOrder(orderId, context),
+  (orderId) => kitchen.assertOrderReady(orderId),
+  (orderId) => billing.assertOrderSettled(orderId),
+  contextFor,
+);
+await registerKitchenRoutes(app, kitchen, contextFor);
+await registerTableServiceRoutes(app, tableService, contextFor);
+await registerBillingRoutes(app, billing, contextFor);
+await registerGuestBookingRoutes(app, guestBooking, contextFor);
+await registerEventSalesRoutes(app, eventSales, contextFor);
 app.get(
   "/api/v1/qcafe/health",
   {
@@ -297,6 +346,7 @@ function isPublicPath(url: string): boolean {
     path === "/api/v1/qcafe/auth/development-login" ||
     path === "/api/v1/qcafe/auth/password-reset/request" ||
     path === "/api/v1/qcafe/auth/password-reset/confirm" ||
+    path.startsWith("/api/v1/qcafe/guest/qr/") ||
     path === "/api/v1/qcafe/health" ||
     path === "/api/internal/reference" ||
     path.startsWith("/api/internal/reference/")

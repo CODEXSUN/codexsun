@@ -13,9 +13,9 @@ test("declares the Q Cafe owner module catalog", () => {
       "qcafe.settings",
       "qcafe.pos",
       "qcafe.kitchen",
+      "qcafe.billing",
       "qcafe.booking",
       "qcafe.inventory",
-      "qcafe.billing",
       "qcafe.devices",
     ],
   );

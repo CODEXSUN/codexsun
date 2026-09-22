@@ -3,6 +3,7 @@
   "kind": "application",
   "id": "sites",
   "label": "Sites",
+  "category": "business",
   "owner": "apps/sites",
   "taskPrefix": "s",
   "providers": [

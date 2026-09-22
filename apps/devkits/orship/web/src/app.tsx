@@ -1,0 +1,186 @@
+import { useQuery } from "@tanstack/react-query";
+import { MainWorkspace } from "@codexsun/ui";
+import { SessionBoundary } from "@codexsun/ui/blocks/auth";
+import { PrivilegedDesk } from "@codexsun/ui/blocks/auth/privileged-desk";
+import { IdentityManagementDesk } from "@codexsun/ui/blocks/auth/identity-management-desk";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@codexsun/ui/components/card";
+import { ContainerIcon, LayoutDashboardIcon, ServerCogIcon } from "lucide-react";
+import { useState } from "react";
+import developmentVersion from "../../VERSION?raw";
+import { DockerMaintenancePage } from "./modules/infras/docker-maintenance";
+import { InfrasWorkspace } from "./modules/infras/infras-workspace";
+
+type Health = { status: "ok"; providers: string[] };
+type WorkspacePage = "overview" | "infras-list" | "infras-show" | "infras-upsert" | "docker-maintenance";
+
+const ORSHIP_DEVELOPMENT_VERSION = developmentVersion.trim();
+
+type OverviewItem = {
+  readonly description: string;
+  readonly label: string;
+  readonly value: string;
+};
+
+const overviewItems: OverviewItem[] = [
+  {
+    description: "Prepare and follow application releases from one operations workspace.",
+    label: "Deployment",
+    value: "Scaffold",
+  },
+  {
+    description: "Track API, web, database, cache, and storage service health.",
+    label: "Monitoring",
+    value: "Ready",
+  },
+  {
+    description: "Plan restart, backup, restore, and check tasks with an audit trail.",
+    label: "Maintenance",
+    value: "Planned",
+  },
+];
+
+export function App() {
+  return <SessionBoundary applicationId="orship" applicationName="Orship" autoLoginPath="/api/v1/orship/auth/development-login" loginPath="/api/v1/orship/auth/login">{(session) => session.portal === "user" ? <OrshipDesk request={session.fetch} logout={session.logout} /> : session.portal === "super-admin" ? <IdentityManagementDesk applicationId="orship" applicationName="Orship" logout={session.logout} request={session.fetch} /> : <PrivilegedDesk applicationId="orship" applicationName="Orship" logout={session.logout} portal={session.portal} />}</SessionBoundary>;
+}
+
+function OrshipDesk({ request, logout }: { request: typeof fetch; logout: () => void }) {
+  const health = useQuery({ queryKey: ["orship", "health"], queryFn: () => readHealth(request) });
+  const [page, setPage] = useState<WorkspacePage>("overview");
+  const [selectedInfraUuid, setSelectedInfraUuid] = useState<string>();
+
+  function showInfrasList(): void {
+    setSelectedInfraUuid(undefined);
+    setPage("infras-list");
+  }
+
+  function showInfra(uuid: string): void {
+    setSelectedInfraUuid(uuid);
+    setPage("infras-show");
+  }
+
+  function showInfrasUpsert(): void {
+    setSelectedInfraUuid(undefined);
+    setPage("infras-upsert");
+  }
+
+  function showDockerMaintenance(): void {
+    setSelectedInfraUuid(undefined);
+    setPage("docker-maintenance");
+  }
+
+  return (
+    <MainWorkspace
+      applicationId="orship"
+      applicationName="Orship"
+      user={{ initials: "O", name: "Orship user", onSignOut: logout }}
+      navigation={[
+        {
+          items: [
+            {
+              active: page === "overview",
+              icon: LayoutDashboardIcon,
+              label: "Overview",
+              onSelect: () => setPage("overview"),
+            },
+          ],
+        },
+        {
+          items: [
+            {
+              active: page.startsWith("infras"),
+              icon: ServerCogIcon,
+              label: "Infras",
+              onSelect: showInfrasList,
+            },
+          ],
+        },
+        {
+          items: [
+            {
+              active: page === "docker-maintenance",
+              icon: ContainerIcon,
+              label: "Docker",
+              onSelect: showDockerMaintenance,
+            },
+          ],
+        },
+      ]}
+      primaryAction={null}
+      showTopologyTools={false}
+      statusEnd={<span aria-label="Orship development version">{ORSHIP_DEVELOPMENT_VERSION}</span>}
+      statusLabel={statusLabel(health)}
+      workspaceTitle={page === "overview" ? "Overview" : page === "infras-list" ? "Infras" : page === "infras-upsert" ? "Create infra" : page === "docker-maintenance" ? "Docker maintenance" : "Infra details"}
+    >
+      {page === "overview" ? (
+        <OverviewPage health={health} />
+      ) : page === "docker-maintenance" ? (
+        <DockerMaintenancePage request={request} />
+      ) : (
+        <InfrasWorkspace
+          selectedUuid={selectedInfraUuid}
+          view={page}
+          onBack={showInfrasList}
+          onCreate={showInfrasUpsert}
+          onSaved={(uuid) => showInfra(uuid)}
+          onSelect={showInfra}
+          request={request}
+        />
+      )}
+    </MainWorkspace>
+  );
+}
+
+function OverviewPage({ health }: { health: ReturnType<typeof useQuery<Health>> }) {
+  return (
+    <main className="size-full overflow-y-auto bg-background p-6">
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+        <header className="flex flex-col gap-2">
+          <p className="text-sm font-medium text-muted-foreground">Orship overview</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="grid gap-2">
+              <h1 className="text-2xl font-semibold tracking-tight">Orship</h1>
+              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                Orchestration workspace for deployment, monitoring, and maintenance.
+              </p>
+            </div>
+            <StatusPill label={statusLabel(health)} />
+          </div>
+        </header>
+
+        <section className="grid gap-4 md:grid-cols-3" aria-label="Orship scaffold">
+          {overviewItems.map((item) => (
+            <Card key={item.label} className="h-full">
+              <CardHeader>
+                <CardDescription>{item.label}</CardDescription>
+                <CardTitle className="text-xl">{item.value}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm leading-6 text-muted-foreground">{item.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+      </section>
+    </main>
+  );
+}
+
+function StatusPill({ label }: { label: string }) {
+  return (
+    <span className="inline-flex h-7 shrink-0 items-center rounded-md border border-emerald-200 bg-emerald-50 px-2.5 text-xs font-medium text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-300">
+      {label}
+    </span>
+  );
+}
+
+function statusLabel(health: ReturnType<typeof useQuery<Health>>): string {
+  if (health.isPending) return "Connecting";
+  if (health.isError) return "API offline";
+  return `API ${health.data.status}`;
+}
+
+async function readHealth(request: typeof fetch): Promise<Health> {
+  const response = await request("/api/v1/orship/health", { signal: AbortSignal.timeout(5_000) });
+  if (!response.ok) throw new Error(`Health request failed: ${response.status}`);
+  return response.json() as Promise<Health>;
+}

@@ -208,7 +208,14 @@ function pathFromPage(page: QcafePageId): string {
 
 function pageFromLocation(location: string): QcafePageId {
   const pathname = pathnameOf(location);
-  if (pathname === "/setup" || pathname === "/menu" || pathname === "/pos" || pathname === "/kot" || pathname === "/booking")
+  if (
+    pathname === "/setup" ||
+    pathname === "/menu" ||
+    pathname === "/pos" ||
+    pathname === "/kot" ||
+    pathname === "/booking" ||
+    pathname === "/billing"
+  )
     return pathname.slice(1) as QcafePageId;
   return "overview";
 }

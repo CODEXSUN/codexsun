@@ -49,8 +49,10 @@ Turbo can create temporary task-log folders below participating packages. The sc
 Each app host has one TypeScript configuration file.
 
 ```text
-apps/<app>/api/tsconfig.json
-apps/<app>/web/tsconfig.json
+apps/<app>/api/tsconfig.json (business or platform)
+apps/<app>/web/tsconfig.json (business or platform)
+apps/devkits/<app>/api/tsconfig.json (developer tooling)
+apps/devkits/<app>/web/tsconfig.json (developer tooling)
 ```
 
 The API and web configurations may extend a root shared base configuration. Do not add extra host TypeScript configurations inside an app.

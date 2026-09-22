@@ -62,7 +62,7 @@ test("applies the complete M01-M15 menu schema once", async () => {
 
   assert.deepEqual(await persistence.initialize(), []);
   const records = await persistence.verify();
-  assert.equal(records.length, 7);
+  assert.equal(records.length, 15);
   assert.equal(records.find((record) => record.descriptorId === "qcafe.menu.002")?.kind, "migration");
   await persistence.destroy();
 });

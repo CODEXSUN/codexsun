@@ -16,9 +16,9 @@ export function createQcafeProviders(): ModuleProvider[] {
     new QcafeSettingsProvider(),
     new QcafePosProvider(),
     new QcafeKitchenProvider(),
+    new QcafeBillingProvider(),
     new QcafeBookingProvider(),
     new QcafeInventoryProvider(),
-    new QcafeBillingProvider(),
     new QcafeDevicesProvider(),
   ];
 }

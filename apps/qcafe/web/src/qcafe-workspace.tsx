@@ -1,10 +1,22 @@
 import type { MdiNavigationSection } from "@codexsun/ui/layouts/main-workspace";
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
-import { BookOpenIcon, CalendarClockIcon, ChefHatIcon, LayoutDashboardIcon, ReceiptTextIcon, StoreIcon } from "lucide-react";
+import {
+  BookOpenIcon,
+  CircleDollarSignIcon,
+  CalendarClockIcon,
+  ChefHatIcon,
+  LayoutDashboardIcon,
+  ReceiptTextIcon,
+  StoreIcon,
+} from "lucide-react";
 import type { QcafePageId, QcafeWorkspace, QcafeWorkspacePage } from "./qcafe-api";
 import { FoundationSetupPage } from "./foundation-setup-page";
 import { MenuPage } from "./menu-page";
+import { PosPage } from "./pos-page";
+import { KotPage } from "./kot-page";
+import { DiningPage } from "./dining-page";
+import { BillingPage } from "./billing-page";
 
 type QcafeWorkspaceViewProps = {
   activePageId: QcafePageId;
@@ -40,26 +52,34 @@ const fallbackPages: QcafeWorkspacePage[] = [
     description: "Build the touch-first order screen for restaurant sales.",
     id: "pos",
     label: "POS",
-    status: "Scaffold",
+    status: "Order workspace",
     title: "Point of sale",
   },
   {
     description: "Track kitchen order tickets and preparation state.",
     id: "kot",
     label: "KOT",
-    status: "Scaffold",
+    status: "Kitchen live board",
     title: "Kitchen order tickets",
   },
   {
     description: "Manage table reservations and seated visits.",
     id: "booking",
     label: "Booking",
-    status: "Scaffold",
+    status: "Table service",
     title: "Table booking",
+  },
+  {
+    description: "Post bills, collect payments, issue receipts, and settle cash custody.",
+    id: "billing",
+    label: "Billing",
+    status: "Payments and settlement",
+    title: "Billing and settlement",
   },
 ];
 
 const pageIcons = {
+  billing: CircleDollarSignIcon,
   booking: CalendarClockIcon,
   kot: ChefHatIcon,
   menu: BookOpenIcon,
@@ -76,7 +96,7 @@ export function createQcafeNavigation(
   const pageMap = new Map(pages.map((page) => [page.id, page]));
   const overview = pageMap.get("overview") ?? fallbackPages[0];
   const setup = pageMap.get("setup") ?? getFallbackPage("setup");
-  const cafePages = (["pos", "kot", "booking"] as const).map(
+  const cafePages = (["pos", "kot", "booking", "billing"] as const).map(
     (pageId) => pageMap.get(pageId) ?? getFallbackPage(pageId),
   );
 
@@ -150,6 +170,14 @@ export function QcafeWorkspaceView({ activePageId, connectionState, request, wor
         <FoundationSetupPage request={request} />
       ) : activePage.id === "menu" ? (
         <MenuPage request={request} />
+      ) : activePage.id === "pos" ? (
+        <PosPage request={request} />
+      ) : activePage.id === "kot" ? (
+        <KotPage request={request} />
+      ) : activePage.id === "booking" ? (
+        <DiningPage request={request} />
+      ) : activePage.id === "billing" ? (
+        <BillingPage request={request} />
       ) : (
         <ScaffoldPage page={activePage} />
       )}

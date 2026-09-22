@@ -3,6 +3,7 @@
   "kind": "application",
   "id": "himsx",
   "label": "HIMSX",
+  "category": "business",
   "owner": "apps/himsx",
   "taskPrefix": "h",
   "providers": [

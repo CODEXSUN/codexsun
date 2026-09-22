@@ -1,0 +1,87 @@
+name: qcafe
+
+x-api-service: &api-service
+  image: ${QCAFE_API_IMAGE:-qcafe/api}:${QCAFE_IMAGE_TAG:-local}
+  build:
+    context: ../../..
+    dockerfile: apps/qcafe/.container/Dockerfile
+    target: api
+  env_file:
+    - ../../../.env
+    - ../api/.app.env
+  environment: &api-environment
+    APP_MODE: production
+    AUTO_LOGIN: "0"
+    DB_DRIVER: sqlite
+    NODE_ENV: production
+    PLATFORM_HOST: 0.0.0.0
+    QCAFE_API_PORT: "6220"
+    QCAFE_WEB_ORIGIN: ${QCAFE_PUBLIC_ORIGIN:-http://127.0.0.1:6221}
+    QCAFE_SQLITE_PATH: /workspace/storage/apps/qcafe/private/data/qcafe.sqlite
+    QCAFE_IDENTITY_DATABASE_PATH: /workspace/storage/apps/qcafe/private/data/qcafe_db.sqlite
+    QCAFE_STORAGE_ROOT: /workspace/storage/apps
+  volumes:
+    - qcafe-data:/workspace/storage
+
+services:
+  migrate:
+    <<: *api-service
+    command: ["node", "../../../dist/qcafe/api/deployment-prepare.js"]
+    restart: "no"
+    profiles: ["tools"]
+
+  api:
+    <<: *api-service
+    container_name: ${QCAFE_API_CONTAINER_NAME:-qcafe-api}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - node -e "fetch('http://127.0.0.1:6220/api/v1/qcafe/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 10s
+    ports:
+      - "${QCAFE_API_BIND_ADDRESS:-127.0.0.1}:${QCAFE_API_PUBLISHED_PORT:-6220}:6220"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+
+  web:
+    image: ${QCAFE_WEB_IMAGE:-qcafe/web}:${QCAFE_IMAGE_TAG:-local}
+    build:
+      context: ../../..
+      dockerfile: apps/qcafe/.container/Dockerfile
+      target: web
+    container_name: ${QCAFE_WEB_CONTAINER_NAME:-qcafe-web}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    ports:
+      - "${QCAFE_WEB_BIND_ADDRESS:-127.0.0.1}:${QCAFE_WEB_PUBLISHED_PORT:-6221}:80"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  backup:
+    image: alpine:3.21
+    profiles: ["tools"]
+    volumes:
+      - qcafe-data:/workspace/storage:ro
+      - qcafe-backups:/backups
+
+volumes:
+  qcafe-data:
+    name: ${QCAFE_DATA_VOLUME:-qcafe-data}
+  qcafe-backups:
+    name: ${QCAFE_BACKUP_VOLUME:-qcafe-backups}

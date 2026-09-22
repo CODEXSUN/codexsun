@@ -1,0 +1,28 @@
+{
+  "name": "@codexsun/zuno-api",
+  "version": "1.0.33",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --external:@fastify/swagger-ui --banner:js=\"import { createRequire } from 'node:module'; import { fileURLToPath } from 'node:url'; import path from 'node:path'; const require = createRequire(import.meta.url); const __filename = fileURLToPath(import.meta.url); const __dirname = path.dirname(__filename);\" --outfile=../../../../dist/zuno/api/server.js",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/server.ts",
+    "lint": "eslint src",
+    "test:workspace": "tsx --test src/modules/cxforge/test/workspace-routes.test.ts src/modules/cxforge/test/portal-store.test.ts",
+    "test:workspace:live": "tsx src/modules/cxforge/test/workspace-live.ts",
+    "test": "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts src/modules/cxforge/test/workspace-routes.test.ts src/modules/cxforge/test/portal-store.test.ts src/modules/handoff/test/handoff-service.test.ts"
+  },
+  "dependencies": {
+    "@codexsun/framework": "file:../../../../packages/framework",
+    "@codexsun/platform-core": "file:../../../../packages/platform-core",
+    "@codexsun/zetro-contracts": "file:../../../../packages/zetro-contracts",
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.1",
+    "@fastify/swagger": "^9.8.1",
+    "@fastify/swagger-ui": "^6.1.1",
+    "dotenv": "^17.0.0",
+    "fastify": "^5.0.0",
+    "fastify-type-provider-zod": "^4.0.2",
+    "zod": "^3.25.76"
+  }
+}

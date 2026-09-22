@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
-const qcafePageIdSchema = z.enum(["overview", "setup", "menu", "pos", "kot", "booking"]);
+const qcafePageIdSchema = z.enum(["overview", "setup", "menu", "pos", "kot", "booking", "billing"]);
 
 const qcafeWorkspacePageSchema = z.object({
   description: z.string(),
@@ -46,22 +46,29 @@ const qcafeWorkspacePages: QcafeWorkspacePage[] = [
     description: "Build the touch-first order screen for dine-in, takeaway, delivery, and counter sales.",
     id: "pos",
     label: "POS",
-    status: "Scaffold",
+    status: "Order workspace",
     title: "Point of sale",
   },
   {
     description: "Track kitchen order tickets from order send through preparation and ready state.",
     id: "kot",
     label: "KOT",
-    status: "Scaffold",
+    status: "Kitchen live board",
     title: "Kitchen order tickets",
   },
   {
     description: "Manage table reservations, guest counts, booking state, and seated visits.",
     id: "booking",
     label: "Booking",
-    status: "Scaffold",
+    status: "Table service",
     title: "Table booking",
+  },
+  {
+    description: "Post bills, collect split tenders, issue receipts, control cash shifts, and reconcile the day.",
+    id: "billing",
+    label: "Billing",
+    status: "Payments and settlement",
+    title: "Billing and settlement",
   },
 ];
 

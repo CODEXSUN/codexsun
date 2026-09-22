@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 
 const idPattern = /^[a-z][a-z0-9-]*$/u;
 const hostKinds = new Set(["api", "web", "desktop", "mobile"]);
@@ -47,6 +47,7 @@ export function getRuntimeTargets(rootDir) {
         host.target,
         {
           application: application.id,
+          owner: application.owner,
           displayName: host.displayName,
           environmentDirectory: host.environmentDirectory,
           envKey: host.envKey,
@@ -62,7 +63,7 @@ export function getApplicationProfiles(rootDir) {
   return Object.fromEntries(
     loadRegistry(rootDir).applications.map((application) => [
       application.id,
-      { hosts: application.hosts.map((host) => host.kind), ...(application.role ? { role: application.role } : {}) },
+      { owner: application.owner, hosts: application.hosts.map((host) => host.kind), ...(application.role ? { role: application.role } : {}) },
     ]),
   );
 }
@@ -71,6 +72,24 @@ export function getApplication(rootDir, id) {
   const application = loadRegistry(rootDir).applications.find((item) => item.id === id);
   if (!application) throw new Error(`Unknown application: ${id}.`);
   return application;
+}
+
+/** Resolve the manifest-owned application directory and keep it inside apps/. */
+export function applicationPath(rootDir, application) {
+  const root = resolve(rootDir);
+  const appsPath = resolve(root, "apps");
+  const path = resolve(root, application.owner);
+  const outside = relative(appsPath, path);
+  if (!outside || outside.startsWith("..") || outside.includes("..\\") || outside.includes("../")) {
+    throw new Error(`Application ${application.id}: owner must resolve inside apps/.`);
+  }
+  if (path !== resolve(appsPath, ...outside.split(/[\\/]+/u))) {
+    throw new Error(`Application ${application.id}: invalid owner path.`);
+  }
+  if (path.split(/[\\/]/u).at(-1) !== application.id) {
+    throw new Error(`Application ${application.id}: owner must end with the application id.`);
+  }
+  return path;
 }
 
 export function updateProfile(rootDir, profileId, kind, id, enabled) {
@@ -116,6 +135,7 @@ function validateApplication(application, filename) {
   if (application.schemaVersion !== 1) throw new Error(`${filename}: schemaVersion must be 1.`);
   if (typeof application.label !== "string" || !application.label.trim()) throw new Error(`${filename}: label is required.`);
   if (typeof application.owner !== "string" || !application.owner.startsWith("apps/")) throw new Error(`${filename}: owner must be an apps path.`);
+  if (application.category !== undefined && !new Set(["platform", "business", "devkit"]).has(application.category)) throw new Error(`${filename}: category must be platform, business, or devkit.`);
   if (typeof application.taskPrefix !== "string" || !/^[a-z]$/u.test(application.taskPrefix)) {
     throw new Error(`${filename}: taskPrefix must be one lowercase letter.`);
   }
@@ -172,10 +192,14 @@ function verifyUniqueTargets(applications) {
 
 function verifyApplicationBindings(root, applications) {
   for (const application of applications) {
-    const applicationPath = resolve(root, "apps", application.id);
-    if (!existsSync(applicationPath)) throw new Error(`Application ${application.id}: apps/${application.id} is missing.`);
+    const applicationPath = applicationPathFor(root, application);
+    if (!existsSync(applicationPath)) throw new Error(`Application ${application.id}: ${application.owner} is missing.`);
     for (const host of application.hosts) verifyHostBinding(application, host, applicationPath);
   }
+}
+
+function applicationPathFor(root, application) {
+  return applicationPath(root, application);
 }
 
 function verifyHostBinding(application, host, applicationPath) {

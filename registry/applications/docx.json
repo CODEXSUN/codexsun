@@ -3,7 +3,8 @@
   "kind": "application",
   "id": "docx",
   "label": "DOCX",
-  "owner": "apps/docx",
+  "category": "devkit",
+  "owner": "apps/devkits/docx",
   "taskPrefix": "x",
   "providers": [
     "platform.core",

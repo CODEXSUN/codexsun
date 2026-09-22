@@ -65,7 +65,9 @@ export class FoundationSetupRepository {
 
   async createLocation(input: CreateLocation, now: string): Promise<string> {
     const locationId = randomUUID();
-    await this.database.transaction().execute(async (transaction) => insertLocation(transaction, input, now, locationId));
+    await this.database
+      .transaction()
+      .execute(async (transaction) => insertLocation(transaction, input, now, locationId));
     return locationId;
   }
 
@@ -98,7 +100,12 @@ export class FoundationSetupRepository {
   }
 }
 
-async function insertLocation(database: FoundationDatabase, input: CreateLocation, now: string, locationId = randomUUID()): Promise<void> {
+async function insertLocation(
+  database: FoundationDatabase,
+  input: CreateLocation,
+  now: string,
+  locationId = randomUUID(),
+): Promise<void> {
   await database
     .insertInto("qcafe_locations")
     .values({
@@ -133,6 +140,9 @@ function defaultSequences(locationId: string, now: string) {
     { document_kind: "order" as const, prefix: "ORD" },
     { document_kind: "bill" as const, prefix: "BILL" },
     { document_kind: "kot" as const, prefix: "KOT" },
+    { document_kind: "receipt" as const, prefix: "RCT" },
+    { document_kind: "voucher" as const, prefix: "VCH" },
+    { document_kind: "event_quote" as const, prefix: "QTE" },
   ].map((sequence) => ({ ...sequence, id: randomUUID(), location_id: locationId, next_value: 1, updated_at: now }));
 }
 

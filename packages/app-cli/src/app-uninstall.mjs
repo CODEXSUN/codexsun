@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import { loadRegistry } from "./registry.mjs";
+import { applicationPath, loadRegistry } from "./registry.mjs";
 import { syncMdiCatalog } from "./mdi-catalog.mjs";
 
 export function removeApplication(rootDir, applicationId) {
@@ -8,8 +8,8 @@ export function removeApplication(rootDir, applicationId) {
   const application = registry.applications.find((item) => item.id === applicationId);
   if (!application) throw new Error(`Unknown application: ${applicationId}.`);
 
-  const applicationPath = resolve(registry.root, "apps", application.id);
-  assertApplicationPath(registry.root, applicationPath, application.id);
+  const applicationDirectory = applicationPath(registry.root, application);
+  assertApplicationPath(registry.root, applicationDirectory, application.id);
   assertNotRunning(registry.root, application);
   removeProfileBindings(registry.root, application.id);
   removeWorkspaceLock(registry.root, application);
@@ -17,14 +17,15 @@ export function removeApplication(rootDir, applicationId) {
   removeTurboOutputs(registry.root, application);
   removeRootMdiPort(registry.root, application.mdi?.localUrlKey);
   unlinkSync(resolve(registry.root, "registry", "applications", `${application.id}.json`));
-  rmSync(applicationPath, { force: true, recursive: true });
+  rmSync(applicationDirectory, { force: true, recursive: true });
   syncMdiCatalog(registry.root);
   return { id: application.id, removed: true };
 }
 
 function assertApplicationPath(root, applicationPath, applicationId) {
   const appsPath = resolve(root, "apps");
-  if (relative(appsPath, applicationPath) !== applicationId || resolve(appsPath, applicationId) !== applicationPath) {
+  const relativePath = relative(appsPath, applicationPath);
+  if (!relativePath || relativePath.startsWith("..") || relativePath.split(/[\\/]/u).at(-1) !== applicationId) {
     throw new Error("Application path is outside apps.");
   }
 }
@@ -55,7 +56,7 @@ function removeWorkspaceLock(root, application) {
   if (!existsSync(path)) return;
   const lock = JSON.parse(readFileSync(path, "utf8"));
   for (const host of application.hosts) {
-    delete lock.packages?.[`apps/${application.id}/${host.environmentDirectory}`];
+    delete lock.packages?.[`${application.owner}/${host.environmentDirectory}`];
     delete lock.packages?.[`node_modules/${host.workspace}`];
   }
   writeJson(path, lock);

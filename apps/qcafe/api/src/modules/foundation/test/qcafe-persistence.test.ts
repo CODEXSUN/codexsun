@@ -6,7 +6,11 @@ import { createQcafePersistence, prepareQcafePersistence } from "../persistence/
 test("uses SQLite and runs Q Cafe foundation migrations for a local outlet", async () => {
   const persistence = createQcafePersistence({ localDatabasePath: ":memory:", mode: "local" });
   await assert.rejects(persistence.verify(), /explicit migration command/u);
-  assert.deepEqual(await persistence.initialize(), ["qcafe.foundation.001", "qcafe.foundation.002", "qcafe.foundation.003"]);
+  assert.deepEqual(await persistence.initialize(), [
+    "qcafe.foundation.001",
+    "qcafe.foundation.002",
+    "qcafe.foundation.003",
+  ]);
   assert.deepEqual(await persistence.initialize(), []);
   const records = await persistence.verify();
   assert.deepEqual(

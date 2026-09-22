@@ -2,17 +2,123 @@ import { createLifecycleChecksum, type DatabaseLifecyclePlan } from "@codexsun/p
 import type { QcafeFoundationDatabase } from "../../foundation/persistence/qcafe-foundation.database.js";
 
 const migration = {
-  checksum: createLifecycleChecksum("qcafe.pos.001|O01-O09|orders,lines,modifiers,events,fulfillment,takeaway,adjustments,notes|immutable snapshots and audited transitions"),
-  description: "Create Q Cafe POS and fulfillment records.", id: "qcafe.pos.001", owner: "qcafe.pos",
+  checksum: createLifecycleChecksum(
+    "qcafe.pos.001|O01-O09|orders,lines,modifiers,events,fulfillment,takeaway,adjustments,notes|immutable snapshots and audited transitions",
+  ),
+  description: "Create Q Cafe POS and fulfillment records.",
+  id: "qcafe.pos.001",
+  owner: "qcafe.pos",
   async apply(database: import("kysely").Kysely<QcafeFoundationDatabase>) {
-    await database.schema.createTable("qcafe_orders").addColumn("id","varchar(36)",c=>c.primaryKey()).addColumn("business_id","varchar(36)",c=>c.notNull().references("qcafe_businesses.id")).addColumn("location_id","varchar(36)",c=>c.notNull().references("qcafe_locations.id")).addColumn("service_channel_id","varchar(36)",c=>c.notNull().references("qcafe_service_channels.id")).addColumn("price_book_id","varchar(36)",c=>c.notNull().references("qcafe_price_books.id")).addColumn("table_session_id","varchar(36)").addColumn("number","varchar(40)",c=>c.notNull().unique()).addColumn("status","varchar(20)",c=>c.notNull()).addColumn("currency","varchar(3)",c=>c.notNull()).addColumn("customer_name","varchar(160)").addColumn("contact_ref","varchar(160)").addColumn("subtotal_minor","integer",c=>c.notNull().defaultTo(0)).addColumn("discount_minor","integer",c=>c.notNull().defaultTo(0)).addColumn("total_minor","integer",c=>c.notNull().defaultTo(0)).addColumn("note","text").addColumn("opened_by","varchar(120)",c=>c.notNull()).addColumn("confirmed_at","varchar(40)").addColumn("closed_at","varchar(40)").addColumn("version","integer",c=>c.notNull().defaultTo(1)).addColumn("created_at","varchar(40)",c=>c.notNull()).addColumn("updated_at","varchar(40)",c=>c.notNull()).execute();
-    await database.schema.createTable("qcafe_order_lines").addColumn("id","varchar(36)",c=>c.primaryKey()).addColumn("order_id","varchar(36)",c=>c.notNull().references("qcafe_orders.id")).addColumn("item_id","varchar(36)",c=>c.notNull()).addColumn("variant_id","varchar(36)").addColumn("item_code","varchar(40)",c=>c.notNull()).addColumn("item_name","varchar(160)",c=>c.notNull()).addColumn("variant_name","varchar(120)").addColumn("quantity_milli","integer",c=>c.notNull()).addColumn("unit_price_minor","integer",c=>c.notNull()).addColumn("modifier_total_minor","integer",c=>c.notNull()).addColumn("line_total_minor","integer",c=>c.notNull()).addColumn("note","text").addColumn("status","varchar(16)",c=>c.notNull()).addColumn("version","integer",c=>c.notNull()).addColumn("created_at","varchar(40)",c=>c.notNull()).addColumn("updated_at","varchar(40)",c=>c.notNull()).execute();
-    await database.schema.createTable("qcafe_order_line_modifiers").addColumn("id","varchar(36)",c=>c.primaryKey()).addColumn("order_line_id","varchar(36)",c=>c.notNull().references("qcafe_order_lines.id")).addColumn("option_id","varchar(36)",c=>c.notNull()).addColumn("option_name","varchar(120)",c=>c.notNull()).addColumn("quantity","integer",c=>c.notNull()).addColumn("price_adjustment_minor","integer",c=>c.notNull()).addColumn("created_at","varchar(40)",c=>c.notNull()).execute();
-    await database.schema.createTable("qcafe_order_events").addColumn("id","varchar(36)",c=>c.primaryKey()).addColumn("order_id","varchar(36)",c=>c.notNull().references("qcafe_orders.id")).addColumn("event_type","varchar(40)",c=>c.notNull()).addColumn("actor_id","varchar(120)",c=>c.notNull()).addColumn("reason","text").addColumn("occurred_at","varchar(40)",c=>c.notNull()).execute();
-    await database.schema.createTable("qcafe_fulfillment_jobs").addColumn("id","varchar(36)",c=>c.primaryKey()).addColumn("order_id","varchar(36)",c=>c.notNull().references("qcafe_orders.id")).addColumn("kind","varchar(20)",c=>c.notNull()).addColumn("status","varchar(20)",c=>c.notNull()).addColumn("promised_at","varchar(40)").addColumn("ready_at","varchar(40)").addColumn("handover_at","varchar(40)").addColumn("handler_ref","varchar(120)").addColumn("created_at","varchar(40)",c=>c.notNull()).addColumn("updated_at","varchar(40)",c=>c.notNull()).execute();
-    await database.schema.createTable("qcafe_takeaway_details").addColumn("id","varchar(36)",c=>c.primaryKey()).addColumn("fulfillment_job_id","varchar(36)",c=>c.notNull().references("qcafe_fulfillment_jobs.id")).addColumn("collection_name","varchar(160)",c=>c.notNull()).addColumn("contact_ref","varchar(160)").addColumn("pickup_code","varchar(24)",c=>c.notNull()).addColumn("pickup_window","varchar(40)").addColumn("created_at","varchar(40)",c=>c.notNull()).addColumn("updated_at","varchar(40)",c=>c.notNull()).execute();
-    await database.schema.createTable("qcafe_order_adjustments").addColumn("id","varchar(36)",c=>c.primaryKey()).addColumn("order_id","varchar(36)",c=>c.notNull().references("qcafe_orders.id")).addColumn("kind","varchar(24)",c=>c.notNull()).addColumn("amount_minor","integer",c=>c.notNull()).addColumn("reason","text",c=>c.notNull()).addColumn("approved_by","varchar(120)",c=>c.notNull()).addColumn("created_at","varchar(40)",c=>c.notNull()).execute();
-    await database.schema.createTable("qcafe_order_notes").addColumn("id","varchar(36)",c=>c.primaryKey()).addColumn("order_id","varchar(36)",c=>c.notNull().references("qcafe_orders.id")).addColumn("order_line_id","varchar(36)").addColumn("note_kind","varchar(16)",c=>c.notNull()).addColumn("content","text",c=>c.notNull()).addColumn("visibility","varchar(16)",c=>c.notNull()).addColumn("created_at","varchar(40)",c=>c.notNull()).execute();
+    await database.schema
+      .createTable("qcafe_orders")
+      .addColumn("id", "varchar(36)", (c) => c.primaryKey())
+      .addColumn("business_id", "varchar(36)", (c) => c.notNull().references("qcafe_businesses.id"))
+      .addColumn("location_id", "varchar(36)", (c) => c.notNull().references("qcafe_locations.id"))
+      .addColumn("service_channel_id", "varchar(36)", (c) => c.notNull().references("qcafe_service_channels.id"))
+      .addColumn("price_book_id", "varchar(36)", (c) => c.notNull().references("qcafe_price_books.id"))
+      .addColumn("table_session_id", "varchar(36)")
+      .addColumn("number", "varchar(40)", (c) => c.notNull().unique())
+      .addColumn("status", "varchar(20)", (c) => c.notNull())
+      .addColumn("currency", "varchar(3)", (c) => c.notNull())
+      .addColumn("customer_name", "varchar(160)")
+      .addColumn("contact_ref", "varchar(160)")
+      .addColumn("subtotal_minor", "integer", (c) => c.notNull().defaultTo(0))
+      .addColumn("discount_minor", "integer", (c) => c.notNull().defaultTo(0))
+      .addColumn("total_minor", "integer", (c) => c.notNull().defaultTo(0))
+      .addColumn("note", "text")
+      .addColumn("opened_by", "varchar(120)", (c) => c.notNull())
+      .addColumn("confirmed_at", "varchar(40)")
+      .addColumn("closed_at", "varchar(40)")
+      .addColumn("version", "integer", (c) => c.notNull().defaultTo(1))
+      .addColumn("created_at", "varchar(40)", (c) => c.notNull())
+      .addColumn("updated_at", "varchar(40)", (c) => c.notNull())
+      .execute();
+    await database.schema
+      .createTable("qcafe_order_lines")
+      .addColumn("id", "varchar(36)", (c) => c.primaryKey())
+      .addColumn("order_id", "varchar(36)", (c) => c.notNull().references("qcafe_orders.id"))
+      .addColumn("item_id", "varchar(36)", (c) => c.notNull())
+      .addColumn("variant_id", "varchar(36)")
+      .addColumn("item_code", "varchar(40)", (c) => c.notNull())
+      .addColumn("item_name", "varchar(160)", (c) => c.notNull())
+      .addColumn("variant_name", "varchar(120)")
+      .addColumn("quantity_milli", "integer", (c) => c.notNull())
+      .addColumn("unit_price_minor", "integer", (c) => c.notNull())
+      .addColumn("modifier_total_minor", "integer", (c) => c.notNull())
+      .addColumn("line_total_minor", "integer", (c) => c.notNull())
+      .addColumn("note", "text")
+      .addColumn("status", "varchar(16)", (c) => c.notNull())
+      .addColumn("version", "integer", (c) => c.notNull())
+      .addColumn("created_at", "varchar(40)", (c) => c.notNull())
+      .addColumn("updated_at", "varchar(40)", (c) => c.notNull())
+      .execute();
+    await database.schema
+      .createTable("qcafe_order_line_modifiers")
+      .addColumn("id", "varchar(36)", (c) => c.primaryKey())
+      .addColumn("order_line_id", "varchar(36)", (c) => c.notNull().references("qcafe_order_lines.id"))
+      .addColumn("option_id", "varchar(36)", (c) => c.notNull())
+      .addColumn("option_name", "varchar(120)", (c) => c.notNull())
+      .addColumn("quantity", "integer", (c) => c.notNull())
+      .addColumn("price_adjustment_minor", "integer", (c) => c.notNull())
+      .addColumn("created_at", "varchar(40)", (c) => c.notNull())
+      .execute();
+    await database.schema
+      .createTable("qcafe_order_events")
+      .addColumn("id", "varchar(36)", (c) => c.primaryKey())
+      .addColumn("order_id", "varchar(36)", (c) => c.notNull().references("qcafe_orders.id"))
+      .addColumn("event_type", "varchar(40)", (c) => c.notNull())
+      .addColumn("actor_id", "varchar(120)", (c) => c.notNull())
+      .addColumn("reason", "text")
+      .addColumn("occurred_at", "varchar(40)", (c) => c.notNull())
+      .execute();
+    await database.schema
+      .createTable("qcafe_fulfillment_jobs")
+      .addColumn("id", "varchar(36)", (c) => c.primaryKey())
+      .addColumn("order_id", "varchar(36)", (c) => c.notNull().references("qcafe_orders.id"))
+      .addColumn("kind", "varchar(20)", (c) => c.notNull())
+      .addColumn("status", "varchar(20)", (c) => c.notNull())
+      .addColumn("promised_at", "varchar(40)")
+      .addColumn("ready_at", "varchar(40)")
+      .addColumn("handover_at", "varchar(40)")
+      .addColumn("handler_ref", "varchar(120)")
+      .addColumn("created_at", "varchar(40)", (c) => c.notNull())
+      .addColumn("updated_at", "varchar(40)", (c) => c.notNull())
+      .execute();
+    await database.schema
+      .createTable("qcafe_takeaway_details")
+      .addColumn("id", "varchar(36)", (c) => c.primaryKey())
+      .addColumn("fulfillment_job_id", "varchar(36)", (c) => c.notNull().references("qcafe_fulfillment_jobs.id"))
+      .addColumn("collection_name", "varchar(160)", (c) => c.notNull())
+      .addColumn("contact_ref", "varchar(160)")
+      .addColumn("pickup_code", "varchar(24)", (c) => c.notNull())
+      .addColumn("pickup_window", "varchar(40)")
+      .addColumn("created_at", "varchar(40)", (c) => c.notNull())
+      .addColumn("updated_at", "varchar(40)", (c) => c.notNull())
+      .execute();
+    await database.schema
+      .createTable("qcafe_order_adjustments")
+      .addColumn("id", "varchar(36)", (c) => c.primaryKey())
+      .addColumn("order_id", "varchar(36)", (c) => c.notNull().references("qcafe_orders.id"))
+      .addColumn("kind", "varchar(24)", (c) => c.notNull())
+      .addColumn("amount_minor", "integer", (c) => c.notNull())
+      .addColumn("reason", "text", (c) => c.notNull())
+      .addColumn("approved_by", "varchar(120)", (c) => c.notNull())
+      .addColumn("created_at", "varchar(40)", (c) => c.notNull())
+      .execute();
+    await database.schema
+      .createTable("qcafe_order_notes")
+      .addColumn("id", "varchar(36)", (c) => c.primaryKey())
+      .addColumn("order_id", "varchar(36)", (c) => c.notNull().references("qcafe_orders.id"))
+      .addColumn("order_line_id", "varchar(36)")
+      .addColumn("note_kind", "varchar(16)", (c) => c.notNull())
+      .addColumn("content", "text", (c) => c.notNull())
+      .addColumn("visibility", "varchar(16)", (c) => c.notNull())
+      .addColumn("created_at", "varchar(40)", (c) => c.notNull())
+      .execute();
   },
 };
-export const qcafePosLifecyclePlan: DatabaseLifecyclePlan<QcafeFoundationDatabase> = { migrations: [migration], moduleId: "qcafe.pos", seeders: [] };
+export const qcafePosLifecyclePlan: DatabaseLifecyclePlan<QcafeFoundationDatabase> = {
+  migrations: [migration],
+  moduleId: "qcafe.pos",
+  seeders: [],
+};

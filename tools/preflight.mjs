@@ -191,7 +191,8 @@ function loadEnvironment(targetName) {
 
 function appEnvironmentPath(targetName, environmentDirectory) {
   const app = targets[targetName].application ?? (targetName === "uiux-web" ? "uiux" : "platform");
-  return join(root, "apps", app, environmentDirectory, ".app.env");
+  const owner = targets[targetName].owner ?? `apps/${app}`;
+  return join(root, owner, environmentDirectory, ".app.env");
 }
 
 function readEnvFile(file) {

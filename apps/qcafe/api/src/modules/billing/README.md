@@ -4,4 +4,6 @@ The billing module owns bills, payments, receipts, vouchers, refunds, cash shift
 
 It depends on `qcafe.foundation` and `qcafe.pos`.
 
-The module has no routes, data records, or public contracts yet.
+It exposes scoped billing operations for posted bills, safe tenders, receipts, advance vouchers, cash custody,
+shift settlement, and business-day close. Posted financial records are append-only. Refunds and reversals are new
+linked money records; they do not rewrite the original payment.

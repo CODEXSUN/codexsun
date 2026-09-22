@@ -1,0 +1,80 @@
+name: zetro
+
+services:
+  api:
+    build:
+      context: ../../..
+      dockerfile: apps/devkits/zetro/.container/Dockerfile
+      target: api
+    container_name: zetro-api
+    environment:
+      APP_MODE: development
+      AUTO_LOGIN: "1"
+      PLATFORM_HOST: 0.0.0.0
+      PLATFORM_JWT_SECRET: ${ZETRO_PLATFORM_JWT_SECRET:-zetro-local-jwt-secret-change-before-production}
+      ZETRO_CONTAINER_RUNTIME: "1"
+      ZETRO_API_PORT: 6130
+      ZETRO_DATABASE_URL: sqlite://zetro
+      ZETRO_DATABASE_PATH: /workspace/storage/apps/private/zetro/runtime/zetro.sqlite
+      ZETRO_STORAGE_ROOT: /workspace/storage/apps
+      ZETRO_ZUNO_API_URL: ${ZETRO_ZUNO_API_URL:-http://host.docker.internal:6410}
+      ZETRO_ZUNO_CLIENT_KEY: ${ZETRO_ZUNO_CLIENT_KEY:-development-zetro-zuno-client-key}
+      SUPER_ADMIN_NAME: ${ZETRO_SUPER_ADMIN_NAME:-Zetro Super Admin}
+      SUPER_ADMIN_LOGIN: ${ZETRO_SUPER_ADMIN_LOGIN:-superadmin@zetro.local}
+      SUPER_ADMIN_USERNAME: ${ZETRO_SUPER_ADMIN_USERNAME:-superadmin}
+      SUPER_ADMIN_PASSWORD: ${ZETRO_SUPER_ADMIN_PASSWORD:-change_pass}
+      ADMIN_NAME: ${ZETRO_ADMIN_NAME:-Zetro Admin}
+      ADMIN_LOGIN: ${ZETRO_ADMIN_LOGIN:-admin@zetro.local}
+      ADMIN_USERNAME: ${ZETRO_ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ZETRO_ADMIN_PASSWORD:-change_pass}
+      USER_NAME: ${ZETRO_USER_NAME:-Zetro User}
+      USER_LOGIN: ${ZETRO_USER_LOGIN:-user@zetro.local}
+      USER_USERNAME: ${ZETRO_USER_USERNAME:-user}
+      USER_PASSWORD: ${ZETRO_USER_PASSWORD:-change_pass}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - node -e "fetch('http://127.0.0.1:6130/api/zetro/v1/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    ports:
+      - "${ZETRO_API_BIND_ADDRESS:-127.0.0.1}:${ZETRO_API_PUBLISHED_PORT:-6130}:6130"
+    networks:
+      - default
+      - runtime
+    restart: unless-stopped
+    volumes:
+      - zetro-storage:/workspace/storage
+
+  web:
+    build:
+      context: ../../..
+      dockerfile: apps/devkits/zetro/.container/Dockerfile
+      target: web
+    container_name: zetro-web
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1/ >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    ports:
+      - "${ZETRO_WEB_BIND_ADDRESS:-127.0.0.1}:${ZETRO_WEB_PUBLISHED_PORT:-6131}:80"
+    restart: unless-stopped
+
+volumes:
+  zetro-storage:
+
+networks:
+  runtime:
+    name: ${ZETRO_NETWORK:-codexsun-network}
+    external: true

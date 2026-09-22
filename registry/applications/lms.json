@@ -3,6 +3,7 @@
   "kind": "application",
   "id": "lms",
   "label": "LMS",
+  "category": "business",
   "owner": "apps/lms",
   "taskPrefix": "l",
   "providers": [

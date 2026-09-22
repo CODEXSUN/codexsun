@@ -3,13 +3,18 @@
   "kind": "application",
   "id": "qcafe",
   "label": "Q Cafe",
+  "category": "business",
   "owner": "apps/qcafe",
   "taskPrefix": "q",
   "providers": [
     "platform.core",
     "qcafe.foundation",
     "qcafe.menu",
-    "qcafe.settings"
+    "qcafe.settings",
+    "qcafe.pos",
+    "qcafe.kitchen",
+    "qcafe.billing",
+    "qcafe.booking"
   ],
   "mdi": {
     "icon": "application",
