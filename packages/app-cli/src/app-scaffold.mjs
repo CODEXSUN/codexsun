@@ -10,8 +10,8 @@ export function createApplication(rootDir, options) {
   if (existsSync(applicationPathValue)) throw new Error(`Application already exists: ${application.owner}.`);
 
   writeApplicationFiles(registry.root, application);
-  writeJson(resolve(registry.root, "registry", "applications", `${application.id}.json`), application);
-  enableInDevelopmentProfile(registry.root, application);
+  writeJson(resolve(registry.registry, "applications", `${application.id}.json`), application);
+  enableInDevelopmentProfile(registry, application);
   registerRootMdiPort(registry.root, application);
   registerWorkspaceLock(registry.root, application);
   registerRootScripts(registry.root, application);
@@ -34,7 +34,7 @@ function createManifest(options, applications) {
   const key = environmentKey(id);
   const category = String(options.category ?? "business").trim();
   if (!["platform", "business", "devkit"].includes(category)) throw new Error("Application category must be platform, business, or devkit.");
-  const owner = category === "devkit" ? `apps/devkits/${id}` : `apps/${id}`;
+  const owner = category === "devkit" ? `devkits/${id}` : category === "platform" ? `core/platforms/${id}` : `apps/${id}`;
   return {
     schemaVersion: 1,
     kind: "application",
@@ -81,8 +81,8 @@ function writeApplicationFiles(root, application) {
   write(root, `${base}/web/vite.config.ts`, viteSourceV2(application));
 }
 
-function enableInDevelopmentProfile(root, application) {
-  const path = resolve(root, "registry", "profiles", "development.json");
+function enableInDevelopmentProfile(registry, application) {
+  const path = resolve(registry.registry, "profiles", "development.json");
   const profile = JSON.parse(requireText(path));
   profile.enabledApplications = [...new Set([...profile.enabledApplications, application.id])].sort();
   profile.enabledProviders = { ...profile.enabledProviders, [application.id]: application.providers };

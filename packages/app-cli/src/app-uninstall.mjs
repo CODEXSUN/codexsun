@@ -11,20 +11,19 @@ export function removeApplication(rootDir, applicationId) {
   const applicationDirectory = applicationPath(registry.root, application);
   assertApplicationPath(registry.root, applicationDirectory, application.id);
   assertNotRunning(registry.root, application);
-  removeProfileBindings(registry.root, application.id);
+  removeProfileBindings(registry.registry, application.id);
   removeWorkspaceLock(registry.root, application);
   removeRootScripts(registry.root, application);
   removeTurboOutputs(registry.root, application);
   removeRootMdiPort(registry.root, application.mdi?.localUrlKey);
-  unlinkSync(resolve(registry.root, "registry", "applications", `${application.id}.json`));
+  unlinkSync(resolve(registry.registry, "applications", `${application.id}.json`));
   rmSync(applicationDirectory, { force: true, recursive: true });
   syncMdiCatalog(registry.root);
   return { id: application.id, removed: true };
 }
 
 function assertApplicationPath(root, applicationPath, applicationId) {
-  const appsPath = resolve(root, "apps");
-  const relativePath = relative(appsPath, applicationPath);
+  const relativePath = relative(root, applicationPath);
   if (!relativePath || relativePath.startsWith("..") || relativePath.split(/[\\/]/u).at(-1) !== applicationId) {
     throw new Error("Application path is outside apps.");
   }
@@ -39,8 +38,8 @@ function assertNotRunning(root, application) {
   }
 }
 
-function removeProfileBindings(root, applicationId) {
-  const profilesPath = resolve(root, "registry", "profiles");
+function removeProfileBindings(registryPath, applicationId) {
+  const profilesPath = resolve(registryPath, "profiles");
   for (const entry of readdirSync(profilesPath, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
     const path = resolve(profilesPath, entry.name);

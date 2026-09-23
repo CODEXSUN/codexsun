@@ -7,20 +7,20 @@ import { checkAppArchitecture } from "./check-app-architecture.mjs";
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), "codexsun-app-architecture-"));
-  write(root, "registry/profiles/development.json", JSON.stringify({ schemaVersion: 1, id: "development", enabledApplications: [], enabledAddons: [] }));
+  write(root, "core/registry/profiles/development.json", JSON.stringify({ schemaVersion: 1, id: "development", enabledApplications: [], enabledAddons: [] }));
   return root;
 }
 
 function registerApplication(root, name, hosts) {
   write(
     root,
-    `registry/applications/${name}.json`,
+    `core/registry/applications/${name}.json`,
     JSON.stringify({
       kind: "application",
       schemaVersion: 1,
       id: name,
       label: name,
-      owner: `apps/${name}`,
+      owner: name === "platform" ? "core/platforms" : `apps/${name}`,
       taskPrefix: name[0],
       providers: [],
       hosts: hosts.map((kind) => ({
@@ -36,14 +36,15 @@ function registerApplication(root, name, hosts) {
 }
 
 function app(root, name, hosts) {
-  write(root, `apps/${name}/README.md`, "# App\n");
+  const owner = name === "platform" ? "core/platforms" : `apps/${name}`;
+  write(root, `${owner}/README.md`, "# App\n");
   for (const host of hosts) {
-    write(root, `apps/${name}/${host}/README.md`, "# Host\n");
-    write(root, `apps/${name}/${host}/package.json`, JSON.stringify({ dependencies: { "@codexsun/ui": "*" } }));
-    write(root, `apps/${name}/${host}/tsconfig.json`, "{}\n");
-    write(root, `apps/${name}/${host}/.app.env.example`, "HOST=127.0.0.1\n");
-    write(root, `apps/${name}/${host}/src/app.tsx`, 'import "@codexsun/ui";\n');
-    write(root, `apps/${name}/${host}/src/main.tsx`, "export {};\n");
+    write(root, `${owner}/${host}/README.md`, "# Host\n");
+    write(root, `${owner}/${host}/package.json`, JSON.stringify({ dependencies: { "@codexsun/ui": "*" } }));
+    write(root, `${owner}/${host}/tsconfig.json`, "{}\n");
+    write(root, `${owner}/${host}/.app.env.example`, "HOST=127.0.0.1\n");
+    write(root, `${owner}/${host}/src/app.tsx`, 'import "@codexsun/ui";\n');
+    write(root, `${owner}/${host}/src/main.tsx`, "export {};\n");
   }
 }
 
@@ -57,7 +58,7 @@ test("reports missing host and module architecture requirements", () => {
   const root = fixture();
   try {
     registerApplication(root, "platform", ["api", "web", "desktop", "mobile"]);
-    assert.throws(() => checkAppArchitecture(root), /apps\/platform: missing application README/u);
+    assert.throws(() => checkAppArchitecture(root), /core\/platforms: missing application README/u);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -76,20 +77,20 @@ test("explains missing event declarations for a module provider", () => {
       app(root, name, profile);
     }
 
-    write(root, "apps/platform/api/src/config.ts", "export {};\n");
-    write(root, "apps/platform/api/src/server.ts", "export {};\n");
+    write(root, "core/platforms/api/src/config.ts", "export {};\n");
+    write(root, "core/platforms/api/src/server.ts", "export {};\n");
     write(
       root,
-      "apps/platform/api/package.json",
+      "core/platforms/api/package.json",
       JSON.stringify({ dependencies: { "@codexsun/framework": "*", "@codexsun/platform-core": "*" } }),
     );
-    write(root, "apps/platform/api/src/modules/demo/README.md", "# Demo\n");
+    write(root, "core/platforms/api/src/modules/demo/README.md", "# Demo\n");
     write(
       root,
-      "apps/platform/api/src/modules/demo/provider.ts",
-      'export const provider = { owner: "apps/platform/api/modules/demo" };\n',
+      "core/platforms/api/src/modules/demo/provider.ts",
+      'export const provider = { owner: "core/platforms/api/modules/demo" };\n',
     );
-    write(root, "apps/platform/api/src/modules/demo/test/demo.test.ts", "export {};\n");
+    write(root, "core/platforms/api/src/modules/demo/test/demo.test.ts", "export {};\n");
 
     assert.throws(() => checkAppArchitecture(root), /provider must declare published and consumed events/u);
   } finally {

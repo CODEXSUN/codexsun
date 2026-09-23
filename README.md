@@ -1,3 +1,17 @@
+## CODEXSUN workspace
+
+The repository has four ownership roots:
+
+- `core/platforms/` — system platform hosts.
+- `core/registry/` — application, add-on, and profile metadata.
+- `apps/` — deployable business suites.
+- `devkits/` — developer tools and internal applications.
+- `packages/` — shared public contracts and infrastructure.
+
+Install dependencies from the repository root. Build outputs and Turbo cache
+files belong under root `dist/`; application-local `node_modules`, `dist`, and
+`.turbo` directories are not allowed.
+
 ## Hi there 👋
 
 <!--

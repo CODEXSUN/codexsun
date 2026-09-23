@@ -1,0 +1,22 @@
+services:
+  zxa:
+    build: .
+    environment:
+      ZXA_AGENT_ID: ${ZXA_AGENT_ID:?Set ZXA_AGENT_ID to a UUID}
+      ZXA_ZUNO_API_URL: ${ZXA_ZUNO_API_URL:-http://host.docker.internal:6410}
+      ZXA_ZUNO_BOOTSTRAP_KEY: ${ZXA_ZUNO_BOOTSTRAP_KEY:?Set ZXA_ZUNO_BOOTSTRAP_KEY}
+      ZXA_CONTROL_KEY: ${ZXA_CONTROL_KEY:?Set ZXA_CONTROL_KEY}
+      ZXA_PUBLIC_URL: ${ZXA_PUBLIC_URL:-http://host.docker.internal:7210}
+    init: true
+    ports:
+      - "127.0.0.1:7210:7210"
+    read_only: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=1777
+    volumes:
+      - zxa-codex-home:/home/zxa/.codex
+volumes:
+  zxa-codex-home:

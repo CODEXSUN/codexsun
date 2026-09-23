@@ -25,11 +25,14 @@ Do not store private files in a public path. Do not allow one application or mod
 
 Keep source code in its owning application or package. Container files only build, configure, run, and verify that source.
 
-## Deployment
+## Runtime profiles
 
-`deployment/` stores deployment profiles and environment-specific configuration templates.
+`core/registry/profiles/` stores repository runtime selections. External
+deployment systems own environment-specific configuration and production
+secrets.
 
-Each profile must identify the selected applications, add-ons, infrastructure dependencies, storage requirements, and verification checks. Keep production secrets outside the repository.
+Each profile must identify the selected applications, add-ons, infrastructure
+dependencies, storage requirements, and verification checks.
 
 ## Required checks
 

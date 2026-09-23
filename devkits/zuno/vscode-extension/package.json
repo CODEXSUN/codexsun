@@ -1,0 +1,10 @@
+{
+  "name": "codexsun-zuno",
+  "displayName": "CodexSun",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onView:codexsun.zuno"],
+  "main": "./src/extension.js",
+  "contributes": { "viewsContainers": { "activitybar": [{ "id": "codexsun", "title": "CodexSun", "icon": "resources/codexsun.svg" }] }, "views": { "codexsun": [{ "id": "codexsun.zuno", "name": "Zuno" }] } }
+}

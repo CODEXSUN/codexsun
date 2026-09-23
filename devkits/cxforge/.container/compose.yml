@@ -1,0 +1,53 @@
+services:
+  cxforge:
+    container_name: "${CXFORGE_CONTAINER_NAME:-cxforge}"
+    image: "${CXFORGE_IMAGE:-cxforge}:${CXFORGE_VERSION:-1.0.0}"
+    build:
+      context: ../../..
+      dockerfile: devkits/cxforge/Dockerfile
+      args:
+        CXFORGE_VERSION: "${CXFORGE_VERSION:-1.0.0}"
+    environment:
+      CXFORGE_ADDRESS: ":6400"
+      CXFORGE_ZUNO_CLIENT_KEY: ${CXFORGE_ZUNO_CLIENT_KEY:-local-zuno-to-cxforge-client-key-32chars}
+      CXFORGE_PREVIEW_ORIGIN: http://127.0.0.1
+      CXFORGE_PREVIEW_PUBLIC_PORT: "${CXFORGE_PREVIEW_PORT_1:-7300}"
+      CXFORGE_EXECUTION_MODE: "${CXFORGE_EXECUTION_MODE:-tools}"
+      CXFORGE_CONTAINER_NAME: "${CXFORGE_CONTAINER_NAME:-cxforge}"
+      CXFORGE_VERSION: "${CXFORGE_VERSION:-1.0.0}"
+      CXFORGE_WORKSPACE_ROOT: /workspace
+      CXFORGE_SOURCE_ROOT: /repositories
+      CXFORGE_STATE_PATH: /var/lib/cxforge/state.json
+      CXFORGE_COMMAND_TIMEOUT: "300"
+      CXFORGE_MAX_WORKERS: "1"
+      CXFORGE_MAX_AGENT_TURNS: "4"
+      CXFORGE_ALLOW_REPO_COMMANDS: "false"
+      CXFORGE_CREDENTIAL_ENCRYPTION_KEY: local-cxforge-credential-key-change-before-production
+      CXFORGE_GIT_TOKEN: ${CXFORGE_GIT_TOKEN:-}
+    ports:
+      - "127.0.0.1:${CXFORGE_API_PORT:-6400}:6400"
+      - "127.0.0.1:${CXFORGE_PREVIEW_PORT_1:-7300}:7300"
+      - "127.0.0.1:${CXFORGE_PREVIEW_PORT_2:-7301}:7301"
+      - "127.0.0.1:${CXFORGE_PREVIEW_PORT_3:-7302}:7302"
+      - "127.0.0.1:${CXFORGE_PREVIEW_PORT_4:-7303}:7303"
+    networks:
+      - codexsun-network
+    restart: unless-stopped
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 2.0
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:6400/api/v1/cxforge/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+networks:
+  codexsun-network:
+    external: true

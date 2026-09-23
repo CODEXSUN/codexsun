@@ -35,9 +35,9 @@ WORKDIR /workspace/apps/qcafe/api
 ENV NODE_ENV=production
 ENV CODEXSUN_DEPLOYMENT_PROFILE=development
 
-COPY --from=build /workspace/dist/qcafe/api/server.js /workspace/dist/qcafe/api/server.js
-COPY --from=build /workspace/dist/qcafe/api/deployment-prepare.js /workspace/dist/qcafe/api/deployment-prepare.js
-COPY --from=build /workspace/node_modules/@fastify/swagger-ui/static /workspace/dist/qcafe/api/static
+COPY --from=build /workspace/dist/apps/qcafe/api/server.js /workspace/dist/apps/qcafe/api/server.js
+COPY --from=build /workspace/dist/apps/qcafe/api/deployment-prepare.js /workspace/dist/apps/qcafe/api/deployment-prepare.js
+COPY --from=build /workspace/node_modules/@fastify/swagger-ui/static /workspace/dist/apps/qcafe/api/static
 COPY --from=build /workspace/registry /workspace/registry
 
 RUN mkdir -p /workspace/storage/apps/qcafe/private/data \
@@ -46,7 +46,7 @@ RUN mkdir -p /workspace/storage/apps/qcafe/private/data \
 USER node
 
 EXPOSE 6220
-CMD ["node", "../../../dist/qcafe/api/server.js"]
+CMD ["node", "../../../dist/apps/qcafe/api/server.js"]
 
 FROM nginx:1.27-alpine AS web
 

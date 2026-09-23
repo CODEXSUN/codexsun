@@ -2,6 +2,18 @@
 
 This folder contains the working documentation for the CODEXSUN repository.
 
+## Repository roots
+
+- `core/platforms/` contains system platform hosts.
+- `core/registry/` contains application, add-on, and profile metadata.
+- `apps/` contains deployable business suites.
+- `devkits/` contains developer tools and internal applications.
+- `packages/` contains shared public contracts and reusable infrastructure.
+
+Do not recreate `registry/` at the repository root. Do not add root
+`artifacts/`, `deployment/`, `.tmp-es-toolkit-repair/`, or `e2e/` scratch
+directories.
+
 Read these documents before you add an application, package, service, or shared contract.
 
 ## Required Read Order
@@ -25,8 +37,8 @@ Read these documents before you add an application, package, service, or shared 
 - [Execution](execution/README.md) defines the delivery workflow and verification expectations.
 - [Delivery workflow](execution/workflow.md) defines planning, implementation, verification, and handoff.
 - [Verification standards](execution/verification.md) define static, live, Docker, and production evidence.
-- [Zetro planning](execution/apps/zetro/planning.md) defines the governed agentic IDE phases.
-- [Zetro task register](execution/apps/zetro/task.md) defines the next Zetro task and approval gates.
+- [Zetro planning](execution/devkits/zetro/planning.md) defines the governed agentic IDE phases.
+- [Zetro task register](execution/devkits/zetro/task.md) defines the next Zetro task and approval gates.
 - [Assets](assets/README.md) lists shared visual and media assets.
 - [Asset policy](assets/policy.md) defines asset ownership and licensing rules.
 - [Governance](governance/README.md) records repository rules and decision controls.

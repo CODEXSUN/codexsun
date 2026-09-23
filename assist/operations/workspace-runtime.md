@@ -51,15 +51,15 @@ Each app host has one TypeScript configuration file.
 ```text
 apps/<app>/api/tsconfig.json (business or platform)
 apps/<app>/web/tsconfig.json (business or platform)
-apps/devkits/<app>/api/tsconfig.json (developer tooling)
-apps/devkits/<app>/web/tsconfig.json (developer tooling)
+devkits/<app>/api/tsconfig.json (developer tooling)
+devkits/<app>/web/tsconfig.json (developer tooling)
 ```
 
 The API and web configurations may extend a root shared base configuration. Do not add extra host TypeScript configurations inside an app.
 
 Desktop and mobile hosts use their target tooling configuration. They must write generated output only to the root `dist/` namespace.
 
-The Platform desktop launcher sets `CARGO_TARGET_DIR=dist/platform/desktop/target`. Do not allow Tauri or Cargo to create `src-tauri/target/`.
+The Platform desktop launcher sets `CARGO_TARGET_DIR=dist/core/platforms/desktop/target`. Do not allow Tauri or Cargo to create `src-tauri/target/`.
 
 ## Required checks
 

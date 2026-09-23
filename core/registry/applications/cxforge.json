@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "cxforge",
+  "label": "CXForge",
+  "category": "devkit",
+  "owner": "devkits/cxforge",
+  "taskPrefix": "f",
+  "providers": [
+    "platform.core",
+    "cxforge.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_CXFORGE_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "cxforge-api",
+      "displayName": "CXForge API",
+      "environmentDirectory": "api",
+      "envKey": "CXFORGE_API_PORT",
+      "workspace": "@codexsun/cxforge-api",
+      "defaultPort": 6400
+    }
+  ]
+}

@@ -124,7 +124,8 @@ function checkPrivateAppImports(root, owner, directory) {
       if (!specifier.startsWith(".")) return [];
       const target = resolve(dirname(file), specifier);
       const targetPath = relative(root, target).replaceAll("\\", "/");
-      return targetPath.startsWith("apps/") && !targetPath.startsWith(`${owner}/`)
+      const privateRoot = /^(apps|devkits|core)\//u.test(targetPath);
+      return privateRoot && !targetPath.startsWith(`${owner}/`)
         ? [`${relative(root, file)}: imports another app private path ${specifier}`]
         : [];
     }),

@@ -24,7 +24,7 @@ export function createAddon(rootDir, options) {
     dataRetention: "retain",
     dataLifecycle: { compatibility: "backward-compatible", migrations: [], seeders: [] },
   };
-  writeJson(resolve(registry.root, "registry", "addons", `${id}.json`), addon);
+  writeJson(resolve(registry.registry, "addons", `${id}.json`), addon);
   writeJson(resolve(packagePath, "package.json"), packageJson(addon, workspaceVersion(registry.root)));
   write(resolve(packagePath, "tsconfig.json"), '{ "extends": "../../tsconfig.base.json", "include": ["src", "test"] }\n');
   write(resolve(packagePath, "README.md"), `# ${label} Add-on\n\nThis add-on publishes one provider. Applications select it through a deployment profile.\n`);

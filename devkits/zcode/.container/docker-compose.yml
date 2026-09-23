@@ -1,0 +1,71 @@
+name: ${ZCODE_PROJECT_NAME:-zcode-demo}
+
+services:
+  prepare:
+    image: gitpod/openvscode-server@sha256:5e7b8750749f282940a799ed59ccd02fac698ef6744f9113ac01c0ef8e76485e
+    entrypoint: ["sh", "/opt/zcode-prepare.sh"]
+    user: root
+    working_dir: /home/workspace
+    volumes:
+      - workspace-data:/home/workspace
+      - ./zcode-prepare.sh:/opt/zcode-prepare.sh:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 1
+
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    volumes:
+      - workspace-data:/workspace
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1
+
+  editor:
+    build:
+      context: .
+      dockerfile: Editor.Dockerfile
+    init: true
+    working_dir: /home/workspace
+    environment:
+      HOME: /home/openvscode-server
+    volumes:
+      - workspace-data:/home/workspace
+      - editor-home:/home/openvscode-server
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${ZCODE_EDITOR_PORT:-6132}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15m
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: 4g
+    cpus: 2
+
+volumes:
+  editor-home:
+  workspace-data:

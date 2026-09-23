@@ -30,11 +30,13 @@ The sequence describes discovery and composition. It does not allow a lower laye
 ## Repository structure
 
 ```text
+core/
+  platforms/                system platform hosts
+  registry/                 application, add-on, and profile metadata
 apps/
-  platform/                 generic platform host
-    modules/                platform-owned modules
   <app>/                    independently deployable business application
-  devkits/<app>/            developer-oriented application
+devkits/
+  <app>/                    developer-oriented application
     modules/                app-owned modules
 packages/
   framework/                runtime-neutral infrastructure contracts
@@ -42,10 +44,9 @@ packages/
   <addon>/                  optional reusable add-on and its modules
 storage/                    centralized application file storage
 .container/                 Docker build and local container runtime files
-deployment/                 environment deployment definitions
 ```
 
-`apps/platform` is the generic holder for selected applications. It owns platform capabilities such as identity, database management, Git repository management, and CLI integration. Developer-oriented applications are grouped under `apps/devkits`; the registry manifest `owner` is the source of truth for tooling and generated paths.
+`core/platforms` is the generic holder for selected system applications. It owns platform capabilities such as identity, database management, Git repository management, and CLI integration. Developer-oriented applications are grouped under `devkits`; the registry manifest `owner` is the source of truth for tooling and generated paths.
 
 An application owns product composition. An application must not recreate central templates, business logic, shared contracts, or UI components that a package already owns.
 
@@ -57,7 +58,7 @@ An application owns product composition. An application must not recreate centra
 
 `.container/` owns Dockerfiles, Compose files, container scripts, image configuration, and local container verification scripts. It does not own application business code.
 
-`deployment/` owns environment-specific deployment definitions, selected applications, selected add-ons, and deployment verification instructions. It does not own reusable application code.
+Runtime profiles under `core/registry/profiles` select environment-specific applications and add-ons. External deployment systems own deployment configuration and verification; they do not own reusable application code.
 
 ## Module layout
 

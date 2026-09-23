@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../../dist/core/platforms/api",
+    "baseUrl": "./",
+    "paths": { "@codexsun/contracts": ["../../../packages/contracts/src/index.ts"] }
+  },
+  "include": [
+    "src", "test"]
+}

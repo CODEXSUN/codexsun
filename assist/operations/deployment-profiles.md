@@ -4,7 +4,9 @@
 
 A deployment profile defines one client deployment. It selects applications and add-ons without changing their source ownership.
 
-Store profile definitions in `deployment/`. Use configuration templates without live secrets.
+Store profile definitions in the selected external deployment system. Keep
+repository-owned runtime selections in `core/registry/profiles/` and use
+configuration templates without live secrets.
 
 ## Provider selection
 
@@ -37,7 +39,8 @@ Do not claim production verification from local or Docker evidence. Report each 
 
 ## Aaran single-tenant profile
 
-`deployment/aaran.md` selects the first single-tenant Platform deployment. It
+The external deployment record for Aaran selects the first single-tenant
+Platform deployment. It
 does not define multi-tenant behavior. A future tenant add-on must add its own
 data, contracts, migration plan, and deployment review.
 

@@ -11,7 +11,7 @@ if (!applicationId || !/^[a-z][a-z0-9-]*$/u.test(applicationId)) {
   throw new Error("Usage: npm run identity:migrate -- <application-id>");
 }
 
-const manifestPath = resolve(root, "registry", "applications", `${applicationId}.json`);
+const manifestPath = resolve(root, "core", "registry", "applications", `${applicationId}.json`);
 if (!existsSync(manifestPath)) throw new Error(`Application is not registered: ${applicationId}.`);
 const appPath = resolve(applicationPath(root, getApplication(root, applicationId)), "api");
 if (!existsSync(appPath) || relative(resolve(root, "apps"), appPath).startsWith("..")) throw new Error(`Unknown application: ${applicationId}.`);

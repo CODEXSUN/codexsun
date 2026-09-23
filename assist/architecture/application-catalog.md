@@ -6,7 +6,10 @@ This catalog records applications, add-ons, and deployment selections.
 
 Do not add an application or add-on without a named owner, provider, public contract, and module register entry.
 
-Application source follows the manifest-owned directory. Platform and business applications use `apps/<application>`; developer-oriented applications use `apps/devkits/<application>`. The registry is the source of truth for this path.
+Application source follows the manifest-owned directory. Platform source uses
+`core/platforms`, business applications use `apps/<application>`, and
+developer-oriented applications use `devkits/<application>`. The registry is
+the source of truth for this path.
 
 ## Initial application hosts
 

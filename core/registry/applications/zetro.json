@@ -1,0 +1,15 @@
+{
+  "kind": "application",
+  "schemaVersion": 1,
+  "id": "zetro",
+  "label": "Zetro",
+  "category": "devkit",
+  "owner": "devkits/zetro",
+  "taskPrefix": "z",
+  "mdi": { "icon": "zetro", "localUrlKey": "VITE_ZETRO_WEB_URL", "path": "/zetro" },
+  "providers": ["platform.core", "zetro.foundation", "zetro.storage", "zetro.chat", "zetro.brief", "zetro.task"],
+  "hosts": [
+    { "kind": "api", "target": "zetro-api", "displayName": "Zetro API", "environmentDirectory": "api", "envKey": "ZETRO_API_PORT", "workspace": "@codexsun/zetro-api" },
+    { "kind": "web", "target": "zetro-web", "displayName": "Zetro web", "environmentDirectory": "web", "envKey": "ZETRO_WEB_PORT", "workspace": "@codexsun/zetro-web" }
+  ]
+}

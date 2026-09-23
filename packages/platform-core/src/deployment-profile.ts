@@ -19,8 +19,8 @@ export interface ApplicationDeployableProfile extends DeployableProfile {
 export function readApplicationDeployableProfile(options: ApplicationProfileOptions): ApplicationDeployableProfile {
   const registryRoot = findRegistryRoot(options.registryRoot ?? process.cwd());
   const profileId = options.profileId ?? process.env.CODEXSUN_DEPLOYMENT_PROFILE ?? "development";
-  const profile = readJson<RegistryProfile>(resolve(registryRoot, "registry", "profiles", `${profileId}.json`));
-  const application = readJson<ApplicationManifest>(resolve(registryRoot, "registry", "applications", `${options.applicationId}.json`));
+  const profile = readJson<RegistryProfile>(resolve(registryRoot, "core", "registry", "profiles", `${profileId}.json`));
+  const application = readJson<ApplicationManifest>(resolve(registryRoot, "core", "registry", "applications", `${options.applicationId}.json`));
   if (!profile.enabledApplications.includes(options.applicationId)) {
     throw new Error(`Deployment profile ${profile.id} does not enable application ${options.applicationId}.`);
   }
@@ -45,7 +45,7 @@ export interface ApplicationProfileOptions {
 function findRegistryRoot(startDirectory: string): string {
   let directory = resolve(startDirectory);
   while (true) {
-    if (existsSync(resolve(directory, "registry"))) return directory;
+    if (existsSync(resolve(directory, "core", "registry"))) return directory;
     const parent = dirname(directory);
     if (parent === directory) throw new Error("Could not find the CODEXSUN registry root.");
     directory = parent;
@@ -91,7 +91,7 @@ function validateProviderSelection(
 function readEnabledAddons(root: string, profile: RegistryProfile): AddonManifest[] {
   const addons = new Map<string, AddonManifest>();
   for (const id of profile.enabledAddons ?? []) {
-    const addon = readJson<AddonManifest>(resolve(root, "registry", "addons", `${id}.json`));
+    const addon = readJson<AddonManifest>(resolve(root, "core", "registry", "addons", `${id}.json`));
     addons.set(addon.id, addon);
   }
   for (const addon of addons.values()) {

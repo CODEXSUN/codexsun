@@ -72,7 +72,7 @@ use the shared 40px Button contract and wrap without a scrollbar.
 - `@codexsun/ui/templates/ui-page` exports `UiTemplatePage`, the required component
   and block documentation composition.
 - The Layout documentation includes a live Agent Workspace with two package-owned activity rails.
-- `apps/uiux/web/src/modules/gallery` owns the UIUX Gallery pages, catalogs, previews, usage guidance,
+- `devkits/uiux/web/src/modules/gallery` owns the UIUX Gallery pages, catalogs, previews, usage guidance,
   example data, and copyable examples. It consumes only public package exports.
 - `UiTemplatePage` owns the kind and title header, copyable import path, 90-percent
   live preview lane, code space, and named documentation navigation.

@@ -2,7 +2,7 @@
 
 Module ID: `platform.identity`
 
-Owner: `apps/platform/api/src/modules/identity`
+Owner: `core/platforms`
 
 Provider: `IdentityModuleProvider`
 

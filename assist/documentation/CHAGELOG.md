@@ -2,15 +2,27 @@
 
 ## Version State
 
-Current version: 1.0.34
+Current version: 1.0.35
 
-Release tag: v-1.0.34
+Release tag: v-1.0.35
 
-Changelog label: v 1.0.34
+Changelog label: v 1.0.35
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
+
+## v-1.0.35
+
+### [v 1.0.35] 2026-09-23 10:50 am - working on new zcode editor
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.35.
 
 ## v-1.0.34
 
@@ -504,7 +516,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
   history, public chat contracts and routes, and a read-only ephemeral local
   Codex CLI runner. Device-code login, final briefs, task handover, and worker
   execution remain out of scope. The preserved copied modules are under
-  `apps/zetro/temp/legacy-copy-2026-09-17/`. No existing storage records were
+  `devkits/zetro/temp/legacy-copy-2026-09-17/`. No existing storage records were
   removed.
 
 - Added the Docs `docs-index.001` SQLite migration, allowlisted source discovery, metadata change detection, stale-record removal, and repository-path containment checks.

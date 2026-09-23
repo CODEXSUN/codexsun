@@ -1,0 +1,15 @@
+{
+  "kind": "application",
+  "schemaVersion": 1,
+  "id": "uiux",
+  "label": "UIUX",
+  "category": "devkit",
+  "owner": "devkits/uiux",
+  "taskPrefix": "u",
+  "mdi": { "icon": "uiux", "localUrlKey": "VITE_UIUX_WEB_URL", "path": "/" },
+  "role": "visual-catalog",
+  "providers": [],
+  "hosts": [
+    { "kind": "web", "target": "uiux-web", "displayName": "UIUX web", "environmentDirectory": "web", "envKey": "WEB_PORT", "hostKey": "WEB_HOST", "workspace": "@codexsun/uiux-web" }
+  ]
+}

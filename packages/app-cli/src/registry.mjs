@@ -11,19 +11,28 @@ const packageWorkspaces = [
   "@codexsun/zetro-contracts",
 ];
 
+function registryDirectory(root) {
+  const coreRegistry = resolve(root, "core", "registry");
+  if (existsSync(coreRegistry)) return coreRegistry;
+  const legacyRegistry = resolve(root, "registry");
+  if (existsSync(legacyRegistry)) return legacyRegistry;
+  throw new Error("core/registry is missing.");
+}
+
 export function loadRegistry(rootDir = resolve(import.meta.dirname, "../../..")) {
   const root = resolve(rootDir);
-  const applications = readManifests(root, "applications", "application");
-  const addons = readManifests(root, "addons", "addon");
+  const registry = registryDirectory(root);
+  const applications = readManifests(registry, "applications", "application");
+  const addons = readManifests(registry, "addons", "addon");
   verifyUniqueTargets(applications);
-  return { addons, applications, root };
+  return { addons, applications, root, registry };
 }
 
 export function verifyRegistry(rootDir) {
   const registry = loadRegistry(rootDir);
   const applicationIds = new Set(registry.applications.map((application) => application.id));
   const addonIds = new Set(registry.addons.map((addon) => addon.id));
-  const profiles = readProfiles(registry.root);
+  const profiles = readProfiles(registry.registry);
 
   verifyApplicationBindings(registry.root, registry.applications);
   for (const profile of profiles) {
@@ -74,19 +83,15 @@ export function getApplication(rootDir, id) {
   return application;
 }
 
-/** Resolve the manifest-owned application directory and keep it inside apps/. */
+/** Resolve the manifest-owned directory inside an approved repository root. */
 export function applicationPath(rootDir, application) {
   const root = resolve(rootDir);
-  const appsPath = resolve(root, "apps");
   const path = resolve(root, application.owner);
-  const outside = relative(appsPath, path);
-  if (!outside || outside.startsWith("..") || outside.includes("..\\") || outside.includes("../")) {
-    throw new Error(`Application ${application.id}: owner must resolve inside apps/.`);
-  }
-  if (path !== resolve(appsPath, ...outside.split(/[\\/]+/u))) {
-    throw new Error(`Application ${application.id}: invalid owner path.`);
-  }
-  if (path.split(/[\\/]/u).at(-1) !== application.id) {
+  const ownerRoot = application.owner.split(/[\\/]/u)[0];
+  if (!new Set(["apps", "devkits", "core"]).has(ownerRoot)) throw new Error(`Application ${application.id}: owner must resolve inside an approved root.`);
+  const outside = relative(resolve(root, ownerRoot), path);
+  if (!outside || outside.startsWith("..") || outside.includes("..\\") || outside.includes("../")) throw new Error(`Application ${application.id}: owner must resolve inside an approved root.`);
+  if (path.split(/[\\/]/u).at(-1) !== application.id && !(application.category === "platform" && application.owner === "core/platforms")) {
     throw new Error(`Application ${application.id}: owner must end with the application id.`);
   }
   return path;
@@ -99,7 +104,7 @@ export function updateProfile(rootDir, profileId, kind, id, enabled) {
   const collection = kind === "application" ? registry.applications : registry.addons;
   if (!collection.some((item) => item.id === id)) throw new Error(`Unknown ${kind}: ${id}.`);
 
-  const profilePath = resolve(registry.root, "registry", "profiles", `${profileId}.json`);
+  const profilePath = resolve(registry.registry, "profiles", `${profileId}.json`);
   if (!existsSync(profilePath)) throw new Error(`Unknown profile: ${profileId}.`);
   const profile = readJson(profilePath);
   const key = kind === "application" ? "enabledApplications" : "enabledAddons";
@@ -112,8 +117,8 @@ export function updateProfile(rootDir, profileId, kind, id, enabled) {
   return profile;
 }
 
-function readManifests(root, category, expectedKind) {
-  const directory = resolve(root, "registry", category);
+function readManifests(registry, category, expectedKind) {
+  const directory = resolve(registry, category);
   if (!existsSync(directory)) return [];
   const ids = new Set();
   return readdirSync(directory, { withFileTypes: true })
@@ -134,7 +139,7 @@ function validateManifest(manifest, expectedKind, filename, ids) {
 function validateApplication(application, filename) {
   if (application.schemaVersion !== 1) throw new Error(`${filename}: schemaVersion must be 1.`);
   if (typeof application.label !== "string" || !application.label.trim()) throw new Error(`${filename}: label is required.`);
-  if (typeof application.owner !== "string" || !application.owner.startsWith("apps/")) throw new Error(`${filename}: owner must be an apps path.`);
+  if (typeof application.owner !== "string" || !/^(apps|devkits|core)\//u.test(application.owner)) throw new Error(`${filename}: owner must be under apps/, devkits/, or core/.`);
   if (application.category !== undefined && !new Set(["platform", "business", "devkit"]).has(application.category)) throw new Error(`${filename}: category must be platform, business, or devkit.`);
   if (typeof application.taskPrefix !== "string" || !/^[a-z]$/u.test(application.taskPrefix)) {
     throw new Error(`${filename}: taskPrefix must be one lowercase letter.`);
@@ -213,9 +218,9 @@ function verifyHostBinding(application, host, applicationPath) {
   }
 }
 
-function readProfiles(root) {
-  const directory = resolve(root, "registry", "profiles");
-  if (!existsSync(directory)) throw new Error("registry/profiles is missing.");
+function readProfiles(registry) {
+  const directory = resolve(registry, "profiles");
+  if (!existsSync(directory)) throw new Error("core/registry/profiles is missing.");
   const ids = new Set();
   return readdirSync(directory, { withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))

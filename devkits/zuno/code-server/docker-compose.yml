@@ -1,0 +1,20 @@
+services:
+  code-server:
+    image: ${ZUNO_CODE_SERVER_IMAGE:-codercom/code-server:latest}
+    environment:
+      PASSWORD: disabled-by-zuno-proxy
+      WORKSPACE_OWNER: ${WORKSPACE_OWNER:?Set a registry-owned workspace path}
+    command: ["--auth", "none", "--bind-addr", "0.0.0.0:8080", "/home/coder/project/${WORKSPACE_OWNER:?Set a registry-owned workspace path}"]
+    volumes:
+      - ${ZUNO_REPOSITORY_MOUNT:?Set the approved repository mount}:/repository:ro
+      - ${ZUNO_WORKSPACE_STORAGE:?Set approved workspace storage}:/home/coder/project:rw
+      - ${ZUNO_CODE_SERVER_HOME:?Set approved Code-server home storage}:/home/coder:rw
+    ports:
+      - "127.0.0.1:${ZUNO_CODE_SERVER_PORT:-8080}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,noexec,nosuid
+    cap_drop: [ALL]
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 2

@@ -39,7 +39,10 @@ Split a file by a meaningful module concern before it exceeds the limit. Do not 
 - Use the approved scope names: `platform`, `docs`, `zetro`, `uiux`, `packages`, and `workspace`.
 - Do not write build artifacts, generated declarations, or cache files into source folders.
 - Keep exactly one TypeScript configuration in each app API host and one in each app web host.
-- Use `apps/<app>/api/tsconfig.json` for the API host and `apps/<app>/web/tsconfig.json` for the web host.
+- Keep system applications under `core/platforms`, business suites under `apps/<app>`, developer tools under `devkits/<app>`, and shared code under `packages`.
+- Keep application and add-on registry metadata under `core/registry`.
+- Use the owner path in each registry manifest as the source of truth. Do not hardcode a legacy `apps/platform` or `apps/devkits` path.
+- Use `<owner>/api/tsconfig.json` and `<owner>/web/tsconfig.json` for host TypeScript configuration.
 
 ## Provider rules
 
@@ -61,7 +64,8 @@ Platform-owned modules include identity, database management, Git repository man
 - Scope every stored file by its private or public class, application, and module.
 - Access storage through a provider or adapter. Do not use unscoped direct filesystem access.
 - Keep Docker and local container runtime material under `.container/`.
-- Keep environment deployment definitions under `deployment/`.
+- Do not keep a root `deployment/` directory. Deployment configuration belongs with the selected runtime or external deployment system.
+- Do not commit `artifacts/`, `.tmp-es-toolkit-repair/`, or `e2e/` scratch output directories.
 - Do not place secrets, live data, or generated build outputs in version control.
 
 ## Development and delivery rules

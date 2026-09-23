@@ -8,7 +8,7 @@ Read the [delivery workflow](workflow.md) and [verification standards](verificat
 
 Read the [Framework and Platform plan](planning.md) and the [execution task register](task.md) before starting a planned task.
 
-Read the [Zetro planning](apps/zetro/planning.md) and [Zetro task register](apps/zetro/task.md)
+Read the [Zetro planning](devkits/zetro/planning.md) and [Zetro task register](devkits/zetro/task.md)
 before planning or implementing Zetro.
 
 ## Workflow

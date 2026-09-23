@@ -61,7 +61,7 @@ The preflight reads root `.env`, then the host `.app.env`. It reserves the confi
 To check a port without starting a host, run `node tools/preflight.mjs platform-api --check` or
 `node tools/preflight.mjs platform-web --check`.
 
-Use `npm.cmd run dev:desktop` for the Platform Tauri host. The desktop launcher sets `CARGO_TARGET_DIR` to `dist/platform/desktop/target`.
+Use `npm.cmd run dev:desktop` for the Platform Tauri host. The desktop launcher sets `CARGO_TARGET_DIR` below the full owner path, such as `dist/core/platforms/desktop/target` or `dist/devkits/zuno/desktop/target`.
 
 If another listener or active CODEXSUN reservation uses the port, preflight
 stops. It never ends an unknown process.

@@ -23,7 +23,7 @@ reference setup, module tests, manifests, a deployment provider selection, and
 the generated MDI app catalog. It does not install external packages or start a
 database.
 
-`app:disable` changes only `registry/profiles/<profile>.json`. It never removes
+`app:disable` changes only `core/registry/profiles/<profile>.json`. It never removes
 application files, packages, or persisted data. An add-on must explicitly
 declare `dataRetention: "retain"`.
 

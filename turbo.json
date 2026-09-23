@@ -10,57 +10,57 @@
     },
     "@codexsun/platform-api#build": {
       "outputs": [
-        "../../../dist/platform/api/**"
+        "../../../dist/core/platforms/api/**"
       ]
     },
     "@codexsun/platform-web#build": {
       "outputs": [
-        "../../../dist/platform/web/**"
+        "../../../dist/core/platforms/web/**"
       ]
     },
     "@codexsun/platform-desktop#build": {
       "outputs": [
-        "../../../dist/platform/desktop/**"
+        "../../../dist/core/platforms/desktop/**"
       ]
     },
     "@codexsun/platform-mobile#build": {
       "outputs": [
-        "../../../dist/platform/mobile/**"
+        "../../../dist/core/platforms/mobile/**"
       ]
     },
     "@codexsun/uiux-web#build": {
       "outputs": [
-        "../../../dist/uiux/web/**"
+        "../../../dist/devkits/uiux/web/**"
       ]
     },
     "@codexsun/zetro-api#build": {
       "outputs": [
-        "../../../dist/zetro/api/**"
+        "../../../dist/devkits/zetro/api/**"
       ]
     },
     "@codexsun/zetro-web#build": {
       "outputs": [
-        "../../../dist/zetro/web/**"
+        "../../../dist/devkits/zetro/web/**"
       ]
     },
     "@codexsun/cxforge-api#build": {
       "outputs": [
-        "../../../dist/cxforge/api/**"
+        "../../../dist/devkits/cxforge/api/**"
       ]
     },
     "@codexsun/zuno-api#build": {
       "outputs": [
-        "../../../dist/zuno/api/**"
+        "../../../dist/devkits/zuno/api/**"
       ]
     },
     "@codexsun/zuno-web#build": {
       "outputs": [
-        "../../../../dist/apps/devkits/zuno/web/**"
+        "../../../dist/devkits/zuno/web/**"
       ]
     },
     "@codexsun/zuno-desktop#build": {
       "outputs": [
-        "../../../dist/zuno/desktop/**"
+        "../../../dist/devkits/zuno/desktop/**"
       ]
     },
     "check": {
@@ -74,17 +74,17 @@
     },
     "@codexsun/docx-api#build": {
       "outputs": [
-        "../../../dist/docx/api/**"
+        "../../../dist/devkits/docx/api/**"
       ]
     },
     "@codexsun/docx-web#build": {
       "outputs": [
-        "../../../../dist/apps/devkits/docx/web/**"
+        "../../../dist/devkits/docx/web/**"
       ]
     },
     "@codexsun/qcafe-api#build": {
       "outputs": [
-        "../../../dist/qcafe/api/**"
+        "../../../dist/apps/qcafe/api/**"
       ]
     },
     "@codexsun/qcafe-web#build": {
@@ -94,7 +94,7 @@
     },
     "@codexsun/crm-api#build": {
       "outputs": [
-        "../../../dist/crm/api/**"
+        "../../../dist/apps/crm/api/**"
       ]
     },
     "@codexsun/crm-web#build": {
@@ -104,7 +104,7 @@
     },
     "@codexsun/himsx-api#build": {
       "outputs": [
-        "../../../dist/himsx/api/**"
+        "../../../dist/apps/himsx/api/**"
       ]
     },
     "@codexsun/himsx-web#build": {
@@ -114,7 +114,7 @@
     },
     "@codexsun/lms-api#build": {
       "outputs": [
-        "../../../dist/lms/api/**"
+        "../../../dist/apps/lms/api/**"
       ]
     },
     "@codexsun/lms-web#build": {
@@ -124,7 +124,7 @@
     },
     "@codexsun/sites-api#build": {
       "outputs": [
-        "../../../dist/sites/api/**"
+        "../../../dist/apps/sites/api/**"
       ]
     },
     "@codexsun/sites-web#build": {
@@ -134,17 +134,17 @@
     },
     "@codexsun/orship-api#build": {
       "outputs": [
-        "../../../dist/orship/api/**"
+        "../../../dist/devkits/orship/api/**"
       ]
     },
     "@codexsun/orship-web#build": {
       "outputs": [
-        "../../../../dist/apps/devkits/orship/web/**"
+        "../../../dist/devkits/orship/web/**"
       ]
     },
     "@codexsun/zuno-mobile#build": {
       "outputs": [
-        "../../../dist/zuno/mobile/**"
+        "../../../dist/devkits/zuno/mobile/**"
       ]
     }
   }

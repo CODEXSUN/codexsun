@@ -46,7 +46,7 @@ uses `127.0.0.1:6220`. The Q Cafe web app uses `127.0.0.1:6221`.
 ## Limits
 
 - The repository-wide module boundary check is blocked by existing generated
-  repositories under `apps/cxforge/.container/update.local.backups` and legacy
+  repositories under `devkits/cxforge/.container/update.local.backups` and legacy
   modules under `apps/temp`. These paths are outside this Q Cafe change.
 - `npm audit --omit=dev` reports six existing production dependency findings:
   five high and one critical. Available fixes require major upgrades to

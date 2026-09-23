@@ -12,7 +12,7 @@ The `./components/*` package export makes each component part of the public pack
 
 ## Gallery boundary
 
-The UIUX Gallery belongs to `apps/uiux/web/src/modules/gallery`. It consumes package components
+The UIUX Gallery belongs to `devkits/uiux/web/src/modules/gallery`. It consumes package components
 through public `@codexsun/ui` exports. Do not add gallery source to this package.
 Other applications must not import UIUX or depend on `@codexsun/uiux-web`.
 
@@ -98,7 +98,7 @@ The live UI documentation uses the Form block. Review the other exports before d
 
 ## Cleanup boundary
 
-1. Keep gallery code in `apps/uiux`; keep reusable UI implementation in `packages/ui`.
+1. Keep gallery code in `devkits/uiux`; keep reusable UI implementation in `packages/ui`.
 2. Run the UI typecheck, lint, build, and package boundary checks.
 3. Review public usage before removing a component or package export.
 4. Add a deprecation record for every intentional public contract removal.

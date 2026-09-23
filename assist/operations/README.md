@@ -1,6 +1,7 @@
 # Operations
 
-Store runtime, deployment, monitoring, backup, and incident procedures here.
+Store runtime, monitoring, backup, and incident procedures here. Deployment
+configuration belongs to the selected external runtime, not this repository.
 
 Read the [versioning and release rules](versioning.md) before a version or release change.
 

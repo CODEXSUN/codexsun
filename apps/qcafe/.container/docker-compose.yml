@@ -26,7 +26,7 @@ x-api-service: &api-service
 services:
   migrate:
     <<: *api-service
-    command: ["node", "../../../dist/qcafe/api/deployment-prepare.js"]
+    command: ["node", "../../../dist/apps/qcafe/api/deployment-prepare.js"]
     restart: "no"
     profiles: ["tools"]
 

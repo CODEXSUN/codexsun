@@ -1,0 +1,102 @@
+import {
+  zetroApiVersion,
+  zetroChatConversationListResponseSchema,
+  zetroChatConversationResponseSchema,
+  zetroCodexDeviceCodeResponseSchema,
+  zetroChatRuntimeResponseSchema,
+  zetroUpdateChatRuntimeSchema,
+  zetroCreateChatMessageSchema,
+  zetroCreateConversationSchema,
+  zetroUpdateConversationSchema,
+  zetroChatStreamEventSchema,
+  type ZetroChatStreamEvent,
+} from "@codexsun/zetro-contracts";
+import type { FastifyInstance } from "fastify";
+import { ChatService, ConversationNotFoundError } from "./chat-service";
+
+export async function registerChatRoutes(app: FastifyInstance, service: ChatService): Promise<void> {
+  app.get("/api/zetro/v1/chat/runtime", async () =>
+    zetroChatRuntimeResponseSchema.parse({ data: await service.getRuntime(), version: zetroApiVersion }),
+  );
+
+  app.put("/api/zetro/v1/chat/runtime", async (request) =>
+    zetroChatRuntimeResponseSchema.parse({ data: await service.updateRuntime(zetroUpdateChatRuntimeSchema.parse(request.body)), version: zetroApiVersion }),
+  );
+
+  app.get("/api/zetro/v1/chat/runtime/device-code", async () =>
+    zetroCodexDeviceCodeResponseSchema.parse({ data: service.getDeviceCode(), version: zetroApiVersion }),
+  );
+
+  app.post("/api/zetro/v1/chat/runtime/device-code", async () =>
+    zetroCodexDeviceCodeResponseSchema.parse({ data: await service.generateDeviceCode(), version: zetroApiVersion }),
+  );
+
+  app.get<{ Querystring: { archived?: string } }>("/api/zetro/v1/chat/conversations", async (request) =>
+    zetroChatConversationListResponseSchema.parse({ data: { conversations: service.listConversations(request.query.archived === "true") }, version: zetroApiVersion }),
+  );
+
+  app.post("/api/zetro/v1/chat/conversations", async (request) => {
+    const requestBody = zetroCreateConversationSchema.parse(request.body ?? {});
+    return zetroChatConversationResponseSchema.parse({
+      data: { conversation: service.createConversation(requestBody.title), messages: [] },
+      version: zetroApiVersion,
+    });
+  });
+
+  app.delete<{ Querystring: { archived?: string } }>("/api/zetro/v1/chat/conversations", async (request, reply) => {
+    if (request.query.archived !== "true") return reply.code(400).send({ error: "Only archived conversations can be force deleted.", code: "zetro.archive-required" });
+    return reply.code(200).send({ data: { deleted: service.deleteArchivedConversations() }, version: zetroApiVersion });
+  });
+
+  app.get<{ Params: { conversationId: string } }>("/api/zetro/v1/chat/conversations/:conversationId", async (request, reply) => {
+    const result = service.getConversation(request.params.conversationId);
+    if (!result) return reply.code(404).send({ error: "Conversation not found.", code: "zetro.conversation-not-found" });
+    return zetroChatConversationResponseSchema.parse({ data: result, version: zetroApiVersion });
+  });
+
+  app.patch<{ Body: unknown; Params: { conversationId: string } }>("/api/zetro/v1/chat/conversations/:conversationId", async (request, reply) => {
+    const conversation = service.updateConversation(request.params.conversationId, zetroUpdateConversationSchema.parse(request.body));
+    if (!conversation) return reply.code(404).send({ error: "Conversation not found.", code: "zetro.conversation-not-found" });
+    return zetroChatConversationResponseSchema.parse({ data: { conversation, messages: service.getConversation(conversation.id)?.messages ?? [] }, version: zetroApiVersion });
+  });
+
+  app.delete<{ Params: { conversationId: string } }>("/api/zetro/v1/chat/conversations/:conversationId", async (request, reply) => {
+    if (!service.deleteConversation(request.params.conversationId)) return reply.code(404).send({ error: "Conversation not found.", code: "zetro.conversation-not-found" });
+    return reply.code(204).send();
+  });
+
+  app.post<{ Params: { conversationId: string } }>("/api/zetro/v1/chat/conversations/:conversationId/messages", async (request, reply) => {
+    const requestBody = zetroCreateChatMessageSchema.parse(request.body);
+    try {
+      const result = await service.sendMessage(request.params.conversationId, requestBody.content, requestBody.runtime);
+      return zetroChatConversationResponseSchema.parse({ data: result, version: zetroApiVersion });
+    } catch (error) {
+      if (error instanceof ConversationNotFoundError) {
+        return reply.code(404).send({ error: error.message, code: "zetro.conversation-not-found" });
+      }
+      throw error;
+    }
+  });
+
+  app.post<{ Params: { conversationId: string } }>("/api/zetro/v1/chat/conversations/:conversationId/messages/stream", async (request, reply) => {
+    const requestBody = zetroCreateChatMessageSchema.parse(request.body);
+    reply.hijack();
+    reply.raw.writeHead(200, { "cache-control": "no-cache", connection: "keep-alive", "content-type": "text/event-stream" });
+    const controller = new AbortController();
+    const stopOnDisconnect = () => controller.abort();
+    reply.raw.once("close", stopOnDisconnect);
+    const publish = (event: ZetroChatStreamEvent) => {
+      reply.raw.write(`event: zetro-chat\ndata: ${JSON.stringify(zetroChatStreamEventSchema.parse(event))}\n\n`);
+    };
+
+    try {
+      await service.streamMessage(request.params.conversationId, requestBody.content, publish, controller.signal, requestBody.runtime, requestBody.attachments ?? []);
+    } catch (error) {
+      if (error instanceof ConversationNotFoundError) publish({ type: "error", message: error.message });
+      else throw error;
+    } finally {
+      reply.raw.removeListener("close", stopOnDisconnect);
+      reply.raw.end();
+    }
+  });
+}

@@ -1,0 +1,9 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../../dist/devkits/zetro/api"
+  },
+  "include": [
+    "src"
+  ]
+}

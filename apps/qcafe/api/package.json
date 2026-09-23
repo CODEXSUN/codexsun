@@ -1,11 +1,11 @@
 {
   "name": "@codexsun/qcafe-api",
-  "version": "1.0.34",
+  "version": "1.0.35",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --banner:js=\"import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url); const __dirname = import.meta.dirname;\" --outfile=../../../dist/qcafe/api/server.js",
-    "build:deployment": "npm run build && esbuild src/deployment-prepare.ts --bundle --platform=node --format=esm --banner:js=\"import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url); const __dirname = import.meta.dirname;\" --outfile=../../../dist/qcafe/api/deployment-prepare.js",
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --banner:js=\"import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url); const __dirname = import.meta.dirname;\" --outfile=../../../dist/apps/qcafe/api/server.js",
+    "build:deployment": "npm run build && esbuild src/deployment-prepare.ts --bundle --platform=node --format=esm --banner:js=\"import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url); const __dirname = import.meta.dirname;\" --outfile=../../../dist/apps/qcafe/api/deployment-prepare.js",
     "check": "tsc -p tsconfig.json --noEmit",
     "database:migrate": "tsx src/database-migrate.ts",
     "database:smoke": "tsx src/database-smoke.ts",
