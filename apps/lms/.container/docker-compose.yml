@@ -1,0 +1,85 @@
+name: lms
+
+x-api-service: &api-service
+  image: ${LMS_API_IMAGE:-lms/api}:${LMS_IMAGE_TAG:-local}
+  build:
+    context: ../../..
+    dockerfile: apps/lms/.container/Dockerfile
+    target: api
+  env_file:
+    - ../../../.env
+    - ../api/.app.env
+  environment:
+    APP_MODE: production
+    AUTO_LOGIN: "0"
+    NODE_ENV: production
+    PLATFORM_HOST: 0.0.0.0
+    LMS_API_PORT: "6250"
+    LMS_WEB_ORIGIN: ${LMS_PUBLIC_ORIGIN:-http://127.0.0.1:6251}
+  volumes:
+    - lms-data:/workspace/storage
+
+services:
+  migrate:
+    <<: *api-service
+    command: ["node", "../../../dist/apps/lms/api/deployment-prepare.js"]
+    restart: "no"
+    profiles: ["tools"]
+
+  api:
+    <<: *api-service
+    container_name: ${LMS_API_CONTAINER_NAME:-lms-api}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:6250/api/v1/lms/health'').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 10s
+    ports:
+      - "${LMS_API_BIND_ADDRESS:-127.0.0.1}:${LMS_API_PUBLISHED_PORT:-6250}:6250"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+
+  web:
+    image: ${LMS_WEB_IMAGE:-lms/web}:${LMS_IMAGE_TAG:-local}
+    build:
+      context: ../../..
+      dockerfile: apps/lms/.container/Dockerfile
+      target: web
+    container_name: ${LMS_WEB_CONTAINER_NAME:-lms-web}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    ports:
+      - "${LMS_WEB_BIND_ADDRESS:-127.0.0.1}:${LMS_WEB_PUBLISHED_PORT:-6251}:80"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  backup:
+    image: alpine:3.21
+    profiles: ["tools"]
+    volumes:
+      - lms-data:/workspace/storage:ro
+      - lms-backups:/backups
+
+volumes:
+  lms-data:
+    name: ${LMS_DATA_VOLUME:-lms-data}
+  lms-backups:
+    name: ${LMS_BACKUP_VOLUME:-lms-backups}

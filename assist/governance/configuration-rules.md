@@ -46,3 +46,7 @@ Browser clients receive only explicitly safe public configuration. Server creden
 2. Reject invalid ports, URLs, credentials, and storage paths at startup.
 3. Search changed source for hardcoded configuration values.
 4. Confirm `.env` and `.app.env` files remain ignored by Git.
+
+## Shared MCP credentials
+
+MCP API tokens, SSH keys, hosts, and command allowlists are runtime configuration. Keep them in a secret manager or process environment (`CODEXSUN_MCP_API_TOKEN`, `CODEXSUN_MCP_SSH_TARGETS`, and `CODEXSUN_MCP_SSH_ALLOWED_COMMANDS`); never commit them to client JSON, manifests, or application source. Use `@codexsun/remote-ops-mcp` for reusable remote operations and keep app-specific policy in the owning service.

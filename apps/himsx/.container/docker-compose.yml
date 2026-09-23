@@ -1,0 +1,85 @@
+name: himsx
+
+x-api-service: &api-service
+  image: ${HIMSX_API_IMAGE:-himsx/api}:${HIMSX_IMAGE_TAG:-local}
+  build:
+    context: ../../..
+    dockerfile: apps/himsx/.container/Dockerfile
+    target: api
+  env_file:
+    - ../../../.env
+    - ../api/.app.env
+  environment:
+    APP_MODE: production
+    AUTO_LOGIN: "0"
+    NODE_ENV: production
+    PLATFORM_HOST: 0.0.0.0
+    HIMSX_API_PORT: "6240"
+    HIMSX_WEB_ORIGIN: ${HIMSX_PUBLIC_ORIGIN:-http://127.0.0.1:6241}
+  volumes:
+    - himsx-data:/workspace/storage
+
+services:
+  migrate:
+    <<: *api-service
+    command: ["node", "../../../dist/apps/himsx/api/deployment-prepare.js"]
+    restart: "no"
+    profiles: ["tools"]
+
+  api:
+    <<: *api-service
+    container_name: ${HIMSX_API_CONTAINER_NAME:-himsx-api}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:6240/api/v1/himsx/health'').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 10s
+    ports:
+      - "${HIMSX_API_BIND_ADDRESS:-127.0.0.1}:${HIMSX_API_PUBLISHED_PORT:-6240}:6240"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+
+  web:
+    image: ${HIMSX_WEB_IMAGE:-himsx/web}:${HIMSX_IMAGE_TAG:-local}
+    build:
+      context: ../../..
+      dockerfile: apps/himsx/.container/Dockerfile
+      target: web
+    container_name: ${HIMSX_WEB_CONTAINER_NAME:-himsx-web}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    ports:
+      - "${HIMSX_WEB_BIND_ADDRESS:-127.0.0.1}:${HIMSX_WEB_PUBLISHED_PORT:-6241}:80"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  backup:
+    image: alpine:3.21
+    profiles: ["tools"]
+    volumes:
+      - himsx-data:/workspace/storage:ro
+      - himsx-backups:/backups
+
+volumes:
+  himsx-data:
+    name: ${HIMSX_DATA_VOLUME:-himsx-data}
+  himsx-backups:
+    name: ${HIMSX_BACKUP_VOLUME:-himsx-backups}

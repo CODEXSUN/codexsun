@@ -1,0 +1,85 @@
+name: crm
+
+x-api-service: &api-service
+  image: ${CRM_API_IMAGE:-crm/api}:${CRM_IMAGE_TAG:-local}
+  build:
+    context: ../../..
+    dockerfile: apps/crm/.container/Dockerfile
+    target: api
+  env_file:
+    - ../../../.env
+    - ../api/.app.env
+  environment:
+    APP_MODE: ${CRM_APP_MODE:-production}
+    AUTO_LOGIN: ${CRM_AUTO_LOGIN:-0}
+    NODE_ENV: production
+    PLATFORM_HOST: 0.0.0.0
+    CRM_API_PORT: "6230"
+    CRM_WEB_ORIGIN: ${CRM_PUBLIC_ORIGIN:-http://127.0.0.1:6231}
+  volumes:
+    - crm-data:/workspace/storage
+
+services:
+  migrate:
+    <<: *api-service
+    command: ["node", "../../../dist/apps/crm/api/deployment-prepare.js"]
+    restart: "no"
+    profiles: ["tools"]
+
+  api:
+    <<: *api-service
+    container_name: ${CRM_API_CONTAINER_NAME:-crm-api}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:6230/api/v1/crm/health'').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 10s
+    ports:
+      - "${CRM_API_BIND_ADDRESS:-127.0.0.1}:${CRM_API_PUBLISHED_PORT:-6230}:6230"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+
+  web:
+    image: ${CRM_WEB_IMAGE:-crm/web}:${CRM_IMAGE_TAG:-local}
+    build:
+      context: ../../..
+      dockerfile: apps/crm/.container/Dockerfile
+      target: web
+    container_name: ${CRM_WEB_CONTAINER_NAME:-crm-web}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    ports:
+      - "${CRM_WEB_BIND_ADDRESS:-127.0.0.1}:${CRM_WEB_PUBLISHED_PORT:-6231}:80"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  backup:
+    image: alpine:3.21
+    profiles: ["tools"]
+    volumes:
+      - crm-data:/workspace/storage:ro
+      - crm-backups:/backups
+
+volumes:
+  crm-data:
+    name: ${CRM_DATA_VOLUME:-crm-data}
+  crm-backups:
+    name: ${CRM_BACKUP_VOLUME:-crm-backups}

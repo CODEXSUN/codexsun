@@ -47,7 +47,7 @@
 | Time | `due_at`, `scheduled_start_at`, `scheduled_end_at`, `completed_at` | Track promises and service work. | Assignments, visits, tasks, collection. | Good SLA control. |
 | Location | `latitude`, `longitude`, `address_text`, `accuracy_meters`, `captured_at` | Prove field visits and collections. | Check-in, check-out, location history. | Better site accountability. |
 | Evidence | `storage_ref`, `file_name`, `mime_type`, `size_bytes`, `captured_by_actor_id` | Attach proof to work. | Attachments, work proof, payment proof. | Stronger verification. |
-| Safe JSON | `metadata_json`, `criteria_json`, `result_json` | Store controlled flexible data. | Reports, automation, AI, import. | Reduces early churn. |
+| Safe JSON | `metadata_json`, `criteria_json`, `result_json` | Store controlled flexible data. | Reports, automation, and AI. | Reduces early churn. |
 
 ## 4. Migration Order
 

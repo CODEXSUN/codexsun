@@ -1,0 +1,85 @@
+name: sites
+
+x-api-service: &api-service
+  image: ${SITES_API_IMAGE:-sites/api}:${SITES_IMAGE_TAG:-local}
+  build:
+    context: ../../..
+    dockerfile: apps/sites/.container/Dockerfile
+    target: api
+  env_file:
+    - ../../../.env
+    - ../api/.app.env
+  environment:
+    APP_MODE: production
+    AUTO_LOGIN: "0"
+    NODE_ENV: production
+    PLATFORM_HOST: 0.0.0.0
+    SITES_API_PORT: "6260"
+    SITES_WEB_ORIGIN: ${SITES_PUBLIC_ORIGIN:-http://127.0.0.1:6261}
+  volumes:
+    - sites-data:/workspace/storage
+
+services:
+  migrate:
+    <<: *api-service
+    command: ["node", "../../../dist/apps/sites/api/deployment-prepare.js"]
+    restart: "no"
+    profiles: ["tools"]
+
+  api:
+    <<: *api-service
+    container_name: ${SITES_API_CONTAINER_NAME:-sites-api}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:6260/api/v1/sites/health'').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 10s
+    ports:
+      - "${SITES_API_BIND_ADDRESS:-127.0.0.1}:${SITES_API_PUBLISHED_PORT:-6260}:6260"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+
+  web:
+    image: ${SITES_WEB_IMAGE:-sites/web}:${SITES_IMAGE_TAG:-local}
+    build:
+      context: ../../..
+      dockerfile: apps/sites/.container/Dockerfile
+      target: web
+    container_name: ${SITES_WEB_CONTAINER_NAME:-sites-web}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    ports:
+      - "${SITES_WEB_BIND_ADDRESS:-127.0.0.1}:${SITES_WEB_PUBLISHED_PORT:-6261}:80"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  backup:
+    image: alpine:3.21
+    profiles: ["tools"]
+    volumes:
+      - sites-data:/workspace/storage:ro
+      - sites-backups:/backups
+
+volumes:
+  sites-data:
+    name: ${SITES_DATA_VOLUME:-sites-data}
+  sites-backups:
+    name: ${SITES_BACKUP_VOLUME:-sites-backups}

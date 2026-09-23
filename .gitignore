@@ -79,3 +79,8 @@ Desktop.ini
 *.swp
 *.swo
 *~
+/apps/temp/devkit/
+/apps/temp/windmill/
+/apps/temp/qcafe/
+/apps/temp/cxapp/
+/apps/temp/crm/

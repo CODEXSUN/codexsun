@@ -1,10 +1,11 @@
 {
   "name": "@codexsun/himsx-api",
-  "version": "1.0.35",
+  "version": "1.0.36",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/apps/himsx/api/server.js",
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --banner:js=\"import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url); const __dirname = import.meta.dirname;\" --outfile=../../../dist/apps/himsx/api/server.js",
+    "build:deployment": "npm run build && esbuild src/deployment-prepare.ts --bundle --platform=node --format=esm --banner:js=\"import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url); const __dirname = import.meta.dirname;\" --outfile=../../../dist/apps/himsx/api/deployment-prepare.js",
     "check": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx watch src/server.ts",
     "lint": "eslint src",

@@ -2,15 +2,27 @@
 
 ## Version State
 
-Current version: 1.0.35
+Current version: 1.0.36
 
-Release tag: v-1.0.35
+Release tag: v-1.0.36
 
-Changelog label: v 1.0.35
+Changelog label: v 1.0.36
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
+
+## v-1.0.36
+
+### [v 1.0.36] 2026-09-23 7:32 pm - remote MCP and Logicx SSH operations
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.36.
 
 ## v-1.0.35
 
@@ -23,6 +35,10 @@ New entries must keep database-facing work and application code work separate.
 #### App Codebase Changes
 
 - Bumped CODEXSUN workspace version to 1.0.35.
+- Added app-owned Docker deployments for CRM, HIMSX, LMS, and Sites. Each
+  deployment includes production API and Nginx web images, SQLite identity
+  preparation, persistent data and backup volumes, setup/update/verify/drop
+  scripts, health checks, and restart-persistence verification.
 
 ## v-1.0.34
 

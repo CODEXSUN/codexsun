@@ -2,6 +2,10 @@
 
 This guide lists the shared infrastructure ports and their owners. It does not assign business behavior to Platform Core or Framework.
 
+## Remote operations MCP
+
+`@codexsun/remote-ops-mcp` is the shared, stdio MCP boundary for registry inspection, runtime status, and approved cloud SSH operations. Zuno and other clients may launch it, but no application owns or duplicates its transport. The server requires `CODEXSUN_MCP_API_TOKEN`, keeps SSH targets and exact command allowlists server-side, and writes an audit record for every operation. Business mutations remain in the owning app or deployment service.
+
 ## Capability map
 
 | Capability | Public contract | Current shared implementation |

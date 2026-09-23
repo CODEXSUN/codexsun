@@ -1,0 +1,10 @@
+{
+  "mcp": {
+    "servers": {
+      "codexsun-remote-ops": {
+        "command": "node",
+        "args": ["packages/remote-ops-mcp/src/server.mjs"]
+      }
+    }
+  }
+}

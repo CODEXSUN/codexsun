@@ -16,5 +16,17 @@ docker info >/dev/null
 docker compose version >/dev/null
 [ -f "$script_dir/.env" ] || { printf 'Run zcode-setup.sh first.\n' >&2; exit 1; }
 
-docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" down
-printf 'Zcode containers stopped. Workspace files and editor settings remain.\n'
+case "${1:-}" in
+  '')
+    docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" down
+    printf 'Zcode containers stopped. Workspace files and editor settings remain.\n'
+    ;;
+  --purge)
+    docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" down --volumes --rmi local --remove-orphans
+    printf 'Zcode containers, workspace, editor settings, and Zcode-built images removed.\n'
+    ;;
+  *)
+    printf 'Usage: %s [--purge]\n' "$0" >&2
+    exit 2
+    ;;
+esac

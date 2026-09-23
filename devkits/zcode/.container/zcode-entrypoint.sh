@@ -22,10 +22,17 @@ if [ "$lock_hash" != "$saved_hash" ] || [ ! -d "$workspace/node_modules" ]; then
   printf '%s\n' "$lock_hash" > "$lock_state"
 fi
 
+node /opt/zcode/zcode-bootstrap.mjs "$workspace"
+
 printf 'Zcode workspace ready: %s\n' "$workspace"
+extensions_dir="$HOME/.openvscode-server/extensions"
+os_extension="$extensions_dir/codexsun.zcode-os-0.1.0"
+mkdir -p "$os_extension"
+cp -R /opt/zcode/codexsun-os/. "$os_extension/"
+export PATH="$HOME/.local/bin:$PATH"
 exec /home/.openvscode-server/bin/openvscode-server \
   --host 0.0.0.0 \
   --without-connection-token \
   --disable-workspace-trust \
-  --extensions-dir /opt/zcode/extensions \
+  --extensions-dir "$extensions_dir" \
   "$workspace"

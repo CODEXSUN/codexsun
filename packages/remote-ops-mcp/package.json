@@ -1,0 +1,13 @@
+{
+  "name": "@codexsun/remote-ops-mcp",
+  "version": "1.0.36",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "codexsun-remote-mcp": "./src/server.mjs"
+  },
+  "scripts": {
+    "check": "node --check src/config.mjs && node --check src/ssh-provider.mjs && node --check src/stdio-server.mjs && node --check src/server.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

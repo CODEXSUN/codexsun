@@ -19,7 +19,7 @@ export function readConfig(): CrmConfiguration {
     port,
     ...readLocalIdentityConfiguration(process.env, {
       applicationId: "crm",
-      databasePath: resolve(process.cwd(), "../../../storage/apps/crm/private/data/crm_db.sqlite"),
+      databasePath: resolve(process.cwd(), "../../../storage/app/crm/private/data/crm_db.sqlite"),
     }),
   };
 }

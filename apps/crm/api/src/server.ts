@@ -23,10 +23,15 @@ import {
 } from "@codexsun/platform-core";
 import { readConfig } from "./config.js";
 import { CrmFoundationProvider } from "./modules/foundation/provider.js";
+import { createCrmPersistence } from "./modules/foundation/persistence/crm-persistence.js";
+import { registerCrmRoutes } from "./modules/foundation/routes/crm-routes.js";
 
 const config = readConfig();
+const persistence = createCrmPersistence({ localDatabasePath: config.databasePath });
 const identity = new LocalIdentityStore(config);
 await identity.initialize();
+if (config.appMode === "production") await persistence.verify();
+else await persistence.initialize();
 const provider = new CrmFoundationProvider();
 const profile = readApplicationDeployableProfile({ applicationId: "crm", availableProviderIds: ["platform.core", provider.manifest.id] });
 const runtime = createPlatformRuntime(profile, [provider, ...(await loadEnabledAddonProviders(profile))]);
@@ -87,7 +92,8 @@ app.post("/api/v1/crm/auth/logout", async (request, reply) => {
 });
 registerIdentityManagementRoutes({ app, identity, prefix: "/api/v1/crm" });
 app.get("/api/v1/crm/health", { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } }, async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }));
-app.addHook("onClose", () => { identity.close(); runtime.stop(); });
+await registerCrmRoutes(app, persistence.database());
+app.addHook("onClose", async () => { identity.close(); runtime.stop(); await persistence.destroy(); });
 await app.listen({ host: config.host, port: config.port });
 
 function isPublicPath(url: string): boolean {

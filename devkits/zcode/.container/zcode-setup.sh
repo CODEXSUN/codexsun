@@ -19,6 +19,8 @@ if [ ! -f "$script_dir/.env" ]; then
   cp "$script_dir/.env.example" "$script_dir/.env"
 fi
 
-docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" up -d --build --wait
+docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" up -d --build --force-recreate --wait
 docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" ps
-printf 'Open Zcode at http://127.0.0.1:%s/?folder=/home/workspace/codexsun\n' "$(sed -n 's/^ZCODE_EDITOR_PORT=//p' "$script_dir/.env" | tail -n 1)"
+printf 'Open Zcode at http://127.0.0.1:%s/\n' "$(sed -n 's/^ZCODE_EDITOR_PORT=//p' "$script_dir/.env" | tail -n 1)"
+preview_port="$(sed -n 's/^ZCODE_ZBROWSER_PORT=//p' "$script_dir/.env" | tail -n 1)"
+printf 'Open Zbrowser at http://127.0.0.1:%s/\n' "${preview_port:-6133}"

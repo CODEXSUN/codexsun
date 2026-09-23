@@ -44,6 +44,7 @@ services:
     working_dir: /home/workspace
     environment:
       HOME: /home/openvscode-server
+      ZBROWSER_MANAGER_URL: http://zbrowser:3001
     volumes:
       - workspace-data:/home/workspace
       - editor-home:/home/openvscode-server
@@ -57,6 +58,46 @@ services:
       interval: 10s
       timeout: 5s
       start_period: 15m
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: 4g
+    cpus: 2
+
+  zbrowser:
+    image: node:22-bookworm-slim
+    init: true
+    user: node
+    working_dir: /workspace/codexsun
+    command: ["node", "/opt/zbrowser/server.mjs"]
+    environment:
+      ZBROWSER_WORKSPACE: /workspace/codexsun
+      ZBROWSER_UIUX_PORT: ${ZCODE_ZBROWSER_PORT:-6133}
+    volumes:
+      - workspace-data:/workspace
+      - ./zbrowser:/opt/zbrowser:ro
+    depends_on:
+      editor:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${ZCODE_ZBROWSER_PORT:-6133}:${ZCODE_ZBROWSER_PORT:-6133}"
+      - "127.0.0.1:6140:6140"
+      - "127.0.0.1:6141:6141"
+      - "127.0.0.1:6142:6142"
+      - "127.0.0.1:6143:6143"
+      - "127.0.0.1:6144:6144"
+      - "127.0.0.1:6145:6145"
+      - "127.0.0.1:6146:6146"
+      - "127.0.0.1:6147:6147"
+      - "127.0.0.1:6148:6148"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
       retries: 3
     security_opt:
       - no-new-privileges:true

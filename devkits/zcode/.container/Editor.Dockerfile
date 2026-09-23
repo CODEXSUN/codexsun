@@ -6,22 +6,13 @@ USER root
 
 COPY --from=node /usr/local /usr/local
 
-RUN npm install --global @openai/codex@0.156.1 npm@12.0.2 \
-    && mkdir -p /opt/zcode/extensions \
-    && chown -R openvscode-server:openvscode-server /opt/zcode
-
-USER openvscode-server
-
-RUN /home/.openvscode-server/bin/openvscode-server \
-    --extensions-dir /opt/zcode/extensions \
-    --install-extension openai.chatgpt@26.908.40401
-
-USER root
+COPY addons/codexsun-os /opt/zcode/codexsun-os
 
 COPY zcode-configure.mjs /opt/zcode/zcode-configure.mjs
 RUN node /opt/zcode/zcode-configure.mjs brand
 
 COPY zcode-entrypoint.sh /usr/local/bin/zcode-entrypoint.sh
+COPY zcode-bootstrap.mjs /opt/zcode/zcode-bootstrap.mjs
 
 RUN chmod 755 /usr/local/bin/zcode-entrypoint.sh
 

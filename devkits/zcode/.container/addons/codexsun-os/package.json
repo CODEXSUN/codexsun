@@ -1,0 +1,24 @@
+{
+  "name": "zcode-os",
+  "displayName": "Codexsun OS",
+  "publisher": "codexsun",
+  "version": "0.1.2",
+  "scripts": { "test": "node --test test/*.test.js" },
+  "engines": { "vscode": "^1.96.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished", "onView:codexsunOs.addons", "onView:codexsunOs.zbrowser"],
+  "main": "./src/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "codexsunOs", "title": "Codexsun OS", "icon": "resources/codexsun-os.svg" }
+      ]
+    },
+    "views": {
+      "codexsunOs": [
+        { "type": "webview", "id": "codexsunOs.addons", "name": "Add-ons" },
+        { "type": "webview", "id": "codexsunOs.zbrowser", "name": "Zbrowser" }
+      ]
+    }
+  }
+}

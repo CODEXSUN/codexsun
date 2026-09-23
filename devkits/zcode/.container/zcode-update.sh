@@ -17,5 +17,5 @@ docker compose version >/dev/null
 [ -f "$script_dir/.env" ] || { printf 'Run zcode-setup.sh first.\n' >&2; exit 1; }
 
 docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" build --pull workspace editor
-docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" up -d --no-build --wait
+docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" up -d --no-build --force-recreate --wait
 docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" ps
