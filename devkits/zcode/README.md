@@ -5,11 +5,13 @@ container mount the same persistent Docker workspace volume. On first start,
 a prepare container clones `https://github.com/CODEXSUN/codexsun.git` into
 `/home/workspace/codexsun` inside that volume. The editor runs `npm ci` and
 opens the checkout. A Docker volume keeps Git and npm writes on Linux storage.
-The editor image includes Node, npm,
-and the OpenAI Codex CLI and IDE extension. Sign in to Codex from the editor
-using your own account. The dedicated local editor disables the workspace trust
-prompt for this checkout; it is not an access-control boundary. No other
-application or devkit is connected.
+The editor image includes Node, npm, and the OpenAI Codex CLI and IDE extension.
+The editor is branded Codexsun Zcode and opens the workspace without the welcome
+page. Existing editor settings are preserved; an explicit startup-editor choice
+takes precedence over this default.
+Sign in to Codex from the editor using your own account. Workspace Trust is
+disabled inside this dedicated local editor; it is not an access-control
+boundary. No other application or devkit is connected.
 
 Start from the repository root:
 
@@ -24,8 +26,8 @@ In Windows PowerShell with Git for Windows, use:
 ```
 
 Open http://127.0.0.1:6132/?folder=/home/workspace/codexsun after the clone
-and npm install finish. Create a
-file in the browser editor, then confirm that the Node container can see it:
+and npm install finish. Create a file in the browser editor, then confirm that
+the Node container can see it:
 
 ```sh
 docker compose --env-file devkits/zcode/.container/.env -f devkits/zcode/.container/docker-compose.yml exec workspace node -e "console.log(require('fs').readdirSync('/workspace/codexsun'))"

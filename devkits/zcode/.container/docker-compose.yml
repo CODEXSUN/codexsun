@@ -1,4 +1,4 @@
-name: ${ZCODE_PROJECT_NAME:-zcode-demo}
+name: ${ZCODE_PROJECT_NAME:-zcode-codex}
 
 services:
   prepare:

@@ -18,6 +18,9 @@ RUN /home/.openvscode-server/bin/openvscode-server \
 
 USER root
 
+COPY zcode-configure.mjs /opt/zcode/zcode-configure.mjs
+RUN node /opt/zcode/zcode-configure.mjs brand
+
 COPY zcode-entrypoint.sh /usr/local/bin/zcode-entrypoint.sh
 
 RUN chmod 755 /usr/local/bin/zcode-entrypoint.sh
