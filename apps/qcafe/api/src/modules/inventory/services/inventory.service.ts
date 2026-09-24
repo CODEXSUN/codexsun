@@ -1,5 +1,7 @@
 import type { ActivityRecorder, CommandContext } from "../../foundation/contracts/activity.contract.js";
 import type {
+  AddDailyPlanLine,
+  CreateDailyPlan,
   CreateRecipe,
   CreateStockItem,
   CreateStockUnit,
@@ -136,6 +138,54 @@ export class InventoryService {
       sourceRecipeId: recipeId,
     });
     return { id };
+  }
+
+  async createDailyPlan(input: CreateDailyPlan, context: CommandContext) {
+    if (!(await this.repo.location({ businessId: input.businessId, locationId: input.locationId }))) {
+      throw new InventoryConflictError("The inventory outlet scope is invalid.");
+    }
+    if (await this.repo.planForDate(input.locationId, input.planDate)) {
+      throw new InventoryConflictError("A daily plan already exists for this date.");
+    }
+    const id = await this.repo.createDailyPlan(
+      { businessId: input.businessId, locationId: input.locationId },
+      input.planDate,
+      input.note,
+      context.actorId,
+      this.timestamp(),
+    );
+    await this.record(context, "daily-plan.created", id, "daily-plan", { planDate: input.planDate });
+    return { id };
+  }
+
+  async addDailyPlanLine(planId: string, input: AddDailyPlanLine, context: CommandContext) {
+    const plan = await this.repo.dailyPlan(planId);
+    if (!plan) throw new InventoryConflictError("The daily plan is invalid.");
+    if (plan.status !== "draft") throw new InventoryConflictError("Only a draft plan accepts new lines.");
+    const item = await this.repo.menuItem(input.menuItemId);
+    if (!item || item.business_id !== plan.business_id || !item.active) {
+      throw new InventoryConflictError("The plan menu item is invalid.");
+    }
+    if (input.menuVariantId) {
+      const variant = await this.repo.menuVariant(input.menuVariantId);
+      if (!variant || variant.item_id !== input.menuItemId || !variant.active) {
+        throw new InventoryConflictError("The plan menu variant is invalid.");
+      }
+    }
+    const id = await this.repo.addDailyPlanLine(planId, input, this.timestamp());
+    await this.record(context, "daily-plan-line.added", id, "daily-plan-line", {
+      demandSource: input.demandSource,
+      planId,
+    });
+    return this.read({ businessId: plan.business_id, locationId: plan.location_id });
+  }
+
+  async confirmDailyPlan(planId: string, context: CommandContext) {
+    const plan = await this.repo.dailyPlan(planId);
+    if (!plan || plan.status !== "draft") throw new InventoryConflictError("Only a draft plan can be confirmed.");
+    await this.repo.confirmDailyPlan(planId, this.timestamp());
+    await this.record(context, "daily-plan.confirmed", planId, "daily-plan", { planDate: plan.plan_date });
+    return this.read({ businessId: plan.business_id, locationId: plan.location_id });
   }
 
   private async assertRecipeTarget(businessId: string, locationId: string, menuItemId: string, menuVariantId?: string) {

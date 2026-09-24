@@ -96,11 +96,27 @@ export class InventoryRepository {
       .orderBy("revision_no", "desc")
       .execute();
     const recipeIds = recipes.map((recipe) => recipe.id);
+    const plans = await this.recipesDb()
+      .selectFrom("qcafe_daily_plans")
+      .selectAll()
+      .where("business_id", "=", scope.businessId)
+      .where("location_id", "=", scope.locationId)
+      .orderBy("plan_date", "desc")
+      .execute();
+    const planIds = plans.map((plan) => plan.id);
     return {
       adjustments,
       balances: [...totals].map(([stockItemId, quantityMilli]) => ({ quantityMilli, stockItemId })),
       items,
       movements,
+      planLines: planIds.length
+        ? await this.recipesDb()
+            .selectFrom("qcafe_daily_plan_lines")
+            .selectAll()
+            .where("plan_id", "in", planIds)
+            .execute()
+        : [],
+      plans,
       recipeComponents: recipeIds.length
         ? await this.recipesDb()
             .selectFrom("qcafe_recipe_components")
@@ -272,5 +288,68 @@ export class InventoryRepository {
       }
       return id;
     });
+  }
+
+  dailyPlan(id: string) {
+    return this.recipesDb().selectFrom("qcafe_daily_plans").selectAll().where("id", "=", id).executeTakeFirst();
+  }
+
+  planForDate(locationId: string, planDate: string) {
+    return this.recipesDb()
+      .selectFrom("qcafe_daily_plans")
+      .select("id")
+      .where("location_id", "=", locationId)
+      .where("plan_date", "=", planDate)
+      .executeTakeFirst();
+  }
+
+  async createDailyPlan(scope: InventoryScope, planDate: string, note: string | undefined, actor: string, now: string) {
+    const id = randomUUID();
+    await this.recipesDb()
+      .insertInto("qcafe_daily_plans")
+      .values({
+        business_id: scope.businessId,
+        created_at: now,
+        created_by: actor,
+        id,
+        location_id: scope.locationId,
+        note: note ?? null,
+        plan_date: planDate,
+        status: "draft",
+        updated_at: now,
+      })
+      .execute();
+    return id;
+  }
+
+  async addDailyPlanLine(
+    planId: string,
+    line: { demandRef?: string; demandSource: "regular" | "special" | "booking" | "event"; menuItemId: string; menuVariantId?: string; note?: string; quantityMilli: number },
+    now: string,
+  ) {
+    const id = randomUUID();
+    await this.recipesDb()
+      .insertInto("qcafe_daily_plan_lines")
+      .values({
+        created_at: now,
+        demand_ref: line.demandRef ?? null,
+        demand_source: line.demandSource,
+        id,
+        menu_item_id: line.menuItemId,
+        menu_variant_id: line.menuVariantId ?? null,
+        note: line.note ?? null,
+        plan_id: planId,
+        quantity_milli: line.quantityMilli,
+      })
+      .execute();
+    return id;
+  }
+
+  async confirmDailyPlan(planId: string, now: string) {
+    await this.recipesDb()
+      .updateTable("qcafe_daily_plans")
+      .set({ status: "confirmed", updated_at: now })
+      .where("id", "=", planId)
+      .execute();
   }
 }

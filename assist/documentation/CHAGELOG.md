@@ -28,6 +28,7 @@ New entries must keep database-facing work and application code work separate.
 - Increased the Git file-list buffer used by the line-ending tool so large workspaces no longer fail with `spawnSync git ENOBUFS`.
 - Preserved file bytes during LF normalization and skipped legacy files that are not valid UTF-8.
 - Set the repository-local Git policy to `core.autocrlf=false` and `core.eol=lf` to match `.gitattributes`.
+- Completed Q Cafe daily-plan repository, service, and route behavior for scoped plan creation, line additions, confirmation, and inventory reads.
 - Verification: line-ending tests and the line-ending check passed; commit and push are part of this release operation.
 
 ## v-1.0.40

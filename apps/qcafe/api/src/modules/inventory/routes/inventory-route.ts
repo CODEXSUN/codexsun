@@ -1,9 +1,12 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { CommandContext } from "../../foundation/contracts/activity.contract.js";
 import {
+  addDailyPlanLineSchema,
+  createDailyPlanSchema,
   createRecipeSchema,
   createStockItemSchema,
   createStockUnitSchema,
+  dailyPlanIdSchema,
   inventoryScopeSchema,
   inventoryWorkspaceSchema,
   postStockAdjustmentSchema,
@@ -40,6 +43,21 @@ export async function registerInventoryRoutes(app: FastifyInstance, service: Inv
         contextFor(request),
       ),
     ),
+  );
+  app.post("/api/v1/qcafe/inventory/daily-plans", async (request, reply) =>
+    run(reply, () => service.createDailyPlan(createDailyPlanSchema.parse(request.body), contextFor(request))),
+  );
+  app.post("/api/v1/qcafe/inventory/daily-plans/:planId/lines", async (request, reply) =>
+    run(reply, () =>
+      service.addDailyPlanLine(
+        dailyPlanIdSchema.parse(request.params).planId,
+        addDailyPlanLineSchema.parse(request.body),
+        contextFor(request),
+      ),
+    ),
+  );
+  app.post("/api/v1/qcafe/inventory/daily-plans/:planId/confirm", async (request, reply) =>
+    run(reply, () => service.confirmDailyPlan(dailyPlanIdSchema.parse(request.params).planId, contextFor(request))),
   );
 }
 
