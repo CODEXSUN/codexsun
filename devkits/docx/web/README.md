@@ -1,10 +1,13 @@
 # DOCX Web
 
-The web host composes the shared documentation workspace. The DOCX portal
-provides documentation-style navigation, reader and helper regions, Ideas pages, source
-actions, and an application-owned authoring flow through the published rich
-text editor.
+DOCX provides a searchable Markdown library grouped by application, devkit, platform, package, and documentation owner.
 
-Run `npm.cmd run dev:docx-web` from the repository root for local browser
-verification. Run the workspace check, lint, test, and build commands before
-handoff.
+## Documentation
+
+The [repository documentation module](src/modules/documentation-portal/README.md) owns discovery, navigation, Markdown previews, source view, and document links. Follow the [documentation standards](../../../assist/documentation/standards.md) when adding or updating files.
+
+## Runtime
+
+Run `npm run dev:docx-api` and `npm run dev:docx-web` from the repository root. Local defaults are API port 6200 and web port 6201. Zbrowser serves the DOCX preview on port 6145 and connects to the API in the editor container.
+
+Run the workspace `check`, `lint`, `test`, and `build` commands before handoff.

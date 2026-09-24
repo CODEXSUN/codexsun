@@ -1,5 +1,7 @@
 # Documentation Standards
 
+Defines documentation structure, ownership, and update requirements for CODEXSUN.
+
 ## Required documentation
 
 Each application, add-on, package, and module has a README.
@@ -13,6 +15,10 @@ Update local module documentation with module code. Update central Assist docume
 Update the active entry in `CHAGELOG.md` for every meaningful completed progress change. Keep database and app-code changes separate.
 
 ## Writing rules
+
+Start every repository-owned Markdown file with a single descriptive `# Title` as the first nonblank line. Follow it with a brief purpose statement and use `##` and `###` for sections. Do not put badges, decorative separators, sample text, or navigation before the title. Preserve upstream documentation as supplied by its owner.
+
+DOCX scans application, devkit, platform, package, Assist, tool, and root Markdown files automatically. The first heading labels each document in its application group. Keep filenames stable and use relative Markdown links; no manual document registration is needed. The DOCX API reads current source files on each library refresh; deployed viewers require the repository Markdown to be available to the API.
 
 Use direct language and relative links. Describe current behavior and label future decisions clearly.
 

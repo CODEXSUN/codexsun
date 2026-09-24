@@ -3,6 +3,8 @@ import helmet from "@fastify/helmet";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import Fastify from "fastify";
+import { readdir, readFile } from "node:fs/promises";
+import { relative, resolve } from "node:path";
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { createPlatformRuntime, fastifyHelmetOptions, IdentityLoginRateLimitError, identityBrowserSessionIdSchema, identityErrorResponseSchema, identityLoginResponseSchema, identityLoginSchema, identityPasswordResetAcceptedSchema, identityPasswordResetConfirmationSchema, identityPasswordResetRequestSchema, loadEnabledAddonProviders, LocalIdentityStore, readApplicationDeployableProfile, registerIdentityManagementRoutes } from "@codexsun/platform-core";
@@ -62,6 +64,7 @@ app.addHook("onRequest", async (request, reply) => {
 app.post("/api/v1/docx/auth/logout", async (request, reply) => reply.code(identity.logout(request.headers.authorization, request.headers["x-codexsun-browser-session"]) ? 204 : 401).send());
 registerIdentityManagementRoutes({ app, identity, prefix: "/api/v1/docx" });
 app.get("/api/v1/docx/health", { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } }, async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }));
+app.get("/api/v1/docx/documents", { schema: { response: { 200: z.object({ items: z.array(z.object({ content: z.string(), path: z.string() })) }) }, tags: ["Documentation"] } }, async () => ({ items: await readRepositoryDocuments() }));
 app.addHook("onClose", () => { identity.close(); runtime.stop(); });
 await app.listen({ host: config.host, port: config.port });
 
@@ -76,4 +79,22 @@ function isPublicPath(url: string): boolean {
     || path === "/api/v1/docx/health"
     || path === "/api/internal/reference"
     || path.startsWith("/api/internal/reference/");
+}
+
+async function readRepositoryDocuments(): Promise<{ content: string; path: string }[]> {
+  const root = resolve(process.cwd(), "../../../");
+  const files = ["AGENTS.md", "README.md"];
+  for (const directory of ["apps", "devkits", "core", "packages", "assist", "tools"]) await collectMarkdownFiles(resolve(root, directory), files, root);
+  return Promise.all(files.sort().map(async (file) => ({ content: await readFile(resolve(root, file), "utf8"), path: file.replaceAll("\\", "/") })));
+}
+
+async function collectMarkdownFiles(directory: string, files: string[], root: string): Promise<void> {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const child = resolve(directory, entry.name);
+    const path = relative(root, child).replaceAll("\\", "/");
+    if (entry.isDirectory()) {
+      if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git" || path === "devkits/zetro2/zvcode") continue;
+      await collectMarkdownFiles(child, files, root);
+    } else if (entry.isFile() && entry.name.endsWith(".md")) files.push(path);
+  }
 }

@@ -7,7 +7,7 @@ import { defineConfig } from "vite";
 config({ path: resolve(import.meta.dirname, "../../../.env") });
 config({ path: resolve(import.meta.dirname, ".app.env"), override: true });
 
-const reactSourceFiles = /(?:apps[\\/]docx[\\/]web[\\/]src|packages[\\/]ui[\\/]src)[\\/].*\.[jt]sx?$/u;
+const reactSourceFiles = /(?:devkits[\\/]docx[\\/]web[\\/]src|packages[\\/]ui[\\/]src)[\\/].*\.[jt]sx?$/u;
 
 export default defineConfig({
   cacheDir: "../../../dist/.vite/devkits/docx/web",

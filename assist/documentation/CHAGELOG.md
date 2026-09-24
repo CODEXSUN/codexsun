@@ -1,16 +1,37 @@
 # Changelog
 
+Records CODEXSUN releases, database impact, and completed application changes.
+
 ## Version State
 
-Current version: 1.0.38
+Current version: 1.0.39
 
-Release tag: v-1.0.38
+Release tag: v-1.0.39
 
-Changelog label: v 1.0.38
+Changelog label: v 1.0.39
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
+
+## v-1.0.39
+
+### [v 1.0.39] 2026-09-24 11:21 am - DOCX repository documentation viewer and documentation standards
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.39 and synchronized workspace manifests and the lockfile.
+- DOCX API: added authenticated repository Markdown discovery with dependency, build, Git, and vendored editor exclusions; no database migrations or schema changes.
+- DOCX web: replaced sample content and authoring controls with an application-grouped Markdown library, content search, preview/source modes, document links, copy-link and download actions, and 15-second library refreshes.
+- Kept filtered navigation synchronized when the document library loads or refreshes; added catalog grouping and relative-link tests.
+- Corrected the DOCX Vite React source matcher to use the devkits path.
+- Documented Markdown heading and indexing conventions, DOCX runtime behavior, and application port assignments.
+- Verification: DOCX tests passed (five passed, MariaDB integration skipped); web type check, API/web lint and builds, version alignment, and changed-file whitespace/LF checks passed.
+- Known verification limits: API type check reports four existing TS2835 import-extension errors; repository-wide line-ending tooling fails with Git ENOBUFS, so LF verification was scoped to changed source files. Browser E2E and live deployment were not tested.
 
 ## v-1.0.38
 

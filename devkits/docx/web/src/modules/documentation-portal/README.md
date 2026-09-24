@@ -1,21 +1,27 @@
-# DOCX Documentation Portal Web Module
+# DOCX Repository Documentation
 
-## Purpose
+The documentation portal previews repository-owned Markdown directly from its source files.
 
-Composes the DOCX documentation portal from public `@codexsun/ui` exports.
-It owns DOCX navigation, document-reader state, Ideas pages, header actions,
-and the rich-text authoring flow.
+## Library
 
-## Ownership
+- Automatically scans applications, devkits, platform, packages, Assist, tools, and root Markdown, including hidden deployment folders.
+- Excludes dependencies, build output, Git metadata, and the vendored Zetro2 editor tree.
+- Groups documents by application or owner, ordered alphabetically with each owner's README first.
+- Uses the first level-one heading as the title; filenames distinguish duplicate titles.
+- Searches headings, paths, and content. The DOCX API scans the current repository on every library refresh, so the preview updates after documentation changes without rebuilding the web bundle.
 
-- Uses `DocumentationWorkspace` for the shared MDI documentation frame.
-- Uses `RichTextEditor` through its public component export.
-- Keeps DOCX document content, source paths, navigation, and editing state in
-  this module.
-- Does not import another application's source files or copy UI package components.
+## Reader
+
+The shared `MarkdownContent` renderer supports tables, task lists, code blocks, and Mermaid diagrams. The toolbar switches between preview and Markdown source, copies a document URL, or downloads the source. The `doc` URL query parameter preserves selection on refresh and supports browser back and forward. Links to indexed Markdown files open in the portal.
+
+The viewer is read-only. Edit original Markdown files in the repository. There are no sample documents, simulated saves, or database copies of documentation.
+
+## Storage and Authentication
+
+DOCX uses the existing identity service and SQLite at `storage/devkits/docx/private/data/docx_db.sqlite`. Development startup migrates and seeds identity tables. Markdown remains on disk and does not need another database.
+
+For Zbrowser, the API runs in the editor container and the preview proxies to `http://editor:6200`. The DOCX preview uses port 6145. Automatic login is controlled by the API's local environment configuration.
 
 ## Verification
 
-Run the DOCX web type check, lint, test command, and a browser-visible portal
-flow covering navigation, header actions, helper navigation, Ideas pages, and
-the editor.
+Run the DOCX web `check`, `lint`, `test`, and `build` workspace commands. Verify automatic login through the preview host, application navigation, search, source view, document links, and live updates.
