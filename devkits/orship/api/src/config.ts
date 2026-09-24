@@ -2,7 +2,7 @@ import { config } from "dotenv";
 import { resolve } from "node:path";
 import { readDatabaseConnectionUrl, readLocalIdentityConfiguration } from "@codexsun/platform-core";
 
-type OrshipConfiguration = ReturnType<typeof readLocalIdentityConfiguration> & { readonly apiReferenceToken: string; readonly databaseUrl: string; readonly dockerManagerToken: string; readonly dockerManagerUrl: string; readonly host: string; readonly mariadbContainerName: string; readonly mariadbDatabase: string; readonly mariadbHostPort: number; readonly mariadbImage: string; readonly mariadbNetwork: string; readonly port: number; readonly webOrigin: string };
+type OrshipConfiguration = ReturnType<typeof readLocalIdentityConfiguration> & { readonly apiReferenceToken: string; readonly databaseUrl: string; readonly dockerManagerToken: string; readonly dockerManagerUrl: string; readonly dokployAccessTokenReference: string; readonly dokployBaseUrl?: string; readonly host: string; readonly mariadbContainerName: string; readonly mariadbDatabase: string; readonly mariadbHostPort: number; readonly mariadbImage: string; readonly mariadbNetwork: string; readonly port: number; readonly webOrigin: string };
 
 export function readConfig(): OrshipConfiguration {
   config({ path: resolve(process.cwd(), "../../../.env") });
@@ -17,6 +17,8 @@ export function readConfig(): OrshipConfiguration {
   if (!webOrigin) throw new Error("Set ORSHIP_WEB_ORIGIN.");
   const dockerManagerUrl = process.env.ORSHIP_DOCKER_MANAGER_URL ?? "http://127.0.0.1:6302";
   const dockerManagerToken = process.env.ORSHIP_DOCKER_TOKEN ?? "orship-local-docker-token";
+  const dokployBaseUrl = process.env.ORSHIP_DOKPLOY_BASE_URL?.trim() || undefined;
+  const dokployAccessTokenReference = process.env.ORSHIP_DOKPLOY_ACCESS_TOKEN_REF?.trim() || "DOKPLOY_ACCESS_TOKEN";
   const mariadbHostPort = Number(process.env.ORSHIP_MARIADB_HOST_PORT ?? "3309");
   if (!Number.isInteger(mariadbHostPort) || mariadbHostPort < 1 || mariadbHostPort > 65_535) throw new Error("Set ORSHIP_MARIADB_HOST_PORT to a valid port.");
   return {
@@ -24,6 +26,8 @@ export function readConfig(): OrshipConfiguration {
     databaseUrl: readDatabaseConnectionUrl(process.env),
     dockerManagerToken,
     dockerManagerUrl,
+    dokployAccessTokenReference,
+    ...(dokployBaseUrl ? { dokployBaseUrl } : {}),
     host,
     mariadbContainerName: process.env.ORSHIP_MARIADB_CONTAINER_NAME ?? "orship-database",
     mariadbDatabase: process.env.ORSHIP_MARIADB_DATABASE ?? "orship_db",
@@ -35,6 +39,10 @@ export function readConfig(): OrshipConfiguration {
     ...readLocalIdentityConfiguration(process.env, {
       applicationId: "orship",
       databasePath: resolve(process.cwd(), "../../../storage/devkits/orship/private/data/orship_db.sqlite"),
+      rolePermissions: {
+        admin: ["providers.read", "providers.manage", "targets.read", "targets.manage", "applications.read", "applications.manage", "deployments.read", "deployments.create", "deployments.cancel", "deployments.rollback", "logs.read", "secrets.read-reference", "health.read"],
+        user: ["providers.read", "targets.read", "applications.read", "deployments.read", "logs.read", "health.read"],
+      },
     }),
   };
 }

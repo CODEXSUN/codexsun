@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import type { CreateInfraInput, OrshipInfraRecord } from "./infras-store";
+import type { CreateInfraInput, OrshipInfraRecord } from "./infras-store.js";
 
 type InfrasStorePort = {
   create(input: CreateInfraInput): OrshipInfraRecord | Promise<OrshipInfraRecord>;

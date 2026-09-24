@@ -84,3 +84,17 @@ Desktop.ini
 /apps/temp/qcafe/
 /apps/temp/cxapp/
 /apps/temp/crm/
+/apps/temp/dokploy/.container/.env
+/apps/temp/paperclip/
+/apps/temp/codexsun/
+/apps/temp/dokploy/*
+!/apps/temp/dokploy/.container/
+!/apps/temp/dokploy/.container/**
+/apps/temp/dokploy/.container/.env
+/apps/temp/dokploy/.container/.env.*
+!/apps/temp/dokploy/.container/.env.example
+/apps/temp/gitpod/
+!/apps/temp/gitpod/
+/apps/temp/gitpod/*
+!/apps/temp/gitpod/local-preview/
+/apps/temp/openvscode-server/

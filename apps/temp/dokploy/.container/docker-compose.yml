@@ -1,0 +1,47 @@
+name: codexsun-dokploy
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dokploy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .container/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-dokploy}
+    volumes:
+      - dokploy-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  dokploy:
+    build:
+      context: ..
+      dockerfile: .container/Dockerfile
+    image: ${DOKPLOY_IMAGE:-codexsun/dokploy:local}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${DOKPLOY_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://${POSTGRES_USER:-dokploy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dokploy}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .container/.env}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set ENCRYPTION_KEY in .container/.env}
+      DOKPLOY_DOCKER_HOST: unix:///var/run/docker.sock
+      DOKPLOY_DOCKER_API_VERSION: ${DOKPLOY_DOCKER_API_VERSION:-1.44}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dokploy-data:/etc/dokploy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/api/trpc/settings.health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+volumes:
+  dokploy-postgres:
+  dokploy-data:

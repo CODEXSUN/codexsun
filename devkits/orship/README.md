@@ -22,6 +22,32 @@ It tracks what runs, where it runs, which version is active, and whether each se
 - Keep runtime configuration visible without exposing secrets.
 - Coordinate API, web, worker, database, and storage maintenance tasks.
 
+## Deployment Control Plane
+
+Orship owns the deployment record, application registry, target ownership,
+approval and RBAC decisions, environment policy, audit trail, deployment
+history, and operator UI. Dokploy is an optional provider adapter. The browser
+only calls Orship; it never receives a Docker socket or a raw Dokploy response.
+
+The adapter currently supports Docker applications, Compose applications, Git
+sources, provider targets, health checks, start/stop/restart/redeploy/rollback,
+status and logs, environment updates, service discovery, and provider health.
+Provider requests use `ORSHIP_DOKPLOY_BASE_URL` and resolve the access token
+from `ORSHIP_DOKPLOY_ACCESS_TOKEN_REF` through the configured secret provider.
+Remote provider URLs must use TLS. Localhost HTTP is allowed only for local
+development.
+
+Deployment state is stored in MariaDB through the existing migration runner.
+Secret values are never stored in deployment tables, logs, or browser
+responses. Production mutation policy is separate from development targets;
+deployment permissions are required for every mutating operation. Rollbacks
+are explicit operations and are recorded with their provider reference.
+
+The provider boundary is implemented from the documented Dokploy API contract
+in `apps/temp/dokploy/openapi.json`. No Dokploy proprietary internals are
+copied into Orship. The existing local Dokploy wrapper remains under
+`apps/temp/dokploy/.container` and is not part of the Orship runtime image.
+
 ## Application Boundary
 
 Orship owns orchestration product behavior inside ``.

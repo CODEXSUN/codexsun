@@ -103,7 +103,13 @@ const crmCustomer360Migration = {
     await database.schema
       .alterTable("crm_leads")
       .addColumn("qualification_note", "text")
+      .execute();
+    await database.schema
+      .alterTable("crm_leads")
       .addColumn("qualified_at", "varchar(40)")
+      .execute();
+    await database.schema
+      .alterTable("crm_leads")
       .addColumn("converted_enquiry_id", "varchar(36)")
       .execute();
     await createContactTable(database);

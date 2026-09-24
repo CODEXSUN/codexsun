@@ -1,6 +1,6 @@
 # Zcode Workspace Demo
 
-Zcode is a local proof of one shared working environment. The editor and Node
+Zcode is a local proof of a working environment. The editor and Node
 container mount the same persistent Docker workspace volume. On first start,
 a prepare container clones `https://github.com/CODEXSUN/codexsun.git` into
 `/home/workspace/codexsun` inside that volume. The editor runs `npm ci` and
@@ -76,7 +76,25 @@ settings. Follow startup with
 `docker compose --env-file devkits/zcode/.container/.env -f devkits/zcode/.container/docker-compose.yml logs -f editor`.
 
 This demo has no authentication. Its editor port binds only to localhost. Do
-not expose it to a network. Zuno authentication, CXForge, and per-developer
-stacks are not connected yet. The editor terminal and optional Codex tools run
-in the editor container, not the Node container. Nginx is unnecessary for this
-local proof.
+not expose it to a network. Zuno authentication, CXForge, and managed
+per-developer stacks are not connected yet. The editor terminal and optional
+Codex tools run in the editor container, not the Node container. Nginx is
+unnecessary for this local proof.
+
+## Separate local stacks
+
+Zcode can run more than one local Compose stack without sharing writable
+volumes. Create an ignored `.container/.env.<profile>` from
+`.container/.env.example`. Use a lowercase profile name such as `alice`,
+set `ZCODE_PROJECT_NAME=zcode-alice`, and assign unique host ports for
+`ZCODE_EDITOR_PORT`, `ZCODE_ZBROWSER_PORT`, and all nine
+`ZCODE_PREVIEW_PORT_1` through `ZCODE_PREVIEW_PORT_9`. For example, one
+profile could use 6232, 6233, and 6240-6248. Keep every port distinct across
+profiles. The default stack continues to use 6132, 6133, and 6140-6148.
+
+Run `zcode-setup.sh alice`, `zcode-update.sh alice`, and
+`zcode-drop.sh alice` from the repository root. Use
+`zcode-drop.sh --purge alice` only to delete Alice's checkout and editor
+settings. Each stack clones the same repository into its own volume; edits are
+not shared. A profile is local isolation for testing, not user authentication
+or a Zuno-managed workspace.

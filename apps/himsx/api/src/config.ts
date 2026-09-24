@@ -1,4 +1,5 @@
 import { config } from "dotenv";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { readLocalIdentityConfiguration } from "@codexsun/platform-core";
 
@@ -19,7 +20,14 @@ export function readConfig(): HimsxConfiguration {
     port,
     ...readLocalIdentityConfiguration(process.env, {
       applicationId: "himsx",
-      databasePath: resolve(process.cwd(), "../../../storage/apps/himsx/private/data/himsx_db.sqlite"),
+      databasePath: resolveHimsxDatabasePath(),
     }),
   };
+}
+
+function resolveHimsxDatabasePath(): string {
+  const repositoryRoot = existsSync(resolve(process.cwd(), "apps/himsx"));
+  return repositoryRoot
+    ? resolve(process.cwd(), "storage/apps/himsx/private/data/himsx_db.sqlite")
+    : resolve(process.cwd(), "../../../storage/apps/himsx/private/data/himsx_db.sqlite");
 }

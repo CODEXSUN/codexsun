@@ -2,17 +2,123 @@
 
 ## Version State
 
-Current version: 1.0.36
+Current version: 1.0.37
 
-Release tag: v-1.0.36
+Release tag: v-1.0.37
 
-Changelog label: v 1.0.36
+Changelog label: v 1.0.37
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
 
+## v-1.0.37
+
+### [v 1.0.37] 2026-09-24 10:20 am - Workspace progress, deployment controls, and ZVcode source import
+
+#### Database Changes
+
+- Database update: Yes (pending workspace changes; migrations not applied in this review).
+- Split CRM lead qualification column additions into separate schema operations for SQLite compatibility.
+- Added Orship deployment migration definitions for providers, targets, applications, environments, deployments, events, logs, rollback references, health, and audit records.
+- Changed HIMSX container storage from a named data volume to a repository storage bind mount and adjusted database path resolution.
+- Added application-specific development role permissions to the shared identity configuration and seed behavior.
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.37.
+- Recorded all pending workspace areas in the [dated change log](../records/workspace-v1.0.37-2026-09-24.md), including untracked source and documentation.
+- CRM: added customer/contact, lead qualification/conversion, enquiry activity, and communication routes, plus lead workflow controls in the web app.
+- HIMSX: documented persistent SQLite storage and added app storage removal to the explicit drop operation. Existing volume migration remains unverified.
+- Orship: added a deployment provider interface, Dokploy adapter, MariaDB store, permission-protected routes, deployment UI, and provider tests.
+- Orship: added provider configuration, secret-reference wiring, deployment documentation, explicit ESM import extensions, and expanded validation scripts.
+- Platform identity: allowed applications to extend development admin and user role permissions without replacing the base permissions.
+- ZCode: added named local Compose profiles, host preview-port mapping, profile validation, lifecycle script support, and catalog tests.
+- ZCode and Zetro2: added phased task registers, separate agent-run history, task context, executable acceptance plans, Memory Bank, and governed automation designs.
+- Zetro2: copied OpenVSCode source into ZVcode, changed product/package identities, preserved upstream notices, and added focused source verification.
+- Zetro2: planned bounded Docker coding, authorized-device access, mobile approval notifications, and critical-action approval gates. Runtime implementation remains pending.
+- Local evaluations: added Dokploy container wrappers and a Gitpod Classic preview wrapper. Updated ignore rules for temporary sources and local secrets.
+- Publication: the user approved keeping the repository public. Private runtime access remains a separate requirement; upstream license obligations remain unchanged.
+- Verification: version alignment and ZVcode source checks passed. All three Zbrowser catalog tests passed. Working-tree whitespace checks passed with a CRLF warning.
+- Live deployment, editor compilation, complete application tests, database upgrades, and browser E2E checks were not performed in this review.
+
 ## v-1.0.36
+
+### 2026-09-24 - Unattended Zetro2 coding and roaming approvals
+
+#### Database Changes
+
+- None. Planning only.
+
+#### App Codebase Changes
+
+- Defined bounded Docker coding profiles that preauthorize routine work and reserve approval for critical actions.
+- Planned authorized-device access, a durable approval inbox, mobile notification delivery, and exact-action resume.
+- Added backend conformance, zero-routine-prompt, offline delivery, concurrent decision, and recovery acceptance checks.
+
+### 2026-09-24 - ZVcode editor source import
+
+#### Database Changes
+
+- None.
+
+#### App Codebase Changes
+
+- Copied OpenVSCode source into devkits/zetro2/zvcode without changing the source folder.
+- Set ZVcode product, server command, package, data directory, and protocol identities.
+- Preserved upstream notices and documented build boundaries and pending runtime wiring.
+- Added focused branding/package/notice verification and updated Zetro2 documentation paths.
+
+### 2026-09-24 - Zetro2 private coding environment plan
+
+#### Database Changes
+
+- None. Documentation only.
+
+#### App Codebase Changes
+
+- Established Zetro2-owned planning documents under devkits/zetro2/agent.
+- Defined copied and directly customized OpenVSCode source, app-owned Zbrowser,
+  and the web-plan, agent-code, private-preview, human-feedback workflow.
+- Planned a private Docker environment with persistent development checkout,
+  authenticated ingress, preview isolation, and separate control-service code.
+- Preserved existing ZCode documents and upstream license obligations.
+
+### 2026-09-24 - ZCode daily coding architecture and task plan
+
+#### Database Changes
+
+- None. This update changes planning documents only.
+
+#### App Codebase Changes
+
+- Refined the ZCode plan and numbered task register for identity-first workspace
+  access, an imported OpenVSCode source build, and shared multi-provider chat.
+- Planned OpenCode and OpenHands backends, LangGraph workflow ownership,
+  language intelligence, skills, MCP, Playwright, and isolated computer use.
+- Added phased E2E acceptance for permissions, coding, recovery, and upgrades.
+- Extended the plan with project hierarchy, complete task records, board/status
+  mapping, dependency and review gates, and criterion-linked execution evidence.
+- Added Phase 3A and TASK-1024 lifecycle fixtures to the implementation register.
+- Separated task intent from run-owned activity and added context composition,
+  executable acceptance criteria, typed dependencies, engineering board views,
+  and human/agent assignment with preserved attempt history.
+- Planned approved task.md execution by selected phase and order, with durable
+  progress, bounded retries, evidence-backed checkboxes, and scope-change checks.
+- Added mobile/laptop API triggers, asynchronous status and controls, scoped
+  approval, retry deduplication, and cross-device verification tasks.
+- Planned shared automation templates, cross-repository/team workflows,
+  organization policies, usage budgets, audit coverage, and automated review.
+- Extracted detailed automation design into a linked document and added
+  Phases 13–16 with explicit team-automation acceptance checks.
+- Reviewed execution order, moved organization controls before team sharing,
+  and scheduled fixtures, persistence, and backend contracts before their consumers.
+- Clarified early fixture coverage, live integration gates, mandatory reliability,
+  optional computer-use deferral, and final M0–M4 completion evidence.
+- Added the Memory Bank design and Phase 3B for reviewed project documentation,
+  provenance, stale-content checks, scoped retrieval, export, and recovery.
+- Added context/run integration and final knowledge E2E checks; clarified early
+  audit requirements and exclusion of examples from executable task checklists.
 
 ### [v 1.0.36] 2026-09-23 7:32 pm - remote MCP and Logicx SSH operations
 

@@ -76,6 +76,7 @@ services:
     environment:
       ZBROWSER_WORKSPACE: /workspace/codexsun
       ZBROWSER_UIUX_PORT: ${ZCODE_ZBROWSER_PORT:-6133}
+      ZBROWSER_PUBLIC_PORTS: ${ZCODE_PREVIEW_PORT_1:-6140},${ZCODE_PREVIEW_PORT_2:-6141},${ZCODE_PREVIEW_PORT_3:-6142},${ZCODE_PREVIEW_PORT_4:-6143},${ZCODE_PREVIEW_PORT_5:-6144},${ZCODE_PREVIEW_PORT_6:-6145},${ZCODE_PREVIEW_PORT_7:-6146},${ZCODE_PREVIEW_PORT_8:-6147},${ZCODE_PREVIEW_PORT_9:-6148}
     volumes:
       - workspace-data:/workspace
       - ./zbrowser:/opt/zbrowser:ro
@@ -84,15 +85,15 @@ services:
         condition: service_healthy
     ports:
       - "127.0.0.1:${ZCODE_ZBROWSER_PORT:-6133}:${ZCODE_ZBROWSER_PORT:-6133}"
-      - "127.0.0.1:6140:6140"
-      - "127.0.0.1:6141:6141"
-      - "127.0.0.1:6142:6142"
-      - "127.0.0.1:6143:6143"
-      - "127.0.0.1:6144:6144"
-      - "127.0.0.1:6145:6145"
-      - "127.0.0.1:6146:6146"
-      - "127.0.0.1:6147:6147"
-      - "127.0.0.1:6148:6148"
+      - "127.0.0.1:${ZCODE_PREVIEW_PORT_1:-6140}:6140"
+      - "127.0.0.1:${ZCODE_PREVIEW_PORT_2:-6141}:6141"
+      - "127.0.0.1:${ZCODE_PREVIEW_PORT_3:-6142}:6142"
+      - "127.0.0.1:${ZCODE_PREVIEW_PORT_4:-6143}:6143"
+      - "127.0.0.1:${ZCODE_PREVIEW_PORT_5:-6144}:6144"
+      - "127.0.0.1:${ZCODE_PREVIEW_PORT_6:-6145}:6145"
+      - "127.0.0.1:${ZCODE_PREVIEW_PORT_7:-6146}:6146"
+      - "127.0.0.1:${ZCODE_PREVIEW_PORT_8:-6147}:6147"
+      - "127.0.0.1:${ZCODE_PREVIEW_PORT_9:-6148}:6148"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 10s

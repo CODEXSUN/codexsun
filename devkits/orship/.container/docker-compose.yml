@@ -39,6 +39,9 @@ services:
       ORSHIP_DOCKER_ADDRESS: :6302
       ORSHIP_DOCKER_SOCKET: /var/run/docker.sock
       ORSHIP_DOCKER_TOKEN: ${ORSHIP_DOCKER_TOKEN:-orship-local-docker-token}
+      ORSHIP_DOKPLOY_BASE_URL: ${ORSHIP_DOKPLOY_BASE_URL:-}
+      ORSHIP_DOKPLOY_ACCESS_TOKEN_REF: ${ORSHIP_DOKPLOY_ACCESS_TOKEN_REF:-DOKPLOY_ACCESS_TOKEN}
+      DOKPLOY_ACCESS_TOKEN: ${DOKPLOY_ACCESS_TOKEN:-}
       ORSHIP_MARIADB_SAMPLE_ROOT_PASSWORD: ${ORSHIP_MARIADB_SAMPLE_ROOT_PASSWORD:-orship_sample_root_password}
     healthcheck:
       test: ["CMD", "/usr/local/bin/orship-docker", "healthcheck"]

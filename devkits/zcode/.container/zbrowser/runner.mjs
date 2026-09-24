@@ -57,7 +57,7 @@ export class PreviewRunner {
         label: target.label,
         group: target.group,
         hasApi: target.hasApi,
-        port: target.port,
+        port: target.publicPort ?? target.port,
         state,
         error: this.failures.get(target.id) ?? null,
       };

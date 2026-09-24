@@ -18,6 +18,11 @@ providers to `createPlatformRuntime()`.
 missing provider dependencies before host startup. The profile selects runtime
 composition only. It does not replace the client deployment record.
 
+Orship deployment providers are selected behind an Orship-owned interface.
+Dokploy is an optional adapter and is not an application owner, identity
+provider, audit system, or browser API. Provider access tokens remain in the
+secret provider and deployment state remains in the Orship MariaDB store.
+
 ## Required profile content
 
 - client identifier and environment;

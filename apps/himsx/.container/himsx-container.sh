@@ -8,6 +8,7 @@ compose_file="$script_dir/docker-compose.yml"
 project_name="${HIMSX_COMPOSE_PROJECT:-himsx}"
 api_port="${HIMSX_API_PUBLISHED_PORT:-6240}"
 web_port="${HIMSX_WEB_PUBLISHED_PORT:-6241}"
+storage_path="$repository_root/storage/apps/himsx"
 
 compose() {
   docker compose --project-name "$project_name" --env-file "$repository_root/.env" --env-file "$repository_root/apps/himsx/api/.app.env" --file "$compose_file" "$@"
@@ -91,6 +92,7 @@ drop() {
     [ "$answer" = "DROP HIMSX" ] || { printf 'Drop canceled.\n'; exit 1; }
   fi
   compose --profile tools down --volumes --remove-orphans --rmi local
+  rm -rf "$storage_path"
   printf 'HIMSX containers, SQLite data, backups, and local images were removed.\n'
 }
 

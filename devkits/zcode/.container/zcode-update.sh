@@ -2,6 +2,8 @@
 set -eu
 
 script_dir="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
+. "$script_dir/zcode-env.sh"
+zcode_select_env "${1:-}"
 repository_root="$(CDPATH='' cd -- "$script_dir/../../.." && pwd)"
 cd "$repository_root"
 
@@ -14,8 +16,8 @@ fi
 command -v docker >/dev/null 2>&1 || { printf 'Docker is required.\n' >&2; exit 1; }
 docker info >/dev/null
 docker compose version >/dev/null
-[ -f "$script_dir/.env" ] || { printf 'Run zcode-setup.sh first.\n' >&2; exit 1; }
+[ -f "$zcode_env_file" ] || { printf 'Run zcode-setup.sh first.\n' >&2; exit 1; }
 
-docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" build --pull workspace editor
-docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" up -d --no-build --force-recreate --wait
-docker compose --env-file "$script_dir/.env" -f "$script_dir/docker-compose.yml" ps
+docker compose --env-file "$zcode_env_file" -f "$script_dir/docker-compose.yml" build --pull workspace editor
+docker compose --env-file "$zcode_env_file" -f "$script_dir/docker-compose.yml" up -d --no-build --force-recreate --wait
+docker compose --env-file "$zcode_env_file" -f "$script_dir/docker-compose.yml" ps

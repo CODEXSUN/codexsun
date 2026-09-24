@@ -6,14 +6,17 @@ import Fastify from "fastify";
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from "fastify-type-provider-zod";
 import { resolve } from "node:path";
 import { z } from "zod";
-import { createMariaDbDataProvider, createPlatformRuntime, fastifyHelmetOptions, IdentityLoginRateLimitError, identityBrowserSessionIdSchema, identityErrorResponseSchema, identityLoginResponseSchema, identityLoginSchema, identityPasswordResetAcceptedSchema, identityPasswordResetConfirmationSchema, identityPasswordResetRequestSchema, loadEnabledAddonProviders, LocalIdentityStore, readApplicationDeployableProfile, registerIdentityManagementRoutes } from "@codexsun/platform-core";
-import { readConfig } from "./config";
-import { InfrasStore } from "./modules/infras/infras-store";
-import { MariaDbInfrasStore, type InfrasDatabase } from "./modules/infras/mariadb-store";
-import { OrshipInfrasProvider } from "./modules/infras/provider";
-import { registerInfrasRoutes } from "./modules/infras/routes";
-import { registerDockerRoutes } from "./modules/docker/routes";
-import { OrshipFoundationProvider } from "./modules/foundation/provider";
+import { createMariaDbDataProvider, createPlatformRuntime, EnvironmentSecretProvider, fastifyHelmetOptions, IdentityLoginRateLimitError, identityBrowserSessionIdSchema, identityErrorResponseSchema, identityLoginResponseSchema, identityLoginSchema, identityPasswordResetAcceptedSchema, identityPasswordResetConfirmationSchema, identityPasswordResetRequestSchema, loadEnabledAddonProviders, LocalIdentityStore, readApplicationDeployableProfile, registerIdentityManagementRoutes } from "@codexsun/platform-core";
+import { readConfig } from "./config.js";
+import { InfrasStore } from "./modules/infras/infras-store.js";
+import { MariaDbInfrasStore, type InfrasDatabase } from "./modules/infras/mariadb-store.js";
+import { OrshipInfrasProvider } from "./modules/infras/provider.js";
+import { registerInfrasRoutes } from "./modules/infras/routes.js";
+import { registerDockerRoutes } from "./modules/docker/routes.js";
+import { OrshipFoundationProvider } from "./modules/foundation/provider.js";
+import { DeploymentStore, type DeploymentDatabase } from "./modules/deployments/deployment-store.js";
+import { OrshipDeploymentsProvider } from "./modules/deployments/module-provider.js";
+import { registerDeploymentRoutes } from "./modules/deployments/routes.js";
 
 const config = readConfig();
 const identity = new LocalIdentityStore(config);
@@ -30,8 +33,12 @@ const infrasStore = config.databaseUrl.startsWith("mysql:")
   })
   : new InfrasStore(resolve(process.cwd(), "../../../storage/devkits/orship/private/data/orship_db.sqlite"));
 if ("initialize" in infrasStore && typeof infrasStore.initialize === "function") await infrasStore.initialize();
-const profile = readApplicationDeployableProfile({ applicationId: "orship", availableProviderIds: ["platform.core", provider.manifest.id, infrasProvider.manifest.id] });
-const runtime = createPlatformRuntime(profile, [provider, infrasProvider, ...(await loadEnabledAddonProviders(profile))]);
+const deploymentsStore = config.databaseUrl.startsWith("mysql:") ? new DeploymentStore(createMariaDbDataProvider<DeploymentDatabase>({ connectionUrl: config.databaseUrl })) : undefined;
+if (config.appMode === "production" && !deploymentsStore) throw new Error("Orship deployments require a MariaDB connection in production.");
+if (deploymentsStore) await deploymentsStore.initialize();
+const deploymentsProvider = new OrshipDeploymentsProvider();
+const profile = readApplicationDeployableProfile({ applicationId: "orship", availableProviderIds: ["platform.core", provider.manifest.id, infrasProvider.manifest.id, deploymentsProvider.manifest.id] });
+const runtime = createPlatformRuntime(profile, [provider, infrasProvider, deploymentsProvider, ...(await loadEnabledAddonProviders(profile))]);
 runtime.start();
 const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
 app.setValidatorCompiler(validatorCompiler);
@@ -90,8 +97,10 @@ registerIdentityManagementRoutes({ app, identity, prefix: "/api/v1/orship" });
 app.get("/api/v1/orship/health", { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } }, async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }));
 await registerInfrasRoutes(app, infrasStore);
 await registerDockerRoutes(app, { managerToken: config.dockerManagerToken, managerUrl: config.dockerManagerUrl });
+if (deploymentsStore) await registerDeploymentRoutes(app, { dokployAccessTokenReference: config.dokployAccessTokenReference, dokployBaseUrl: config.dokployBaseUrl, identity, secretProvider: new EnvironmentSecretProvider({ [config.dokployAccessTokenReference]: config.dokployAccessTokenReference }), store: deploymentsStore });
 app.addHook("onClose", () => { identity.close(); runtime.stop(); });
 app.addHook("onClose", async () => { await infrasStore.close(); });
+app.addHook("onClose", async () => { await deploymentsStore?.close(); });
 await app.listen({ host: config.host, port: config.port });
 
 function isPublicPath(url: string): boolean {

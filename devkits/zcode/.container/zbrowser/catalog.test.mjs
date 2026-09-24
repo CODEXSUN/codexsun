@@ -22,6 +22,21 @@ test('registry previews are grouped by owner and have unique ports', async () =>
   assert.equal(new Set(ports).size, ports.length);
 });
 
+test('profile preview ports are exposed without changing internal Vite ports', async () => {
+  const publicPorts = Array.from({ length: 9 }, (_, index) => 6240 + index);
+  const targets = await loadPreviewCatalog(root, 6233, publicPorts);
+  const crm = targets.find((target) => target.id === 'crm');
+  const uiux = targets.find((target) => target.id === 'uiux');
+  assert.equal(crm.port, 6140);
+  assert.equal(crm.publicPort, 6240);
+  assert.equal(uiux.port, 6233);
+  assert.equal(uiux.publicPort, 6233);
+  const runner = new PreviewRunner(root, targets);
+  const statuses = await runner.statuses();
+  assert.equal(statuses.find((target) => target.id === 'crm').port, 6240);
+  await assert.rejects(loadPreviewCatalog(root, 6233, publicPorts.map(() => 6240)), /unique/u);
+});
+
 test('preview runner rejects unknown and API-only applications', async () => {
   const targets = await loadPreviewCatalog(root);
   const runner = new PreviewRunner(root, targets);

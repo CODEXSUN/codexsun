@@ -1,0 +1,19 @@
+name: gitpod-local-review
+
+services:
+  gitpod:
+    image: eu.gcr.io/gitpod-core-dev/build/preview-install@sha256:61f401739183e8d7dd0fad082190535984f892142b240ddb53254ae1b4b89654
+    container_name: gitpod-local-review
+    privileged: true
+    init: true
+    environment:
+      DOMAIN: gitpod.localhost
+      DO_NOT_TRACK: "1"
+    ports:
+      - "127.0.0.1:443:443"
+    volumes:
+      - gitpod-data:/var/gitpod
+    restart: "no"
+
+volumes:
+  gitpod-data:

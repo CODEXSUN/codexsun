@@ -4,7 +4,9 @@ import { PreviewError, PreviewRunner } from './runner.mjs';
 
 const root = process.env.ZBROWSER_WORKSPACE ?? '/workspace/codexsun';
 const uiuxPort = Number(process.env.ZBROWSER_UIUX_PORT ?? '6133');
-const catalog = await loadPreviewCatalog(root, uiuxPort);
+const publicPorts = (process.env.ZBROWSER_PUBLIC_PORTS ?? '6140,6141,6142,6143,6144,6145,6146,6147,6148')
+  .split(',').map(Number);
+const catalog = await loadPreviewCatalog(root, uiuxPort, publicPorts);
 const runner = new PreviewRunner(root, catalog);
 
 const server = createServer(async (request, response) => {

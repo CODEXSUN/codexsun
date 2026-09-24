@@ -17,7 +17,9 @@ x-api-service: &api-service
     HIMSX_API_PORT: "6240"
     HIMSX_WEB_ORIGIN: ${HIMSX_PUBLIC_ORIGIN:-http://127.0.0.1:6241}
   volumes:
-    - himsx-data:/workspace/storage
+    - type: bind
+      source: ${HIMSX_STORAGE_PATH:-../../../storage}
+      target: /workspace/storage
 
 services:
   migrate:
@@ -75,11 +77,12 @@ services:
     image: alpine:3.21
     profiles: ["tools"]
     volumes:
-      - himsx-data:/workspace/storage:ro
+      - type: bind
+        source: ${HIMSX_STORAGE_PATH:-../../../storage}
+        target: /workspace/storage
+        read_only: true
       - himsx-backups:/backups
 
 volumes:
-  himsx-data:
-    name: ${HIMSX_DATA_VOLUME:-himsx-data}
   himsx-backups:
     name: ${HIMSX_BACKUP_VOLUME:-himsx-backups}

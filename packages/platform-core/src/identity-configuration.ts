@@ -2,7 +2,7 @@ import type { LocalIdentityConfiguration } from "./local-identity.js";
 
 export function readLocalIdentityConfiguration(
   environment: NodeJS.ProcessEnv,
-  options: { readonly applicationId: string; readonly databasePath: string },
+  options: { readonly applicationId: string; readonly databasePath: string; readonly rolePermissions?: Readonly<Record<string, readonly string[]>> },
 ): LocalIdentityConfiguration {
   const appMode = environment.APP_MODE === "production" ? "production" : "development";
   const secret = required(environment, "PLATFORM_JWT_SECRET");
@@ -20,6 +20,7 @@ export function readLocalIdentityConfiguration(
     loginWindowSeconds: positiveInteger(environment, "IDENTITY_LOGIN_WINDOW_SECONDS", 900),
     passwordResetTokenTtlSeconds: positiveInteger(environment, "IDENTITY_PASSWORD_RESET_TOKEN_TTL_SECONDS", 900),
     refreshSeeds: appMode === "development" && environment.REFRESH_IDENTITY_SEED === "1",
+    rolePermissions: options.rolePermissions,
     secret,
     seeds: [
       {

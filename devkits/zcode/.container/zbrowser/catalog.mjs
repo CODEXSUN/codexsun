@@ -5,7 +5,11 @@ import { pathToFileURL } from 'node:url';
 const FIRST_APP_PORT = 6140;
 const LAST_APP_PORT = 6148;
 
-export async function loadPreviewCatalog(root, uiuxPort = 6133) {
+export async function loadPreviewCatalog(
+  root,
+  uiuxPort = 6133,
+  publicPorts = Array.from({ length: 9 }, (_, index) => FIRST_APP_PORT + index),
+) {
   const registryModule = pathToFileURL(join(root, 'packages/app-cli/src/registry.mjs'));
   const { loadRegistry, applicationPath } = await import(registryModule.href);
   const rootPath = realpathSync(root);
@@ -16,6 +20,10 @@ export async function loadPreviewCatalog(root, uiuxPort = 6133) {
   if (!Number.isInteger(uiuxPort) || uiuxPort < 1 || uiuxPort > 65535 ||
       (uiuxPort >= FIRST_APP_PORT && uiuxPort <= LAST_APP_PORT)) {
     throw new Error('Zbrowser UIUX port is invalid or reserved for other previews.');
+  }
+  if (publicPorts.length !== 9 || new Set(publicPorts).size !== 9 ||
+      publicPorts.some((port) => !Number.isInteger(port) || port < 1 || port > 65535 || port === uiuxPort)) {
+    throw new Error('Zbrowser public preview ports must be unique and different from the UIUX port.');
   }
 
   let nextPort = FIRST_APP_PORT;
@@ -33,6 +41,7 @@ export async function loadPreviewCatalog(root, uiuxPort = 6133) {
       workspace: web?.workspace ?? null,
       directory,
       port,
+      publicPort: port === null ? null : app.id === 'uiux' ? uiuxPort : publicPorts[port - FIRST_APP_PORT],
     };
   });
 }

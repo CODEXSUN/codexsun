@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { KyselyDataProvider } from "@codexsun/platform-core";
 import type { Generated, Selectable } from "kysely";
-import type { CreateInfraInput, OrshipInfraRecord } from "./infras-store";
+import type { CreateInfraInput, OrshipInfraRecord } from "./infras-store.js";
 
 export type InfrasDatabase = {
   orship_infras: {

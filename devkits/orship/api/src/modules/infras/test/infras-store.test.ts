@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { InfrasStore } from "../infras-store";
+import { InfrasStore } from "../infras-store.js";
 
 test("seeds Orship infrastructure records in SQLite", () => {
   const root = join(tmpdir(), `orship-infras-${Date.now()}`);

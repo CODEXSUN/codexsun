@@ -9,8 +9,9 @@ API and web hosts from this repository, prepares the SQLite identity schema
 before production startup, and serves the web host through Nginx.
 
 The deployment reads the ignored root `.env` and `api/.app.env` files at
-runtime. It stores HIMSX data in the `himsx-data` Docker volume and backups in
-`himsx-backups`. Environment files never enter an image layer.
+runtime. It stores HIMSX data in the repository `storage/apps/himsx` directory
+through a bind mount and backups in the `himsx-backups` Docker volume.
+Environment files never enter an image layer.
 
 Run these commands from a POSIX shell at the repository root:
 

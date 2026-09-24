@@ -4,14 +4,15 @@ import { SessionBoundary } from "@codexsun/ui/blocks/auth";
 import { PrivilegedDesk } from "@codexsun/ui/blocks/auth/privileged-desk";
 import { IdentityManagementDesk } from "@codexsun/ui/blocks/auth/identity-management-desk";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@codexsun/ui/components/card";
-import { ContainerIcon, LayoutDashboardIcon, ServerCogIcon } from "lucide-react";
-import { useState } from "react";
+import { ContainerIcon, LayoutDashboardIcon, RocketIcon, ServerCogIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import developmentVersion from "../../VERSION?raw";
 import { DockerMaintenancePage } from "./modules/infras/docker-maintenance";
 import { InfrasWorkspace } from "./modules/infras/infras-workspace";
+import { DeploymentWorkspace, type DeploymentPage } from "./modules/deployments/deployment-workspace";
 
 type Health = { status: "ok"; providers: string[] };
-type WorkspacePage = "overview" | "infras-list" | "infras-show" | "infras-upsert" | "docker-maintenance";
+type WorkspacePage = "overview" | "infras-list" | "infras-show" | "infras-upsert" | "docker-maintenance" | `deployments-${DeploymentPage}`;
 
 const ORSHIP_DEVELOPMENT_VERSION = developmentVersion.trim();
 
@@ -25,7 +26,7 @@ const overviewItems: OverviewItem[] = [
   {
     description: "Prepare and follow application releases from one operations workspace.",
     label: "Deployment",
-    value: "Scaffold",
+    value: "Live",
   },
   {
     description: "Track API, web, database, cache, and storage service health.",
@@ -35,7 +36,7 @@ const overviewItems: OverviewItem[] = [
   {
     description: "Plan restart, backup, restore, and check tasks with an audit trail.",
     label: "Maintenance",
-    value: "Planned",
+    value: "Available",
   },
 ];
 
@@ -45,27 +46,31 @@ export function App() {
 
 function OrshipDesk({ request, logout }: { request: typeof fetch; logout: () => void }) {
   const health = useQuery({ queryKey: ["orship", "health"], queryFn: () => readHealth(request) });
-  const [page, setPage] = useState<WorkspacePage>("overview");
+  const [page, setPage] = useState<WorkspacePage>(() => readPage());
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string>(() => new URLSearchParams(window.location.search).get("id") ?? "");
   const [selectedInfraUuid, setSelectedInfraUuid] = useState<string>();
+  useEffect(() => { const onPopState = () => { setPage(readPage()); setSelectedApplicationId(new URLSearchParams(window.location.search).get("id") ?? ""); }; window.addEventListener("popstate", onPopState); return () => window.removeEventListener("popstate", onPopState); }, []);
+
+  function navigate(next: WorkspacePage, id?: string): void { const query = new URLSearchParams({ page: next }); if (id) query.set("id", id); window.history.pushState({}, "", next === "overview" ? "/" : `?${query.toString()}`); setSelectedApplicationId(id ?? ""); setPage(next); }
 
   function showInfrasList(): void {
     setSelectedInfraUuid(undefined);
-    setPage("infras-list");
+    navigate("infras-list");
   }
 
   function showInfra(uuid: string): void {
     setSelectedInfraUuid(uuid);
-    setPage("infras-show");
+    navigate("infras-show");
   }
 
   function showInfrasUpsert(): void {
     setSelectedInfraUuid(undefined);
-    setPage("infras-upsert");
+    navigate("infras-upsert");
   }
 
   function showDockerMaintenance(): void {
     setSelectedInfraUuid(undefined);
-    setPage("docker-maintenance");
+    navigate("docker-maintenance");
   }
 
   return (
@@ -80,7 +85,17 @@ function OrshipDesk({ request, logout }: { request: typeof fetch; logout: () => 
               active: page === "overview",
               icon: LayoutDashboardIcon,
               label: "Overview",
-              onSelect: () => setPage("overview"),
+              onSelect: () => navigate("overview"),
+            },
+          ],
+        },
+        {
+          items: [
+            {
+              active: page.startsWith("deployments-"),
+              icon: RocketIcon,
+              label: "Deployments",
+              onSelect: () => navigate("deployments-overview"),
             },
           ],
         },
@@ -109,16 +124,18 @@ function OrshipDesk({ request, logout }: { request: typeof fetch; logout: () => 
       showTopologyTools={false}
       statusEnd={<span aria-label="Orship development version">{ORSHIP_DEVELOPMENT_VERSION}</span>}
       statusLabel={statusLabel(health)}
-      workspaceTitle={page === "overview" ? "Overview" : page === "infras-list" ? "Infras" : page === "infras-upsert" ? "Create infra" : page === "docker-maintenance" ? "Docker maintenance" : "Infra details"}
+      workspaceTitle={page === "overview" ? "Overview" : page.startsWith("deployments-") ? "Deployments" : page === "infras-list" ? "Infras" : page === "infras-upsert" ? "Create infra" : page === "docker-maintenance" ? "Docker maintenance" : "Infra details"}
     >
       {page === "overview" ? (
         <OverviewPage health={health} />
+      ) : page.startsWith("deployments-") ? (
+        <DeploymentWorkspace request={request} page={page.slice("deployments-".length) as DeploymentPage} applicationId={selectedApplicationId} onNavigate={(next, id) => navigate(`deployments-${next}`, id)} />
       ) : page === "docker-maintenance" ? (
         <DockerMaintenancePage request={request} />
       ) : (
         <InfrasWorkspace
           selectedUuid={selectedInfraUuid}
-          view={page}
+          view={page as "infras-list" | "infras-show" | "infras-upsert"}
           onBack={showInfrasList}
           onCreate={showInfrasUpsert}
           onSaved={(uuid) => showInfra(uuid)}
@@ -128,6 +145,13 @@ function OrshipDesk({ request, logout }: { request: typeof fetch; logout: () => 
       )}
     </MainWorkspace>
   );
+}
+
+function readPage(): WorkspacePage {
+  const value = new URLSearchParams(window.location.search).get("page");
+  if (value?.startsWith("deployments-")) return value as WorkspacePage;
+  if (value === "infras-list" || value === "infras-show" || value === "infras-upsert" || value === "docker-maintenance") return value;
+  return "overview";
 }
 
 function OverviewPage({ health }: { health: ReturnType<typeof useQuery<Health>> }) {
@@ -147,7 +171,7 @@ function OverviewPage({ health }: { health: ReturnType<typeof useQuery<Health>> 
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-3" aria-label="Orship scaffold">
+        <section className="grid gap-4 md:grid-cols-3" aria-label="Orship capabilities">
           {overviewItems.map((item) => (
             <Card key={item.label} className="h-full">
               <CardHeader>

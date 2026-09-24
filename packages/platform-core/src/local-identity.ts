@@ -41,6 +41,7 @@ export type LocalIdentityConfiguration = PlatformJwtConfiguration & {
   readonly loginWindowSeconds: number;
   readonly passwordResetTokenTtlSeconds: number;
   readonly refreshSeeds: boolean;
+  readonly rolePermissions?: Readonly<Record<string, readonly string[]>>;
   readonly seeds: readonly IdentitySeed[];
 };
 
@@ -497,8 +498,8 @@ export class LocalIdentityStore {
 
   private async seedDevelopmentIdentities(): Promise<void> {
     this.seedRole("super-admin", ["*"]);
-    this.seedRole("admin", ["desk.read", "admin.desk.read"]);
-    this.seedRole("user", ["desk.read"]);
+    this.seedRole("admin", ["desk.read", "admin.desk.read", ...(this.config.rolePermissions?.admin ?? [])]);
+    this.seedRole("user", ["desk.read", ...(this.config.rolePermissions?.user ?? [])]);
     for (const seed of this.config.seeds) await this.seedUser(seed);
   }
 
