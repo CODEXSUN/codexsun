@@ -19,6 +19,6 @@ export default defineConfig({
       "@codexsun/contracts": resolve(import.meta.dirname, "../../../packages/contracts/src/index.ts"),
     },
   },
-  server: { host: runtimeConfig.PLATFORM_HOST, port: runtimeConfig.PLATFORM_WEB_PORT, strictPort: true },
+  server: { allowedHosts: [".tmnext.in"],  host: runtimeConfig.PLATFORM_HOST, port: runtimeConfig.PLATFORM_WEB_PORT, strictPort: true },
   build: { outDir: "../../../dist/core/platforms/web", emptyOutDir: true },
 });

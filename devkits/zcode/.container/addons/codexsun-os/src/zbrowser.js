@@ -1,6 +1,7 @@
 const { randomBytes } = require('node:crypto');
 const vscode = require('vscode');
 const { zbrowserHtml } = require('./zbrowser-page');
+const { previewUrl } = require('./preview-url');
 
 const MANAGER_URL = process.env.ZBROWSER_MANAGER_URL ?? 'http://zbrowser:3001';
 
@@ -36,8 +37,24 @@ class ZbrowserView {
     const target = this.targets.get(message.id);
     if (!target || this.busy.has(target.id)) return;
 
-    if (message.type === 'open' && target.state === 'ready') {
-      await vscode.env.openExternal(vscode.Uri.parse(`http://127.0.0.1:${target.port}/`));
+    if (message.type === 'open' || message.type === 'open-port') {
+      const kind = message.type === 'open' ? 'zbrowser' : message.kind;
+      if (!['api', 'web', 'zbrowser'].includes(kind)) return;
+      if (kind === 'zbrowser' && target.state !== 'ready') return;
+      const port = kind === 'zbrowser' ? target.port : target[`${kind}Port`];
+      if (!Number.isInteger(port)) return;
+      try {
+        const config = vscode.workspace.getConfiguration('codexsunOs');
+        const host = config.get('previewHost') || process.env.ZCODE_PREVIEW_PUBLIC_HOST || '127.0.0.1';
+        const scheme = config.get('previewScheme') || process.env.ZCODE_PREVIEW_PUBLIC_SCHEME || 'http';
+        const template = config.get('previewUrlTemplate') || process.env.ZCODE_PREVIEW_URL_TEMPLATE || 'https://{port}.tmnext.in/';
+        const opened = await vscode.env.openExternal(vscode.Uri.parse(previewUrl(port, host, scheme, template)));
+        if (!opened) throw new Error('The browser could not open the preview URL.');
+        this.notice = '';
+      } catch (error) {
+        this.notice = error.message;
+      }
+      this.publish();
       return;
     }
     if (message.type !== 'start' && message.type !== 'stop') return;

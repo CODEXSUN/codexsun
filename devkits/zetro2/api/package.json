@@ -1,0 +1,10 @@
+{
+  "name": "@codexsun/zetro2-api",
+  "version": "1.0.38",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

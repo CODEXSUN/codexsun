@@ -13,6 +13,7 @@ export default defineConfig({
   cacheDir: "../../../dist/.vite/apps/lms/web",
   plugins: [react({ include: reactSourceFiles }), tailwindcss()],
   server: {
+    allowedHosts: [".tmnext.in"],
     host: process.env.PLATFORM_HOST ?? "127.0.0.1",
     port: Number(process.env.LMS_WEB_PORT ?? 6251),
     proxy: { "/api": process.env.VITE_LMS_API_URL ?? "http://127.0.0.1:6250" },

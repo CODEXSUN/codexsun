@@ -2,13 +2,37 @@
   "name": "zcode-os",
   "displayName": "Codexsun OS",
   "publisher": "codexsun",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "scripts": { "test": "node --test test/*.test.js" },
   "engines": { "vscode": "^1.96.0" },
   "categories": ["Other"],
   "activationEvents": ["onStartupFinished", "onView:codexsunOs.addons", "onView:codexsunOs.zbrowser"],
   "main": "./src/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Codexsun OS",
+      "properties": {
+        "codexsunOs.previewUrlTemplate": {
+          "type": "string",
+          "default": "",
+          "description": "URL for preview and port links containing {port}. Empty uses ZCODE_PREVIEW_URL_TEMPLATE or https://{port}.tmnext.in/. For localhost use http://127.0.0.1:{port}/.",
+          "scope": "machine"
+        },
+        "codexsunOs.previewHost": {
+          "type": "string",
+          "default": "",
+          "description": "Reachable preview server IP or hostname, without protocol or port. Empty uses ZCODE_PREVIEW_PUBLIC_HOST or 127.0.0.1. Do not use 0.0.0.0.",
+          "scope": "machine"
+        },
+        "codexsunOs.previewScheme": {
+          "type": "string",
+          "enum": ["", "http", "https"],
+          "default": "",
+          "description": "Preview protocol. Empty uses ZCODE_PREVIEW_PUBLIC_SCHEME or http. HTTPS requires TLS on the preview endpoint.",
+          "scope": "machine"
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         { "id": "codexsunOs", "title": "Codexsun OS", "icon": "resources/codexsun-os.svg" }

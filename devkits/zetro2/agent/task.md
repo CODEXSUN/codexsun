@@ -4,7 +4,7 @@
 
 Architecture: [planning.md](planning.md). Original brief: [architecture notes](architecture-notes.md).
 Status: ZVcode source import and product identity verified on 2026-09-24; runtime implementation remains pending.
-Next implementation task: 0.2. Inventory `apps/temp/openvscode-server`, upstream revision, modifications, licenses, and source size.
+Next implementation task: 0.5. Inventory Zetro2 startup, Codexsun OS, previews, ports, volumes, and existing shared identity APIs.
 
 Current deployment and ownership decision: [architecture-notes.md](architecture-notes.md).
 All Zetro2-authored source belongs inside this app; the editor builds from its customized source.
@@ -27,9 +27,9 @@ Complete each phase exit check before advancing. Early fixtures do not prove liv
 Dependencies: none. Deliverable: implementation-ready source and contract inventory.
 
 - [x] 0.1 Verify the root, inspect current changes, and inventory applicable owner rules.
-- [ ] 0.2 Inventory `apps/temp/openvscode-server`, upstream revision, modifications, licenses, and source size.
-- [ ] 0.3 Inspect native chat, inline chat, language-model services, extension APIs, and tool confirmations.
-- [ ] 0.4 Compare Copilot Chat source requirements with the local editor version and available service contracts.
+- [x] 0.2 Inventory `apps/temp/openvscode-server`, upstream revision, modifications, licenses, and source size.
+- [x] 0.3 Inspect native chat, inline chat, language-model services, extension APIs, and tool confirmations.
+- [x] 0.4 Compare Copilot Chat source requirements with the local editor version and available service contracts.
 - [ ] 0.5 Inventory Zetro2 startup, Codexsun OS, previews, ports, volumes, and existing shared identity APIs.
 - [ ] 0.6 Record the four custom layers, module ownership, public interfaces, and compatibility matrix.
 - [ ] 0.7 Document the vendor-source exception and upstream dependency/build strategy against Assist rules.
@@ -472,6 +472,19 @@ These unchecked items define the fixture. They do not change Zetro2 session poli
 
 ### Implementation evidence
 
+2026-09-24: Explicit user-requested development bootstrap and Zcode add-on
+registration (working tree based on `940dcd23`). API port 6300, standalone
+web port 6310, Zbrowser port 6155. Added the registry entry, environment
+examples, health-only API, and web landing page; no phase exit is claimed.
+Verification in the Linux workspace: 12 add-on/catalog/API tests passed;
+`npm run app:verify` and `npm run build --workspace @codexsun/zetro2-web`
+passed. Live local smoke started API 6300, web 6310, and the Zbrowser runner
+on 6155; both web routes proxied the API health endpoint successfully; all
+test processes were stopped. See [development setup](../README.md).
+Limitations: Docker/proxy deployment, public HTTPS, editor integration, and
+planned product features remain unverified or pending. Orship also uses API
+6300 and cannot run concurrently in the same network namespace.
+
 2026-09-24: 2.1–2.2 completed by explicit source-import request before phase execution.
 The destination did not exist. Robocopy imported 9,286 files with zero failures.
 Product identity checks passed with `node devkits/zetro2/editor/verify-zvcode.mjs`.
@@ -482,6 +495,9 @@ For each checked task, append:
 `ID | revision | command/scenario | environment | result | date | evidence link | limitation`.
 
 0.1 | 88c903e9e28d2bd0bf813a454e946a5311ad508f | git status -s && git rev-parse HEAD | host-windows | pass | 2026-09-24 | [0.1-owner-rules-and-root.md](baseline/0.1-owner-rules-and-root.md) | baseline inventory; active changes in other apps preserved
+0.2 | 940dcd23b57eeff1f79cd582a471a279eec4afc5 | git ls-files devkits/zetro2/zvcode | wc -l && du -sh devkits/zetro2/zvcode && node devkits/zetro2/editor/verify-zvcode.mjs | host-linux | pass-with-limitation | 2026-09-24 | [0.2-upstream-inventory.md](baseline/0.2-upstream-inventory.md) | apps/temp/openvscode-server absent; inventoried zvcode (9280 files, 171M, v1.110.0); verify-zvcode branding passes, license-compare ENOENT on missing source path
+0.3 | 940dcd23b57eeff1f79cd582a471a279eec4afc5 | ls/grep chat, inlineChat, api/common extHost*, vscode.d.ts lm/chat, tools confirmation | host-linux | pass | 2026-09-24 | [0.3-chat-and-tools.md](baseline/0.3-chat-and-tools.md) | read-only inspection; copilot-chat not bundled; no build/test
+0.4 | 940dcd23b57eeff1f79cd582a471a279eec4afc5 | webfetch vscode-copilot-chat README + raw package.json; local product/package/extensions grep | host-linux | pass | 2026-09-24 | [0.4-copilot-comparison.md](baseline/0.4-copilot-comparison.md) | copilot-chat 0.44.0 needs vscode ^1.115.0 vs local 1.110.0 = incompatible; repo archived; subscription-gated; no copy
 
 Release publication, remote workspace support, and coordinated multi-agent editing
 require later tasks. They do not block the scoped daily coding milestones above.

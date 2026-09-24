@@ -13,6 +13,7 @@ export default defineConfig({
   cacheDir: "../../../dist/.vite/apps/sites/web",
   plugins: [react({ include: reactSourceFiles }), tailwindcss()],
   server: {
+    allowedHosts: [".tmnext.in"],
     host: process.env.PLATFORM_HOST ?? "127.0.0.1",
     port: Number(process.env.SITES_WEB_PORT ?? 6261),
     proxy: { "/api": process.env.VITE_SITES_API_URL ?? "http://127.0.0.1:6260" },

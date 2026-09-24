@@ -24,7 +24,7 @@ export class PreviewRunner {
     const vite = join(this.root, 'node_modules', 'vite', 'bin', 'vite.js');
     if (!existsSync(vite)) throw new PreviewError(503, 'Workspace dependencies are not installed.');
     this.failures.delete(id);
-    const child = spawn(process.execPath, [vite, '--host', '0.0.0.0', '--port', String(target.port)], {
+    const child = spawn(process.execPath, [vite, '--host', '0.0.0.0', '--port', String(target.port), '--strictPort'], {
       cwd: target.directory,
       env: previewEnvironment(this.catalog, target),
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -57,6 +57,9 @@ export class PreviewRunner {
         label: target.label,
         group: target.group,
         hasApi: target.hasApi,
+        apiPort: target.apiPort,
+        webPort: target.webPort,
+        zbrowserPort: target.publicPort ?? target.port,
         port: target.publicPort ?? target.port,
         state,
         error: this.failures.get(target.id) ?? null,

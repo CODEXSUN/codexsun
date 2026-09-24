@@ -11,6 +11,7 @@ if (!process.env.PLATFORM_MOBILE_API_URL) throw new Error("PLATFORM_MOBILE_API_U
 const reactSourceFiles = /(?:apps[\\/]platform[\\/]mobile[\\/]src|packages[\\/]ui[\\/]src)[\\/].*\.[jt]sx?$/u;
 
 export default defineConfig({
+  server: { allowedHosts: [".tmnext.in"] },
   cacheDir: "../../../dist/.vite/platform/mobile",
   plugins: [react({ include: reactSourceFiles })],
   resolve: {

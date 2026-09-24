@@ -15,6 +15,7 @@ export default defineConfig({
   cacheDir: "../../../dist/.vite/devkits/zetro/web",
   plugins: [react({ include: reactSourceFiles }), tailwindcss()],
   server: {
+    allowedHosts: [".tmnext.in"],
     host: runtimeConfig.PLATFORM_HOST,
     port: runtimeConfig.ZETRO_WEB_PORT,
     strictPort: true,

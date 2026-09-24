@@ -11,6 +11,7 @@ export default defineConfig({
   cacheDir: "../../../dist/.vite/devkits/zuno/web",
   plugins: [react(), tailwindcss()],
   server: {
+    allowedHosts: [".tmnext.in"],
     host: process.env.PLATFORM_HOST ?? "127.0.0.1",
     port: Number(process.env.ZUNO_WEB_PORT ?? 6411),
     proxy: { "/api": process.env.VITE_ZUNO_API_URL ?? "http://127.0.0.1:6410" },

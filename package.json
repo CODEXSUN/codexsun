@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.37",
+  "version": "1.0.38",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -115,7 +115,10 @@
     "test:sites": "npm run test --workspace @codexsun/sites-api && npm run test --workspace @codexsun/sites-web",
     "dev:orship-api": "node tools/preflight.mjs orship-api --restart",
     "dev:orship-web": "node tools/preflight.mjs orship-web --restart",
-    "test:orship": "npm run check --workspace @codexsun/platform-core && npm run check --workspace @codexsun/orship-api && npm run check --workspace @codexsun/orship-web && npm run lint --workspace @codexsun/orship-api && npm run lint --workspace @codexsun/orship-web && npm run test --workspace @codexsun/orship-api && npm run test --workspace @codexsun/orship-web"
+    "test:orship": "npm run check --workspace @codexsun/platform-core && npm run check --workspace @codexsun/orship-api && npm run check --workspace @codexsun/orship-web && npm run lint --workspace @codexsun/orship-api && npm run lint --workspace @codexsun/orship-web && npm run test --workspace @codexsun/orship-api && npm run test --workspace @codexsun/orship-web",
+    "dev:zetro2-api": "node tools/preflight.mjs zetro2-api --restart",
+    "dev:zetro2-web": "node tools/preflight.mjs zetro2-web --restart",
+    "test:zetro2": "npm run test --workspace @codexsun/zetro2-api"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

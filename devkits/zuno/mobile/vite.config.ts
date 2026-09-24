@@ -9,6 +9,6 @@ config({ path: resolve(import.meta.dirname, ".app.env"), override: true });
 export default defineConfig({
   cacheDir: "../../../dist/.vite/devkits/zuno/mobile",
   plugins: [react()],
-  server: { host: process.env.PLATFORM_HOST ?? "127.0.0.1", port: Number(process.env.ZUNO_MOBILE_PORT ?? 6414), strictPort: true },
+  server: { allowedHosts: [".tmnext.in"],  host: process.env.PLATFORM_HOST ?? "127.0.0.1", port: Number(process.env.ZUNO_MOBILE_PORT ?? 6414), strictPort: true },
   build: { outDir: "../../../dist/devkits/zuno/mobile/web", emptyOutDir: true },
 });

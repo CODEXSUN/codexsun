@@ -2,15 +2,37 @@
 
 ## Version State
 
-Current version: 1.0.37
+Current version: 1.0.38
 
-Release tag: v-1.0.37
+Release tag: v-1.0.38
 
-Changelog label: v 1.0.37
+Changelog label: v 1.0.38
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
+
+## v-1.0.38
+
+### [v 1.0.38] 2026-09-24 7:30 am - Zetro2 bootstrap, Zbrowser preview ports, and tmnext preview domains
+
+#### Database Changes
+
+- Database update: No (manual).
+- No migrations, schema changes, or seed updates in this version.
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.38.
+- Editor: added `.vscode/extensions.json` recommending `codexsun.zcode-os`.
+- Vite: allowed `.tmnext.in` hosts across CRM, HIMSX, LMS, Q Cafe, Sites, Docx, Orship, Zetro, UIUX, Zuno, platform, and ZVcode web/desktop/mobile configs.
+- Zcode remote previews: added `ZCODE_PREVIEW_BIND_HOST`, `ZCODE_PREVIEW_PUBLIC_HOST/SCHEME`, `ZCODE_PREVIEW_URL_TEMPLATE` (`https://{port}.tmnext.in/`), and `ZCODE_PREVIEW_ALLOWED_HOST` examples; made Compose preview bindings configurable while keeping `127.0.0.1` defaults.
+- Zcode Compose/Zbrowser: published fixed Zetro2 preview port `6155` (`ZCODE_ZETRO2_PREVIEW_PORT` / `ZBROWSER_ZETRO2_PORT`), added `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS`, and kept UIUX on `6133` plus `6140-6148` for other apps.
+- Zbrowser catalog: replaced sequential port assignment with fixed `preview-ports.json` reservations by app ID; added API/web port reporting, `--strictPort` startup, and updated catalog/runner/server tests.
+- Codexsun OS: added shared `preview-url.js` resolution (template/host/scheme override), API/Web/Zbrowser open actions with configured `apiPort`/`webPort`/`zbrowserPort`, and `preview-url` plus action tests.
+- Zetro2 bootstrap: added registry entry, API health service on `6300` (`/api/v1/zetro2/health`), standalone web on `6310` with API proxy, root `dev:zetro2-api/web` and `test:zetro2` scripts, and documented Zbrowser preview on `6155`.
+- Zetro2 planning: completed baselines `0.2` upstream inventory, `0.3` chat/tools, and `0.4` Copilot comparison; advanced next task from `0.2` to `0.5`.
+- Verification: live editor/API/proxy deployment, full test suite, and browser E2E remain pending for this working tree.
 
 ## v-1.0.37
 

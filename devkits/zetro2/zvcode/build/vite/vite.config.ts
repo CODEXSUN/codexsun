@@ -196,6 +196,7 @@ export default defineConfig({
 		}
 	},
 	server: {
+		allowedHosts: [".tmnext.in"],
 		cors: true,
 		port: 5199,
 		origin: 'http://localhost:5199',

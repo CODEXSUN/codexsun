@@ -1,0 +1,30 @@
+{
+  "kind": "application",
+  "schemaVersion": 1,
+  "id": "zetro2",
+  "label": "Zetro2",
+  "category": "devkit",
+  "owner": "devkits/zetro2",
+  "taskPrefix": "z",
+  "providers": [],
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "zetro2-api",
+      "displayName": "Zetro2 API",
+      "environmentDirectory": "api",
+      "envKey": "ZETRO2_API_PORT",
+      "workspace": "@codexsun/zetro2-api",
+      "defaultPort": 6300
+    },
+    {
+      "kind": "web",
+      "target": "zetro2-web",
+      "displayName": "Zetro2 web",
+      "environmentDirectory": "web",
+      "envKey": "ZETRO2_WEB_PORT",
+      "workspace": "@codexsun/zetro2-web",
+      "defaultPort": 6310
+    }
+  ]
+}

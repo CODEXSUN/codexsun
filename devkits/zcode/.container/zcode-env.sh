@@ -20,11 +20,12 @@ zcode_select_env() {
       return 2
     fi
     seen_ports=' '
-    for key in ZCODE_EDITOR_PORT ZCODE_ZBROWSER_PORT \
+    for key in ZCODE_EDITOR_PORT ZCODE_ZBROWSER_PORT ZCODE_ZETRO2_PREVIEW_PORT \
       ZCODE_PREVIEW_PORT_1 ZCODE_PREVIEW_PORT_2 ZCODE_PREVIEW_PORT_3 \
       ZCODE_PREVIEW_PORT_4 ZCODE_PREVIEW_PORT_5 ZCODE_PREVIEW_PORT_6 \
       ZCODE_PREVIEW_PORT_7 ZCODE_PREVIEW_PORT_8 ZCODE_PREVIEW_PORT_9; do
       port="$(sed -n "s/^$key=//p" "$zcode_env_file" | tail -n 1 | tr -d '\r')"
+      if [ "$key" = ZCODE_ZETRO2_PREVIEW_PORT ] && [ -z "$port" ]; then port=6155; fi
       case "$port" in
         ''|*[!0-9]*)
           printf '%s must be a numeric host port.\n' "$key" >&2

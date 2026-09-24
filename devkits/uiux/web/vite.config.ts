@@ -23,7 +23,7 @@ export default defineConfig(() => {
     cacheDir: "../../../dist/.vite/devkits/uiux/web",
     envDir: projectRoot,
     plugins: [react({ include: reactSourceFiles }), tailwindcss()],
-    server: { host: webHost, port: webPort, strictPort: true },
+    server: { allowedHosts: [".tmnext.in"],  host: webHost, port: webPort, strictPort: true },
     preview: { host: webHost, port: webPort, strictPort: true },
     build: {
       outDir: "../../../dist/devkits/uiux/web",

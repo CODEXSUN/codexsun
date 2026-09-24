@@ -13,10 +13,16 @@ function zbrowserHtml(nonce) {
     .eyebrow { color: var(--vscode-descriptionForeground); font-size: 11px; font-weight: 700; text-transform: uppercase; }
     h1 { margin: 3px 0 0; font-size: 19px; font-weight: 650; }
     h2 { margin: 18px 2px 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--vscode-descriptionForeground); }
-    .item { padding: 10px 2px; border-bottom: 1px solid var(--vscode-panel-border); }
+    .item { padding: 12px; margin: 8px 0; border: 1px solid var(--vscode-panel-border, #8886); border-radius: 6px; }
     .item-head { display: flex; align-items: baseline; gap: 7px; }
     .name { min-width: 0; flex: 1; font-weight: 600; overflow-wrap: anywhere; }
     .port { color: var(--vscode-descriptionForeground); font-size: 11px; }
+    .ports { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    button.port-link { display: inline-flex; align-items: center; gap: 6px; padding: 3px 7px; font-size: 11px; color: var(--vscode-textLink-foreground); background: transparent; border: 1px solid var(--vscode-panel-border, #8886); }
+    button.port-link:hover:not(:disabled) { background: var(--vscode-list-hoverBackground); border-color: var(--vscode-focusBorder); }
+    button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 2px; }
+    .port-label { color: var(--vscode-descriptionForeground); }
+    .port-number { font-weight: 600; font-variant-numeric: tabular-nums; }
     .meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; color: var(--vscode-descriptionForeground); font-size: 12px; }
     .dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--vscode-descriptionForeground); }
     .dot.ready { background: var(--vscode-testing-iconPassed, #298a47); }
@@ -40,7 +46,7 @@ function zbrowserHtml(nonce) {
     const groups = document.getElementById('groups');
     document.body.addEventListener('click', (event) => {
       const button = event.target.closest('button[data-action]');
-      if (button) api.postMessage({ type: button.dataset.action, id: button.dataset.id });
+      if (button && !button.disabled) api.postMessage({ type: button.dataset.action, id: button.dataset.id, kind: button.dataset.kind });
     });
     window.addEventListener('message', ({ data }) => {
       if (data.type !== 'state') return;
@@ -60,12 +66,6 @@ function zbrowserHtml(nonce) {
           name.className = 'name';
           name.textContent = target.label;
           head.append(name);
-          if (target.port) {
-            const port = document.createElement('span');
-            port.className = 'port';
-            port.textContent = ':' + target.port;
-            head.append(port);
-          }
           const meta = document.createElement('div');
           meta.className = 'meta';
           const dot = document.createElement('span');
@@ -74,6 +74,26 @@ function zbrowserHtml(nonce) {
           status.textContent = target.error || ({ ready: 'Live', starting: 'Starting', stopped: 'Stopped', unavailable: 'No web preview', error: 'Failed' }[target.state] ?? 'Unknown');
           meta.append(dot, status);
           row.append(head, meta);
+          const ports = document.createElement('div');
+          ports.className = 'ports';
+          ports.setAttribute('aria-label', 'Configured service ports');
+          for (const [kind, label, value] of [['api', 'API', target.apiPort], ['web', 'Web', target.webPort], ['zbrowser', 'Zbrowser', target.zbrowserPort ?? target.port]]) {
+            const badge = actionButton('', 'open-port', target);
+            badge.className = 'port-link';
+            badge.dataset.kind = kind;
+            badge.disabled = target.busy || !value || (kind === 'zbrowser' && target.state !== 'ready');
+            const caption = document.createElement('span');
+            caption.className = 'port-label';
+            caption.textContent = label;
+            const number = document.createElement('span');
+            number.className = 'port-number';
+            number.textContent = value || '—';
+            badge.replaceChildren(caption, number);
+            badge.title = !value ? label + ' port not configured' : kind === 'zbrowser' ? 'Open preview on port ' + value : 'Open configured ' + label + ' port ' + value + ' (service status not checked)';
+            badge.setAttribute('aria-label', badge.title);
+            ports.append(badge);
+          }
+          row.append(ports);
           if (target.port) {
             const actions = document.createElement('div');
             actions.className = 'actions';

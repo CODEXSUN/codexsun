@@ -45,6 +45,9 @@ services:
     environment:
       HOME: /home/openvscode-server
       ZBROWSER_MANAGER_URL: http://zbrowser:3001
+      ZCODE_PREVIEW_PUBLIC_HOST: ${ZCODE_PREVIEW_PUBLIC_HOST:-127.0.0.1}
+      ZCODE_PREVIEW_PUBLIC_SCHEME: ${ZCODE_PREVIEW_PUBLIC_SCHEME:-http}
+      ZCODE_PREVIEW_URL_TEMPLATE: ${ZCODE_PREVIEW_URL_TEMPLATE:-}
     volumes:
       - workspace-data:/home/workspace
       - editor-home:/home/openvscode-server
@@ -75,7 +78,9 @@ services:
     command: ["node", "/opt/zbrowser/server.mjs"]
     environment:
       ZBROWSER_WORKSPACE: /workspace/codexsun
+      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: ${ZCODE_PREVIEW_ALLOWED_HOST:-.tmnext.in}
       ZBROWSER_UIUX_PORT: ${ZCODE_ZBROWSER_PORT:-6133}
+      ZBROWSER_ZETRO2_PORT: ${ZCODE_ZETRO2_PREVIEW_PORT:-6155}
       ZBROWSER_PUBLIC_PORTS: ${ZCODE_PREVIEW_PORT_1:-6140},${ZCODE_PREVIEW_PORT_2:-6141},${ZCODE_PREVIEW_PORT_3:-6142},${ZCODE_PREVIEW_PORT_4:-6143},${ZCODE_PREVIEW_PORT_5:-6144},${ZCODE_PREVIEW_PORT_6:-6145},${ZCODE_PREVIEW_PORT_7:-6146},${ZCODE_PREVIEW_PORT_8:-6147},${ZCODE_PREVIEW_PORT_9:-6148}
     volumes:
       - workspace-data:/workspace
@@ -84,16 +89,17 @@ services:
       editor:
         condition: service_healthy
     ports:
-      - "127.0.0.1:${ZCODE_ZBROWSER_PORT:-6133}:${ZCODE_ZBROWSER_PORT:-6133}"
-      - "127.0.0.1:${ZCODE_PREVIEW_PORT_1:-6140}:6140"
-      - "127.0.0.1:${ZCODE_PREVIEW_PORT_2:-6141}:6141"
-      - "127.0.0.1:${ZCODE_PREVIEW_PORT_3:-6142}:6142"
-      - "127.0.0.1:${ZCODE_PREVIEW_PORT_4:-6143}:6143"
-      - "127.0.0.1:${ZCODE_PREVIEW_PORT_5:-6144}:6144"
-      - "127.0.0.1:${ZCODE_PREVIEW_PORT_6:-6145}:6145"
-      - "127.0.0.1:${ZCODE_PREVIEW_PORT_7:-6146}:6146"
-      - "127.0.0.1:${ZCODE_PREVIEW_PORT_8:-6147}:6147"
-      - "127.0.0.1:${ZCODE_PREVIEW_PORT_9:-6148}:6148"
+      - "${ZCODE_PREVIEW_BIND_HOST:-127.0.0.1}:${ZCODE_ZBROWSER_PORT:-6133}:${ZCODE_ZBROWSER_PORT:-6133}"
+      - "${ZCODE_PREVIEW_BIND_HOST:-127.0.0.1}:${ZCODE_ZETRO2_PREVIEW_PORT:-6155}:6155"
+      - "${ZCODE_PREVIEW_BIND_HOST:-127.0.0.1}:${ZCODE_PREVIEW_PORT_1:-6140}:6140"
+      - "${ZCODE_PREVIEW_BIND_HOST:-127.0.0.1}:${ZCODE_PREVIEW_PORT_2:-6141}:6141"
+      - "${ZCODE_PREVIEW_BIND_HOST:-127.0.0.1}:${ZCODE_PREVIEW_PORT_3:-6142}:6142"
+      - "${ZCODE_PREVIEW_BIND_HOST:-127.0.0.1}:${ZCODE_PREVIEW_PORT_4:-6143}:6143"
+      - "${ZCODE_PREVIEW_BIND_HOST:-127.0.0.1}:${ZCODE_PREVIEW_PORT_5:-6144}:6144"
+      - "${ZCODE_PREVIEW_BIND_HOST:-127.0.0.1}:${ZCODE_PREVIEW_PORT_6:-6145}:6145"
+      - "${ZCODE_PREVIEW_BIND_HOST:-127.0.0.1}:${ZCODE_PREVIEW_PORT_7:-6146}:6146"
+      - "${ZCODE_PREVIEW_BIND_HOST:-127.0.0.1}:${ZCODE_PREVIEW_PORT_8:-6147}:6147"
+      - "${ZCODE_PREVIEW_BIND_HOST:-127.0.0.1}:${ZCODE_PREVIEW_PORT_9:-6148}:6148"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 10s
