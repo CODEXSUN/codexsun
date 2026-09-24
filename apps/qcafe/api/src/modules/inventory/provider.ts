@@ -6,7 +6,7 @@ export class QcafeInventoryProvider implements ModuleProvider {
     owner: "apps/qcafe/api/modules/inventory",
     version: "1.0.0",
     dependencies: ["qcafe.foundation", "qcafe.menu"],
-    contracts: [],
+    contracts: ["GET /api/v1/qcafe/inventory"],
     events: { published: [], consumed: [] },
   };
 

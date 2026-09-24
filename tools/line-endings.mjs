@@ -37,11 +37,11 @@ export function fixLineEndings(root = ROOT) {
 
   for (const file of collectTextFiles(root)) {
     const path = resolve(root, file);
-    const source = readFileSync(path, "utf8");
-    const normalized = source.replace(/\r\n?/g, "\n");
+    const source = readFileSync(path);
+    const normalized = normalizeLineEndingBytes(source);
 
-    if (normalized !== source) {
-      writeFileSync(path, normalized, "utf8");
+    if (!normalized.equals(source)) {
+      writeFileSync(path, normalized);
       changedFiles.push(file);
     }
   }
@@ -53,6 +53,7 @@ function collectTextFiles(root) {
   const files = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
     cwd: root,
     encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024,
   })
     .split("\n")
     .filter(Boolean);
@@ -61,20 +62,46 @@ function collectTextFiles(root) {
 }
 
 function describeViolation(root, file) {
-  const source = readFileSync(resolve(root, file), "utf8");
-  if (!source.includes("\r")) return [];
+  const source = readFileSync(resolve(root, file));
+  if (!source.includes(0x0d)) return [];
 
-  const hasCrlf = source.includes("\r\n");
-  const hasLf = /(?<!\r)\n/.test(source);
+  const hasCrlf = source.includes(Buffer.from([0x0d, 0x0a]));
+  const hasLf = source.some((value, index) => value === 0x0a && source[index - 1] !== 0x0d);
   const kind = hasCrlf && hasLf ? "mixed LF and CRLF" : hasCrlf ? "CRLF" : "CR";
   return [`${file}: ${kind}`];
+}
+
+function normalizeLineEndingBytes(source) {
+  const normalized = Buffer.allocUnsafe(source.length);
+  let writeIndex = 0;
+
+  for (let readIndex = 0; readIndex < source.length; readIndex += 1) {
+    const value = source[readIndex];
+    if (value === 0x0d) {
+      if (source[readIndex + 1] === 0x0a) readIndex += 1;
+      normalized[writeIndex] = 0x0a;
+    } else {
+      normalized[writeIndex] = value;
+    }
+    writeIndex += 1;
+  }
+
+  return normalized.subarray(0, writeIndex);
 }
 
 function isTextFile(path, file) {
   const extension = file.slice(file.lastIndexOf(".")).toLowerCase();
   if (BINARY_EXTENSIONS.has(extension)) return false;
 
-  return !readFileSync(path).includes(0);
+  const source = readFileSync(path);
+  if (source.includes(0)) return false;
+
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(source);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function main() {

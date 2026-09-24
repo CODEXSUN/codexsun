@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 
 const source = new URL("../../../apps/temp/openvscode-server/", import.meta.url);
 const editor = new URL("../zvcode/", import.meta.url);
-const read = (base, path) => readFile(new URL(path, base), "utf8");
+const read = async (base, path) => (await readFile(new URL(path, base), "utf8")).replace(/\r\n/g, "\n");
 const product = JSON.parse(await read(editor, "product.json"));
 const manifest = JSON.parse(await read(editor, "package.json"));
 const lock = JSON.parse(await read(editor, "package-lock.json"));

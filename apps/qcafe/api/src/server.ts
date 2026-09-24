@@ -71,6 +71,9 @@ import { registerGuestBookingRoutes } from "./modules/booking/routes/guest-booki
 import { EventSalesRepository } from "./modules/booking/repository/event-sales.repository.js";
 import { EventSalesService } from "./modules/booking/services/event-sales.service.js";
 import { registerEventSalesRoutes } from "./modules/booking/routes/event-sales-route.js";
+import { InventoryRepository } from "./modules/inventory/repository/inventory.repository.js";
+import { InventoryService } from "./modules/inventory/services/inventory.service.js";
+import { registerInventoryRoutes } from "./modules/inventory/routes/inventory-route.js";
 
 const config = readConfig();
 const persistence = createQcafePersistence(config.persistence, createQcafeLifecyclePlans());
@@ -306,6 +309,7 @@ const guestBooking = new GuestBookingService(
   activity,
 );
 const eventSales = new EventSalesService(new EventSalesRepository(persistence.database()), billing, activity);
+const inventory = new InventoryService(new InventoryRepository(persistence.database()), activity);
 await registerPosRoutes(
   app,
   pos,
@@ -319,6 +323,7 @@ await registerTableServiceRoutes(app, tableService, contextFor);
 await registerBillingRoutes(app, billing, contextFor);
 await registerGuestBookingRoutes(app, guestBooking, contextFor);
 await registerEventSalesRoutes(app, eventSales, contextFor);
+await registerInventoryRoutes(app, inventory, contextFor);
 app.get(
   "/api/v1/qcafe/health",
   {

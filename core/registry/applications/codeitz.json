@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "codeitz",
+  "label": "Codeitz",
+  "category": "devkit",
+  "owner": "devkits/codeitz",
+  "taskPrefix": "k",
+  "providers": [
+    "platform.core",
+    "codeitz.foundation",
+    "codeitz.engineering",
+    "codeitz.learning",
+    "codeitz.skills"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_CODEITZ_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "codeitz-api",
+      "displayName": "Codeitz API",
+      "environmentDirectory": "api",
+      "envKey": "CODEITZ_API_PORT",
+      "workspace": "@codexsun/codeitz-api",
+      "defaultPort": 6320
+    },
+    {
+      "kind": "web",
+      "target": "codeitz-web",
+      "displayName": "Codeitz web",
+      "environmentDirectory": "web",
+      "envKey": "CODEITZ_WEB_PORT",
+      "workspace": "@codexsun/codeitz-web",
+      "defaultPort": 6321
+    }
+  ]
+}

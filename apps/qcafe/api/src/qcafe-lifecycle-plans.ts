@@ -7,6 +7,7 @@ import { qcafePosLifecyclePlan } from "./modules/pos/persistence/pos-lifecycle.j
 import { qcafeBookingLifecyclePlan } from "./modules/booking/persistence/booking-lifecycle.js";
 import { qcafeKitchenLifecyclePlan } from "./modules/kitchen/persistence/kitchen-lifecycle.js";
 import { qcafeBillingLifecyclePlan } from "./modules/billing/persistence/billing-lifecycle.js";
+import { qcafeInventoryLifecyclePlan } from "./modules/inventory/persistence/inventory-lifecycle.js";
 
 export function createQcafeLifecyclePlans(): readonly DatabaseLifecyclePlan<QcafeFoundationDatabase>[] {
   return [
@@ -17,5 +18,6 @@ export function createQcafeLifecyclePlans(): readonly DatabaseLifecyclePlan<Qcaf
     qcafeBookingLifecyclePlan,
     qcafeKitchenLifecyclePlan,
     qcafeBillingLifecyclePlan,
+    qcafeInventoryLifecyclePlan,
   ];
 }

@@ -11,6 +11,13 @@ export type MdiCatalogApplication = {
 export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
   {
     "icon": "application",
+    "id": "codeitz",
+    "label": "Codeitz",
+    "localUrlKey": "VITE_CODEITZ_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
     "id": "crm",
     "label": "CRM",
     "localUrlKey": "VITE_CRM_WEB_URL",

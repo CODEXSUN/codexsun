@@ -146,6 +146,16 @@
       "outputs": [
         "../../../dist/devkits/zuno/mobile/**"
       ]
+    },
+    "@codexsun/codeitz-api#build": {
+      "outputs": [
+        "../../../dist/devkits/codeitz/api/**"
+      ]
+    },
+    "@codexsun/codeitz-web#build": {
+      "outputs": [
+        "../../../dist/devkits/codeitz/web/**"
+      ]
     }
   }
 }

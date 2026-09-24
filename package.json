@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.39",
+  "version": "1.0.41",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -42,6 +42,7 @@
     "build:zetro": "npm run turbo:scope -- zetro build",
     "build:uiux": "npm run turbo:scope -- uiux build",
     "build:packages": "npm run turbo:scope -- packages build",
+    "build:codeitz": "npm run turbo:scope -- codeitz build",
     "app:build": "node packages/app-cli/src/main.mjs build",
     "app": "node packages/app-cli/src/main.mjs",
     "app:list": "node packages/app-cli/src/main.mjs list applications",
@@ -118,7 +119,10 @@
     "test:orship": "npm run check --workspace @codexsun/platform-core && npm run check --workspace @codexsun/orship-api && npm run check --workspace @codexsun/orship-web && npm run lint --workspace @codexsun/orship-api && npm run lint --workspace @codexsun/orship-web && npm run test --workspace @codexsun/orship-api && npm run test --workspace @codexsun/orship-web",
     "dev:zetro2-api": "node tools/preflight.mjs zetro2-api --restart",
     "dev:zetro2-web": "node tools/preflight.mjs zetro2-web --restart",
-    "test:zetro2": "npm run test --workspace @codexsun/zetro2-api"
+    "test:zetro2": "npm run test --workspace @codexsun/zetro2-api",
+    "dev:codeitz-api": "node tools/preflight.mjs codeitz-api --restart",
+    "dev:codeitz-web": "node tools/preflight.mjs codeitz-web --restart",
+    "test:codeitz": "npm run test --workspace @codexsun/codeitz-api && npm run test --workspace @codexsun/codeitz-web"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

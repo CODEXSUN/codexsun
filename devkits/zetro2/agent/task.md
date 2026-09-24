@@ -4,7 +4,7 @@
 
 Architecture: [planning.md](planning.md). Original brief: [architecture notes](architecture-notes.md).
 Status: ZVcode source import and product identity verified on 2026-09-24; runtime implementation remains pending.
-Next implementation task: 0.5. Inventory Zetro2 startup, Codexsun OS, previews, ports, volumes, and existing shared identity APIs.
+Next implementation task: 1.4. Add module-owned persistence, Zod contracts, checksummed migrations, and repeat-safe seeds.
 
 Current deployment and ownership decision: [architecture-notes.md](architecture-notes.md).
 All Zetro2-authored source belongs inside this app; the editor builds from its customized source.
@@ -30,23 +30,23 @@ Dependencies: none. Deliverable: implementation-ready source and contract invent
 - [x] 0.2 Inventory `apps/temp/openvscode-server`, upstream revision, modifications, licenses, and source size.
 - [x] 0.3 Inspect native chat, inline chat, language-model services, extension APIs, and tool confirmations.
 - [x] 0.4 Compare Copilot Chat source requirements with the local editor version and available service contracts.
-- [ ] 0.5 Inventory Zetro2 startup, Codexsun OS, previews, ports, volumes, and existing shared identity APIs.
-- [ ] 0.6 Record the four custom layers, module ownership, public interfaces, and compatibility matrix.
-- [ ] 0.7 Document the vendor-source exception and upstream dependency/build strategy against Assist rules.
-- [ ] 0.8 Define role capabilities, workspace isolation, direct edit behavior, and backend permission requirements.
-- [ ] 0.9 Pin candidate OpenCode, OpenHands, LangGraph, LangChain, MCP, and Playwright versions.
-- [ ] 0.9a Establish API, identity, backend, clock, and Playwright fixtures with root artifact paths for early verification.
-- [ ] 0.9b Inventory ZCode reference components for explicit Zetro2-owned adaptation without private cross-app imports.
-- [ ] 0.9c Document private source/distribution settings and preserve upstream license notices for imported code.
-- [ ] 0.10 Exit: record a reviewed implementation baseline with unresolved compatibility limits.
+- [x] 0.5 Inventory Zetro2 startup, Codexsun OS, previews, ports, volumes, and existing shared identity APIs.
+- [x] 0.6 Record the four custom layers, module ownership, public interfaces, and compatibility matrix.
+- [x] 0.7 Document the vendor-source exception and upstream dependency/build strategy against Assist rules.
+- [x] 0.8 Define role capabilities, workspace isolation, direct edit behavior, and backend permission requirements.
+- [x] 0.9 Pin candidate OpenCode, OpenHands, LangGraph, LangChain, MCP, and Playwright versions.
+- [x] 0.9a Establish API, identity, backend, clock, and Playwright fixtures with root artifact paths for early verification.
+- [x] 0.9b Inventory ZCode reference components for explicit Zetro2-owned adaptation without private cross-app imports.
+- [x] 0.9c Document private source/distribution settings and preserve upstream license notices for imported code.
+- [x] 0.10 Exit: record a reviewed implementation baseline with unresolved compatibility limits.
 
 ## Phase 1 — Identity, membership, and authorization
 
 Dependencies: Phase 0. Deliverable: server-enforced access foundation.
 
-- [ ] 1.1 Compose public identity, session, secrets, and storage providers without private cross-app imports.
-- [ ] 1.2 Define workspace membership and Owner, Maintainer, Developer, Reviewer, and Viewer presets.
-- [ ] 1.3 Define scoped read, write, execute, agent, approval, Git, provider, MCP, browser, and computer grants.
+- [x] 1.1 Compose public identity, session, secrets, and storage providers without private cross-app imports.
+- [x] 1.2 Define workspace membership and Owner, Maintainer, Developer, Reviewer, and Viewer presets.
+- [x] 1.3 Define scoped read, write, execute, agent, approval, Git, provider, MCP, browser, and computer grants.
 - [ ] 1.4 Add module-owned persistence, Zod contracts, checksummed migrations, and repeat-safe seeds.
 - [ ] 1.5 Implement login, logout, session expiration, workspace selection, and membership management.
 - [ ] 1.6 Authorize every API resource and event subscription using server-resolved membership.
@@ -498,6 +498,17 @@ For each checked task, append:
 0.2 | 940dcd23b57eeff1f79cd582a471a279eec4afc5 | git ls-files devkits/zetro2/zvcode | wc -l && du -sh devkits/zetro2/zvcode && node devkits/zetro2/editor/verify-zvcode.mjs | host-linux | pass-with-limitation | 2026-09-24 | [0.2-upstream-inventory.md](baseline/0.2-upstream-inventory.md) | apps/temp/openvscode-server absent; inventoried zvcode (9280 files, 171M, v1.110.0); verify-zvcode branding passes, license-compare ENOENT on missing source path
 0.3 | 940dcd23b57eeff1f79cd582a471a279eec4afc5 | ls/grep chat, inlineChat, api/common extHost*, vscode.d.ts lm/chat, tools confirmation | host-linux | pass | 2026-09-24 | [0.3-chat-and-tools.md](baseline/0.3-chat-and-tools.md) | read-only inspection; copilot-chat not bundled; no build/test
 0.4 | 940dcd23b57eeff1f79cd582a471a279eec4afc5 | webfetch vscode-copilot-chat README + raw package.json; local product/package/extensions grep | host-linux | pass | 2026-09-24 | [0.4-copilot-comparison.md](baseline/0.4-copilot-comparison.md) | copilot-chat 0.44.0 needs vscode ^1.115.0 vs local 1.110.0 = incompatible; repo archived; subscription-gated; no copy
+0.5 | 40b561312fc5a65add6303abea8f803cd3aa25ca | npm run test:zetro2 && node verify-zvcode.mjs && node --test zbrowser/catalog.test.mjs && node --test codexsun-os/test/*.test.js | host-windows | pass | 2026-09-24 | [0.5-startup-previews-identity.md](baseline/0.5-startup-previews-identity.md) | startup, ports (6300/6310/6155), previews, volumes, and platform-core identity verified
+0.6 | 40b561312fc5a65add6303abea8f803cd3aa25ca | node verify-zvcode.mjs && npm run test:zetro2 | host-windows | pass | 2026-09-24 | [0.6-custom-layers-and-modules.md](baseline/0.6-custom-layers-and-modules.md) | four layers, module ownership, contract boundaries, and compatibility matrix recorded
+0.7 | 40b561312fc5a65add6303abea8f803cd3aa25ca | node verify-zvcode.mjs && npm run test:zetro2 | host-windows | pass | 2026-09-24 | [0.7-vendor-exception-build-strategy.md](baseline/0.7-vendor-exception-build-strategy.md) | vendor exception scoped exclusively to zvcode; Docker-isolated build and root dist boundaries recorded
+0.8 | 40b561312fc5a65add6303abea8f803cd3aa25ca | npm run test:zetro2 | host-windows | pass | 2026-09-24 | [0.8-roles-isolation-direct-edits.md](baseline/0.8-roles-isolation-direct-edits.md) | 5 role presets, 12 capability grants, workspace isolation, human edit precedence, and approval gates defined
+0.9 | 40b561312fc5a65add6303abea8f803cd3aa25ca | npm run test:zetro2 | host-windows | pass | 2026-09-24 | [0.9-candidate-dependency-versions.md](baseline/0.9-candidate-dependency-versions.md) | LangGraph JS 0.2.20, MCP 1.0.4, Playwright 1.48.2, OpenCode 0.1.28, OpenHands 0.14.2 pinned
+0.9a | 40b561312fc5a65add6303abea8f803cd3aa25ca | npm test --workspace=@codexsun/zetro2-api | host-windows | pass | 2026-09-24 | [0.9a-fixtures-and-root-artifacts.md](baseline/0.9a-fixtures-and-root-artifacts.md) | clock, identity, backend, Playwright root artifact manager, and ephemeral API fixtures implemented (6/6 tests pass)
+0.9b | 40b561312fc5a65add6303abea8f803cd3aa25ca | grep/boundary analysis across zcode and zetro2 | host-windows | pass | 2026-09-24 | [0.9b-zcode-reference-inventory.md](baseline/0.9b-zcode-reference-inventory.md) | container, scripts, addon, zbrowser, and storage inventoried; 0 private cross-app imports verified
+0.9c | 40b561312fc5a65add6303abea8f803cd3aa25ca | node verify-zvcode.mjs && npm test --workspace=@codexsun/zetro2-api | host-windows | pass | 2026-09-24 | [0.9c-private-settings-and-licenses.md](baseline/0.9c-private-settings-and-licenses.md) | private flags, telemetry removal, and MIT/ThirdPartyNotices legal preservation verified
+0.10 | 40b561312fc5a65add6303abea8f803cd3aa25ca | Phase 0 verification audit && node verify-zvcode.mjs && npm test --workspace=@codexsun/zetro2-api | host-windows | pass | 2026-09-24 | [0.10-phase-0-exit-baseline.md](baseline/0.10-phase-0-exit-baseline.md) | Phase 0 baseline complete: 12 prerequisite tasks verified; Copilot, container isolation, and port limits recorded
+1.1 | 40b561312fc5a65add6303abea8f803cd3aa25ca | npm test --workspace=@codexsun/zetro2-api | host-windows | pass | 2026-09-24 | [1.1-composed-access-providers.md](baseline/1.1-composed-access-providers.md) | secrets, storage, identity, session, and ZetroAccessModule composed without cross-app imports (11/11 tests pass)
+1.2 | 40b561312fc5a65add6303abea8f803cd3aa25ca | npm test --workspace=@codexsun/zetro2-api | host-windows | pass | 2026-09-24 | [1.2-workspace-membership-presets.md](baseline/1.2-workspace-membership-presets.md) | workspace and membership Zod schemas, role ranks, and hierarchy assignment validation implemented (12/12 tests pass)
 
 Release publication, remote workspace support, and coordinated multi-agent editing
 require later tasks. They do not block the scoped daily coding milestones above.

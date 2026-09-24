@@ -631,4 +631,48 @@ export interface QcafeFoundationDatabase extends QcafePhaseFiveDatabase {
     closed_by: string;
     closed_at: string;
   };
+  qcafe_stock_units: {
+    id: string;
+    business_id: string;
+    code: string;
+    name: string;
+    symbol: string | null;
+    active: number;
+    created_at: string;
+    updated_at: string;
+  };
+  qcafe_stock_items: {
+    id: string;
+    business_id: string;
+    unit_id: string;
+    code: string;
+    name: string;
+    track_stock: number;
+    reorder_level_milli: number;
+    active: number;
+    created_at: string;
+    updated_at: string;
+  };
+  qcafe_stock_adjustments: {
+    id: string;
+    business_id: string;
+    location_id: string;
+    reason: string;
+    approved_by: string | null;
+    created_by: string;
+    occurred_at: string;
+  };
+  qcafe_stock_movements: {
+    id: string;
+    business_id: string;
+    location_id: string;
+    stock_item_id: string;
+    quantity_milli: number;
+    movement_type: "adjustment_in" | "adjustment_out";
+    source_type: "adjustment";
+    source_id: string;
+    reason: string;
+    actor_ref: string;
+    occurred_at: string;
+  };
 }

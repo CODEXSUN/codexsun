@@ -4,15 +4,56 @@ Records CODEXSUN releases, database impact, and completed application changes.
 
 ## Version State
 
-Current version: 1.0.39
+Current version: 1.0.41
 
-Release tag: v-1.0.39
+Release tag: v-1.0.41
 
-Changelog label: v 1.0.39
+Changelog label: v 1.0.41
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
+
+## v-1.0.41
+
+### [v 1.0.41] 2026-09-24 5:47 pm - Release workflow and line-ending normalization
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.41.
+- Increased the Git file-list buffer used by the line-ending tool so large workspaces no longer fail with `spawnSync git ENOBUFS`.
+- Preserved file bytes during LF normalization and skipped legacy files that are not valid UTF-8.
+- Set the repository-local Git policy to `core.autocrlf=false` and `core.eol=lf` to match `.gitattributes`.
+- Verification: line-ending tests and the line-ending check passed; commit and push are part of this release operation.
+
+## v-1.0.40
+
+### [v 1.0.40] 2026-09-24 5:36 pm - working on all apps
+
+#### Database Changes
+
+- Database update: No (manual).
+- No database migrations, schema alterations, or seed changes introduced for Codeitz bootstrap.
+
+#### App Codebase Changes
+
+- Created `devkits/codeitz` application as per repository standard with `@codexsun/codeitz-api` (port 6320) and `@codexsun/codeitz-web` (port 6321), registered under task prefix `k`.
+- Implemented autonomous Agentic Software-Engineering system inside Codeitz with dedicated modules:
+  - `foundation`: application lifecycle, health reporting, and platform runtime wiring (`codeitz.foundation`).
+  - `engineering`: phased SWE execution pipeline (`intake`, `grounding`, `planning`, `execution`, `verification`, `review`, `completed`), orchestrator service, and gated verification checks (`codeitz.engineering`).
+  - `learning`: self-learning episodic memory bank, retrospective error diagnosis, pattern/anti-pattern classification, and heuristic retrieval/reinforcement (`codeitz.learning`).
+  - `skills`: dynamic agent skill registry, validation harness, and automatic distillation of verified trajectories into `SKILL.md` documents (`codeitz.skills`).
+- Built interactive Codeitz Web Desk composing `@codexsun/ui` layout with SWE pipeline stepper, self-learning memory bank, and skill distillation studio.
+- Added repository-level self-learning skills in `.agents/skills/`:
+  - `agentic-swe-pipeline`: disciplined multi-phase software engineering loop.
+  - `swe-self-learning`: retrospective analysis, root cause diagnosis, and heuristic synthesis.
+  - `codeitz-skill-distiller`: formalization of repeatable patterns into standardized agent skills.
+- Registered Codeitz in `core/registry/applications/codeitz.json`, `core/registry/profiles/development.json`, and root scripts.
+- Verification: all Codeitz API and Web test suites passed (13 total passed, 1 skipped); zero architecture and module boundary violations.
 
 ## v-1.0.39
 
@@ -21,6 +62,7 @@ New entries must keep database-facing work and application code work separate.
 #### Database Changes
 
 - Database update: No (manual).
+- Q Cafe QC-0601: added append-only `qcafe.inventory.001` for stock units, items, adjustments, and source-linked movement ledger.
 
 #### App Codebase Changes
 
@@ -32,6 +74,7 @@ New entries must keep database-facing work and application code work separate.
 - Documented Markdown heading and indexing conventions, DOCX runtime behavior, and application port assignments.
 - Verification: DOCX tests passed (five passed, MariaDB integration skipped); web type check, API/web lint and builds, version alignment, and changed-file whitespace/LF checks passed.
 - Known verification limits: API type check reports four existing TS2835 import-extension errors; repository-wide line-ending tooling fails with Git ENOBUFS, so LF verification was scoped to changed source files. Browser E2E and live deployment were not tested.
+- Q Cafe QC-0601: added inventory unit/item/adjustment contracts, repository, service, routes, lifecycle wiring, and focused ledger tests; verification: qcafe-api typecheck, inventory tests (2 passed), lint, build, and `git diff --check` passed.
 
 ## v-1.0.38
 

@@ -125,9 +125,9 @@
 
 ## Phase 6: Inventory, Recipes, and Daily Planning
 
-- [ ] `QC-0601` Add stock units, stock items, stock movements, and stock adjustment controls.
+- [x] `QC-0601` Add stock units, stock items, stock movements, and stock adjustment controls.
   - Acceptance: every accepted stock change posts a source-linked ledger movement.
-- [ ] `QC-0602` Add recipes and recipe components for menu variants.
+- [x] `QC-0602` Add recipes and recipe components for menu variants.
   - Acceptance: recipe revisions keep their effective dates and source history.
 - [ ] `QC-0603` Add daily plans and daily plan lines for regular sales, specials, bookings, and events.
   - Acceptance: each plan line identifies its demand source.

@@ -3,6 +3,7 @@
   "id": "development",
   "label": "Development",
   "enabledApplications": [
+    "codeitz",
     "crm",
     "cxforge",
     "docx",
@@ -26,8 +27,18 @@
       "platform.settings",
       "platform.system"
     ],
-    "zetro": ["platform.core", "zetro.foundation", "zetro.storage", "zetro.chat", "zetro.brief", "zetro.task"],
-    "docx": ["platform.core", "docx.foundation"],
+    "zetro": [
+      "platform.core",
+      "zetro.foundation",
+      "zetro.storage",
+      "zetro.chat",
+      "zetro.brief",
+      "zetro.task"
+    ],
+    "docx": [
+      "platform.core",
+      "docx.foundation"
+    ],
     "qcafe": [
       "platform.core",
       "qcafe.foundation",
@@ -38,12 +49,42 @@
       "qcafe.billing",
       "qcafe.booking"
     ],
-    "crm": ["platform.core", "crm.foundation"],
-    "himsx": ["platform.core", "himsx.foundation"],
-    "lms": ["platform.core", "lms.foundation"],
-    "sites": ["platform.core", "sites.foundation"],
-    "orship": ["platform.core", "orship.foundation", "orship.infras"],
-    "cxforge": ["platform.core", "cxforge.foundation"],
-    "zuno": ["platform.core", "zuno.foundation", "zuno.handoff"]
+    "crm": [
+      "platform.core",
+      "crm.foundation"
+    ],
+    "himsx": [
+      "platform.core",
+      "himsx.foundation"
+    ],
+    "lms": [
+      "platform.core",
+      "lms.foundation"
+    ],
+    "sites": [
+      "platform.core",
+      "sites.foundation"
+    ],
+    "orship": [
+      "platform.core",
+      "orship.foundation",
+      "orship.infras"
+    ],
+    "cxforge": [
+      "platform.core",
+      "cxforge.foundation"
+    ],
+    "zuno": [
+      "platform.core",
+      "zuno.foundation",
+      "zuno.handoff"
+    ],
+    "codeitz": [
+      "platform.core",
+      "codeitz.foundation",
+      "codeitz.engineering",
+      "codeitz.learning",
+      "codeitz.skills"
+    ]
   }
 }
