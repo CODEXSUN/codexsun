@@ -5,7 +5,7 @@ import { PrivilegedDesk } from "@codexsun/ui/blocks/auth/privileged-desk";
 import { IdentityManagementDesk } from "@codexsun/ui/blocks/auth/identity-management-desk";
 import { LayoutDashboardIcon } from "lucide-react";
 import { SitesOrganizer } from "./shared/sites-organizer";
-import { ContentEditor } from "./shared/content-editor";
+import { ContentEditor, ContentPreview } from "./shared/content-editor";
 
 const ClientsPortal = lazy(() => import("./Clients"));
 
@@ -54,6 +54,7 @@ function normalizeStandaloneSlug(value: string | undefined): string | undefined 
 
 function SitesDesk({ request, logout }: { request: typeof fetch; logout: () => void }) {
   const editorSlug = window.location.pathname.match(/^\/studio\/content\/([a-z0-9-]+)$/u)?.[1];
+  const previewSlug = window.location.pathname.match(/^\/studio\/content\/([a-z0-9-]+)\/preview$/u)?.[1];
   return (
     <MainWorkspace
       applicationId="sites"
@@ -63,7 +64,7 @@ function SitesDesk({ request, logout }: { request: typeof fetch; logout: () => v
       contentClassName="overflow-visible"
       workspaceTitle="Sites Studio"
     >
-      {editorSlug ? <ContentEditor request={request} slug={editorSlug} /> : <SitesOrganizer request={request} />}
+      {previewSlug ? <ContentPreview request={request} slug={previewSlug} /> : editorSlug ? <ContentEditor request={request} slug={editorSlug} /> : <SitesOrganizer request={request} />}
     </MainWorkspace>
   );
 }

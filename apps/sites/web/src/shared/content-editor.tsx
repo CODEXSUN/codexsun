@@ -6,19 +6,10 @@ import { Input } from "@codexsun/ui/components/input";
 import { Textarea } from "@codexsun/ui/components/textarea";
 import { WorkspacePageHeader, WorkspacePublishStatus, WorkspaceSectionCard } from "@codexsun/ui/blocks/workspace";
 import { useState, type ReactNode } from "react";
+import { ClientSitePage } from "../templates/client-site-page";
+import { hydrateClientSite, type PublicClientPayload } from "./client-data";
 
-type EditorContent = {
-  about: string;
-  contact: { email: string; label: string; phone: string };
-  description: string;
-  name: string;
-  seo: { description: string; keywords: string[]; title: string };
-  statement: string;
-  published: boolean;
-  hasDraft: boolean;
-  updatedAt: string;
-  slug: string;
-};
+type EditorContent = PublicClientPayload & { hasDraft: boolean; published: boolean; updatedAt: string };
 type Revision = { action: "draft" | "publish" | "unpublish"; createdAt: string; id: number; slug: string };
 
 export function ContentEditor({ request, slug }: { request: typeof fetch; slug: string }) {
@@ -95,7 +86,7 @@ export function ContentEditor({ request, slug }: { request: typeof fetch; slug: 
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <Button disabled={save.isPending} onClick={() => save.mutate(value)}><SaveIcon className="size-4" /> {save.isPending ? "Saving…" : "Save draft"}</Button>
           <Button disabled={publish.isPending || !value.hasDraft} onClick={() => { if (window.confirm("Publish this draft to the public client site?")) publish.mutate(); }} variant="outline"><CheckCircle2Icon className="size-4" /> Publish draft</Button>
-          <Button render={<a href={`/clients/${slug}`} target="_blank" rel="noreferrer" />} variant="ghost"><EyeIcon className="size-4" /> Preview public page</Button>
+          <Button render={<a href={`/studio/content/${slug}/preview`} />} variant="ghost"><EyeIcon className="size-4" /> Preview draft</Button>
           {value.hasDraft ? <Badge variant="studio-warning">Unpublished changes</Badge> : null}
           {changedFields.length ? <span className="text-sm text-muted-foreground">Changed: {changedFields.join(", ")}</span> : null}
           {save.isError || publish.isError ? <><span className="text-sm text-destructive">The content action failed.</span><Button onClick={() => save.isError ? save.mutate(value) : publish.mutate()} size="sm" variant="outline">Retry</Button></> : null}
@@ -103,6 +94,13 @@ export function ContentEditor({ request, slug }: { request: typeof fetch; slug: 
       </div>
     </main>
   );
+}
+
+export function ContentPreview({ request, slug }: { request: typeof fetch; slug: string }) {
+  const content = useQuery({ queryKey: ["sites", "content", slug, "preview"], queryFn: () => readContent(request, slug) });
+  if (content.isPending) return <main className="min-h-full p-6 text-muted-foreground">Loading draft preview…</main>;
+  if (content.isError || !content.data) return <main className="min-h-full p-6 text-destructive">Draft preview could not be loaded.</main>;
+  return <><div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-amber-300/30 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100"><span>Draft preview — this content is not public.</span><Button render={<a href={`/studio/content/${slug}`} />} size="sm" variant="outline"><ArrowLeftIcon className="size-4" /> Back to editor</Button></div><div className="min-h-full bg-slate-950"><ClientSitePage client={hydrateClientSite(content.data)} /></div></>;
 }
 
 function Field({ children, label }: { children: ReactNode; label: string }) {

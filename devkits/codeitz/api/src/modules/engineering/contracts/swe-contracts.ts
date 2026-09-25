@@ -33,6 +33,16 @@ export const sweVerificationCheckSchema = z.object({
 
 export type SweVerificationCheck = z.infer<typeof sweVerificationCheckSchema>;
 
+// Autonomous Patch Engine Input
+export const applyPatchInputSchema = z.object({
+  filePath: z.string().min(1),
+  targetContent: z.string().optional(),
+  replacementContent: z.string().optional(),
+  fullContent: z.string().optional(),
+  description: z.string().optional(),
+});
+export type ApplyPatchInput = z.infer<typeof applyPatchInputSchema>;
+
 export const sweTaskSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1),
@@ -40,6 +50,7 @@ export const sweTaskSchema = z.object({
   phase: sweTaskPhaseSchema,
   status: sweTaskStatusSchema,
   targetPaths: z.array(z.string()).default([]),
+  patches: z.array(applyPatchInputSchema).default([]),
   changeSummary: z.string().default(""),
   verificationChecks: z.array(sweVerificationCheckSchema).default([]),
   reviewNotes: z.string().default(""),
@@ -53,6 +64,7 @@ export const createSweTaskInputSchema = z.object({
   title: z.string().min(1),
   prompt: z.string().min(1),
   targetPaths: z.array(z.string()).optional(),
+  patches: z.array(applyPatchInputSchema).optional(),
 });
 
 export type CreateSweTaskInput = z.infer<typeof createSweTaskInputSchema>;
@@ -381,15 +393,6 @@ export const mergeWorktreeResultSchema = z.object({
 export type MergeWorktreeResult = z.infer<typeof mergeWorktreeResultSchema>;
 
 // Autonomous Patch Engine
-export const applyPatchInputSchema = z.object({
-  filePath: z.string().min(1),
-  targetContent: z.string().optional(),
-  replacementContent: z.string().optional(),
-  fullContent: z.string().optional(),
-  description: z.string().optional(),
-});
-export type ApplyPatchInput = z.infer<typeof applyPatchInputSchema>;
-
 export const applyPatchResultSchema = z.object({
   success: z.boolean(),
   filePath: z.string(),

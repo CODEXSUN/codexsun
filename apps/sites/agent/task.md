@@ -96,7 +96,7 @@ client-specific failures clearly.
 
 ### Phase 9. Preview and publishing logic
 
-1. [ ] Add draft preview URLs.
+1. [x] Add authenticated draft preview URLs under `/studio/content/:slug/preview`.
 2. [x] Add a visible content-change summary before publish.
 3. [x] Add publish confirmation and revision audit records.
 4. [x] Add public-content cache invalidation after publish.
@@ -125,6 +125,7 @@ Acceptance: publishing is explicit, reviewable, reversible, and traceable.
 17. [x] Start Phase 8 with manifest-driven route matrix tests.
 18. [x] Start Phase 9 with revision-backed publishing controls.
 19. [x] Add revision restore API and editor history controls.
+20. [x] Add authenticated draft preview rendering.
 
 ### Phase 3 verification
 
@@ -180,7 +181,7 @@ Acceptance: publishing is explicit, reviewable, reversible, and traceable.
 3. [x] Editor shows changed content groups before publishing.
 4. [x] Publish requires explicit confirmation and invalidates public content queries.
 5. [x] Revision restore and rollback UI are available as a new draft.
-6. [ ] Draft preview URLs remain open.
+6. [x] Draft preview URLs are available inside the authenticated editor workspace.
 
 ### Phase 1 verification
 

@@ -1,11 +1,12 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
+import { findWorkspaceRoot } from "./workspace-root.js";
 import type { ApplyPatchInput, ApplyPatchResult } from "../contracts/swe-contracts.js";
 
 export class CodePatcherService {
   private readonly backups = new Map<string, string>();
 
-  constructor(private readonly rootDir: string = resolve(".")) {}
+  constructor(private readonly rootDir: string = findWorkspaceRoot()) {}
 
   private resolveSafePath(targetPath: string): string {
     const fullPath = resolve(this.rootDir, targetPath);
@@ -75,5 +76,26 @@ export class CodePatcherService {
     writeFileSync(fullPath, original, "utf8");
     this.backups.delete(fullPath);
     return true;
+  }
+
+  rollbackAll(): number {
+    let count = 0;
+    for (const [fullPath, original] of this.backups.entries()) {
+      try {
+        writeFileSync(fullPath, original, "utf8");
+        count++;
+      } catch {}
+    }
+    this.backups.clear();
+    return count;
+  }
+
+  hasBackup(filePath: string): boolean {
+    const fullPath = this.resolveSafePath(filePath);
+    return this.backups.has(fullPath);
+  }
+
+  clearBackups(): void {
+    this.backups.clear();
   }
 }
