@@ -161,6 +161,7 @@ function SkilloopzHeader({ client }: { client: ClientSite }) {
             src="/skilloopz/brand/skilloop-wordmark.png"
             alt="Skilloopz"
             className="h-auto max-h-7 w-auto max-w-[7.75rem] object-contain"
+            decoding="async"
           />
         </a>
         <div className="hidden items-center gap-1 xl:flex">

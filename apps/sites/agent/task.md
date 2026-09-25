@@ -9,6 +9,23 @@ internal content workflows, client site refinements, SEO, accessibility,
 performance, and automated verification. Server settings, DNS, reverse proxy,
 domain ingress, and production hosting remain deferred.
 
+## Ownership boundary
+
+### Repository-owned and in scope
+
+- TypeScript/React implementation, shared UI, client compositions, content workflows,
+  SEO metadata, discovery files, accessibility, local runtime checks, tests, and
+  build-size/performance budgets.
+
+### External platform-owned and deferred
+
+- Cloudflare DNS, Pages/Workers deployment, CDN/cache rules, image delivery service,
+  Web Analytics, SSL, production domains, and proxy configuration.
+- Google Search Console ownership, TXT verification, sitemap submission, and indexing
+  confirmation.
+
+External work is not treated as a repository defect or a local release blocker.
+
 ## Improvement execution plan
 
 ### Phase 1. Dashboard metrics and runtime observability
@@ -57,10 +74,10 @@ broken internal links.
 ### Phase 5. SEO and discovery quality
 
 1. [ ] Generate metadata from published content records.
-2. [ ] Add title, description, H1, canonical, and schema validation.
+2. [x] Add title, description, H1, canonical, and schema validation.
 3. [ ] Add client-specific Open Graph image support.
 4. [x] Add automated discovery-file checks.
-5. [ ] Add broken-link and missing-metadata tests.
+5. [x] Add missing-metadata validation tests and manifest route coverage.
 
 Acceptance: every published route has valid metadata and discovery output.
 
@@ -130,6 +147,7 @@ Acceptance: publishing is explicit, reviewable, reversible, and traceable.
 22. [x] Add social, footer, and copyright editor fields.
 23. [x] Add public content cache headers and reduced-motion support.
 24. [x] Add editor controls for section ordering and visibility.
+25. [x] Add repository-owned SEO validation and media loading hints.
 
 ### Phase 3 verification
 
@@ -137,7 +155,7 @@ Acceptance: publishing is explicit, reviewable, reversible, and traceable.
 2. [x] Sites web typecheck and lint.
 3. [x] Sites API tests: 4 passed, 1 MariaDB integration test skipped.
 4. [x] Draft, publish, and unpublish behavior covered by SQLite store tests.
-5. [ ] Full metadata/schema validation remains open.
+5. [x] Metadata validation tests cover required title, description, H1, canonical, and schema fields.
 
 ### Phase 4 verification
 

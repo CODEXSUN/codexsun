@@ -39,3 +39,17 @@ This log records repository changes for the Sites Studio multi-site portal.
 - Added bounded draft normalization and public content cache headers.
 - Added reduced-motion support and completed scoped API, UI, build, and test verification.
 - Added editor section ordering, visibility controls, and public composition sorting.
+
+## 2026-09-25 — Repository SEO quality pass
+
+### Added
+
+- Added reusable validation for title, description, H1, canonical URL, and schema metadata.
+- Added regression tests for complete and incomplete SEO metadata.
+- Added asynchronous decoding for the Skilloopz brand image to reduce media decode contention.
+
+### Verification
+
+- Sites web tests: 6 passed.
+- Sites web typecheck and lint: passed.
+- Cloudflare deployment, DNS, analytics, and Search Console work remain external and deferred.
