@@ -101,6 +101,10 @@ app.get("/api/v1/sites/content/:slug/revisions", { schema: { params: z.object({ 
   if (!content.findEditable(request.params.slug)) return reply.code(404).send({ error: "Client content not found." });
   return content.listRevisions(request.params.slug);
 });
+app.post("/api/v1/sites/content/:slug/revisions/:revisionId/restore", { schema: { params: z.object({ slug: z.string().regex(/^[a-z0-9-]+$/u), revisionId: z.coerce.number().int().positive() }) } }, async (request, reply) => {
+  const result = content.restoreRevision(request.params.slug, request.params.revisionId);
+  return result ?? reply.code(404).send({ error: "Revision not found." });
+});
 app.get("/api/v1/sites/health", { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } }, async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }));
 app.get("/api/v1/sites/runtime", async () => {
   const entries = await Promise.all(Object.entries(siteRuntimes).map(async ([slug, definition]) => ({

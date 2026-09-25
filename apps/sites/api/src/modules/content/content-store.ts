@@ -35,7 +35,7 @@ export type PublicSiteContent = {
 };
 
 export type EditableSiteContent = PublicSiteContent & { hasDraft: boolean; published: boolean; updatedAt: string };
-export type SiteContentRevision = { action: "draft" | "publish" | "unpublish"; createdAt: string; slug: string };
+export type SiteContentRevision = { action: "draft" | "publish" | "unpublish"; createdAt: string; id: number; slug: string };
 
 type SiteRow = { slug: string; content_json: string; published: number };
 
@@ -102,8 +102,14 @@ export class SitesContentStore {
   }
 
   listRevisions(slug: string): SiteContentRevision[] {
-    const rows = this.database.prepare("SELECT slug, action, created_at FROM sites_content_revisions WHERE slug = ? ORDER BY id DESC LIMIT 20").all(slug) as unknown as { action: SiteContentRevision["action"]; created_at: string; slug: string }[];
-    return rows.map((row) => ({ action: row.action, createdAt: row.created_at, slug: row.slug }));
+    const rows = this.database.prepare("SELECT id, slug, action, created_at FROM sites_content_revisions WHERE slug = ? ORDER BY id DESC LIMIT 20").all(slug) as unknown as { action: SiteContentRevision["action"]; created_at: string; id: number; slug: string }[];
+    return rows.map((row) => ({ action: row.action, createdAt: row.created_at, id: row.id, slug: row.slug }));
+  }
+
+  restoreRevision(slug: string, revisionId: number): EditableSiteContent | undefined {
+    const row = this.database.prepare("SELECT content_json FROM sites_content_revisions WHERE id = ? AND slug = ?").get(revisionId, slug) as { content_json: string } | undefined;
+    if (!row) return undefined;
+    return this.saveDraft(slug, JSON.parse(row.content_json) as PublicSiteContent);
   }
 
   close(): void {

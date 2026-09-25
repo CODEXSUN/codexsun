@@ -29,7 +29,9 @@ test("stores a private draft and publishes it explicitly", () => {
     assert.equal(store.findPublished("codexsun")?.description, "Draft description");
     assert.equal(store.unpublish("codexsun")?.published, false);
     assert.equal(store.findPublished("codexsun"), undefined);
-    assert.deepEqual(store.listRevisions("codexsun").map((revision) => revision.action), ["unpublish", "publish", "draft"]);
+    const revisions = store.listRevisions("codexsun");
+    assert.deepEqual(revisions.map((revision) => revision.action), ["unpublish", "publish", "draft"]);
+    assert.equal(store.restoreRevision("codexsun", revisions[1]!.id)?.hasDraft, true);
   } finally {
     store.close();
   }

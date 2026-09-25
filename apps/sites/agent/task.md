@@ -124,6 +124,7 @@ Acceptance: publishing is explicit, reviewable, reversible, and traceable.
 16. [x] Confirm production output emits separate `client-pages` and `ui` chunks.
 17. [x] Start Phase 8 with manifest-driven route matrix tests.
 18. [x] Start Phase 9 with revision-backed publishing controls.
+19. [x] Add revision restore API and editor history controls.
 
 ### Phase 3 verification
 
@@ -178,7 +179,8 @@ Acceptance: publishing is explicit, reviewable, reversible, and traceable.
 2. [x] Draft, publish, and unpublish revisions are persisted and tested.
 3. [x] Editor shows changed content groups before publishing.
 4. [x] Publish requires explicit confirmation and invalidates public content queries.
-5. [ ] Draft preview URLs and rollback UI remain open.
+5. [x] Revision restore and rollback UI are available as a new draft.
+6. [ ] Draft preview URLs remain open.
 
 ### Phase 1 verification
 

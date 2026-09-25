@@ -19,10 +19,12 @@ type EditorContent = {
   updatedAt: string;
   slug: string;
 };
+type Revision = { action: "draft" | "publish" | "unpublish"; createdAt: string; id: number; slug: string };
 
 export function ContentEditor({ request, slug }: { request: typeof fetch; slug: string }) {
   const queryClient = useQueryClient();
   const content = useQuery({ queryKey: ["sites", "content", slug], queryFn: () => readContent(request, slug) });
+  const revisions = useQuery({ queryKey: ["sites", "content", slug, "revisions"], queryFn: () => readRevisions(request, slug) });
   const [draft, setDraft] = useState<EditorContent | null>(null);
   const value = draft ?? content.data;
   const save = useMutation({
@@ -32,6 +34,10 @@ export function ContentEditor({ request, slug }: { request: typeof fetch; slug: 
   const publish = useMutation({
     mutationFn: () => publishContent(request, slug),
     onSuccess: (next) => { setDraft(next); void queryClient.invalidateQueries({ queryKey: ["sites", "content", slug] }); void queryClient.invalidateQueries({ queryKey: ["sites", "public"] }); },
+  });
+  const restore = useMutation({
+    mutationFn: (revisionId: number) => restoreRevision(request, slug, revisionId),
+    onSuccess: (next) => { setDraft(next); void queryClient.invalidateQueries({ queryKey: ["sites", "content", slug] }); void queryClient.invalidateQueries({ queryKey: ["sites", "content", slug, "revisions"] }); },
   });
 
   if (content.isPending || !value) return <main className="min-h-full p-6 text-muted-foreground">Loading client content…</main>;
@@ -78,6 +84,12 @@ export function ContentEditor({ request, slug }: { request: typeof fetch; slug: 
                 <Field label="Phone"><Input value={value.contact.phone} onChange={(event) => update({ contact: { ...value.contact, phone: event.target.value } })} /></Field>
               </div>
             </WorkspaceSectionCard>
+            <WorkspaceSectionCard title="Revision history" description="Restore a previous content snapshot as a new draft.">
+              <div className="grid gap-2">
+                {(revisions.data ?? []).slice(0, 5).map((revision) => <div key={revision.id} className="flex items-center gap-2 text-xs"><Badge variant="outline">{revision.action}</Badge><span className="flex-1 text-muted-foreground">{new Date(revision.createdAt).toLocaleString()}</span><Button disabled={restore.isPending} onClick={() => restore.mutate(revision.id)} size="sm" variant="ghost">Restore</Button></div>)}
+                {!revisions.data?.length ? <p className="text-sm text-muted-foreground">No revisions yet.</p> : null}
+              </div>
+            </WorkspaceSectionCard>
           </div>
         </div>
         <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -112,5 +124,17 @@ async function writeContent(request: typeof fetch, slug: string, value: EditorCo
 async function publishContent(request: typeof fetch, slug: string): Promise<EditorContent> {
   const response = await request(`/api/v1/sites/content/${slug}/publish`, { method: "POST" });
   if (!response.ok) throw new Error(`Publish request failed: ${response.status}`);
+  return response.json() as Promise<EditorContent>;
+}
+
+async function readRevisions(request: typeof fetch, slug: string): Promise<Revision[]> {
+  const response = await request(`/api/v1/sites/content/${slug}/revisions`);
+  if (!response.ok) throw new Error(`Revision request failed: ${response.status}`);
+  return response.json() as Promise<Revision[]>;
+}
+
+async function restoreRevision(request: typeof fetch, slug: string, revisionId: number): Promise<EditorContent> {
+  const response = await request(`/api/v1/sites/content/${slug}/revisions/${revisionId}/restore`, { method: "POST" });
+  if (!response.ok) throw new Error(`Restore request failed: ${response.status}`);
   return response.json() as Promise<EditorContent>;
 }
