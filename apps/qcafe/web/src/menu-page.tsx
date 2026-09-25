@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type ComponentProps, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   AlertCircleIcon,
   CircleDollarSignIcon,
@@ -13,9 +13,11 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@codexsun/ui/components/alert";
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
+import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from "@codexsun/ui/components/empty";
+import { Field } from "@codexsun/ui/components/field";
 import { Input } from "@codexsun/ui/components/input";
-import { Label } from "@codexsun/ui/components/label";
 import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@codexsun/ui/components/table";
 import { readFoundationSetup } from "./foundation-setup-api";
 import { MenuAvailabilityPanel } from "./menu-availability-panel";
 import { MenuCampaignPanel } from "./menu-campaign-panel";
@@ -251,51 +253,49 @@ export function MenuPage({ request }: { request: typeof fetch }) {
 function CatalogTable({ catalog, currency }: { catalog: MenuCatalog; currency: string }) {
   if (!catalog.items.length)
     return (
-      <div className="grid min-h-48 place-items-center border-y text-center">
-        <div>
-          <UtensilsIcon className="mx-auto mb-3 size-5 text-muted-foreground" />
-          <h3 className="font-medium">No menu items yet</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Create a category, then add the first sale item.</p>
-        </div>
-      </div>
+      <Empty>
+        <EmptyMedia variant="icon">
+          <UtensilsIcon />
+        </EmptyMedia>
+        <EmptyTitle>No menu items yet</EmptyTitle>
+        <EmptyDescription>Create a category, then add the first sale item.</EmptyDescription>
+      </Empty>
     );
   return (
-    <div className="overflow-x-auto border-y">
-      <table className="w-full min-w-[680px] text-sm">
-        <thead className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
-          <tr>
-            <th className="px-3 py-3 font-medium">Item</th>
-            <th className="px-3 py-3 font-medium">Category</th>
-            <th className="px-3 py-3 font-medium">Variants</th>
-            <th className="px-3 py-3 font-medium">Current prices</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {catalog.items.map((entry) => (
-            <tr key={entry.id}>
-              <td className="px-3 py-4">
-                <div className="font-medium">{entry.name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {entry.code} · {entry.itemType}
-                </div>
-              </td>
-              <td className="px-3 py-4">
-                {catalog.categories.find((value) => value.id === entry.categoryId)?.name ?? "Unknown"}
-              </td>
-              <td className="px-3 py-4">
-                {entry.variants.length ? entry.variants.map((value) => value.name).join(", ") : "Base item"}
-              </td>
-              <td className="px-3 py-4">
-                {catalog.prices
-                  .filter((value) => value.itemId === entry.id)
-                  .map((value) => `${currency} ${(value.amountMinor / 100).toFixed(2)}`)
-                  .join(", ") || "Not priced"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table className="min-w-[680px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Item</TableHead>
+          <TableHead>Category</TableHead>
+          <TableHead>Variants</TableHead>
+          <TableHead>Current prices</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {catalog.items.map((entry) => (
+          <TableRow key={entry.id}>
+            <TableCell>
+              <div className="font-medium">{entry.name}</div>
+              <div className="text-xs text-muted-foreground">
+                {entry.code} · {entry.itemType}
+              </div>
+            </TableCell>
+            <TableCell>
+              {catalog.categories.find((value) => value.id === entry.categoryId)?.name ?? "Unknown"}
+            </TableCell>
+            <TableCell>
+              {entry.variants.length ? entry.variants.map((value) => value.name).join(", ") : "Base item"}
+            </TableCell>
+            <TableCell>
+              {catalog.prices
+                .filter((value) => value.itemId === entry.id)
+                .map((value) => `${currency} ${(value.amountMinor / 100).toFixed(2)}`)
+                .join(", ") || "Not priced"}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -322,9 +322,9 @@ function CategoryForm({
         })
       }
     >
-      <Field label="Name" name="name" placeholder="Hot beverages" required />
-      <Field label="Code" name="code" placeholder="HOT" required />
-      <Field label="Sort order" name="sortOrder" type="number" defaultValue="0" min="0" />
+      <Field label="Name" htmlFor="name"><Input id="name" name="name" placeholder="Hot beverages" required /></Field>
+      <Field label="Code" htmlFor="code"><Input id="code" name="code" placeholder="HOT" required /></Field>
+      <Field label="Sort order" htmlFor="sortOrder"><Input id="sortOrder" name="sortOrder" type="number" defaultValue="0" min="0" /></Field>
     </SetupForm>
   );
 }
@@ -356,20 +356,16 @@ function ItemForm({
         })
       }
     >
-      <Field label="Name" name="name" placeholder="Filter coffee" required />
-      <Field label="Code" name="code" placeholder="COFFEE" required />
-      <SelectField label="Category" name="categoryId" options={catalog.categories} />
-      <SelectField
-        label="Type"
-        name="itemType"
-        options={[
+      <Field label="Name" htmlFor="name"><Input id="name" name="name" placeholder="Filter coffee" required /></Field>
+      <Field label="Code" htmlFor="code"><Input id="code" name="code" placeholder="COFFEE" required /></Field>
+      <Field label="Category" htmlFor="categoryId"><NativeSelect className="w-full" id="categoryId" name="categoryId" required>{catalog.categories.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+      <Field label="Type" htmlFor="itemType"><NativeSelect className="w-full" id="itemType" name="itemType" required>{[
           { id: "food", name: "Food" },
           { id: "beverage", name: "Beverage" },
           { id: "packaged", name: "Packaged" },
           { id: "service", name: "Service" },
-        ]}
-      />
-      <Field label="Tax code" name="taxCode" placeholder="GST5" />
+        ].map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+      <Field label="Tax code" htmlFor="taxCode"><Input id="taxCode" name="taxCode" placeholder="GST5" /></Field>
     </SetupForm>
   );
 }
@@ -415,18 +411,14 @@ function MediaManager({
             form.reset();
           }}
         >
-          <SelectField label="Item" name="itemId" options={catalog.items} />
-          <SelectField
-            label="Usage"
-            name="usage"
-            options={[
+          <Field label="Item" htmlFor="itemId"><NativeSelect className="w-full" id="itemId" name="itemId" required>{catalog.items.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          <Field label="Usage" htmlFor="usage"><NativeSelect className="w-full" id="usage" name="usage" required>{[
               { id: "menu", name: "Menu" },
               { id: "qr", name: "QR ordering" },
               { id: "delivery", name: "Delivery" },
-            ]}
-          />
-          <Field accept="image/png,image/jpeg,image/webp,image/gif" label="Image" name="file" type="file" required />
-          <Field defaultValue="0" label="Display order" min="0" name="sortOrder" type="number" />
+            ].map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          <Field label="Image" htmlFor="file"><Input id="file" name="file" type="file" required accept="image/png,image/jpeg,image/webp,image/gif" /></Field>
+          <Field label="Display order" htmlFor="sortOrder"><Input id="sortOrder" name="sortOrder" type="number" defaultValue="0" min="0" /></Field>
           <Button className="w-fit" disabled={pending || !catalog.items.length} type="submit" variant="outline">
             <UploadIcon />
             {pending ? "Uploading..." : "Upload image"}
@@ -522,9 +514,9 @@ function VariantForm({
       disabled={!catalog.items.length}
       onSubmit={(data) => submit({ code: text(data, "code"), itemId: text(data, "itemId"), name: text(data, "name") })}
     >
-      <SelectField label="Item" name="itemId" options={catalog.items} />
-      <Field label="Variant name" name="name" placeholder="Large" required />
-      <Field label="Code" name="code" placeholder="LG" required />
+      <Field label="Item" htmlFor="itemId"><NativeSelect className="w-full" id="itemId" name="itemId" required>{catalog.items.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+      <Field label="Variant name" htmlFor="name"><Input id="name" name="name" placeholder="Large" required  /></Field>
+      <Field label="Code" htmlFor="code"><Input id="code" name="code" placeholder="LG" required  /></Field>
     </SetupForm>
   );
 }
@@ -548,9 +540,9 @@ function PriceBookForm({
         submit({ businessId, code: text(data, "code"), currency: text(data, "currency"), name: text(data, "name") })
       }
     >
-      <Field label="Name" name="name" placeholder="Standard" required />
-      <Field label="Code" name="code" placeholder="STANDARD" required />
-      <Field label="Currency" name="currency" defaultValue={currency} maxLength={3} required />
+      <Field label="Name" htmlFor="name"><Input id="name" name="name" placeholder="Standard" required  /></Field>
+      <Field label="Code" htmlFor="code"><Input id="code" name="code" placeholder="STANDARD" required  /></Field>
+      <Field label="Currency" htmlFor="currency"><Input id="currency" name="currency" defaultValue={currency} maxLength={3} required  /></Field>
     </SetupForm>
   );
 }
@@ -587,13 +579,13 @@ function PriceForm({
         });
       }}
     >
-      <SelectField label="Price book" name="priceBookId" options={catalog.priceBooks} />
-      <SelectField label="Item" name="itemId" options={catalog.items} />
-      <Field label={`Amount (${business.currency})`} name="amount" type="number" min="0" step="0.01" required />
-      <SelectField label="Outlet" name="locationId" optional options={business.locations} />
-      <SelectField label="Service channel" name="serviceChannelId" optional options={channels} />
-      <Field label="Valid from" name="validFrom" type="date" defaultValue={localDate()} required />
-      <Field label="Valid to" name="validTo" type="date" />
+      <Field label="Price book" htmlFor="priceBookId"><NativeSelect className="w-full" id="priceBookId" name="priceBookId" required>{catalog.priceBooks.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+      <Field label="Item" htmlFor="itemId"><NativeSelect className="w-full" id="itemId" name="itemId" required>{catalog.items.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+      <Field label={`Amount (${business.currency})`} htmlFor="amount"><Input id="amount" name="amount" type="number" min="0" step="0.01" required /></Field>
+      <Field label="Outlet" htmlFor="locationId"><NativeSelect className="w-full" id="locationId" name="locationId"><NativeSelectOption value="">All</NativeSelectOption>{business.locations.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+      <Field label="Service channel" htmlFor="serviceChannelId"><NativeSelect className="w-full" id="serviceChannelId" name="serviceChannelId"><NativeSelectOption value="">All</NativeSelectOption>{channels.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+      <Field label="Valid from" htmlFor="validFrom"><Input id="validFrom" name="validFrom" type="date" defaultValue={localDate()} required  /></Field>
+      <Field label="Valid to" htmlFor="validTo"><Input id="validTo" name="validTo" type="date"  /></Field>
     </SetupForm>
   );
 }
@@ -635,39 +627,6 @@ function SetupForm({
         {pending ? "Saving..." : title}
       </Button>
     </form>
-  );
-}
-function Field({ label, name, ...props }: ComponentProps<typeof Input> & { label: string; name: string }) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} {...props} />
-    </div>
-  );
-}
-function SelectField({
-  label,
-  name,
-  optional,
-  options,
-}: {
-  label: string;
-  name: string;
-  optional?: boolean;
-  options: Array<{ id: string; name: string }>;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={name}>{label}</Label>
-      <NativeSelect className="w-full" id={name} name={name} required={!optional}>
-        {optional ? <NativeSelectOption value="">All</NativeSelectOption> : null}
-        {options.map((option) => (
-          <NativeSelectOption key={option.id} value={option.id}>
-            {option.name}
-          </NativeSelectOption>
-        ))}
-      </NativeSelect>
-    </div>
   );
 }
 function ErrorNotice({ message }: { message: string }) {

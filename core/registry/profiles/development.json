@@ -3,21 +3,40 @@
   "id": "development",
   "label": "Development",
   "enabledApplications": [
+    "accounts",
+    "auditor",
+    "billing",
     "codeitz",
     "crm",
     "cxforge",
     "docx",
+    "ecommerce",
+    "garments",
     "himsx",
+    "hrms",
     "lms",
     "orship",
     "platform",
+    "projex",
     "qcafe",
     "sites",
     "uiux",
     "zetro",
     "zuno"
   ],
-  "enabledAddons": [],
+  "enabledAddons": [
+    "calendy",
+    "chatty",
+    "flowix",
+    "gitflow",
+    "mailer",
+    "meety",
+    "notez",
+    "notifyz",
+    "socialix",
+    "taskez",
+    "wikiz"
+  ],
   "enabledProviders": {
     "platform": [
       "platform.core",
@@ -63,7 +82,8 @@
     ],
     "sites": [
       "platform.core",
-      "sites.foundation"
+      "sites.foundation",
+      "sites.content"
     ],
     "orship": [
       "platform.core",
@@ -85,6 +105,36 @@
       "codeitz.engineering",
       "codeitz.learning",
       "codeitz.skills"
+    ],
+    "ecommerce": [
+      "platform.core",
+      "ecommerce.foundation"
+    ],
+    "hrms": [
+      "platform.core",
+      "hrms.foundation"
+    ],
+    "billing": [
+      "platform.core",
+      "billing.foundation"
+    ],
+    "accounts": [
+      "platform.core",
+      "accounts.foundation"
+    ],
+    "auditor": [
+      "platform.core",
+      "auditor.foundation"
+    ],
+    "garments": [
+      "platform.core",
+      "garments.foundation"
+    ],
+    "projex": [
+      "platform.core",
+      "projex.foundation",
+      "projex.workspace",
+      "projex.addons"
     ]
   }
 }

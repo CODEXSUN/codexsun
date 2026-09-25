@@ -238,7 +238,7 @@ export interface QcafeFoundationDatabase extends QcafePhaseFiveDatabase {
   qcafe_number_sequences: {
     id: string;
     location_id: string;
-    document_kind: "bill" | "event_quote" | "kot" | "order" | "receipt" | "voucher";
+    document_kind: "bill" | "event_quote" | "kot" | "order" | "receipt" | "voucher" | "journal";
     prefix: string;
     next_value: number;
     updated_at: string;

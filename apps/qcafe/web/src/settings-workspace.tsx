@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type ComponentProps, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   ArrowLeftIcon, CheckCircle2Icon, CloudIcon, DatabaseIcon, Link2Icon, PlusIcon, RefreshCwIcon, SlidersHorizontalIcon,
 } from "lucide-react";
@@ -7,6 +7,7 @@ import type { MdiFeatureKey, MdiFeatures } from "@codexsun/ui/layouts/main-works
 import { Alert, AlertDescription, AlertTitle } from "@codexsun/ui/components/alert";
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
+import { Field } from "@codexsun/ui/components/field";
 import { Input } from "@codexsun/ui/components/input";
 import { Label } from "@codexsun/ui/components/label";
 import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
@@ -43,7 +44,7 @@ export function QcafeSettingsWorkspace({ features, onBack, onFeatureChange, onPa
         <Button aria-label="Back to workspace" className="mb-6" onClick={onBack} size="icon" variant="outline"><ArrowLeftIcon/></Button>
         <p className="mb-3 px-2 text-xs font-semibold uppercase text-muted-foreground">Q Cafe settings</p>
         <nav className="grid gap-1" aria-label="Q Cafe settings">
-          {settingsNavigation.map((item) => <button className={`flex min-w-0 items-start gap-3 rounded-md px-3 py-3 text-left transition-colors ${page === item.id ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"}`} key={item.id} onClick={() => setPage(item.id)} type="button"><item.icon className="mt-0.5 size-4 shrink-0"/><span className="min-w-0"><span className="block text-sm font-medium">{item.label}</span><span className="block text-xs leading-5">{item.description}</span></span></button>)}
+          {settingsNavigation.map((item) => <Button className={`h-auto min-w-0 items-start justify-start gap-3 px-3 py-3 text-left font-normal transition-colors ${page === item.id ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"}`} key={item.id} onClick={() => setPage(item.id)} type="button" variant="ghost"><item.icon className="mt-0.5 size-4 shrink-0"/><span className="min-w-0"><span className="block text-sm font-medium">{item.label}</span><span className="block text-xs leading-5">{item.description}</span></span></Button>)}
         </nav>
       </aside>
       <main className="min-w-0 p-6 lg:p-10">
@@ -104,11 +105,10 @@ function ConnectorsSettingsPage({ request }: { request: typeof fetch }) {
 }
 
 function ConnectorForm({ pending, submit }: { pending: boolean; submit: (input: Parameters<typeof createConnector>[1]) => void }) {
-  return <form className="grid content-start gap-4 border-l-0 xl:border-l xl:pl-6" onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); submit({ code: value(data, "code"), endpointLabel: value(data, "endpointLabel") || undefined, kind: value(data, "kind") as ConnectorKind, name: value(data, "name"), secretReference: value(data, "secretReference") || undefined }); form.reset(); }}><div><h2 className="font-semibold">Register connector</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">Reference a deployment secret by name. Do not enter a secret value.</p></div><Field label="Name" name="name" placeholder="Swiggy orders" required/><Field label="Code" name="code" placeholder="SWIGGY" required/><div className="grid gap-2"><Label htmlFor="kind">Kind</Label><NativeSelect className="w-full" id="kind" name="kind">{(["marketplace", "delivery", "payment", "messaging", "accounting", "storage"] as ConnectorKind[]).map((kind) => <NativeSelectOption key={kind} value={kind}>{label(kind)}</NativeSelectOption>)}</NativeSelect></div><Field label="Endpoint label" name="endpointLabel" placeholder="Production order intake"/><Field label="Secret reference" name="secretReference" placeholder="QCAFE_SWIGGY_SECRET"/><Button className="w-fit" disabled={pending} type="submit" variant="outline"><PlusIcon/>{pending ? "Registering..." : "Register connector"}</Button></form>;
+  return <form className="grid content-start gap-4 border-l-0 xl:border-l xl:pl-6" onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); submit({ code: value(data, "code"), endpointLabel: value(data, "endpointLabel") || undefined, kind: value(data, "kind") as ConnectorKind, name: value(data, "name"), secretReference: value(data, "secretReference") || undefined }); form.reset(); }}><div><h2 className="font-semibold">Register connector</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">Reference a deployment secret by name. Do not enter a secret value.</p></div><Field label="Name" htmlFor="name"><Input id="name" name="name" placeholder="Swiggy orders" required /></Field><Field label="Code" htmlFor="code"><Input id="code" name="code" placeholder="SWIGGY" required /></Field><div className="grid gap-2"><Label htmlFor="kind">Kind</Label><NativeSelect className="w-full" id="kind" name="kind">{(["marketplace", "delivery", "payment", "messaging", "accounting", "storage"] as ConnectorKind[]).map((kind) => <NativeSelectOption key={kind} value={kind}>{label(kind)}</NativeSelectOption>)}</NativeSelect></div><Field label="Endpoint label" htmlFor="endpointLabel"><Input id="endpointLabel" name="endpointLabel" placeholder="Production order intake" /></Field><Field label="Secret reference" htmlFor="secretReference"><Input id="secretReference" name="secretReference" placeholder="QCAFE_SWIGGY_SECRET" /></Field><Button className="w-fit" disabled={pending} type="submit" variant="outline"><PlusIcon/>{pending ? "Registering..." : "Register connector"}</Button></form>;
 }
 
 function Metric({ detail, good, label: metricLabel, value: metricValue }: { detail: string; good?: boolean; label: string; value: string }) { return <div className="border-b pb-5"><div className="flex items-center gap-2 text-sm text-muted-foreground">{good ? <CheckCircle2Icon className="size-4 text-emerald-600"/> : null}{metricLabel}</div><p className="mt-2 text-lg font-semibold">{metricValue}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></div>; }
-function Field({ label: fieldLabel, name, ...props }: ComponentProps<typeof Input> & { label: string; name: string }) { return <div className="grid gap-2"><Label htmlFor={name}>{fieldLabel}</Label><Input id={name} name={name} {...props}/></div>; }
 function SettingsError({ message }: { message: string }) { return <Alert variant="destructive"><AlertTitle>Settings could not be updated</AlertTitle><AlertDescription>{message}</AlertDescription></Alert>; }
 function Loading({ text }: { text: string }) { return <p className="text-sm text-muted-foreground">{text}</p>; }
 function value(data: FormData, key: string) { return String(data.get(key) ?? "").trim(); }

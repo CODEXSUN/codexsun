@@ -9,7 +9,7 @@ import { ActivityRepository } from "../../foundation/repository/activity.reposit
 import { FoundationSetupRepository } from "../../foundation/repository/foundation-setup.repository.js";
 import { FoundationSetupService } from "../../foundation/services/foundation-setup.service.js";
 import { createQcafePersistence } from "../../foundation/persistence/qcafe-persistence.js";
-import { createQcafeLifecyclePlans } from "../../../qcafe-lifecycle-plans.js";
+import { createQcafeLifecyclePlans, lifecycleDescriptorTotal } from "../../../qcafe-lifecycle-plans.js";
 import { MenuRepository } from "../repository/menu.repository.js";
 import { MenuAvailabilityRepository } from "../repository/menu-availability.repository.js";
 import { MenuCampaignRepository } from "../repository/menu-campaign.repository.js";
@@ -62,7 +62,7 @@ test("applies the complete M01-M15 menu schema once", async () => {
 
   assert.deepEqual(await persistence.initialize(), []);
   const records = await persistence.verify();
-  assert.equal(records.length, 15);
+  assert.equal(records.length, lifecycleDescriptorTotal());
   assert.equal(records.find((record) => record.descriptorId === "qcafe.menu.002")?.kind, "migration");
   await persistence.destroy();
 });

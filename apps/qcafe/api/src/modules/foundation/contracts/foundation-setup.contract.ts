@@ -43,7 +43,7 @@ const serviceChannelSchema = z.object({
 });
 
 const numberSequenceSchema = z.object({
-  documentKind: z.enum(["bill", "event_quote", "kot", "order", "receipt", "voucher"]),
+  documentKind: z.enum(["bill", "event_quote", "kot", "order", "receipt", "voucher", "journal"]),
   id: z.string(),
   nextValue: z.number().int().positive(),
   prefix: z.string(),

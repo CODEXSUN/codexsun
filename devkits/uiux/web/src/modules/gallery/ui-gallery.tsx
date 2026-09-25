@@ -15,6 +15,10 @@ const UiStatusTemplate = lazy(() => import("./ui-status-template").then((m) => (
 const UiExecutionStatusDocumentation = lazy(() =>
   import("./ui-execution-status-doc").then((m) => ({ default: m.UiExecutionStatusDocumentation })),
 );
+const UiMascotDocumentation = lazy(() => import("./ui-mascot-doc").then((m) => ({ default: m.UiMascotDocumentation })));
+const UiAppHeaderDocumentation = lazy(() =>
+  import("./ui-app-header-doc").then((m) => ({ default: m.UiAppHeaderDocumentation })),
+);
 const UiComponentDisplayPage = lazy(() =>
   import("./ui-component-display-page").then((m) => ({ default: m.UiComponentDisplayPage })),
 );
@@ -110,6 +114,8 @@ export function UiGallery() {
     if (block?.id === "table") return <UiTableDocumentation />;
     if (block?.id === "form") return <UiFormDocumentation />;
     if (block?.id === "execution-status") return <UiExecutionStatusDocumentation />;
+    if (block?.id === "mascot") return <UiMascotDocumentation />;
+    if (block?.id === "app-header") return <UiAppHeaderDocumentation />;
     if (block?.id === "kanban") return <UiKanbanDocumentation />;
     if (block?.id === "file-tree") return <UiFileTreeDocumentation />;
     if (block?.id === "dropzone") return <UiDropzoneDocumentation />;

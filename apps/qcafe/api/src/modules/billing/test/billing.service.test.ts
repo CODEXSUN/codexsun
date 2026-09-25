@@ -14,7 +14,7 @@ import { MenuSaleabilityService } from "../../menu/services/menu-saleability.ser
 import { MenuService } from "../../menu/services/menu.service.js";
 import { PosRepository } from "../../pos/repository/pos.repository.js";
 import { PosService } from "../../pos/services/pos.service.js";
-import { createQcafeLifecyclePlans } from "../../../qcafe-lifecycle-plans.js";
+import { createQcafeLifecyclePlans, lifecycleDescriptorTotal } from "../../../qcafe-lifecycle-plans.js";
 import { postPaymentSchema } from "../contracts/billing.contract.js";
 import { BillingRepository } from "../repository/billing.repository.js";
 import { BillingConflictError, BillingService } from "../services/billing.service.js";
@@ -205,6 +205,6 @@ test("reconciles a paid parcel, failed tender recovery, voucher, refund, and cas
   assert.throws(() =>
     postPaymentSchema.parse({ amountMinor: 100, maskedReference: "4242424242424242", paymentMethodId: card.id }),
   );
-  assert.equal((await persistence.verify()).length, 15);
+  assert.equal((await persistence.verify()).length, lifecycleDescriptorTotal());
   await persistence.destroy();
 });

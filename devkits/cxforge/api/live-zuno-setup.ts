@@ -6,14 +6,14 @@ const token=()=>randomBytes(32).toString('hex');
 const environment={
   DB_DRIVER:'sqlite',CXFORGE_SQLITE_PATH:'/workspace/.cxforge/zuno-data/zuno_db.sqlite',
   ZUNO_REPOSITORY_ROOT:'/workspace',ZUNO_DATA_ROOT:'/workspace/.cxforge/zuno-data',
-  ZUNO_API_PORT:'6410',ZUNO_WEB_PORT:'6411',PLATFORM_HOST:'0.0.0.0',
+  ZUNO_API_PORT:'6420',ZUNO_WEB_PORT:'6421',PLATFORM_HOST:'0.0.0.0',
   ZUNO_API_REFERENCE_TOKEN:token(),ZUNO_CXFORGE_API_URL:'http://127.0.0.1:6400',
   ZUNO_CXFORGE_CLIENT_KEY:process.env.CXFORGE_ZUNO_CLIENT_KEY ?? 'local-zuno-to-cxforge-client-key-32chars',
   ZUNO_ZETRO_CLIENT_KEY:token(),PLATFORM_JWT_SECRET:token(),
   APP_MODE:'production',AUTO_LOGIN:'0',REFRESH_IDENTITY_SEED:'0',
   SUPER_ADMIN_NAME:'Preview administrator',SUPER_ADMIN_LOGIN:'preview-admin@example.invalid',SUPER_ADMIN_PASSWORD:token(),
   ADMIN_NAME:'Preview user',ADMIN_LOGIN:'preview@example.invalid',ADMIN_PASSWORD:token(),
-  VITE_ZUNO_API_URL:'http://127.0.0.1:6410',ZUNO_WEB_ORIGIN:'http://127.0.0.1:7300',
+  VITE_ZUNO_API_URL:'http://127.0.0.1:6420',ZUNO_WEB_ORIGIN:'http://127.0.0.1:7300',
   CXFORGE_PREVIEW_BASE:`/preview/${id}/`,
 };
 const step=(argv:string[], timeoutSeconds=60)=>({argv,directory:'.',timeoutSeconds});

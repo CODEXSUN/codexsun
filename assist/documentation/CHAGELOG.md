@@ -4,15 +4,259 @@ Records CODEXSUN releases, database impact, and completed application changes.
 
 ## Version State
 
-Current version: 1.0.41
+Current version: 1.0.43
 
-Release tag: v-1.0.41
+Release tag: v-1.0.43
 
-Changelog label: v 1.0.41
+Changelog label: v 1.0.43
+
+### 2026-09-25 - Runtime port configuration alignment
+
+- Aligned CRM, Q Cafe, and Auditor environment examples with their registered runtime ports.
+- Added missing platform mobile, CXForge, Zetro2, and Zuno host port configuration examples.
+- Wired the platform mobile Vite host to `PLATFORM_MOBILE_PORT` and refreshed the application port reference.
+
+### 2026-09-25 - Projex add-on catalog
+
+- Added the authenticated Projex Add-ons page and side-menu entry.
+- Added the `projex.addons` API module and `GET /api/v1/projex/addons` catalog endpoint.
+- Extended add-on registry manifests with purpose, areas, contracts, and published events for a single catalog source.
+
+### [v 1.0.42] 2026-09-25 - Add-on module and API boundaries
+
+#### Database Changes
+
+- Database update: No schema changes. All add-ons now use the shared repository port with an in-memory development adapter.
+
+#### App Codebase Changes
+
+- Added module-owned provider declarations, module tests, API route contracts, and module README files for all eleven add-ons.
+- Added shared `AddonRepository`, `InMemoryAddonRepository`, and protected CRUD route definitions to `@codexsun/addon-runtime`.
+- Added purpose-specific backend actions for email, messages, tasks, events, notes, pages, notifications, posts, meetings, pull requests, and workflows.
+- Updated each add-on test command to include its module test suite.
+- Verification: all add-on type checks and all add-on module and provider tests passed. The full repository boundary audit remains affected by pre-existing unrelated violations.
+
+### [v 1.0.42] 2026-09-25 - Business add-on ecosystem foundation
+
+#### Database Changes
+
+- Database update: No schema, migration, or seeder changes. The current add-on services use in-memory foundation records.
+
+#### App Codebase Changes
+
+- Added nested `packages/addons/*` workspace support and updated the add-on scaffold for `packages/addons/<id>`.
+- Added the shared `@codexsun/addon-runtime` provider, service, and frontend workspace contracts.
+- Added Mailer, Chatty, Taskez, Calendy, Notez, Wikiz, Notifyz, Socialix, Meety, Gitflow, and Flowix package foundations.
+- Added registry manifests and enabled all eleven add-ons in the development profile.
+- Added package READMEs, provider tests, agent operating documentation, and the phased task register.
+- Verification: registry verification, eleven add-on type checks, runtime type check, twelve focused test suites, provider composition imports, and add-on scoped diff checks passed.
+- Limitation: npm lock refresh is blocked by the existing remote `@tailwindcss/oxide-wasm32-wasi` package restriction. Persistence, external adapters, application route composition, and production deployment remain follow-up work.
 
 This changelog starts fresh from the CODEXSUN foundation. Earlier copied application history does not represent this workspace.
 
 New entries must keep database-facing work and application code work separate.
+
+### [v 1.0.42] 2026-09-25 - Registry-driven development runners
+
+#### Database Changes
+
+- Database update: No schema, migration, or seed changes.
+
+#### App Codebase Changes
+
+- Added registry-driven combined `dev:<application>` commands for all registered applications.
+- Replaced per-application API and web development scripts with dynamic `dev:api -- --<application>` and `dev:web -- --<application>` loaders.
+- Kept desktop and mobile development commands for their native hosts.
+- Updated the development runner documentation with the new command format.
+- Verification: root package JSON parsing, runner syntax, and scoped diff checks passed. Host startup remains dependent on each configured port being available.
+
+### [v 1.0.42] 2026-09-25 - Consolidated root stack commands
+
+#### Database Changes
+
+- Database update: No schema, migration, or seed changes.
+
+#### App Codebase Changes
+
+- Replaced repeated root test and build script chains with `tools/stack.mjs`, supporting short selectors such as `npm.cmd run test -- --projex`, `npm.cmd run test -- --hrms`, and matching build selectors.
+- Consolidated add-on checks and tests behind `npm.cmd run addons -- --<addon>` while retaining registry list and lifecycle operations.
+- Added `npm.cmd run dev:zuno` to run the Zuno API and web preflight hosts concurrently.
+- Verification: root package JSON parsing, Projex and HRMS stack tests, add-on check, add-on listing, Projex stack build, and combined Zuno launcher preflight were exercised. The combined Zuno smoke was blocked by an existing listener on port 6411; no unrelated process was stopped.
+
+### [v 1.0.42] 2026-09-25 - Projex workspace control plane
+
+#### Database Changes
+
+- Created no shared schema. Projex reads the existing local registry, environment files, application documentation, and app-owned SQLite identity stores without changing their data.
+
+#### App Codebase Changes
+
+- Created `devkits/projex` with the foundation and workspace providers, registry manifest, development profile wiring, authenticated workspace snapshot route, and scoped agent documentation.
+- Added the Projex dashboard for overview, project stages, running/configured hosts, ports, providers, and documentation inventory.
+- Added `registered`, `configured`, and `running` stage reporting for every registry host, including API, web, desktop, and mobile host kinds.
+- Added local Projex API/web environment wiring on ports 6360/6361 and documented the authenticated layers, storage boundary, commands, and verification workflow.
+- Reinitialized the local Projex identity database from the current local seed values, preserved the prior SQLite files as a local backup, and left development auto-login enabled with seed refresh disabled.
+- Projex runtime composition is intentionally limited to its platform, foundation, and workspace providers so the control plane remains usable while unrelated optional add-on packages are incomplete.
+- Verification: Projex type checks, lints, tests, app registry verification, root-layout validation, authenticated workspace snapshot, API health, web HTTP smoke, and web-to-API proxy health passed. The MariaDB integration test remains skipped without an integration URL.
+
+### [v 1.0.42] 2026-09-25 - New application identity, SQLite storage, and local runtime wiring
+
+#### Database Changes
+
+- Created local development SQLite identity stores for Ecommerce, HRMS, Billing, Accounts, Auditor, and Garments under `storage/apps/<application>/private/data/`.
+- Each store initialized five identity migrations, fourteen identity tables, and three development seed users.
+
+#### App Codebase Changes
+
+- Added ignored API and web `.app.env` files for all six applications with local ports, API origins, identity settings, and development credentials.
+- Aligned root `.env` and `.env.example` entries with the application ports and web/API URLs.
+- Moved Auditor to ports 6340/6341 because Codeitz already owns 6320/6321.
+- Verification: all twelve preflight checks, six API health checks, six web HTTP smoke checks, and SQLite identity queries passed.
+
+### [v 1.0.42] 2026-09-25 - Ecommerce, HRMS, Billing, Accounts, Auditor, and Garments application foundations
+
+#### Database Changes
+
+- Database update: No schema, migration, or seed changes.
+
+#### App Codebase Changes
+
+- Created six business application foundations under `apps/`: `ecommerce`, `hrms`, `billing`, `accounts`, `auditor`, and `garments`.
+- Registered API and web hosts, foundation providers, development profile providers, root workspace scripts, Turbo build outputs, package-lock entries, and MDI catalog entries for each app.
+- Added an explicit generated API configuration return type to prevent TypeScript TS2742 errors in new application scaffolds.
+- Verification: application registry, app-CLI tests, root-layout check, focused typechecks, focused lints, and generated API/web test commands passed. MariaDB integration checks remain skipped without an integration URL; generated web hosts currently have no test files.
+
+## v-1.0.43
+
+### [v 1.0.43] 2026-09-25 10:25 am - Q Cafe Phases 7 to 9 and single design system
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Q Cafe QC-0701–0705: appended `qcafe.documents.001`–`005` for documents, printer profiles/routes, print jobs/attempts with idempotency keys, preview confirmations, dispatch decisions, delivery consents, and channel deliveries.
+- Q Cafe QC-0706: appended `qcafe.backup.001` for desktop data folders, backup schedules, checksum-recorded backups, and restore checks.
+- Q Cafe QC-0801–0802: appended `qcafe.sync.001` for device profiles, the sequenced change log, per-device cursors, and conflict records; no schema change for the push/pull session.
+- Q Cafe QC-0803–0804: appended `qcafe.marketplace.001`–`002` for partners, menu mappings, idempotent intake, events, settlements, POS order links, and delivery fulfillments.
+- Q Cafe QC-0805: appended `qcafe.accounting.001` for the 8-account chart, balanced journals, and journal lines, plus a one-word coordinated change adding the `journal` number-sequence kind.
+- Q Cafe QC-0901–0903: no new tables; the reports module reads posted records and the policies module is stateless. Full clean-database dry run applied 29 migrations and verified 32 ledger records with zero mismatches (see `assist/records/2026-09-24-qcafe-migration-dryrun.md`).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.43.
+- Q Cafe Phase 7 (QC-0701–0706): new `qcafe.documents` module (durable documents, printer profiles/routes, idempotent print jobs, preview confirmations, adapter dispatch with fallbacks, consent-gated email/WhatsApp delivery) and new `qcafe.backup` module (data folders, schedules, checksum backups, restore drills, recovery instructions).
+- Q Cafe Phase 8 (QC-0801–0805): new `qcafe.sync` module (devices, change log, cursors, explicit conflict resolution, push/pull session) and new `qcafe.marketplace` module (official adapter contracts, idempotent intake, fulfillment, reconciliation); new `qcafe.accounting` module per the approved statutory contracts in `assist/records/2026-09-24-qcafe-accounting-contracts.md` (8-account chart, balanced draft-then-post journals, CSV export).
+- Q Cafe Phase 9 (QC-0901–0905): new read-only `qcafe.reports` module (nine posted-record reports with location/business-day scope plus five linked dashboard alerts); new stateless `qcafe.policies` module (cashier/waiter/kitchen/manager/owner matrix enforced on money-sensitive billing endpoints with HTTP 403 denials); legacy ledger-count tests now derive expectations from `lifecycleDescriptorTotal()`; release evidence in `assist/records/2026-09-25-qcafe-release-verification.md`.
+- Single design system: extended shared `Field` with an optional `label` variant (no new components), deleted all 15 app-local form helper copies and raw select/button/table elements in favor of shared `Field`, `NativeSelect`, `Table`, `Checkbox`, `Button`, and `Empty`; added seven operator screens (Inventory, Documents, Backup, Sync, Marketplace, Accounting, Reports) composed from published `@codexsun/ui` exports with API workspace registration.
+- Marked QC-0701 through QC-0905 complete in `apps/qcafe/agent/exec/qcafe-task.md`; the register holds no unchecked items.
+- Verification: `qcafe-api` typecheck, full suite 62 passed / 0 failed (1 MariaDB opt-in skip), ESLint, production build; `qcafe-web` typecheck, ESLint, production build; `@codexsun/ui` typecheck and lint; `git diff --check` clean for touched areas. Browser E2E, live MariaDB, Docker, and production were not tested.
+
+## v-1.0.42
+
+### [v 1.0.42] 2026-09-24 8:58 pm - Zetro2 Phase 2 source import, provenance, container build, and Layer-1 product defaults
+
+#### Database Changes
+
+- Database update: No. No schema, migration, or seed changes.
+
+#### App Codebase Changes
+
+- Completed Zetro2 task register items 2.3, 2.4, 2.5, 2.6, and 2.7 in `devkits/zetro2/agent/task.md`.
+- 2.3: excluded Git metadata, dependencies, caches, generated output, secrets, and runtime data from the imported ZVcode tree; fixed root `.gitignore` `logs/` over-exclusion for six upstream source files (staged, not committed); `git ls-files` count 9,287.
+- 2.4: retained licenses and notices; recorded upstream revision `2418d06f9dc8a0622bb8e8d46a5ff915edbe5845`, raw aggregate checksum `54b13e275e628a301ae2ec40898c0085b3de5a708615bbcc9fe17e3300097c0f` over 9,287 files (146,202,173 bytes), and exactly five local modifications; added `devkits/zetro2/editor/zvcode-manifest.mjs` and `verify-zvcode.mjs` (product identity v1.110.0, distro `bd187e45`).
+- 2.5: added host-isolated container build under `devkits/zetro2/.container/` — multi-stage `Editor.Dockerfile` (pinned `node:22.22.0-bookworm@sha256:20a424ec…` base, `toolchain` → `source` → `deps` → `build` → `export`), Dockerfile-specific ignore file, `build-editor.ps1` wrapper, and `.container/README.md` documenting pins, stages, commands, and limitations; default export destination `dist/zetro2/editor/`; in-image-only git init and selfhost extension stubs keep the provenance-locked import unchanged on the host.
+- 2.6: added `devkits/zetro2/editor/source-change-map.md` + `source-change-map.json` (layer/risk/verify per path) and `check-change-map.mjs` asserting live upstream diff equals the map; documented optional `upstream-update-procedure.md` (reference-tree refresh, no Git rebase).
+- 2.7: applied Layer-1 Product customization in `devkits/zetro2/zvcode` — `product.json` telemetry off; `telemetryService.ts` / `desktop.contribution.ts` defaults off; `workbench.startupEditor` default `none`; status bar brand `Codexsun ZVcode` / tooltip `Zetro2` with `$(remote)` offline-alert prefix preserved; `extensions.allowed` default deny-by-default allowlist of the three built-in marketplace extensions; change map updated to 10 paths (planned 2.7 rows removed).
+- Evidence: `devkits/zetro2/agent/baseline/2.3-import-exclusions.md`, `devkits/zetro2/agent/baseline/2.4-licenses-upstream-revision-checksums.md`, `devkits/zetro2/agent/baseline/2.5-container-build.md`, `devkits/zetro2/agent/baseline/2.6-editor-source-customization-change-map-upstream-update.md`, `devkits/zetro2/agent/baseline/2.7-product-branding-default-settings-extension-config.md`.
+- Verification: exclusion scans zero across 9,286 files; `node devkits/zetro2/editor/verify-zvcode.mjs` pass; `docker build --check` no warnings; `--target toolchain` and `--target source` smoke builds pass on host-windows (Docker 29.8.0); `node devkits/zetro2/editor/check-change-map.mjs` pass (10 mapped paths after 2.7); `npm run test:zetro2` → 45/45 pass; `git diff --check` clean for Zetro2. Limitation: full `deps`/`build`/`export` compile and artifact version read deferred to task 2.8; 2.7 defaults are source assertions only until live editor proof (2.9); upstream source-update procedure documented but not executed; builtin-extension and Electron/Node header downloads remain network-dependent at build time.
+
+### [v 1.0.42] 2026-09-24 7:40 pm - Zetro2 Phase 1 access foundation exit
+
+#### Database Changes
+
+- Database update: No schema redeploy required. Zetro2 module-owned SQLite migrations (`zetro2.workspace-access.001`/`002`) already run repeat-safely from the module lifecycle plan.
+
+#### App Codebase Changes
+
+- Completed Zetro2 task register items 1.10a and 1.11 (Phase 1 exit) in `devkits/zetro2/agent/task.md`.
+- 1.10a: append-only access/action audit with pre-persistence secret redaction and `workspace.admin`-gated audit query (`devkits/zetro2/api/src/modules/workspace-access/`).
+- 1.11: added `devkits/zetro2/api/test/workspace-access-phase1-exit.test.mjs` proving the five-role HTTP capability matrix (read, write, membership.manage, workspace.admin, change.approve) and zero upstream proxy hits for unauthenticated, invalid-token, and non-member gateway requests.
+- Evidence: `devkits/zetro2/agent/baseline/1.10a-baseline-append-only-audit-and-redaction.md`, `devkits/zetro2/agent/baseline/1.11-phase-1-exit.md`.
+- Verification: `npm run test:zetro2` → 45/45 pass on host-windows; `git diff --check` clean for changed Zetro2 files. Limitation: mock upstreams and in-memory SQLite only; Docker, live editor, and browser flows remain Phase 2–3 work.
+
+### 2026-09-24 - AgentCrew local assistant foundation
+
+#### Database Changes
+
+- Added app-scoped SQLite migration `assistant.001` with a recorded SHA-256 checksum for tasks, runs, and operational events.
+- Added model-scoped Qdrant collections for explicitly submitted notes. No existing application database was migrated.
+
+#### App Codebase Changes
+
+- Added `devkits/agentcrew` with a bearer-protected API and shared-UI dashboard for Ollama/Qwen 3, task results, logs, connection checks, retries, and notes.
+- Added paused-by-default recurring prompts, explicit enable/pause actions, run budgets, cancellation, queue deduplication, and bounded transient retries.
+- Added chunked Qdrant retrieval, content-based note IDs, embedding caching, and coding/personal assistant skill templates without execution tools.
+- Added loopback-only Docker composition, optional GPU configuration, persistent model/vector/state volumes, and detailed setup and safety documentation.
+- Verified API/web checks, lint, builds, seven module tests, and a browser integration flow with fake upstreams. Live inference remains unverified.
+- Recorded Docker dependency audit warnings and repository-wide audit limitations in `devkits/agentcrew/verification.md`. Preserved existing version 1.0.42.
+- Added manual Ollama setup, update, and drop scripts with explicit model downloads and guarded data purge. No database schema change.
+- Added automatic creation or reuse of `codexsun-network` for the web gateway, without exposing model or vector services on that network.
+- Renamed AgentCrew Docker resources to `cx-agentcrew` and updated lifecycle scripts, purge confirmation, tests, and migration notes. Existing volumes remain untouched.
+- Deployed `cx-agentcrew` locally with Qwen 3 and embeddings. Verified authenticated dashboard connection and Qdrant note retrieval, but recorded the unresolved full-task inference timeout.
+- Fixed Docker dashboard navigation defaults using public registry metadata without copying root secrets. No database schema change.
+
+### [v 1.0.42] 2026-09-24 7:10 pm - Codeitz multi-modal capabilities, codebase graph mapping, and Git change tooling
+
+#### Database Changes
+
+- Database update: No.
+
+#### App Codebase Changes
+
+- Implemented Codeitz Capabilities module (`devkits/codeitz/api/src/modules/capabilities/`):
+  - 10 multi-modal and automated tools: Prompt spelling correction, web search, browser automation, computer vision, image generation, text-to-speech (TTS), multi-model reasoning, computer use, Excel analysis, and PDF analysis.
+  - Zod schemas and type contracts in `capabilities-contracts.ts` mounted at `/api/v1/codeitz/capabilities`.
+  - Comprehensive unit test suite in `capabilities.test.ts` (11 passing test cases).
+- Implemented Codebase Knowledge Graph service (`devkits/codeitz/api/src/modules/engineering/service/codebase-graph.service.ts`):
+  - Traverses monorepo workspace (`apps/`, `devkits/`, `packages/`, `core/platforms/`), extracting nodes, dependencies, and cluster topologies.
+  - Exposes `/api/v1/codeitz/swe/codebase-graph` with DAG circularity checks and density scoring for large-scale projects.
+- Implemented Git Change Management and Sensible Auto-Commit service (`devkits/codeitz/api/src/modules/engineering/service/git-ops.service.ts`):
+  - Provides working tree status, unified diff extraction, conventional commit message auto-generation (`feat(scope): ...` with verification status), and one-click undo (`git restore .`).
+  - Endpoints at `/api/v1/codeitz/swe/git/status`, `/api/v1/codeitz/swe/git/diff`, `/api/v1/codeitz/swe/git/auto-commit`, and `/api/v1/codeitz/swe/git/undo`.
+- Upgraded Codeitz Web Desk (`devkits/codeitz/web/src/app.tsx` & `codeitz-api.ts`):
+  - Real-time prompt spellchecking banner with one-click "Fix Prompt" action.
+  - Multi-modal capability pills in composer toolbar (Web, Browser, OS, Gen, Attach).
+  - Multi-file attachment support for Vision (images), Excel (.xlsx/.csv), and PDF documents.
+  - Native Web Speech API integration for TTS spoken narration on assistant messages.
+  - Multi-model reasoning selector (Gemini 3.8 Flash, Gemini 1.5 Pro, Claude 3.5 Sonnet, GPT-4o, DeepSeek-R1, and Multi-Model Consensus with confidence badge).
+  - Codebase Architecture Graph Drawer with module filtering and search.
+  - Git Manager Drawer with diff review, auto-commit, and one-click AI change rollback.
+- Verification: 24 API unit tests passing, 6 Web unit tests passing, TypeScript typecheck clean across API and Web, ESLint clean, and root layout valid.
+
+### [v 1.0.42] 2026-09-24 6:21 pm - Q Cafe Phase 6 inventory and stock ledger
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Q Cafe QC-0601: appended `qcafe.inventory.001` with stock units, items, adjustments, and the source-linked movement ledger.
+- Q Cafe QC-0602: appended `qcafe.inventory.002` with recipe revisions (effective dates, revision numbers, source links) and recipe components.
+- Q Cafe QC-0603: appended `qcafe.inventory.003` with daily plans (unique per location and date) and demand-sourced plan lines.
+- Q Cafe QC-0604: appended `qcafe.inventory.004` with stock reservations for events, plans, specials, and orders.
+- Q Cafe QC-0605: appended `qcafe.inventory.005` with purchase orders, goods receipts, stock lots, stock counts, and waste events; appended `qcafe.inventory.006` to rebuild the movement ledger without the adjustment-only source foreign key while preserving rows.
+- Q Cafe QC-0606: appended `qcafe.inventory.007` with recipe consumption records for sales and events.
+- All seven descriptors run serially in the single `qcafe.inventory` lifecycle plan. No seeders were added.
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.42.
+- Q Cafe QC-0601: unit/item/adjustment contracts, repository, service, routes (`/inventory`, `/units`, `/items`, `/adjustments`), and ledger tests. Reductions need an approver; untracked items cannot move.
+- Q Cafe QC-0602: recipe create/revise contracts, service, routes (`/recipes`, `/recipes/:id/revisions`), and revision-history tests.
+- Q Cafe QC-0603: daily plan create/line/confirm service, routes, and demand-source tests.
+- Q Cafe QC-0604: reservation hold/release/consume service, routes, availability (`on-hand`, `reserved`, `available`) in the workspace, and hold tests.
+- Q Cafe QC-0605: purchase order, goods receipt with lot assignment, stock lot, stock count, and waste service plus routes and procurement tests.
+- Q Cafe QC-0606: recipe consumption for sales and events with availability enforcement, consumption route, and sale/event traceability tests.
+- Split inventory persistence into `inventory.repository.ts` and `inventory-procurement.repository.ts` so every authored file stays within the 700-line limit.
+- Marked QC-0601 through QC-0606 complete in `apps/qcafe/agent/exec/qcafe-task.md` and documented each stage in the inventory module README.
+- Verification: `qcafe-api` typecheck, 13 inventory tests passed, ESLint, production build, and `git diff --check` clean for `apps/qcafe`. Browser E2E, live MariaDB, Docker, and production were not tested.
 
 ## v-1.0.41
 
@@ -29,6 +273,11 @@ New entries must keep database-facing work and application code work separate.
 - Preserved file bytes during LF normalization and skipped legacy files that are not valid UTF-8.
 - Set the repository-local Git policy to `core.autocrlf=false` and `core.eol=lf` to match `.gitattributes`.
 - Completed Q Cafe daily-plan repository, service, and route behavior for scoped plan creation, line additions, confirmation, and inventory reads.
+- Implemented Codeitz prioritized Task Queue, Scheduler, Continuous Task Runner, and live execution history in `devkits/codeitz`:
+  - Added `SweTaskRunnerService` with prioritized task queues (`critical`, `high`, `medium`, `low`), background scheduler, continuous auto-progress loop, and action audit trail.
+  - Exposed Fastify endpoints for queue management (`/swe/queue`, `/swe/queue/enqueue`, `/swe/queue/:taskId`), runner execution control (`/swe/runner/start`, `/swe/runner/pause`, `/swe/runner/step`, `/swe/runner/continue/:taskId`), and live action audit logs (`/swe/runner/logs`).
+  - Enhanced Codeitz Chat to Action frontend with interactive pipeline phase stepper (`intake` → `grounding` → `planning` → `execution` → `verification` → `review` → `completed`), runner status indicator, continuous auto-runner toggle, task queue manager, and live audit telemetry stream ("what exactly is going on").
+  - Added shortcut `⌘⏎` / `Ctrl+Enter` and interactive `[Continue Runner ⌘⏎]` buttons on action confirmation cards and completion reports to automatically advance the runner to next phases and queued tasks.
 - Verification: line-ending tests and the line-ending check passed; commit and push are part of this release operation.
 
 ## v-1.0.40

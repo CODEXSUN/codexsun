@@ -2,16 +2,25 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { CommandContext } from "../../foundation/contracts/activity.contract.js";
 import {
   addDailyPlanLineSchema,
+  consumeRecipeSchema,
   createDailyPlanSchema,
+  createPurchaseOrderSchema,
   createRecipeSchema,
   createStockItemSchema,
+  createStockLotSchema,
   createStockUnitSchema,
   dailyPlanIdSchema,
   inventoryScopeSchema,
   inventoryWorkspaceSchema,
   postStockAdjustmentSchema,
+  purchaseOrderIdSchema,
+  receiveGoodsSchema,
   recipeIdSchema,
+  recordWasteSchema,
+  reservationIdSchema,
+  reserveStockSchema,
   reviseRecipeSchema,
+  submitStockCountSchema,
 } from "../contracts/inventory.contract.js";
 import { InventoryConflictError, InventoryService } from "../services/inventory.service.js";
 
@@ -58,6 +67,51 @@ export async function registerInventoryRoutes(app: FastifyInstance, service: Inv
   );
   app.post("/api/v1/qcafe/inventory/daily-plans/:planId/confirm", async (request, reply) =>
     run(reply, () => service.confirmDailyPlan(dailyPlanIdSchema.parse(request.params).planId, contextFor(request))),
+  );
+  app.post("/api/v1/qcafe/inventory/reservations", async (request, reply) =>
+    run(reply, () => service.reserve(reserveStockSchema.parse(request.body), contextFor(request))),
+  );
+  app.post("/api/v1/qcafe/inventory/reservations/:reservationId/release", async (request, reply) =>
+    run(reply, () =>
+      service.releaseReservation(reservationIdSchema.parse(request.params).reservationId, contextFor(request)),
+    ),
+  );
+  app.post("/api/v1/qcafe/inventory/reservations/:reservationId/consume", async (request, reply) =>
+    run(reply, () =>
+      service.consumeReservation(reservationIdSchema.parse(request.params).reservationId, contextFor(request)),
+    ),
+  );
+  app.post("/api/v1/qcafe/inventory/purchase-orders", async (request, reply) =>
+    run(reply, () => service.createPurchaseOrder(createPurchaseOrderSchema.parse(request.body), contextFor(request))),
+  );
+  app.post("/api/v1/qcafe/inventory/purchase-orders/:poId/send", async (request, reply) =>
+    run(reply, () => service.sendPurchaseOrder(purchaseOrderIdSchema.parse(request.params).poId, contextFor(request))),
+  );
+  app.post("/api/v1/qcafe/inventory/purchase-orders/:poId/cancel", async (request, reply) =>
+    run(reply, () =>
+      service.cancelPurchaseOrder(purchaseOrderIdSchema.parse(request.params).poId, contextFor(request)),
+    ),
+  );
+  app.post("/api/v1/qcafe/inventory/purchase-orders/:poId/receipts", async (request, reply) =>
+    run(reply, () =>
+      service.receiveGoods(
+        purchaseOrderIdSchema.parse(request.params).poId,
+        receiveGoodsSchema.parse(request.body),
+        contextFor(request),
+      ),
+    ),
+  );
+  app.post("/api/v1/qcafe/inventory/lots", async (request, reply) =>
+    run(reply, () => service.createLot(createStockLotSchema.parse(request.body), contextFor(request))),
+  );
+  app.post("/api/v1/qcafe/inventory/counts", async (request, reply) =>
+    run(reply, () => service.submitCount(submitStockCountSchema.parse(request.body), contextFor(request))),
+  );
+  app.post("/api/v1/qcafe/inventory/waste", async (request, reply) =>
+    run(reply, () => service.recordWaste(recordWasteSchema.parse(request.body), contextFor(request))),
+  );
+  app.post("/api/v1/qcafe/inventory/consumptions", async (request, reply) =>
+    run(reply, () => service.consumeForSale(consumeRecipeSchema.parse(request.body), contextFor(request))),
   );
 }
 

@@ -12,6 +12,7 @@ export const colorThemes = [
   { id: 'violet', name: 'Violet', swatchClassName: 'bg-violet-600' },
   { id: 'emerald', name: 'Emerald', swatchClassName: 'bg-emerald-600' },
   { id: 'orange', name: 'Orange', swatchClassName: 'bg-orange-600' },
+  { id: 'studio', name: 'Studio', swatchClassName: 'bg-[#191a1c]' },
 ] as const
 
 export type ColorThemeId = (typeof colorThemes)[number]['id']

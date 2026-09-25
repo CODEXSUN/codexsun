@@ -1,6 +1,8 @@
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
+import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@codexsun/ui/components/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BanknoteIcon, CircleDollarSignIcon, LandmarkIcon, ReceiptTextIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -45,11 +47,17 @@ export function BillingPage({ request }: { request: typeof fetch }) {
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-        <Select
+        <NativeSelect
+          aria-label="Outlet"
           value={locationId}
-          onChange={setLocationId}
-          options={business.locations.map((item) => [item.id, item.name])}
-        />
+          onChange={(event) => setLocationId(event.currentTarget.value)}
+        >
+          {business.locations.map((item) => (
+            <NativeSelectOption key={item.id} value={item.id}>
+              {item.name}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
         <div className="flex flex-wrap gap-2">
           <Badge>{data?.bills.filter((bill) => bill.balance_minor > 0).length ?? 0} outstanding</Badge>
           <Badge variant="outline">
@@ -188,12 +196,20 @@ function BillRow({
             });
           }}
         >
-          <Select
+          <NativeSelect
+            aria-label="Payment method"
             name="method"
             value={methodId}
-            onChange={setMethodId}
-            options={data.paymentMethods.filter((item) => item.active).map((item) => [item.id, item.name])}
-          />
+            onChange={(event) => setMethodId(event.currentTarget.value)}
+          >
+            {data.paymentMethods
+              .filter((item) => item.active)
+              .map((item) => (
+                <NativeSelectOption key={item.id} value={item.id}>
+                  {item.name}
+                </NativeSelectOption>
+              ))}
+          </NativeSelect>
           <Input
             aria-label="Payment amount"
             defaultValue={(bill.balance_minor / 100).toFixed(2)}
@@ -211,13 +227,10 @@ function BillRow({
             step="0.01"
           />
           <Input aria-label="Masked reference" name="masked" placeholder="****4242" />
-          <Select
-            name="status"
-            options={[
-              ["posted", "Post"],
-              ["failed", "Record failure"],
-            ]}
-          />
+          <NativeSelect aria-label="Payment status" name="status">
+            <NativeSelectOption value="posted">Post</NativeSelectOption>
+            <NativeSelectOption value="failed">Record failure</NativeSelectOption>
+          </NativeSelect>
           <Input aria-label="Failure or provider reference" name="failure" placeholder="Failure reason" />
           <Input
             className="sm:col-span-2"
@@ -238,35 +251,34 @@ function Ledger({ data, send }: { data?: BillingWorkspace; send: Sender }) {
   return (
     <section className="grid gap-3 border-t pt-5">
       <h2 className="text-sm font-semibold">Payment and receipt ledger</h2>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[680px] text-left text-sm">
-          <thead className="border-b text-xs text-muted-foreground">
-            <tr>
-              <th className="p-2">Receipt</th>
-              <th>Purpose</th>
-              <th>Status</th>
-              <th>Amount</th>
-              <th>Reference</th>
-              <th>Correction</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data?.payments.map((payment) => {
-              const receipt = data.receipts.find((item) => item.payment_id === payment.id);
-              const tender = data.tenderDetails.find((item) => item.payment_id === payment.id);
-              return (
-                <tr className="border-b" key={payment.id}>
-                  <td className="p-2">{receipt?.number ?? "-"}</td>
-                  <td>{payment.purpose}</td>
-                  <td>
-                    <Badge variant="outline">{payment.status}</Badge>
-                  </td>
-                  <td>
-                    {payment.direction === "out" ? "-" : ""}
-                    {money(payment.amount_minor)}
-                  </td>
-                  <td>{tender?.masked_reference ?? "-"}</td>
-                  <td>
+      <Table className="min-w-[680px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Receipt</TableHead>
+            <TableHead>Purpose</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Reference</TableHead>
+            <TableHead>Correction</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data?.payments.map((payment) => {
+            const receipt = data.receipts.find((item) => item.payment_id === payment.id);
+            const tender = data.tenderDetails.find((item) => item.payment_id === payment.id);
+            return (
+              <TableRow key={payment.id}>
+                <TableCell>{receipt?.number ?? "-"}</TableCell>
+                <TableCell>{payment.purpose}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">{payment.status}</Badge>
+                </TableCell>
+                <TableCell>
+                  {payment.direction === "out" ? "-" : ""}
+                  {money(payment.amount_minor)}
+                </TableCell>
+                <TableCell>{tender?.masked_reference ?? "-"}</TableCell>
+                <TableCell>
                     {payment.status === "posted" && payment.direction === "in" && payment.purpose === "sale" ? (
                       <form
                         className="flex gap-1"
@@ -289,13 +301,10 @@ function Ledger({ data, send }: { data?: BillingWorkspace; send: Sender }) {
                           type="number"
                           step="0.01"
                         />
-                        <Select
-                          name="action"
-                          options={[
-                            ["refund", "Partial refund"],
-                            ["reversal", "Full reversal"],
-                          ]}
-                        />
+                        <NativeSelect aria-label="Refund action" name="action">
+                          <NativeSelectOption value="refund">Partial refund</NativeSelectOption>
+                          <NativeSelectOption value="reversal">Full reversal</NativeSelectOption>
+                        </NativeSelect>
                         <Input
                           aria-label="Refund reason"
                           className="w-36"
@@ -310,13 +319,12 @@ function Ledger({ data, send }: { data?: BillingWorkspace; send: Sender }) {
                     ) : (
                       "-"
                     )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                  </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </section>
   );
 }
@@ -343,10 +351,15 @@ function CashControl({
           })
         }
       >
-        <Select
-          name="drawer"
-          options={(data?.drawers ?? []).filter((item) => item.active).map((item) => [item.id, item.name])}
-        />
+        <NativeSelect aria-label="Cash drawer" name="drawer">
+          {(data?.drawers ?? [])
+            .filter((item) => item.active)
+            .map((item) => (
+              <NativeSelectOption key={item.id} value={item.id}>
+                {item.name}
+              </NativeSelectOption>
+            ))}
+        </NativeSelect>
         <Input name="opening" placeholder="Opening float" required type="number" step="0.01" />
         <Button disabled={!location?.businessDay || Boolean(openShift)} type="submit">
           Open shift
@@ -370,14 +383,11 @@ function CashControl({
                 })
               }
             >
-              <Select
-                name="kind"
-                options={[
-                  ["cash_in", "Cash in"],
-                  ["cash_out", "Cash out"],
-                  ["safe_drop", "Safe drop"],
-                ]}
-              />
+              <NativeSelect aria-label="Cash movement kind" name="kind">
+                <NativeSelectOption value="cash_in">Cash in</NativeSelectOption>
+                <NativeSelectOption value="cash_out">Cash out</NativeSelectOption>
+                <NativeSelectOption value="safe_drop">Safe drop</NativeSelectOption>
+              </NativeSelect>
               <Input name="amount" placeholder="Amount" required type="number" step="0.01" />
               <Input name="reason" placeholder="Reason" required />
               <Input name="approver" placeholder="Approver for cash out" />
@@ -452,12 +462,15 @@ function Vouchers({
         <Input name="amount" placeholder="Advance amount" required type="number" step="0.01" />
         <Input name="customer" placeholder="Customer reference" />
         <Input name="event" placeholder="Event reference" />
-        <Select
-          name="method"
-          options={(data?.paymentMethods ?? [])
+        <NativeSelect aria-label="Voucher payment method" name="method">
+          {(data?.paymentMethods ?? [])
             .filter((item) => item.active && item.kind !== "cash")
-            .map((item) => [item.id, item.name])}
-        />
+            .map((item) => (
+              <NativeSelectOption key={item.id} value={item.id}>
+                {item.name}
+              </NativeSelectOption>
+            ))}
+        </NativeSelect>
         <Input name="provider" placeholder="Provider reference" />
         <Button type="submit">Issue voucher</Button>
       </QuickForm>
@@ -480,12 +493,15 @@ function Vouchers({
               <strong className="text-sm">{voucher.number}</strong>
               <Badge variant="outline">{money(voucher.remaining_value_minor)} left</Badge>
             </div>
-            <Select
-              name="bill"
-              options={(data?.bills ?? [])
+            <NativeSelect aria-label="Bill to apply voucher" name="bill">
+              {(data?.bills ?? [])
                 .filter((bill) => bill.balance_minor > 0)
-                .map((bill) => [bill.id, `${bill.number} · ${money(bill.balance_minor, bill.currency)}`])}
-            />
+                .map((bill) => (
+                  <NativeSelectOption key={bill.id} value={bill.id}>
+                    {`${bill.number} · ${money(bill.balance_minor, bill.currency)}`}
+                  </NativeSelectOption>
+                ))}
+            </NativeSelect>
             <div className="flex gap-2">
               <Input name="amount" placeholder="Apply amount" required type="number" step="0.01" />
               <Button size="sm" type="submit" variant="outline">
@@ -577,30 +593,6 @@ function QuickForm({
       <h2 className="text-sm font-semibold">{label}</h2>
       {children}
     </form>
-  );
-}
-function Select({
-  onChange,
-  options,
-  ...props
-}: {
-  name?: string;
-  onChange?: (value: string) => void;
-  options: string[][];
-  value?: string;
-}) {
-  return (
-    <select
-      className="h-9 min-w-40 rounded-md border bg-background px-3 text-sm"
-      onChange={onChange ? (event) => onChange(event.target.value) : undefined}
-      {...props}
-    >
-      {options.map(([value, label]) => (
-        <option key={value} value={value}>
-          {label}
-        </option>
-      ))}
-    </select>
   );
 }
 function Metric({ label, value }: { label: string; value: string }) {

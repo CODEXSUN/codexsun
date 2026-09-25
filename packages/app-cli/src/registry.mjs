@@ -176,6 +176,9 @@ function validateAddon(addon, filename) {
   if (typeof addon.providerId !== "string" || !addon.providerId.includes(".")) {
     throw new Error(`${filename}: providerId is required.`);
   }
+  if (typeof addon.purpose !== "string" || !addon.purpose.trim() || !Array.isArray(addon.areas) || !Array.isArray(addon.contracts) || !Array.isArray(addon.events)) {
+    throw new Error(`${filename}: purpose, areas, contracts, and events are required.`);
+  }
   if (!Array.isArray(addon.dependencies) || new Set(addon.dependencies).size !== addon.dependencies.length) {
     throw new Error(`${filename}: dependencies must be a unique array.`);
   }

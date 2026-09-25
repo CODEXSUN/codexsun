@@ -41,3 +41,22 @@ Edits must stay strictly within the target application or devkit (`devkits/codei
 
 ### 4. Self-Learning Loop Integration
 Upon task completion or failure, the trajectory is transmitted to the `learning` module. The system analyzes errors, extracts anti-patterns, updates effectiveness scores, and produces reusable heuristics.
+
+### 5. Multi-Modal & Engineering Capabilities Suite
+The capabilities module exposes 10 automated tools:
+- Real-time prompt spelling and typo correction.
+- Grounded web search across MDN, GitHub, and RFC documentation.
+- Headless and interactive browser automation.
+- Computer vision for inspecting UI screenshots, layouts, and OCR text.
+- Generative SVG architecture diagrams and mockups.
+- Native Text-to-Speech (TTS) audio narration.
+- Multi-model reasoning across Gemini, Claude, GPT, DeepSeek, and consensus synthesis.
+- Sandboxed operating system computer-use automation.
+- Excel and spreadsheet tabular metric parsing.
+- Technical PDF specification parsing.
+
+### 6. Codebase Knowledge Graph Mapping
+For large projects, Codeitz indexes monorepo packages, modules, exports, and `@codexsun/*` dependency links, verifying clean DAG topologies (zero circular dependencies) and assisting agents in rapid structural grounding.
+
+### 7. Git Change Management & Sensible Commits
+Tracks working tree state, displays unified diff chunks, automatically produces conventional commits (`type(scope): message` with verified test gates), and provides one-click AI change rollback (`git restore .`).

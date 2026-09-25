@@ -1,6 +1,7 @@
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
+import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckIcon, ChefHatIcon, PrinterIcon, RotateCcwIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -45,11 +46,17 @@ export function KotPage({ request }: { request: typeof fetch }) {
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-        <Select
+        <NativeSelect
+          aria-label="Outlet"
           value={locationId}
-          onChange={setLocationId}
-          options={business.locations.map((location) => [location.id, location.name])}
-        />
+          onChange={(event) => setLocationId(event.currentTarget.value)}
+        >
+          {business.locations.map((location) => (
+            <NativeSelectOption key={location.id} value={location.id}>
+              {location.name}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
         <div className="flex gap-2">
           <Badge>
             {data?.tickets.filter((ticket) => !["served", "voided"].includes(ticket.status)).length ?? 0} live
@@ -192,8 +199,20 @@ function KitchenSetup({
           })
         }
       >
-        <Select name="item" options={(menu?.items ?? []).map((item) => [item.id, item.name])} />
-        <Select name="station" options={(data?.stations ?? []).map((station) => [station.id, station.name])} />
+        <NativeSelect aria-label="Menu item" name="item">
+          {(menu?.items ?? []).map((item) => (
+            <NativeSelectOption key={item.id} value={item.id}>
+              {item.name}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+        <NativeSelect aria-label="Kitchen station" name="station">
+          {(data?.stations ?? []).map((station) => (
+            <NativeSelectOption key={station.id} value={station.id}>
+              {station.name}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
       </QuickForm>
     </section>
   );
@@ -226,30 +245,5 @@ function QuickForm({
         {label}
       </Button>
     </form>
-  );
-}
-
-function Select({
-  onChange,
-  options,
-  ...props
-}: {
-  name?: string;
-  onChange?: (value: string) => void;
-  options: string[][];
-  value?: string;
-}) {
-  return (
-    <select
-      className="h-9 min-w-44 rounded-md border bg-background px-3 text-sm"
-      onChange={onChange ? (event) => onChange(event.target.value) : undefined}
-      {...props}
-    >
-      {options.map(([value, label]) => (
-        <option key={value} value={value}>
-          {label}
-        </option>
-      ))}
-    </select>
   );
 }

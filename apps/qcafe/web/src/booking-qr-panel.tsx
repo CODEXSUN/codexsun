@@ -1,6 +1,7 @@
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
+import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CopyIcon, QrCodeIcon, ScanLineIcon } from "lucide-react";
 import { useState } from "react";
@@ -98,15 +99,15 @@ export function BookingQrPanel({
         >
           <h2 className="font-semibold">Scanner profile</h2>
           <Input name="deviceRef" placeholder="Front desk tablet" required />
-          <select className="h-9 rounded-md border bg-background px-3 text-sm" name="purpose">
-            <option value="table_entry">Table entry</option>
-            <option value="order">Order</option>
-            <option value="inventory">Inventory</option>
-          </select>
+          <NativeSelect aria-label="Scanner purpose" name="purpose">
+            <NativeSelectOption value="table_entry">Table entry</NativeSelectOption>
+            <NativeSelectOption value="order">Order</NativeSelectOption>
+            <NativeSelectOption value="inventory">Inventory</NativeSelectOption>
+          </NativeSelect>
           <div className="flex flex-wrap gap-3 text-sm">
             {["qr", "code128", "data_matrix"].map((format) => (
               <label className="flex items-center gap-2" key={format}>
-                <input defaultChecked={format === "qr"} name="formats" type="checkbox" value={format} /> {format}
+                <input className="size-4 accent-primary" defaultChecked={format === "qr"} name="formats" type="checkbox" value={format} /> {format}
               </label>
             ))}
           </div>

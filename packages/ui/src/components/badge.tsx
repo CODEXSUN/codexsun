@@ -15,6 +15,13 @@ const badgeVariants = cva(
         outline: 'border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground',
         ghost: 'hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50',
         link: 'text-primary underline-offset-4 hover:underline',
+        studio: 'border-[#3a3b3f] bg-[#26282c] text-[#e2e3e5]',
+        'studio-active': 'border-[#40434a] bg-[#191a1c] text-[#9cd2ae]',
+        'studio-success': 'border-[#9cd2ae]/40 bg-[#191a1c] text-[#9cd2ae]',
+        'studio-warning': 'border-amber-500/30 bg-[#191a1c] text-amber-300',
+        'studio-info': 'border-sky-500/30 bg-[#191a1c] text-sky-300',
+        'studio-destructive': 'border-rose-500/30 bg-[#191a1c] text-rose-300',
+        'studio-muted': 'border-[#3a3b3f] bg-[#26282c] text-[#8c8d8e]',
       },
     },
     defaultVariants: {

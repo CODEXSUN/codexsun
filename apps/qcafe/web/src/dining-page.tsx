@@ -1,6 +1,7 @@
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
+import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@codexsun/ui/components/tabs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DoorOpenIcon, PlusIcon, UsersIcon } from "lucide-react";
@@ -54,11 +55,17 @@ export function DiningPage({ request }: { request: typeof fetch }) {
   return (
     <div className="grid gap-5">
       <div className="flex items-center justify-between border-b pb-4">
-        <Select
+        <NativeSelect
+          aria-label="Outlet"
           value={locationId}
-          onChange={setLocationId}
-          options={business.locations.map((item) => [item.id, item.name])}
-        />
+          onChange={(event) => setLocationId(event.currentTarget.value)}
+        >
+          {business.locations.map((item) => (
+            <NativeSelectOption key={item.id} value={item.id}>
+              {item.name}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
         <Badge>{booking.data?.sessions.filter((item) => item.status === "open").length ?? 0} seated</Badge>
       </div>
       <Tabs defaultValue="floor">
@@ -123,18 +130,19 @@ function FloorPanel({
           {data?.tables.map((table) => {
             const busy = occupied.has(table.id);
             return (
-              <button
-                className={`grid min-h-24 gap-2 border p-4 text-left ${selected.includes(table.id) ? "border-primary" : ""}`}
+              <Button
+                className={`h-auto min-h-24 grid gap-2 border p-4 text-left font-normal ${selected.includes(table.id) ? "border-primary" : ""}`}
                 disabled={busy}
                 key={table.id}
                 onClick={() => setSelected(toggle(selected, table.id))}
+                variant="ghost"
               >
                 <strong>{table.code}</strong>
                 <span className="text-sm text-muted-foreground">{table.capacity} seats</span>
                 <Badge className="w-fit" variant={busy ? "secondary" : "outline"}>
                   {busy ? "Occupied" : "Free"}
                 </Badge>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -188,7 +196,13 @@ function FloorPanel({
             })
           }
         >
-          <Select name="area" options={(data?.areas ?? []).map((item) => [item.id, item.name])} />
+          <NativeSelect aria-label="Dining area" name="area">
+            {(data?.areas ?? []).map((item) => (
+              <NativeSelectOption key={item.id} value={item.id}>
+                {item.name}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
           <Input name="code" placeholder="T01" required />
           <Input min="1" name="capacity" placeholder="Capacity" required type="number" />
         </QuickForm>
@@ -222,31 +236,6 @@ function QuickForm({
         {label}
       </Button>
     </form>
-  );
-}
-
-function Select({
-  onChange,
-  options,
-  ...props
-}: {
-  name?: string;
-  onChange?: (value: string) => void;
-  options: string[][];
-  value?: string;
-}) {
-  return (
-    <select
-      className="h-9 rounded-md border bg-background px-3 text-sm"
-      onChange={onChange ? (event) => onChange(event.target.value) : undefined}
-      {...props}
-    >
-      {options.map(([value, label]) => (
-        <option key={value} value={value}>
-          {label}
-        </option>
-      ))}
-    </select>
   );
 }
 

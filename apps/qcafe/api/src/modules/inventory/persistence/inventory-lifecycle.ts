@@ -3,6 +3,9 @@ import type { Kysely } from "kysely";
 import type { QcafeFoundationDatabase } from "../../foundation/persistence/qcafe-foundation.database.js";
 import { qcafeRecipeMigration } from "./recipe-lifecycle.js";
 import { qcafeDailyPlanMigration } from "./daily-plan-lifecycle.js";
+import { qcafeReservationMigration } from "./reservation-lifecycle.js";
+import { qcafeProcurementMigration, qcafeMovementSourceMigration } from "./procurement-lifecycle.js";
+import { qcafeConsumptionMigration } from "./consumption-lifecycle.js";
 
 const migration = {
   checksum: createLifecycleChecksum(
@@ -70,7 +73,15 @@ const migration = {
 };
 
 export const qcafeInventoryLifecyclePlan: DatabaseLifecyclePlan<QcafeFoundationDatabase> = {
-  migrations: [migration, qcafeRecipeMigration, qcafeDailyPlanMigration],
+  migrations: [
+    migration,
+    qcafeRecipeMigration,
+    qcafeDailyPlanMigration,
+    qcafeReservationMigration,
+    qcafeProcurementMigration,
+    qcafeMovementSourceMigration,
+    qcafeConsumptionMigration,
+  ],
   moduleId: "qcafe.inventory",
   seeders: [],
 };

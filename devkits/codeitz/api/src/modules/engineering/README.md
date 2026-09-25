@@ -15,10 +15,11 @@ The module governs disciplined agentic engineering through deterministic lifecyc
 
 ## Components
 
-- `contracts/swe-contracts.ts`: Zod schemas and TypeScript types defining tasks, phases, and verification checks.
+- `contracts/swe-contracts.ts`: Zod schemas and TypeScript types defining tasks, phases, queue items, runner state, and verification checks.
 - `repository/swe-task.repository.ts`: Repository managing in-memory or persisted task states and trajectories.
 - `service/swe-orchestrator.service.ts`: Core orchestrator validating phase order and gating transitions with verification checks.
-- `routes/swe.routes.ts`: Fastify HTTP endpoints exposing SWE task workflows.
+- `service/swe-task-runner.service.ts`: Continuous task runner and prioritized scheduler managing queued tasks, phase stepping, and action audit logs.
+- `routes/swe.routes.ts`: Fastify HTTP endpoints exposing SWE task workflows, queue management, and runner execution control.
 - `provider.ts`: Implements `ModuleProvider` and declares published and consumed event contracts.
 
 ## Verification

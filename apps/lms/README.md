@@ -2,6 +2,24 @@
 
 This application owns its product modules and composition.
 
+## Product phases
+
+LMS is split into a public learning site and an authenticated portal. The
+public phase currently includes the home page, program sample page, and about
+page. The portal phase uses the shared identity boundary with these routes:
+
+- `/login` for normal learners.
+- `/admin/login` for administrators.
+- `/sa/login` for super-administrators.
+
+After authentication, each role opens an LMS-owned Overview desk inside the
+shared MDI workspace. The super-admin desk also keeps the shared identity
+management pages available under `/sa/identity/*`.
+
+The public pages are sample content only. Program, learner, enrollment,
+assessment, and reporting data still need to be connected to LMS-owned
+modules and APIs.
+
 ## Docker Deployment
 
 LMS has a Windows-first Docker deployment in `.container/`. It builds the API

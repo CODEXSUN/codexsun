@@ -156,6 +156,76 @@
       "outputs": [
         "../../../dist/devkits/codeitz/web/**"
       ]
+    },
+    "@codexsun/ecommerce-api#build": {
+      "outputs": [
+        "../../../dist/apps/ecommerce/api/**"
+      ]
+    },
+    "@codexsun/ecommerce-web#build": {
+      "outputs": [
+        "../../../dist/apps/ecommerce/web/**"
+      ]
+    },
+    "@codexsun/hrms-api#build": {
+      "outputs": [
+        "../../../dist/apps/hrms/api/**"
+      ]
+    },
+    "@codexsun/hrms-web#build": {
+      "outputs": [
+        "../../../dist/apps/hrms/web/**"
+      ]
+    },
+    "@codexsun/billing-api#build": {
+      "outputs": [
+        "../../../dist/apps/billing/api/**"
+      ]
+    },
+    "@codexsun/billing-web#build": {
+      "outputs": [
+        "../../../dist/apps/billing/web/**"
+      ]
+    },
+    "@codexsun/accounts-api#build": {
+      "outputs": [
+        "../../../dist/apps/accounts/api/**"
+      ]
+    },
+    "@codexsun/accounts-web#build": {
+      "outputs": [
+        "../../../dist/apps/accounts/web/**"
+      ]
+    },
+    "@codexsun/auditor-api#build": {
+      "outputs": [
+        "../../../dist/apps/auditor/api/**"
+      ]
+    },
+    "@codexsun/auditor-web#build": {
+      "outputs": [
+        "../../../dist/apps/auditor/web/**"
+      ]
+    },
+    "@codexsun/garments-api#build": {
+      "outputs": [
+        "../../../dist/apps/garments/api/**"
+      ]
+    },
+    "@codexsun/garments-web#build": {
+      "outputs": [
+        "../../../dist/apps/garments/web/**"
+      ]
+    },
+    "@codexsun/projex-api#build": {
+      "outputs": [
+        "../../../dist/devkits/projex/api/**"
+      ]
+    },
+    "@codexsun/projex-web#build": {
+      "outputs": [
+        "../../../dist/devkits/projex/web/**"
+      ]
     }
   }
 }

@@ -79,7 +79,7 @@ export class RemoteStatusIndicator extends Disposable implements IWorkbenchContr
 	private static readonly SHOW_CLOSE_REMOTE_COMMAND_ID = !isWeb; // web does not have a "Close Remote" command
 	private static readonly INSTALL_REMOTE_EXTENSIONS_ID = 'workbench.action.remote.extensions';
 
-	private static readonly DEFAULT_REMOTE_STATUS_LABEL = '$(remote)';
+	private static readonly DEFAULT_REMOTE_STATUS_LABEL = '$(remote) Codexsun ZVcode';
 
 	private static readonly REMOTE_STATUS_LABEL_MAX_LENGTH = 40;
 
@@ -555,7 +555,7 @@ export class RemoteStatusIndicator extends Disposable implements IWorkbenchContr
 			}
 		}
 
-		this.renderRemoteStatusIndicator(RemoteStatusIndicator.DEFAULT_REMOTE_STATUS_LABEL, nls.localize('noHost.tooltip', "Open a Remote Window"));
+		this.renderRemoteStatusIndicator(RemoteStatusIndicator.DEFAULT_REMOTE_STATUS_LABEL, nls.localize('noHost.tooltip', "Zetro2 — Open a Remote Window"));
 		return;
 	}
 
@@ -563,8 +563,8 @@ export class RemoteStatusIndicator extends Disposable implements IWorkbenchContr
 		const { text, tooltip, ariaLabel } = this.withNetworkStatus(initialText, initialTooltip, showProgress);
 
 		const properties: IStatusbarEntry = {
-			name: nls.localize('remoteHost', "Remote Host"),
-			kind: this.networkState === 'offline' ? 'offline' : text !== RemoteStatusIndicator.DEFAULT_REMOTE_STATUS_LABEL ? 'remote' : undefined, // only emphasize when applicable
+			name: nls.localize('remoteHost', "Codexsun ZVcode"),
+			kind: this.networkState === 'offline' ? 'offline' : text !== RemoteStatusIndicator.DEFAULT_REMOTE_STATUS_LABEL && (this.remoteAuthority || this.virtualWorkspaceLocation) ? 'remote' : undefined, // only emphasize when applicable
 			ariaLabel,
 			text,
 			showProgress,
@@ -592,8 +592,8 @@ export class RemoteStatusIndicator extends Disposable implements IWorkbenchContr
 			// to replace with an alert icon for when a normal remote indicator
 			// is shown.
 
-			if (!showProgress && initialText.startsWith(RemoteStatusIndicator.DEFAULT_REMOTE_STATUS_LABEL)) {
-				return initialText.replace(RemoteStatusIndicator.DEFAULT_REMOTE_STATUS_LABEL, '$(alert)');
+			if (!showProgress && initialText.startsWith('$(remote)')) {
+				return initialText.replace('$(remote)', '$(alert)');
 			}
 
 			return initialText;

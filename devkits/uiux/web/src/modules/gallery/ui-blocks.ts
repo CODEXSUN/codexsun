@@ -1,42 +1,42 @@
-import { designSystemBlocks } from '@codexsun/ui/design-system'
+import { designSystemBlocks } from "@codexsun/ui/design-system";
 
 export type UiBlockId =
-  | 'form'
-  | 'table'
-  | 'execution-status'
-  | 'kanban'
-  | 'file-tree'
-  | 'dropzone'
-  | 'filter-builder'
-  | 'product-card'
-  | 'pricing'
-  | 'cart'
-  | 'categories'
-  | 'checkout'
-  | 'comparison'
-  | 'coupon-wallet'
-  | 'delivery-tracker'
-  | 'payment-methods'
-  | 'price-history'
-  | 'reviews'
-  | 'wishlist'
-  | 'footer'
-  | 'blog'
+  | "form"
+  | "table"
+  | "mascot"
+  | "app-header"
+  | "execution-status"
+  | "kanban"
+  | "file-tree"
+  | "dropzone"
+  | "filter-builder"
+  | "product-card"
+  | "pricing"
+  | "cart"
+  | "categories"
+  | "checkout"
+  | "comparison"
+  | "coupon-wallet"
+  | "delivery-tracker"
+  | "payment-methods"
+  | "price-history"
+  | "reviews"
+  | "wishlist"
+  | "footer"
+  | "blog";
 
 export type UiBlockDoc = {
-  id: UiBlockId
-  name: string
-  source: string
-}
+  id: UiBlockId;
+  name: string;
+  source: string;
+};
 
-export const uiBlockDocs: readonly UiBlockDoc[] = designSystemBlocks.map(
-  ({ id, name, source }) => ({
-    id: id as UiBlockId,
-    name,
-    source,
-  }),
-)
+export const uiBlockDocs: readonly UiBlockDoc[] = designSystemBlocks.map(({ id, name, source }) => ({
+  id: id as UiBlockId,
+  name,
+  source,
+}));
 
 export function findUiBlock(blockId: string | null): UiBlockDoc | undefined {
-  return uiBlockDocs.find(({ id }) => id === blockId)
+  return uiBlockDocs.find(({ id }) => id === blockId);
 }

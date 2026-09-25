@@ -13,7 +13,7 @@ services:
       AUTO_LOGIN: "1"
       PLATFORM_HOST: 0.0.0.0
       ZUNO_API_PORT: "6410"
-      ZUNO_WEB_ORIGIN: http://127.0.0.1:${ZUNO_WEB_HOST_PORT:-6411}
+      ZUNO_WEB_ORIGIN: http://127.0.0.1:${ZUNO_WEB_HOST_PORT:-6421}
       ZUNO_API_REFERENCE_TOKEN: local-zuno-reference-token
       ZUNO_CXFORGE_API_URL: http://cxforge:6400
       ZUNO_CXFORGE_CLIENT_KEY: local-zuno-to-cxforge-client-key-32chars
@@ -37,7 +37,7 @@ services:
       SUPER_ADMIN_USERNAME: superadmin
       SUPER_ADMIN_PASSWORD: local_zuno_superadmin
     ports:
-      - "127.0.0.1:${ZUNO_API_HOST_PORT:-6410}:6410"
+      - "127.0.0.1:${ZUNO_API_HOST_PORT:-6420}:6410"
     volumes:
       - zuno-data:/data
       - ../../..:/repository:ro
@@ -69,7 +69,7 @@ services:
       zuno-api:
         condition: service_healthy
     ports:
-      - "127.0.0.1:${ZUNO_WEB_HOST_PORT:-6411}:6411"
+      - "127.0.0.1:${ZUNO_WEB_HOST_PORT:-6421}:6411"
     networks:
       - codexsun-network
     restart: unless-stopped

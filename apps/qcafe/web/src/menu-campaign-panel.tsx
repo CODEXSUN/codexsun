@@ -1,9 +1,9 @@
-import { useState, type ComponentProps } from "react";
+import { useState } from "react";
 import { BadgePercentIcon, PlusIcon } from "lucide-react";
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
+import { Field } from "@codexsun/ui/components/field";
 import { Input } from "@codexsun/ui/components/input";
-import { Label } from "@codexsun/ui/components/label";
 import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
 import { localDateTime, toOffsetDateTime } from "./local-date-time";
 import type { MenuCatalog, SpecialCampaignInput, SpecialPriceInput } from "./menu-api";
@@ -60,32 +60,23 @@ export function MenuCampaignPanel({
           }}
         >
           <h4 className="font-medium">New campaign</h4>
-          <Field label="Name" name="name" placeholder="Festival menu" required />
-          <Select
-            label="Scope"
-            name="scope"
-            onChange={(next) => setScope(next as SpecialCampaignInput["scope"])}
-            options={[
+          <Field label="Name" htmlFor="name"><Input id="name" name="name" placeholder="Festival menu" required  /></Field>
+          <Field label="Scope" htmlFor="campaign-scope"><NativeSelect className="w-full" id="campaign-scope" name="scope" required onChange={(event) => setScope(event.currentTarget.value as SpecialCampaignInput["scope"])}>{[
               { id: "business", name: "All outlets" },
               { id: "location", name: "One outlet" },
-            ]}
-          />
-          {scope === "location" ? <Select label="Outlet" name="locationId" options={locations} /> : null}
+            ].map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          {scope === "location" ? <Field label="Outlet" htmlFor="campaign-locationId"><NativeSelect className="w-full" id="campaign-locationId" name="locationId" required>{locations.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field> : null}
           <div className="grid grid-cols-2 gap-3">
-            <Field defaultValue={localDateTime()} label="Starts at" name="startsAt" required type="datetime-local" />
-            <Field defaultValue={localDateTime(60)} label="Ends at" name="endsAt" required type="datetime-local" />
+            <Field label="Starts at" htmlFor="campaign-startsAt"><Input id="campaign-startsAt" name="startsAt" required type="datetime-local" defaultValue={localDateTime()} /></Field>
+            <Field label="Ends at" htmlFor="campaign-endsAt"><Input id="campaign-endsAt" name="endsAt" required type="datetime-local" defaultValue={localDateTime(60)} /></Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field defaultValue="0" label="Priority" min="0" name="priority" required type="number" />
-            <Select
-              label="Status"
-              name="status"
-              options={[
+            <Field label="Priority" htmlFor="campaign-priority"><Input id="campaign-priority" name="priority" required type="number" defaultValue="0" min="0" /></Field>
+            <Field label="Status" htmlFor="campaign-status"><NativeSelect className="w-full" id="campaign-status" name="status" required>{[
                 { id: "draft", name: "Draft" },
                 { id: "active", name: "Active" },
                 { id: "inactive", name: "Inactive" },
-              ]}
-            />
+              ].map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
           </div>
           <Button className="w-fit" disabled={pending || !locations.length} type="submit" variant="outline">
             <PlusIcon />
@@ -111,28 +102,25 @@ export function MenuCampaignPanel({
           }}
         >
           <h4 className="font-medium">New campaign price</h4>
-          <Select label="Campaign" name="campaignId" options={catalog.specialCampaigns} />
-          <Select label="Item" name="itemId" onChange={setItemId} options={catalog.items} />
-          <Select label="Variant" name="variantId" optional options={item?.variants ?? []} />
-          <Select
-            label="Rule"
-            name="rule"
-            onChange={(next) => setRule(next as "amount" | "discount")}
-            options={[
+          <Field label="Campaign" htmlFor="campaign-campaignId"><NativeSelect className="w-full" id="campaign-campaignId" name="campaignId" required>{catalog.specialCampaigns.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          <Field label="Item" htmlFor="campaign-itemId"><NativeSelect className="w-full" id="campaign-itemId" name="itemId" required onChange={(event) => setItemId(event.currentTarget.value)}>{catalog.items.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          <Field label="Variant" htmlFor="campaign-variantId"><NativeSelect className="w-full" id="campaign-variantId" name="variantId"><NativeSelectOption value="">All</NativeSelectOption>{(item?.variants ?? []).map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          <Field label="Rule" htmlFor="campaign-rule"><NativeSelect className="w-full" id="campaign-rule" name="rule" required onChange={(event) => setRule(event.currentTarget.value as "amount" | "discount")}>{[
               { id: "amount", name: `Fixed amount (${currency})` },
               { id: "discount", name: "Discount (%)" },
-            ]}
-          />
-          <Field
-            label={rule === "amount" ? `Amount (${currency})` : "Discount (%)"}
-            max={rule === "discount" ? 100 : undefined}
-            min={rule === "discount" ? 0.01 : 0}
-            name="ruleValue"
-            required
-            step="0.01"
-            type="number"
-          />
-          <Field label="Usage limit" min="1" name="usageLimit" placeholder="Unlimited" type="number" />
+            ].map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          <Field label={rule === "amount" ? `Amount (${currency})` : "Discount (%)"} htmlFor="campaign-ruleValue">
+            <Input
+              id="campaign-ruleValue"
+              max={rule === "discount" ? 100 : undefined}
+              min={rule === "discount" ? 0.01 : 0}
+              name="ruleValue"
+              required
+              step="0.01"
+              type="number"
+            />
+          </Field>
+          <Field label="Usage limit" htmlFor="campaign-usageLimit"><Input id="campaign-usageLimit" min="1" name="usageLimit" placeholder="Unlimited" type="number" /></Field>
           <Button
             className="w-fit"
             disabled={pending || !catalog.specialCampaigns.length || !catalog.items.length}
@@ -187,47 +175,6 @@ function describePrice(price: MenuCatalog["specialPrices"][number], catalog: Men
   const usage =
     price.usageLimit === null ? "unlimited" : `${Math.max(0, price.usageLimit - price.usedCount)} remaining`;
   return `${item?.name ?? "Item"}${variant ? ` / ${variant.name}` : ""}: ${rule}, ${usage}`;
-}
-function Field({ label, name, ...props }: ComponentProps<typeof Input> & { label: string; name: string }) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={`campaign-${name}`}>{label}</Label>
-      <Input id={`campaign-${name}`} name={name} {...props} />
-    </div>
-  );
-}
-function Select({
-  label,
-  name,
-  onChange,
-  optional,
-  options,
-}: {
-  label: string;
-  name: string;
-  onChange?: (value: string) => void;
-  optional?: boolean;
-  options: Array<{ id: string; name: string }>;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={`campaign-${name}`}>{label}</Label>
-      <NativeSelect
-        className="w-full"
-        id={`campaign-${name}`}
-        name={name}
-        onChange={(event) => onChange?.(event.currentTarget.value)}
-        required={!optional}
-      >
-        <NativeSelectOption value="">{optional ? "All" : "Select"}</NativeSelectOption>
-        {options.map((option) => (
-          <NativeSelectOption key={option.id} value={option.id}>
-            {option.name}
-          </NativeSelectOption>
-        ))}
-      </NativeSelect>
-    </div>
-  );
 }
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString();

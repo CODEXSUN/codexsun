@@ -1,6 +1,8 @@
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
+import { Checkbox } from "@codexsun/ui/components/checkbox";
 import { Input } from "@codexsun/ui/components/input";
+import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
 import { Textarea } from "@codexsun/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MinusIcon, PauseIcon, PlayIcon, PlusIcon, SendIcon, Trash2Icon } from "lucide-react";
@@ -132,20 +134,27 @@ function OrderRail({
 }) {
   return (
     <aside className="grid content-start gap-4 border-r pr-4">
-      <Select value={locationId} onChange={onLocation} options={locations.map((item) => [item.id, item.name])} />
+      <NativeSelect aria-label="Outlet" value={locationId} onChange={(event) => onLocation(event.currentTarget.value)}>
+        {locations.map((item) => (
+          <NativeSelectOption key={item.id} value={item.id}>
+            {item.name}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
       <h2 className="border-b pb-2 font-semibold">Orders</h2>
       {data?.orders.map((order) => (
-        <button
-          className={`grid gap-1 border-l-2 px-3 py-2 text-left ${selectedId === order.id ? "border-primary bg-muted" : "border-transparent"}`}
+        <Button
+          className={`grid h-auto justify-stretch gap-1 border-l-2 px-3 py-2 text-left font-normal ${selectedId === order.id ? "border-primary bg-muted" : "border-transparent"}`}
           key={order.id}
           onClick={() => onSelect(order.id)}
+          variant="ghost"
         >
           <span className="flex justify-between text-sm font-medium">
             {order.number}
             <Status value={order.status} />
           </span>
           <span className="text-xs text-muted-foreground">{money(order.total_minor, order.currency)}</span>
-        </button>
+        </Button>
       ))}
     </aside>
   );
@@ -198,17 +207,30 @@ function ItemComposer({
         <h2 className="font-semibold">Item composer</h2>
         <Badge variant="outline">Touch POS</Badge>
       </div>
-      <Select
+      <NativeSelect
+        aria-label="Menu item"
         value={item?.id ?? ""}
-        onChange={setItemId}
-        options={(menu?.items ?? []).map((entry) => [entry.id, entry.name])}
-      />
+        onChange={(event) => setItemId(event.currentTarget.value)}
+      >
+        {(menu?.items ?? []).map((entry) => (
+          <NativeSelectOption key={entry.id} value={entry.id}>
+            {entry.name}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
       {item?.variants.length ? (
-        <Select
+        <NativeSelect
+          aria-label="Variant"
           value={variantId}
-          onChange={setVariantId}
-          options={[["", "Standard"], ...item.variants.map((entry) => [entry.id, entry.name])]}
-        />
+          onChange={(event) => setVariantId(event.currentTarget.value)}
+        >
+          <NativeSelectOption value="">Standard</NativeSelectOption>
+          {item.variants.map((entry) => (
+            <NativeSelectOption key={entry.id} value={entry.id}>
+              {entry.name}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
       ) : null}
       {groups.map((group) => (
         <fieldset className="grid gap-2 border-y py-3" key={group.id}>
@@ -220,11 +242,11 @@ function ItemComposer({
             .map((option) => (
               <label className="flex justify-between text-sm" key={option.id}>
                 <span>
-                  <input
+                  <Checkbox
+                    aria-label={option.name}
                     className="mr-2"
-                    type="checkbox"
                     checked={options.includes(option.id)}
-                    onChange={() => setOptions(toggle(options, option.id))}
+                    onCheckedChange={() => setOptions(toggle(options, option.id))}
                   />
                   {option.name}
                 </span>
@@ -382,17 +404,30 @@ function NewOrder({
       }}
     >
       <h3 className="font-semibold">{compact ? "Start another order" : "Start order"}</h3>
-      <Select name="channel" options={channels.map((item) => [item.id, item.name])} />
-      <Select name="priceBook" options={priceBooks.map((item) => [item.id, `${item.name} · ${item.currency}`])} />
-      <Select
-        name="table"
-        options={[
-          ["", "No table"],
-          ...(booking?.sessions ?? [])
-            .filter((item) => item.status === "open")
-            .map((item) => [item.id, `${item.guest_count} guests`]),
-        ]}
-      />
+      <NativeSelect aria-label="Service channel" name="channel">
+        {channels.map((item) => (
+          <NativeSelectOption key={item.id} value={item.id}>
+            {item.name}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
+      <NativeSelect aria-label="Price book" name="priceBook">
+        {priceBooks.map((item) => (
+          <NativeSelectOption key={item.id} value={item.id}>
+            {`${item.name} · ${item.currency}`}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
+      <NativeSelect aria-label="Table" name="table">
+        <NativeSelectOption value="">No table</NativeSelectOption>
+        {(booking?.sessions ?? [])
+          .filter((item) => item.status === "open")
+          .map((item) => (
+            <NativeSelectOption key={item.id} value={item.id}>
+              {`${item.guest_count} guests`}
+            </NativeSelectOption>
+          ))}
+      </NativeSelect>
       <Input name="customer" placeholder="Guest / collection name" />
       <Input name="contact" placeholder="Contact" />
       <Button
@@ -442,30 +477,6 @@ function DraftTools({
   );
 }
 
-function Select({
-  onChange,
-  options,
-  ...props
-}: {
-  name?: string;
-  onChange?: (value: string) => void;
-  options: string[][];
-  value?: string;
-}) {
-  return (
-    <select
-      className="h-9 rounded-md border bg-background px-3 text-sm"
-      onChange={onChange ? (event) => onChange(event.target.value) : undefined}
-      {...props}
-    >
-      {options.map(([value, label]) => (
-        <option key={value} value={value}>
-          {label}
-        </option>
-      ))}
-    </select>
-  );
-}
 function Status({ value }: { value: string }) {
   return (
     <Badge variant={value === "cancelled" ? "destructive" : value === "confirmed" ? "default" : "secondary"}>

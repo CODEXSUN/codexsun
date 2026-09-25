@@ -1,11 +1,10 @@
 import { useMutation, useQuery, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
-import type { ComponentProps } from "react";
 import { AlertCircleIcon, Building2Icon, CalendarCheckIcon, CloudIcon, DatabaseIcon, PlusIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@codexsun/ui/components/alert";
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
+import { Field } from "@codexsun/ui/components/field";
 import { Input } from "@codexsun/ui/components/input";
-import { Label } from "@codexsun/ui/components/label";
 import {
   createFoundationBusiness,
   createFoundationLocation,
@@ -95,12 +94,12 @@ function FirstBusinessForm({ mutation }: { mutation: UseMutationResult<Foundatio
         </p>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Business name" name="businessName" placeholder="Q Cafe" required />
-        <Field label="Legal name" name="legalName" placeholder="Q Cafe Foods Private Limited" />
-        <Field label="Outlet name" name="locationName" placeholder="Main Road" required />
-        <Field label="Outlet code" name="locationCode" placeholder="MAIN" required />
-        <Field defaultValue={defaultTimezone} label="Timezone" name="timezone" required />
-        <Field defaultValue="INR" label="Currency" maxLength={3} name="currency" required />
+        <Field label="Business name" htmlFor="businessName"><Input id="businessName" name="businessName" placeholder="Q Cafe" required  /></Field>
+        <Field label="Legal name" htmlFor="legalName"><Input id="legalName" name="legalName" placeholder="Q Cafe Foods Private Limited"  /></Field>
+        <Field label="Outlet name" htmlFor="locationName"><Input id="locationName" name="locationName" placeholder="Main Road" required  /></Field>
+        <Field label="Outlet code" htmlFor="locationCode"><Input id="locationCode" name="locationCode" placeholder="MAIN" required  /></Field>
+<Field label="Timezone" htmlFor="timezone"><Input id="timezone" name="timezone" required defaultValue={defaultTimezone} /></Field>
+<Field label="Currency" htmlFor="currency"><Input id="currency" name="currency" required defaultValue="INR" maxLength={3} /></Field>
       </div>
       {mutation.error ? <SetupError message={mutation.error.message} /> : null}
       <Button className="w-fit" disabled={mutation.isPending} type="submit">
@@ -213,25 +212,15 @@ function AddLocationForm({
           New outlets receive standard service channels and sequences.
         </p>
       </div>
-      <Field label="Outlet name" name="name" placeholder="Airport Outlet" required />
-      <Field label="Outlet code" name="code" placeholder="AIRPORT" required />
-      <Field defaultValue={timezone} label="Timezone" name="timezone" required />
+      <Field label="Outlet name" htmlFor="name"><Input id="name" name="name" placeholder="Airport Outlet" required  /></Field>
+      <Field label="Outlet code" htmlFor="code"><Input id="code" name="code" placeholder="AIRPORT" required  /></Field>
+      <Field label="Timezone" htmlFor="timezone"><Input id="timezone" name="timezone" required defaultValue={timezone} /></Field>
       {mutation.error ? <SetupError message={mutation.error.message} /> : null}
       <Button disabled={mutation.isPending} type="submit" variant="outline">
         <PlusIcon />
         {mutation.isPending ? "Adding..." : "Add outlet"}
       </Button>
     </form>
-  );
-}
-
-function Field(props: ComponentProps<typeof Input> & { label: string; name: string }) {
-  const { label, name, ...inputProps } = props;
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} {...inputProps} />
-    </div>
   );
 }
 

@@ -1,13 +1,20 @@
 import type { ActivityRecorder, CommandContext } from "../../foundation/contracts/activity.contract.js";
 import type {
   AddDailyPlanLine,
+  ConsumeRecipe,
   CreateDailyPlan,
+  CreatePurchaseOrder,
   CreateRecipe,
   CreateStockItem,
+  CreateStockLot,
   CreateStockUnit,
   InventoryScope,
   PostStockAdjustment,
+  ReceiveGoods,
+  RecordWaste,
+  ReserveStock,
   ReviseRecipe,
+  SubmitStockCount,
 } from "../contracts/inventory.contract.js";
 import { InventoryRepository } from "../repository/inventory.repository.js";
 
@@ -22,6 +29,10 @@ export class InventoryService {
 
   read(scope: InventoryScope) {
     return this.repo.workspace(scope);
+  }
+
+  private get store() {
+    return this.repo.procurement;
   }
 
   async createUnit(input: CreateStockUnit, context: CommandContext) {
@@ -186,6 +197,216 @@ export class InventoryService {
     await this.repo.confirmDailyPlan(planId, this.timestamp());
     await this.record(context, "daily-plan.confirmed", planId, "daily-plan", { planDate: plan.plan_date });
     return this.read({ businessId: plan.business_id, locationId: plan.location_id });
+  }
+
+  async reserve(input: ReserveStock, context: CommandContext) {
+    if (!(await this.repo.location({ businessId: input.businessId, locationId: input.locationId }))) {
+      throw new InventoryConflictError("The inventory outlet scope is invalid.");
+    }
+    const item = await this.repo.item(input.stockItemId);
+    if (!item || item.business_id !== input.businessId || !item.active || !item.track_stock) {
+      throw new InventoryConflictError("The reserved stock item is invalid.");
+    }
+    const id = await this.repo.createReservation(
+      { businessId: input.businessId, locationId: input.locationId },
+      input,
+      context.actorId,
+      this.timestamp(),
+    );
+    await this.record(context, "stock.reserved", id, "stock-reservation", {
+      quantityMilli: input.quantityMilli,
+      sourceType: input.sourceType,
+    });
+    return this.read({ businessId: input.businessId, locationId: input.locationId });
+  }
+
+  async releaseReservation(reservationId: string, context: CommandContext) {
+    const reservation = await this.repo.reservation(reservationId);
+    if (!reservation || reservation.status !== "active") {
+      throw new InventoryConflictError("Only an active reservation can be released.");
+    }
+    await this.repo.resolveReservation(reservationId, "released", context.actorId, this.timestamp());
+    await this.record(context, "stock-reservation.released", reservationId, "stock-reservation", {});
+    return this.read({ businessId: reservation.business_id, locationId: reservation.location_id });
+  }
+
+  async consumeReservation(reservationId: string, context: CommandContext) {
+    const reservation = await this.repo.reservation(reservationId);
+    if (!reservation || reservation.status !== "active") {
+      throw new InventoryConflictError("Only an active reservation can be consumed.");
+    }
+    await this.repo.resolveReservation(reservationId, "consumed", context.actorId, this.timestamp());
+    await this.record(context, "stock-reservation.consumed", reservationId, "stock-reservation", {});
+    return this.read({ businessId: reservation.business_id, locationId: reservation.location_id });
+  }
+
+  async createPurchaseOrder(input: CreatePurchaseOrder, context: CommandContext) {
+    const scope = { businessId: input.businessId, locationId: input.locationId };
+    if (!(await this.repo.location(scope))) throw new InventoryConflictError("The inventory outlet scope is invalid.");
+    await this.assertTrackedItems(
+      input.businessId,
+      input.lines.map((line) => line.stockItemId),
+    );
+    const id = await this.store.createPurchaseOrder(scope, input, context.actorId, this.timestamp());
+    await this.record(context, "purchase-order.created", id, "purchase-order", { lines: input.lines.length });
+    return { id };
+  }
+
+  async sendPurchaseOrder(poId: string, context: CommandContext) {
+    const order = await this.store.purchaseOrder(poId);
+    if (!order || order.status !== "draft") throw new InventoryConflictError("Only a draft order can be sent.");
+    await this.store.setPurchaseOrderStatus(poId, "sent", this.timestamp());
+    await this.record(context, "purchase-order.sent", poId, "purchase-order", {});
+    return { id: poId };
+  }
+
+  async cancelPurchaseOrder(poId: string, context: CommandContext) {
+    const order = await this.store.purchaseOrder(poId);
+    if (!order || ["received", "cancelled"].includes(order.status)) {
+      throw new InventoryConflictError("The purchase order cannot be cancelled.");
+    }
+    await this.store.setPurchaseOrderStatus(poId, "cancelled", this.timestamp());
+    await this.record(context, "purchase-order.cancelled", poId, "purchase-order", {});
+    return { id: poId };
+  }
+
+  async receiveGoods(poId: string, input: ReceiveGoods, context: CommandContext) {
+    const order = await this.store.purchaseOrder(poId);
+    if (!order || !["sent", "partial"].includes(order.status)) {
+      throw new InventoryConflictError("Only a sent order can receive goods.");
+    }
+    const scope = { businessId: order.business_id, locationId: order.location_id };
+    const poLines = await this.store.poLines(poId);
+    const byId = new Map(poLines.map((line) => [line.id, line]));
+    const resolved = [];
+    for (const line of input.lines) {
+      const poLine = byId.get(line.poLineId);
+      if (!poLine || poLine.stock_item_id === undefined) throw new InventoryConflictError("A receipt line is invalid.");
+      if (line.quantityMilli > poLine.quantity_milli - poLine.received_milli) {
+        throw new InventoryConflictError("Receipt exceeds the outstanding order quantity.");
+      }
+      let lotId: string | null = null;
+      if (line.lotCode) {
+        lotId = await this.store.findOrCreateLot(
+          scope,
+          poLine.stock_item_id,
+          line.lotCode,
+          line.expiresAt,
+          context.actorId,
+          this.timestamp(),
+        );
+      }
+      resolved.push({
+        lotId,
+        poLineId: line.poLineId,
+        quantityMilli: line.quantityMilli,
+        stockItemId: poLine.stock_item_id,
+      });
+    }
+    const id = await this.store.receiveGoods(scope, poId, resolved, input.note, context.actorId, this.timestamp());
+    await this.record(context, "goods.received", id, "goods-receipt", { lines: resolved.length, poId });
+    return this.read(scope);
+  }
+
+  async createLot(input: CreateStockLot, context: CommandContext) {
+    const scope = { businessId: input.businessId, locationId: input.locationId };
+    if (!(await this.repo.location(scope))) throw new InventoryConflictError("The inventory outlet scope is invalid.");
+    await this.assertTrackedItems(input.businessId, [input.stockItemId]);
+    const id = await this.store.createLot(scope, input, context.actorId, this.timestamp());
+    await this.record(context, "stock-lot.created", id, "stock-lot", { lotCode: input.lotCode });
+    return { id };
+  }
+
+  async submitCount(input: SubmitStockCount, context: CommandContext) {
+    const scope = { businessId: input.businessId, locationId: input.locationId };
+    if (!(await this.repo.location(scope))) throw new InventoryConflictError("The inventory outlet scope is invalid.");
+    const seen = new Set<string>();
+    for (const line of input.lines) {
+      if (seen.has(line.stockItemId)) throw new InventoryConflictError("A count line is duplicated.");
+      seen.add(line.stockItemId);
+    }
+    await this.assertTrackedItems(
+      input.businessId,
+      input.lines.map((line) => line.stockItemId),
+    );
+    const onHand = await this.store.onHand(scope);
+    const withExpected = input.lines.map((line) => ({ ...line, expectedMilli: onHand.get(line.stockItemId) ?? 0 }));
+    const hasVariance = withExpected.some((line) => line.countedMilli !== line.expectedMilli);
+    if (hasVariance && !input.approvedBy?.trim()) {
+      throw new InventoryConflictError("A count variance requires an approver.");
+    }
+    const id = await this.store.submitCount(
+      scope,
+      { approvedBy: input.approvedBy, lines: withExpected, reason: input.reason },
+      context.actorId,
+      this.timestamp(),
+    );
+    await this.record(context, "stock.counted", id, "stock-count", { lines: withExpected.length });
+    return this.read(scope);
+  }
+
+  async recordWaste(input: RecordWaste, context: CommandContext) {
+    if (!input.approvedBy.trim()) throw new InventoryConflictError("Waste requires an approver.");
+    const scope = { businessId: input.businessId, locationId: input.locationId };
+    if (!(await this.repo.location(scope))) throw new InventoryConflictError("The inventory outlet scope is invalid.");
+    await this.assertTrackedItems(input.businessId, [input.stockItemId]);
+    const id = await this.store.recordWaste(scope, input, context.actorId, this.timestamp());
+    await this.record(context, "waste.recorded", id, "waste-event", { quantityMilli: input.quantityMilli });
+    return this.read(scope);
+  }
+
+  async consumeForSale(input: ConsumeRecipe, context: CommandContext) {
+    const scope = { businessId: input.businessId, locationId: input.locationId };
+    if (!(await this.repo.location(scope))) throw new InventoryConflictError("The inventory outlet scope is invalid.");
+    const onDate = input.onDate ?? this.timestamp().slice(0, 10);
+    const found = await this.store.activeRecipe(input.businessId, input.menuItemId, input.menuVariantId, onDate);
+    if (!found || !found.components.length) {
+      throw new InventoryConflictError("No active recipe covers this sale.");
+    }
+    const lines = found.components.map((component) => ({
+      quantityMilli: component.quantity_milli * input.portions,
+      stockItemId: component.stock_item_id,
+    }));
+    const [onHand, workspace] = await Promise.all([this.store.onHand(scope), this.read(scope)]);
+    const held = new Map<string, number>();
+    for (const reservation of workspace.reservations) {
+      if (reservation.status !== "active") continue;
+      held.set(reservation.stock_item_id, (held.get(reservation.stock_item_id) ?? 0) + reservation.quantity_milli);
+    }
+    for (const line of lines) {
+      const available = (onHand.get(line.stockItemId) ?? 0) - (held.get(line.stockItemId) ?? 0);
+      if (line.quantityMilli > available) {
+        throw new InventoryConflictError("Insufficient planning stock for this sale.");
+      }
+    }
+    const id = await this.store.createConsumption(
+      scope,
+      {
+        lines,
+        portions: input.portions,
+        recipeId: found.recipe.id,
+        sourceId: input.sourceId,
+        sourceType: input.sourceType,
+      },
+      context.actorId,
+      this.timestamp(),
+    );
+    await this.record(context, "recipe.consumed", id, "consumption", {
+      portions: input.portions,
+      recipeId: found.recipe.id,
+      sourceId: input.sourceId,
+      sourceType: input.sourceType,
+    });
+    return this.read(scope);
+  }
+
+  private async assertTrackedItems(businessId: string, stockItemIds: ReadonlyArray<string>) {
+    for (const stockItemId of stockItemIds) {
+      const item = await this.repo.item(stockItemId);
+      if (!item || item.business_id !== businessId || !item.active || !item.track_stock) {
+        throw new InventoryConflictError("A stock item is invalid.");
+      }
+    }
   }
 
   private async assertRecipeTarget(businessId: string, locationId: string, menuItemId: string, menuVariantId?: string) {

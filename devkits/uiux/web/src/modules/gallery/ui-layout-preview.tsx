@@ -16,6 +16,7 @@ import {
   Settings2Icon,
   ShoppingBagIcon,
   SlidersHorizontalIcon,
+  SparklesIcon,
   Table2Icon,
   TagIcon,
   UploadCloudIcon,
@@ -35,6 +36,8 @@ import type { UiLayoutId } from "./ui-layouts";
 
 const blockIcons = {
   "execution-status": BotIcon,
+  mascot: SparklesIcon,
+  "app-header": LayoutTemplateIcon,
   form: FilePenLineIcon,
   table: Table2Icon,
   kanban: Columns3Icon,

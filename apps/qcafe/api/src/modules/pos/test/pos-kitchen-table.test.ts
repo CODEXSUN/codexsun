@@ -16,7 +16,7 @@ import { TableServiceRepository } from "../../booking/repository/table-service.r
 import { TableServiceService } from "../../booking/services/table-service.service.js";
 import { KitchenRepository } from "../../kitchen/repository/kitchen.repository.js";
 import { KitchenService } from "../../kitchen/services/kitchen.service.js";
-import { createQcafeLifecyclePlans } from "../../../qcafe-lifecycle-plans.js";
+import { createQcafeLifecyclePlans, lifecycleDescriptorTotal } from "../../../qcafe-lifecycle-plans.js";
 import { PosRepository } from "../repository/pos.repository.js";
 import { PosService } from "../services/pos.service.js";
 
@@ -197,7 +197,7 @@ test("runs dine-in KOT and takeaway flows through durable records", async () => 
   await kitchen.action(takeawayTicket.id, "accept", undefined, context);
   await kitchen.action(takeawayTicket.id, "void", "Guest canceled item", context);
   await kitchen.assertOrderReady(takeawayOrder.id);
-  assert.equal((await persistence.verify()).length, 15);
+  assert.equal((await persistence.verify()).length, lifecycleDescriptorTotal());
   assert.deepEqual(await persistence.initialize(), []);
   await persistence.destroy();
 });

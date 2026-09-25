@@ -19,3 +19,5 @@ Provides step-by-step guidance for planning, implementing, and verifying enginee
 - Ensure all module providers define `owner` and declare `published` and `consumed` events.
 - If a module introduces a `repository` directory, ensure a corresponding `service` directory is present.
 - Every module must maintain an independent `README.md` and test suite.
+- Maintain multi-modal tool schemas in `src/modules/capabilities/contracts/capabilities-contracts.ts`.
+- Ensure all 30 tests pass with `npm.cmd run test:codeitz`.

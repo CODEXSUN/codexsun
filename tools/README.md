@@ -73,6 +73,31 @@ known child process tree after five seconds.
 Stop a development command with `Ctrl+C`. The runner releases its reservation
 when its workspace process exits.
 
+## Stack commands
+
+The root package keeps one short runner for test, build, and add-on stacks.
+
+```text
+npm.cmd run test -- --projex
+npm.cmd run test -- --stack hrms
+npm.cmd run build -- --projex
+npm.cmd run addons -- --flowix check
+npm.cmd run addons -- --all test
+```
+
+Use `npm.cmd run dev:zuno` to start the Zuno API and web hosts together. The
+dynamic host loaders start one selected host when only one side is needed:
+
+```text
+npm.cmd run dev:api -- --zuno
+npm.cmd run dev:web -- --zuno
+npm.cmd run dev:hrms
+```
+
+Every registered application has a `dev:<application>` combined entry. The
+loader reads API and web targets from the application registry, so new apps do
+not need separate root API and web scripts.
+
 ## Workspace Layout
 
 Use `node tools/check-root-layout.mjs` to verify the single root `node_modules/`, `dist/`, and `dist/.turbo/` locations.

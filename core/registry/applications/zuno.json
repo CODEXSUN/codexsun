@@ -24,7 +24,7 @@
       "environmentDirectory": "api",
       "envKey": "ZUNO_API_PORT",
       "workspace": "@codexsun/zuno-api",
-      "defaultPort": 6410
+      "defaultPort": 6420
     },
     {
       "kind": "web",
@@ -33,7 +33,7 @@
       "environmentDirectory": "web",
       "envKey": "ZUNO_WEB_PORT",
       "workspace": "@codexsun/zuno-web",
-      "defaultPort": 6411
+      "defaultPort": 6421
     },
     {
       "kind": "desktop",

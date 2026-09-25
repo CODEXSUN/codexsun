@@ -14,7 +14,10 @@ const context = { actorId: "manager-1", correlationId: "77777777-7777-4777-8777-
 const now = () => new Date("2026-09-24T12:00:00.000Z");
 
 async function setup() {
-  const persistence = createQcafePersistence({ localDatabasePath: ":memory:", mode: "local" }, createQcafeLifecyclePlans());
+  const persistence = createQcafePersistence(
+    { localDatabasePath: ":memory:", mode: "local" },
+    createQcafeLifecyclePlans(),
+  );
   await persistence.initialize();
   const database = persistence.database();
   const activity = new ActivityRepository(database, now);
@@ -37,7 +40,10 @@ async function setup() {
   const business = created.businesses[0]!;
   const location = business.locations[0]!;
   const menu = new MenuService(new MenuRepository(database), activity, now);
-  let catalog = await menu.createCategory({ businessId: business.id, code: "FOOD", name: "Food", sortOrder: 1 }, context);
+  let catalog = await menu.createCategory(
+    { businessId: business.id, code: "FOOD", name: "Food", sortOrder: 1 },
+    context,
+  );
   catalog = await menu.createItem(
     { businessId: business.id, categoryId: catalog.categories[0]!.id, code: "MEAL", itemType: "food", name: "Meal" },
     context,
@@ -72,10 +78,12 @@ test("plans daily lines with an identified demand source", async () => {
     context,
   );
   assert.equal(state.planLines.length, 4);
-  assert.deepEqual(
-    state.planLines.map((line) => line.demand_source).sort(),
-    ["booking", "event", "regular", "special"],
-  );
+  assert.deepEqual(state.planLines.map((line) => line.demand_source).sort(), [
+    "booking",
+    "event",
+    "regular",
+    "special",
+  ]);
   state = await inventory.confirmDailyPlan(plan.id, context);
   assert.equal(state.plans[0]!.status, "confirmed");
 });
@@ -84,11 +92,22 @@ test("rejects duplicate plans and lines on confirmed plans", async () => {
   const { business, inventory, item, location } = await setup();
   const scope = { businessId: business.id, locationId: location.id };
   const plan = await inventory.createDailyPlan({ ...scope, planDate: "2026-10-01" }, context);
-  await assert.rejects(inventory.createDailyPlan({ ...scope, planDate: "2026-10-01" }, context), InventoryConflictError);
-  await inventory.addDailyPlanLine(plan.id, { demandSource: "regular", menuItemId: item.id, quantityMilli: 1_000 }, context);
+  await assert.rejects(
+    inventory.createDailyPlan({ ...scope, planDate: "2026-10-01" }, context),
+    InventoryConflictError,
+  );
+  await inventory.addDailyPlanLine(
+    plan.id,
+    { demandSource: "regular", menuItemId: item.id, quantityMilli: 1_000 },
+    context,
+  );
   await inventory.confirmDailyPlan(plan.id, context);
   await assert.rejects(
-    inventory.addDailyPlanLine(plan.id, { demandSource: "regular", menuItemId: item.id, quantityMilli: 1_000 }, context),
+    inventory.addDailyPlanLine(
+      plan.id,
+      { demandSource: "regular", menuItemId: item.id, quantityMilli: 1_000 },
+      context,
+    ),
     InventoryConflictError,
   );
   await assert.rejects(inventory.confirmDailyPlan(plan.id, context), InventoryConflictError);

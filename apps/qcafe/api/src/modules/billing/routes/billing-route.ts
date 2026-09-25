@@ -20,10 +20,18 @@ import {
   voucherIdSchema,
 } from "../contracts/billing.contract.js";
 import { BillingConflictError, BillingService } from "../services/billing.service.js";
+import { PolicyDeniedError, assertPolicy, type QcafePermission } from "../../policies/services/policies.js";
+import type { Actor } from "@codexsun/platform-core";
 
 type Context = (request: FastifyRequest) => CommandContext;
+type ActorFor = (request: FastifyRequest) => Actor | undefined;
 
-export async function registerBillingRoutes(app: FastifyInstance, service: BillingService, contextFor: Context) {
+export async function registerBillingRoutes(
+  app: FastifyInstance,
+  service: BillingService,
+  contextFor: Context,
+  actorFor?: ActorFor,
+) {
   app.get(
     "/api/v1/qcafe/billing",
     { schema: { querystring: billingScopeSchema, response: { 200: billingWorkspaceSchema }, tags: ["Billing"] } },
@@ -49,6 +57,7 @@ export async function registerBillingRoutes(app: FastifyInstance, service: Billi
   );
   app.post("/api/v1/qcafe/billing/payments/:paymentId/refunds", async (request, reply) =>
     run(reply, () => {
+      authorize(request, "qcafe.billing.refund");
       const input = refundPaymentSchema.parse(request.body);
       return service.refund(
         paymentIdSchema.parse(request.params).paymentId,
@@ -59,19 +68,24 @@ export async function registerBillingRoutes(app: FastifyInstance, service: Billi
     }),
   );
   app.post("/api/v1/qcafe/billing/payments/:paymentId/reversals", async (request, reply) =>
-    run(reply, () =>
-      service.reverse(
+    run(reply, () => {
+      authorize(request, "qcafe.billing.refund");
+      return service.reverse(
         paymentIdSchema.parse(request.params).paymentId,
         reversePaymentSchema.parse(request.body).reason,
         contextFor(request),
-      ),
-    ),
+      );
+    }),
   );
   app.post("/api/v1/qcafe/billing/vouchers", async (request, reply) =>
-    run(reply, () => service.issueVoucher(issueVoucherSchema.parse(request.body), contextFor(request))),
+    run(reply, () => {
+      authorize(request, "qcafe.billing.voucher");
+      return service.issueVoucher(issueVoucherSchema.parse(request.body), contextFor(request));
+    }),
   );
   app.post("/api/v1/qcafe/billing/vouchers/:voucherId/applications", async (request, reply) =>
     run(reply, () => {
+      authorize(request, "qcafe.billing.voucher");
       const input = applyVoucherSchema.parse(request.body);
       return service.applyVoucher(
         voucherIdSchema.parse(request.params).voucherId,
@@ -85,26 +99,35 @@ export async function registerBillingRoutes(app: FastifyInstance, service: Billi
     run(reply, () => service.openShift(openCashShiftSchema.parse(request.body), contextFor(request))),
   );
   app.post("/api/v1/qcafe/billing/cash-shifts/:cashShiftId/movements", async (request, reply) =>
-    run(reply, () =>
-      service.moveCash(
+    run(reply, () => {
+      authorize(request, "qcafe.cash.move");
+      return service.moveCash(
         cashShiftIdSchema.parse(request.params).cashShiftId,
         cashMovementSchema.parse(request.body),
         contextFor(request),
-      ),
-    ),
+      );
+    }),
   );
   app.post("/api/v1/qcafe/billing/cash-shifts/:cashShiftId/settle", async (request, reply) =>
-    run(reply, () =>
-      service.settleShift(
+    run(reply, () => {
+      authorize(request, "qcafe.cash.settle");
+      return service.settleShift(
         cashShiftIdSchema.parse(request.params).cashShiftId,
         settleCashShiftSchema.parse(request.body),
         contextFor(request),
-      ),
-    ),
+      );
+    }),
   );
   app.post("/api/v1/qcafe/billing/business-days/:businessDayId/close", async (request, reply) =>
-    run(reply, () => service.closeDay(businessDayIdSchema.parse(request.params).businessDayId, contextFor(request))),
+    run(reply, () => {
+      authorize(request, "qcafe.day.close");
+      return service.closeDay(businessDayIdSchema.parse(request.params).businessDayId, contextFor(request));
+    }),
   );
+
+  function authorize(request: FastifyRequest, permission: QcafePermission) {
+    if (actorFor) assertPolicy(actorFor(request), permission);
+  }
 }
 
 async function run(
@@ -115,6 +138,7 @@ async function run(
     return reply.code(201).send(await operation());
   } catch (error) {
     if (error instanceof BillingConflictError) return reply.code(409).send({ error: error.message });
+    if (error instanceof PolicyDeniedError) return reply.code(403).send({ error: error.message });
     throw error;
   }
 }

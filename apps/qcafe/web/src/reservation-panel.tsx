@@ -1,6 +1,7 @@
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
+import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarPlusIcon, CheckIcon, LogInIcon, UserPlusIcon, XIcon } from "lucide-react";
 import { changeGuestBooking, readGuestBookings } from "./booking-api";
@@ -165,10 +166,10 @@ export function ReservationPanel({ booking, businessId, channels, locationId, me
           <Input name="phone" placeholder="Phone" />
           <Input name="email" placeholder="Email" type="email" />
           <label className="flex items-center gap-2 text-sm">
-            <input name="whatsappConsent" type="checkbox" /> WhatsApp consent
+            <input className="size-4 accent-primary" name="whatsappConsent" type="checkbox" /> WhatsApp consent
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <input name="emailConsent" type="checkbox" /> Email consent
+            <input className="size-4 accent-primary" name="emailConsent" type="checkbox" /> Email consent
           </label>
           <Button type="submit" variant="outline">
             <UserPlusIcon /> Add guest
@@ -193,25 +194,22 @@ export function ReservationPanel({ booking, businessId, channels, locationId, me
           }}
         >
           <h2 className="font-semibold">New reservation</h2>
-          <Select name="customerId" options={(data?.customers ?? []).map((item) => [item.id, item.name])} />
+          <NativeSelect aria-label="customerId" name="customerId">{(data?.customers ?? []).map((item) => (<NativeSelectOption key={item.id} value={item.id}>{item.name}</NativeSelectOption>))}</NativeSelect>
           <Input name="arrivalAt" required type="datetime-local" />
           <div className="grid grid-cols-2 gap-2">
             <Input defaultValue="90" min="15" name="durationMinutes" required type="number" />
             <Input min="1" name="partySize" placeholder="Guests" required type="number" />
           </div>
-          <Select
-            name="source"
-            options={[
+          <NativeSelect aria-label="source" name="source">{[
               ["phone", "Phone"],
               ["walk_in", "Walk-in"],
               ["web", "Web"],
               ["qr", "QR"],
-            ]}
-          />
+            ].map(([value, label]) => (<NativeSelectOption key={value} value={value}>{label}</NativeSelectOption>))}</NativeSelect>
           <div className="grid grid-cols-2 gap-2">
             {booking?.tables.map((table) => (
               <label className="flex items-center gap-2 border p-2 text-sm" key={table.id}>
-                <input name="tableIds" type="checkbox" value={table.id} /> {table.code} ({table.capacity})
+                <input className="size-4 accent-primary" name="tableIds" type="checkbox" value={table.id} /> {table.code} ({table.capacity})
               </label>
             ))}
           </div>
@@ -222,18 +220,6 @@ export function ReservationPanel({ booking, businessId, channels, locationId, me
         {change.error ? <p className="text-sm text-destructive">{change.error.message}</p> : null}
       </aside>
     </div>
-  );
-}
-
-function Select({ name, options }: { name: string; options: string[][] }) {
-  return (
-    <select className="h-9 rounded-md border bg-background px-3 text-sm" name={name} required>
-      {options.map(([value, label]) => (
-        <option key={value} value={value}>
-          {label}
-        </option>
-      ))}
-    </select>
   );
 }
 

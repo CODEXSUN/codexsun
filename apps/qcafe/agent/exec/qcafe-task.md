@@ -129,54 +129,54 @@
   - Acceptance: every accepted stock change posts a source-linked ledger movement.
 - [x] `QC-0602` Add recipes and recipe components for menu variants.
   - Acceptance: recipe revisions keep their effective dates and source history.
-- [ ] `QC-0603` Add daily plans and daily plan lines for regular sales, specials, bookings, and events.
+- [x] `QC-0603` Add daily plans and daily plan lines for regular sales, specials, bookings, and events.
   - Acceptance: each plan line identifies its demand source.
-- [ ] `QC-0604` Add stock reservations for confirmed events, daily plans, specials, and approved orders.
+- [x] `QC-0604` Add stock reservations for confirmed events, daily plans, specials, and approved orders.
   - Acceptance: reserved quantity reduces available planning stock without posting consumption early.
-- [ ] `QC-0605` Add purchase orders, goods receipts, stock counts, lot tracking, and waste events as enabled capabilities.
+- [x] `QC-0605` Add purchase orders, goods receipts, stock counts, lot tracking, and waste events as enabled capabilities.
   - Acceptance: count variance and waste require a reason and approval.
-- [ ] `QC-0606` Verify recipe consumption and event reservation against the stock ledger.
+- [x] `QC-0606` Verify recipe consumption and event reservation against the stock ledger.
   - Acceptance: a final sale and an event plan produce traceable stock effects.
 
 ## Phase 7: Documents, Printers, Desktop, and Delivery
 
-- [ ] `QC-0701` Add document file, printer profile, printer route, print job, and print attempt records.
+- [x] `QC-0701` Add document file, printer profile, printer route, print job, and print attempt records.
   - Acceptance: the system creates a durable document before it queues any print job.
-- [ ] `QC-0702` Add preview printing through the browser.
+- [x] `QC-0702` Add preview printing through the browser.
   - Acceptance: an operator confirms a preview job before the print attempt starts.
-- [ ] `QC-0703` Add direct Windows service printing with idempotency acknowledgement.
+- [x] `QC-0703` Add direct Windows service printing with idempotency acknowledgement.
   - Acceptance: a direct receipt or KOT job records request, acknowledgement, retry, and failure states.
-- [ ] `QC-0704` Add web gateway, Bluetooth, wireless, and network printer adapters behind one print contract.
+- [x] `QC-0704` Add web gateway, Bluetooth, wireless, and network printer adapters behind one print contract.
   - Acceptance: unavailable printers keep jobs pending or route them by configured fallback rules.
-- [ ] `QC-0705` Add PDF email and approved WhatsApp delivery records.
+- [x] `QC-0705` Add PDF email and approved WhatsApp delivery records.
   - Acceptance: the delivery uses a rendered document, customer consent, and a provider reference.
-- [ ] `QC-0706` Add desktop data-folder selection, backup schedule, restore checks, and recovery instructions.
+- [x] `QC-0706` Add desktop data-folder selection, backup schedule, restore checks, and recovery instructions.
   - Acceptance: a Windows install preserves data and restores a tested backup.
 
 ## Phase 8: Multi-Location, Mobile, Sync, and External Channels
 
-- [ ] `QC-0801` Add device profiles, change-log entries, sync cursors, and conflict records.
+- [x] `QC-0801` Add device profiles, change-log entries, sync cursors, and conflict records.
   - Acceptance: financial records never use silent last-write-wins conflict resolution.
-- [ ] `QC-0802` Add mobile, desktop, and web synchronization through the approved platform contract.
+- [x] `QC-0802` Add mobile, desktop, and web synchronization through the approved platform contract.
   - Acceptance: one offline change, one retry, and one conflict have recorded outcomes.
-- [ ] `QC-0803` Add marketplace connection, menu mapping, order intake, event, and settlement records.
+- [x] `QC-0803` Add marketplace connection, menu mapping, order intake, event, and settlement records.
   - Acceptance: each partner request is idempotent and uses an official adapter contract.
-- [ ] `QC-0804` Add delivery fulfillment details and reconciliation for approved delivery partners.
+- [x] `QC-0804` Add delivery fulfillment details and reconciliation for approved delivery partners.
   - Acceptance: partner collection and fee records reconcile with the order and payment records.
-- [ ] `QC-0805` Add accounting mapping and journal export only after statutory and accounting contracts are approved.
+- [x] `QC-0805` Add accounting mapping and journal export only after statutory and accounting contracts are approved.
   - Acceptance: generated journal lines balance and link to source documents.
 
 ## Phase 9: Reporting, Controls, and Release
 
-- [ ] `QC-0901` Add sales, tax, payment, item, table, kitchen, shift, stock, and event reports.
+- [x] `QC-0901` Add sales, tax, payment, item, table, kitchen, shift, stock, and event reports.
   - Acceptance: each report uses posted records and states its location and business-day scope.
-- [ ] `QC-0902` Add operational role policies for cashier, waiter, kitchen, manager, and owner users.
+- [x] `QC-0902` Add operational role policies for cashier, waiter, kitchen, manager, and owner users.
   - Acceptance: restricted actions fail through API authorization checks.
-- [ ] `QC-0903` Add dashboard alerts for pending KOTs, stock risk, booking conflicts, failed prints, and unsettled shifts.
+- [x] `QC-0903` Add dashboard alerts for pending KOTs, stock risk, booking conflicts, failed prints, and unsettled shifts.
   - Acceptance: every alert links to a recorded operational subject.
-- [ ] `QC-0904` Run data migration dry runs from the reviewed snapshot.
+- [x] `QC-0904` Run data migration dry runs from the reviewed snapshot.
   - Acceptance: import totals, rejected records, and reconciliation results are documented.
-- [ ] `QC-0905` Run focused API, web, desktop, migration, recovery, and end-to-end verification.
+- [x] `QC-0905` Run focused API, web, desktop, migration, recovery, and end-to-end verification.
   - Acceptance: the release record separates completed proof from untested deployment and production claims.
 
 ## Work First

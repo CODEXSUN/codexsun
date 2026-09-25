@@ -26,9 +26,13 @@ import { CodeitzFoundationProvider } from "./modules/foundation/provider.js";
 import { CodeitzEngineeringProvider } from "./modules/engineering/provider.js";
 import { CodeitzLearningProvider } from "./modules/learning/provider.js";
 import { CodeitzSkillsProvider } from "./modules/skills/provider.js";
+import { CodeitzCapabilitiesProvider } from "./modules/capabilities/provider.js";
+import { CodeitzMemoryProvider } from "./modules/memory/provider.js";
 import { registerSweRoutes } from "./modules/engineering/routes/swe.routes.js";
 import { registerLearningRoutes } from "./modules/learning/routes/learning.routes.js";
 import { registerSkillsRoutes } from "./modules/skills/routes/skills.routes.js";
+import { registerCapabilitiesRoutes } from "./modules/capabilities/routes/capabilities.routes.js";
+import { registerMemoryRoutes } from "./modules/memory/routes/memory.routes.js";
 
 const config = readConfig();
 const identity = new LocalIdentityStore(config);
@@ -38,12 +42,19 @@ const foundationProvider = new CodeitzFoundationProvider();
 const engineeringProvider = new CodeitzEngineeringProvider();
 const learningProvider = new CodeitzLearningProvider();
 const skillsProvider = new CodeitzSkillsProvider();
+const capabilitiesProvider = new CodeitzCapabilitiesProvider();
+const memoryProvider = new CodeitzMemoryProvider();
+
+// Ground engineering runner tasks with Memory Bank and Skill Organiser
+engineeringProvider.setMemoryAndSkills(memoryProvider.service, skillsProvider.organiser);
 
 const providers = [
   foundationProvider,
   engineeringProvider,
   learningProvider,
   skillsProvider,
+  capabilitiesProvider,
+  memoryProvider,
 ];
 
 const profile = readApplicationDeployableProfile({
@@ -192,9 +203,20 @@ app.post("/api/v1/codeitz/auth/logout", async (request, reply) =>
 registerIdentityManagementRoutes({ app, identity, prefix: "/api/v1/codeitz" });
 
 // Register Codeitz Product Module Routes
-registerSweRoutes(app, engineeringProvider.orchestrator);
+registerSweRoutes(
+  app,
+  engineeringProvider.orchestrator,
+  engineeringProvider.runner,
+  engineeringProvider.codebaseGraph,
+  engineeringProvider.gitOps,
+  engineeringProvider.projects,
+  engineeringProvider.patcher,
+  engineeringProvider.stateGraph,
+);
 registerLearningRoutes(app, learningProvider.learningService);
-registerSkillsRoutes(app, skillsProvider.skillService);
+registerSkillsRoutes(app, skillsProvider.skillService, skillsProvider.organiser);
+registerCapabilitiesRoutes(app, capabilitiesProvider.service);
+registerMemoryRoutes(app, memoryProvider.service);
 
 app.get("/api/v1/codeitz/health", {
   schema: {
@@ -230,6 +252,8 @@ function isPublicPath(url: string): boolean {
     || path.startsWith("/api/v1/codeitz/swe")
     || path.startsWith("/api/v1/codeitz/learning")
     || path.startsWith("/api/v1/codeitz/skills")
+    || path.startsWith("/api/v1/codeitz/capabilities")
+    || path.startsWith("/api/v1/codeitz/memory")
     || path === "/api/internal/reference"
     || path.startsWith("/api/internal/reference/");
 }

@@ -16,7 +16,7 @@ import { MenuSaleabilityService } from "../../menu/services/menu-saleability.ser
 import { MenuService } from "../../menu/services/menu.service.js";
 import { PosRepository } from "../../pos/repository/pos.repository.js";
 import { PosService } from "../../pos/services/pos.service.js";
-import { createQcafeLifecyclePlans } from "../../../qcafe-lifecycle-plans.js";
+import { createQcafeLifecyclePlans, lifecycleDescriptorTotal } from "../../../qcafe-lifecycle-plans.js";
 import { EventSalesRepository } from "../repository/event-sales.repository.js";
 import { GuestBookingRepository } from "../repository/guest-booking.repository.js";
 import { TableServiceRepository } from "../repository/table-service.repository.js";
@@ -287,6 +287,6 @@ test("protects reservations, rotates guest QR, and runs a function through final
     .execute();
   assert.ok(recordedEvents.some((item) => item.event_type === "qcafe.booking.reservation.seated"));
   assert.ok(recordedEvents.some((item) => item.event_type === "qcafe.booking.event-advance.received"));
-  assert.equal((await persistence.verify()).length, 15);
+  assert.equal((await persistence.verify()).length, lifecycleDescriptorTotal());
   await persistence.destroy();
 });

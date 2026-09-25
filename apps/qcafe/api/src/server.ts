@@ -74,6 +74,24 @@ import { registerEventSalesRoutes } from "./modules/booking/routes/event-sales-r
 import { InventoryRepository } from "./modules/inventory/repository/inventory.repository.js";
 import { InventoryService } from "./modules/inventory/services/inventory.service.js";
 import { registerInventoryRoutes } from "./modules/inventory/routes/inventory-route.js";
+import { DocumentsRepository } from "./modules/documents/repository/documents.repository.js";
+import { DocumentsService } from "./modules/documents/services/documents.service.js";
+import { registerDocumentsRoutes } from "./modules/documents/routes/documents-route.js";
+import { BackupRepository } from "./modules/backup/repository/backup.repository.js";
+import { BackupService } from "./modules/backup/services/backup.service.js";
+import { registerBackupRoutes } from "./modules/backup/routes/backup-route.js";
+import { MarketplaceRepository } from "./modules/marketplace/repository/marketplace.repository.js";
+import { MarketplaceService } from "./modules/marketplace/services/marketplace.service.js";
+import { registerMarketplaceRoutes } from "./modules/marketplace/routes/marketplace-route.js";
+import { AccountingRepository } from "./modules/accounting/repository/accounting.repository.js";
+import { AccountingService } from "./modules/accounting/services/accounting.service.js";
+import { registerAccountingRoutes } from "./modules/accounting/routes/accounting-route.js";
+import { ReportsRepository } from "./modules/reports/repository/reports.repository.js";
+import { ReportsService } from "./modules/reports/services/reports.service.js";
+import { registerReportsRoutes } from "./modules/reports/routes/reports-route.js";
+import { SyncRepository } from "./modules/sync/repository/sync.repository.js";
+import { SyncService } from "./modules/sync/services/sync.service.js";
+import { registerSyncRoutes } from "./modules/sync/routes/sync-route.js";
 
 const config = readConfig();
 const persistence = createQcafePersistence(config.persistence, createQcafeLifecyclePlans());
@@ -247,6 +265,7 @@ const contextFor = (request: object & { headers: Record<string, unknown> }) => {
   const correlationId = typeof supplied === "string" && /^[0-9a-f-]{36}$/i.test(supplied) ? supplied : randomUUID();
   return { actorId: actor.id, correlationId };
 };
+const actorFor = (request: object) => requestActors.get(request);
 const foundationSetup = new FoundationSetupService(
   new FoundationSetupRepository(persistence.database()),
   config.persistence,
@@ -310,6 +329,12 @@ const guestBooking = new GuestBookingService(
 );
 const eventSales = new EventSalesService(new EventSalesRepository(persistence.database()), billing, activity);
 const inventory = new InventoryService(new InventoryRepository(persistence.database()), activity);
+const documents = new DocumentsService(new DocumentsRepository(persistence.database()), activity);
+const backup = new BackupService(new BackupRepository(persistence.database()), activity);
+const marketplace = new MarketplaceService(new MarketplaceRepository(persistence.database()), activity);
+const accounting = new AccountingService(new AccountingRepository(persistence.database()), activity);
+const reports = new ReportsService(new ReportsRepository(persistence.database()));
+const sync = new SyncService(new SyncRepository(persistence.database()), activity);
 await registerPosRoutes(
   app,
   pos,
@@ -320,10 +345,16 @@ await registerPosRoutes(
 );
 await registerKitchenRoutes(app, kitchen, contextFor);
 await registerTableServiceRoutes(app, tableService, contextFor);
-await registerBillingRoutes(app, billing, contextFor);
+await registerBillingRoutes(app, billing, contextFor, actorFor);
 await registerGuestBookingRoutes(app, guestBooking, contextFor);
 await registerEventSalesRoutes(app, eventSales, contextFor);
 await registerInventoryRoutes(app, inventory, contextFor);
+await registerDocumentsRoutes(app, documents, contextFor);
+await registerBackupRoutes(app, backup, contextFor);
+await registerMarketplaceRoutes(app, marketplace, contextFor);
+await registerAccountingRoutes(app, accounting, contextFor);
+await registerReportsRoutes(app, reports);
+await registerSyncRoutes(app, sync, contextFor);
 app.get(
   "/api/v1/qcafe/health",
   {

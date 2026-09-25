@@ -2,7 +2,13 @@ import { readLocalIdentityConfiguration } from "@codexsun/platform-core";
 import { config } from "dotenv";
 import { resolve } from "node:path";
 
-export function readConfig() {
+type CodeitzConfiguration = ReturnType<typeof readLocalIdentityConfiguration> & {
+  readonly apiReferenceToken: string;
+  readonly host: string;
+  readonly port: number;
+};
+
+export function readConfig(): CodeitzConfiguration {
   config({ path: resolve(process.cwd(), "../../../.env") });
   config({ path: resolve(process.cwd(), ".app.env"), override: true });
   const port = Number(process.env.CODEITZ_API_PORT);
@@ -11,5 +17,13 @@ export function readConfig() {
   if (!host) throw new Error("Set PLATFORM_HOST.");
   const apiReferenceToken = process.env.CODEITZ_API_REFERENCE_TOKEN;
   if (!apiReferenceToken) throw new Error("Set CODEITZ_API_REFERENCE_TOKEN.");
-  return { apiReferenceToken, host, port, ...readLocalIdentityConfiguration(process.env, { applicationId: "codeitz", databasePath: resolve(process.cwd(), "../../../storage/apps/codeitz/private/data/codeitz_db.sqlite") }) };
+  return {
+    apiReferenceToken,
+    host,
+    port,
+    ...readLocalIdentityConfiguration(process.env, {
+      applicationId: "codeitz",
+      databasePath: resolve(process.cwd(), "../../../storage/apps/codeitz/private/data/codeitz_db.sqlite"),
+    }),
+  };
 }

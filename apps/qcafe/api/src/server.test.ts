@@ -36,6 +36,13 @@ test("qcafe workspace route returns first navigation pages", async () => {
       ["kot", "KOT"],
       ["booking", "Booking"],
       ["billing", "Billing"],
+      ["inventory", "Inventory"],
+      ["documents", "Documents"],
+      ["backup", "Backup"],
+      ["sync", "Sync"],
+      ["marketplace", "Marketplace"],
+      ["accounting", "Accounting"],
+      ["reports", "Reports"],
     ],
   );
   assert.deepEqual(body.providers, ["platform.core", "qcafe.foundation"]);

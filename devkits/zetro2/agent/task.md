@@ -3,8 +3,8 @@
 ## Progress rules
 
 Architecture: [planning.md](planning.md). Original brief: [architecture notes](architecture-notes.md).
-Status: ZVcode source import and product identity verified on 2026-09-24; runtime implementation remains pending.
-Next implementation task: 1.4. Add module-owned persistence, Zod contracts, checksummed migrations, and repeat-safe seeds.
+Status: Phase 1 complete (identity, membership, authorization, audit) on 2026-09-24; Phase 2 source import, provenance, container build definition, change-map structure, and Layer-1 product defaults (2.3–2.7) complete.
+Next implementation task: 2.8. Build the imported source and identify the actual editor version in the resulting artifact.
 
 Current deployment and ownership decision: [architecture-notes.md](architecture-notes.md).
 All Zetro2-authored source belongs inside this app; the editor builds from its customized source.
@@ -47,15 +47,15 @@ Dependencies: Phase 0. Deliverable: server-enforced access foundation.
 - [x] 1.1 Compose public identity, session, secrets, and storage providers without private cross-app imports.
 - [x] 1.2 Define workspace membership and Owner, Maintainer, Developer, Reviewer, and Viewer presets.
 - [x] 1.3 Define scoped read, write, execute, agent, approval, Git, provider, MCP, browser, and computer grants.
-- [ ] 1.4 Add module-owned persistence, Zod contracts, checksummed migrations, and repeat-safe seeds.
-- [ ] 1.5 Implement login, logout, session expiration, workspace selection, and membership management.
-- [ ] 1.6 Authorize every API resource and event subscription using server-resolved membership.
-- [ ] 1.7 Implement private upstream routing and authenticated editor and preview entry points.
-- [ ] 1.8 Bind approvals to an exact action, actor, workspace, content digest, and expiration.
-- [ ] 1.9 Revoke sessions/subscriptions and define run-cancellation hooks; verify hooks with fixtures until live integration in Phase 6.
-- [ ] 1.10 Test denied access, ID substitution, session expiry, role changes, and cross-user reads.
-- [ ] 1.10a Establish baseline append-only access/action audit and redaction; Phase 14 extends organization reporting and integrity checks.
-- [ ] 1.11 Exit: API and gateway tests prove the role matrix and no unauthenticated upstream bypass.
+- [x] 1.4 Add module-owned persistence, Zod contracts, checksummed migrations, and repeat-safe seeds.
+- [x] 1.5 Implement login, logout, session expiration, workspace selection, and membership management.
+- [x] 1.6 Authorize every API resource and event subscription using server-resolved membership.
+- [x] 1.7 Implement private upstream routing and authenticated editor and preview entry points.
+- [x] 1.8 Bind approvals to an exact action, actor, workspace, content digest, and expiration.
+- [x] 1.9 Revoke sessions/subscriptions and define run-cancellation hooks; verify hooks with fixtures until live integration in Phase 6.
+- [x] 1.10 Test denied access, ID substitution, session expiry, role changes, and cross-user reads.
+- [x] 1.10a Establish baseline append-only access/action audit and redaction; Phase 14 extends organization reporting and integrity checks.
+- [x] 1.11 Exit: API and gateway tests prove the role matrix and no unauthenticated upstream bypass.
 
 ## Phase 2 — Import ZVcode source and establish a reproducible build
 
@@ -63,11 +63,11 @@ Dependencies: Phase 0. May overlap Phase 1 without exposing an unauthenticated s
 
 - [x] 2.1 Confirm the destination `devkits/zetro2/zvcode` and preserve any existing destination files.
 - [x] 2.2 Copy the source inventory from `apps/temp/openvscode-server` without changing the original clone.
-- [ ] 2.3 Exclude Git metadata, dependencies, caches, generated output, secrets, and runtime data.
-- [ ] 2.4 Retain licenses and notices; record upstream revision, content checksums, and local modifications.
-- [ ] 2.5 Add a documented container build with pinned dependencies and root artifact destinations.
-- [ ] 2.6 Establish direct editor-source customization, a change map, and an optional upstream source-update procedure.
-- [ ] 2.7 Apply product branding, default settings, and extension configuration through the custom layers.
+- [x] 2.3 Exclude Git metadata, dependencies, caches, generated output, secrets, and runtime data.
+- [x] 2.4 Retain licenses and notices; record upstream revision, content checksums, and local modifications.
+- [x] 2.5 Add a documented container build with pinned dependencies and root artifact destinations.
+- [x] 2.6 Establish direct editor-source customization, a change map, and an optional upstream source-update procedure.
+- [x] 2.7 Apply product branding, default settings, and extension configuration through the custom layers.
 - [ ] 2.8 Build the imported source and identify the actual editor version in the resulting artifact.
 - [ ] 2.9 Verify explorer, save, terminal, search, Git diff, language extensions, Codexsun OS, and Zbrowser parity.
 - [ ] 2.9a Build the customized editor from Zetro2 source without relying on a pinned upstream editor release or image.
@@ -509,6 +509,22 @@ For each checked task, append:
 0.10 | 40b561312fc5a65add6303abea8f803cd3aa25ca | Phase 0 verification audit && node verify-zvcode.mjs && npm test --workspace=@codexsun/zetro2-api | host-windows | pass | 2026-09-24 | [0.10-phase-0-exit-baseline.md](baseline/0.10-phase-0-exit-baseline.md) | Phase 0 baseline complete: 12 prerequisite tasks verified; Copilot, container isolation, and port limits recorded
 1.1 | 40b561312fc5a65add6303abea8f803cd3aa25ca | npm test --workspace=@codexsun/zetro2-api | host-windows | pass | 2026-09-24 | [1.1-composed-access-providers.md](baseline/1.1-composed-access-providers.md) | secrets, storage, identity, session, and ZetroAccessModule composed without cross-app imports (11/11 tests pass)
 1.2 | 40b561312fc5a65add6303abea8f803cd3aa25ca | npm test --workspace=@codexsun/zetro2-api | host-windows | pass | 2026-09-24 | [1.2-workspace-membership-presets.md](baseline/1.2-workspace-membership-presets.md) | workspace and membership Zod schemas, role ranks, and hierarchy assignment validation implemented (12/12 tests pass)
+1.3 | 40b561312fc5a65add6303abea8f803cd3aa25ca | npm test --workspace=@codexsun/zetro2-api | host-windows | pass | 2026-09-24 | [1.3-scoped-capability-grants.md](baseline/1.3-scoped-capability-grants.md) | 13 capability keys, path/tool/command scoping, expiration checks, and computer-use guardrails (13/13 tests pass)
+1.4 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | npm run test:zetro2 | host-windows | pass | 2026-09-24 | [1.4-module-owned-persistence-migrations-seeds.md](baseline/1.4-module-owned-persistence-migrations-seeds.md) | module-owned persistence, Zod contracts, SHA-256 migrations, repeat-safe seeds, and Kysely repository operations (17/17 tests pass)
+1.5 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | npm run test:zetro2 | host-windows | pass | 2026-09-24 | [1.5-login-logout-sessions-membership.md](baseline/1.5-login-logout-sessions-membership.md) | login, logout, TTL session expiration with controlled clock, workspace selection, and role hierarchy membership (22/22 tests pass)
+1.6 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | npm run test:zetro2 | host-windows | pass | 2026-09-24 | [1.6-server-resolved-membership-authorization.md](baseline/1.6-server-resolved-membership-authorization.md) | server-resolved membership authorization, capability gating, and authorized event hub (26/26 tests pass)
+1.7 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | npm run test:zetro2 | host-windows | pass | 2026-09-24 | [1.7-private-upstream-routing-authenticated-entry-points.md](baseline/1.7-private-upstream-routing-authenticated-entry-points.md) | private upstream proxy routing for editor and preview entry points with server-verified header injection (27/27 tests pass)
+1.8 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | npm run test:zetro2 | host-windows | pass | 2026-09-24 | [1.8-bound-action-approvals.md](baseline/1.8-bound-action-approvals.md) | bound action approvals with SHA-256 content digest, actor/workspace/action binding, replay prevention, and expiration (31/31 tests pass)
+1.9 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | npm run test:zetro2 | host-windows | pass | 2026-09-24 | [1.9-revocation-and-run-cancellation-hooks.md](baseline/1.9-revocation-and-run-cancellation-hooks.md) | session logout & member removal run cancellation hooks, SSE subscription purge, and fixture verification (35/35 tests pass)
+1.10 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | npm run test:zetro2 | host-windows | pass | 2026-09-24 | [1.10-security-matrix-isolation-verification.md](baseline/1.10-security-matrix-isolation-verification.md) | security matrix testing: unauthenticated rejection, non-member denial, ID substitution rejection, session expiry, dynamic role change, cross-workspace isolation (40/40 tests pass)
+1.10a | 119c228f93b112364714fd1a3fd46f1571ce42d5 | npm run test:zetro2 | host-windows | pass | 2026-09-24 | [1.10a-baseline-append-only-audit-and-redaction.md](baseline/1.10a-baseline-append-only-audit-and-redaction.md) | append-only audit rows, pre-persistence secret redaction verified on raw SQLite, workspace.admin-gated audit query (43/43 tests pass); Phase 14 integrity checks not yet implemented
+1.11 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | npm run test:zetro2 | host-windows | pass | 2026-09-24 | [1.11-phase-1-exit.md](baseline/1.11-phase-1-exit.md) | Phase 1 exit: five-role HTTP matrix (read/write/membership/approve/admin) and zero upstream hits for unauthenticated, invalid, and non-member gateway requests (45/45 tests pass); mock upstreams, no Docker or browser proof yet
+2.3 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | exclusion scan (PowerShell recursive) + node verify-zvcode.mjs + git ls-files | host-windows | pass | 2026-09-24 | [2.3-import-exclusions.md](baseline/2.3-import-exclusions.md) | 0 nested .git/node_modules/caches/secrets/out/vsix/runtime logs across 9,286 files; root .gitignore logs/ over-exclusion fixed for 6 upstream source files (staged, not committed)
+2.4 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | node verify-zvcode.mjs && node zvcode-manifest.mjs --write && node zvcode-manifest.mjs --diff | host-windows | pass | 2026-09-24 | [2.4-licenses-upstream-revision-checksums.md](baseline/2.4-licenses-upstream-revision-checksums.md) | licenses/notices unchanged; v1.110.0 + distro bd187e45 recorded; aggregate 54b13e27 over 9,287 files; exactly 5 local modifications (incl. previously undocumented vite allowedHosts); no verified upstream HEAD
+2.5 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | docker build --check + --target toolchain + --target source + node verify-zvcode.mjs + npm run test:zetro2 | host-windows | pass | 2026-09-24 | [2.5-container-build.md](baseline/2.5-container-build.md) | pinned base digest + multi-stage Editor.Dockerfile, Dockerfile-specific ignore, build-editor.ps1, .container/README.md; toolchain/source stages smoke-passed (Python 3.11.2, make 4.3, g++ 12.2.0, Node v22.22.0, npm 10.9.4, git init + selfhost stubs); lint clean; 45/45 tests pass; deps/build/export stages not yet executed (deferred to 2.8); no host-side output under zvcode/
+2.6 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | node check-change-map.mjs + node verify-zvcode.mjs + npm run test:zetro2 | host-windows | pass | 2026-09-24 | [2.6-editor-source-customization-change-map-upstream-update.md](baseline/2.6-editor-source-customization-change-map-upstream-update.md) | source-change-map.{md,json} seeds the 5 current modifications by layer/risk with planned-layer register; check-change-map.mjs asserts live diff equals map (5 paths); upstream-update-procedure.md documents optional reference-tree refresh (no Git rebase); 45/45 tests pass; procedure not executed; no verified upstream HEAD; files uncommitted
+
+2.7 | 119c228f93b112364714fd1a3fd46f1571ce42d5 | node zvcode-manifest.mjs --diff && node check-change-map.mjs && node verify-zvcode.mjs && npm run test:zetro2 && prettier + git diff --check | host-windows | pass | 2026-09-24 | [2.7-product-branding-default-settings-extension-config.md](baseline/2.7-product-branding-default-settings-extension-config.md) | Layer-1 product defaults applied: telemetry/crash off, startupEditor none, status bar Codexsun ZVcode / Zetro2, extensions.allowed built-in allowlist (10 mapped paths); 45/45 tests pass; no live editor runtime proof until 2.8–2.9; Copilot defaultChatAgent retained for Layer 3
 
 Release publication, remote workspace support, and coordinated multi-agent editing
 require later tasks. They do not block the scoped daily coding milestones above.

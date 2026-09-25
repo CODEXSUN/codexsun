@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@codexsun/ui/components/alert";
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
+import { Field } from "@codexsun/ui/components/field";
 import { Input } from "@codexsun/ui/components/input";
 import { Label } from "@codexsun/ui/components/label";
 import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
@@ -65,16 +66,11 @@ export function MenuSaleabilityPanel({
         <h3 className="font-semibold">Check saleability</h3>
       </div>
       <form className="grid gap-4" onSubmit={submit}>
-        <Select label="Item" name="itemId" options={catalog.items} value={itemId} onChange={setItemId} />
-        <Select label="Variant" name="variantId" optional options={item?.variants ?? []} />
-        <Select label="Price book" name="priceBookId" options={catalog.priceBooks} />
-        <Select label="Outlet" name="locationId" options={locations} value={locationId} onChange={setLocationId} />
-        <Select
-          label="Service channel"
-          name="serviceChannelId"
-          optional
-          options={location?.serviceChannels.filter((channel) => channel.enabled) ?? []}
-        />
+        <Field label="Item" htmlFor="saleability-itemId"><NativeSelect className="w-full" id="saleability-itemId" name="itemId" required value={itemId} onChange={(event) => setItemId(event.currentTarget.value)}>{catalog.items.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+        <Field label="Variant" htmlFor="saleability-variantId"><NativeSelect className="w-full" id="saleability-variantId" name="variantId"><NativeSelectOption value="">All</NativeSelectOption>{(item?.variants ?? []).map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+        <Field label="Price book" htmlFor="saleability-priceBookId"><NativeSelect className="w-full" id="saleability-priceBookId" name="priceBookId" required>{catalog.priceBooks.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+        <Field label="Outlet" htmlFor="saleability-locationId"><NativeSelect className="w-full" id="saleability-locationId" name="locationId" required value={locationId} onChange={(event) => setLocationId(event.currentTarget.value)}>{locations.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+        <Field label="Service channel" htmlFor="saleability-serviceChannelId"><NativeSelect className="w-full" id="saleability-serviceChannelId" name="serviceChannelId"><NativeSelectOption value="">All</NativeSelectOption>{(location?.serviceChannels.filter((channel) => channel.enabled) ?? []).map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
         <div className="grid gap-2">
           <Label htmlFor="saleability-at">Sale time</Label>
           <Input defaultValue={localDateTime()} id="saleability-at" name="at" required type="datetime-local" />
@@ -143,43 +139,6 @@ function SaleabilityResult({
       {result.availableRule?.reason ? (
         <p className="text-xs text-muted-foreground">Availability note: {result.availableRule.reason}</p>
       ) : null}
-    </div>
-  );
-}
-
-function Select({
-  label,
-  name,
-  onChange,
-  optional,
-  options,
-  value,
-}: {
-  label: string;
-  name: string;
-  onChange?: (value: string) => void;
-  optional?: boolean;
-  options: Array<{ id: string; name: string }>;
-  value?: string;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={`saleability-${name}`}>{label}</Label>
-      <NativeSelect
-        className="w-full"
-        id={`saleability-${name}`}
-        name={name}
-        onChange={onChange ? (event) => onChange(event.currentTarget.value) : undefined}
-        required={!optional}
-        value={value}
-      >
-        {optional ? <NativeSelectOption value="">All</NativeSelectOption> : null}
-        {options.map((option) => (
-          <NativeSelectOption key={option.id} value={option.id}>
-            {option.name}
-          </NativeSelectOption>
-        ))}
-      </NativeSelect>
     </div>
   );
 }

@@ -16,6 +16,13 @@ test("declares the Q Cafe owner module catalog", () => {
       "qcafe.billing",
       "qcafe.booking",
       "qcafe.inventory",
+      "qcafe.documents",
+      "qcafe.backup",
+      "qcafe.marketplace",
+      "qcafe.accounting",
+      "qcafe.policies",
+      "qcafe.reports",
+      "qcafe.sync",
       "qcafe.devices",
     ],
   );

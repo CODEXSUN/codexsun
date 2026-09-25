@@ -2,12 +2,19 @@ import type { MdiNavigationSection } from "@codexsun/ui/layouts/main-workspace";
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
 import {
+  ArchiveIcon,
+  BarChart3Icon,
   BookOpenIcon,
+  CalculatorIcon,
   CircleDollarSignIcon,
   CalendarClockIcon,
   ChefHatIcon,
   LayoutDashboardIcon,
+  PackageIcon,
+  PrinterIcon,
   ReceiptTextIcon,
+  RefreshCwIcon,
+  ShoppingBagIcon,
   StoreIcon,
 } from "lucide-react";
 import type { QcafePageId, QcafeWorkspace, QcafeWorkspacePage } from "./qcafe-api";
@@ -17,6 +24,13 @@ import { PosPage } from "./pos-page";
 import { KotPage } from "./kot-page";
 import { DiningPage } from "./dining-page";
 import { BillingPage } from "./billing-page";
+import { InventoryPage } from "./inventory-page";
+import { DocumentsPage } from "./documents-page";
+import { BackupPage } from "./backup-page";
+import { SyncPage } from "./sync-page";
+import { MarketplacePage } from "./marketplace-page";
+import { AccountingPage } from "./accounting-page";
+import { ReportsPage } from "./reports-page";
 
 type QcafeWorkspaceViewProps = {
   activePageId: QcafePageId;
@@ -76,16 +90,72 @@ const fallbackPages: QcafeWorkspacePage[] = [
     status: "Payments and settlement",
     title: "Billing and settlement",
   },
+  {
+    description: "Track stock levels, recipes, daily plans, reservations, procurement, and consumption.",
+    id: "inventory",
+    label: "Inventory",
+    status: "Stock ledger",
+    title: "Inventory and stock",
+  },
+  {
+    description: "Render documents, route print jobs across printers, and deliver receipts by email or WhatsApp.",
+    id: "documents",
+    label: "Documents",
+    status: "Print and delivery",
+    title: "Documents and printing",
+  },
+  {
+    description: "Select the desktop data folder, schedule backups, and verify restores before relying on them.",
+    id: "backup",
+    label: "Backup",
+    status: "Data protection",
+    title: "Backup and recovery",
+  },
+  {
+    description: "Register devices, review the change log, and resolve sync conflicts with a named decider.",
+    id: "sync",
+    label: "Sync",
+    status: "Devices and conflicts",
+    title: "Synchronization",
+  },
+  {
+    description: "Connect marketplace partners, map menus, take in orders, fulfill deliveries, and post settlements.",
+    id: "marketplace",
+    label: "Marketplace",
+    status: "Partner orders",
+    title: "Marketplace channels",
+  },
+  {
+    description: "Keep the chart of accounts, post balanced journals, and export posted records for the accountant.",
+    id: "accounting",
+    label: "Accounting",
+    status: "Journals",
+    title: "Accounting journals",
+  },
+  {
+    description: "Read posted sales, tax, stock, and event records with location and business-day scope, plus alerts.",
+    id: "reports",
+    label: "Reports",
+    status: "Posted records",
+    title: "Reports and alerts",
+  },
 ];
 
 const pageIcons = {
+  accounting: CalculatorIcon,
+  backup: ArchiveIcon,
   billing: CircleDollarSignIcon,
   booking: CalendarClockIcon,
+  documents: PrinterIcon,
+  inventory: PackageIcon,
   kot: ChefHatIcon,
+  marketplace: ShoppingBagIcon,
   menu: BookOpenIcon,
   overview: LayoutDashboardIcon,
   pos: ReceiptTextIcon,
+  reports: BarChart3Icon,
   setup: StoreIcon,
+  sync: RefreshCwIcon,
 } as const;
 
 export function createQcafeNavigation(
@@ -99,6 +169,10 @@ export function createQcafeNavigation(
   const cafePages = (["pos", "kot", "booking", "billing"] as const).map(
     (pageId) => pageMap.get(pageId) ?? getFallbackPage(pageId),
   );
+  const operationsPages = (["inventory", "documents", "marketplace", "accounting", "reports"] as const).map(
+    (pageId) => pageMap.get(pageId) ?? getFallbackPage(pageId),
+  );
+  const systemPages = (["backup", "sync"] as const).map((pageId) => pageMap.get(pageId) ?? getFallbackPage(pageId));
 
   return [
     {
@@ -133,6 +207,26 @@ export function createQcafeNavigation(
       defaultOpen: true,
       label: "Cafe",
       items: cafePages.map((page) => ({
+        active: activePageId === page.id,
+        icon: pageIcons[page.id],
+        label: page.label,
+        onSelect: () => onSelectPage(page.id),
+      })),
+    },
+    {
+      defaultOpen: true,
+      label: "Operations",
+      items: operationsPages.map((page) => ({
+        active: activePageId === page.id,
+        icon: pageIcons[page.id],
+        label: page.label,
+        onSelect: () => onSelectPage(page.id),
+      })),
+    },
+    {
+      defaultOpen: false,
+      label: "System",
+      items: systemPages.map((page) => ({
         active: activePageId === page.id,
         icon: pageIcons[page.id],
         label: page.label,
@@ -178,6 +272,20 @@ export function QcafeWorkspaceView({ activePageId, connectionState, request, wor
         <DiningPage request={request} />
       ) : activePage.id === "billing" ? (
         <BillingPage request={request} />
+      ) : activePage.id === "inventory" ? (
+        <InventoryPage request={request} />
+      ) : activePage.id === "documents" ? (
+        <DocumentsPage request={request} />
+      ) : activePage.id === "backup" ? (
+        <BackupPage request={request} />
+      ) : activePage.id === "sync" ? (
+        <SyncPage request={request} />
+      ) : activePage.id === "marketplace" ? (
+        <MarketplacePage request={request} />
+      ) : activePage.id === "accounting" ? (
+        <AccountingPage request={request} />
+      ) : activePage.id === "reports" ? (
+        <ReportsPage request={request} />
       ) : (
         <ScaffoldPage page={activePage} />
       )}

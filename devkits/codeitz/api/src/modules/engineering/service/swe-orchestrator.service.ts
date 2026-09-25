@@ -5,7 +5,6 @@ import {
   type RunVerificationInput,
   type SweTask,
   type SweTaskPhase,
-  type SweVerificationCheck,
 } from "../contracts/swe-contracts.js";
 import { SweTaskRepository } from "../repository/swe-task.repository.js";
 

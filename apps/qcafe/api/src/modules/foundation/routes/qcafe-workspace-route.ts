@@ -1,7 +1,22 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
-const qcafePageIdSchema = z.enum(["overview", "setup", "menu", "pos", "kot", "booking", "billing"]);
+const qcafePageIdSchema = z.enum([
+  "overview",
+  "setup",
+  "menu",
+  "pos",
+  "kot",
+  "booking",
+  "billing",
+  "inventory",
+  "documents",
+  "backup",
+  "sync",
+  "marketplace",
+  "accounting",
+  "reports",
+]);
 
 const qcafeWorkspacePageSchema = z.object({
   description: z.string(),
@@ -69,6 +84,55 @@ const qcafeWorkspacePages: QcafeWorkspacePage[] = [
     label: "Billing",
     status: "Payments and settlement",
     title: "Billing and settlement",
+  },
+  {
+    description: "Track stock levels, recipes, daily plans, reservations, procurement, and consumption.",
+    id: "inventory",
+    label: "Inventory",
+    status: "Stock ledger",
+    title: "Inventory and stock",
+  },
+  {
+    description: "Render documents, route print jobs across printers, and deliver receipts by email or WhatsApp.",
+    id: "documents",
+    label: "Documents",
+    status: "Print and delivery",
+    title: "Documents and printing",
+  },
+  {
+    description: "Select the desktop data folder, schedule backups, and verify restores before relying on them.",
+    id: "backup",
+    label: "Backup",
+    status: "Data protection",
+    title: "Backup and recovery",
+  },
+  {
+    description: "Register devices, review the change log, and resolve sync conflicts with a named decider.",
+    id: "sync",
+    label: "Sync",
+    status: "Devices and conflicts",
+    title: "Synchronization",
+  },
+  {
+    description: "Connect marketplace partners, map menus, take in orders, fulfill deliveries, and post settlements.",
+    id: "marketplace",
+    label: "Marketplace",
+    status: "Partner orders",
+    title: "Marketplace channels",
+  },
+  {
+    description: "Keep the chart of accounts, post balanced journals, and export posted records for the accountant.",
+    id: "accounting",
+    label: "Accounting",
+    status: "Journals",
+    title: "Accounting journals",
+  },
+  {
+    description: "Read posted sales, tax, stock, and event records with location and business-day scope, plus alerts.",
+    id: "reports",
+    label: "Reports",
+    status: "Posted records",
+    title: "Reports and alerts",
   },
 ];
 

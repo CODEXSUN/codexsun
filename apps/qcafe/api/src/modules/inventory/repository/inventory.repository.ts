@@ -3,9 +3,18 @@ import type { Kysely } from "kysely";
 import type { QcafeFoundationDatabase } from "../../foundation/persistence/qcafe-foundation.database.js";
 import type { CreateStockItem, CreateStockUnit, InventoryScope } from "../contracts/inventory.contract.js";
 import type { QcafeInventoryDatabase } from "../persistence/inventory.database.js";
+import { InventoryProcurementRepository } from "./inventory-procurement.repository.js";
 
 export class InventoryRepository {
-  constructor(private readonly db: Kysely<QcafeFoundationDatabase>) {}
+  private readonly store: InventoryProcurementRepository;
+
+  constructor(private readonly db: Kysely<QcafeFoundationDatabase>) {
+    this.store = new InventoryProcurementRepository(db);
+  }
+
+  get procurement(): InventoryProcurementRepository {
+    return this.store;
+  }
 
   location(scope: InventoryScope) {
     return this.db
@@ -18,6 +27,10 @@ export class InventoryRepository {
 
   unit(id: string) {
     return this.db.selectFrom("qcafe_stock_units").selectAll().where("id", "=", id).executeTakeFirst();
+  }
+
+  item(id: string) {
+    return this.db.selectFrom("qcafe_stock_items").selectAll().where("id", "=", id).executeTakeFirst();
   }
 
   menuItem(id: string) {
@@ -44,7 +57,8 @@ export class InventoryRepository {
       .execute();
   }
 
-  async latestRevision(businessId: string, code: string) {    return this.recipesDb()
+  async latestRevision(businessId: string, code: string) {
+    return this.recipesDb()
       .selectFrom("qcafe_recipes")
       .selectAll()
       .where("business_id", "=", businessId)
@@ -53,8 +67,21 @@ export class InventoryRepository {
       .executeTakeFirst();
   }
 
-  item(id: string) {
-    return this.db.selectFrom("qcafe_stock_items").selectAll().where("id", "=", id).executeTakeFirst();
+  dailyPlan(id: string) {
+    return this.recipesDb().selectFrom("qcafe_daily_plans").selectAll().where("id", "=", id).executeTakeFirst();
+  }
+
+  planForDate(locationId: string, planDate: string) {
+    return this.recipesDb()
+      .selectFrom("qcafe_daily_plans")
+      .select("id")
+      .where("location_id", "=", locationId)
+      .where("plan_date", "=", planDate)
+      .executeTakeFirst();
+  }
+
+  reservation(id: string) {
+    return this.recipesDb().selectFrom("qcafe_stock_reservations").selectAll().where("id", "=", id).executeTakeFirst();
   }
 
   async workspace(scope: InventoryScope) {
@@ -104,18 +131,38 @@ export class InventoryRepository {
       .orderBy("plan_date", "desc")
       .execute();
     const planIds = plans.map((plan) => plan.id);
+    const planLines = planIds.length
+      ? await this.recipesDb()
+          .selectFrom("qcafe_daily_plan_lines")
+          .selectAll()
+          .where("plan_id", "in", planIds)
+          .execute()
+      : [];
+    const reservations = await this.recipesDb()
+      .selectFrom("qcafe_stock_reservations")
+      .selectAll()
+      .where("business_id", "=", scope.businessId)
+      .where("location_id", "=", scope.locationId)
+      .orderBy("created_at", "desc")
+      .execute();
+    const held = new Map<string, number>();
+    for (const reservation of reservations) {
+      if (reservation.status !== "active") continue;
+      held.set(reservation.stock_item_id, (held.get(reservation.stock_item_id) ?? 0) + reservation.quantity_milli);
+    }
+    const itemIds = new Set<string>([...totals.keys(), ...held.keys()]);
+    const procurement = await this.store.lists(scope);
     return {
       adjustments,
+      availability: [...itemIds].map((stockItemId) => {
+        const onHand = totals.get(stockItemId) ?? 0;
+        const reserved = held.get(stockItemId) ?? 0;
+        return { availableMilli: onHand - reserved, onHandMilli: onHand, reservedMilli: reserved, stockItemId };
+      }),
       balances: [...totals].map(([stockItemId, quantityMilli]) => ({ quantityMilli, stockItemId })),
       items,
       movements,
-      planLines: planIds.length
-        ? await this.recipesDb()
-            .selectFrom("qcafe_daily_plan_lines")
-            .selectAll()
-            .where("plan_id", "in", planIds)
-            .execute()
-        : [],
+      planLines,
       plans,
       recipeComponents: recipeIds.length
         ? await this.recipesDb()
@@ -125,7 +172,9 @@ export class InventoryRepository {
             .execute()
         : [],
       recipes,
+      reservations,
       units,
+      ...procurement,
     };
   }
 
@@ -290,19 +339,6 @@ export class InventoryRepository {
     });
   }
 
-  dailyPlan(id: string) {
-    return this.recipesDb().selectFrom("qcafe_daily_plans").selectAll().where("id", "=", id).executeTakeFirst();
-  }
-
-  planForDate(locationId: string, planDate: string) {
-    return this.recipesDb()
-      .selectFrom("qcafe_daily_plans")
-      .select("id")
-      .where("location_id", "=", locationId)
-      .where("plan_date", "=", planDate)
-      .executeTakeFirst();
-  }
-
   async createDailyPlan(scope: InventoryScope, planDate: string, note: string | undefined, actor: string, now: string) {
     const id = randomUUID();
     await this.recipesDb()
@@ -324,7 +360,14 @@ export class InventoryRepository {
 
   async addDailyPlanLine(
     planId: string,
-    line: { demandRef?: string; demandSource: "regular" | "special" | "booking" | "event"; menuItemId: string; menuVariantId?: string; note?: string; quantityMilli: number },
+    line: {
+      demandRef?: string;
+      demandSource: "regular" | "special" | "booking" | "event";
+      menuItemId: string;
+      menuVariantId?: string;
+      note?: string;
+      quantityMilli: number;
+    },
     now: string,
   ) {
     const id = randomUUID();
@@ -350,6 +393,49 @@ export class InventoryRepository {
       .updateTable("qcafe_daily_plans")
       .set({ status: "confirmed", updated_at: now })
       .where("id", "=", planId)
+      .execute();
+  }
+
+  async createReservation(
+    scope: InventoryScope,
+    line: {
+      quantityMilli: number;
+      reason?: string;
+      sourceId: string;
+      sourceType: "event" | "daily_plan" | "special" | "order";
+      stockItemId: string;
+    },
+    actor: string,
+    now: string,
+  ) {
+    const id = randomUUID();
+    await this.recipesDb()
+      .insertInto("qcafe_stock_reservations")
+      .values({
+        business_id: scope.businessId,
+        created_at: now,
+        created_by: actor,
+        id,
+        location_id: scope.locationId,
+        quantity_milli: line.quantityMilli,
+        reason: line.reason ?? null,
+        resolved_at: null,
+        resolved_by: null,
+        source_id: line.sourceId,
+        source_type: line.sourceType,
+        status: "active",
+        stock_item_id: line.stockItemId,
+      })
+      .execute();
+    return id;
+  }
+
+  async resolveReservation(id: string, status: "released" | "consumed", actor: string, now: string) {
+    await this.recipesDb()
+      .updateTable("qcafe_stock_reservations")
+      .set({ resolved_at: now, resolved_by: actor, status })
+      .where("id", "=", id)
+      .where("status", "=", "active")
       .execute();
   }
 }

@@ -42,10 +42,16 @@ export class ZetroSecretsProvider {
   redact(text) {
     if (typeof text !== 'string') return text;
     let redacted = text;
-    const sensitiveKeys = ['ZETRO2_JWT_SECRET', 'PLATFORM_JWT_SECRET', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY'];
-    for (const key of sensitiveKeys) {
-      const val = this.#environment[key];
-      if (val && val.length > 4) {
+    for (const [key, val] of Object.entries(this.#environment)) {
+      if (!val || typeof val !== 'string' || val.length < 4) continue;
+      const upper = key.toUpperCase();
+      if (
+        upper.includes('SECRET') ||
+        upper.includes('KEY') ||
+        upper.includes('TOKEN') ||
+        upper.includes('PASSWORD') ||
+        upper.includes('CREDENTIAL')
+      ) {
         redacted = redacted.replaceAll(val, '[REDACTED]');
       }
     }

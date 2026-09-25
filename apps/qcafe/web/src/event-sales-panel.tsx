@@ -1,6 +1,7 @@
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
+import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BanknoteIcon, CalendarPlusIcon, CheckIcon, ClipboardPlusIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -69,10 +70,11 @@ export function EventSalesPanel({ billing, businessId, currency, locationId, pos
         <div className="grid gap-2 border-t pt-4">
           <h3 className="text-sm font-semibold">Lead pipeline</h3>
           {data?.leads.map((item) => (
-            <button
-              className={`grid gap-1 border p-3 text-left ${item.id === leadId ? "border-primary" : ""}`}
+            <Button
+              className={`h-auto grid gap-1 border p-3 text-left font-normal ${item.id === leadId ? "border-primary" : ""}`}
               key={item.id}
               onClick={() => setLeadId(item.id)}
+              variant="ghost"
             >
               <strong className="text-sm">{item.occasion_type}</strong>
               <span className="text-xs text-muted-foreground">
@@ -81,7 +83,7 @@ export function EventSalesPanel({ billing, businessId, currency, locationId, pos
               <Badge className="w-fit" variant="secondary">
                 {item.status}
               </Badge>
-            </button>
+            </Button>
           ))}
         </div>
       </aside>
@@ -166,16 +168,13 @@ export function EventSalesPanel({ billing, businessId, currency, locationId, pos
               }
               title="Requirement"
             >
-              <Select
-                name="category"
-                options={[
+              <NativeSelect aria-label="category" name="category">{[
                   ["dietary", "Dietary"],
                   ["decoration", "Decoration"],
                   ["equipment", "Equipment"],
                   ["seating", "Seating"],
                   ["venue", "Venue"],
-                ]}
-              />
+                ].map(([value, label]) => (<NativeSelectOption key={value} value={value}>{label}</NativeSelectOption>))}</NativeSelect>
               <Input name="details" placeholder="Requirement details" required />
               <Input defaultValue="Operations" name="responsibleRef" required />
             </CommandForm>
@@ -217,12 +216,9 @@ export function EventSalesPanel({ billing, businessId, currency, locationId, pos
               title="Advance voucher"
             >
               <Input min="0.01" name="amount" placeholder="Amount" required step="0.01" type="number" />
-              <Select
-                name="paymentMethodId"
-                options={(billing?.paymentMethods ?? [])
+              <NativeSelect aria-label="paymentMethodId" name="paymentMethodId">{(billing?.paymentMethods ?? [])
                   .filter((item) => item.kind !== "cash" && item.active)
-                  .map((item) => [item.id, item.name])}
-              />
+                  .map((item) => [item.id, item.name]).map(([value, label]) => (<NativeSelectOption key={value} value={value}>{label}</NativeSelectOption>))}</NativeSelect>
               <Input name="providerReference" placeholder="Payment reference" />
             </CommandForm>
             <CommandForm
@@ -233,19 +229,13 @@ export function EventSalesPanel({ billing, businessId, currency, locationId, pos
               }
               title="POS order"
             >
-              <Select
-                name="orderId"
-                options={(pos?.orders ?? []).map((item) => [item.id, `${item.number} · ${item.status}`])}
-              />
-              <Select
-                name="role"
-                options={[
+              <NativeSelect aria-label="orderId" name="orderId">{(pos?.orders ?? []).map((item) => (<NativeSelectOption key={item.id} value={item.id}>{`${item.number} · ${item.status}`}</NativeSelectOption>))}</NativeSelect>
+              <NativeSelect aria-label="role" name="role">{[
                   ["service", "Service"],
                   ["preparation", "Preparation"],
                   ["delivery", "Delivery"],
                   ["final", "Final"],
-                ]}
-              />
+                ].map(([value, label]) => (<NativeSelectOption key={value} value={value}>{label}</NativeSelectOption>))}</NativeSelect>
             </CommandForm>
           </>
         ) : (
@@ -428,18 +418,6 @@ function RecordList({
         </div>
       ))}
     </div>
-  );
-}
-
-function Select({ name, options }: { name: string; options: string[][] }) {
-  return (
-    <select className="h-9 rounded-md border bg-background px-3 text-sm" name={name} required>
-      {options.map(([value, label]) => (
-        <option key={value} value={value}>
-          {label}
-        </option>
-      ))}
-    </select>
   );
 }
 

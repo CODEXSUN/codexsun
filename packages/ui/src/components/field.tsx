@@ -67,8 +67,15 @@ const fieldVariants = cva('group/field flex w-full gap-2 data-[invalid=true]:tex
 function Field({
   className,
   orientation = 'vertical',
+  label,
+  htmlFor,
+  children,
   ...props
-}: React.ComponentProps<'div'> & VariantProps<typeof fieldVariants>) {
+}: React.ComponentProps<'div'> &
+  VariantProps<typeof fieldVariants> & {
+    label?: React.ReactNode
+    htmlFor?: string
+  }) {
   return (
     <div
       role="group"
@@ -76,7 +83,10 @@ function Field({
       data-orientation={orientation}
       className={cn(fieldVariants({ orientation }), className)}
       {...props}
-    />
+    >
+      {label != null ? <FieldLabel htmlFor={htmlFor}>{label}</FieldLabel> : null}
+      {children}
+    </div>
   )
 }
 

@@ -4,14 +4,27 @@ import { cn } from '../lib/utils'
 function Card({
   className,
   size = 'default',
+  variant = 'default',
   ...props
-}: React.ComponentProps<'div'> & { size?: 'default' | 'sm' }) {
+}: React.ComponentProps<'div'> & {
+  size?: 'default' | 'sm';
+  variant?: 'default' | 'studio' | 'studio-surface';
+}) {
+  const variantClasses =
+    variant === 'studio'
+      ? 'border border-[#3a3b3f] bg-[#191a1c] text-[#e2e3e5] ring-0 shadow-xs'
+      : variant === 'studio-surface'
+      ? 'border border-[#3a3b3f] bg-[#26282c] text-[#e2e3e5] ring-0 shadow-xs'
+      : 'bg-card text-card-foreground ring-1 ring-foreground/10';
+
   return (
     <div
       data-slot="card"
       data-size={size}
+      data-variant={variant}
       className={cn(
-        'group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl',
+        'group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl py-(--card-spacing) text-sm [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl',
+        variantClasses,
         className,
       )}
       {...props}

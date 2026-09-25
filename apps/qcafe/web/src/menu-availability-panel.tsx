@@ -2,8 +2,8 @@ import { useMemo, useState, type FormEvent } from "react";
 import { CalendarClockIcon, PlusIcon } from "lucide-react";
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
+import { Field } from "@codexsun/ui/components/field";
 import { Input } from "@codexsun/ui/components/input";
-import { Label } from "@codexsun/ui/components/label";
 import { NativeSelect, NativeSelectOption } from "@codexsun/ui/components/native-select";
 import type { ItemAvailabilityInput, MenuCatalog } from "./menu-api";
 import { localDateTime, toOffsetDateTime } from "./local-date-time";
@@ -59,21 +59,17 @@ export function MenuAvailabilityPanel({
             });
           }}
         >
-          <Select label="Item" name="itemId" options={catalog.items} onChange={setItemId} />
-          <Select label="Variant" name="variantId" optional options={item?.variants ?? []} />
-          <Select label="Outlet" name="locationId" options={locations} onChange={setLocationId} />
-          <Select label="Service channel" name="serviceChannelId" optional options={location?.serviceChannels ?? []} />
-          <Select
-            label="State"
-            name="status"
-            options={[
+          <Field label="Item" htmlFor="availability-itemId"><NativeSelect className="w-full" id="availability-itemId" name="itemId" required onChange={(event) => setItemId(event.currentTarget.value)}>{catalog.items.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          <Field label="Variant" htmlFor="availability-variantId"><NativeSelect className="w-full" id="availability-variantId" name="variantId"><NativeSelectOption value="">All</NativeSelectOption>{(item?.variants ?? []).map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          <Field label="Outlet" htmlFor="availability-locationId"><NativeSelect className="w-full" id="availability-locationId" name="locationId" required onChange={(event) => setLocationId(event.currentTarget.value)}>{locations.map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          <Field label="Service channel" htmlFor="availability-serviceChannelId"><NativeSelect className="w-full" id="availability-serviceChannelId" name="serviceChannelId"><NativeSelectOption value="">All</NativeSelectOption>{(location?.serviceChannels ?? []).map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          <Field label="State" htmlFor="availability-status"><NativeSelect className="w-full" id="availability-status" name="status" required>{[
               { id: "unavailable", name: "Unavailable" },
               { id: "available", name: "Available override" },
-            ]}
-          />
-          <Field defaultValue={startsAtDefault} label="Starts at" name="startsAt" required type="datetime-local" />
-          <Field label="Ends at" name="endsAt" type="datetime-local" />
-          <Field label="Reason" maxLength={255} name="reason" placeholder="Sold out or scheduled maintenance" />
+            ].map((option) => (<NativeSelectOption key={option.id} value={option.id}>{option.name}</NativeSelectOption>))}</NativeSelect></Field>
+          <Field label="Starts at" htmlFor="availability-startsAt"><Input id="availability-startsAt" name="startsAt" required type="datetime-local" defaultValue={startsAtDefault} /></Field>
+          <Field label="Ends at" htmlFor="endsAt"><Input id="endsAt" name="endsAt" type="datetime-local"  /></Field>
+          <Field label="Reason" htmlFor="availability-reason"><Input id="availability-reason" name="reason" placeholder="Sold out or scheduled maintenance" maxLength={255} /></Field>
           <Button
             className="w-fit"
             disabled={pending || !catalog.items.length || !locations.length}
@@ -108,49 +104,6 @@ export function MenuAvailabilityPanel({
         </div>
       </div>
     </section>
-  );
-}
-
-function Field({ label, name, ...props }: React.ComponentProps<typeof Input> & { label: string; name: string }) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={`availability-${name}`}>{label}</Label>
-      <Input id={`availability-${name}`} name={name} {...props} />
-    </div>
-  );
-}
-
-function Select({
-  label,
-  name,
-  onChange,
-  optional,
-  options,
-}: {
-  label: string;
-  name: string;
-  onChange?: (value: string) => void;
-  optional?: boolean;
-  options: Array<{ id: string; name: string }>;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={`availability-${name}`}>{label}</Label>
-      <NativeSelect
-        className="w-full"
-        id={`availability-${name}`}
-        name={name}
-        onChange={(event) => onChange?.(event.currentTarget.value)}
-        required={!optional}
-      >
-        <NativeSelectOption value="">{optional ? "All" : "Select"}</NativeSelectOption>
-        {options.map((option) => (
-          <NativeSelectOption key={option.id} value={option.id}>
-            {option.name}
-          </NativeSelectOption>
-        ))}
-      </NativeSelect>
-    </div>
   );
 }
 

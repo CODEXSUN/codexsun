@@ -24,6 +24,14 @@ const buttonVariants = cva(
         destructive:
           'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
         link: 'text-primary underline-offset-4 hover:underline',
+        studio:
+          'border-[#3a3b3f] bg-[#26282c] text-[#f3f4f6] hover:bg-[#32353a] hover:border-[#40434a] shadow-xs active:bg-[#191a1c]',
+        'studio-ghost':
+          'border-transparent text-[#8c8d8e] hover:bg-[#26282c] hover:text-[#f3f4f6]',
+        'studio-active':
+          'border-[#40434a] bg-[#191a1c] text-[#9cd2ae] font-medium shadow-xs',
+        'studio-accent':
+          'border-[#9cd2ae]/35 bg-[#9cd2ae]/15 text-[#9cd2ae] hover:bg-[#9cd2ae]/25 hover:border-[#9cd2ae]/50 font-medium',
       },
       size: {
         default: 'h-10 px-5',

@@ -11,6 +11,27 @@ export type MdiCatalogApplication = {
 export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
   {
     "icon": "application",
+    "id": "accounts",
+    "label": "Accounts",
+    "localUrlKey": "VITE_ACCOUNTS_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
+    "id": "auditor",
+    "label": "Auditor",
+    "localUrlKey": "VITE_AUDITOR_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
+    "id": "billing",
+    "label": "Billing",
+    "localUrlKey": "VITE_BILLING_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
     "id": "codeitz",
     "label": "Codeitz",
     "localUrlKey": "VITE_CODEITZ_WEB_URL",
@@ -39,9 +60,30 @@ export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
   },
   {
     "icon": "application",
+    "id": "ecommerce",
+    "label": "Ecommerce",
+    "localUrlKey": "VITE_ECOMMERCE_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
+    "id": "garments",
+    "label": "Garments",
+    "localUrlKey": "VITE_GARMENTS_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
     "id": "himsx",
     "label": "HIMSX",
     "localUrlKey": "VITE_HIMSX_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
+    "id": "hrms",
+    "label": "HRMS",
+    "localUrlKey": "VITE_HRMS_WEB_URL",
     "path": "/"
   },
   {
@@ -64,6 +106,13 @@ export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
     "label": "Platform",
     "localUrlKey": "VITE_PLATFORM_WEB_URL",
     "path": "/system"
+  },
+  {
+    "icon": "application",
+    "id": "projex",
+    "label": "Projex",
+    "localUrlKey": "VITE_PROJEX_WEB_URL",
+    "path": "/"
   },
   {
     "icon": "application",

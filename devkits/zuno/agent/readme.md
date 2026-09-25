@@ -6,7 +6,7 @@ Run all commands from the repository root.
 
 - Docker Engine or Docker Desktop must be running.
 - The Docker Compose plugin must be available through `docker compose`.
-- Ports `6410` and `6411` must be available for the default installation.
+- Ports `6420` and `6421` must be available for the default local installation.
 
 The scripts read the application version from `../VERSION`. The human-readable version is also stored in the API and web image labels. Docker-safe image tags replace spaces with hyphens.
 
@@ -22,7 +22,7 @@ The script creates `codexsun-network` when it does not exist. If the network alr
 
 The setup is complete only after both the API and web application respond to their health checks.
 
-Open Zuno at `http://127.0.0.1:6411`. The API is available at `http://127.0.0.1:6410`.
+Open Zuno at `http://127.0.0.1:6421`. The API is available at `http://127.0.0.1:6420`.
 
 ## Development Update
 
@@ -63,8 +63,8 @@ The scripts support environment overrides for parallel testing or alternate loca
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `ZUNO_COMPOSE_PROJECT` | `zunolocal` | Compose project and volume prefix |
-| `ZUNO_API_HOST_PORT` | `6410` | Published API port |
-| `ZUNO_WEB_HOST_PORT` | `6411` | Published web port |
+| `ZUNO_API_HOST_PORT` | `6420` | Published API port |
+| `ZUNO_WEB_HOST_PORT` | `6421` | Published web port |
 | `ZUNO_API_CONTAINER_NAME` | `zuno-api` | API container name |
 | `ZUNO_WEB_CONTAINER_NAME` | `zuno-web` | Web container name |
 | `ZUNO_DOCKER_NETWORK` | `codexsun-network` | Shared external Docker network |
@@ -95,7 +95,7 @@ docker ps --filter name=zuno
 Check API health:
 
 ```sh
-curl http://127.0.0.1:6410/api/v1/zuno/health
+curl http://127.0.0.1:6420/api/v1/zuno/health
 ```
 
 Check the installed image version:

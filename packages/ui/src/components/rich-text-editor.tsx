@@ -80,7 +80,7 @@ export function RichTextEditor({
     immediatelyRender: false,
     content: content ?? "",
     extensions: [
-      StarterKit,
+      StarterKit.configure({ link: false, underline: false }),
       TextStyle,
       Color,
       Highlight.configure({ multicolor: true }),

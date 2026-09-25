@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MainWorkspace, type MdiNavigationSection } from "@codexsun/ui";
 import { SessionBoundary } from "@codexsun/ui/blocks/auth";
 import { IdentityManagementDesk } from "@codexsun/ui/blocks/auth/identity-management-desk";
+import { Button } from "@codexsun/ui/components/button";
 import { LayoutDashboardIcon, ShieldCheckIcon, WrenchIcon } from "lucide-react";
 import { createQcafeNavigation, getQcafePages, QcafeWorkspaceView } from "./qcafe-workspace";
 import { readWorkspace, type QcafePageId } from "./qcafe-api";
@@ -189,9 +190,9 @@ function QcafeHome({ onLogin }: { onLogin: () => void }) {
       <section className="max-w-md rounded-lg border bg-background p-8 shadow-sm">
         <h1 className="text-2xl font-semibold">Q Cafe</h1>
         <p className="mt-2 text-sm text-muted-foreground">Restaurant operations desk for your team.</p>
-        <button className="mt-6 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground" onClick={onLogin}>
+        <Button className="mt-6" onClick={onLogin}>
           Log in
-        </button>
+        </Button>
       </section>
     </main>
   );
@@ -214,7 +215,14 @@ function pageFromLocation(location: string): QcafePageId {
     pathname === "/pos" ||
     pathname === "/kot" ||
     pathname === "/booking" ||
-    pathname === "/billing"
+    pathname === "/billing" ||
+    pathname === "/inventory" ||
+    pathname === "/documents" ||
+    pathname === "/backup" ||
+    pathname === "/sync" ||
+    pathname === "/marketplace" ||
+    pathname === "/accounting" ||
+    pathname === "/reports"
   )
     return pathname.slice(1) as QcafePageId;
   return "overview";

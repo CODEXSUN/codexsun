@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ActivityRepository } from "../../foundation/repository/activity.repository.js";
 import { createQcafePersistence } from "../../foundation/persistence/qcafe-persistence.js";
-import { createQcafeLifecyclePlans } from "../../../qcafe-lifecycle-plans.js";
+import { createQcafeLifecyclePlans, lifecycleDescriptorTotal } from "../../../qcafe-lifecycle-plans.js";
 import { SettingsRepository } from "../repository/settings.repository.js";
 import { SettingsConflictError, SettingsService } from "../services/settings.service.js";
 
@@ -28,7 +28,7 @@ test("manages database status, cloud sync policy, and safe connector metadata", 
   const database = await service.verifyDatabase(context);
   assert.equal(database.driver, "sqlite");
   assert.equal(database.status, "ready");
-  assert.equal(database.lifecycleRecords, 15);
+  assert.equal(database.lifecycleRecords, lifecycleDescriptorTotal());
 
   let sync = await service.cloudSync();
   assert.equal(sync.available, true);

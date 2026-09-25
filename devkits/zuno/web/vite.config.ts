@@ -13,8 +13,8 @@ export default defineConfig({
   server: {
     allowedHosts: [".tmnext.in"],
     host: process.env.PLATFORM_HOST ?? "127.0.0.1",
-    port: Number(process.env.ZUNO_WEB_PORT ?? 6411),
-    proxy: { "/api": process.env.VITE_ZUNO_API_URL ?? "http://127.0.0.1:6410" },
+    port: Number(process.env.ZUNO_WEB_PORT ?? 6421),
+    proxy: { "/api": process.env.VITE_ZUNO_API_URL ?? "http://127.0.0.1:6420" },
     strictPort: true,
   },
   build: { outDir: "../../../dist/devkits/zuno/web", emptyOutDir: true },
