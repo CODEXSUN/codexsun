@@ -1,6 +1,7 @@
 # Dependencies and root build output
 node_modules/
 dist/
+build/
 .turbo/
 **/.turbo/
 
@@ -36,6 +37,9 @@ test-results/
 playwright-report/
 blob-report/
 .cache/
+**/.cache/
+**/.agents/
+**/finalse/
 *.tsbuildinfo
 *.lcov
 
@@ -90,7 +94,6 @@ Desktop.ini
 /apps/temp/dokploy/*
 !/apps/temp/dokploy/.container/
 !/apps/temp/dokploy/.container/**
-/apps/temp/dokploy/.container/.env
 /apps/temp/dokploy/.container/.env.*
 !/apps/temp/dokploy/.container/.env.example
 /apps/temp/gitpod/
@@ -98,3 +101,10 @@ Desktop.ini
 /apps/temp/gitpod/*
 !/apps/temp/gitpod/local-preview/
 /apps/temp/openvscode-server/
+
+# Zetro2 imported editor source: keep upstream source folders that match workspace runtime patterns
+!devkits/zetro2/zvcode/src/**/logs/
+!devkits/zetro2/zvcode/src/**/logs/**
+!devkits/zetro2/zvcode/**/*.log
+/apps/temp/
+/apps/temp/page-mascot/

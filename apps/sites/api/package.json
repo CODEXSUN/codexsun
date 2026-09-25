@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/sites-api",
-  "version": "1.0.41",
+  "version": "1.0.43",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
     "check": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx watch src/server.ts",
     "lint": "eslint src",
-    "test": "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts"
+    "test": "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts src/modules/content/test/content-store.test.ts"
   },
   "dependencies": {
     "@codexsun/framework": "file:../../../packages/framework",

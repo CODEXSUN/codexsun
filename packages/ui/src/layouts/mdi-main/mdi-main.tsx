@@ -56,6 +56,7 @@ export function MainWorkspace({
   showWorkspaceTitleInHeader = true,
   apps,
   children,
+  contentClassName,
   defaultFeatures,
   requiredFeatures,
   defaultSidebarOpen = true,
@@ -213,7 +214,7 @@ export function MainWorkspace({
                           {children}
                         </AgentWorkspace>
                       ) : (
-                        <div className="relative size-full min-h-0 min-w-0 overflow-hidden">{children}</div>
+                        <div className={cn("relative size-full min-h-0 min-w-0 overflow-hidden", contentClassName)}>{children}</div>
                       )}
                     </div>
                   </div>

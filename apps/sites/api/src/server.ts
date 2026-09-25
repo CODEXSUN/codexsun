@@ -1,4 +1,6 @@
 import cors from "@fastify/cors";
+import { spawn } from "node:child_process";
+import { resolve } from "node:path";
 import helmet from "@fastify/helmet";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
@@ -7,16 +9,27 @@ import { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTyp
 import { z } from "zod";
 import { createPlatformRuntime, fastifyHelmetOptions, IdentityLoginRateLimitError, identityBrowserSessionIdSchema, identityErrorResponseSchema, identityLoginResponseSchema, identityLoginSchema, identityPasswordResetAcceptedSchema, identityPasswordResetConfirmationSchema, identityPasswordResetRequestSchema, loadEnabledAddonProviders, LocalIdentityStore, readApplicationDeployableProfile, registerIdentityManagementRoutes } from "@codexsun/platform-core";
 import { readConfig } from "./config.js";
+import { SitesContentProvider } from "./modules/content/provider.js";
+import { SitesContentStore, type PublicSiteContent } from "./modules/content/content-store.js";
 import { SitesFoundationProvider } from "./modules/foundation/provider.js";
 
 const config = readConfig();
 const identity = new LocalIdentityStore(config);
 await identity.initialize();
 const provider = new SitesFoundationProvider();
-const profile = readApplicationDeployableProfile({ applicationId: "sites", availableProviderIds: ["platform.core", provider.manifest.id] });
-const runtime = createPlatformRuntime(profile, [provider, ...(await loadEnabledAddonProviders(profile))]);
+const contentProvider = new SitesContentProvider();
+const content = new SitesContentStore(config.databasePath);
+const profile = readApplicationDeployableProfile({ applicationId: "sites", availableProviderIds: ["platform.core", provider.manifest.id, contentProvider.manifest.id] });
+const runtime = createPlatformRuntime(profile, [provider, contentProvider, ...(await loadEnabledAddonProviders(profile))]);
 runtime.start();
 const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
+const siteRuntimes = {
+  codexsun: { port: 7001 },
+  devxcrew: { port: 7002 },
+  logicx: { port: 7003 },
+  skilloopz: { port: 7004 },
+} as const;
+type SiteRuntimeSlug = keyof typeof siteRuntimes;
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
 await app.register(helmet, fastifyHelmetOptions);
@@ -61,8 +74,65 @@ app.addHook("onRequest", async (request, reply) => {
 });
 app.post("/api/v1/sites/auth/logout", async (request, reply) => reply.code(identity.logout(request.headers.authorization, request.headers["x-codexsun-browser-session"]) ? 204 : 401).send());
 registerIdentityManagementRoutes({ app, identity, prefix: "/api/v1/sites" });
+app.get("/api/v1/sites/public/clients", { schema: { response: { 200: z.array(z.unknown()) }, tags: ["Public Content"] } }, async () => content.listPublished());
+app.get("/api/v1/sites/public/clients/:slug", { schema: { params: z.object({ slug: z.string().regex(/^[a-z0-9-]+$/u) }), response: { 200: z.unknown(), 404: identityErrorResponseSchema }, tags: ["Public Content"] } }, async (request, reply) => {
+  const site = content.findPublished(request.params.slug);
+  return site ?? reply.code(404).send({ error: "Client site not found." });
+});
+app.get("/api/v1/sites/content/:slug", { schema: { params: z.object({ slug: z.string().regex(/^[a-z0-9-]+$/u) }) } }, async (request, reply) => {
+  const site = content.findEditable(request.params.slug);
+  return site ?? reply.code(404).send({ error: "Client content not found." });
+});
+app.put("/api/v1/sites/content/:slug/draft", { schema: { params: z.object({ slug: z.string().regex(/^[a-z0-9-]+$/u) }), body: z.unknown() } }, async (request, reply) => {
+  const current = content.findEditable(request.params.slug);
+  if (!current) return reply.code(404).send({ error: "Client content not found." });
+  const draft = normalizeEditableContent(request.body, current);
+  return content.saveDraft(request.params.slug, draft) ?? reply.code(404).send({ error: "Client content not found." });
+});
+app.post("/api/v1/sites/content/:slug/publish", { schema: { params: z.object({ slug: z.string().regex(/^[a-z0-9-]+$/u) }) } }, async (request, reply) => {
+  const result = content.publish(request.params.slug);
+  return result ?? reply.code(404).send({ error: "Client content not found." });
+});
+app.post("/api/v1/sites/content/:slug/unpublish", { schema: { params: z.object({ slug: z.string().regex(/^[a-z0-9-]+$/u) }) } }, async (request, reply) => {
+  const result = content.unpublish(request.params.slug);
+  return result ?? reply.code(404).send({ error: "Client content not found." });
+});
+app.get("/api/v1/sites/content/:slug/revisions", { schema: { params: z.object({ slug: z.string().regex(/^[a-z0-9-]+$/u) }) } }, async (request, reply) => {
+  if (!content.findEditable(request.params.slug)) return reply.code(404).send({ error: "Client content not found." });
+  return content.listRevisions(request.params.slug);
+});
 app.get("/api/v1/sites/health", { schema: { response: { 200: z.object({ status: z.literal("ok"), providers: z.array(z.string()) }) }, tags: ["System"] } }, async () => ({ status: "ok" as const, providers: [...runtime.enabledProviderIds] }));
-app.addHook("onClose", () => { identity.close(); runtime.stop(); });
+app.get("/api/v1/sites/runtime", async () => {
+  const entries = await Promise.all(Object.entries(siteRuntimes).map(async ([slug, definition]) => ({
+    ...(await probeRuntime(definition.port)),
+    slug,
+    port: definition.port,
+  })));
+  return entries;
+});
+app.post("/api/v1/sites/runtime/:slug/start", { schema: { params: z.object({ slug: z.enum(["codexsun", "devxcrew", "logicx", "skilloopz"]) }) } }, async (request, reply) => {
+  const slug = request.params.slug as SiteRuntimeSlug;
+  const definition = siteRuntimes[slug];
+  const existingProbe = await probeRuntime(definition.port);
+  if (existingProbe.running) return { slug, port: definition.port, ...existingProbe, started: false };
+  const root = resolve(import.meta.dirname, "../../../..");
+  const launcher = resolve(root, "tools/sites-runtime.mjs");
+  const child = spawn(process.execPath, [launcher, slug, "dev"], {
+    cwd: root,
+    detached: true,
+    env: { ...process.env, VITE_SITES_API_URL: `http://${config.host}:${config.port}` },
+    stdio: "ignore",
+    windowsHide: true,
+  });
+  child.unref();
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const probe = await probeRuntime(definition.port);
+    if (probe.running) return { slug, port: definition.port, ...probe, started: true };
+    await delay(250);
+  }
+  return reply.code(202).send({ slug, port: definition.port, ...(await probeRuntime(definition.port)), started: true });
+});
+app.addHook("onClose", () => { content.close(); identity.close(); runtime.stop(); });
 await app.listen({ host: config.host, port: config.port });
 
 function isPublicPath(url: string): boolean {
@@ -73,7 +143,56 @@ function isPublicPath(url: string): boolean {
     || path === "/api/v1/sites/auth/development-login"
     || path === "/api/v1/sites/auth/password-reset/request"
     || path === "/api/v1/sites/auth/password-reset/confirm"
+    || path === "/api/v1/sites/public/clients"
+    || path.startsWith("/api/v1/sites/public/clients/")
     || path === "/api/v1/sites/health"
     || path === "/api/internal/reference"
     || path.startsWith("/api/internal/reference/");
+}
+
+async function probeRuntime(port: number): Promise<{
+  checkedAt: string;
+  httpStatus: number | null;
+  responseTimeMs: number | null;
+  running: boolean;
+  state: "degraded" | "live" | "stopped";
+}> {
+  const startedAt = performance.now();
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(1_000) });
+    const responseTimeMs = Math.round(performance.now() - startedAt);
+    return {
+      checkedAt: new Date().toISOString(),
+      httpStatus: response.status,
+      responseTimeMs,
+      running: true,
+      state: response.ok ? "live" : "degraded",
+    };
+  } catch {
+    return {
+      checkedAt: new Date().toISOString(),
+      httpStatus: null,
+      responseTimeMs: null,
+      running: false,
+      state: "stopped",
+    };
+  }
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
+}
+
+function normalizeEditableContent(value: unknown, current: PublicSiteContent): PublicSiteContent {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return current;
+  const candidate = value as Partial<PublicSiteContent>;
+  return {
+    ...current,
+    ...(typeof candidate.name === "string" ? { name: candidate.name } : {}),
+    ...(typeof candidate.description === "string" ? { description: candidate.description } : {}),
+    ...(typeof candidate.statement === "string" ? { statement: candidate.statement } : {}),
+    ...(typeof candidate.about === "string" ? { about: candidate.about } : {}),
+    ...(candidate.seo && typeof candidate.seo === "object" ? { seo: { ...current.seo, ...(candidate.seo as PublicSiteContent["seo"]) } } : {}),
+    ...(candidate.contact && typeof candidate.contact === "object" ? { contact: { ...current.contact, ...(candidate.contact as PublicSiteContent["contact"]) } } : {}),
+  };
 }

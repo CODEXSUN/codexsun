@@ -85,6 +85,7 @@ export type MainWorkspaceProps = {
   showWorkspaceTitleInHeader?: boolean;
   apps?: MdiAppItem[];
   children?: ReactNode;
+  contentClassName?: string;
   defaultFeatures?: Partial<MdiFeatures>;
   requiredFeatures?: Partial<MdiFeatures>;
   defaultSidebarOpen?: boolean;

@@ -11,9 +11,11 @@ export type WorkspaceMetricTrend = {
 }
 
 type WorkspaceMetricCardProps = {
+  className?: string
   description?: ReactNode
   icon?: LucideIcon
   label: ReactNode
+  size?: 'compact' | 'default'
   tone?: WorkspaceMetricTone
   trend?: WorkspaceMetricTrend
   value: ReactNode
@@ -40,9 +42,11 @@ const trendClasses: Record<WorkspaceMetricTrend['direction'], string> = {
 }
 
 export function WorkspaceMetricCard({
+  className,
   description,
   icon: Icon,
   label,
+  size = 'default',
   tone = 'neutral',
   trend,
   value,
@@ -50,13 +54,14 @@ export function WorkspaceMetricCard({
   const TrendIcon = trend ? trendIcons[trend.direction] : null
 
   return (
-    <Card className="min-w-0 shadow-xs" size="sm">
-      <CardHeader className="flex-row items-start justify-between gap-3">
-        <div className="min-w-0 text-sm font-medium text-muted-foreground">{label}</div>
+    <Card className={cn('min-w-0 shadow-xs', size === 'compact' ? 'py-2' : null, className)} size="sm">
+      <CardHeader className={cn('flex-row items-start justify-between gap-3', size === 'compact' ? 'px-3' : null)}>
+        <div className={cn('min-w-0 font-medium text-muted-foreground', size === 'compact' ? 'text-xs' : 'text-sm')}>{label}</div>
         {Icon ? (
           <span
             className={cn(
-              'grid size-8 shrink-0 place-items-center rounded-lg',
+              'grid shrink-0 place-items-center rounded-lg',
+              size === 'compact' ? 'size-7' : 'size-8',
               iconToneClasses[tone],
             )}
           >
@@ -64,8 +69,8 @@ export function WorkspaceMetricCard({
           </span>
         ) : null}
       </CardHeader>
-      <CardContent className="grid gap-2">
-        <strong className="text-2xl font-semibold tracking-tight tabular-nums">{value}</strong>
+      <CardContent className={cn('grid gap-2', size === 'compact' ? 'px-3 gap-1' : null)}>
+        <strong className={cn('font-semibold tracking-tight tabular-nums', size === 'compact' ? 'text-xl' : 'text-2xl')}>{value}</strong>
         <div className="flex min-h-5 items-center gap-2 text-xs">
           {trend && TrendIcon ? (
             <span
