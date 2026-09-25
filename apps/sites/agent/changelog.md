@@ -29,5 +29,5 @@ This log records repository changes for the Sites Studio multi-site portal.
 ### Release state
 
 - Local commits: complete on `main`.
-- Remote push: pending.
+- Remote push: complete to `origin/main`.
 - Main branch merge: no separate branch; local branch is already `main`.
