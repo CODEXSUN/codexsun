@@ -51,20 +51,22 @@ test("receives purchase orders into traceable lots and ledger stock", async () =
   const { business, inventory, location, rice } = await setup();
   const scope = { businessId: business.id, locationId: location.id };
   const order = await inventory.createPurchaseOrder(
-    { ...scope, lines: [{ quantityMilli: 10_000, stockItemId: rice.id }], supplierRef: "SUP-1" },
+    { ...scope, lines: [{ quantityMilli: 10_000, stockItemId: rice.id, unitPriceMinor: 250 }], supplierRef: "SUP-1" },
     context,
   );
   await inventory.sendPurchaseOrder(order.id, context);
   const poLines = (await inventory.read(scope)).purchaseOrderLines;
+  assert.equal(poLines[0]!.unit_price_minor, 250);
   const state = await inventory.receiveGoods(
     order.id,
-    { lines: [{ lotCode: "LOT-A", poLineId: poLines[0]!.id, quantityMilli: 6_000 }] },
+    { lines: [{ lotCode: "LOT-A", poLineId: poLines[0]!.id, quantityMilli: 6_000, unitPriceMinor: 260 }] },
     context,
   );
   assert.equal(state.receipts.length, 1);
   assert.equal(state.lots.length, 1);
   assert.equal(state.lots[0]!.lot_code, "LOT-A");
   assert.equal(state.receiptLines[0]!.lot_id, state.lots[0]!.id);
+  assert.equal(state.receiptLines[0]!.unit_price_minor, 260);
   const purchase = state.movements.find((movement) => (movement.source_type as string) === "purchase")!;
   assert.equal(purchase.quantity_milli, 6_000);
   assert.equal(purchase.source_id, state.receipts[0]!.id);

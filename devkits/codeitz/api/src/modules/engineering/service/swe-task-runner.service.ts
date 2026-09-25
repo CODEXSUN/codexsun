@@ -18,6 +18,7 @@ import { GitOpsService } from "./git-ops.service.js";
 import type { MemoryBankService } from "../../memory/service/memory-bank.service.js";
 import type { SkillOrganiserService } from "../../skills/service/skill-organiser.service.js";
 import type { SweStateGraphService } from "./swe-state-graph.service.js";
+import { CodePatcherService } from "./code-patcher.service.js";
 
 const PRIORITY_WEIGHTS: Record<QueueItemPriority, number> = {
   critical: 0,
@@ -59,6 +60,7 @@ export class SweTaskRunnerService {
   private memoryBank: MemoryBankService | null = null;
   private skillOrganiser: SkillOrganiserService | null = null;
   private stateGraph: SweStateGraphService | null = null;
+  private patcher: CodePatcherService | null = null;
 
   constructor(
     private readonly orchestrator: SweOrchestratorService,
@@ -69,6 +71,7 @@ export class SweTaskRunnerService {
       memoryBank?: MemoryBankService;
       skillOrganiser?: SkillOrganiserService;
       stateGraph?: SweStateGraphService;
+      patcher?: CodePatcherService;
     },
   ) {
     const root = options?.rootDir ?? resolve(".");
@@ -77,6 +80,7 @@ export class SweTaskRunnerService {
     this.memoryBank = options?.memoryBank ?? null;
     this.skillOrganiser = options?.skillOrganiser ?? null;
     this.stateGraph = options?.stateGraph ?? null;
+    this.patcher = options?.patcher ?? null;
     if (this.enableJournal) {
       this.loadJournal();
     }
@@ -92,6 +96,10 @@ export class SweTaskRunnerService {
 
   setStateGraph(stateGraph: SweStateGraphService | null): void {
     this.stateGraph = stateGraph;
+  }
+
+  setPatcher(patcher: CodePatcherService | null): void {
+    this.patcher = patcher;
   }
 
   private loadJournal(): void {
@@ -474,10 +482,41 @@ export class SweTaskRunnerService {
           nextPhase = "execution";
           const gitStatus = this.gitOps.getStatus();
           const changedCount = gitStatus.files.length;
-          actionDesc = `[${workerId}] Drafted minimal diff. Current workspace has ${changedCount} tracked/untracked file changes on branch '${gitStatus.branch}'.`;
+
+          let appliedPatchesCount = 0;
+          const patchSummaries: string[] = [];
+          if (this.patcher && task.patches && task.patches.length > 0) {
+            for (const patch of task.patches) {
+              try {
+                const res = this.patcher.applyPatch(patch);
+                if (res.success) {
+                  appliedPatchesCount++;
+                  patchSummaries.push(res.message);
+                  if (!task.targetPaths.includes(patch.filePath)) {
+                    task.targetPaths.push(patch.filePath);
+                  }
+                }
+              } catch (patchErr) {
+                this.addLog({
+                  level: "warn",
+                  taskId: task.id,
+                  taskTitle: task.title,
+                  phase: "execution",
+                  message: `[${workerId}] Patch failed for '${patch.filePath}': ${(patchErr as Error).message}`,
+                });
+              }
+            }
+          }
+
+          const patchMsg = appliedPatchesCount > 0
+            ? ` Applied ${appliedPatchesCount} code patch(es): ${patchSummaries.join("; ")}.`
+            : ` Drafted minimal diff. Current workspace has ${changedCount} tracked/untracked file changes on branch '${gitStatus.branch}'.`;
+
+          actionDesc = `[${workerId}]${patchMsg}`;
           this.orchestrator.advancePhase(task.id, {
             targetPhase: "execution",
-            changeSummary: `Patch successfully planned for ${task.title} on branch '${gitStatus.branch}'.`,
+            targetPaths: task.targetPaths,
+            changeSummary: `Patch successfully executed for ${task.title} on branch '${gitStatus.branch}'.${appliedPatchesCount > 0 ? ` ${appliedPatchesCount} file(s) modified.` : ""}`,
           });
           break;
         }
@@ -613,6 +652,11 @@ export class SweTaskRunnerService {
               }
             } catch {}
           }
+
+          // Clear patch backups since task completed verified
+          if (this.patcher) {
+            this.patcher.clearBackups();
+          }
           break;
         }
         case "completed":
@@ -683,8 +727,19 @@ export class SweTaskRunnerService {
         } catch {}
       }
 
-      // Automated Rollback: Ensure working tree is restored so workspace is never left dirty
+      // Automated Rollback: rollback applied patches first, then git undo if needed
       try {
+        if (this.patcher) {
+          const rolledBackCount = this.patcher.rollbackAll();
+          if (rolledBackCount > 0) {
+            this.addLog({
+              level: "warn",
+              taskId: task.id,
+              taskTitle: task.title,
+              message: `[${workerId}] Code patcher rolled back ${rolledBackCount} modified file(s).`,
+            });
+          }
+        }
         const undoResult = this.gitOps.undoChanges({ mode: "working_tree" });
         this.addLog({
           level: "warn",

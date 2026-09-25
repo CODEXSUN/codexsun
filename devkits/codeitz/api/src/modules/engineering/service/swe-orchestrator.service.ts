@@ -30,6 +30,7 @@ export class SweOrchestratorService {
       phase: "intake",
       status: "queued",
       targetPaths: input.targetPaths ?? [],
+      patches: input.patches ?? [],
       changeSummary: "",
       verificationChecks: [],
       reviewNotes: "",

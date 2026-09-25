@@ -301,6 +301,7 @@ export class InventoryService {
         poLineId: line.poLineId,
         quantityMilli: line.quantityMilli,
         stockItemId: poLine.stock_item_id,
+        unitPriceMinor: line.unitPriceMinor ?? poLine.unit_price_minor,
       });
     }
     const id = await this.store.receiveGoods(scope, poId, resolved, input.note, context.actorId, this.timestamp());

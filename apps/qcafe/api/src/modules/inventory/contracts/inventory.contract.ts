@@ -132,6 +132,7 @@ export const purchaseOrderLineSchema = z.object({
   note: z.string().trim().min(1).max(240).optional(),
   quantityMilli: z.number().int().positive(),
   stockItemId: z.string().uuid(),
+  unitPriceMinor: z.number().int().min(0).default(0),
 });
 
 export const createPurchaseOrderSchema = inventoryScopeSchema.extend({
@@ -157,6 +158,7 @@ export const receiveGoodsLineSchema = z.object({
     .optional(),
   poLineId: z.string().uuid(),
   quantityMilli: z.number().int().positive(),
+  unitPriceMinor: z.number().int().min(0).optional(),
 });
 
 export const receiveGoodsSchema = z.object({

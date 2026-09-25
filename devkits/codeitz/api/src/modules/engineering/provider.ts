@@ -37,12 +37,13 @@ export class CodeitzEngineeringProvider implements ModuleProvider {
   readonly orchestrator = new SweOrchestratorService(this.repository);
   readonly gitOps = new GitOpsService();
   readonly stateGraph = new SweStateGraphService();
+  readonly patcher = new CodePatcherService();
   readonly runner = new SweTaskRunnerService(this.orchestrator, this.gitOps, {
     stateGraph: this.stateGraph,
+    patcher: this.patcher,
   });
   readonly codebaseGraph = new CodebaseGraphService();
   readonly projects = new ProjectsService();
-  readonly patcher = new CodePatcherService();
 
   setMemoryAndSkills(memoryBank: MemoryBankService, skillOrganiser: SkillOrganiserService): void {
     this.runner.setMemoryBank(memoryBank);

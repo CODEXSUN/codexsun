@@ -11,9 +11,9 @@ export type InventoryWorkspace = {
   planLines: Array<{ demand_ref: string | null; demand_source: string; id: string; menu_item_id: string; plan_id: string; quantity_milli: number }>;
   reservations: Array<{ id: string; quantity_milli: number; source_id: string; source_type: string; status: string; stock_item_id: string }>;
   purchaseOrders: Array<{ id: string; status: string; supplier_ref: string | null }>;
-  purchaseOrderLines: Array<{ id: string; po_id: string; quantity_milli: number; received_milli: number; stock_item_id: string }>;
+  purchaseOrderLines: Array<{ id: string; po_id: string; quantity_milli: number; received_milli: number; stock_item_id: string; unit_price_minor: number }>;
   receipts: Array<{ id: string; po_id: string; received_at: string }>;
-  receiptLines: Array<{ id: string; lot_id: string | null; po_line_id: string; quantity_milli: number; receipt_id: string; stock_item_id: string }>;
+  receiptLines: Array<{ id: string; lot_id: string | null; po_line_id: string; quantity_milli: number; receipt_id: string; stock_item_id: string; unit_price_minor: number }>;
   lots: Array<{ expires_at: string | null; id: string; lot_code: string; stock_item_id: string }>;
   counts: Array<{ id: string; counted_at: string; reason: string }>;
   countLines: Array<{ counted_milli: number; count_id: string; expected_milli: number; stock_item_id: string; variance_milli: number }>;

@@ -23,13 +23,27 @@ Codeitz adheres to the standard CODEXSUN dual-host structure:
    - Purpose: Application lifecycle, health reporting, and platform runtime integration.
 2. **Engineering (`src/modules/engineering`)**:
    - Provider: `codeitz.engineering`
-   - Purpose: Phased SWE execution pipeline (`intake` → `grounding` → `planning` → `execution` → `verification` → `review` → `completed`).
-3. **Learning (`src/modules/learning`)**:
+   - Purpose: Phased SWE execution pipeline (`intake` → `grounding` → `planning` → `execution` → `verification` → `review` → `completed`), GitOps mutex locks, isolated worktrees, AST code patcher with rollback, and cyclical LangGraph state machine.
+3. **Capabilities (`src/modules/capabilities`)**:
+   - Provider: `codeitz.capabilities`
+   - Purpose: Sandboxed terminal execution, web search, browser automation snapshots, multi-model LLM router, vision structure extraction, speech synthesis, audio transcription, and spreadsheet/document parsing.
+4. **Memory Bank (`src/modules/memory`)**:
+   - Provider: `codeitz.memory`
+   - Purpose: Tri-format persistent memory storage maintaining strict parity across Markdown (`productContext.md`, `activeContext.md`, `systemPatterns.md`, `techContext.md`, `progress.md`), native Node.js SQLite (`DatabaseSync`), and JSON snapshots with context synthesis.
+5. **Skills (`src/modules/skills`)**:
+   - Provider: `codeitz.skills`
+   - Purpose: Automatic discovery, parsing, and SQLite indexing of `.agents/skills/**/SKILL.md`, multi-category taxonomy, and prompt recommendation engine.
+6. **Learning (`src/modules/learning`)**:
    - Provider: `codeitz.learning`
    - Purpose: Episodic memory bank, failure root-cause analysis, heuristic synthesis, and keyword-based retrieval.
-4. **Skills (`src/modules/skills`)**:
-   - Provider: `codeitz.skills`
-   - Purpose: Dynamic skill catalog, evaluation gates, and automatic distillation of markdown skills.
+
+## CLI Task Runner
+
+Codeitz includes an autonomous command-line task runner for executing tasks directly against live workspace projects:
+
+```bash
+npm --prefix devkits/codeitz/api run swe:run -- --title "Audit Confinement" --prompt "Verify all provider contracts"
+```
 
 ## Development Ports
 
@@ -56,11 +70,19 @@ Codeitz adheres to the standard CODEXSUN dual-host structure:
 
 Run test suites from the repository root:
 ```bash
-npm.cmd run test:codeitz
+npm.cmd --prefix devkits/codeitz/api test
+npm.cmd --prefix devkits/codeitz/web test
+```
+
+Run TypeScript compilation checks:
+```bash
+npm.cmd --prefix devkits/codeitz/api run check
+npm.cmd --prefix devkits/codeitz/web run check
 ```
 
 Run architecture and boundary checks:
 ```bash
 node tools/check-app-architecture.mjs
 node tools/check-module-boundaries.mjs
+node tools/check-root-layout.mjs
 ```

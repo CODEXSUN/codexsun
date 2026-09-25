@@ -105,7 +105,7 @@ export class InventoryProcurementRepository {
     scope: InventoryScope,
     input: {
       expectedAt?: string;
-      lines: ReadonlyArray<{ note?: string; quantityMilli: number; stockItemId: string }>;
+      lines: ReadonlyArray<{ note?: string; quantityMilli: number; stockItemId: string; unitPriceMinor: number }>;
       supplierRef?: string;
     },
     actor: string,
@@ -139,6 +139,7 @@ export class InventoryProcurementRepository {
             quantity_milli: line.quantityMilli,
             received_milli: 0,
             stock_item_id: line.stockItemId,
+            unit_price_minor: line.unitPriceMinor,
           })),
         )
         .execute();
@@ -203,7 +204,7 @@ export class InventoryProcurementRepository {
   async receiveGoods(
     scope: InventoryScope,
     poId: string,
-    lines: ReadonlyArray<{ lotId: string | null; poLineId: string; quantityMilli: number; stockItemId: string }>,
+    lines: ReadonlyArray<{ lotId: string | null; poLineId: string; quantityMilli: number; stockItemId: string; unitPriceMinor: number }>,
     note: string | undefined,
     actor: string,
     now: string,
@@ -234,6 +235,7 @@ export class InventoryProcurementRepository {
             quantity_milli: line.quantityMilli,
             receipt_id: receiptId,
             stock_item_id: line.stockItemId,
+            unit_price_minor: line.unitPriceMinor,
           })),
         )
         .execute();

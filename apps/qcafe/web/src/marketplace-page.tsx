@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { readFoundationSetup } from "./foundation-setup-api";
 import { changeMarketplace, readMarketplace, readReconciliation, type MarketplaceWorkspace } from "./marketplace-api";
 import { readMenu } from "./menu-api";
+import { readPos } from "./pos-api";
 
 type Sender = (path: string, input?: Record<string, unknown>) => void;
 
@@ -30,6 +31,11 @@ export function MarketplacePage({ request }: { request: typeof fetch }) {
     enabled: Boolean(business),
     queryKey: ["qcafe", "menu", business?.id],
     queryFn: () => readMenu(request, business!.id),
+  });
+  const pos = useQuery({
+    enabled: Boolean(business && locationId),
+    queryKey: ["qcafe", "pos", business?.id, locationId],
+    queryFn: () => readPos(request, business!.id, locationId),
   });
   const change = useMutation({
     mutationFn: ({ input, path }: { input?: Record<string, unknown>; path: string }) => changeMarketplace(request, path, input),
@@ -137,7 +143,7 @@ export function MarketplacePage({ request }: { request: typeof fetch }) {
       <section className="grid gap-3">
         <h2 className="text-sm font-semibold">Order intake</h2>
         {(data?.intakes ?? []).map((intake) => (
-          <IntakeCard key={intake.id} intake={intake} request={request} send={send} />
+          <IntakeCard key={intake.id} intake={intake} orders={pos.data?.orders ?? []} request={request} send={send} />
         ))}
         {!(data?.intakes ?? []).length ? <p className="text-sm text-muted-foreground">No partner orders yet.</p> : null}
       </section>
@@ -214,7 +220,17 @@ export function MarketplacePage({ request }: { request: typeof fetch }) {
   );
 }
 
-function IntakeCard({ intake, request, send }: { intake: MarketplaceWorkspace["intakes"][number]; request: typeof fetch; send: Sender }) {
+function IntakeCard({
+  intake,
+  orders,
+  request,
+  send,
+}: {
+  intake: MarketplaceWorkspace["intakes"][number];
+  orders: Array<{ id: string; number: string; status: string; total_minor: number }>;
+  request: typeof fetch;
+  send: Sender;
+}) {
   const [reconciliation, setReconciliation] = useState<Record<string, unknown> | null>(null);
   return (
     <div className="grid gap-2 border-t pt-3">
@@ -223,6 +239,68 @@ function IntakeCard({ intake, request, send }: { intake: MarketplaceWorkspace["i
         <Badge variant={intake.status === "accepted" ? "default" : "secondary"}>{intake.status}</Badge>
         <span className="text-xs text-muted-foreground">{(intake.total_minor / 100).toFixed(2)}</span>
       </div>
+      {intake.status === "accepted" && !intake.pos_order_id ? (
+        <form
+          className="flex max-w-xl flex-wrap items-end gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            send(`intakes/${intake.id}/link-order`, { orderId: form.get("orderId") });
+          }}
+        >
+          <Field label="POS order" htmlFor={`marketplace-link-${intake.id}`}>
+            <NativeSelect className="w-full" id={`marketplace-link-${intake.id}`} name="orderId" required>
+              {orders
+                .filter((order) => ["confirmed", "fulfilled"].includes(order.status))
+                .map((order) => (
+                  <NativeSelectOption key={order.id} value={order.id}>
+                    {`${order.number} · ${order.status} · ${(order.total_minor / 100).toFixed(2)}`}
+                  </NativeSelectOption>
+                ))}
+            </NativeSelect>
+          </Field>
+          <Button size="sm" type="submit" variant="outline">
+            Link order
+          </Button>
+        </form>
+      ) : null}
+      {intake.pos_order_id ? (
+        <p className="text-xs text-muted-foreground">Linked order {intake.pos_order_id.slice(0, 8)}.</p>
+      ) : null}
+      {intake.status === "accepted" && intake.pos_order_id ? (
+        <form
+          className="flex max-w-xl flex-wrap items-end gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            send(`intakes/${intake.id}/fulfillment`, {
+              partnerCollectedMinor: Math.round(Number(form.get("collected")) * 100),
+              partnerFeeMinor: Math.round(Number(form.get("fee")) * 100),
+              riderRef: String(form.get("riderRef") ?? "").trim() || undefined,
+            });
+            event.currentTarget.reset();
+          }}
+        >
+          <Field label="Collected" htmlFor={`marketplace-collected-${intake.id}`}>
+            <Input id={`marketplace-collected-${intake.id}`} name="collected" required type="number" min="0" step="0.01" />
+          </Field>
+          <Field label="Fee" htmlFor={`marketplace-fee-${intake.id}`}>
+            <Input id={`marketplace-fee-${intake.id}`} name="fee" required type="number" min="0" step="0.01" />
+          </Field>
+          <Field label="Rider" htmlFor={`marketplace-rider-${intake.id}`}>
+            <Input id={`marketplace-rider-${intake.id}`} name="riderRef" placeholder="R-12" />
+          </Field>
+          <Button size="sm" type="submit" variant="outline">
+            Record fulfillment
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => send(`intakes/${intake.id}/pick`)}>
+            Picked
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => send(`intakes/${intake.id}/deliver`)}>
+            Delivered
+          </Button>
+        </form>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         {intake.status === "received" ? (
           <>

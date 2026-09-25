@@ -424,3 +424,30 @@ test("table, kitchen, shift, and event reports carry their scope", async () => {
     assert.ok(alert.subjectId.length > 0 && alert.subjectType.length > 0 && alert.detail.length > 0);
   }
 });
+
+test("stock valuation uses the latest receipt unit price", async () => {
+  const fixture = await setup();
+  const { business, inventory, location, reports } = fixture;
+  const scope = { businessId: business.id, locationId: location.id };
+  const unit = await inventory.createUnit({ ...scope, code: "KG", name: "Kilogram" }, context);
+  const rice = await inventory.createItem(
+    { ...scope, code: "RICE", name: "Rice", reorderLevelMilli: 0, trackStock: true, unitId: unit.id },
+    context,
+  );
+  const order = await inventory.createPurchaseOrder(
+    { ...scope, lines: [{ quantityMilli: 10_000, stockItemId: rice.id, unitPriceMinor: 250 }], supplierRef: "SUP-1" },
+    context,
+  );
+  await inventory.sendPurchaseOrder(order.id, context);
+  const poLines = (await inventory.read(scope)).purchaseOrderLines;
+  await inventory.receiveGoods(
+    order.id,
+    { lines: [{ poLineId: poLines[0]!.id, quantityMilli: 10_000, unitPriceMinor: 260 }] },
+    context,
+  );
+  const state = await reports.stock({ ...scope, from: "2026-09-24T00:00:00.000Z", to: "2026-09-24T23:59:59.999Z" });
+  const entry = state.rows.find((row) => row.stockItemId === rice.id)!;
+  assert.equal(entry.quantityMilli, 10_000);
+  assert.equal(entry.unitPriceMinor, 260);
+  assert.equal(entry.valueMinor, 2_600);
+});

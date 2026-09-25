@@ -87,6 +87,7 @@ export interface QcafePurchaseOrderLineRow {
   quantity_milli: number;
   received_milli: number;
   stock_item_id: string;
+  unit_price_minor: number;
 }
 
 export interface QcafeGoodsReceiptRow {
@@ -107,6 +108,7 @@ export interface QcafeGoodsReceiptLineRow {
   quantity_milli: number;
   receipt_id: string;
   stock_item_id: string;
+  unit_price_minor: number;
 }
 
 export interface QcafeStockLotRow {

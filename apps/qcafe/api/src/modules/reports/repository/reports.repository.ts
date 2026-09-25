@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 import type { QcafeFoundationDatabase } from "../../foundation/persistence/qcafe-foundation.database.js";
-import type { QcafeDocumentsDatabase } from "../../documents/persistence/documents.database.js";
+import type { QcafeInventoryTables } from "../../inventory/persistence/inventory.database.js";
+import type { QcafeDocumentsTables } from "../../documents/persistence/documents.database.js";
 import type { ReportScope } from "../contracts/reports.contract.js";
 
 export interface ResolvedReportScope {
@@ -294,8 +295,12 @@ export class ReportsRepository {
     for (const movement of movements) {
       onHand.set(movement.stock_item_id, (onHand.get(movement.stock_item_id) ?? 0) + movement.quantity_milli);
     }
+    const priced = await this.latestReceiptPrices(scope);
     return {
-      availability: [...onHand].map(([stockItemId, quantityMilli]) => ({ quantityMilli, stockItemId })),
+      availability: [...onHand].map(([stockItemId, quantityMilli]) => {
+        const unitPriceMinor = priced.get(stockItemId) ?? 0;
+        return { quantityMilli, stockItemId, unitPriceMinor, valueMinor: Math.round((quantityMilli * unitPriceMinor) / 1000) };
+      }),
       items: items.map((item) => ({
         active: item.active,
         code: item.code,
@@ -305,6 +310,32 @@ export class ReportsRepository {
       })),
       movements,
     };
+  }
+
+  async latestReceiptPrices(scope: ResolvedReportScope) {
+    const db = this.db as unknown as Kysely<QcafeInventoryTables>;
+    const receipts = await db
+      .selectFrom("qcafe_goods_receipts")
+      .select("id")
+      .where("business_id", "=", scope.businessId)
+      .where("location_id", "=", scope.locationId)
+      .execute();
+    const prices = new Map<string, number>();
+    if (!receipts.length) return prices;
+    const lines = await db
+      .selectFrom("qcafe_goods_receipt_lines")
+      .select(["stock_item_id", "unit_price_minor", "created_at"])
+      .where(
+        "receipt_id",
+        "in",
+        receipts.map((receipt) => receipt.id),
+      )
+      .orderBy("created_at", "desc")
+      .execute();
+    for (const line of lines) {
+      if (!prices.has(line.stock_item_id)) prices.set(line.stock_item_id, line.unit_price_minor);
+    }
+    return prices;
   }
 
   async events(scope: ResolvedReportScope) {
@@ -346,7 +377,7 @@ export class ReportsRepository {
   }
 
   async failedPrintJobs(scope: ResolvedReportScope) {
-    const db = this.db as unknown as Kysely<QcafeDocumentsDatabase>;
+    const db = this.db as unknown as Kysely<QcafeFoundationDatabase & QcafeDocumentsTables>;
     return db
       .selectFrom("qcafe_print_jobs")
       .selectAll()

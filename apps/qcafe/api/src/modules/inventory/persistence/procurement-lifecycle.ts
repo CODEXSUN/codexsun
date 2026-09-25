@@ -109,6 +109,19 @@ export const qcafeProcurementMigration = {
   },
 };
 
+export const qcafeValuationMigration = {
+  checksum: createLifecycleChecksum(
+    "qcafe.inventory.008|purchase-order-lines,receipt-lines unit prices|no new foreign keys|stock valuation without postings",
+  ),
+  description: "Record unit prices on purchase order and receipt lines for stock valuation.",
+  id: "qcafe.inventory.008",
+  owner: "qcafe.inventory",
+  async apply(database: Kysely<QcafeFoundationDatabase>) {
+    await database.schema.alterTable("qcafe_purchase_order_lines").addColumn("unit_price_minor", "integer", (c) => c.notNull().defaultTo(0)).execute();
+    await database.schema.alterTable("qcafe_goods_receipt_lines").addColumn("unit_price_minor", "integer", (c) => c.notNull().defaultTo(0)).execute();
+  },
+};
+
 export const qcafeMovementSourceMigration = {
   checksum: createLifecycleChecksum(
     "qcafe.inventory.006|stock-movements source_id without adjustment foreign key|preserve ledger rows|purchase,count,waste sources",

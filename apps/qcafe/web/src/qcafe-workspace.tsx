@@ -17,7 +17,10 @@ import {
   ShoppingBagIcon,
   StoreIcon,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import type { QcafePageId, QcafeWorkspace, QcafeWorkspacePage } from "./qcafe-api";
+import { readFoundationSetup } from "./foundation-setup-api";
+import { readAlerts, readReport, reportQuery } from "./reports-api";
 import { FoundationSetupPage } from "./foundation-setup-page";
 import { MenuPage } from "./menu-page";
 import { PosPage } from "./pos-page";
@@ -162,6 +165,7 @@ export function createQcafeNavigation(
   activePageId: QcafePageId,
   pages: QcafeWorkspacePage[],
   onSelectPage: (pageId: QcafePageId) => void,
+  badges?: Partial<Record<QcafePageId, number>>,
 ): MdiNavigationSection[] {
   const pageMap = new Map(pages.map((page) => [page.id, page]));
   const overview = pageMap.get("overview") ?? fallbackPages[0];
@@ -173,6 +177,11 @@ export function createQcafeNavigation(
     (pageId) => pageMap.get(pageId) ?? getFallbackPage(pageId),
   );
   const systemPages = (["backup", "sync"] as const).map((pageId) => pageMap.get(pageId) ?? getFallbackPage(pageId));
+
+  const badgeFor = (pageId: QcafePageId) => {
+    const count = badges?.[pageId] ?? 0;
+    return count > 0 ? count : undefined;
+  };
 
   return [
     {
@@ -197,6 +206,7 @@ export function createQcafeNavigation(
         },
         {
           active: activePageId === "menu",
+          badge: badgeFor("menu"),
           icon: pageIcons.menu,
           label: (pageMap.get("menu") ?? getFallbackPage("menu")).label,
           onSelect: () => onSelectPage("menu"),
@@ -208,6 +218,7 @@ export function createQcafeNavigation(
       label: "Cafe",
       items: cafePages.map((page) => ({
         active: activePageId === page.id,
+        badge: badgeFor(page.id),
         icon: pageIcons[page.id],
         label: page.label,
         onSelect: () => onSelectPage(page.id),
@@ -218,6 +229,7 @@ export function createQcafeNavigation(
       label: "Operations",
       items: operationsPages.map((page) => ({
         active: activePageId === page.id,
+        badge: badgeFor(page.id),
         icon: pageIcons[page.id],
         label: page.label,
         onSelect: () => onSelectPage(page.id),
@@ -228,6 +240,7 @@ export function createQcafeNavigation(
       label: "System",
       items: systemPages.map((page) => ({
         active: activePageId === page.id,
+        badge: badgeFor(page.id),
         icon: pageIcons[page.id],
         label: page.label,
         onSelect: () => onSelectPage(page.id),
@@ -259,7 +272,7 @@ export function QcafeWorkspaceView({ activePageId, connectionState, request, wor
       </header>
 
       {activePage.id === "overview" ? (
-        <OverviewPage pages={pages} providers={providers} />
+        <OverviewPage pages={pages} providers={providers} request={request} />
       ) : activePage.id === "setup" ? (
         <FoundationSetupPage request={request} />
       ) : activePage.id === "menu" ? (
@@ -293,11 +306,51 @@ export function QcafeWorkspaceView({ activePageId, connectionState, request, wor
   );
 }
 
-function OverviewPage({ pages, providers }: { pages: QcafeWorkspacePage[]; providers: string[] }) {
+function LiveKpis({ request }: { request: typeof fetch }) {
+  const setup = useQuery({ queryKey: ["qcafe", "foundation", "setup"], queryFn: () => readFoundationSetup(request) });
+  const business = setup.data?.businesses[0];
+  const location = business?.locations[0];
+  const dayId = location?.businessDay && location.businessDay.status === "open" ? location.businessDay.id : "";
+  const query = business && location && dayId ? reportQuery(business.id, location.id, dayId) : null;
+  const sales = useQuery({
+    enabled: Boolean(query),
+    queryKey: ["qcafe", "reports", "sales", business?.id, location?.id, dayId],
+    queryFn: () => readReport(request, "sales", query!),
+  });
+  const alerts = useQuery({
+    enabled: Boolean(query),
+    queryKey: ["qcafe", "reports", "alerts", business?.id, location?.id, dayId],
+    queryFn: () => readAlerts(request, query!),
+  });
+  const totals = (sales.data?.totals ?? {}) as { bills?: number; payableMinor?: number; paidMinor?: number };
+  const kpis: Array<[string, string]> = [
+    ["Bills today", String(totals.bills ?? "—")],
+    ["Payable", money(totals.payableMinor ?? 0)],
+    ["Collected", money(totals.paidMinor ?? 0)],
+    ["Open alerts", String(alerts.data?.alerts.length ?? "—")],
+  ];
+  return (
+    <section aria-label="Today at a glance" className="grid gap-3 sm:grid-cols-4">
+      {kpis.map(([label, value]) => (
+        <div className="grid gap-1 border bg-card p-4" key={label}>
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-xl font-semibold tracking-tight">{value}</p>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function money(minor: number, currency = "INR") {
+  return new Intl.NumberFormat("en-IN", { currency, style: "currency" }).format(minor / 100);
+}
+
+function OverviewPage({ pages, providers, request }: { pages: QcafeWorkspacePage[]; providers: string[]; request: typeof fetch }) {
   const cafePages = pages.filter((page) => page.id !== "overview");
 
   return (
     <div className="grid gap-6">
+      <LiveKpis request={request} />
       <section className="grid gap-4 sm:grid-cols-3">
         {cafePages.map((page) => {
           const Icon = pageIcons[page.id];

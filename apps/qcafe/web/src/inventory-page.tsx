@@ -406,7 +406,7 @@ function ProcurementPanel({ data, scope, send }: { data?: InventoryWorkspace; sc
           const form = new FormData(event.currentTarget);
           send("purchase-orders", {
             ...scope,
-            lines: [{ quantityMilli: Math.round(Number(form.get("quantity")) * 1000), stockItemId: form.get("stockItemId") }],
+            lines: [{ quantityMilli: Math.round(Number(form.get("quantity")) * 1000), stockItemId: form.get("stockItemId"), unitPriceMinor: Math.round(Number(form.get("unitPrice") || 0) * 100) }],
             supplierRef: String(form.get("supplierRef") ?? "").trim() || undefined,
           });
           event.currentTarget.reset();
@@ -423,6 +423,7 @@ function ProcurementPanel({ data, scope, send }: { data?: InventoryWorkspace; sc
           </NativeSelect>
         </Field>
         <Field label="Quantity" htmlFor="inventory-po-quantity"><Input id="inventory-po-quantity" name="quantity" required type="number" min="0" step="0.001" /></Field>
+        <Field label="Unit price" htmlFor="inventory-po-price"><Input id="inventory-po-price" name="unitPrice" type="number" min="0" step="0.01" placeholder="0.00" /></Field>
         <Field label="Supplier reference" htmlFor="inventory-po-supplier"><Input id="inventory-po-supplier" name="supplierRef" placeholder="SUP-1" /></Field>
         <Button className="w-fit" type="submit" variant="outline">
           Create order
@@ -449,7 +450,7 @@ function ProcurementPanel({ data, scope, send }: { data?: InventoryWorkspace; sc
                   event.preventDefault();
                   const form = new FormData(event.currentTarget);
                   send(`purchase-orders/${order.id}/receipts`, {
-                    lines: [{ lotCode: String(form.get("lotCode") ?? "").trim() || undefined, poLineId: line.id, quantityMilli: Math.round(Number(form.get("quantity")) * 1000) }],
+                    lines: [{ lotCode: String(form.get("lotCode") ?? "").trim() || undefined, poLineId: line.id, quantityMilli: Math.round(Number(form.get("quantity")) * 1000), unitPriceMinor: Math.round(Number(form.get("unitPrice") || 0) * 100) }],
                   });
                   event.currentTarget.reset();
                 }}
@@ -458,6 +459,7 @@ function ProcurementPanel({ data, scope, send }: { data?: InventoryWorkspace; sc
                   {(line.quantity_milli / 1000).toFixed(3)} ordered · {(line.received_milli / 1000).toFixed(3)} received
                 </span>
                 <Field label="Receive quantity" htmlFor={`inventory-receive-${line.id}`}><Input id={`inventory-receive-${line.id}`} name="quantity" required type="number" min="0" step="0.001" /></Field>
+                <Field label="Unit price" htmlFor={`inventory-receive-price-${line.id}`}><Input id={`inventory-receive-price-${line.id}`} name="unitPrice" type="number" min="0" step="0.01" placeholder="Falls back to order price" /></Field>
                 <Field label="Lot code" htmlFor={`inventory-lot-${line.id}`}><Input id={`inventory-lot-${line.id}`} name="lotCode" placeholder="LOT-A" /></Field>
                 <Button size="sm" type="submit" variant="outline">
                   Receive

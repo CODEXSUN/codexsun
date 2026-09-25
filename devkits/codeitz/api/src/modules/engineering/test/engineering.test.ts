@@ -583,6 +583,68 @@ test("SweTaskRunnerService triggers LangGraph cycle back to execution on verific
   orchestrator.runVerificationGate = origRunVerificationGate;
 });
 
+test("SweTaskRunnerService with CodePatcherService applies live patch and rolls back on failure", () => {
+  const testDir = resolve("storage/runtime/test-swe-patcher-runner");
+  mkdirSync(testDir, { recursive: true });
+  const patcher = new CodePatcherService(testDir);
+
+  const sampleFile = "sample-config.json";
+  const absPath = resolve(testDir, sampleFile);
+  writeFileSync(absPath, JSON.stringify({ version: "1.0.0", debug: false }, null, 2), "utf8");
+
+  const repo = new SweTaskRepository();
+  const orchestrator = new SweOrchestratorService(repo);
+  const runner = new SweTaskRunnerService(orchestrator, undefined, {
+    patcher,
+  });
+
+  const task = orchestrator.createTask({
+    title: "Update config debug flag",
+    prompt: "Enable debug flag in sample-config.json",
+    patches: [
+      {
+        filePath: sampleFile,
+        targetContent: '"debug": false',
+        replacementContent: '"debug": true',
+        description: "Set debug to true",
+      },
+    ],
+  });
+
+  runner.enqueue({ taskId: task.id, priority: "high" });
+
+  // Intake -> Grounding -> Planning -> Execution
+  runner.step(); // grounding
+  runner.step(); // planning
+  const stepExec = runner.step(); // planning -> execution
+  assert.equal(stepExec.currentPhase, "execution");
+  assert.ok(stepExec.message.includes("Applied 1 code patch"));
+
+  // Verify file on disk was modified
+  const modifiedContent = readFileSync(absPath, "utf8");
+  assert.ok(modifiedContent.includes('"debug": true'));
+
+  // Now trigger verification failure to verify automated rollback
+  const origGate = orchestrator.runVerificationGate.bind(orchestrator);
+  orchestrator.runVerificationGate = () => ({
+    task: orchestrator.getTask(task.id),
+    passed: false,
+  });
+
+  // Step into verification (which fails)
+  const failedStep = runner.step();
+  assert.equal(failedStep.currentPhase, "failed");
+
+  // Verify file was restored to original content by rollback!
+  const rolledBackContent = readFileSync(absPath, "utf8");
+  assert.ok(rolledBackContent.includes('"debug": false'));
+
+  // Clean up
+  orchestrator.runVerificationGate = origGate;
+  rmSync(testDir, { recursive: true, force: true });
+});
+
+
 
 
 

@@ -4,7 +4,7 @@ import type { QcafeFoundationDatabase } from "../../foundation/persistence/qcafe
 import { qcafeRecipeMigration } from "./recipe-lifecycle.js";
 import { qcafeDailyPlanMigration } from "./daily-plan-lifecycle.js";
 import { qcafeReservationMigration } from "./reservation-lifecycle.js";
-import { qcafeProcurementMigration, qcafeMovementSourceMigration } from "./procurement-lifecycle.js";
+import { qcafeProcurementMigration, qcafeMovementSourceMigration, qcafeValuationMigration } from "./procurement-lifecycle.js";
 import { qcafeConsumptionMigration } from "./consumption-lifecycle.js";
 
 const migration = {
@@ -81,6 +81,7 @@ export const qcafeInventoryLifecyclePlan: DatabaseLifecyclePlan<QcafeFoundationD
     qcafeProcurementMigration,
     qcafeMovementSourceMigration,
     qcafeConsumptionMigration,
+    qcafeValuationMigration,
   ],
   moduleId: "qcafe.inventory",
   seeders: [],

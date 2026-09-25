@@ -7,6 +7,8 @@ import { Button } from "@codexsun/ui/components/button";
 import { LayoutDashboardIcon, ShieldCheckIcon, WrenchIcon } from "lucide-react";
 import { createQcafeNavigation, getQcafePages, QcafeWorkspaceView } from "./qcafe-workspace";
 import { readWorkspace, type QcafePageId } from "./qcafe-api";
+import { readFoundationSetup } from "./foundation-setup-api";
+import { readAlerts, reportQuery } from "./reports-api";
 import { QcafeSettingsWorkspace } from "./settings-workspace";
 
 export function App() {
@@ -140,9 +142,33 @@ function QcafeDesk({
   const [settingsPageLabel, setSettingsPageLabel] = useState<string>();
   const pages = getQcafePages(workspace.data);
   const activePage = pages.find((page) => page.id === activePageId) ?? pages[0];
+  const setup = useQuery({ queryKey: ["qcafe", "foundation", "setup"], queryFn: () => readFoundationSetup(request) });
+  const alertBusiness = setup.data?.businesses[0];
+  const alertLocation = alertBusiness?.locations[0];
+  const alertDayId =
+    alertLocation?.businessDay && alertLocation.businessDay.status === "open" ? alertLocation.businessDay.id : "";
+  const alertQuery =
+    alertBusiness && alertLocation && alertDayId ? reportQuery(alertBusiness.id, alertLocation.id, alertDayId) : null;
+  const alerts = useQuery({
+    enabled: Boolean(alertQuery),
+    queryKey: ["qcafe", "reports", "alerts", alertBusiness?.id, alertLocation?.id, alertDayId],
+    queryFn: () => readAlerts(request, alertQuery!),
+  });
+  const badges = useMemo(() => {
+    const counts: Partial<Record<QcafePageId, number>> = {};
+    for (const alert of alerts.data?.alerts ?? []) {
+      if (alert.type === "stock-risk") counts.inventory = (counts.inventory ?? 0) + 1;
+      else if (alert.type === "pending-kot") counts.kot = (counts.kot ?? 0) + 1;
+      else if (alert.type === "booking-conflict") counts.booking = (counts.booking ?? 0) + 1;
+      else if (alert.type === "failed-print") counts.documents = (counts.documents ?? 0) + 1;
+      else if (alert.type === "unsettled-shift") counts.billing = (counts.billing ?? 0) + 1;
+      counts.reports = (counts.reports ?? 0) + 1;
+    }
+    return counts;
+  }, [alerts.data]);
   const navigation = useMemo(
-    () => createQcafeNavigation(activePageId, pages, (page) => onNavigate(pathFromPage(page))),
-    [activePageId, onNavigate, pages],
+    () => createQcafeNavigation(activePageId, pages, (page) => onNavigate(pathFromPage(page)), badges),
+    [activePageId, badges, onNavigate, pages],
   );
   const connectionState = workspace.isPending ? "connecting" : workspace.isError ? "failed" : "connected";
 
