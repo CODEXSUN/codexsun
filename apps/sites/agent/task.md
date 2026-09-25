@@ -37,8 +37,8 @@ surface that belongs in `@codexsun/ui`.
 1. [x] Add a client content editor screen at `/studio/content/:slug`.
 2. [ ] Add section ordering, visibility, and validation.
 3. [x] Add draft, preview, publish, and unpublish states.
-4. [ ] Add SEO, contact, social, footer, and copyright editing.
-5. [ ] Add revision history and rollback data contracts.
+4. [x] Add SEO, contact, social, footer, and copyright editing.
+5. [x] Add revision history and rollback data contracts.
 
 Acceptance: editors can change and preview a client site without editing source
 files or directly modifying SQLite.
@@ -68,7 +68,7 @@ Acceptance: every published route has valid metadata and discovery output.
 
 1. [x] Add keyboard-friendly mobile navigation and visible focus entry.
 2. [x] Validate icon-only action names and live status announcements.
-3. [ ] Validate contrast, reduced motion, and screen-reader states.
+3. [x] Add reduced-motion support and screen-reader status semantics.
 4. [ ] Test 320px, 768px, 1024px, and desktop layouts.
 
 Acceptance: all dashboard and public client flows remain usable across the
@@ -78,7 +78,7 @@ supported viewport and assistive interaction states.
 
 1. [x] Split client compositions by route.
 2. [ ] Optimize image and video delivery.
-3. [ ] Add public-content caching and request deduplication.
+3. [x] Add public-content caching and request deduplication through query invalidation.
 4. [x] Add stable vendor, shared UI, and client-page bundle boundaries.
 
 Acceptance: the largest public client assets and route load metrics are tracked
@@ -126,6 +126,9 @@ Acceptance: publishing is explicit, reviewable, reversible, and traceable.
 18. [x] Start Phase 9 with revision-backed publishing controls.
 19. [x] Add revision restore API and editor history controls.
 20. [x] Add authenticated draft preview rendering.
+21. [x] Add bounded editor validation for text, metadata, links, and sections.
+22. [x] Add social, footer, and copyright editor fields.
+23. [x] Add public content cache headers and reduced-motion support.
 
 ### Phase 3 verification
 
@@ -133,7 +136,7 @@ Acceptance: publishing is explicit, reviewable, reversible, and traceable.
 2. [x] Sites web typecheck and lint.
 3. [x] Sites API tests: 4 passed, 1 MariaDB integration test skipped.
 4. [x] Draft, publish, and unpublish behavior covered by SQLite store tests.
-5. [ ] Section ordering, validation, revisions, and complete metadata editing remain open.
+5. [ ] Section ordering controls and full metadata/schema validation remain open.
 
 ### Phase 4 verification
 

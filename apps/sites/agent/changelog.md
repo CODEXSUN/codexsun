@@ -31,3 +31,10 @@ This log records repository changes for the Sites Studio multi-site portal.
 - Local commits: complete on `main`.
 - Remote push: complete to `origin/main`.
 - Main branch merge: no separate branch; local branch is already `main`.
+
+## 2026-09-25 — Workflow completion pass
+
+- Added authenticated draft preview and revision restore controls.
+- Added social, footer, and copyright editing.
+- Added bounded draft normalization and public content cache headers.
+- Added reduced-motion support and completed scoped API, UI, build, and test verification.

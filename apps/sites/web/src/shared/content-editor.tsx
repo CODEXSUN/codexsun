@@ -42,6 +42,7 @@ export function ContentEditor({ request, slug }: { request: typeof fetch; slug: 
     value.about !== content.data.about ? "About" : null,
     value.seo.title !== content.data.seo.title || value.seo.description !== content.data.seo.description ? "SEO metadata" : null,
     value.contact.email !== content.data.contact.email || value.contact.phone !== content.data.contact.phone || value.contact.label !== content.data.contact.label ? "Contact details" : null,
+    value.footer.tagline !== content.data.footer.tagline || value.footer.copyright !== content.data.footer.copyright ? "Social and footer" : null,
   ].filter((field): field is string => Boolean(field)) : [];
   return (
     <main className="min-h-full bg-background p-4 pb-12 text-foreground sm:p-6">
@@ -73,6 +74,14 @@ export function ContentEditor({ request, slug }: { request: typeof fetch; slug: 
                 <Field label="Contact label"><Input value={value.contact.label} onChange={(event) => update({ contact: { ...value.contact, label: event.target.value } })} /></Field>
                 <Field label="Email"><Input type="email" value={value.contact.email} onChange={(event) => update({ contact: { ...value.contact, email: event.target.value } })} /></Field>
                 <Field label="Phone"><Input value={value.contact.phone} onChange={(event) => update({ contact: { ...value.contact, phone: event.target.value } })} /></Field>
+              </div>
+            </WorkspaceSectionCard>
+            <WorkspaceSectionCard title="Social and footer" description="Keep public links and legal footer copy current.">
+              <div className="grid gap-4">
+                <Field label="Social link label"><Input value={value.socialLinks[0]?.label ?? ""} onChange={(event) => update({ socialLinks: [{ label: event.target.value, href: value.socialLinks[0]?.href ?? "" }, ...value.socialLinks.slice(1)] })} /></Field>
+                <Field label="Social link URL"><Input type="url" value={value.socialLinks[0]?.href ?? ""} onChange={(event) => update({ socialLinks: [{ label: value.socialLinks[0]?.label ?? "Website", href: event.target.value }, ...value.socialLinks.slice(1)] })} /></Field>
+                <Field label="Footer tagline"><Textarea value={value.footer.tagline} onChange={(event) => update({ footer: { ...value.footer, tagline: event.target.value } })} /></Field>
+                <Field label="Copyright"><Input value={value.footer.copyright} onChange={(event) => update({ footer: { ...value.footer, copyright: event.target.value } })} /></Field>
               </div>
             </WorkspaceSectionCard>
             <WorkspaceSectionCard title="Revision history" description="Restore a previous content snapshot as a new draft.">

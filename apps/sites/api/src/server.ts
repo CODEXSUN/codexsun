@@ -74,10 +74,10 @@ app.addHook("onRequest", async (request, reply) => {
 });
 app.post("/api/v1/sites/auth/logout", async (request, reply) => reply.code(identity.logout(request.headers.authorization, request.headers["x-codexsun-browser-session"]) ? 204 : 401).send());
 registerIdentityManagementRoutes({ app, identity, prefix: "/api/v1/sites" });
-app.get("/api/v1/sites/public/clients", { schema: { response: { 200: z.array(z.unknown()) }, tags: ["Public Content"] } }, async () => content.listPublished());
+app.get("/api/v1/sites/public/clients", { schema: { response: { 200: z.array(z.unknown()) }, tags: ["Public Content"] } }, async (_request, reply) => reply.header("Cache-Control", "public, max-age=60, stale-while-revalidate=300").send(content.listPublished()));
 app.get("/api/v1/sites/public/clients/:slug", { schema: { params: z.object({ slug: z.string().regex(/^[a-z0-9-]+$/u) }), response: { 200: z.unknown(), 404: identityErrorResponseSchema }, tags: ["Public Content"] } }, async (request, reply) => {
   const site = content.findPublished(request.params.slug);
-  return site ?? reply.code(404).send({ error: "Client site not found." });
+  return site ? reply.header("Cache-Control", "public, max-age=60, stale-while-revalidate=300").send(site) : reply.code(404).send({ error: "Client site not found." });
 });
 app.get("/api/v1/sites/content/:slug", { schema: { params: z.object({ slug: z.string().regex(/^[a-z0-9-]+$/u) }) } }, async (request, reply) => {
   const site = content.findEditable(request.params.slug);
@@ -196,7 +196,14 @@ function normalizeEditableContent(value: unknown, current: PublicSiteContent): P
     ...(typeof candidate.description === "string" ? { description: candidate.description } : {}),
     ...(typeof candidate.statement === "string" ? { statement: candidate.statement } : {}),
     ...(typeof candidate.about === "string" ? { about: candidate.about } : {}),
-    ...(candidate.seo && typeof candidate.seo === "object" ? { seo: { ...current.seo, ...(candidate.seo as PublicSiteContent["seo"]) } } : {}),
-    ...(candidate.contact && typeof candidate.contact === "object" ? { contact: { ...current.contact, ...(candidate.contact as PublicSiteContent["contact"]) } } : {}),
+    ...(candidate.seo && typeof candidate.seo === "object" ? { seo: { title: cleanText(candidate.seo.title, current.seo.title, 160), description: cleanText(candidate.seo.description, current.seo.description, 320), keywords: Array.isArray(candidate.seo.keywords) ? candidate.seo.keywords.filter((item): item is string => typeof item === "string").slice(0, 20) : current.seo.keywords } } : {}),
+    ...(candidate.contact && typeof candidate.contact === "object" ? { contact: { label: cleanText(candidate.contact.label, current.contact.label, 120), email: cleanText(candidate.contact.email, current.contact.email, 254), phone: cleanText(candidate.contact.phone, current.contact.phone, 80) } } : {}),
+    ...(candidate.socialLinks && Array.isArray(candidate.socialLinks) ? { socialLinks: candidate.socialLinks.filter((link): link is { label: string; href: string } => Boolean(link && typeof link === "object" && typeof link.label === "string" && typeof link.href === "string" && /^https?:\/\//u.test(link.href))).slice(0, 12) } : {}),
+    ...(candidate.footer && typeof candidate.footer === "object" ? { footer: { tagline: cleanText(candidate.footer.tagline, current.footer.tagline, 240), copyright: cleanText(candidate.footer.copyright, current.footer.copyright, 240) } } : {}),
+    ...(candidate.sections && Array.isArray(candidate.sections) ? { sections: candidate.sections.filter((section): section is PublicSiteContent["sections"][number] => Boolean(section && typeof section === "object" && typeof section.type === "string")).slice(0, 20) } : {}),
   };
+}
+
+function cleanText(value: unknown, fallback: string, maximum: number): string {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, maximum) : fallback;
 }
