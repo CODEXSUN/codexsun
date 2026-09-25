@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeftIcon, CheckCircle2Icon, EyeIcon, SaveIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowLeftIcon, ArrowUpIcon, CheckCircle2Icon, EyeIcon, SaveIcon } from "lucide-react";
 import { Badge } from "@codexsun/ui/components/badge";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
 import { Textarea } from "@codexsun/ui/components/textarea";
+import { Switch } from "@codexsun/ui/components/switch";
 import { WorkspacePageHeader, WorkspacePublishStatus, WorkspaceSectionCard } from "@codexsun/ui/blocks/workspace";
 import { useState, type ReactNode } from "react";
 import { ClientSitePage } from "../templates/client-site-page";
@@ -84,6 +85,11 @@ export function ContentEditor({ request, slug }: { request: typeof fetch; slug: 
                 <Field label="Copyright"><Input value={value.footer.copyright} onChange={(event) => update({ footer: { ...value.footer, copyright: event.target.value } })} /></Field>
               </div>
             </WorkspaceSectionCard>
+            <WorkspaceSectionCard title="Page sections" description="Control order and visibility of reusable public sections.">
+              <div className="grid gap-2">
+                {[...value.sections].sort((left, right) => (left.order ?? 0) - (right.order ?? 0)).map((section, index, ordered) => <div key={`${section.type}-${index}`} className="flex items-center gap-2 rounded-lg border p-2 text-sm"><span className="flex-1 font-medium capitalize">{section.type}</span><Switch aria-label={`Show ${section.type} section`} checked={section.visible !== false} onCheckedChange={(visible) => update({ sections: ordered.map((item) => item === section ? { ...item, visible } : item) })} /><Button aria-label={`Move ${section.type} up`} disabled={index === 0} onClick={() => update({ sections: moveSection(ordered, index, index - 1) })} size="icon-sm" variant="ghost"><ArrowUpIcon /></Button><Button aria-label={`Move ${section.type} down`} disabled={index === ordered.length - 1} onClick={() => update({ sections: moveSection(ordered, index, index + 1) })} size="icon-sm" variant="ghost"><ArrowDownIcon /></Button></div>)}
+              </div>
+            </WorkspaceSectionCard>
             <WorkspaceSectionCard title="Revision history" description="Restore a previous content snapshot as a new draft.">
               <div className="grid gap-2">
                 {(revisions.data ?? []).slice(0, 5).map((revision) => <div key={revision.id} className="flex items-center gap-2 text-xs"><Badge variant="outline">{revision.action}</Badge><span className="flex-1 text-muted-foreground">{new Date(revision.createdAt).toLocaleString()}</span><Button disabled={restore.isPending} onClick={() => restore.mutate(revision.id)} size="sm" variant="ghost">Restore</Button></div>)}
@@ -144,4 +150,11 @@ async function restoreRevision(request: typeof fetch, slug: string, revisionId: 
   const response = await request(`/api/v1/sites/content/${slug}/revisions/${revisionId}/restore`, { method: "POST" });
   if (!response.ok) throw new Error(`Restore request failed: ${response.status}`);
   return response.json() as Promise<EditorContent>;
+}
+
+function moveSection<T>(sections: T[], from: number, to: number): T[] {
+  const next = [...sections];
+  const [item] = next.splice(from, 1);
+  if (item !== undefined) next.splice(to, 0, item);
+  return next.map((section, index) => ({ ...(section as object), order: index })) as T[];
 }

@@ -26,11 +26,11 @@ export type ClientSite = {
 };
 
 export type SiteSection =
-  | { type: "about"; title: string; body: string }
-  | { type: "services"; title: string; items: string[] }
-  | { type: "work"; title: string; items: { title: string; type: string; description: string }[] }
-  | { type: "approach"; title: string; items: string[] }
-  | { type: "cta"; label: string };
+  | { type: "about"; title: string; body: string; order?: number; visible?: boolean }
+  | { type: "services"; title: string; items: string[]; order?: number; visible?: boolean }
+  | { type: "work"; title: string; items: { title: string; type: string; description: string }[]; order?: number; visible?: boolean }
+  | { type: "approach"; title: string; items: string[]; order?: number; visible?: boolean }
+  | { type: "cta"; label: string; order?: number; visible?: boolean };
 
 export type SiteSocialLink = { label: string; href: string };
 
@@ -260,7 +260,7 @@ export function clientPath(slug: string, page?: string): string {
 }
 
 export function getClientSections(client: ClientSite): SiteSection[] {
-  return (
+  const sections = (
     client.sections ?? [
       { type: "about", title: `About ${client.name}`, body: client.about },
       { type: "services", title: "What lives here", items: client.services },
@@ -269,4 +269,5 @@ export function getClientSections(client: ClientSite): SiteSection[] {
       { type: "cta", label: client.contactLabel },
     ]
   );
+  return sections.filter((section) => section.visible !== false).sort((left, right) => (left.order ?? 0) - (right.order ?? 0));
 }

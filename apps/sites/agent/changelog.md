@@ -38,3 +38,4 @@ This log records repository changes for the Sites Studio multi-site portal.
 - Added social, footer, and copyright editing.
 - Added bounded draft normalization and public content cache headers.
 - Added reduced-motion support and completed scoped API, UI, build, and test verification.
+- Added editor section ordering, visibility controls, and public composition sorting.

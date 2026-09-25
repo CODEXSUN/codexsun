@@ -5,11 +5,11 @@ import { mkdirSync } from "node:fs";
 export type SiteWorkItem = { title: string; type: string; description: string };
 export type SiteSocialLink = { label: string; href: string };
 export type SiteSection =
-  | { type: "about"; title: string; body: string }
-  | { type: "services"; title: string; items: string[] }
-  | { type: "work"; title: string; items: SiteWorkItem[] }
-  | { type: "approach"; title: string; items: string[] }
-  | { type: "cta"; label: string };
+  | { type: "about"; title: string; body: string; order?: number; visible?: boolean }
+  | { type: "services"; title: string; items: string[]; order?: number; visible?: boolean }
+  | { type: "work"; title: string; items: SiteWorkItem[]; order?: number; visible?: boolean }
+  | { type: "approach"; title: string; items: string[]; order?: number; visible?: boolean }
+  | { type: "cta"; label: string; order?: number; visible?: boolean };
 
 export type PublicSiteContent = {
   slug: string;

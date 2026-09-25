@@ -35,7 +35,7 @@ surface that belongs in `@codexsun/ui`.
 ### Phase 3. Internal content workflow
 
 1. [x] Add a client content editor screen at `/studio/content/:slug`.
-2. [ ] Add section ordering, visibility, and validation.
+2. [x] Add section ordering, visibility, and bounded content validation.
 3. [x] Add draft, preview, publish, and unpublish states.
 4. [x] Add SEO, contact, social, footer, and copyright editing.
 5. [x] Add revision history and rollback data contracts.
@@ -129,6 +129,7 @@ Acceptance: publishing is explicit, reviewable, reversible, and traceable.
 21. [x] Add bounded editor validation for text, metadata, links, and sections.
 22. [x] Add social, footer, and copyright editor fields.
 23. [x] Add public content cache headers and reduced-motion support.
+24. [x] Add editor controls for section ordering and visibility.
 
 ### Phase 3 verification
 
@@ -136,7 +137,7 @@ Acceptance: publishing is explicit, reviewable, reversible, and traceable.
 2. [x] Sites web typecheck and lint.
 3. [x] Sites API tests: 4 passed, 1 MariaDB integration test skipped.
 4. [x] Draft, publish, and unpublish behavior covered by SQLite store tests.
-5. [ ] Section ordering controls and full metadata/schema validation remain open.
+5. [ ] Full metadata/schema validation remains open.
 
 ### Phase 4 verification
 
