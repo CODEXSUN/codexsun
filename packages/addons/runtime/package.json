@@ -1,0 +1,21 @@
+{
+  "name": "@codexsun/addon-runtime",
+  "version": "1.0.43",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./frontend": "./src/frontend.tsx"
+  },
+  "scripts": {
+    "check": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test test/addon-runtime.test.ts"
+  },
+  "dependencies": {
+    "@codexsun/framework": "file:../../framework",
+    "react": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "latest"
+  }
+}

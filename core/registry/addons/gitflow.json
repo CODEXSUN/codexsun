@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "addon",
+  "id": "gitflow",
+  "label": "Gitflow",
+  "owner": "packages/addons/gitflow",
+  "package": "@codexsun/addon-gitflow",
+  "providerId": "gitflow.provider",
+  "purpose": "Developer collaboration around repositories, branches, commits, issues, pull requests, and development workflows.",
+  "areas": ["repositories", "pull requests", "webhooks"],
+  "contracts": ["gitflow.v1"],
+  "events": ["gitflow.pull-request.created", "gitflow.commit.pushed"],
+  "dependencies": [
+    "taskez",
+    "notifyz",
+    "flowix"
+  ],
+  "dataRetention": "retain",
+  "dataLifecycle": {
+    "compatibility": "backward-compatible",
+    "migrations": [],
+    "seeders": []
+  }
+}

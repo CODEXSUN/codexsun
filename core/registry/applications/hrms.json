@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "hrms",
+  "label": "HRMS",
+  "category": "business",
+  "owner": "apps/hrms",
+  "taskPrefix": "r",
+  "providers": [
+    "platform.core",
+    "hrms.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_HRMS_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "hrms-api",
+      "displayName": "HRMS API",
+      "environmentDirectory": "api",
+      "envKey": "HRMS_API_PORT",
+      "workspace": "@codexsun/hrms-api",
+      "defaultPort": 6280
+    },
+    {
+      "kind": "web",
+      "target": "hrms-web",
+      "displayName": "HRMS web",
+      "environmentDirectory": "web",
+      "envKey": "HRMS_WEB_PORT",
+      "workspace": "@codexsun/hrms-web",
+      "defaultPort": 6281
+    }
+  ]
+}

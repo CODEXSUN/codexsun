@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "addon",
+  "id": "meety",
+  "label": "Meety",
+  "owner": "packages/addons/meety",
+  "package": "@codexsun/addon-meety",
+  "providerId": "meety.provider",
+  "purpose": "Meetings, agendas, participants, notes, decisions, action items, and meeting history.",
+  "areas": ["meetings", "agendas", "decisions"],
+  "contracts": ["meety.v1"],
+  "events": ["meety.meeting.created", "meety.action-item.created"],
+  "dependencies": [
+    "calendy",
+    "notez",
+    "taskez"
+  ],
+  "dataRetention": "retain",
+  "dataLifecycle": {
+    "compatibility": "backward-compatible",
+    "migrations": [],
+    "seeders": []
+  }
+}

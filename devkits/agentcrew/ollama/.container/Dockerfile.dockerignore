@@ -1,0 +1,15 @@
+**/.env
+**/.env.*
+!.env.example
+**/.app.env
+**/node_modules
+**/dist
+**/.git
+**/storage
+**/*.key
+**/*.pem
+**/*.pfx
+**/*.log
+**/.secrets
+**/.credentials
+devkits/agentcrew/**/test

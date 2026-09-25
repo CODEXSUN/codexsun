@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "billing",
+  "label": "Billing",
+  "category": "business",
+  "owner": "apps/billing",
+  "taskPrefix": "b",
+  "providers": [
+    "platform.core",
+    "billing.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_BILLING_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "billing-api",
+      "displayName": "Billing API",
+      "environmentDirectory": "api",
+      "envKey": "BILLING_API_PORT",
+      "workspace": "@codexsun/billing-api",
+      "defaultPort": 6290
+    },
+    {
+      "kind": "web",
+      "target": "billing-web",
+      "displayName": "Billing web",
+      "environmentDirectory": "web",
+      "envKey": "BILLING_WEB_PORT",
+      "workspace": "@codexsun/billing-web",
+      "defaultPort": 6291
+    }
+  ]
+}

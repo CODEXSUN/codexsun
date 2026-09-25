@@ -1,0 +1,168 @@
+{
+  "totalCount": 4,
+  "categories": [
+    {
+      "name": "swe",
+      "count": 3
+    },
+    {
+      "name": "general",
+      "count": 1
+    }
+  ],
+  "skills": [
+    {
+      "id": "skill-agentic-swe-pipeline",
+      "name": "agentic-swe-pipeline",
+      "description": "Autonomous software engineering loop for disciplined requirement decomposition, local code evidence grounding, minimal diff generation, verification, and regression prevention.",
+      "category": "swe",
+      "domain": "software-engineering",
+      "tags": [
+        "swe",
+        "agentic",
+        "pipeline",
+        "diff",
+        "verification",
+        "regression"
+      ],
+      "sourcePath": ".agents/skills/agentic-swe-pipeline/SKILL.md",
+      "workflow": [
+        "Restate the requested outcome in one unambiguous sentence.",
+        "Identify non-negotiable boundaries, constraints, and platform contracts.",
+        "List explicit non-goals to avoid speculative expansion.",
+        "Locate relevant source files and tests using read-only search operations.",
+        "Verify existing test baseline before authoring changes.",
+        "Trace dependency trees and public contracts; never import private app internals across boundaries.",
+        "Draft minimal viable edits targeting only the owned application or package.",
+        "Keep edits focused and atomic; preserve comments, docstrings, and existing architecture conventions.",
+        "Avoid modifying shared lockfiles, build configurations, or dependencies unless explicitly requested.",
+        "Run local package typecheck (`tsc --noEmit` or equivalent).",
+        "Run local linters (`eslint`).",
+        "Execute unit and integration tests (`tsx --test` or `npm run test`).",
+        "Run boundary audits (`node tools/check-module-boundaries.mjs` and `node tools/check-app-architecture.mjs`).",
+        "Compare before and after test results to prove zero regressions.",
+        "Verify all modified Markdown documents follow repository title and heading standards.",
+        "Summarize modifications, verified tests, and any remaining open items."
+      ],
+      "verificationCriteria": [
+        "Current working directory is `E:\\codexsun\\codexsun`.",
+        "All affected test commands exited code 0.",
+        "No files outside the target ownership boundary were created or mutated.",
+        "Zero untracked temporary files or debug logs remain."
+      ],
+      "guardrails": [],
+      "exclusions": [
+        "Do not bypass verification gates or skip failing tests.",
+        "Do not inspect, modify, or run commands outside the repository root.",
+        "Do not commit secrets, tokens, private passwords, or private environment variables."
+      ],
+      "markdown": "---\nname: agentic-swe-pipeline\ndescription: Autonomous software engineering loop for disciplined requirement decomposition, local code evidence grounding, minimal diff generation, verification, and regression prevention.\n---\n\n# Agentic Software-Engineering Pipeline\n\nExecute software engineering tasks autonomously within strict repository boundaries, using verified code evidence, gated verification loops, and regression prevention.\n\n## Purpose\n\nProvide a deterministic, phase-based execution strategy for AI agents performing software engineering tasks in CODEXSUN.\n\n## Scope\n\nApplies to bug fixes, feature additions, refactoring, and module integrations within declared repository boundaries. Governs task intake, workspace grounding, minimal patch formulation, automated verification, and acceptance review.\n\n## Inputs\n\n- Task goal, requirements, and constraints from conversation or task register.\n- Workspace root boundary (verified before running commands).\n- Relevant files, module providers, contracts, and existing test suites.\n\n## Phased Workflow\n\n### Phase 1: Intake and Requirement Framing\n1. Restate the requested outcome in one unambiguous sentence.\n2. Identify non-negotiable boundaries, constraints, and platform contracts.\n3. List explicit non-goals to avoid speculative expansion.\n\n### Phase 2: Workspace Context Grounding\n1. Locate relevant source files and tests using read-only search operations.\n2. Verify existing test baseline before authoring changes.\n3. Trace dependency trees and public contracts; never import private app internals across boundaries.\n\n### Phase 3: Minimal Patch Planning and Execution\n1. Draft minimal viable edits targeting only the owned application or package.\n2. Keep edits focused and atomic; preserve comments, docstrings, and existing architecture conventions.\n3. Avoid modifying shared lockfiles, build configurations, or dependencies unless explicitly requested.\n\n### Phase 4: Guarded Verification Loop\n1. Run local package typecheck (`tsc --noEmit` or equivalent).\n2. Run local linters (`eslint`).\n3. Execute unit and integration tests (`tsx --test` or `npm run test`).\n4. Run boundary audits (`node tools/check-module-boundaries.mjs` and `node tools/check-app-architecture.mjs`).\n\n### Phase 5: Autonomous Review and Handover\n1. Compare before and after test results to prove zero regressions.\n2. Verify all modified Markdown documents follow repository title and heading standards.\n3. Summarize modifications, verified tests, and any remaining open items.\n\n## Verification\n\nBefore marking any SWE task complete, verify:\n- Current working directory is `E:\\codexsun\\codexsun`.\n- All affected test commands exited code 0.\n- No files outside the target ownership boundary were created or mutated.\n- Zero untracked temporary files or debug logs remain.\n\n## Exclusions\n\n- Do not bypass verification gates or skip failing tests.\n- Do not inspect, modify, or run commands outside the repository root.\n- Do not commit secrets, tokens, private passwords, or private environment variables.\n",
+      "scripts": [],
+      "references": [],
+      "valid": true,
+      "validationErrors": [],
+      "rating": 5,
+      "usageCount": 0,
+      "updatedAt": "2026-09-25T07:10:08.962Z"
+    },
+    {
+      "id": "skill-codeitz-skill-distiller",
+      "name": "codeitz-skill-distiller",
+      "description": "Distill repeatable software engineering workflows and learned heuristics into standard Agent Skill documents for long-term capability expansion.",
+      "category": "swe",
+      "domain": "software-engineering",
+      "tags": [
+        "swe",
+        "heuristics"
+      ],
+      "sourcePath": ".agents/skills/codeitz-skill-distiller/SKILL.md",
+      "workflow": [],
+      "verificationCriteria": [
+        "Run `node tools/check-app-architecture.mjs` and ensure zero errors.",
+        "Confirm the new skill file has valid YAML frontmatter and proper `# Title` heading."
+      ],
+      "guardrails": [],
+      "exclusions": [
+        "Do not create skills that bypass platform security, authentication, or boundaries.",
+        "Do not generate skills without automated verification criteria."
+      ],
+      "markdown": "---\nname: codeitz-skill-distiller\ndescription: Distill repeatable software engineering workflows and learned heuristics into standard Agent Skill documents for long-term capability expansion.\n---\n\n# Codeitz Skill Distiller\n\nExtract, structure, and formalize verified software engineering patterns into standardized reusable Agent Skills.\n\n## Purpose\n\nAutomate the transition from episodic task learning to formalized, permanent agent capability documentation conforming to repository skill standards.\n\n## Scope\n\nUsed when a recurring engineering pattern, complex integration procedure, or multi-step troubleshooting protocol has been validated across multiple tasks.\n\n## Inputs\n\n- Problem summary and domain classification.\n- Validated step-by-step resolution workflow.\n- Mandatory verification checks and commands.\n- Negative constraints, boundaries, and safety exclusions.\n\n## Workflow\n\n### 1. Identify Reusable Patterns\n- Evaluate whether a solved engineering challenge occurs repeatedly across applications or packages.\n- Confirm that the solution contains deterministic steps rather than one-time ad-hoc patches.\n\n### 2. Format Canonical Skill Structure\n- Compose YAML frontmatter with concise `name` (lowercase kebab-case) and `description`.\n- Begin markdown body with `# Title` (capitalized topic name).\n- Add `## Purpose` stating the concrete outcome.\n- Add `## Scope` defining applicability boundaries.\n- Add `## Inputs` listing prerequisites and contextual evidence.\n- Add `## Workflow` with numbered, actionable instructions.\n- Add `## Verification` listing commands and criteria to prove correctness.\n- Add `## Exclusions` specifying boundaries, non-goals, and security prohibitions.\n\n### 3. Validate Conformance\n- Ensure no real credentials or sensitive environment data are referenced.\n- Ensure all repository-relative paths and commands run with `E:\\codexsun\\codexsun` as working directory.\n- Verify Markdown formatting aligns with `assist/documentation/standards.md`.\n\n### 4. Index and Expose\n- Register the distilled skill in the Codeitz Skills Registry (`/api/v1/codeitz/skills`).\n- Save the markdown file under `.agents/skills/<skill-name>/SKILL.md`.\n\n## Verification\n\nBefore publishing a distilled skill:\n- Run `node tools/check-app-architecture.mjs` and ensure zero errors.\n- Confirm the new skill file has valid YAML frontmatter and proper `# Title` heading.\n\n## Exclusions\n\n- Do not create skills that bypass platform security, authentication, or boundaries.\n- Do not generate skills without automated verification criteria.\n",
+      "scripts": [],
+      "references": [],
+      "valid": true,
+      "validationErrors": [],
+      "rating": 5,
+      "usageCount": 0,
+      "updatedAt": "2026-09-25T07:10:09.002Z"
+    },
+    {
+      "id": "skill-swe-self-learning",
+      "name": "swe-self-learning",
+      "description": "Continuous self-learning system for software engineering agents to diagnose root causes, extract reusable heuristics, record post-mortems, and adapt execution strategies.",
+      "category": "swe",
+      "domain": "software-engineering",
+      "tags": [
+        "swe",
+        "learning",
+        "heuristics"
+      ],
+      "sourcePath": ".agents/skills/swe-self-learning/SKILL.md",
+      "workflow": [],
+      "verificationCriteria": [
+        "The rule is generalizable and not a brittle one-off workaround.",
+        "The rule does not contradict repository rules or platform standards.",
+        "The resolution was verified by automated tests exiting code 0."
+      ],
+      "guardrails": [],
+      "exclusions": [
+        "Do not synthesize heuristics from unverified or speculative fixes.",
+        "Do not record credentials, private tokens, or proprietary customer data in learned memory banks."
+      ],
+      "markdown": "---\nname: swe-self-learning\ndescription: Continuous self-learning system for software engineering agents to diagnose root causes, extract reusable heuristics, record post-mortems, and adapt execution strategies.\n---\n\n# Software-Engineering Self-Learning System\n\nDiagnose engineering outcomes, extract reusable patterns and anti-patterns, and adapt future problem-solving strategies through systematic retrospectives.\n\n## Purpose\n\nEnable software-engineering agents to learn from both successes and failures, crystallizing episodic task experiences into persistent rules, guardrails, and heuristics.\n\n## Scope\n\nUsed during and immediately after software engineering task execution. Ingests execution trajectories, compiler/linter error messages, test failure assertions, and successful fixes to update memory banks and heuristic models.\n\n## Inputs\n\n- Task goal, initial prompt, and execution trajectory.\n- Errors, warnings, and unexpected failure symptoms encountered.\n- Verified resolution steps and root cause findings.\n- Effectiveness feedback from automated test suites.\n\n## Workflow\n\n### 1. Trajectory Ingestion\n- Capture the failure or success event immediately upon occurrence.\n- Record the exact symptom (e.g. `TypeError: Cannot read properties of undefined`, `AssertionError: The input did not match regular expression`).\n- Record the technical domain (e.g. `api-routing`, `typecheck`, `db-migration`, `ui-layout`).\n\n### 2. Root Cause Retrospective Analysis\n- Distinguish proximate causes (e.g., test failure) from root causes (e.g., lifecycle sequence mismatch, missing environment variable).\n- Identify which assumptions failed and what context was overlooked.\n- Formulate the contrast: \"What was expected vs. what actually occurred.\"\n\n### 3. Heuristic and Anti-Pattern Synthesis\n- Transform the root cause and resolution into an actionable rule:\n  - If a mistake occurred, synthesize an **Anti-Pattern Rule** describing what to avoid and the correct counter-action.\n  - If a novel solution worked, synthesize a **Strategy Rule** with trigger keywords and preconditions.\n  - If a critical invariant was violated, synthesize a **Guardrail Rule** with mandatory checklist items.\n\n### 4. Memory Bank Indexing\n- Tag the synthesized rule with trigger keywords (e.g., `#migration`, `#routing`, `#boundary`).\n- Assign an initial effectiveness score (0.75-0.85).\n- Store the experience in the Codeitz learning memory bank.\n\n### 5. Forward Adaptation\n- Query matching heuristics before commencing any future SWE task matching the domain or keywords.\n- Review and apply learned heuristics during the Planning and Verification phases.\n\n## Verification\n\nBefore persisting a learned heuristic, verify:\n- The rule is generalizable and not a brittle one-off workaround.\n- The rule does not contradict repository rules or platform standards.\n- The resolution was verified by automated tests exiting code 0.\n\n## Exclusions\n\n- Do not synthesize heuristics from unverified or speculative fixes.\n- Do not record credentials, private tokens, or proprietary customer data in learned memory banks.\n",
+      "scripts": [],
+      "references": [],
+      "valid": true,
+      "validationErrors": [],
+      "rating": 5,
+      "usageCount": 0,
+      "updatedAt": "2026-09-25T07:10:09.022Z"
+    },
+    {
+      "id": "skill-zetro-idea-workshop",
+      "name": "zetro-idea-workshop",
+      "description": "Shape rough ideas into options, revisions, and final briefs. In Zetro, also analyze a user-provided, trusted local folder read-only to ground ideas in verified code evidence. Do not implement or create tasks.",
+      "category": "general",
+      "domain": "software-engineering",
+      "tags": [
+        "general"
+      ],
+      "sourcePath": ".agents/skills/zetro-idea-workshop/SKILL.md",
+      "workflow": [
+        "Restate the outcome in one sentence.",
+        "Separate facts, assumptions, constraints, and open decisions.",
+        "Offer two or three meaningfully different options when a choice exists.",
+        "State the key tradeoff for each option.",
+        "Recommend one option only when the available evidence supports it.",
+        "Revise the idea when the person gives new direction.",
+        "When asked to finish, write a concise final brief with outcome, audience,",
+        "End a final brief by stating that human review and later task planning are",
+        "Summarize the product and technical shape from inspected evidence.",
+        "List confirmed strengths, gaps, friction, and blockers separately.",
+        "Offer two or three evidence-backed idea opportunities, each with user",
+        "Ask which idea to explore, compare, revise, or add to a final brief."
+      ],
+      "verificationCriteria": [],
+      "guardrails": [],
+      "exclusions": [],
+      "markdown": "---\nname: zetro-idea-workshop\ndescription: Shape rough ideas into options, revisions, and final briefs. In Zetro, also analyze a user-provided, trusted local folder read-only to ground ideas in verified code evidence. Do not implement or create tasks.\n---\n\n# Zetro Idea Workshop\n\n## Purpose\n\nHelp a person create, compare, revise, and finish an idea before delivery work\nstarts.\n\n## Scope\n\nUse this skill only in the Zetro idea stage. It may clarify an idea, develop\noptions, test assumptions, revise a chosen direction, prepare a final brief,\nor inspect a user-provided local folder to ground those ideas in evidence.\n\nDo not create a task, plan, worktree, file, pull request, approval, or\ndeployment. Do not edit, create, rename, move, or delete files. Do not claim\nthat an idea is approved or ready for execution.\n\n## Inputs\n\nUse the conversation for the goal, audience, constraints, available evidence,\nand unresolved decisions. Ask one focused question when the next decision is\nblocked by missing context.\n\n## Read-Only Folder Analysis\n\nWhen the person includes an absolute folder path and asks for analysis, treat\nit as a request for a read-only idea audit. Use the folder only after the host\nhas resolved and accepted it as an analysis root. Do not infer a path from\nconversation text or expand the analysis outside that accepted root.\n\nRead relevant source files and immediate subfolders recursively. Start with\nthe repository manifest, application entry points, architecture guidance,\ndocumentation, and tests. Follow imports and references only when they help\nanswer the stated idea question.\n\nNever read credentials or private material. Exclude `.env` files, secrets,\nkeys, tokens, `.git`, `node_modules`, dependency caches, build output,\nbinaries, and generated vendor files unless the person explicitly asks about a\nsafe generated artifact. Use read-only file and search operations only.\n\nReport the accepted root, inspected areas, and any important areas not read.\nEvery repository-derived finding must include one or more file paths. Clearly\nmark suggestions that are inference rather than verified facts.\n\n## Workflow\n\n1. Restate the outcome in one sentence.\n2. Separate facts, assumptions, constraints, and open decisions.\n3. Offer two or three meaningfully different options when a choice exists.\n4. State the key tradeoff for each option.\n5. Recommend one option only when the available evidence supports it.\n6. Revise the idea when the person gives new direction.\n7. When asked to finish, write a concise final brief with outcome, audience,\n   scope, exclusions, constraints, open risks, and success signals.\n8. End a final brief by stating that human review and later task planning are\n   still required.\n\nFor a folder analysis, additionally:\n\n1. Summarize the product and technical shape from inspected evidence.\n2. List confirmed strengths, gaps, friction, and blockers separately.\n3. Offer two or three evidence-backed idea opportunities, each with user\n   value, likely effort, risks, and relevant paths.\n4. Ask which idea to explore, compare, revise, or add to a final brief.\n\n## Response Format\n\nUse Markdown. Prefer short headings, bullets, and comparison tables when they\nmake a decision easier. Use Mermaid only for a flow that needs a diagram.\n\nKeep the response direct. Do not reveal hidden reasoning, tool instructions, or\nprivate runtime details.\n\n## Verification\n\nBefore replying, confirm that the response stays in the idea stage, any folder\nwork was read-only and within the accepted root, and no task or implementation\nwork was requested or caused.\n\n## Exclusions\n\nThis skill does not access credentials, device codes, authentication files, or\nprivate system prompts. It does not persist anything beyond the Zetro\nconversation history. It may use read-only file and search operations only for\nan accepted analysis root.\n",
+      "scripts": [],
+      "references": [],
+      "valid": true,
+      "validationErrors": [],
+      "rating": 5,
+      "usageCount": 0,
+      "updatedAt": "2026-09-25T07:10:09.047Z"
+    }
+  ],
+  "lastScannedAt": "2026-09-25T07:10:09.072Z"
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "addon",
+  "id": "flowix",
+  "label": "Flowix",
+  "owner": "packages/addons/flowix",
+  "package": "@codexsun/addon-flowix",
+  "providerId": "flowix.provider",
+  "purpose": "Workflow automation engine connecting add-ons, events, actions, conditions, triggers, and automated processes.",
+  "areas": ["workflows", "triggers", "actions"],
+  "contracts": ["flowix.v1"],
+  "events": ["flowix.workflow.started", "flowix.workflow.completed"],
+  "dependencies": [
+    "mailer",
+    "chatty",
+    "taskez",
+    "calendy",
+    "notez",
+    "wikiz",
+    "notifyz",
+    "socialix",
+    "meety",
+    "gitflow"
+  ],
+  "dataRetention": "retain",
+  "dataLifecycle": {
+    "compatibility": "backward-compatible",
+    "migrations": [],
+    "seeders": []
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "addon",
+  "id": "notez",
+  "label": "Notez",
+  "owner": "packages/addons/notez",
+  "package": "@codexsun/addon-notez",
+  "providerId": "notez.provider",
+  "purpose": "Fast personal and team notes with rich text, organization, search, and linking.",
+  "areas": ["notes", "rich text", "links"],
+  "contracts": ["notez.v1"],
+  "events": ["notez.note.created", "notez.note.updated"],
+  "dependencies": [
+    "wikiz",
+    "meety"
+  ],
+  "dataRetention": "retain",
+  "dataLifecycle": {
+    "compatibility": "backward-compatible",
+    "migrations": [],
+    "seeders": []
+  }
+}

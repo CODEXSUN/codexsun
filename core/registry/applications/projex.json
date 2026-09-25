@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "projex",
+  "label": "Projex",
+  "category": "devkit",
+  "owner": "devkits/projex",
+  "taskPrefix": "j",
+  "providers": [
+    "platform.core",
+    "projex.foundation",
+    "projex.workspace",
+    "projex.addons"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_PROJEX_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "projex-api",
+      "displayName": "Projex API",
+      "environmentDirectory": "api",
+      "envKey": "PROJEX_API_PORT",
+      "workspace": "@codexsun/projex-api",
+      "defaultPort": 6360
+    },
+    {
+      "kind": "web",
+      "target": "projex-web",
+      "displayName": "Projex web",
+      "environmentDirectory": "web",
+      "envKey": "PROJEX_WEB_PORT",
+      "workspace": "@codexsun/projex-web",
+      "defaultPort": 6361
+    }
+  ]
+}

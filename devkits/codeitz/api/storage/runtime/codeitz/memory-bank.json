@@ -1,0 +1,64 @@
+{
+  "projectId": "global",
+  "productContext": "# Product Context\n\n## Why Codeitz Exists\nCodeitz is an autonomous, real-time software engineering studio designed for autonomous coding, architectural refactoring, verification gates, and continuous project delivery.\n\n## Core Problems Solved\n- Eliminates brittle LLM hallucinations with AST-grounded patching and multi-level verification.\n- Enforces strict workspace confinement without foreign checkout leaks.\n- Coordinates multi-modal SWE capabilities (AST patcher, Git worktrees, terminal runners, vision inspection, audio/voice directives).\n\n## User Experience Goals\n- 1-click autonomous task execution with live SSE stream feedback.\n- Interactive safety checkpoints with zero data loss and automated rollbacks on test failure.\n- Complete parity across Markdown, SQLite, and JSON memories.\n",
+  "activeContext": "# Active Context\n\n## Current Work Focus\nHardening Codeitz into an autonomous engineering machine equipped with Memory Bank, Skill Reader, and Skill Organiser.\n\n## Recent Changes\n- Autonomous CodePatcherService with targeted replacements and diff previews.\n- Cyclical LangGraph-style state machine with verification self-healing retry cycles.\n- Real-time Server-Sent Events (SSE) streaming runner pipeline.\n- Concurrency-safe GitOps with FIFO mutex locks and isolated worktree merging.\n- Tri-format Memory Bank (Markdown, SQLite, JSON) and Skill Organiser engine.\n\n## Active Invariants\n- Confine all file reads and mutations strictly to repository root.\n- All verification test suites must pass 100% before committing changes.\n- Never write credentials, tokens, or private secrets to repository files.\n",
+  "systemPatterns": "# System Patterns\n\n## System Architecture\nCodeitz adopts a modular, contract-driven architecture:\n- Foundation Provider: Core identity, config, and system bootstrapping.\n- Engineering Provider: SWE Task Runner, GitOps, Worktrees, Code Patcher, and State Graph.\n- Capabilities Provider: Sandboxed terminal, vision analysis, speech transcription, multi-model LLM router.\n- Memory Provider: Tri-format persistent Memory Bank (Markdown, SQLite, JSON).\n- Skills Provider: Skill Reader, Skill Organiser, and Skill Distiller.\n- Learning Provider: Empirical self-learning and heuristic synthesis.\n\n## Key Design Patterns\n- Tri-Format Parity: Always keep Markdown documents, SQLite relational tables, and JSON snapshots synchronized.\n- FIFO Git Mutex: Serialize repository status, stage, and commit operations with withGitLock to prevent index collision.\n- LangGraph Cyclical Loop: Allow failed verification to loop back to execution with remaining retry decrements.\n",
+  "techContext": "# Tech Context\n\n## Tech Stack & Runtime\n- Runtime: Node.js v22+ (native node:sqlite DatabaseSync enabled).\n- Backend: Fastify v5 with fastify-type-provider-zod and strict contract validation.\n- Frontend: React 19, TypeScript, TailwindCSS v4, Vite v7, Lucide Icons.\n- Tooling: tsx test runner, tsc strict checking, Turborepo monorepo orchestration.\n\n## Constraints & Requirements\n- Windows OS path compatibility (handling backslashes and drive prefixes).\n- Zero third-party SQLite bloat: rely entirely on native node:sqlite.\n- Non-blocking async execution for long-running runners and streaming SSE feeds.\n",
+  "progress": "# Progress\n\n## What Works\n- 100% passing test suites across API and Web packages.\n- Phased SWE state machine (Intake -> Grounding -> Planning -> Execution -> Verification -> Review -> Complete).\n- Continuous parallel task runner with configurable concurrency.\n- Autonomous patch engine with rollback on syntax/assertion failures.\n- Native SQLite memory persistence, JSON exports, and Markdown synchronization.\n\n## Milestones\n- Phase 1: Core Foundation & SWE Orchestration [DONE]\n- Phase 2: Live Capabilities & Multi-Model Reasoner [DONE]\n- Phase 3: AST Patch Engine & LangGraph State Machine [DONE]\n- Phase 4: Tri-Format Memory Bank & Skill Organiser [CURRENT]\n",
+  "entries": [
+    {
+      "id": "47293499-3667-4e85-874a-602f71ee3c8f",
+      "projectId": "global",
+      "category": "product",
+      "key": "product_mission",
+      "content": "Deliver reliable autonomous SWE execution through strict verification and memory grounding.",
+      "tags": [
+        "mission",
+        "reliability",
+        "swe"
+      ],
+      "importance": 10,
+      "source": "system",
+      "createdAt": "2026-09-25T04:32:55.409Z",
+      "updatedAt": "2026-09-25T04:32:55.409Z"
+    },
+    {
+      "id": "53fcd07c-2c83-4ef9-bf4e-98ef7bebdf11",
+      "projectId": "global",
+      "category": "pattern",
+      "key": "tri_format_memory",
+      "content": "Maintain parity across Markdown files, SQLite database, and JSON snapshots.",
+      "tags": [
+        "memory",
+        "architecture",
+        "sqlite"
+      ],
+      "importance": 9,
+      "source": "system",
+      "createdAt": "2026-09-25T04:32:55.953Z",
+      "updatedAt": "2026-09-25T04:32:55.953Z"
+    },
+    {
+      "id": "92342bd9-d768-4201-91f3-c3c4e1c4aaaf",
+      "projectId": "global",
+      "category": "active",
+      "key": "current_target",
+      "content": "Empower Codeitz with tri-format Memory Bank and Skill Organiser with recommendation engine.",
+      "tags": [
+        "active_goal",
+        "skills",
+        "memory_bank"
+      ],
+      "importance": 8,
+      "source": "system",
+      "createdAt": "2026-09-25T04:32:56.568Z",
+      "updatedAt": "2026-09-25T04:32:56.568Z"
+    }
+  ],
+  "stats": {
+    "totalEntries": 3,
+    "sectionsCount": 5,
+    "sqliteConnected": true
+  },
+  "lastSyncAt": "2026-09-25T07:09:50.682Z"
+}

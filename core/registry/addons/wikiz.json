@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "addon",
+  "id": "wikiz",
+  "label": "Wikiz",
+  "owner": "packages/addons/wikiz",
+  "package": "@codexsun/addon-wikiz",
+  "providerId": "wikiz.provider",
+  "purpose": "Company knowledge base for structured documentation, procedures, guides, and internal knowledge.",
+  "areas": ["knowledge", "pages", "revisions"],
+  "contracts": ["wikiz.v1"],
+  "events": ["wikiz.page.created", "wikiz.page.updated"],
+  "dependencies": [],
+  "dataRetention": "retain",
+  "dataLifecycle": {
+    "compatibility": "backward-compatible",
+    "migrations": [],
+    "seeders": []
+  }
+}

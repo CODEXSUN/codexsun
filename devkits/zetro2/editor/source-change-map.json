@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "baseline": {
+    "upstreamRoot": "apps/temp/openvscode-server",
+    "zvcodeRoot": "devkits/zetro2/zvcode",
+    "version": "1.110.0",
+    "distro": "bd187e4508a244500eb533c56e5cccb6801a699c",
+    "upstreamGitHead": null,
+    "importAggregateSha256": "54b13e275e628a301ae2ec40898c0085b3de5a708615bbcc9fe17e3300097c0f",
+    "fileCount": 9287,
+    "diffMode": "eol-normalized",
+    "lastVerified": "2026-09-24"
+  },
+  "invariants": [
+    "LICENSE.txt and ThirdPartyNotices.txt stay byte-identical (EOL-normalized) to the upstream reference",
+    "no nested node_modules, out, or dist directories under zvcode/",
+    "no host-side npm install or output-producing scripts inside zvcode/",
+    "dist/zetro2/ manifests and diffs are generated output and are not source"
+  ],
+  "changes": [
+    {
+      "path": "product.json",
+      "layer": "1 Product",
+      "reason": "ZVcode display name, application/server command, data folder, URL protocol, platform product identifiers, enableTelemetry false and enabledTelemetryLevels off",
+      "risk": "high",
+      "verify": "verify-zvcode.mjs branding asserts"
+    },
+    {
+      "path": "package.json",
+      "layer": "1 Product",
+      "reason": "root package name zvcode (version stays 1.110.0)",
+      "risk": "low",
+      "verify": "verify-zvcode.mjs package identity"
+    },
+    {
+      "path": "package-lock.json",
+      "layer": "1 Product",
+      "reason": "lockfile package identity to match package.json",
+      "risk": "low",
+      "verify": "verify-zvcode.mjs lock identity"
+    },
+    {
+      "path": "README.md",
+      "layer": "1 Product",
+      "reason": "local product entry point and explicit build status",
+      "risk": "low",
+      "verify": "present in upstream diff"
+    },
+    {
+      "path": "build/vite/vite.config.ts",
+      "layer": "n/a",
+      "reason": "adds allowedHosts [\".tmnext.in\"] so the authenticated Zbrowser preview host can load the Vite dev server",
+      "risk": "medium",
+      "verify": "present in upstream diff; preview host load in Phase 3+"
+    },
+    {
+      "path": "src/vs/platform/telemetry/common/telemetryService.ts",
+      "layer": "1 Product",
+      "reason": "defaults telemetryLevel OFF, enableTelemetry false, feedback.enabled false",
+      "risk": "medium",
+      "verify": "grep defaults OFF/false in evidence"
+    },
+    {
+      "path": "src/vs/workbench/electron-browser/desktop.contribution.ts",
+      "layer": "1 Product",
+      "reason": "telemetry.enableCrashReporter default false",
+      "risk": "medium",
+      "verify": "grep default false in evidence"
+    },
+    {
+      "path": "src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.contribution.ts",
+      "layer": "1 Product",
+      "reason": "workbench.startupEditor default none (no welcome page)",
+      "risk": "low",
+      "verify": "grep default none in evidence"
+    },
+    {
+      "path": "src/vs/workbench/contrib/remote/browser/remoteIndicator.ts",
+      "layer": "1 Product",
+      "reason": "status bar branding Codexsun ZVcode / Zetro2; offline alert still replaces $(remote); kind only when remote",
+      "risk": "medium",
+      "verify": "grep Codexsun ZVcode and local kind rule"
+    },
+    {
+      "path": "src/vs/platform/extensionManagement/common/extensionManagement.ts",
+      "layer": "1 Product",
+      "reason": "extensions.allowed default deny-by-default allowlist of built-in marketplace extensions",
+      "risk": "high",
+      "verify": "grep ms-vscode.js-debug object default"
+    }
+  ],
+  "planned": [
+    { "change": "Session/workspace handshake into editor connect", "layer": "2 Access", "task": "3" },
+    { "change": "Role-enforced readonly mounts", "layer": "2 Access", "task": "3" },
+    { "change": "Chat layer replaces inherited Copilot endpoints", "layer": "3 Chat", "task": "4" },
+    { "change": "Typed HTTP and resumable WebSocket bridge", "layer": "4 Runtime bridge", "task": "4" }
+  ]
+}

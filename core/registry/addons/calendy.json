@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "addon",
+  "id": "calendy",
+  "label": "Calendy",
+  "owner": "packages/addons/calendy",
+  "package": "@codexsun/addon-calendy",
+  "providerId": "calendy.provider",
+  "purpose": "Calendar, events, scheduling, availability, reminders, and meeting coordination.",
+  "areas": ["calendar", "events", "availability"],
+  "contracts": ["calendy.v1"],
+  "events": ["calendy.event.created", "calendy.event.updated"],
+  "dependencies": [
+    "notifyz",
+    "meety"
+  ],
+  "dataRetention": "retain",
+  "dataLifecycle": {
+    "compatibility": "backward-compatible",
+    "migrations": [],
+    "seeders": []
+  }
+}

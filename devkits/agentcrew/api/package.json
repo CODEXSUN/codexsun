@@ -1,0 +1,20 @@
+{
+  "name": "@codexsun/agentcrew-api",
+  "version": "1.0.43",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --packages=external --outfile=../../../dist/devkits/agentcrew/api/server.js",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "tsx --test src/modules/assistant/test/*.test.ts"
+  },
+  "dependencies": {
+    "@codexsun/framework": "file:../../../packages/framework",
+    "@codexsun/platform-core": "file:../../../packages/platform-core",
+    "dotenv": "^17.0.0",
+    "fastify": "^5.0.0",
+    "zod": "^3.25.76"
+  }
+}

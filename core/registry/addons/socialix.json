@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "addon",
+  "id": "socialix",
+  "label": "Socialix",
+  "owner": "packages/addons/socialix",
+  "package": "@codexsun/addon-socialix",
+  "providerId": "socialix.provider",
+  "purpose": "Social media management for content creation, scheduling, publishing, campaigns, and analytics.",
+  "areas": ["content", "campaigns", "publishing"],
+  "contracts": ["socialix.v1"],
+  "events": ["socialix.content.scheduled", "socialix.content.published"],
+  "dependencies": [
+    "notifyz",
+    "flowix"
+  ],
+  "dataRetention": "retain",
+  "dataLifecycle": {
+    "compatibility": "backward-compatible",
+    "migrations": [],
+    "seeders": []
+  }
+}

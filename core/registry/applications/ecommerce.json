@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "ecommerce",
+  "label": "Ecommerce",
+  "category": "business",
+  "owner": "apps/ecommerce",
+  "taskPrefix": "e",
+  "providers": [
+    "platform.core",
+    "ecommerce.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_ECOMMERCE_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "ecommerce-api",
+      "displayName": "Ecommerce API",
+      "environmentDirectory": "api",
+      "envKey": "ECOMMERCE_API_PORT",
+      "workspace": "@codexsun/ecommerce-api",
+      "defaultPort": 6270
+    },
+    {
+      "kind": "web",
+      "target": "ecommerce-web",
+      "displayName": "Ecommerce web",
+      "environmentDirectory": "web",
+      "envKey": "ECOMMERCE_WEB_PORT",
+      "workspace": "@codexsun/ecommerce-web",
+      "defaultPort": 6271
+    }
+  ]
+}

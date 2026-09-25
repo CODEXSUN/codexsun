@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "accounts",
+  "label": "Accounts",
+  "category": "business",
+  "owner": "apps/accounts",
+  "taskPrefix": "a",
+  "providers": [
+    "platform.core",
+    "accounts.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_ACCOUNTS_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "accounts-api",
+      "displayName": "Accounts API",
+      "environmentDirectory": "api",
+      "envKey": "ACCOUNTS_API_PORT",
+      "workspace": "@codexsun/accounts-api",
+      "defaultPort": 6310
+    },
+    {
+      "kind": "web",
+      "target": "accounts-web",
+      "displayName": "Accounts web",
+      "environmentDirectory": "web",
+      "envKey": "ACCOUNTS_WEB_PORT",
+      "workspace": "@codexsun/accounts-web",
+      "defaultPort": 6311
+    }
+  ]
+}

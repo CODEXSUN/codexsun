@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "garments",
+  "label": "Garments",
+  "category": "business",
+  "owner": "apps/garments",
+  "taskPrefix": "g",
+  "providers": [
+    "platform.core",
+    "garments.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_GARMENTS_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "garments-api",
+      "displayName": "Garments API",
+      "environmentDirectory": "api",
+      "envKey": "GARMENTS_API_PORT",
+      "workspace": "@codexsun/garments-api",
+      "defaultPort": 6330
+    },
+    {
+      "kind": "web",
+      "target": "garments-web",
+      "displayName": "Garments web",
+      "environmentDirectory": "web",
+      "envKey": "GARMENTS_WEB_PORT",
+      "workspace": "@codexsun/garments-web",
+      "defaultPort": 6331
+    }
+  ]
+}

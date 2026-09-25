@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "auditor",
+  "label": "Auditor",
+  "category": "business",
+  "owner": "apps/auditor",
+  "taskPrefix": "d",
+  "providers": [
+    "platform.core",
+    "auditor.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_AUDITOR_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "auditor-api",
+      "displayName": "Auditor API",
+      "environmentDirectory": "api",
+      "envKey": "AUDITOR_API_PORT",
+      "workspace": "@codexsun/auditor-api",
+      "defaultPort": 6340
+    },
+    {
+      "kind": "web",
+      "target": "auditor-web",
+      "displayName": "Auditor web",
+      "environmentDirectory": "web",
+      "envKey": "AUDITOR_WEB_PORT",
+      "workspace": "@codexsun/auditor-web",
+      "defaultPort": 6341
+    }
+  ]
+}

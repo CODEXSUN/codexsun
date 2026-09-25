@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "addon",
+  "id": "notifyz",
+  "label": "Notifyz",
+  "owner": "packages/addons/notifyz",
+  "package": "@codexsun/addon-notifyz",
+  "providerId": "notifyz.provider",
+  "purpose": "Central notification engine for in-app, email, push, task, system, and workflow notifications.",
+  "areas": ["notifications", "preferences", "delivery"],
+  "contracts": ["notifyz.v1"],
+  "events": ["notifyz.notification.created", "notifyz.notification.delivered"],
+  "dependencies": [],
+  "dataRetention": "retain",
+  "dataLifecycle": {
+    "compatibility": "backward-compatible",
+    "migrations": [],
+    "seeders": []
+  }
+}

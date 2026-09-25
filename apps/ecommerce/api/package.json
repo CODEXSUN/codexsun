@@ -1,0 +1,25 @@
+{
+  "name": "@codexsun/ecommerce-api",
+  "version": "1.0.43",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/apps/ecommerce/api/server.js",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/server.ts",
+    "lint": "eslint src",
+    "test": "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts"
+  },
+  "dependencies": {
+    "@codexsun/framework": "file:../../../packages/framework",
+    "@codexsun/platform-core": "file:../../../packages/platform-core",
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.1",
+    "@fastify/swagger": "^9.8.1",
+    "@fastify/swagger-ui": "^6.1.1",
+    "dotenv": "^17.0.0",
+    "fastify": "^5.0.0",
+    "fastify-type-provider-zod": "^4.0.2",
+    "zod": "^3.25.76"
+  }
+}

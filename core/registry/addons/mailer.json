@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "addon",
+  "id": "mailer",
+  "label": "Mailer",
+  "owner": "packages/addons/mailer",
+  "package": "@codexsun/addon-mailer",
+  "providerId": "mailer.provider",
+  "purpose": "Business email, inboxes, threads, templates, sending, and email automation.",
+  "areas": ["email", "inboxes", "automation"],
+  "contracts": ["mailer.v1"],
+  "events": ["mailer.message.sent", "mailer.message.received"],
+  "dependencies": [
+    "notifyz"
+  ],
+  "dataRetention": "retain",
+  "dataLifecycle": {
+    "compatibility": "backward-compatible",
+    "migrations": [],
+    "seeders": []
+  }
+}

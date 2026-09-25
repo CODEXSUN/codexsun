@@ -1,0 +1,14 @@
+# Dockerfile-specific ignore file (Editor.Dockerfile.dockerignore).
+# Context root is devkits/zetro2/zvcode (imported source).
+.git
+**/.git
+**/node_modules
+out
+out-build
+out-vscode-reh*
+.build
+extensions/**/out
+.vscode-test
+*.vsix
+*.log
+npm-debug.log*

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "addon",
+  "id": "taskez",
+  "label": "Taskez",
+  "owner": "packages/addons/taskez",
+  "package": "@codexsun/addon-taskez",
+  "providerId": "taskez.provider",
+  "purpose": "Structured task management with assignments, priorities, status, dependencies, and execution tracking.",
+  "areas": ["tasks", "assignments", "execution"],
+  "contracts": ["taskez.v1"],
+  "events": ["taskez.task.created", "taskez.task.completed"],
+  "dependencies": [
+    "notifyz",
+    "calendy",
+    "flowix"
+  ],
+  "dataRetention": "retain",
+  "dataLifecycle": {
+    "compatibility": "backward-compatible",
+    "migrations": [],
+    "seeders": []
+  }
+}
