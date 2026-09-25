@@ -21,7 +21,8 @@ Executed 2026-09-24 against a clean SQLite file with `createQcafeLifecyclePlans(
 ## Reconciliation
 
 - Applied migration identifiers match the declared plan order exactly; the verifier confirms every recorded checksum and refuses startup traffic on any divergence (production startup is read-only by design).
-- Risk note: MariaDB upgrade-path execution was not exercised in this dry run; SQLite and MariaDB share the same application-level contract, and MariaDB integration tests remain opt-in behind an explicit test database URL.
+- MariaDB follow-up (2026-09-25): the same plans were applied to the shared development database with `npm run database:migrate`, completing inventory `005`–`008`, documents `001`–`005`, backup `001`, marketplace `001`–`002`, accounting `001`, and sync `001`; `database:verify` confirms 33 lifecycle records. This run exposed a MariaDB-only foreign-key ordering fault in `005` (receipt lines referenced the later-created lots table), fixed by creating lots first with an unchanged migration checksum.
+- MariaDB integration tests remain opt-in behind an explicit test database URL.
 
 ## Verification
 

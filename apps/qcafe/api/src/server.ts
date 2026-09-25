@@ -28,6 +28,7 @@ import {
   registerIdentityManagementRoutes,
 } from "@codexsun/platform-core";
 import { readConfig } from "./config.js";
+import { registerCashierPinRoutes } from "./cashier-pin.js";
 import { registerQcafeWorkspaceRoute } from "./modules/foundation/routes/qcafe-workspace-route.js";
 import { createQcafeProviders } from "./qcafe-provider-catalog.js";
 import { createQcafePersistence, prepareQcafePersistence } from "./modules/foundation/persistence/qcafe-persistence.js";
@@ -243,6 +244,7 @@ app.post(
     return reply.code(204).send(null);
   },
 );
+await registerCashierPinRoutes(app, identity);
 const requestActors = new WeakMap<object, Actor>();
 app.addHook("onRequest", async (request, reply) => {
   if (isPublicPath(request.url)) return;
@@ -382,6 +384,9 @@ function isPublicPath(url: string): boolean {
     path === "/api/v1/qcafe/auth/development-login" ||
     path === "/api/v1/qcafe/auth/password-reset/request" ||
     path === "/api/v1/qcafe/auth/password-reset/confirm" ||
+    path === "/api/v1/qcafe/auth/pin" ||
+    path === "/api/v1/qcafe/auth/pin/setup" ||
+    path === "/api/v1/qcafe/auth/pin/login" ||
     path.startsWith("/api/v1/qcafe/guest/qr/") ||
     path === "/api/v1/qcafe/health" ||
     path === "/api/internal/reference" ||

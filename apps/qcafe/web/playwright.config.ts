@@ -18,6 +18,7 @@ export default defineConfig({
       cwd: "../api",
       env: {
         APP_MODE: "development",
+        DB_DRIVER: "sqlite",
         PATH: process.env.PATH ?? "",
         PLATFORM_HOST: "127.0.0.1",
         QCAFE_API_PORT: String(apiPort),

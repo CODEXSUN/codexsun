@@ -12,6 +12,8 @@ export const qcafeProcurementMigration = {
   owner: "qcafe.inventory",
   async apply(database: Kysely<QcafeFoundationDatabase>) {
     const db = database as unknown as Kysely<QcafeInventoryDatabase>;
+    // Table order matters: MariaDB validates foreign keys at CREATE time, so
+    // qcafe_stock_lots must exist before qcafe_goods_receipt_lines references it.
     await db.schema
       .createTable("qcafe_purchase_orders")
       .ifNotExists()
@@ -48,17 +50,6 @@ export const qcafeProcurementMigration = {
       .addColumn("received_at", "varchar(40)", (c) => c.notNull())
       .execute();
     await db.schema
-      .createTable("qcafe_goods_receipt_lines")
-      .ifNotExists()
-      .addColumn("id", "varchar(36)", (c) => c.primaryKey())
-      .addColumn("receipt_id", "varchar(36)", (c) => c.notNull().references("qcafe_goods_receipts.id"))
-      .addColumn("po_line_id", "varchar(36)", (c) => c.notNull().references("qcafe_purchase_order_lines.id"))
-      .addColumn("stock_item_id", "varchar(36)", (c) => c.notNull().references("qcafe_stock_items.id"))
-      .addColumn("quantity_milli", "integer", (c) => c.notNull())
-      .addColumn("lot_id", "varchar(36)", (c) => c.references("qcafe_stock_lots.id"))
-      .addColumn("created_at", "varchar(40)", (c) => c.notNull())
-      .execute();
-    await db.schema
       .createTable("qcafe_stock_lots")
       .ifNotExists()
       .addColumn("id", "varchar(36)", (c) => c.primaryKey())
@@ -70,6 +61,18 @@ export const qcafeProcurementMigration = {
       .addColumn("created_by", "varchar(120)", (c) => c.notNull())
       .addColumn("created_at", "varchar(40)", (c) => c.notNull())
       .addUniqueConstraint("qcafe_stock_lots_item_code_key", ["stock_item_id", "lot_code"])
+      .execute();
+
+    await db.schema
+      .createTable("qcafe_goods_receipt_lines")
+      .ifNotExists()
+      .addColumn("id", "varchar(36)", (c) => c.primaryKey())
+      .addColumn("receipt_id", "varchar(36)", (c) => c.notNull().references("qcafe_goods_receipts.id"))
+      .addColumn("po_line_id", "varchar(36)", (c) => c.notNull().references("qcafe_purchase_order_lines.id"))
+      .addColumn("stock_item_id", "varchar(36)", (c) => c.notNull().references("qcafe_stock_items.id"))
+      .addColumn("quantity_milli", "integer", (c) => c.notNull())
+      .addColumn("lot_id", "varchar(36)", (c) => c.references("qcafe_stock_lots.id"))
+      .addColumn("created_at", "varchar(40)", (c) => c.notNull())
       .execute();
     await db.schema
       .createTable("qcafe_stock_counts")
@@ -117,8 +120,14 @@ export const qcafeValuationMigration = {
   id: "qcafe.inventory.008",
   owner: "qcafe.inventory",
   async apply(database: Kysely<QcafeFoundationDatabase>) {
-    await database.schema.alterTable("qcafe_purchase_order_lines").addColumn("unit_price_minor", "integer", (c) => c.notNull().defaultTo(0)).execute();
-    await database.schema.alterTable("qcafe_goods_receipt_lines").addColumn("unit_price_minor", "integer", (c) => c.notNull().defaultTo(0)).execute();
+    await database.schema
+      .alterTable("qcafe_purchase_order_lines")
+      .addColumn("unit_price_minor", "integer", (c) => c.notNull().defaultTo(0))
+      .execute();
+    await database.schema
+      .alterTable("qcafe_goods_receipt_lines")
+      .addColumn("unit_price_minor", "integer", (c) => c.notNull().defaultTo(0))
+      .execute();
   },
 };
 

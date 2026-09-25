@@ -1,4 +1,5 @@
 import { config } from "dotenv";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -8,9 +9,11 @@ config({ path: resolve(import.meta.dirname, "../../../.env") });
 config({ path: resolve(import.meta.dirname, ".app.env"), override: true });
 
 const reactSourceFiles = /(?:apps[\\/]qcafe[\\/]web[\\/]src|packages[\\/]ui[\\/]src)[\\/].*\.[jt]sx?$/u;
+const packageVersion = (JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string }).version;
 
 export default defineConfig({
   cacheDir: "../../../dist/.vite/apps/qcafe/web",
+  define: { __QCAFE_VERSION__: JSON.stringify(packageVersion) },
   plugins: [react({ include: reactSourceFiles }), tailwindcss()],
   server: {
     allowedHosts: [".tmnext.in"],

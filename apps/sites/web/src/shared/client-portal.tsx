@@ -271,7 +271,22 @@ function PortalHeader({ accent = "text-cyan-300", clientSlug, standalone = false
 }
 
 function ClientLoading() {
-  return <div className="grid min-h-screen place-items-center bg-slate-950 p-6 text-slate-300"><div role="status" className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-sm">Loading client site…</div></div>;
+  return (
+    <div
+      aria-label="Loading client site"
+      className="relative grid min-h-[100svh] place-items-center overflow-hidden bg-[#05060d]"
+      role="status"
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_42%,rgba(205,90,255,.18),transparent_22%),radial-gradient(circle_at_36%_58%,rgba(67,93,255,.12),transparent_28%)]"
+      />
+      <span
+        aria-hidden="true"
+        className="client-loading-spinner"
+      />
+    </div>
+  );
 }
 
 function ClientError({ slug }: { slug: string }) {

@@ -4,9 +4,12 @@ import { MainWorkspace, type MdiNavigationSection } from "@codexsun/ui";
 import { SessionBoundary } from "@codexsun/ui/blocks/auth";
 import { IdentityManagementDesk } from "@codexsun/ui/blocks/auth/identity-management-desk";
 import { Button } from "@codexsun/ui/components/button";
-import { LayoutDashboardIcon, ShieldCheckIcon, WrenchIcon } from "lucide-react";
+import { Badge } from "@codexsun/ui/components/badge";
+import { LayoutDashboardIcon, BellIcon, PowerIcon, ShieldCheckIcon, WrenchIcon } from "lucide-react";
 import { createQcafeNavigation, getQcafePages, QcafeWorkspaceView } from "./qcafe-workspace";
 import { readWorkspace, type QcafePageId } from "./qcafe-api";
+import { CashierLogin } from "./cashier-login";
+import { PosPage } from "./pos-page";
 import { readFoundationSetup } from "./foundation-setup-api";
 import { readAlerts, reportQuery } from "./reports-api";
 import { QcafeSettingsWorkspace } from "./settings-workspace";
@@ -20,6 +23,7 @@ export function App() {
   }, []);
 
   if (pathnameOf(location) === "/") return <QcafeHome onLogin={() => navigate("/login", setLocation)} />;
+  const userPortal = !location.startsWith("/sa/") && !location.startsWith("/admin/");
 
   return (
     <SessionBoundary
@@ -29,12 +33,22 @@ export function App() {
       loginPath="/api/v1/qcafe/auth/login"
       logoutPath="/login"
       onAuthenticated={() => navigate(portalDeskPath(), setLocation)}
+      unauthenticated={
+        userPortal ? (
+          <CashierLogin
+            onSuccess={(session) =>
+              navigate(session.actor.roles.includes("cashier") ? "/pos" : portalDeskPath(), setLocation)
+            }
+          />
+        ) : undefined
+      }
     >
       {(session) => (
         <QcafeAuthenticated
           location={location}
           portal={session.portal}
           request={session.fetch}
+          roles={session.roles}
           logout={session.logout}
           onNavigate={(nextPath) => navigate(nextPath, setLocation)}
         />
@@ -47,12 +61,14 @@ function QcafeAuthenticated({
   location,
   portal,
   request,
+  roles,
   logout,
   onNavigate,
 }: {
   location: string;
   portal: "admin" | "super-admin" | "user";
   request: typeof fetch;
+  roles: readonly string[];
   logout: () => void;
   onNavigate: (path: string) => void;
 }) {
@@ -60,12 +76,55 @@ function QcafeAuthenticated({
     return <IdentityManagementDesk applicationId="qcafe" applicationName="Q Cafe" logout={logout} request={request} />;
   if (portal === "admin") return <QcafePrivilegedDesk portal={portal} logout={logout} />;
   useEffect(() => {
-    if (pathnameOf(location) === "/login") onNavigate("/overview");
-  }, [location, onNavigate]);
+    if (pathnameOf(location) === "/login") onNavigate(roles.includes("cashier") ? "/pos" : "/overview");
+  }, [location, onNavigate, roles]);
+  if (roles.includes("cashier"))
+    return <CashierPosDesk request={request} logout={logout} onNavigate={onNavigate} />;
 
   if (pathnameOf(location) === "/login") return null;
   return (
     <QcafeDesk activePageId={pageFromLocation(location)} request={request} logout={logout} onNavigate={onNavigate} />
+  );
+}
+
+function CashierPosDesk({
+  request,
+  logout,
+  onNavigate,
+}: {
+  request: typeof fetch;
+  logout: () => void;
+  onNavigate: (path: string) => void;
+}) {
+  useEffect(() => {
+    document.title = "Q Cafe | Point of sale";
+  }, []);
+  useEffect(() => {
+    if (pathnameOf(window.location.pathname) !== "/pos") onNavigate("/pos");
+  }, [onNavigate]);
+  return (
+    <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-white px-3 dark:bg-card">
+        <span className="grid size-6 place-items-center rounded border border-foreground/70 text-xs font-bold">☕</span>
+        <span className="text-sm font-semibold tracking-tight">Q CAFE</span>
+        <span className="mx-1 h-6 w-px bg-foreground/15" />
+        <h1 className="px-1 text-sm font-semibold tracking-tight">Point of sale</h1>
+        <div className="ml-auto flex items-center gap-2">
+          <button type="button" aria-label="Notifications" className="relative grid size-9 cursor-pointer place-items-center rounded-md text-foreground/65 transition-colors hover:bg-accent hover:text-accent-foreground">
+            <BellIcon size={18} />
+            <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-destructive ring-2 ring-white" />
+          </button>
+          <span className="grid size-9 place-items-center rounded-full border bg-muted text-sm font-semibold">M</span>
+          <Button size="sm" variant="outline" onClick={logout} className="gap-2">
+            <PowerIcon size={16} />
+            Exit
+          </Button>
+        </div>
+      </header>
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <PosPage request={request} />
+      </main>
+    </div>
   );
 }
 

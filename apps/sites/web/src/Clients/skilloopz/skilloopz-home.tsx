@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { clientPath, type ClientSite } from "../../shared/client-data";
 import {
   ArrowRightIcon,
   ArrowUpRightIcon,
   AwardIcon,
-  BriefcaseBusinessIcon,
   BotIcon,
+  BriefcaseBusinessIcon,
   ChevronDownIcon,
   Code2Icon,
   CompassIcon,
@@ -15,7 +15,6 @@ import {
   SparklesIcon,
   UsersRoundIcon,
   XIcon,
-  type LucideIcon,
 } from "lucide-react";
 
 const programs = [
@@ -97,10 +96,27 @@ const mentors = [
 
 export function SkilloopzHome({ client }: { client: ClientSite }) {
   const [openFaq, setOpenFaq] = useState(0);
+
+  useEffect(() => {
+    const targets = Array.from(document.querySelectorAll<HTMLElement>("[data-skilloopz-reveal]"));
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion) {
+      targets.forEach((target) => target.classList.add("is-visible"));
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("is-visible")),
+      { threshold: 0.14 },
+    );
+    targets.forEach((target) => observer.observe(target));
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="overflow-x-clip bg-[#05060d] text-white selection:bg-fuchsia-500/50">
+    <div className="skilloopz-portal overflow-x-clip bg-[#05060d] text-white selection:bg-fuchsia-500/50">
       <SkilloopzHeader client={client} />
       <Hero />
+      <StatsRail />
       <TrustedCompanies />
       <JobReadyFormula />
       <Programs client={client} />
@@ -109,7 +125,7 @@ export function SkilloopzHome({ client }: { client: ClientSite }) {
       <Mentors client={client} />
       <Collaborations />
       <SuccessStory client={client} />
-      <section className="border-y border-white/[.06] bg-white/[.015] px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
+      <section data-skilloopz-reveal className="marketing-stage border-y border-white/[.06] bg-white/[.015] px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
         <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[.8fr_1.2fr]">
           <SectionIntro
             eyebrow="FAQ"
@@ -146,6 +162,7 @@ export function SkilloopzHome({ client }: { client: ClientSite }) {
 
 function SkilloopzHeader({ client }: { client: ClientSite }) {
   const [open, setOpen] = useState(false);
+  const [portalProgress, setPortalProgress] = useState(0);
   const links = [
     ["Programs", "#programs"],
     ["Learning Path", "#pathway"],
@@ -153,9 +170,32 @@ function SkilloopzHeader({ client }: { client: ClientSite }) {
     ["Study Spot", "#success-story"],
     ["About", clientPath(client.slug, "about")],
   ];
+
+  useEffect(() => {
+    const onPortalState = (event: Event) => {
+      const detail = (event as CustomEvent<{ progress?: number }>).detail;
+      setPortalProgress(detail.progress ?? 0);
+    };
+    window.addEventListener("abhi-portal-state", onPortalState);
+    return () => window.removeEventListener("abhi-portal-state", onPortalState);
+  }, []);
+
+  const portalInMotion = portalProgress > 0.015 && portalProgress < 1;
+
   return (
-    <header className="fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-3 sm:px-8 sm:pt-4">
-      <nav className="relative flex w-full max-w-[1400px] items-center justify-between rounded-2xl border border-white/10 bg-[#070711]/55 px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,.18)] backdrop-blur-2xl sm:px-5">
+    <header
+      className="fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-3 transition-[opacity,transform] duration-300 sm:px-8 sm:pt-4"
+      style={{
+        opacity: portalInMotion ? 0 : 1,
+        pointerEvents: portalInMotion ? "none" : "auto",
+        transform: portalInMotion ? "translateY(-1rem)" : "translateY(0)",
+      }}
+    >
+      <nav className="relative flex w-full max-w-[1400px] items-center justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#070711]/55 px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,.18)] backdrop-blur-2xl sm:px-5">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/65 to-transparent shadow-[0_0_8px_rgba(255,255,255,.45)]"
+        />
         <a href={clientPath(client.slug)} className="shrink-0 px-1.5 sm:px-2" aria-label="Skilloopz home">
           <img
             src="/skilloopz/brand/skilloop-wordmark.png"
@@ -178,9 +218,14 @@ function SkilloopzHeader({ client }: { client: ClientSite }) {
         <div className="flex items-center gap-2">
           <a
             href={clientPath(client.slug, "contact")}
-            className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-300/20 bg-gradient-to-r from-fuchsia-600 via-violet-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(117,60,255,.28)] transition hover:-translate-y-0.5"
+            className="relative inline-flex items-center gap-2 overflow-hidden rounded-xl border border-fuchsia-300/20 bg-gradient-to-r from-fuchsia-600 via-violet-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(117,60,255,.28)] transition hover:-translate-y-0.5"
           >
-            Apply now <ArrowUpRightIcon className="size-3.5" />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-white/45 via-white/95 to-white/45 shadow-[0_0_7px_rgba(255,255,255,.7)]"
+            />
+            <span className="relative">Apply now</span>
+            <ArrowUpRightIcon className="relative size-3.5" />
           </a>
           <button
             type="button"
@@ -211,81 +256,221 @@ function SkilloopzHeader({ client }: { client: ClientSite }) {
   );
 }
 
+function dissolveOpacity(progress: number, delay: number) {
+  const stageProgress = Math.min(1, Math.max(0, (progress - delay) / (1 - delay)));
+  return 1 - stageProgress * stageProgress * (3 - 2 * stageProgress);
+}
+
 function Hero() {
+  const sceneRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const targetProgress = useRef(0);
+  const renderedProgress = useRef(0);
+  const frame = useRef<number | null>(null);
+  const [sceneProgress, setSceneProgress] = useState(0);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    const renderVideoFrame = () => {
+      const video = videoRef.current;
+      if (!video || !Number.isFinite(video.duration)) {
+        frame.current = null;
+        return;
+      }
+
+      const difference = targetProgress.current - renderedProgress.current;
+      const nextProgress =
+        reducedMotion.matches || Math.abs(difference) < 0.001
+          ? targetProgress.current
+          : renderedProgress.current + difference * 0.52;
+      renderedProgress.current = nextProgress;
+      const nextTime = video.duration * nextProgress;
+
+      if (
+        Math.abs(video.currentTime - nextTime) >= 0.045 ||
+        nextProgress === targetProgress.current
+      ) {
+        video.currentTime = nextTime;
+      }
+
+      frame.current =
+        nextProgress === targetProgress.current
+          ? null
+          : window.requestAnimationFrame(renderVideoFrame);
+    };
+
+    const update = () => {
+      const bounds = scene.getBoundingClientRect();
+      const travel = Math.max(bounds.height - window.innerHeight, 1);
+      targetProgress.current = reducedMotion.matches
+        ? 0
+        : Math.min(1, Math.max(0, -bounds.top / travel));
+      setSceneProgress(targetProgress.current);
+      window.dispatchEvent(
+        new CustomEvent("abhi-portal-state", {
+          detail: {
+            locked: targetProgress.current < 1,
+            progress: targetProgress.current,
+          },
+        }),
+      );
+
+      if (frame.current === null) {
+        frame.current = window.requestAnimationFrame(renderVideoFrame);
+      }
+    };
+
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    reducedMotion.addEventListener("change", update);
+
+    return () => {
+      if (frame.current !== null) window.cancelAnimationFrame(frame.current);
+      frame.current = null;
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      reducedMotion.removeEventListener("change", update);
+    };
+  }, []);
+
+  const copyFadeProgress = Math.min(1, Math.max(0, (sceneProgress - 0.012) / 0.24));
+  const handoffProgress = Math.min(1, Math.max(0, (sceneProgress - 0.76) / 0.24));
+  const headingOpacity = dissolveOpacity(copyFadeProgress, 0.05);
+  const descriptionOpacity = dissolveOpacity(copyFadeProgress, 0.16);
+  const ctaOpacity = dissolveOpacity(copyFadeProgress, 0.26);
+  const hintOpacity = dissolveOpacity(copyFadeProgress, 0.1);
+
   return (
-    <section className="relative min-h-[720px] overflow-hidden">
-      <video
-        className="absolute inset-0 size-full object-cover opacity-55"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        poster="/skilloopz/images/fallbacks/learning-card.webp"
-        aria-label="A glowing portal opening into the Skilloopz learning experience"
-      >
-        <source src="/skilloopz/videos/abhi-portal-hero.mp4" type="video/mp4" />
-      </video>
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,13,.96),rgba(5,6,13,.45)_58%,rgba(5,6,13,.2)),linear-gradient(to_top,#05060d,transparent_45%)]" />
-      <div className="relative mx-auto flex min-h-[720px] max-w-[1360px] items-center px-6 py-28 sm:px-10 lg:px-16">
-        <div className="max-w-2xl">
-          <p className="text-xs font-semibold tracking-[.22em] text-fuchsia-300">SKILLOOPZ / LEARNING IN MOTION</p>
-          <h1 className="mt-6 font-serif text-[clamp(3.2rem,8vw,7rem)] leading-[.88] tracking-[-.06em]">
-            Build Your Skills. Prepare for Your Career.
-          </h1>
-          <p className="mt-7 max-w-lg text-lg leading-8 text-white/75">
-            Industry-focused IT training with mentor-led learning, practical projects and placement assistance.
-          </p>
-          <a
-            href="#programs"
-            className="mt-9 inline-flex items-center gap-3 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 px-6 py-4 text-sm font-semibold shadow-[0_14px_38px_rgba(125,58,255,.35)] hover:-translate-y-0.5"
-          >
-            Explore programs <ArrowUpRightIcon className="size-4" />
-          </a>
+    <section ref={sceneRef} className="relative h-[220svh] bg-[#05060d]">
+      <div className="sticky top-0 h-[100svh] overflow-hidden">
+        <video
+          ref={videoRef}
+          className="absolute inset-0 size-full object-cover object-[60%_center] will-change-[filter,opacity,transform] sm:object-center"
+          muted
+          playsInline
+          preload="auto"
+          aria-label="A glowing portal opens into the Skilloopz learning experience"
+          style={{
+            filter: `blur(${handoffProgress * 3}px) brightness(${1 - handoffProgress * 0.2})`,
+            opacity: 1 - handoffProgress * 0.12,
+            transform: `scale(${1 + handoffProgress * 0.025})`,
+          }}
+          onLoadedMetadata={() => {
+            if (videoRef.current) {
+              videoRef.current.currentTime = videoRef.current.duration * targetProgress.current;
+            }
+          }}
+        >
+          <source src="/skilloopz/videos/abhi-portal-hero.mp4" type="video/mp4" />
+        </video>
+        <div className="pointer-events-none absolute inset-0 z-[11] bg-[linear-gradient(to_bottom,transparent_35%,rgba(5,6,13,.34)_64%,#05060d_100%)]" style={{ opacity: handoffProgress }} />
+        <div className="relative z-10 mx-auto flex h-full max-w-[1360px] items-center px-5 pt-20 sm:px-8 sm:pt-20 lg:px-12">
+          <div className="w-full max-w-[30rem] [text-shadow:0_2px_22px_rgba(0,0,0,.7)] sm:max-w-[660px]">
+            <h1
+              className="max-w-[18rem] origin-left font-serif text-[clamp(2.25rem,11vw,3.4rem)] leading-[.91] tracking-[-.055em] text-white will-change-[opacity,filter,transform] sm:max-w-[660px] sm:text-[clamp(3.45rem,6.3vw,6.8rem)]"
+              style={{
+                filter: `blur(${(1 - headingOpacity) * 9}px)`,
+                opacity: headingOpacity,
+                transform: `scale(${0.985 + headingOpacity * 0.015})`,
+              }}
+            >
+              Upskill to the
+              <br />
+              <span className="hero-gentle-float bg-gradient-to-r from-fuchsia-400 via-violet-400 to-blue-300 bg-clip-text text-transparent">
+                Top 1%
+              </span>{" "}
+              with
+              <br />
+              Expert-Led Programs
+            </h1>
+            <p
+              className="mt-3 w-full max-w-[30rem] font-sans text-[13px] leading-5 text-white/85 [text-wrap:pretty] will-change-[opacity,filter] sm:mt-6 sm:text-lg sm:leading-7"
+              style={{
+                filter: `blur(${(1 - descriptionOpacity) * 6}px)`,
+                opacity: descriptionOpacity,
+              }}
+            >
+              Scroll through the portal to discover practical programs built for your career.
+            </p>
+            <a
+              href="#programs"
+              className="group mt-5 inline-flex w-full items-center justify-between gap-7 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 px-5 py-3 text-[13px] font-semibold text-white shadow-[0_14px_38px_rgba(125,58,255,.35)] transition-transform will-change-[opacity,filter,transform] active:scale-[.98] sm:mt-8 sm:w-auto sm:px-7 sm:py-4 sm:text-sm sm:hover:-translate-y-0.5"
+              style={{
+                filter: `blur(${(1 - ctaOpacity) * 5}px)`,
+                opacity: ctaOpacity,
+                transform: `scale(${0.98 + ctaOpacity * 0.02})`,
+              }}
+            >
+              <span className="hero-gentle-float-content">
+                Explore Programs <ArrowUpRightIcon className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </span>
+            </a>
+          </div>
         </div>
-        <div className="absolute inset-x-6 bottom-10 sm:inset-x-10 lg:inset-x-16">
-          <Stats />
+        <div
+          className="hero-scroll-cue-float pointer-events-none absolute bottom-7 right-5 z-10 hidden items-center gap-3 text-[10px] font-semibold tracking-[.2em] text-white/80 sm:right-8 sm:flex lg:right-12"
+          style={{ opacity: hintOpacity }}
+        >
+          <span className="h-px w-12 bg-gradient-to-r from-transparent to-fuchsia-300" />
+          <span>SCROLL TO ENTER</span>
+          <span className="grid size-7 place-items-center rounded-full border border-white/25 text-base font-light">
+            <ChevronDownIcon className="size-4" />
+          </span>
         </div>
       </div>
     </section>
   );
 }
 
-function Stats() {
-  const stats: Array<[string, string, LucideIcon]> = [
+function StatsRail() {
+  const stats = [
     ["20K+", "Students Enrolled", UsersRoundIcon],
     ["50+", "Expert Mentors", GraduationCapIcon],
     ["200+", "Hiring Partners", BriefcaseBusinessIcon],
     ["95%", "Placement Rate", AwardIcon],
-  ];
+  ] as const;
+
   return (
-    <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-white/15 bg-[#090a14]/75 shadow-[0_24px_80px_rgba(0,0,0,.38)] backdrop-blur-2xl lg:grid-cols-4">
-      {stats.map(([value, label, Icon], index) => (
-        <div
-          key={label}
-          className={`flex min-w-0 items-center gap-3 px-4 py-4 sm:gap-4 sm:px-7 sm:py-5 ${index % 2 ? "border-l border-white/10" : ""} ${index > 1 ? "border-t border-white/10 lg:border-t-0" : ""} ${index > 0 ? "lg:border-l" : ""}`}
-        >
-          <Icon className="size-7 shrink-0 text-violet-300 sm:size-9" strokeWidth={1.5} />
-          <div>
-            <p className="text-xl font-semibold tracking-tight sm:text-2xl">{value}</p>
-            <p className="text-[13px] leading-4 text-white/65 sm:text-sm">{label}</p>
+    <section aria-label="Skilloopz outcomes" className="relative z-10 -mt-px px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
+      <div className="mx-auto grid max-w-[1264px] grid-cols-2 overflow-hidden rounded-2xl border border-white/15 bg-[#060711]/80 backdrop-blur-xl sm:grid-cols-4">
+        {stats.map(([value, label, Icon], index) => (
+          <div
+            key={label}
+            className={`flex items-center gap-3 px-4 py-5 sm:px-6 sm:py-6 ${index > 0 ? "border-l border-white/10" : ""} ${index === 2 ? "border-t border-white/10 sm:border-t-0" : ""} ${index === 3 ? "border-t border-white/10 sm:border-t-0" : ""}`}
+          >
+            <Icon aria-hidden="true" className="size-8 shrink-0 text-violet-300" strokeWidth={1.5} />
+            <div className="min-w-0">
+              <p className="text-xl font-semibold leading-none tracking-tight text-white sm:text-2xl">{value}</p>
+              <p className="mt-1 text-[11px] leading-4 text-white/60 sm:text-sm">{label}</p>
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
 function TrustedCompanies() {
   return (
-    <section className="border-y border-white/[.06] px-6 py-7 sm:px-10 lg:px-16">
-      <p className="mb-5 text-center text-[10px] font-semibold tracking-[.28em] text-white/55">
+      <section className="w-full border-y border-white/[.06] px-6 py-8 sm:px-10 lg:px-16 lg:py-9">
+      <p className="mb-6 text-center text-[10px] font-semibold tracking-[.28em] text-white/55">
         TRUSTED BY LEADING COMPANIES
       </p>
-      <div className="flex flex-wrap justify-center gap-x-10 gap-y-3 text-lg font-semibold tracking-tight text-white/45 sm:gap-x-16 sm:text-2xl">
-        {["Google", "Microsoft", "Amazon", "IBM", "Adobe", "Tesla", "Meta"].map((company) => (
-          <span key={company}>{company}</span>
-        ))}
+      <div className="trusted-company-marquee mx-auto w-full max-w-[80%]">
+        <div className="trusted-company-track">
+          {[0, 1].map((set) => (
+            <div className="trusted-company-set" aria-hidden={set === 1} key={set}>
+              {["Google", "Microsoft", "Amazon", "IBM", "Adobe", "Tesla", "Meta"].map((company) => (
+                <span className="trusted-company-mark" key={`${set}-${company}`}>{company}</span>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -293,15 +478,18 @@ function TrustedCompanies() {
 
 function JobReadyFormula() {
   return (
-    <section className="relative overflow-hidden px-6 py-20 sm:px-10 lg:px-16 lg:py-32">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(136,72,255,.28),transparent_25%),radial-gradient(circle_at_24%_100%,rgba(36,108,255,.14),transparent_30%)]" />
+    <section data-skilloopz-reveal className="marketing-stage relative overflow-hidden px-4 py-20 sm:px-8 lg:px-12 lg:py-32">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(136,72,255,.28),transparent_25%),radial-gradient(circle_at_24%_100%,rgba(36,108,255,.14),transparent_30%)]" />
       <div className="relative mx-auto grid max-w-[1360px] items-end gap-8 lg:grid-cols-[1.1fr_.9fr]">
         <div>
-          <SectionIntro
-            eyebrow="JOB READY FORMULA"
-            title="You're not taking a course. You're rehearsing your next role."
-            copy="Every week ends with evidence of progress: work you have made, decisions you can defend, and feedback that makes the next version stronger."
-          />
+          <p className="text-xs font-semibold tracking-[.22em] text-fuchsia-300">JOB READY FORMULA</p>
+          <h2 className="mt-6 max-w-4xl font-serif text-[clamp(3.4rem,7vw,7.6rem)] leading-[.84] tracking-[-.06em]">
+            You&apos;re not taking a course.
+            <br />
+            <span className="bg-gradient-to-r from-fuchsia-300 via-violet-300 to-cyan-200 bg-clip-text text-transparent">
+              You&apos;re rehearsing your next role.
+            </span>
+          </h2>
         </div>
         <a
           href="#pathway"
@@ -309,7 +497,9 @@ function JobReadyFormula() {
         >
           <p className="text-4xl font-semibold tracking-tight">01</p>
           <p className="mt-10 max-w-sm text-lg leading-7 text-white/70">
-            See exactly how learning becomes practical momentum.
+            Every week ends with evidence of progress: work you have made,
+            decisions you can defend, and feedback that makes the next version
+            stronger.
           </p>
           <span className="mt-8 inline-flex items-center gap-2 text-sm font-semibold">
             See the learning path <MoveRightIcon className="size-4" />
@@ -322,7 +512,7 @@ function JobReadyFormula() {
 
 function Programs({ client }: { client: ClientSite }) {
   return (
-    <section id="programs" className="px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
+    <section id="programs" data-skilloopz-reveal className="marketing-stage overflow-hidden px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
       <div className="mx-auto max-w-[1360px]">
         <SectionIntro
           eyebrow="EXPLORE YOUR PATH"
@@ -331,7 +521,7 @@ function Programs({ client }: { client: ClientSite }) {
         />
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {programs.map(([title, description, image]) => (
-            <article key={title} className="group overflow-hidden rounded-3xl border border-white/10 bg-[#0b0c15]">
+            <article data-skilloopz-reveal key={title} className="luminous-panel group overflow-hidden rounded-3xl border border-white/10 bg-[#0b0c15]">
               <div className="relative aspect-[1.55] overflow-hidden">
                 <img
                   src={image}
@@ -363,7 +553,7 @@ function Programs({ client }: { client: ClientSite }) {
 
 function Benefits() {
   return (
-    <section id="why-abhi" className="px-6 py-16 sm:px-10 lg:px-16 lg:py-28">
+    <section id="why-abhi" data-skilloopz-reveal className="marketing-stage px-6 py-16 sm:px-10 lg:px-16 lg:py-28">
       <div className="mx-auto max-w-[1360px]">
         <SectionIntro
           eyebrow="WHY CHOOSE US?"
@@ -374,7 +564,8 @@ function Benefits() {
           {benefits.map(([title, body, Icon], index) => (
             <article
               key={title}
-              className={`relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[.075] via-white/[.018] to-violet-500/[.08] p-7 ${index === 0 || index === 3 ? "md:col-span-2" : ""}`}
+              data-skilloopz-reveal
+              className={`luminous-panel relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[.075] via-white/[.018] to-violet-500/[.08] p-7 ${index === 0 || index === 3 ? "md:col-span-2" : ""}`}
             >
               <Icon className="size-7 text-violet-300" strokeWidth={1.5} />
               <h3 className="mt-12 text-2xl font-medium">{title}</h3>
@@ -392,7 +583,7 @@ function Benefits() {
 
 function Pathway() {
   return (
-    <section id="pathway" className="border-y border-white/[.06] bg-[#080912] px-6 py-16 sm:px-10 lg:px-16 lg:py-28">
+    <section id="pathway" data-skilloopz-reveal className="marketing-stage border-y border-white/[.06] bg-[#080912] px-6 py-16 sm:px-10 lg:px-16 lg:py-28">
       <div className="mx-auto grid max-w-[1360px] gap-12 lg:grid-cols-[.76fr_1.24fr]">
         <SectionIntro
           eyebrow="THE LEARNING PATH"
@@ -403,7 +594,8 @@ function Pathway() {
           {pathway.map(([number, title, body], index) => (
             <article
               key={number}
-              className={`rounded-2xl border border-white/10 p-6 ${index === 0 || index === 3 ? "bg-gradient-to-br from-white/[.075] to-violet-500/[.08]" : "bg-white/[.025]"}`}
+              data-skilloopz-reveal
+              className={`luminous-panel rounded-2xl border border-white/10 p-6 ${index === 0 || index === 3 ? "bg-gradient-to-br from-white/[.075] to-violet-500/[.08]" : "bg-white/[.025]"}`}
             >
               <span className="text-sm font-semibold text-fuchsia-300">{number}</span>
               <h3 className="mt-9 text-xl font-medium">{title}</h3>
@@ -419,7 +611,7 @@ function Pathway() {
 
 function Mentors({ client }: { client: ClientSite }) {
   return (
-    <section id="mentors" className="px-6 py-16 sm:px-10 lg:px-16 lg:py-28">
+    <section id="mentors" data-skilloopz-reveal className="marketing-stage px-6 py-16 sm:px-10 lg:px-16 lg:py-28">
       <div className="mx-auto max-w-[1360px]">
         <SectionIntro
           eyebrow="MEET THE TEAM"
@@ -428,7 +620,7 @@ function Mentors({ client }: { client: ClientSite }) {
         />
         <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {mentors.map(([name, focus, initials, image]) => (
-            <article key={name} className="group overflow-hidden rounded-3xl border border-white/10 bg-[#0b0c15]">
+            <article data-skilloopz-reveal key={name} className="luminous-panel group overflow-hidden rounded-3xl border border-white/10 bg-[#0b0c15]">
               <div className="relative aspect-[4/4.5] overflow-hidden">
                 <img
                   src={image}
@@ -462,8 +654,8 @@ function Mentors({ client }: { client: ClientSite }) {
 
 function Collaborations() {
   return (
-    <section id="collaborations" className="px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
-      <div className="mx-auto max-w-[1360px] rounded-[26px] border border-white/[.1] bg-gradient-to-br from-[#101027] via-[#080914] to-[#080914] px-6 py-9 sm:px-10 lg:px-12">
+    <section id="collaborations" data-skilloopz-reveal className="marketing-stage px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
+      <div data-skilloopz-reveal className="luminous-panel mx-auto max-w-[1360px] rounded-[26px] border border-white/[.1] bg-gradient-to-br from-[#101027] via-[#080914] to-[#080914] px-6 py-9 sm:px-10 lg:px-12">
         <p className="text-xs font-semibold tracking-[.22em] text-fuchsia-300">OUR COLLABORATIONS &amp; PARTNERS</p>
         <div className="mt-6 grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:items-end">
           <div>
@@ -494,8 +686,8 @@ function Collaborations() {
 
 function SuccessStory({ client }: { client: ClientSite }) {
   return (
-    <section id="success-story" className="px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
-      <div className="relative mx-auto max-w-[1360px] overflow-hidden rounded-[26px] border border-white/[.11] bg-[#070811] p-6 sm:p-10 lg:p-12">
+    <section id="success-story" data-skilloopz-reveal className="marketing-stage px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
+      <div data-skilloopz-reveal className="luminous-panel relative mx-auto max-w-[1360px] overflow-hidden rounded-[26px] border border-white/[.11] bg-[#070811] p-6 sm:p-10 lg:p-12">
         <img
           src="/skilloopz/images/fallbacks/learning-card.webp"
           alt=""
@@ -553,7 +745,7 @@ function SuccessStory({ client }: { client: ClientSite }) {
 function FinalCta({ client }: { client: ClientSite }) {
   return (
     <section id="start" className="px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
-      <div className="relative mx-auto max-w-[1360px] overflow-hidden rounded-[30px] border border-fuchsia-300/20 bg-gradient-to-br from-fuchsia-700 via-violet-800 to-indigo-950 px-6 py-14 text-center shadow-[0_30px_100px_rgba(105,53,255,.35)] sm:px-12 sm:py-20">
+      <div data-skilloopz-reveal className="luminous-panel relative mx-auto max-w-[1360px] overflow-hidden rounded-[30px] border border-fuchsia-300/20 bg-gradient-to-br from-fuchsia-700 via-violet-800 to-indigo-950 px-6 py-14 text-center shadow-[0_30px_100px_rgba(105,53,255,.35)] sm:px-12 sm:py-20">
         <SparklesIcon className="relative mx-auto size-7 text-fuchsia-100" />
         <h2 className="relative mt-6 font-serif text-4xl leading-[.95] tracking-tight sm:text-6xl">
           Ready to start your learning journey?
