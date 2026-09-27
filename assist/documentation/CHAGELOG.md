@@ -4,11 +4,11 @@ Records CODEXSUN releases, database impact, and completed application changes.
 
 ## Version State
 
-Current version: 1.0.45
+Current version: 1.0.46
 
-Release tag: v-1.0.45
+Release tag: v-1.0.46
 
-Changelog label: v 1.0.45
+Changelog label: v 1.0.46
 
 ### 2026-09-27 - Sites Studio client delivery handoff release
 
@@ -243,6 +243,18 @@ New entries must keep database-facing work and application code work separate.
 - Registered API and web hosts, foundation providers, development profile providers, root workspace scripts, Turbo build outputs, package-lock entries, and MDI catalog entries for each app.
 - Added an explicit generated API configuration return type to prevent TypeScript TS2742 errors in new application scaffolds.
 - Verification: application registry, app-CLI tests, root-layout check, focused typechecks, focused lints, and generated API/web test commands passed. MariaDB integration checks remain skipped without an integration URL; generated web hosts currently have no test files.
+
+## v-1.0.46
+
+### [v 1.0.46] 2026-09-27 9:40 am - version update
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.46.
 
 ## v-1.0.45
 

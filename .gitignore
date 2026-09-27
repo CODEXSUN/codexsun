@@ -32,6 +32,7 @@ logs/
 
 # Test and tool output
 coverage/
+devkits/codeloop/api/git-tools-test-*/
 .nyc_output/
 test-results/
 playwright-report/
