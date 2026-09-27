@@ -122,16 +122,6 @@
         "../../../dist/apps/lms/web/**"
       ]
     },
-    "@codexsun/sites-api#build": {
-      "outputs": [
-        "../../../dist/apps/sites/api/**"
-      ]
-    },
-    "@codexsun/sites-web#build": {
-      "outputs": [
-        "../../../dist/apps/sites/web/**"
-      ]
-    },
     "@codexsun/orship-api#build": {
       "outputs": [
         "../../../dist/devkits/orship/api/**"
