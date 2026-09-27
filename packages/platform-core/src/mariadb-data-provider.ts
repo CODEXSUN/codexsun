@@ -10,7 +10,9 @@ export function createMariaDbDataProvider<TDatabase>(
   options: MariaDbDataProviderOptions,
 ): KyselyDataProvider<TDatabase> {
   validateConnectionUrl(options.connectionUrl);
-  const dialect = new MysqlDialect({ pool: createPool(options.connectionUrl) });
+  // mysql2 and Kysely use compatible runtime pools with different declarations.
+  const pool = createPool(options.connectionUrl) as unknown as ConstructorParameters<typeof MysqlDialect>[0]["pool"];
+  const dialect = new MysqlDialect({ pool });
   return new KyselyDataProvider(new Kysely<TDatabase>({ dialect }));
 }
 

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import Fastify from "fastify";
@@ -17,7 +18,7 @@ import {
 } from "../src/index.js";
 
 test("keeps each app and browser session isolated, then revokes logout server-side", async () => {
-  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-test-"));
+  const directory = mkdtempSync(join(tmpdir(), "codexsun-identity-test-"));
   const configuration = createConfiguration(join(directory, "qcafe.sqlite"));
   const identity = new LocalIdentityStore(configuration);
   const browserSessionId = randomUUID();
@@ -52,7 +53,7 @@ test("keeps each app and browser session isolated, then revokes logout server-si
 });
 
 test("seeds a normal user for the standard login portal", async () => {
-  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-user-seed-test-"));
+  const directory = mkdtempSync(join(tmpdir(), "codexsun-identity-user-seed-test-"));
   const identity = new LocalIdentityStore(createConfiguration(join(directory, "identity.sqlite")));
 
   try {
@@ -68,7 +69,7 @@ test("seeds a normal user for the standard login portal", async () => {
 });
 
 test("auto-login uses only the configured desk seed", async () => {
-  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-auto-login-test-"));
+  const directory = mkdtempSync(join(tmpdir(), "codexsun-identity-auto-login-test-"));
   const identity = new LocalIdentityStore({ ...createConfiguration(join(directory, "identity.sqlite")), autoLogin: true, autoLoginDesk: "user" });
 
   try {
@@ -120,7 +121,7 @@ test("uses the normal user name as the default username", () => {
 });
 
 test("seeds a normal user whose email local part matches the administrator username", async () => {
-  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-user-collision-test-"));
+  const directory = mkdtempSync(join(tmpdir(), "codexsun-identity-user-collision-test-"));
   const configuration = createConfiguration(join(directory, "identity.sqlite"));
   const identity = new LocalIdentityStore({
     ...configuration,
@@ -143,7 +144,7 @@ test("seeds a normal user whose email local part matches the administrator usern
 });
 
 test("does not create an identity database during production startup", () => {
-  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-test-"));
+  const directory = mkdtempSync(join(tmpdir(), "codexsun-identity-test-"));
   const configuration = { ...createConfiguration(join(directory, "production.sqlite")), appMode: "production" as const };
 
   try {
@@ -154,7 +155,7 @@ test("does not create an identity database during production startup", () => {
 });
 
 test("allows an explicit migration before production startup", async () => {
-  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-test-"));
+  const directory = mkdtempSync(join(tmpdir(), "codexsun-identity-test-"));
   const databasePath = join(directory, "production.sqlite");
   const development = new LocalIdentityStore(createConfiguration(databasePath));
 
@@ -173,7 +174,7 @@ test("allows an explicit migration before production startup", async () => {
 });
 
 test("rejects changed application identity migration checksums in production", async () => {
-  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-checksum-test-"));
+  const directory = mkdtempSync(join(tmpdir(), "codexsun-identity-checksum-test-"));
   const databasePath = join(directory, "production.sqlite");
   const development = new LocalIdentityStore(createConfiguration(databasePath));
   try {
@@ -196,7 +197,7 @@ test("rejects changed application identity migration checksums in production", a
 });
 
 test("persists login limits, reset-token hashes, and safe identity audit events", async () => {
-  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-test-"));
+  const directory = mkdtempSync(join(tmpdir(), "codexsun-identity-test-"));
   const databasePath = join(directory, "identity.sqlite");
   const identity = new LocalIdentityStore(createConfiguration(databasePath));
 
@@ -228,7 +229,7 @@ test("persists login limits, reset-token hashes, and safe identity audit events"
 });
 
 test("creates, updates, and assigns local RBAC records", async () => {
-  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-rbac-test-"));
+  const directory = mkdtempSync(join(tmpdir(), "codexsun-identity-rbac-test-"));
   const identity = new LocalIdentityStore(createConfiguration(join(directory, "identity.sqlite")));
 
   try {
@@ -265,7 +266,7 @@ test("creates, updates, and assigns local RBAC records", async () => {
 });
 
 test("manages RBAC through protected HTTP list and CRUD routes", async () => {
-  const directory = mkdtempSync(join(resolve(process.cwd(), "../../dist"), "identity-rbac-http-test-"));
+  const directory = mkdtempSync(join(tmpdir(), "codexsun-identity-rbac-http-test-"));
   const identity = new LocalIdentityStore(createConfiguration(join(directory, "identity.sqlite")));
   const app = Fastify();
   app.setValidatorCompiler(validatorCompiler);

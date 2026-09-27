@@ -64,10 +64,10 @@ test("rejects duplicate runtime providers before engine composition", () => {
 
 test("reads enabled application providers from a deployment profile", () => {
   const root = mkdtempSync(resolve(tmpdir(), "codexsun-profile-"));
-  mkdirSync(resolve(root, "registry", "applications"), { recursive: true });
-  mkdirSync(resolve(root, "registry", "profiles"), { recursive: true });
-  writeFileSync(resolve(root, "registry", "applications", "sample.json"), JSON.stringify({ id: "sample", providers: ["platform.core", "sample.foundation"] }));
-  writeFileSync(resolve(root, "registry", "profiles", "development.json"), JSON.stringify({ id: "development", enabledApplications: ["sample"], enabledProviders: { sample: ["platform.core", "sample.foundation"] } }));
+  mkdirSync(resolve(root, "core", "registry", "applications"), { recursive: true });
+  mkdirSync(resolve(root, "core", "registry", "profiles"), { recursive: true });
+  writeFileSync(resolve(root, "core", "registry", "applications", "sample.json"), JSON.stringify({ id: "sample", providers: ["platform.core", "sample.foundation"] }));
+  writeFileSync(resolve(root, "core", "registry", "profiles", "development.json"), JSON.stringify({ id: "development", enabledApplications: ["sample"], enabledProviders: { sample: ["platform.core", "sample.foundation"] } }));
 
   assert.deepEqual(
     readApplicationDeployableProfile({ applicationId: "sample", availableProviderIds: ["platform.core", "sample.foundation"], registryRoot: root }),
@@ -77,10 +77,10 @@ test("reads enabled application providers from a deployment profile", () => {
 
 test("rejects profile providers that are not declared by the application", () => {
   const root = mkdtempSync(resolve(tmpdir(), "codexsun-profile-"));
-  mkdirSync(resolve(root, "registry", "applications"), { recursive: true });
-  mkdirSync(resolve(root, "registry", "profiles"), { recursive: true });
-  writeFileSync(resolve(root, "registry", "applications", "sample.json"), JSON.stringify({ id: "sample", providers: ["platform.core"] }));
-  writeFileSync(resolve(root, "registry", "profiles", "development.json"), JSON.stringify({ id: "development", enabledApplications: ["sample"], enabledAddons: [], enabledProviders: { sample: ["platform.core", "other.provider"] } }));
+  mkdirSync(resolve(root, "core", "registry", "applications"), { recursive: true });
+  mkdirSync(resolve(root, "core", "registry", "profiles"), { recursive: true });
+  writeFileSync(resolve(root, "core", "registry", "applications", "sample.json"), JSON.stringify({ id: "sample", providers: ["platform.core"] }));
+  writeFileSync(resolve(root, "core", "registry", "profiles", "development.json"), JSON.stringify({ id: "development", enabledApplications: ["sample"], enabledAddons: [], enabledProviders: { sample: ["platform.core", "other.provider"] } }));
 
   assert.throws(
     () => readApplicationDeployableProfile({ applicationId: "sample", availableProviderIds: ["platform.core", "other.provider"], registryRoot: root }),
