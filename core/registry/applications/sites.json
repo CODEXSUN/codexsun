@@ -4,6 +4,7 @@
   "id": "sites",
   "label": "Sites",
   "category": "business",
+  "repository": "https://github.com/CODEXSUN/sites.git",
   "owner": "apps/sites",
   "taskPrefix": "s",
   "providers": ["platform.core", "sites.foundation", "sites.content", "sites.workspace"],
