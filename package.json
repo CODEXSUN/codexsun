@@ -48,6 +48,8 @@
     "app:list": "node packages/app-cli/src/main.mjs list applications",
     "app:verify": "node packages/app-cli/src/main.mjs verify",
     "app:create": "node packages/app-cli/src/main.mjs create",
+    "app:create-standalone": "node packages/app-cli/src/main.mjs create-standalone",
+    "app-factory:api": "node packages/app-cli/src/server.mjs",
     "app:remove": "node packages/app-cli/src/main.mjs remove",
     "app:sync": "node packages/app-cli/src/main.mjs sync",
     "app:enable": "node packages/app-cli/src/main.mjs enable",

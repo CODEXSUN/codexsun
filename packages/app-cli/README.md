@@ -23,6 +23,23 @@ reference setup, module tests, manifests, a deployment provider selection, and
 the generated MDI app catalog. It does not install external packages or start a
 database.
 
+## Fresh standalone applications
+
+The standalone factory creates a new direct-child repository foundation without
+business modules, registry entries, or references to another application:
+
+```powershell
+npm run app:create-standalone -- app -- crm --label CRM
+npm run app:create-standalone -- app -- qcafe --label "Q Cafe"
+```
+
+The target must not already exist. The same function is available through the
+guarded local API. Set `APP_FACTORY_TOKEN`, then run `npm run app-factory:api`.
+Use `POST /api/v1/app-factory/applications` with a JSON body such as
+`{"id":"crm","label":"CRM"}` and `Authorization: Bearer <token>`.
+The API binds to loopback by default and never accepts a target outside the
+direct child repository boundary.
+
 `app:disable` changes only `core/registry/profiles/<profile>.json`. It never removes
 application files, packages, or persisted data. An add-on must explicitly
 declare `dataRetention: "retain"`.

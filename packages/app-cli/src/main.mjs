@@ -9,6 +9,7 @@ import { createApplication } from "./app-scaffold.mjs";
 import { removeApplication } from "./app-uninstall.mjs";
 import { createAddon } from "./addon-scaffold.mjs";
 import { syncMdiCatalog } from "./mdi-catalog.mjs";
+import { createStandaloneApplication, validateStandaloneTarget } from "./standalone-app-scaffold.mjs";
 
 const root = resolve(import.meta.dirname, "../../..");
 
@@ -18,6 +19,7 @@ export async function run(argumentsList, rootDir = root) {
   if (command === "list") return list(args[0] ?? "applications", rootDir);
   if (command === "verify") return console.log(JSON.stringify(verifyRegistry(rootDir), null, 2));
   if (command === "create") return create(args, rootDir);
+  if (command === "create-standalone") return createStandalone(args, rootDir);
   if (command === "remove") return remove(args, rootDir);
   if (command === "create-addon") return createAddonCommand(args, rootDir);
   if (command === "sync") return console.log(syncMdiCatalog(rootDir));
@@ -58,7 +60,8 @@ function build(args, rootDir) {
 }
 
 function create(args, rootDir) {
-  const [id, ...options] = args;
+  const normalized = args[0] === "app" ? args.slice(1).filter((value) => value !== "--") : args;
+  const [id, ...options] = normalized;
   const application = createApplication(rootDir, {
     apiPort: optionValue(options, "--api-port"),
     category: optionValue(options, "--category"),
@@ -68,6 +71,19 @@ function create(args, rootDir) {
     webPort: optionValue(options, "--web-port"),
   });
   console.log(JSON.stringify(application, null, 2));
+}
+
+function createStandalone(args, rootDir) {
+  const normalized = args[0] === "app" ? args.slice(1).filter((value) => value !== "--") : args;
+  const [id, ...options] = normalized;
+  if (!id) throw new Error("Use create-standalone app -- <id> [--label <label>].");
+  const target = optionValue(options, "--target");
+  if (target) validateStandaloneTarget(rootDir, target);
+  console.log(JSON.stringify(createStandaloneApplication(rootDir, {
+    id,
+    label: optionValue(options, "--label"),
+    target,
+  }), null, 2));
 }
 
 function remove(args, rootDir) {
@@ -122,7 +138,7 @@ function optionValue(options, name) {
 }
 
 function help() {
-  return "Use: codexsun-app <list|verify|create|remove|create-addon|sync|install|uninstall|build|dev>.";
+  return "Use: codexsun-app <list|verify|create|create-standalone|remove|create-addon|sync|install|uninstall|build|dev>.";
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

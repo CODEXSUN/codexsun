@@ -7,7 +7,7 @@
     "codexsun-app": "./src/main.mjs"
   },
   "scripts": {
-    "check": "node --check src/main.mjs && node --check src/registry.mjs && node --check src/app-scaffold.mjs && node --check src/app-uninstall.mjs && node --check src/addon-scaffold.mjs && node --check src/mdi-catalog.mjs",
+    "check": "node --check src/main.mjs && node --check src/server.mjs && node --check src/standalone-app-scaffold.mjs && node --check src/registry.mjs && node --check src/app-scaffold.mjs && node --check src/app-uninstall.mjs && node --check src/addon-scaffold.mjs && node --check src/mdi-catalog.mjs",
     "lint": "eslint src test",
     "test": "node --test test/registry.test.mjs"
   }
