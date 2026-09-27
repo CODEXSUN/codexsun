@@ -51,6 +51,15 @@
   min-width: 220px;
   flex: 1;
 }
+.crew .connection-actions {
+  display: flex;
+  gap: 8px;
+}
+.crew .token-identification {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+}
 .crew .signals,
 .crew .options,
 .crew .actions {

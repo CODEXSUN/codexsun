@@ -1,40 +1,19 @@
-import { designSystemBlocks } from "@codexsun/ui/design-system";
+import { designSystemBlocks, designSystemManifest } from "@codexsun/ui/design-system";
 
-export type UiBlockId =
-  | "form"
-  | "table"
-  | "mascot"
-  | "app-header"
-  | "execution-status"
-  | "kanban"
-  | "file-tree"
-  | "dropzone"
-  | "filter-builder"
-  | "product-card"
-  | "pricing"
-  | "cart"
-  | "categories"
-  | "checkout"
-  | "comparison"
-  | "coupon-wallet"
-  | "delivery-tracker"
-  | "payment-methods"
-  | "price-history"
-  | "reviews"
-  | "wishlist"
-  | "footer"
-  | "blog";
+export type UiBlockId = (typeof designSystemBlocks)[number]["id"];
 
 export type UiBlockDoc = {
   id: UiBlockId;
   name: string;
   source: string;
+  manifest?: (typeof designSystemManifest)[number];
 };
 
 export const uiBlockDocs: readonly UiBlockDoc[] = designSystemBlocks.map(({ id, name, source }) => ({
-  id: id as UiBlockId,
+  id,
   name,
   source,
+  manifest: designSystemManifest.find((asset) => asset.kind === "block" && asset.id === id),
 }));
 
 export function findUiBlock(blockId: string | null): UiBlockDoc | undefined {

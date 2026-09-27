@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "application",
+  "id": "codeloop",
+  "label": "CodeLoop",
+  "category": "devkit",
+  "owner": "devkits/codeloop",
+  "taskPrefix": "v",
+  "providers": [
+    "platform.core",
+    "codeloop.foundation"
+  ],
+  "mdi": {
+    "icon": "application",
+    "localUrlKey": "VITE_CODELOOP_WEB_URL",
+    "path": "/"
+  },
+  "hosts": [
+    {
+      "kind": "api",
+      "target": "codeloop-api",
+      "displayName": "CodeLoop API",
+      "environmentDirectory": "api",
+      "envKey": "CODELOOP_API_PORT",
+      "workspace": "@codexsun/codeloop-api",
+      "defaultPort": 6370
+    },
+    {
+      "kind": "web",
+      "target": "codeloop-web",
+      "displayName": "CodeLoop web",
+      "environmentDirectory": "web",
+      "envKey": "CODELOOP_WEB_PORT",
+      "workspace": "@codexsun/codeloop-web",
+      "defaultPort": 6371
+    }
+  ]
+}

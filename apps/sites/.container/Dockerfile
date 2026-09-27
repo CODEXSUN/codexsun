@@ -4,6 +4,11 @@ FROM node:26-bookworm-slim AS build
 
 WORKDIR /workspace
 
+ARG VITE_SITES_CLIENT_SLUG=
+ARG VITE_SITES_PUBLIC_URL=
+ENV VITE_SITES_CLIENT_SLUG=$VITE_SITES_CLIENT_SLUG
+ENV VITE_SITES_PUBLIC_URL=$VITE_SITES_PUBLIC_URL
+
 COPY package.json package-lock.json tsconfig.base.json tsconfig.json ./
 COPY apps/sites ./apps/sites
 COPY packages ./packages

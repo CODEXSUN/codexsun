@@ -39,6 +39,13 @@ export const mdiCatalogApplications: readonly MdiCatalogApplication[] = [
   },
   {
     "icon": "application",
+    "id": "codeloop",
+    "label": "CodeLoop",
+    "localUrlKey": "VITE_CODELOOP_WEB_URL",
+    "path": "/"
+  },
+  {
+    "icon": "application",
     "id": "crm",
     "label": "CRM",
     "localUrlKey": "VITE_CRM_WEB_URL",

@@ -1,14 +1,15 @@
 {
   "name": "@codexsun/billing-api",
-  "version": "1.0.43",
+  "version": "1.0.45",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=../../../dist/apps/billing/api/server.js",
+    "build:deployment": "npm run build && esbuild src/deployment-prepare.ts --bundle --platform=node --format=esm --outfile=../../../dist/apps/billing/api/deployment-prepare.js",
     "check": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx watch src/server.ts",
     "lint": "eslint src",
-    "test": "tsx --test src/server.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts"
+    "test": "tsx --test src/server.test.ts src/identity.test.ts src/mariadb.integration.test.ts src/modules/foundation/test/provider.test.ts src/modules/workspace/test/provider.test.ts"
   },
   "dependencies": {
     "@codexsun/framework": "file:../../../packages/framework",

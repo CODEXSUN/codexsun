@@ -2,6 +2,16 @@
 
 This application owns its product modules and composition.
 
+## Control plane and client delivery
+
+Sites Studio is the control plane for independent client workspaces. It centralizes client metadata, design-version references, environments, domains, deployment records, health, and audit surfaces. It does not merge client implementations or store client runtime business data in the control-plane database.
+
+Each client workspace has development, staging, and production environment records. A deployment request is scoped to one client and one environment. The runtime profile, source reference, image tag, database name, and deployment history remain client-scoped so one client can continue development and delivery without disturbing another client.
+
+Opening a client card enters its delivery workspace. The workspace provides a handoff brief, acceptance criteria, a six-stage work plan, developer assignment controls, action reports, and client-scoped live-release controls. The handoff surface is designed for the next developer to work on one client site from approved design through launch without merging concepts or operational data from another client.
+
+The workspace contract records deployment intent and isolated runtime metadata. The local Docker provider can execute a client/environment-specific Compose project when `SITES_DEPLOYMENT_PROVIDER=docker`; the default `record-only` mode is safe for development hosts without Docker. External CI or production providers can consume the same deployment contract without changing the Sites Studio UI.
+
 ## Docker Deployment
 
 Sites has a Windows-first Docker deployment in `.container/`. It builds the
@@ -68,12 +78,12 @@ Sites Studio remains the control plane at `http://127.0.0.1:6261`. Each client
 can run as its own minimal host while reading published content from the shared
 Sites API at `http://127.0.0.1:6260`.
 
-| Client | Local host | Start command |
-| --- | --- | --- |
-| Codexsun | `http://127.0.0.1:7001` | `npm run dev:site:codexsun` |
-| DevXcrew | `http://127.0.0.1:7002` | `npm run dev:site:devxcrew` |
-| Logicx Info Tech | `http://127.0.0.1:7003` | `npm run dev:site:logicx` |
-| Skilloopz | `http://127.0.0.1:7004` | `npm run dev:site:skilloopz` |
+| Client           | Local host              | Start command                |
+| ---------------- | ----------------------- | ---------------------------- |
+| Codexsun         | `http://127.0.0.1:7001` | `npm run dev:site:codexsun`  |
+| DevXcrew         | `http://127.0.0.1:7002` | `npm run dev:site:devxcrew`  |
+| Logicx Info Tech | `http://127.0.0.1:7003` | `npm run dev:site:logicx`    |
+| Skilloopz        | `http://127.0.0.1:7004` | `npm run dev:site:skilloopz` |
 
 Each host sets a fixed client slug and serves that client from `/`. Production
 maps each build to its own domain while retaining the Sites Studio content

@@ -5,6 +5,9 @@ import { findUiLayout } from "./ui-layouts";
 import { findUiPage } from "./ui-pages";
 import { findUiStaticPage } from "./ui-static-pages";
 import { findUiTemplate } from "./ui-templates";
+const UiRegistryBlockDocumentation = lazy(() =>
+  import("./ui-registry-block-doc").then((m) => ({ default: m.UiRegistryBlockDocumentation })),
+);
 
 const UiMasterListV1 = lazy(() => import("./ui-master-list-v1").then((m) => ({ default: m.UiMasterListV1 })));
 const UiMasterListV2 = lazy(() => import("./ui-master-list-v2").then((m) => ({ default: m.UiMasterListV2 })));
@@ -134,6 +137,7 @@ export function UiGallery() {
     if (block?.id === "wishlist") return <UiWishlistDocumentation />;
     if (block?.id === "footer") return <UiFooterDocumentation />;
     if (block?.id === "blog") return <UiBlogDocumentation />;
+    if (block) return <UiRegistryBlockDocumentation block={block} />;
     if (component) return <UiComponentDisplayPage component={component} />;
     if (page) return <UiPageDocumentation page={page} />;
     return layout ? <UiLayoutDocumentation layout={layout} /> : <UiOverview />;

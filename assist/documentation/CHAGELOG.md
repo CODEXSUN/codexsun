@@ -4,11 +4,129 @@ Records CODEXSUN releases, database impact, and completed application changes.
 
 ## Version State
 
-Current version: 1.0.43
+Current version: 1.0.45
 
-Release tag: v-1.0.43
+Release tag: v-1.0.45
 
-Changelog label: v 1.0.43
+Changelog label: v 1.0.45
+
+### 2026-09-27 - Sites Studio client delivery handoff release
+
+#### Database Changes
+
+- Added migration `sites.workspace.002`.
+- Added client-scoped developer profiles, work-plan items, action reports, and handoff notes.
+
+#### App Codebase Changes
+
+- Made every client card a keyboard-accessible workspace action.
+- Added the client handoff brief, acceptance criteria, asset notes, and access notes.
+- Added six work-plan stages from brief through launch.
+- Added multi-developer assignment and work-plan status updates.
+- Added action reports for client requests, blockers, decisions, and follow-up work.
+- Added protected API routes for delivery data and connected deployment preparation.
+- Updated the repository and workspace packages to version 1.0.45.
+
+#### Verification
+
+- Sites API and web lint passed.
+- Sites web typecheck passed.
+- Sites API and web tests passed.
+- Sites deployment and web builds passed.
+- Browser verification confirmed client-card navigation and the delivery workspace.
+
+### 2026-09-27 - Billing foundation workspace and identity preparation
+
+#### Database Changes
+
+- No business database tables were added.
+- Billing identity continues to use its private SQLite database and shared Platform identity migrations.
+
+#### App Codebase Changes
+
+- Added the protected Billing workspace contract and provider.
+- Added Billing identity initialization and authenticated-session coverage.
+- Added the Billing deployment preparation entrypoint and foundation documentation.
+- Verification: Billing API tests, lint, and builds pass; API typecheck remains affected by the existing missing declarations for `@fastify/helmet` and `mysql2`.
+
+### 2026-09-27 - Sites local isolated Docker deployment provider
+
+#### Database Changes
+
+- Added deployment lifecycle status and error updates for client-scoped deployment records.
+- Added client runtime database-path configuration so generated client stacks do not share the Sites Studio database.
+
+#### App Codebase Changes
+
+- Added the local Docker deployment provider with per-client and per-environment Compose project names, images, volumes, ports, build arguments, and database paths.
+- Added Docker migration preparation before client API and web startup.
+- Added client-scoped API content seeding through `SITES_CLIENT_SLUG`.
+- Added deployment status lookup and safe `record-only` versus `docker` provider configuration.
+- Verification: Sites lint, web typecheck, API/web tests, deployment build, web build, and diff checks passed. Docker execution itself was not started during verification.
+
+### 2026-09-27 - Sites Studio client workspace control plane
+
+#### Database Changes
+
+- Added the Sites workspace migration `sites.workspace.001` for client workspaces, isolated environment metadata, and deployment records.
+
+#### App Codebase Changes
+
+- Added the `sites.workspace` provider and shared workspace contracts.
+- Added protected workspace, client detail, and deployment request API routes.
+- Refined Sites Studio navigation around clients, delivery, design, forms, back office, and activity.
+- Preserved the existing public portal and client-specific design composition.
+- Verification: Sites web typecheck and tests passed; Sites API tests passed. API typecheck remains affected by pre-existing missing declarations for `@fastify/helmet` and `mysql2`.
+
+### 2026-09-27 - Sites Studio client delivery handoff workspace
+
+#### Database Changes
+
+- Added the repeat-safe `sites.workspace.002` migration for developer profiles, client work plans, action reports, and handoff notes.
+
+#### App Codebase Changes
+
+- Made client cards keyboard-accessible and clickable across the full card surface.
+- Added client-scoped handoff briefs, success criteria, asset notes, and access notes.
+- Added six-stage work plans with multi-developer assignment and status updates.
+- Added action-report creation for requests, blockers, decisions, and follow-up work.
+- Connected delivery data to client-scoped protected API routes and deployment preparation.
+- Verification: Sites API and web lint, web typecheck, API/web tests, deployment build, web build, and browser workspace verification passed.
+
+### 2026-09-26 - CodeLoop provider-backed chat
+
+#### Database Changes
+
+- No additional schema changes. Chat uses the existing actor-owned provider settings and conversation bindings.
+
+#### App Codebase Changes
+
+- Replaced the CodeLoop simulated assistant response with authenticated provider execution.
+- Added concurrent response fan-out for selected conversation providers.
+- Added the AgentCrew authenticated chat bridge for Docker-hosted Ollama.
+- Added OpenAI-compatible chat-completions support for configured providers.
+- Verification: AgentCrew API tests, lint, CodeLoop API build, and CodeLoop web type check passed.
+
+### 2026-09-26 - CodeLoop durable provider profiles
+
+#### Database Changes
+
+- Added `storage/apps/codeloop/private/data/codeloop_runtime.sqlite` with migration `codeloop.provider-settings.001`.
+- Added actor-owned provider settings and conversation-provider binding tables.
+- Provider API keys are encrypted at rest and masked in API responses.
+
+#### App Codebase Changes
+
+- Provider settings now load from and save to the authenticated actor's database profile.
+- Multiple enabled providers can be selected per conversation without sharing bindings with another conversation.
+- Added concurrent provider verification through `POST /api/v1/codeloop/providers/verify-many`.
+- Added a shared UI provider selector for conversation-scoped provider selection.
+- Verification: CodeLoop API/web checks, UI lint, and encrypted persistence/binding test passed.
+
+### 2026-09-25 - CodeLoop developer-kit scaffold
+
+- Added the registered `devkits/codeloop` API and web hosts with local identity, health, OpenAPI, and shared MDI shell support.
+- Added CodeLoop environment examples, focused verification commands, and the combined `dev:codeloop` start command.
 
 ### 2026-09-25 - Runtime port configuration alignment
 
@@ -125,6 +243,18 @@ New entries must keep database-facing work and application code work separate.
 - Registered API and web hosts, foundation providers, development profile providers, root workspace scripts, Turbo build outputs, package-lock entries, and MDI catalog entries for each app.
 - Added an explicit generated API configuration return type to prevent TypeScript TS2742 errors in new application scaffolds.
 - Verification: application registry, app-CLI tests, root-layout check, focused typechecks, focused lints, and generated API/web test commands passed. MariaDB integration checks remain skipped without an integration URL; generated web hosts currently have no test files.
+
+## v-1.0.45
+
+### [v 1.0.45] 2026-09-27 9:09 am - Sites Studio client delivery handoff
+
+#### Database Changes
+
+- Database update: Yes (manual).
+
+#### App Codebase Changes
+
+- Bumped CODEXSUN workspace version to 1.0.45.
 
 ## v-1.0.43
 

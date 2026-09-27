@@ -54,7 +54,13 @@ export class StartupPreflight {
 
   async stop() {
     const owner = this.reservation.readOwner();
-    if (!owner?.pid || owner.workspace !== this.target.workspace) {
+    if (!owner?.pid) {
+      this.reservation.removeStale();
+      console.log(`  ${chalk.green("ok")} No running ${this.target.displayName} process recorded for ${this.host}:${this.port}`);
+      return;
+    }
+
+    if (owner.workspace !== this.target.workspace) {
       throw new Error(`No running ${this.target.displayName} process is recorded for port ${this.port}.`);
     }
 
@@ -79,6 +85,16 @@ export class StartupPreflight {
     const owner = this.reservation.readOwner();
     if (owner?.pid && owner.workspace === this.target.workspace) {
       await this.stop();
+      return;
+    }
+
+    if (!(await canBind(this.host, this.port))) {
+      const pids = await listeningPids(this.port);
+      if (!pids.length) throw new Error(`Port ${this.port} is already in use. Stop its verified owner or choose another configured port.`);
+      console.log(`  ${chalk.dim("-")} Reclaiming ${this.host}:${this.port} from ${pids.join(", ")}`);
+      await Promise.all(pids.map((pid) => stopProcessTree(pid)));
+      await waitForPortAvailable(this.host, this.port);
+      console.log(`  ${chalk.green("ok")} Reclaimed ${this.host}:${this.port}\n`);
     }
   }
 }
@@ -247,6 +263,34 @@ function canBind(host, port) {
     server.once("error", () => resolveBind(false));
     server.once("listening", () => server.close(() => resolveBind(true)));
     server.listen(port, host);
+  });
+}
+
+function listeningPids(port) {
+  if (process.platform !== "win32") return Promise.resolve([]);
+  return new Promise((resolvePids, rejectPids) => {
+    const child = spawn("netstat", ["-ano", "-p", "tcp"], { stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+    let output = "";
+    let errors = "";
+    child.stdout.on("data", (chunk) => { output += chunk; });
+    child.stderr.on("data", (chunk) => { errors += chunk; });
+    child.once("error", rejectPids);
+    child.once("exit", (code) => {
+      if (code !== 0) {
+        rejectPids(new Error(errors.trim() || `netstat exited with code ${code ?? "unknown"}.`));
+        return;
+      }
+      const portSuffix = `:${port}`;
+      const pids = new Set();
+      for (const line of output.split(/\r?\n/u)) {
+        const columns = line.trim().split(/\s+/u);
+        if (columns.length >= 5 && columns[0] === "TCP" && columns[1].endsWith(portSuffix) && columns[3] === "LISTENING") {
+          const pid = Number(columns[4]);
+          if (Number.isInteger(pid) && pid > 0) pids.add(pid);
+        }
+      }
+      resolvePids([...pids]);
+    });
   });
 }
 

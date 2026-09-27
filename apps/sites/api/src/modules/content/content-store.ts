@@ -35,25 +35,39 @@ export type PublicSiteContent = {
 };
 
 export type EditableSiteContent = PublicSiteContent & { hasDraft: boolean; published: boolean; updatedAt: string };
-export type SiteContentRevision = { action: "draft" | "publish" | "unpublish"; createdAt: string; id: number; slug: string };
+export type SiteContentRevision = {
+  action: "draft" | "publish" | "unpublish";
+  createdAt: string;
+  id: number;
+  slug: string;
+};
 
 type SiteRow = { slug: string; content_json: string; published: number };
 
 export class SitesContentStore {
   private readonly database: DatabaseSync;
 
-  constructor(filename: string) {
+  constructor(
+    filename: string,
+    private readonly clientSlug?: string,
+  ) {
     if (filename !== ":memory:") mkdirSync(dirname(filename), { recursive: true });
     this.database = new DatabaseSync(filename);
     this.database.exec("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
     this.database.exec(
       "CREATE TABLE IF NOT EXISTS sites_public_content (slug TEXT PRIMARY KEY, content_json TEXT NOT NULL, published INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL)",
     );
-    try { this.database.exec("ALTER TABLE sites_public_content ADD COLUMN draft_json TEXT"); } catch { /* Existing database already has the draft column. */ }
+    try {
+      this.database.exec("ALTER TABLE sites_public_content ADD COLUMN draft_json TEXT");
+    } catch {
+      /* Existing database already has the draft column. */
+    }
     this.database.exec(
       "CREATE INDEX IF NOT EXISTS idx_sites_public_content_published_slug ON sites_public_content (published, slug)",
     );
-    this.database.exec("CREATE TABLE IF NOT EXISTS sites_content_revisions (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL, action TEXT NOT NULL, content_json TEXT NOT NULL, created_at TEXT NOT NULL)");
+    this.database.exec(
+      "CREATE TABLE IF NOT EXISTS sites_content_revisions (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL, action TEXT NOT NULL, content_json TEXT NOT NULL, created_at TEXT NOT NULL)",
+    );
     this.database.exec("PRAGMA optimize");
     this.seedDefaults();
   }
@@ -73,14 +87,25 @@ export class SitesContentStore {
   }
 
   findEditable(slug: string): EditableSiteContent | undefined {
-    const row = this.database.prepare("SELECT slug, content_json, draft_json, published, updated_at FROM sites_public_content WHERE slug = ?").get(slug) as { content_json: string; draft_json: string | null; published: number; slug: string; updated_at: string } | undefined;
+    const row = this.database
+      .prepare("SELECT slug, content_json, draft_json, published, updated_at FROM sites_public_content WHERE slug = ?")
+      .get(slug) as
+      | { content_json: string; draft_json: string | null; published: number; slug: string; updated_at: string }
+      | undefined;
     if (!row) return undefined;
-    return { ...this.parse({ content_json: row.draft_json ?? row.content_json, published: row.published, slug: row.slug }), hasDraft: Boolean(row.draft_json), published: Boolean(row.published), updatedAt: row.updated_at };
+    return {
+      ...this.parse({ content_json: row.draft_json ?? row.content_json, published: row.published, slug: row.slug }),
+      hasDraft: Boolean(row.draft_json),
+      published: Boolean(row.published),
+      updatedAt: row.updated_at,
+    };
   }
 
   saveDraft(slug: string, content: PublicSiteContent): EditableSiteContent | undefined {
     const createdAt = new Date().toISOString();
-    const result = this.database.prepare("UPDATE sites_public_content SET draft_json = ?, updated_at = ? WHERE slug = ?").run(JSON.stringify(content), createdAt, slug);
+    const result = this.database
+      .prepare("UPDATE sites_public_content SET draft_json = ?, updated_at = ? WHERE slug = ?")
+      .run(JSON.stringify(content), createdAt, slug);
     if (Number(result.changes)) this.recordRevision(slug, "draft", content, createdAt);
     return Number(result.changes) ? this.findEditable(slug) : undefined;
   }
@@ -88,7 +113,11 @@ export class SitesContentStore {
   publish(slug: string): EditableSiteContent | undefined {
     const createdAt = new Date().toISOString();
     const current = this.findEditable(slug);
-    this.database.prepare("UPDATE sites_public_content SET content_json = COALESCE(draft_json, content_json), draft_json = NULL, published = 1, updated_at = ? WHERE slug = ?").run(createdAt, slug);
+    this.database
+      .prepare(
+        "UPDATE sites_public_content SET content_json = COALESCE(draft_json, content_json), draft_json = NULL, published = 1, updated_at = ? WHERE slug = ?",
+      )
+      .run(createdAt, slug);
     if (current) this.recordRevision(slug, "publish", current, createdAt);
     return this.findEditable(slug);
   }
@@ -96,18 +125,31 @@ export class SitesContentStore {
   unpublish(slug: string): EditableSiteContent | undefined {
     const createdAt = new Date().toISOString();
     const current = this.findEditable(slug);
-    this.database.prepare("UPDATE sites_public_content SET published = 0, updated_at = ? WHERE slug = ?").run(createdAt, slug);
+    this.database
+      .prepare("UPDATE sites_public_content SET published = 0, updated_at = ? WHERE slug = ?")
+      .run(createdAt, slug);
     if (current) this.recordRevision(slug, "unpublish", current, createdAt);
     return this.findEditable(slug);
   }
 
   listRevisions(slug: string): SiteContentRevision[] {
-    const rows = this.database.prepare("SELECT id, slug, action, created_at FROM sites_content_revisions WHERE slug = ? ORDER BY id DESC LIMIT 20").all(slug) as unknown as { action: SiteContentRevision["action"]; created_at: string; id: number; slug: string }[];
+    const rows = this.database
+      .prepare(
+        "SELECT id, slug, action, created_at FROM sites_content_revisions WHERE slug = ? ORDER BY id DESC LIMIT 20",
+      )
+      .all(slug) as unknown as {
+      action: SiteContentRevision["action"];
+      created_at: string;
+      id: number;
+      slug: string;
+    }[];
     return rows.map((row) => ({ action: row.action, createdAt: row.created_at, id: row.id, slug: row.slug }));
   }
 
   restoreRevision(slug: string, revisionId: number): EditableSiteContent | undefined {
-    const row = this.database.prepare("SELECT content_json FROM sites_content_revisions WHERE id = ? AND slug = ?").get(revisionId, slug) as { content_json: string } | undefined;
+    const row = this.database
+      .prepare("SELECT content_json FROM sites_content_revisions WHERE id = ? AND slug = ?")
+      .get(revisionId, slug) as { content_json: string } | undefined;
     if (!row) return undefined;
     return this.saveDraft(slug, JSON.parse(row.content_json) as PublicSiteContent);
   }
@@ -120,8 +162,15 @@ export class SitesContentStore {
     return JSON.parse(row.content_json) as PublicSiteContent;
   }
 
-  private recordRevision(slug: string, action: SiteContentRevision["action"], content: PublicSiteContent, createdAt: string): void {
-    this.database.prepare("INSERT INTO sites_content_revisions (slug, action, content_json, created_at) VALUES (?, ?, ?, ?)").run(slug, action, JSON.stringify(content), createdAt);
+  private recordRevision(
+    slug: string,
+    action: SiteContentRevision["action"],
+    content: PublicSiteContent,
+    createdAt: string,
+  ): void {
+    this.database
+      .prepare("INSERT INTO sites_content_revisions (slug, action, content_json, created_at) VALUES (?, ?, ?, ?)")
+      .run(slug, action, JSON.stringify(content), createdAt);
   }
 
   private seedDefaults(): void {
@@ -133,7 +182,7 @@ export class SitesContentStore {
     const update = this.database.prepare(
       "UPDATE sites_public_content SET content_json = ?, updated_at = ? WHERE slug = ?",
     );
-    for (const site of defaultSites) {
+    for (const site of defaultSites.filter((candidate) => !this.clientSlug || candidate.slug === this.clientSlug)) {
       if (!exists.get(site.slug)) {
         insert.run(site.slug, JSON.stringify(site), new Date().toISOString());
         continue;

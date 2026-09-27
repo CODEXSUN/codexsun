@@ -13,6 +13,22 @@ export function registerAssistantRoutes(app: FastifyInstance, service: Assistant
     ...service.state(),
   }));
   app.get(`${prefix}/logs`, async () => ({ items: service.repository.list("log") }));
+  app.post(`${prefix}/chat`, async (request, reply) => {
+    const body = z.object({
+      messages: z.array(z.object({ content: z.string().min(1).max(24000), role: z.enum(["assistant", "system", "user", "tool"]), tool_call_id: z.string().optional(), tool_calls: z.array(z.unknown()).optional() })).min(1).max(40),
+      tools: z.array(z.unknown()).max(128).optional(),
+      model: z.string().min(1).max(160).optional(),
+      think: z.boolean().default(false),
+    }).parse(request.body);
+    const response = await service.chat(body.messages, body.model, body.think, body.tools);
+    return reply.send(response);
+  });
+  app.post(`${prefix}/chat/stream`, async (request, reply) => {
+    const body = z.object({ messages: z.array(z.object({ content: z.string().min(1).max(24000), role: z.enum(["assistant", "system", "user", "tool"]), tool_call_id: z.string().optional(), tool_calls: z.array(z.unknown()).optional() })).min(1).max(40), model: z.string().min(1).max(160).optional(), think: z.boolean().default(false) }).parse(request.body);
+    reply.raw.writeHead(200, { "cache-control": "no-cache", "content-type": "text/event-stream", connection: "keep-alive" });
+    await service.chatStream(body.messages, body.model, body.think, (event) => reply.raw.write(`data: ${JSON.stringify(event)}\n\n`));
+    reply.raw.end();
+  });
   app.post(`${prefix}/tasks`, async (request, reply) => {
     const task = service.repository.create(taskInput.parse(request.body));
     return reply.code(201).send(task);

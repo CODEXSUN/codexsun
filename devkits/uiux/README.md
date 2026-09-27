@@ -17,6 +17,12 @@ system. It owns the UIUX Gallery website and consumes shared UI through public e
 - Other applications must not import UIUX source or depend on `@codexsun/uiux-web`.
 - UIUX does not own business routes, persistence, or an API service.
 
+## Gallery-only contract
+
+UIUX is a visual gallery, not a feature framework. It exists so developers and agents can inspect a block, page, component, template, or variant in a real browser. Its catalogs resolve from `@codexsun/ui/design-system`; they must not duplicate registry data or implement application behavior. Business data, permissions, persistence, and workflows stay in the consuming app.
+
+The package design-system MCP surface is the agent entry point. Use `npm run ui:mcp` for `ui.list_assets`, `ui.get_asset`, `ui.resolve_variant`, and `ui.validate_selection`; use UIUX only to see the resulting visual composition.
+
 ## Provider boundary
 
 UIUX has no durable-data requirement. It must not add database configuration,
@@ -26,8 +32,8 @@ create and inject the required typed Provider under the Provider Standard.
 
 ## Workspaces and commands
 
-| Workspace            | Purpose                         | Development command             | Component port key |
-| -------------------- | ------------------------------- | ------------------------------- | ------------------ |
+| Workspace            | Purpose                         | Development command    | Component port key |
+| -------------------- | ------------------------------- | ---------------------- | ------------------ |
 | `@codexsun/uiux-web` | UIUX documentation and previews | `npm.cmd run dev:uiux` | `WEB_PORT`         |
 
 Use `npm.cmd run build --workspace @codexsun/uiux-web` and

@@ -32,7 +32,7 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules/@codexsun/ui") || id.includes("packages/ui/src")) return "ui";
-          if (id.includes("node_modules")) return "vendor";
+          if (id.includes("node_modules")) return dependencyChunkName(id);
           if (id.includes("apps/sites/web/src/Clients/")) return "client-pages";
           return undefined;
         },
@@ -40,6 +40,18 @@ export default defineConfig({
     },
   },
 });
+
+function dependencyChunkName(id: string): string | undefined {
+  const packagePath =
+    id
+      .split("node_modules")
+      .at(-1)
+      ?.replace(/^[/\\]/u, "") ?? "vendor";
+  const parts = packagePath.split(/[\\/]/u);
+  const packageName = parts[0]?.startsWith("@") ? `${parts[0]}-${parts[1] ?? "package"}` : (parts[0] ?? "vendor");
+  if (packageName === "reselect" || packageName === "detect-node-es") return undefined;
+  return `vendor-${packageName.replace(/[^a-zA-Z0-9_-]/gu, "-")}`;
+}
 
 function publicMetadataPlugin(origin: string, standaloneSlug?: string): Plugin {
   const files = {

@@ -19,6 +19,7 @@ export type Status = {
   active: string | null;
   queued: string[];
 };
+export type GeneratedToken = { token: string; url: string };
 
 export async function request<T>(token: string, path: string, body?: unknown): Promise<T> {
   const response = await fetch(`/api/v1/agentcrew${path}`, {

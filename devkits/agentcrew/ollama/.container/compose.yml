@@ -31,7 +31,9 @@ services:
       target: api
     environment:
       AGENTCREW_TOKEN: ${AGENTCREW_TOKEN:?Set a random access token of at least 32 characters}
+      AGENTCREW_TOKEN_FILE: /workspace/storage/apps/private/agentcrew/assistant/access-token
       AGENTCREW_PORT: 6410
+      WORKSPACE_ROOT: /workspace
       AGENTCREW_MODEL: ${AGENTCREW_MODEL:-qwen3:4b}
       AGENTCREW_EMBED_MODEL: ${AGENTCREW_EMBED_MODEL:-nomic-embed-text}
       OLLAMA_URL: http://ollama:11434

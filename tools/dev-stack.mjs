@@ -13,19 +13,24 @@ export function startDevStack(modeOrApplication, rawArguments = process.argv.sli
 
   let stopping = false;
   const children = targets.map(startHost);
-  const stop = (code = 0) => {
+  const stop = async (code = 0) => {
     if (stopping) return;
     stopping = true;
     process.exitCode = code;
-    children.forEach((child) => child.kill("SIGINT"));
+    await Promise.all(children.map(stopHost));
   };
 
   children.forEach((child) => {
-    child.once("exit", (code) => stop(code ?? 1));
-    child.once("error", () => stop(1));
+    child.once("exit", (code) => void stop(code ?? 1));
+    child.once("error", () => void stop(1));
   });
-  process.once("SIGINT", () => stop());
-  process.once("SIGTERM", () => stop());
+  process.once("SIGINT", () => void stop());
+  process.once("SIGTERM", () => void stop());
+}
+
+export async function stopDevStack(modeOrApplication) {
+  const { targets } = resolveDevTargets(modeOrApplication);
+  await Promise.all(targets.map((target) => runProcess(process.execPath, ["tools/preflight.mjs", target, "--stop"], "inherit")));
 }
 
 export function resolveDevTargets(modeOrApplication, rawArguments = []) {
@@ -55,11 +60,30 @@ function startHost(target) {
   return spawn(process.execPath, ["tools/preflight.mjs", target, "--restart"], { cwd: root, stdio: "inherit" });
 }
 
+function stopHost(child) {
+  if (child.exitCode !== null || !child.pid) return Promise.resolve();
+  if (process.platform === "win32") {
+    return runProcess("taskkill", ["/pid", String(child.pid), "/t", "/f"]);
+  }
+  child.kill("SIGINT");
+  return new Promise((resolveStop) => child.once("exit", resolveStop));
+}
+
+function runProcess(command, args, stdio = "ignore") {
+  return new Promise((resolveProcess, rejectProcess) => {
+    const processHandle = spawn(command, args, { stdio, windowsHide: true });
+    processHandle.once("error", rejectProcess);
+    processHandle.once("exit", (code) => {
+      if (code === 0 || (process.platform === "win32" && command === "taskkill" && code === 128)) resolveProcess();
+      else rejectProcess(new Error(`${command} exited with code ${code ?? "unknown"}.`));
+    });
+  });
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  try {
-    startDevStack(process.argv[2]);
-  } catch (error) {
+  const action = process.argv.includes("--stop") ? stopDevStack(process.argv[2]) : startDevStack(process.argv[2]);
+  Promise.resolve(action).catch((error) => {
     console.error(`\n  x ${error.message}\n`);
     process.exitCode = 1;
-  }
+  });
 }

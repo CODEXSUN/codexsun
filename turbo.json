@@ -226,6 +226,16 @@
       "outputs": [
         "../../../dist/devkits/projex/web/**"
       ]
+    },
+    "@codexsun/codeloop-api#build": {
+      "outputs": [
+        "../../../dist/devkits/codeloop/api/**"
+      ]
+    },
+    "@codexsun/codeloop-web#build": {
+      "outputs": [
+        "../../../dist/devkits/codeloop/web/**"
+      ]
     }
   }
 }

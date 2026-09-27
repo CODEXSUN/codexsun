@@ -14,7 +14,7 @@ export class Upstreams {
 
   async json(path: string, body?: unknown, qdrant = false, signal?: AbortSignal): Promise<Record<string, unknown>> {
     const base = qdrant ? this.config.QDRANT_URL : this.config.OLLAMA_URL;
-    const timeout = AbortSignal.timeout(path === "/api/chat" ? 180000 : 20000);
+    const timeout = AbortSignal.timeout(path === "/api/chat" ? 90000 : 20000);
     const response = await this.transport(new URL(path, base), {
       method: body ? "POST" : "GET",
       headers: { "Content-Type": "application/json" },
@@ -23,6 +23,16 @@ export class Upstreams {
     });
     if (!response.ok) throw new UpstreamError(response.status);
     return (await response.json()) as Record<string, unknown>;
+  }
+
+  async stream(path: string, body: unknown, onChunk: (chunk: Record<string, unknown>) => void, signal?: AbortSignal): Promise<void> {
+    const response = await this.transport(new URL(path, this.config.OLLAMA_URL), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(90000)]) : AbortSignal.timeout(90000) });
+    if (!response.ok || !response.body) throw new UpstreamError(response.status);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) { const next = await reader.read(); if (next.done) break; buffer += decoder.decode(next.value, { stream: true }); const lines = buffer.split(/\r?\n/u); buffer = lines.pop() ?? ""; for (const line of lines) { if (!line.trim()) continue; try { onChunk(JSON.parse(line) as Record<string, unknown>); } catch { /* wait for the next complete JSON frame */ } } }
+    if (buffer.trim()) { try { onChunk(JSON.parse(buffer.trim()) as Record<string, unknown>); } catch { /* ignore incomplete final frame */ } }
   }
 
   async createCollection(name: string, size: number): Promise<void> {

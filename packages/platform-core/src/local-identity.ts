@@ -527,7 +527,10 @@ export class LocalIdentityStore {
     const user = this.findUserByLogin(seed.login);
     if (!user) throw new Error(`Could not seed identity user ${seed.login}.`);
     this.database.prepare("DELETE FROM identity_user_roles WHERE user_id = ?").run(user.id);
-    this.database.prepare("INSERT INTO identity_user_roles (user_id, role_id) VALUES (?, ?)").run(user.id, seed.role);
+    // Development startup can overlap during a tsx/Vite restart. Keep the
+    // seeder idempotent even if another initializer restores the same role
+    // between the delete and insert statements.
+    this.database.prepare("INSERT OR IGNORE INTO identity_user_roles (user_id, role_id) VALUES (?, ?)").run(user.id, seed.role);
   }
 
   private createSession(actorId: string, browserSessionId: string): IdentitySession {

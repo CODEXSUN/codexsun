@@ -1,11 +1,20 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { MainWorkspace } from "@codexsun/ui";
 import { SessionBoundary } from "@codexsun/ui/blocks/auth";
 import { PrivilegedDesk } from "@codexsun/ui/blocks/auth/privileged-desk";
 import { IdentityManagementDesk } from "@codexsun/ui/blocks/auth/identity-management-desk";
-import { LayoutDashboardIcon } from "lucide-react";
-import { SitesOrganizer } from "./shared/sites-organizer";
+import {
+  ActivityIcon,
+  BoxesIcon,
+  DatabaseIcon,
+  LayoutDashboardIcon,
+  PaletteIcon,
+  PanelsTopLeftIcon,
+  RocketIcon,
+} from "lucide-react";
 import { ContentEditor, ContentPreview } from "./shared/content-editor";
+import { SitesStudio } from "./shared/sites-studio";
+import type { MdiNavigationSection } from "@codexsun/ui/layouts/main-workspace";
 
 const ClientsPortal = lazy(() => import("./Clients"));
 
@@ -53,18 +62,74 @@ function normalizeStandaloneSlug(value: string | undefined): string | undefined 
 }
 
 function SitesDesk({ request, logout }: { request: typeof fetch; logout: () => void }) {
+  const [section, setSection] = useState<
+    "overview" | "clients" | "delivery" | "design" | "forms" | "backoffice" | "activity"
+  >("overview");
+  const [selectedSlug, setSelectedSlug] = useState<string>();
   const editorSlug = window.location.pathname.match(/^\/studio\/content\/([a-z0-9-]+)$/u)?.[1];
   const previewSlug = window.location.pathname.match(/^\/studio\/content\/([a-z0-9-]+)\/preview$/u)?.[1];
+  const navigation: MdiNavigationSection[] = [
+    {
+      label: "Studio",
+      items: [
+        {
+          active: section === "overview",
+          icon: LayoutDashboardIcon,
+          label: "Overview",
+          onSelect: () => {
+            setSection("overview");
+            setSelectedSlug(undefined);
+          },
+        },
+        { active: section === "clients", icon: BoxesIcon, label: "Clients", onSelect: () => setSection("clients") },
+        { active: section === "delivery", icon: RocketIcon, label: "Delivery", onSelect: () => setSection("delivery") },
+        {
+          active: section === "design",
+          icon: PaletteIcon,
+          label: "Design system",
+          onSelect: () => setSection("design"),
+        },
+        { active: section === "forms", icon: PanelsTopLeftIcon, label: "Forms", onSelect: () => setSection("forms") },
+        {
+          active: section === "backoffice",
+          icon: DatabaseIcon,
+          label: "Back office",
+          onSelect: () => setSection("backoffice"),
+        },
+        {
+          active: section === "activity",
+          icon: ActivityIcon,
+          label: "Activity",
+          onSelect: () => setSection("activity"),
+        },
+      ],
+    },
+  ];
   return (
     <MainWorkspace
       applicationId="sites"
       applicationName="Sites Studio"
-      primaryAction={{ icon: LayoutDashboardIcon, label: "Overview" }}
+      navigation={navigation}
+      primaryAction={{ icon: BoxesIcon, label: "Clients", onSelect: () => setSection("clients") }}
       user={{ initials: "S", name: "Sites user", onSignOut: logout }}
       contentClassName="overflow-visible"
       workspaceTitle="Sites Studio"
     >
-      {previewSlug ? <ContentPreview request={request} slug={previewSlug} /> : editorSlug ? <ContentEditor request={request} slug={editorSlug} /> : <SitesOrganizer request={request} />}
+      {previewSlug ? (
+        <ContentPreview request={request} slug={previewSlug} />
+      ) : editorSlug ? (
+        <ContentEditor request={request} slug={editorSlug} />
+      ) : (
+        <SitesStudio
+          request={request}
+          section={section}
+          selectedSlug={selectedSlug}
+          onSelectClient={(slug) => {
+            setSelectedSlug(slug || undefined);
+            setSection("clients");
+          }}
+        />
+      )}
     </MainWorkspace>
   );
 }

@@ -8,6 +8,7 @@ import {
 
 export const CASHIER_LOGIN = "cashier";
 export const CASHIER_ROLE = "cashier";
+export const DEFAULT_CASHIER_PIN = "1234";
 export const CASHIER_PIN_PATHS = [
   "/api/v1/qcafe/auth/pin",
   "/api/v1/qcafe/auth/pin/setup",
@@ -18,6 +19,31 @@ const pinSchema = z.object({ pin: z.string().regex(/^\d{4}$/u, "Enter the four-d
 
 export function findCashierUser(identity: LocalIdentityStore) {
   return identity.listUsers().find((user) => user.login.toLowerCase() === CASHIER_LOGIN);
+}
+
+export async function ensureDefaultCashierPin(
+  identity: LocalIdentityStore,
+  pin: string = DEFAULT_CASHIER_PIN,
+): Promise<void> {
+  const fallback = /^\d{4}$/u.test(pin) ? pin : DEFAULT_CASHIER_PIN;
+  if (findCashierUser(identity)) return;
+  try {
+    identity.createRole(CASHIER_ROLE);
+  } catch {
+    // The cashier role already exists; role assignment below is what matters.
+  }
+  try {
+    const user = await identity.createManagedUser({
+      login: CASHIER_LOGIN,
+      name: "Cashier",
+      password: fallback,
+      state: "active",
+      username: CASHIER_LOGIN,
+    });
+    identity.replaceUserRoles(user.id, [CASHIER_ROLE]);
+  } catch {
+    // Another startup already created the cashier login.
+  }
 }
 
 export async function registerCashierPinRoutes(app: FastifyInstance, identity: LocalIdentityStore): Promise<void> {

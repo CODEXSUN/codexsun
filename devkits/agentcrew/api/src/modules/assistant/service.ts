@@ -44,6 +44,25 @@ export class AssistantService {
     return { active: this.active?.taskId ?? null, queued: [...this.queue] };
   }
 
+  async chat(messages: readonly { content: string; role: "assistant" | "system" | "user" | "tool"; tool_call_id?: string; tool_calls?: unknown[] }[], model?: string, think = false, tools?: unknown[]): Promise<Record<string, unknown>> {
+    return this.upstream.json("/api/chat", {
+      model: model ?? this.upstream.config.AGENTCREW_MODEL,
+      think,
+      stream: false,
+      keep_alive: "10m",
+      // Interactive agent turns must stay short so tool calls return promptly.
+      // Scheduled task runs use their own larger budget below.
+      options: { num_ctx: 4096, num_predict: 96, temperature: 0.2 },
+      messages,
+      ...(tools?.length ? { tools } : {}),
+    }, false);
+  }
+
+  async chatStream(messages: readonly { content: string; role: "assistant" | "system" | "user" | "tool"; tool_call_id?: string; tool_calls?: unknown[] }[], model: string | undefined, think: boolean, onEvent: (event: { type: "token" | "thinking" | "done"; content?: string }) => void, signal?: AbortSignal): Promise<void> {
+    await this.upstream.stream("/api/chat", { model: model ?? this.upstream.config.AGENTCREW_MODEL, think, stream: true, keep_alive: "10m", options: { num_ctx: 8192, num_predict: 512, temperature: 0.2 }, messages }, (chunk) => { const message = chunk.message as { content?: string } | undefined; if (message?.content) onEvent({ type: "token", content: message.content }); if (chunk.done) onEvent({ type: "done" }); }, signal);
+    onEvent({ type: "done" });
+  }
+
   async close(): Promise<void> {
     this.closed = true;
     clearInterval(this.timer);

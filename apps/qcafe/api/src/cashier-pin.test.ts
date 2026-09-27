@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import Fastify from "fastify";
 import { LocalIdentityStore } from "@codexsun/platform-core";
-import { CASHIER_LOGIN, registerCashierPinRoutes } from "./cashier-pin.js";
+import { CASHIER_LOGIN, DEFAULT_CASHIER_PIN, ensureDefaultCashierPin, registerCashierPinRoutes } from "./cashier-pin.js";
 
 const browserSession = "44444444-4444-4444-8444-444444444444";
 
@@ -81,6 +81,31 @@ test("cashier PIN setup runs once and PIN login returns a cashier session", asyn
 
     const statusAfter = await app.inject({ method: "GET", url: "/api/v1/qcafe/auth/pin" });
     assert.equal(statusAfter.json().pinSet, true);
+  } finally {
+    await app.close();
+    identity.close();
+    rmSync(directory, { force: true, recursive: true });
+  }
+});
+
+test("startup seeds the default cashier PIN so first login works", async () => {
+  const { app, directory, identity } = await setup();
+  try {
+    assert.equal(DEFAULT_CASHIER_PIN, "1234");
+    await ensureDefaultCashierPin(identity);
+    await ensureDefaultCashierPin(identity);
+
+    const status = await app.inject({ method: "GET", url: "/api/v1/qcafe/auth/pin" });
+    assert.equal(status.json().pinSet, true);
+
+    const login = await app.inject({
+      headers: { "x-codexsun-browser-session": browserSession },
+      method: "POST",
+      url: "/api/v1/qcafe/auth/pin/login",
+      payload: { pin: "1234" },
+    });
+    assert.equal(login.statusCode, 200);
+    assert.ok(login.json().actor.roles.includes("cashier"));
   } finally {
     await app.close();
     identity.close();

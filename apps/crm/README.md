@@ -1,6 +1,24 @@
 # CRM
 
-This application owns its product modules and composition.
+This application owns its product modules and composition for sales and service field teams.
+
+## Service Workflow
+
+CRM supports the full campaign-to-close path: campaign to lead to enquiry to
+estimate to quotation to assignment to field work to collection to verification.
+
+1. Create a campaign.
+2. Capture, qualify, and convert a lead to one enquiry.
+3. Communicate with the customer from the enquiry timeline.
+4. Collect supplier estimates and prepare an approved quotation.
+5. Assign work, schedule the visit, and record check-in, work proof, and check-out.
+6. Track collection promises, attempts, and received payments.
+7. Verify quality with proof and close the enquiry.
+
+The current scaffold implements campaign, lead qualify/convert, customer 360
+basics, enquiry, communication, overview, and Platform Identity auth. Estimates,
+quotation, assignment queues, field proof, collection, verification, AI helper,
+HR duty, and reports follow `agent/exec/crm-task.md` phases.
 
 ## Docker Deployment
 

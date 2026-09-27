@@ -6,10 +6,7 @@
   "category": "business",
   "owner": "apps/billing",
   "taskPrefix": "b",
-  "providers": [
-    "platform.core",
-    "billing.foundation"
-  ],
+  "providers": ["platform.core", "billing.foundation", "billing.workspace"],
   "mdi": {
     "icon": "application",
     "localUrlKey": "VITE_BILLING_WEB_URL",

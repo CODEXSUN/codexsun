@@ -7,6 +7,7 @@ import { UpstreamError, Upstreams, withRetry } from "../upstreams.js";
 import { AssistantService } from "../service.js";
 import { readConfig } from "../../../config.js";
 import { createApp } from "../../../app.js";
+import { WorkspaceTools } from "../workspace-tools.js";
 
 const config = readConfig({ AGENTCREW_TOKEN: "test-only-token-not-a-real-secret-0000" });
 
@@ -141,6 +142,52 @@ test("unauthorized requests fail and runs preserve task and attempt records", as
   }
 });
 
+test("generated tokens do not revoke the configured bootstrap token", async () => {
+  const repository = new AssistantRepository(":memory:");
+  const upstream = new Upstreams(config, (async () => Response.json({ message: { content: "ok" } })) as typeof fetch);
+  const service = new AssistantService(repository, upstream, new Retrieval(upstream));
+  const app = createApp(config, service);
+  const configuredHeaders = { authorization: `Bearer ${config.AGENTCREW_TOKEN}` };
+  try {
+    const generated = await app.inject({ method: "POST", url: "/api/v1/agentcrew/token/generate" });
+    assert.equal(generated.statusCode, 200);
+    const generatedToken = generated.json().token as string;
+    assert.notEqual(generatedToken, config.AGENTCREW_TOKEN);
+    assert.equal((await app.inject({ url: "/api/v1/agentcrew/tasks", headers: configuredHeaders })).statusCode, 200);
+    assert.equal((await app.inject({ url: "/api/v1/agentcrew/tasks", headers: { authorization: `Bearer ${generatedToken}` } })).statusCode, 200);
+  } finally {
+    await service.close();
+    await app.close();
+    repository.close();
+  }
+});
+
+test("chat accepts the full CodeLoop tool registry payload", async () => {
+  const repository = new AssistantRepository(":memory:");
+  const upstream = new Upstreams(config, (async (_url, options) => {
+    const body = JSON.parse(String(options?.body ?? "{}")) as { tools?: unknown[] };
+    assert.equal(body.tools?.length, 77);
+    return Response.json({ model: "qwen3:4b", message: { role: "assistant", content: "CodeLoop demo works." } });
+  }) as typeof fetch);
+  const service = new AssistantService(repository, upstream, new Retrieval(upstream));
+  const app = createApp(config, service);
+  const headers = { authorization: `Bearer ${config.AGENTCREW_TOKEN}` };
+  try {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/agentcrew/chat",
+      headers,
+      payload: { messages: [{ role: "user", content: "Reply with exactly: CodeLoop demo works." }], model: "qwen3:4b", think: false, tools: Array.from({ length: 77 }, (_, index) => ({ type: "function", function: { name: `tool-${index}` } })) },
+    });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().message.content, "CodeLoop demo works.");
+  } finally {
+    await service.close();
+    await app.close();
+    repository.close();
+  }
+});
+
 test("duplicate active task requests do not start overlapping runs and pause aborts", async () => {
   const repository = new AssistantRepository(":memory:");
   const transport = ((_url, options) =>
@@ -158,6 +205,34 @@ test("duplicate active task requests do not start overlapping runs and pause abo
     assert.equal(repository.list<{ status: string }>("run")[0].status, "cancelled");
   } finally {
     await service.close();
+    repository.close();
+  }
+});
+
+test("workspace tools list and read bounded text without allowing traversal", async () => {
+  const tools = new WorkspaceTools(process.cwd());
+  const listing = await tools.list(".", false, 20);
+  assert.ok(listing.items.some((item) => item.path === "package.json"));
+  const packageFile = await tools.read("package.json", 40);
+  assert.equal(packageFile.kind, "file");
+  assert.equal(packageFile.truncated, true);
+  await assert.rejects(tools.read("../../package.json"), /outside the configured root/u);
+});
+
+test("workspace routes require auth and expose read-only file operations", async () => {
+  const repository = new AssistantRepository(":memory:");
+  const upstream = new Upstreams(config, (async () => Response.json({ message: { content: "ok" } })) as typeof fetch);
+  const service = new AssistantService(repository, upstream, new Retrieval(upstream));
+  const app = createApp(config, service, new WorkspaceTools(process.cwd()));
+  const headers = { authorization: `Bearer ${config.AGENTCREW_TOKEN}` };
+  try {
+    assert.equal((await app.inject({ url: "/api/v1/agentcrew/workspace/files" })).statusCode, 401);
+    const response = await app.inject({ url: "/api/v1/agentcrew/workspace/file?path=package.json", headers });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().kind, "file");
+  } finally {
+    await service.close();
+    await app.close();
     repository.close();
   }
 });

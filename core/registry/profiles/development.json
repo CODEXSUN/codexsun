@@ -7,6 +7,7 @@
     "auditor",
     "billing",
     "codeitz",
+    "codeloop",
     "crm",
     "cxforge",
     "docx",
@@ -116,7 +117,8 @@
     ],
     "billing": [
       "platform.core",
-      "billing.foundation"
+      "billing.foundation",
+      "billing.workspace"
     ],
     "accounts": [
       "platform.core",
@@ -135,6 +137,10 @@
       "projex.foundation",
       "projex.workspace",
       "projex.addons"
+    ],
+    "codeloop": [
+      "platform.core",
+      "codeloop.foundation"
     ]
   }
 }

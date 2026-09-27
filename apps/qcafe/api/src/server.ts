@@ -28,7 +28,7 @@ import {
   registerIdentityManagementRoutes,
 } from "@codexsun/platform-core";
 import { readConfig } from "./config.js";
-import { registerCashierPinRoutes } from "./cashier-pin.js";
+import { registerCashierPinRoutes, ensureDefaultCashierPin } from "./cashier-pin.js";
 import { registerQcafeWorkspaceRoute } from "./modules/foundation/routes/qcafe-workspace-route.js";
 import { createQcafeProviders } from "./qcafe-provider-catalog.js";
 import { createQcafePersistence, prepareQcafePersistence } from "./modules/foundation/persistence/qcafe-persistence.js";
@@ -99,6 +99,7 @@ const persistence = createQcafePersistence(config.persistence, createQcafeLifecy
 await prepareQcafePersistence(persistence, config.appMode);
 const identity = new LocalIdentityStore(config);
 await identity.initialize();
+await ensureDefaultCashierPin(identity, process.env.QCAFE_CASHIER_DEFAULT_PIN ?? "1234");
 const providers = createQcafeProviders();
 const profile = readApplicationDeployableProfile({
   applicationId: "qcafe",

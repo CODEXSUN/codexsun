@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.0.43",
+  "version": "1.0.45",
   "private": true,
   "type": "module",
   "packageManager": "npm@12.0.2",
@@ -25,6 +25,8 @@
     "test": "node tools/stack.mjs test",
     "build": "node tools/stack.mjs build",
     "addons": "node tools/stack.mjs addons",
+    "dev:codeloop": "node tools/dev-stack.mjs codeloop",
+    "stop:codeloop": "node tools/dev-stack.mjs codeloop --stop",
     "dev:platform": "node tools/dev-stack.mjs platform",
     "dev:accounts": "node tools/dev-stack.mjs accounts",
     "dev:auditor": "node tools/dev-stack.mjs auditor",
@@ -43,6 +45,7 @@
     "dev:qcafe": "node tools/dev-stack.mjs qcafe",
     "dev:sites": "node tools/dev-stack.mjs sites",
     "dev:uiux": "node tools/dev-stack.mjs uiux",
+    "ui:mcp": "tsx packages/ui/src/design-system/mcp-server.ts",
     "dev:zetro": "node tools/dev-stack.mjs zetro",
     "dev:zetro2": "node tools/dev-stack.mjs zetro2",
     "dev:zuno": "node tools/dev-stack.mjs zuno",
@@ -80,7 +83,10 @@
     "dev:zuno-desktop": "node tools/preflight.mjs zuno-desktop --restart",
     "dev:zuno-mobile": "node tools/preflight.mjs zuno-mobile --restart",
     "dev:api": "node tools/dev-stack.mjs api",
-    "dev:web": "node tools/dev-stack.mjs web"
+    "dev:web": "node tools/dev-stack.mjs web",
+    "dev:codeloop-api": "node tools/preflight.mjs codeloop-api --restart",
+    "dev:codeloop-web": "node tools/preflight.mjs codeloop-web --restart",
+    "test:codeloop": "npm run test --workspace @codexsun/codeloop-api && npm run test --workspace @codexsun/codeloop-web"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
@@ -162,8 +168,8 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
     "embla-carousel-react": "^8.6.0",
-    "framer-motion": "^12.23.12",
-    "input-otp": "^1.5.0",
+    "framer-motion": "^13.2.0",
+    "input-otp": "1.4.2",
     "lucide-react": "^1.35.0",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.6.7",
@@ -177,5 +183,9 @@
     "tailwind-merge": "^3.6.0",
     "vaul": "^1.1.2",
     "zod": "^3.25.76"
+  },
+  "overrides": {
+    "decimal.js-light": "2.5.0",
+    "linkifyjs": "4.3.2"
   }
 }

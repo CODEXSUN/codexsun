@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createRandomId } from "../../lib/random-id";
 import { LoginPage } from "./login-page";
 
@@ -42,6 +42,7 @@ export function SessionBoundary({
   const [browserSessionId] = useState(() => readBrowserSessionId(applicationId));
   const [error, setError] = useState<string>();
   const [session, setSession] = useState<Session | undefined>(() => readSession(applicationId));
+  const refreshSessionRef = useRef<Promise<Session | undefined> | null>(null);
   const [busy, setBusy] = useState(Boolean(autoLoginPath));
   const requiresPortalLogin = !session || !sessionCanAccessPortal(session.roles, portal);
 
@@ -97,13 +98,44 @@ export function SessionBoundary({
   return (
     <>
       {children({
-        fetch: (input, init) => authenticatedFetch(session, browserSessionId, input, init),
+        fetch: async (input, init) => {
+          const response = await authenticatedFetch(session, browserSessionId, input, init);
+          if (response.status !== 401 || !autoLoginPath) return response;
+          const refresh = refreshSessionRef.current ?? requestDevelopmentSession(autoLoginPath, browserSessionId, portal);
+          refreshSessionRef.current = refresh;
+          const refreshed = await refresh.finally(() => {
+            if (refreshSessionRef.current === refresh) refreshSessionRef.current = null;
+          });
+          if (!refreshed) return response;
+          setSession(refreshed);
+          return authenticatedFetch(refreshed, browserSessionId, input, init);
+        },
         portal: sessionPortal(session.roles),
         roles: session.roles,
         logout: () => logout(applicationId, session, browserSessionId, loginPath, setSession, logoutPath),
       })}
     </>
   );
+}
+
+async function requestDevelopmentSession(path: string, browserSessionId: string, portal: AuthenticatedSession["portal"]): Promise<Session | undefined> {
+  try {
+    const response = await fetch(path, {
+      body: JSON.stringify({}),
+      headers: {
+        "content-type": "application/json",
+        "x-codexsun-auto-login-desk": portal,
+        "x-codexsun-browser-session": browserSessionId,
+      },
+      method: "POST",
+    });
+    const body = (await response.json().catch(() => undefined)) as { actor?: { roles?: unknown }; session?: { expiresAt?: string }; token?: string } | undefined;
+    const roles = Array.isArray(body?.actor?.roles) && body.actor.roles.every((role) => typeof role === "string") ? body.actor.roles as string[] : undefined;
+    if (!response.ok || !body?.token || !body.session?.expiresAt || !roles) return undefined;
+    return { expiresAt: body.session.expiresAt, roles, token: body.token };
+  } catch {
+    return undefined;
+  }
 }
 
 async function authenticate(

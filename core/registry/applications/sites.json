@@ -6,11 +6,7 @@
   "category": "business",
   "owner": "apps/sites",
   "taskPrefix": "s",
-  "providers": [
-    "platform.core",
-    "sites.foundation",
-    "sites.content"
-  ],
+  "providers": ["platform.core", "sites.foundation", "sites.content", "sites.workspace"],
   "mdi": {
     "icon": "application",
     "localUrlKey": "VITE_SITES_WEB_URL",

@@ -9,6 +9,7 @@ import { AssistantRepository } from "./modules/assistant/repository.js";
 import { Retrieval } from "./modules/assistant/retrieval.js";
 import { AssistantService } from "./modules/assistant/service.js";
 import { Upstreams } from "./modules/assistant/upstreams.js";
+import { WorkspaceTools } from "./modules/assistant/workspace-tools.js";
 
 // Source and dist/devkits/agentcrew/api share the same depth from the repository root.
 const root = resolve(import.meta.dirname, "../../../..");
@@ -21,12 +22,13 @@ await mkdir(dirname(databasePath), { recursive: true });
 const repository = new AssistantRepository(databasePath);
 const upstream = new Upstreams(configuration);
 const service = new AssistantService(repository, upstream, new Retrieval(upstream));
+const workspaceTools = new WorkspaceTools(configuration.WORKSPACE_ROOT);
 const runtime = createPlatformRuntime(
   { id: "agentcrew.local", enabledProviderIds: ["platform.core", "agentcrew.assistant"] },
   [new AssistantProvider()],
 );
 runtime.start();
-const app = createApp(configuration, service);
+const app = createApp(configuration, service, workspaceTools);
 app.addHook("onClose", async () => {
   await service.close();
   repository.close();
