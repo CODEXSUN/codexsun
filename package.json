@@ -43,6 +43,8 @@
     "dev:orship": "node tools/dev-stack.mjs orship",
     "dev:projex": "node tools/dev-stack.mjs projex",
     "dev:qcafe": "node tools/dev-stack.mjs qcafe",
+    "dev:sites": "node tools/external-sites.mjs start",
+    "stop:sites": "node tools/external-sites.mjs stop",
     "dev:uiux": "node tools/dev-stack.mjs uiux",
     "ui:mcp": "tsx packages/ui/src/design-system/mcp-server.ts",
     "dev:zetro": "node tools/dev-stack.mjs zetro",

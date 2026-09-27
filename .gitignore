@@ -109,3 +109,4 @@ Desktop.ini
 !devkits/zetro2/zvcode/**/*.log
 /apps/temp/
 /apps/temp/page-mascot/
+.codexsun-sites.pids.json
