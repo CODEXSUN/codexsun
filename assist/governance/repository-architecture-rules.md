@@ -84,6 +84,16 @@ Platform-owned modules include identity, database management, Git repository man
 - Test web, desktop, and mobile targets that the change affects.
 - Move to production only after the selected deployment composition passes its checks.
 
+## Multi-repository migration rules
+
+- Use one repository for each approved ownership boundary.
+- Keep the primary repository as the integration reference until the migration passes its checks.
+- Migrate public contracts before consumers.
+- Replace local `file:` dependencies with published or pinned GitHub package dependencies.
+- Keep repository-specific CI, README, versioning, and release metadata in each target repository.
+- Do not use Git submodules for shared packages unless the repository has an approved remote and ownership record.
+- Record the source path, target repository, public package name, and verification result for every migrated boundary.
+
 ## Extension rules
 
 New capabilities such as ecommerce, ERP, CRM, and HR enter as new owner modules or add-ons. They must follow the same provider and composition model.

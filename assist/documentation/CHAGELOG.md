@@ -10,6 +10,14 @@ Release tag: v-1.0.46
 
 Changelog label: v 1.0.46
 
+### 2026-09-27 - Framework standalone migration
+
+#### Repository and Governance Changes
+
+- Added approved sibling-repository rules for CODEXSUN migration work under `E:\codexsun`.
+- Migrated `packages/framework` to `CODEXSUN/framework` as a standalone package.
+- Added a migration record with the target commit and verification evidence.
+
 ### 2026-09-27 - Sites Studio client delivery handoff release
 
 #### Database Changes

@@ -61,3 +61,14 @@ Read the [module architecture](../architecture/module-architecture.md) and [repo
 - Do not change `packages/*` from an app task without first reporting the public contract, owner, affected apps, and required review.
 - Merge only after a human confirms the worktree checks, diff, and integration scope.
 - Update `assist/documentation/CHAGELOG.md` for every completed repository progress change.
+
+## Approved multi-repository work
+
+- The primary repository is `E:\codexsun\codexsun`.
+- Approved CODEXSUN repositories may use direct sibling paths under `E:\codexsun`.
+- Verify the selected repository root before every Git, package, build, test, or deployment command.
+- Keep each migration step in the repository that owns the resulting code.
+- Use public package contracts and pinned versions between repositories.
+- Do not copy private files across repositories.
+- Do not delete, reset, force-push, or overwrite a sibling repository without approval for the exact action.
+- Keep migration notes in the primary repository until the target repository has its own documentation.

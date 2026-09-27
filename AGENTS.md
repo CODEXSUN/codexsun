@@ -1,12 +1,16 @@
 # Workspace Boundary
 
-This task uses `E:\codexsun\codexsun` as its only repository root.
+The primary repository is `E:\codexsun\codexsun`. Approved CODEXSUN sibling
+repositories may be used for the multi-repository migration under
+`E:\codexsun\<repository>`.
 
-- Run every repository command with `E:\codexsun\codexsun` as the working directory.
-- Read and edit only files below this repository root.
-- Do not inspect, compare, create, edit, switch, or run commands in another checkout.
-- Ask the user before any action that needs a different repository, worktree, or filesystem location.
-- Before a Git, package, build, test, runtime, or deployment command, verify that the current repository root is `E:\codexsun\codexsun`.
+- Use only `E:\codexsun\codexsun` or an explicitly approved direct child repository.
+- Before each repository command, verify the working directory and its Git root.
+- Read and edit only the selected repository and its approved sibling scope.
+- Do not access unrelated paths under `E:\codexsun`.
+- Ask the user before creating, deleting, resetting, switching, or force-pushing any repository.
+- Do not use destructive Git commands unless the user approves the exact target and operation.
+- Keep each repository change separate. Commit and push from the repository that owns the change.
 
 ## Documentation
 
