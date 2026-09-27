@@ -4,6 +4,7 @@
   "id": "garments",
   "label": "Garments",
   "category": "business",
+  "repository": "https://github.com/CODEXSUN/garments.git",
   "owner": "apps/garments",
   "taskPrefix": "g",
   "providers": [

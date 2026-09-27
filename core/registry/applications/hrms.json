@@ -4,6 +4,7 @@
   "id": "hrms",
   "label": "HRMS",
   "category": "business",
+  "repository": "https://github.com/CODEXSUN/hrms.git",
   "owner": "apps/hrms",
   "taskPrefix": "r",
   "providers": [

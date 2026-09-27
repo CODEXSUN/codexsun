@@ -4,6 +4,7 @@
   "id": "ecommerce",
   "label": "Ecommerce",
   "category": "business",
+  "repository": "https://github.com/CODEXSUN/ecommerce.git",
   "owner": "apps/ecommerce",
   "taskPrefix": "e",
   "providers": [

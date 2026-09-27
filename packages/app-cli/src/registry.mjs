@@ -140,6 +140,9 @@ function validateApplication(application, filename) {
   if (application.schemaVersion !== 1) throw new Error(`${filename}: schemaVersion must be 1.`);
   if (typeof application.label !== "string" || !application.label.trim()) throw new Error(`${filename}: label is required.`);
   if (typeof application.owner !== "string" || !/^(apps|devkits|core)\//u.test(application.owner)) throw new Error(`${filename}: owner must be under apps/, devkits/, or core/.`);
+  if (application.repository !== undefined && (typeof application.repository !== "string" || !/^https:\/\/github\.com\/CODEXSUN\/[a-z][a-z0-9-]*\.git$/u.test(application.repository))) {
+    throw new Error(`${filename}: repository must be a CODEXSUN GitHub URL.`);
+  }
   if (application.category !== undefined && !new Set(["platform", "business", "devkit"]).has(application.category)) throw new Error(`${filename}: category must be platform, business, or devkit.`);
   if (typeof application.taskPrefix !== "string" || !/^[a-z]$/u.test(application.taskPrefix)) {
     throw new Error(`${filename}: taskPrefix must be one lowercase letter.`);
@@ -200,6 +203,7 @@ function verifyUniqueTargets(applications) {
 
 function verifyApplicationBindings(root, applications) {
   for (const application of applications) {
+    if (application.repository) continue;
     const applicationPath = applicationPathFor(root, application);
     if (!existsSync(applicationPath)) throw new Error(`Application ${application.id}: ${application.owner} is missing.`);
     for (const host of application.hosts) verifyHostBinding(application, host, applicationPath);

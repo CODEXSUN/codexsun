@@ -4,6 +4,7 @@
   "id": "auditor",
   "label": "Auditor",
   "category": "business",
+  "repository": "https://github.com/CODEXSUN/auditor.git",
   "owner": "apps/auditor",
   "taskPrefix": "d",
   "providers": [

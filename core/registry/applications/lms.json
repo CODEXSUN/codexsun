@@ -4,6 +4,7 @@
   "id": "lms",
   "label": "LMS",
   "category": "business",
+  "repository": "https://github.com/CODEXSUN/lms.git",
   "owner": "apps/lms",
   "taskPrefix": "l",
   "providers": [

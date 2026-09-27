@@ -4,6 +4,7 @@
   "id": "himsx",
   "label": "HIMSX",
   "category": "business",
+  "repository": "https://github.com/CODEXSUN/himsx.git",
   "owner": "apps/himsx",
   "taskPrefix": "h",
   "providers": [

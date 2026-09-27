@@ -4,6 +4,7 @@
   "id": "billing",
   "label": "Billing",
   "category": "business",
+  "repository": "https://github.com/CODEXSUN/billing.git",
   "owner": "apps/billing",
   "taskPrefix": "b",
   "providers": ["platform.core", "billing.foundation", "billing.workspace"],
