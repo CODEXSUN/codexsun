@@ -7,7 +7,9 @@ import { spawn } from "node:child_process";
 
 const mainRoot = resolve(import.meta.dirname, "..");
 const sitesRoot = resolve(mainRoot, "..", "sites");
-const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+const npmCli = process.env.npm_execpath && existsSync(process.env.npm_execpath)
+  ? process.env.npm_execpath
+  : resolve(process.execPath, "..", "node_modules", "npm", "bin", "npm-cli.js");
 const pidFile = resolve(mainRoot, ".codexsun-sites.pids.json");
 const children = [];
 
@@ -32,7 +34,7 @@ async function startAll() {
   ];
 
   for (const [name, args] of targets) {
-    const child = spawn(npmCommand, args, {
+    const child = spawn(process.execPath, [npmCli, ...args], {
       cwd: sitesRoot,
       env: environment,
       stdio: "inherit",
