@@ -18,6 +18,7 @@ export async function run(argumentsList, rootDir = root) {
   if (!command) return runInteractive(rootDir);
   if (command === "list") return list(args[0] ?? "applications", rootDir);
   if (command === "verify") return console.log(JSON.stringify(verifyRegistry(rootDir), null, 2));
+  if (command === "create" && args[0] === "app") return createStandalone(args.slice(1), rootDir);
   if (command === "create") return create(args, rootDir);
   if (command === "create-standalone") return createStandalone(args, rootDir);
   if (command === "remove") return remove(args, rootDir);
@@ -74,7 +75,7 @@ function create(args, rootDir) {
 }
 
 function createStandalone(args, rootDir) {
-  const normalized = args[0] === "app" ? args.slice(1).filter((value) => value !== "--") : args;
+  const normalized = args.filter((value) => value !== "app" && value !== "--");
   const [id, ...options] = normalized;
   if (!id) throw new Error("Use create-standalone app -- <id> [--label <label>].");
   const target = optionValue(options, "--target");

@@ -29,6 +29,7 @@ The standalone factory creates a new direct-child repository foundation without
 business modules, registry entries, or references to another application:
 
 ```powershell
+npm run app -- create app -- crm --label CRM
 npm run app:create-standalone -- app -- crm --label CRM
 npm run app:create-standalone -- app -- qcafe --label "Q Cafe"
 ```
