@@ -66,6 +66,13 @@ Read the [module architecture](../architecture/module-architecture.md) and [repo
 
 - The primary repository is `E:\codexsun\codexsun`.
 - Approved CODEXSUN repositories may use direct sibling paths under `E:\codexsun`.
+- `D:\workspace` is the approved external integration workspace for cloned CODEXSUN repositories.
+- The approved D workspace repositories are `framework`, `platform`, `ui`, `core`, `codexsun-cli`, `sites`, and `uiux`.
+- Repositories under `D:\workspace` remain independent ownership boundaries.
+- A pnpm workspace may coordinate packages and applications under `D:\workspace`.
+- The pnpm workspace may link public package exports and run filtered commands across repositories.
+- Commit, version, changelog, and push operations belong to the child repository that owns the change.
+- The integration workspace may hold orchestration metadata, package linking configuration, and aggregate verification records.
 - Verify the selected repository root before every Git, package, build, test, or deployment command.
 - Keep each migration step in the repository that owns the resulting code.
 - Use public package contracts and pinned versions between repositories.

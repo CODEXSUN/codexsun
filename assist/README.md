@@ -10,6 +10,28 @@ This folder contains the working documentation for the CODEXSUN repository.
 - `devkits/` contains developer tools and internal applications.
 - `packages/` contains shared public contracts and reusable infrastructure.
 
+## Approved integration workspace
+
+`D:\workspace` is the approved external integration workspace for CODEXSUN
+repositories. It may contain independently cloned repositories grouped under
+`apps/` and `packages/` for coordinated pnpm development.
+
+The approved repository set for this workspace is:
+
+- `framework`
+- `platform`
+- `ui`
+- `core`
+- `codexsun-cli`
+- `sites`
+- `uiux`
+
+- Each child repository keeps its own Git history, branch, version, tests, and release workflow.
+- The workspace coordinates installation, package linking, builds, and focused tests.
+- Changes are committed and pushed from the owning child repository.
+- The workspace root does not replace repository ownership.
+- Verify the child repository Git root before every command that reads, writes, builds, tests, commits, or pushes.
+
 Do not recreate `registry/` at the repository root. Do not add root
 `artifacts/`, `deployment/`, `.tmp-es-toolkit-repair/`, or `e2e/` scratch
 directories.
