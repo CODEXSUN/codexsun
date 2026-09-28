@@ -1,0 +1,9 @@
+{
+  "governanceRepository": "https://github.com/CODEXSUN/mcp-governance.git",
+  "governanceRef": "main",
+  "connection": "github-source",
+  "privateRepository": true,
+  "mcpServer": "codexsun-mcp-governance",
+  "localPathAccess": false,
+  "contractVersion": "0.1.0"
+}
