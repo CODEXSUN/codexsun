@@ -1,0 +1,37 @@
+# Q Cafe developer guide
+
+Restaurant/POS operations with its own PIN login and desktop delivery.
+
+<Callout title="Implementation scope">
+  Q Cafe has its own runtime, login and deployment contract. Do not reuse its PIN identity as
+  Platform tenant authentication.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                  |
+| ------------------- | -------------------------------------- |
+| Source owner        | `apps/qcafe`                           |
+| Documentation pages | `apps/docs/content/applications/qcafe` |
+| Modules inventoried | 6                                      |
+| Tenant app key      | `qcafe`                                |
+
+## Core business
+
+Q Cafe has its own runtime, login and deployment contract. Do not reuse its PIN identity as Platform tenant authentication.
+
+## Primary workflow
+
+1. Run the supported single-tenant Q Cafe deployment and activate its licence.
+2. Sign in using its separate PIN-based login.
+3. Configure restaurant masters/tables and available POS/catalog settings.
+4. Use the POS billing, payment collection and receipt/Z-report flows documented by the owner README.
+5. Package desktop resources and validate printer/receipt behavior on the target device.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

@@ -1,0 +1,36 @@
+# Frappe developer guide
+
+Verified external provider connection, source selection and synchronisation.
+
+<Callout title="Implementation scope">
+  Frappe owns provider access/sync. Credentials stay encrypted on the server; selecting a source
+  does not bypass app permissions.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                   |
+| ------------------- | --------------------------------------- |
+| Source owner        | `apps/frappe`                           |
+| Documentation pages | `apps/docs/content/applications/frappe` |
+| Modules inventoried | 6                                       |
+| Tenant app key      | `frappe`                                |
+
+## Core business
+
+Frappe owns provider access/sync. Credentials stay encrypted on the server; selecting a source does not bypass app permissions.
+
+## Primary workflow
+
+1. Configure and verify the tenant provider connection.
+2. Map users and select provider-owned data sources.
+3. Preview enquiry/catalog data through fixed provider contracts.
+4. Queue imports/synchronisation, inspect progress/failures and retry through the owner workflow.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

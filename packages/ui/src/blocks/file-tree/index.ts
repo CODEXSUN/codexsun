@@ -1,0 +1,5 @@
+export { FileTree } from './file-tree'
+export { FileTreeNodeComponent } from './file-tree-node'
+export { FileTypeIcon, getFileExtension } from './file-icons'
+export type { FileTreeNode, FileTreeProps } from './file-tree-types'
+export type { FileTreeNodeProps } from './file-tree-node'

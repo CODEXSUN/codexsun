@@ -1,0 +1,35 @@
+# Accounts developer guide
+
+Accounting views and ledger/journal foundation.
+
+<Callout title="Implementation scope">
+  Accounting leaves own their contract; do not infer full automatic financial posting from an
+  overview or composed screen.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                     |
+| ------------------- | ----------------------------------------- |
+| Source owner        | `apps/accounts`                           |
+| Documentation pages | `apps/docs/content/applications/accounts` |
+| Modules inventoried | 4                                         |
+| Tenant app key      | `accounts`                                |
+
+## Core business
+
+Accounting leaves own their contract; do not infer full automatic financial posting from an overview or composed screen.
+
+## Primary workflow
+
+1. Select a company and financial year.
+2. Open the accounting overview and inspect available account/ledger/journal screens.
+3. Follow the module APIs for persisted records and confirm which capabilities are complete before extending posting behavior.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

@@ -1,0 +1,36 @@
+# Platform developer guide
+
+Tenant identity, access, application activation and operations.
+
+<Callout title="Implementation scope">
+  Platform owns master registry and tenant runtime identity. Business data stays in each app owner.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                     |
+| ------------------- | ----------------------------------------- |
+| Source owner        | `apps/platform`                           |
+| Documentation pages | `apps/docs/content/applications/platform` |
+| Modules inventoried | 26                                        |
+| Tenant app key      | `See composition / devkit scope`          |
+
+## Core business
+
+Platform owns master registry and tenant runtime identity. Business data stays in each app owner.
+
+## Primary workflow
+
+1. Super Admin registers a tenant and its database/verified domains.
+2. Configure plans and effective app entitlements, provision enabled app schemas and seed access.
+3. A tenant user signs in with Corporate ID; server session selects the tenant database.
+4. Tenant roles/permissions and live module settings guard each API request.
+5. Queue Manager, audit, backup and registry desks supervise runtime operations.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

@@ -1,0 +1,37 @@
+# Docs developer guide
+
+Developer documentation authored in Git with tenant-owned metadata and Markdown overrides.
+
+<Callout title="Implementation scope">
+  Docs owns developer reference metadata, overrides and audit. Assist governance remains
+  authoritative for coding rules; documentation does not grant runtime access.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                 |
+| ------------------- | ------------------------------------- |
+| Source owner        | `apps/docs`                           |
+| Documentation pages | `apps/docs/content/applications/docs` |
+| Modules inventoried | 2                                     |
+| Tenant app key      | `docs`                                |
+
+## Core business
+
+Docs owns developer reference metadata, overrides and audit. Assist governance remains authoritative for coding rules; documentation does not grant runtime access.
+
+## Primary workflow
+
+1. Review app business meaning, module contracts and workflows in repository Markdown/MDX.
+2. Generate/validate the catalog and provision the Docs migration and permission seeds.
+3. Browse app groups, modules, search, source, code blocks and table of contents in Docs.
+4. Apply a permitted tenant Markdown override with an expected revision; inspect its audit and restore repository content when needed.
+5. Zetro retrieves current authorised tenant reference excerpts; Zuno uses repository-only developer evidence.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

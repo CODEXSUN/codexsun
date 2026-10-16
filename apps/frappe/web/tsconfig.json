@@ -1,0 +1,14 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@codexsun/ui": ["../../../packages/ui/src/index.ts"],
+      "@codexsun/ui/components/*": ["../../../packages/ui/src/components/*"],
+      "@codexsun/ui/workspace/*": ["../../../packages/ui/src/workspace/*"],
+      "@codexsun/ui/lib/*": ["../../../packages/ui/src/lib/*"]
+    },
+    "noEmit": true,
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

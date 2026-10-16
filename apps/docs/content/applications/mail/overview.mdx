@@ -1,0 +1,36 @@
+# Mail developer guide
+
+Tenant/company mailboxes, compose, SMTP delivery and IMAP synchronisation.
+
+<Callout title="Implementation scope">
+  Mail owns settings, messages, attachments and events. Sending mail is a real external action and
+  follows tenant policy.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                 |
+| ------------------- | ------------------------------------- |
+| Source owner        | `apps/mail`                           |
+| Documentation pages | `apps/docs/content/applications/mail` |
+| Modules inventoried | 1                                     |
+| Tenant app key      | `mail`                                |
+
+## Core business
+
+Mail owns settings, messages, attachments and events. Sending mail is a real external action and follows tenant policy.
+
+## Primary workflow
+
+1. Configure company-scoped mail settings and verify the provider.
+2. Read mailbox state or compose a draft with permitted attachments.
+3. Queue delivery; inspect sent/failure state and retry safely.
+4. Synchronise incoming messages through module workers and preserve mail history.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

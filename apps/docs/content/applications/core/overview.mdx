@@ -1,0 +1,36 @@
+# Core developer guide
+
+Persisted organisation, contact, product and common reference masters.
+
+<Callout title="Implementation scope">
+  Core is the shared business master owner. Billing, CRM and Ecommerce reference its public
+  contracts rather than copying or privately importing its entities.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                 |
+| ------------------- | ------------------------------------- |
+| Source owner        | `apps/core`                           |
+| Documentation pages | `apps/docs/content/applications/core` |
+| Modules inventoried | 41                                    |
+| Tenant app key      | `See composition / devkit scope`      |
+
+## Core business
+
+Core is the shared business master owner. Billing, CRM and Ecommerce reference its public contracts rather than copying or privately importing its entities.
+
+## Primary workflow
+
+1. Maintain common geography, units, taxes, product categories, brands and other references.
+2. Create organisation/company and financial-year records, then select default company/year.
+3. Maintain contacts and products with persisted parent IDs.
+4. Other apps consume public lookups; Core validates parents, duplicate policy and lifecycle dependencies.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

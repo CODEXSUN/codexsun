@@ -1,0 +1,720 @@
+import { sql, type Kysely } from "kysely";
+import { AppError } from "@codexsun/framework/errors";
+import { FrappeConnectionAccess, requestFrappe } from "../connection/index.js";
+import type { FrappeDatabase, FrappeSettings } from "../connection/index.js";
+import { mappedEmployeeCodeForLocalUser } from "../user-mapping/index.js";
+import type { FrappeUserMappingDatabase } from "../user-mapping/index.js";
+import type {
+  ExportKind,
+  ExportMode,
+  ExportOutcome,
+  ExportPage,
+  ExportProgress,
+  ExportRow
+} from "./export.types.js";
+
+const pageSize = 50;
+
+export class FrappeExportService {
+  constructor(
+    private readonly database: Kysely<FrappeDatabase>,
+    private readonly secret: string,
+    private readonly defaults: FrappeSettings
+  ) {}
+
+  async preview(kind: ExportKind, page: number): Promise<ExportPage> {
+    const offset = (page - 1) * pageSize;
+    const result = await this.list(kind, offset);
+    return { items: result.items, page, pageSize, total: result.total };
+  }
+
+  async validateSelection(kind: ExportKind, ids: number[]) {
+    const unique = [...new Set(ids)];
+    if (!unique.length || unique.length > 50) throw AppError.validation("Select 1 to 50 records.");
+    for (const id of unique) {
+      if (!Number.isSafeInteger(id) || id < 1 || !(await this.exists(kind, id)))
+        throw AppError.notFound(`Local ${kind} record #${id} was not found.`);
+    }
+    const settings = await this.settings();
+    return { ids: unique, baseUrl: settings.baseUrl };
+  }
+
+  async exportSelection(
+    kind: ExportKind,
+    ids: number[],
+    mode: ExportMode,
+    expectedBaseUrl: string,
+    report: (progress: ExportProgress) => Promise<void>
+  ) {
+    const progress: ExportProgress = {
+      scanned: 0,
+      exported: 0,
+      failed: 0,
+      failures: [],
+      results: []
+    };
+    for (const id of ids) {
+      const settings = await this.settings();
+      if (settings.baseUrl !== expectedBaseUrl)
+        throw AppError.conflict("The verified Frappe connection changed during export.");
+      try {
+        const existing = await this.verifyExisting(kind, id, settings);
+        if (mode === "verify") {
+          progress.results.push({ id, ...existing, message: null });
+        } else {
+          let remoteName = "";
+          if (kind === "contacts")
+            remoteName = await this.exportContact(id, settings, existing.remoteName);
+          if (kind === "enquiries")
+            remoteName = await this.exportEnquiry(id, settings, existing.remoteName);
+          if (kind === "activities")
+            remoteName = await this.exportActivity(id, settings, existing.remoteName);
+          if (kind === "call-logs")
+            remoteName = await this.exportCallLog(id, settings, existing.remoteName);
+          progress.exported += 1;
+          progress.results.push({
+            id,
+            outcome: "exported",
+            remoteName,
+            message: existing.outcome === "matched" ? "Existing Frappe record updated." : null
+          });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Export failed.";
+        progress.failed += 1;
+        progress.failures.push({ id, message });
+        progress.results.push({ id, outcome: "blocked", remoteName: null, message });
+      }
+      progress.scanned += 1;
+      await report(progress);
+    }
+    return progress;
+  }
+
+  async liveSync(
+    kind: ExportKind,
+    expectedBaseUrl: string,
+    report: (progress: ExportProgress) => Promise<void>
+  ) {
+    const ids = await this.liveCandidateIds(kind);
+    if (!ids.length) return { scanned: 0, exported: 0, failed: 0, failures: [], results: [] };
+    return this.exportSelection(kind, ids, "export", expectedBaseUrl, report);
+  }
+
+  private async liveCandidateIds(kind: ExportKind) {
+    const query = {
+      contacts: sql`SELECT c.id FROM core_contacts c LEFT JOIN frappe_contact_imports l ON l.local_contact_id=c.id WHERE c.deleted_at IS NULL AND (l.id IS NULL OR c.updated_at > l.updated_at) ORDER BY c.id ASC LIMIT 50`,
+      enquiries: sql`SELECT e.id FROM crm_enquiries e LEFT JOIN frappe_enquiry_sync l ON l.enquiry_id=e.id WHERE l.id IS NULL OR e.updated_at > l.synced_at ORDER BY e.id ASC LIMIT 50`,
+      activities: sql`SELECT a.id FROM crm_enquiry_activity a LEFT JOIN frappe_activity_imports l ON l.local_activity_id=a.id LEFT JOIN frappe_enquiry_sync e ON e.enquiry_id=a.enquiry_id WHERE e.remote_name IS NOT NULL AND (l.id IS NULL OR a.updated_at > l.updated_at) ORDER BY a.id ASC LIMIT 50`,
+      "call-logs": sql`SELECT c.id FROM crm_call_logs c WHERE c.remote_name IS NULL ORDER BY c.id ASC LIMIT 50`
+    }[kind];
+    const rows = await query.execute(this.database);
+    return rows.rows.map((row) => Number((row as { id: number }).id));
+  }
+
+  private async verifyExisting(
+    kind: ExportKind,
+    id: number,
+    settings: FrappeSettings
+  ): Promise<{ outcome: ExportOutcome; remoteName: string | null }> {
+    if (kind === "contacts") return this.verifyContact(id, settings);
+    if (kind === "enquiries") return this.verifyEnquiry(id, settings);
+    if (kind === "activities") return this.verifyActivity(id, settings);
+    return this.verifyCallLog(id, settings);
+  }
+
+  private async list(kind: ExportKind, offset: number) {
+    if (kind === "contacts") {
+      const rows = await sql<ExportRow>`SELECT c.id, c.name AS label,
+        COALESCE(c.primary_phone, c.primary_email) AS detail,
+        link.remote_name AS remoteName, NULL AS dependency
+        FROM core_contacts c LEFT JOIN frappe_contact_imports link ON link.local_contact_id=c.id
+        WHERE c.deleted_at IS NULL ORDER BY c.id ASC LIMIT ${pageSize} OFFSET ${offset}`.execute(
+        this.database
+      );
+      const count = await sql<{
+        total: number;
+      }>`SELECT COUNT(*) AS total FROM core_contacts WHERE deleted_at IS NULL`.execute(
+        this.database
+      );
+      return { items: rows.rows, total: Number(count.rows[0]?.total ?? 0) };
+    }
+    if (kind === "enquiries") {
+      const rows = await sql<ExportRow>`SELECT e.id, e.title AS label,
+        CONCAT('#', e.enquiry_no, ' · ', e.status) AS detail,
+        link.remote_name AS remoteName, NULL AS dependency
+        FROM crm_enquiries e
+        LEFT JOIN frappe_enquiry_sync link ON link.enquiry_id=e.id
+        ORDER BY e.id ASC LIMIT ${pageSize} OFFSET ${offset}`.execute(this.database);
+      const count = await sql<{
+        total: number;
+      }>`SELECT COUNT(*) AS total FROM crm_enquiries`.execute(this.database);
+      return { items: rows.rows, total: Number(count.rows[0]?.total ?? 0) };
+    }
+    if (kind === "activities") {
+      const rows = await sql<ExportRow>`SELECT activity.id, activity.action AS label,
+        LEFT(activity.details, 160) AS detail,
+        link.remote_name AS remoteName,
+        CASE WHEN enquiry.remote_name IS NULL THEN 'Export enquiry first' ELSE NULL END AS dependency
+        FROM crm_enquiry_activity activity
+        LEFT JOIN frappe_activity_imports link ON link.local_activity_id=activity.id
+        LEFT JOIN frappe_enquiry_sync enquiry ON enquiry.enquiry_id=activity.enquiry_id
+        ORDER BY activity.id ASC LIMIT ${pageSize} OFFSET ${offset}`.execute(this.database);
+      const count = await sql<{
+        total: number;
+      }>`SELECT COUNT(*) AS total FROM crm_enquiry_activity`.execute(this.database);
+      return { items: rows.rows, total: Number(count.rows[0]?.total ?? 0) };
+    }
+    const rows = await sql<ExportRow>`SELECT id, CONCAT(from_number, ' → ', to_number) AS label,
+      CONCAT(direction, ' · ', call_status) AS detail,
+      remote_name AS remoteName, NULL AS dependency
+      FROM crm_call_logs ORDER BY id ASC LIMIT ${pageSize} OFFSET ${offset}`.execute(this.database);
+    const count = await sql<{ total: number }>`SELECT COUNT(*) AS total FROM crm_call_logs`.execute(
+      this.database
+    );
+    return { items: rows.rows, total: Number(count.rows[0]?.total ?? 0) };
+  }
+
+  private async exists(kind: ExportKind, id: number) {
+    const table = {
+      contacts: sql.raw("core_contacts"),
+      enquiries: sql.raw("crm_enquiries"),
+      activities: sql.raw("crm_enquiry_activity"),
+      "call-logs": sql.raw("crm_call_logs")
+    }[kind];
+    const result = await sql<{
+      id: number;
+    }>`SELECT id FROM ${table} WHERE id=${id} LIMIT 1`.execute(this.database);
+    return Boolean(result.rows[0]);
+  }
+
+  private async settings() {
+    const settings = await new FrappeConnectionAccess(
+      this.database,
+      this.secret,
+      this.defaults
+    ).exportCredentials();
+    if (!settings)
+      throw AppError.conflict("Enable and verify the Frappe connection before exporting.");
+    return settings;
+  }
+
+  private async verifyContact(id: number, settings: FrappeSettings) {
+    const result = await sql<{
+      name: string;
+      primary_phone: string | null;
+      primary_email: string | null;
+      remote_name: string | null;
+    }>`SELECT c.name, c.primary_phone, c.primary_email, link.remote_name
+      FROM core_contacts c LEFT JOIN frappe_contact_imports link ON link.local_contact_id=c.id
+      WHERE c.id=${id} AND c.deleted_at IS NULL LIMIT 1`.execute(this.database);
+    const contact = result.rows[0];
+    if (!contact) throw AppError.notFound("Contact was not found.");
+    if (contact.remote_name) {
+      await this.verifyRemote("Contact", contact.remote_name, settings);
+      return { outcome: "linked" as const, remoteName: contact.remote_name };
+    }
+    type Match = {
+      name: string;
+      first_name?: string;
+      last_name?: string;
+      email_id?: string;
+      mobile_no?: string;
+      phone?: string;
+    };
+    const matches = new Map<string, Match>();
+    for (const [field, value] of [
+      ["email_id", contact.primary_email],
+      ["mobile_no", contact.primary_phone],
+      ["phone", contact.primary_phone],
+      ["first_name", contact.name]
+    ] as const) {
+      if (!value) continue;
+      for (const candidate of await this.findRemote<Match>(
+        "Contact",
+        ["name", "first_name", "last_name", "email_id", "mobile_no", "phone"],
+        [[field, "=", value]],
+        settings
+      ))
+        matches.set(candidate.name, candidate);
+    }
+    const candidates = [...matches.values()];
+    const exact = candidates.filter(
+      (candidate) =>
+        normalized(`${candidate.first_name || ""} ${candidate.last_name || ""}`) ===
+          normalized(contact.name) &&
+        ((contact.primary_email &&
+          normalized(candidate.email_id) === normalized(contact.primary_email)) ||
+          (contact.primary_phone &&
+            samePhone(candidate.mobile_no || candidate.phone, contact.primary_phone)))
+    );
+    if (exact.length === 1) {
+      await this.ensureUnclaimed("contacts", exact[0]!.name, id);
+      return { outcome: "matched" as const, remoteName: exact[0]!.name };
+    }
+    if (candidates.length)
+      throw AppError.conflict("Similar Frappe contacts exist. Review them before export.");
+    return { outcome: "new" as const, remoteName: null };
+  }
+
+  private async verifyEnquiry(id: number, settings: FrappeSettings) {
+    const result = await sql<{
+      title: string;
+      captured_phone: string | null;
+      captured_name: string | null;
+      enquired_at: string | Date;
+      created_by: string;
+      remote_name: string | null;
+    }>`SELECT e.title, e.captured_phone, e.captured_name, e.enquired_at,
+      e.created_by, link.remote_name
+      FROM crm_enquiries e LEFT JOIN frappe_enquiry_sync link ON link.enquiry_id=e.id
+      WHERE e.id=${id} LIMIT 1`.execute(this.database);
+    const enquiry = result.rows[0];
+    if (!enquiry) throw AppError.notFound("Enquiry was not found.");
+    if (enquiry.remote_name) {
+      await this.verifyRemote("Enquiry", enquiry.remote_name, settings);
+      return { outcome: "linked" as const, remoteName: enquiry.remote_name };
+    }
+    const candidates = await this.findRemote<{
+      name: string;
+      title?: string;
+      mobile?: string;
+      customer?: string;
+      date?: string;
+    }>(
+      "Enquiry",
+      ["name", "title", "mobile", "customer", "date"],
+      [
+        ["title", "=", enquiry.title],
+        ["date", "=", dateOnly(enquiry.enquired_at)]
+      ],
+      settings
+    );
+    const exact = candidates.filter(
+      (candidate) =>
+        normalized(candidate.title) === normalized(enquiry.title) &&
+        (enquiry.captured_phone
+          ? samePhone(candidate.mobile, enquiry.captured_phone)
+          : Boolean(
+              enquiry.captured_name &&
+              normalized(candidate.customer) === normalized(enquiry.captured_name)
+            ))
+    );
+    if (exact.length === 1) {
+      await this.ensureUnclaimed("enquiries", exact[0]!.name, id);
+      return { outcome: "matched" as const, remoteName: exact[0]!.name };
+    }
+    if (candidates.length)
+      throw AppError.conflict("Similar Frappe enquiries exist. Review them before export.");
+    if (!enquiry.captured_phone?.trim())
+      throw AppError.conflict("Add a mobile number before creating this enquiry in Frappe.");
+    await this.creatorEmployee(enquiry.created_by, settings);
+    return { outcome: "new" as const, remoteName: null };
+  }
+
+  private async creatorEmployee(email: string, settings: FrappeSettings) {
+    const code = await mappedEmployeeCodeForLocalUser(
+      this.database as Kysely<FrappeUserMappingDatabase>,
+      email,
+      settings.baseUrl
+    );
+    if (!code)
+      throw AppError.conflict("Map this enquiry's creator to a Frappe employee before export.");
+    return code;
+  }
+
+  private async verifyActivity(id: number, settings: FrappeSettings) {
+    const result = await sql<{
+      details: string;
+      action: string;
+      created_at: string | Date;
+      enquiry_remote: string | null;
+      remote_name: string | null;
+    }>`SELECT activity.details, activity.action, activity.created_at,
+      enquiry.remote_name AS enquiry_remote, link.remote_name
+      FROM crm_enquiry_activity activity
+      LEFT JOIN frappe_enquiry_sync enquiry ON enquiry.enquiry_id=activity.enquiry_id
+      LEFT JOIN frappe_activity_imports link ON link.local_activity_id=activity.id
+      WHERE activity.id=${id} LIMIT 1`.execute(this.database);
+    const activity = result.rows[0];
+    if (!activity) throw AppError.notFound("Activity was not found.");
+    if (!activity.enquiry_remote) throw AppError.conflict("Export the activity's enquiry first.");
+    const response = await requestFrappe<{
+      data?: {
+        enquiry_messages?: Array<{
+          name?: string;
+          comment?: string;
+          mode?: string;
+          creation?: string;
+        }>;
+      };
+    }>(`/api/resource/Enquiry/${encodeURIComponent(activity.enquiry_remote)}`, "GET", settings);
+    const messages = response.data?.enquiry_messages;
+    if (!messages) throw AppError.conflict("Frappe did not return enquiry messages.");
+    if (activity.remote_name) {
+      if (!messages.some((message) => message.name === activity.remote_name))
+        throw AppError.conflict("The linked Frappe activity is missing. Review before export.");
+      return { outcome: "linked" as const, remoteName: activity.remote_name };
+    }
+    const similar = messages.filter(
+      (message) =>
+        normalized(message.comment) === normalized(activity.details) &&
+        normalized(message.mode) === normalized(activity.action)
+    );
+    const createdAt = new Date(activity.created_at).getTime();
+    const exact = similar.filter(
+      (message) =>
+        message.creation && Math.abs(new Date(message.creation).getTime() - createdAt) < 60_000
+    );
+    if (exact.length === 1 && exact[0]!.name) {
+      await this.ensureUnclaimed("activities", exact[0]!.name!, id);
+      return { outcome: "matched" as const, remoteName: exact[0]!.name! };
+    }
+    if (similar.length)
+      throw AppError.conflict("Similar Frappe activities exist. Review them before export.");
+    return { outcome: "new" as const, remoteName: null };
+  }
+
+  private async verifyCallLog(id: number, settings: FrappeSettings) {
+    const result = await sql<{
+      from_number: string;
+      to_number: string;
+      direction: string;
+      started_at: string | Date;
+      remote_name: string | null;
+    }>`SELECT from_number, to_number, direction, started_at, remote_name
+      FROM crm_call_logs WHERE id=${id} LIMIT 1`.execute(this.database);
+    const call = result.rows[0];
+    if (!call) throw AppError.notFound("Call log was not found.");
+    if (call.remote_name) {
+      await this.verifyRemote("CRM Call Log", call.remote_name, settings);
+      return { outcome: "linked" as const, remoteName: call.remote_name };
+    }
+    const candidates = await this.findRemote<{ name: string }>(
+      "CRM Call Log",
+      ["name"],
+      [
+        ["from", "=", call.from_number],
+        ["to", "=", call.to_number],
+        ["type", "=", call.direction],
+        ["start_time", "=", frappeDateTime(call.started_at)]
+      ],
+      settings
+    );
+    if (candidates.length === 1) {
+      await this.ensureUnclaimed("call-logs", candidates[0]!.name, id);
+      return { outcome: "matched" as const, remoteName: candidates[0]!.name };
+    }
+    if (candidates.length)
+      throw AppError.conflict(
+        "Multiple matching Frappe call logs exist. Review them before export."
+      );
+    return { outcome: "new" as const, remoteName: null };
+  }
+
+  private async findRemote<T>(
+    doctype: string,
+    fields: string[],
+    filters: unknown[],
+    settings: FrappeSettings
+  ): Promise<T[]> {
+    const query = new URLSearchParams({
+      fields: JSON.stringify(fields),
+      filters: JSON.stringify(filters),
+      limit_page_length: "51"
+    });
+    const response = await requestFrappe<{ data?: T[] }>(
+      `/api/resource/${encodeURIComponent(doctype)}?${query}`,
+      "GET",
+      settings
+    );
+    if (!Array.isArray(response.data))
+      throw AppError.conflict("Frappe returned an invalid verification result.");
+    if (response.data.length > 50)
+      throw AppError.conflict("Too many similar Frappe records exist. Review before export.");
+    return response.data;
+  }
+
+  private async verifyRemote(doctype: string, name: string, settings: FrappeSettings) {
+    const response = await requestFrappe<{ data?: { name?: string } }>(
+      `/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`,
+      "GET",
+      settings
+    );
+    if (response.data?.name !== name)
+      throw AppError.conflict("The linked Frappe record is missing. Review before export.");
+  }
+
+  private async ensureUnclaimed(kind: ExportKind, name: string, id: number) {
+    let claimedId: number | undefined;
+    if (kind === "contacts") {
+      const row = await sql<{
+        local_contact_id: number;
+      }>`SELECT local_contact_id FROM frappe_contact_imports WHERE remote_name=${name} LIMIT 1`.execute(
+        this.database
+      );
+      claimedId = row.rows[0]?.local_contact_id;
+    } else if (kind === "enquiries") {
+      const row = await sql<{
+        enquiry_id: number;
+      }>`SELECT enquiry_id FROM frappe_enquiry_sync WHERE remote_name=${name} LIMIT 1`.execute(
+        this.database
+      );
+      claimedId = row.rows[0]?.enquiry_id;
+    } else if (kind === "activities") {
+      const row = await sql<{
+        local_activity_id: number;
+      }>`SELECT local_activity_id FROM frappe_activity_imports WHERE remote_name=${name} LIMIT 1`.execute(
+        this.database
+      );
+      claimedId = row.rows[0]?.local_activity_id;
+    } else {
+      const row = await sql<{
+        id: number;
+      }>`SELECT id FROM crm_call_logs WHERE remote_name=${name} LIMIT 1`.execute(this.database);
+      claimedId = row.rows[0]?.id;
+    }
+    if (claimedId && claimedId !== id)
+      throw AppError.conflict("This Frappe record is already linked to another local record.");
+  }
+
+  private async exportContact(
+    id: number,
+    settings: FrappeSettings,
+    verifiedRemoteName: string | null
+  ) {
+    const result = await sql<{
+      name: string;
+      primary_phone: string | null;
+      primary_email: string | null;
+      remote_name: string | null;
+    }>`
+      SELECT c.name, c.primary_phone, c.primary_email, link.remote_name
+      FROM core_contacts c LEFT JOIN frappe_contact_imports link ON link.local_contact_id=c.id
+      WHERE c.id=${id} AND c.deleted_at IS NULL LIMIT 1`.execute(this.database);
+    const contact = result.rows[0];
+    if (!contact) throw AppError.notFound("Contact was not found.");
+    const linkedName = verifiedRemoteName ?? contact.remote_name;
+    const payload = {
+      first_name: contact.name,
+      mobile_no: contact.primary_phone || undefined,
+      email_id: contact.primary_email || undefined
+    };
+    const response = await requestFrappe<{ data?: { name?: string } }>(
+      linkedName
+        ? `/api/resource/Contact/${encodeURIComponent(linkedName)}`
+        : "/api/resource/Contact",
+      linkedName ? "PUT" : "POST",
+      settings,
+      payload,
+      { allowExport: true }
+    );
+    const remoteName = response.data?.name || linkedName;
+    if (!remoteName) throw AppError.conflict("Frappe did not return the contact ID.");
+    await sql`INSERT INTO frappe_contact_imports (remote_name, local_contact_id)
+      VALUES (${remoteName}, ${id}) ON DUPLICATE KEY UPDATE remote_name=VALUES(remote_name)`.execute(
+      this.database
+    );
+    return remoteName;
+  }
+
+  private async exportEnquiry(
+    id: number,
+    settings: FrappeSettings,
+    verifiedRemoteName: string | null
+  ) {
+    const result = await sql<{
+      title: string;
+      description: string | null;
+      captured_phone: string | null;
+      status: string;
+      priority: string;
+      enquired_at: string | Date;
+      due_date: string | Date | null;
+      captured_name: string | null;
+      source: string;
+      created_by: string;
+      remote_name: string | null;
+    }>`SELECT e.title, e.description, e.captured_phone, e.status, e.priority,
+      e.enquired_at, e.due_date, e.captured_name, e.source, e.created_by,
+      link.remote_name FROM crm_enquiries e
+      LEFT JOIN frappe_enquiry_sync link ON link.enquiry_id=e.id
+      WHERE e.id=${id} LIMIT 1`.execute(this.database);
+    const enquiry = result.rows[0];
+    if (!enquiry) throw AppError.notFound("Enquiry was not found.");
+    const linkedName = verifiedRemoteName ?? enquiry.remote_name;
+    const creator = linkedName
+      ? undefined
+      : await this.creatorEmployee(enquiry.created_by, settings);
+    if (!linkedName && !enquiry.captured_phone?.trim())
+      throw AppError.conflict("Add a mobile number before creating this enquiry in Frappe.");
+    const payload = {
+      title: enquiry.title,
+      enquiry_details: enquiry.description || enquiry.title,
+      mobile: enquiry.captured_phone || undefined,
+      date: dateOnly(enquiry.enquired_at),
+      due_date: enquiry.due_date ? dateOnly(enquiry.due_date) : undefined,
+      priority: titleCase(enquiry.priority),
+      status: frappeStatus(enquiry.status),
+      customer: enquiry.source === "frappe" ? enquiry.captured_name || undefined : undefined,
+      user_employee: creator
+    };
+    const response = await requestFrappe<{ data?: { name?: string } }>(
+      linkedName
+        ? `/api/resource/Enquiry/${encodeURIComponent(linkedName)}`
+        : "/api/resource/Enquiry",
+      linkedName ? "PUT" : "POST",
+      settings,
+      payload,
+      { allowExport: true }
+    );
+    const remoteName = response.data?.name || linkedName;
+    if (!remoteName) throw AppError.conflict("Frappe did not return the enquiry ID.");
+    await sql`INSERT INTO frappe_enquiry_sync (enquiry_id, remote_name) VALUES (${id}, ${remoteName})
+      ON DUPLICATE KEY UPDATE remote_name=VALUES(remote_name), synced_at=UTC_TIMESTAMP()`.execute(
+      this.database
+    );
+    return remoteName;
+  }
+
+  private async exportActivity(
+    id: number,
+    settings: FrappeSettings,
+    verifiedRemoteName: string | null
+  ) {
+    const result = await sql<{
+      details: string;
+      action: string;
+      enquiry_remote: string | null;
+      remote_name: string | null;
+    }>`SELECT activity.details, activity.action, enquiry.remote_name AS enquiry_remote,
+      link.remote_name FROM crm_enquiry_activity activity
+      LEFT JOIN frappe_enquiry_sync enquiry ON enquiry.enquiry_id=activity.enquiry_id
+      LEFT JOIN frappe_activity_imports link ON link.local_activity_id=activity.id
+      WHERE activity.id=${id} LIMIT 1`.execute(this.database);
+    const activity = result.rows[0];
+    if (!activity) throw AppError.notFound("Activity was not found.");
+    if (!activity.enquiry_remote) throw AppError.conflict("Export the activity's enquiry first.");
+    const linkedName = verifiedRemoteName ?? activity.remote_name;
+    const path = `/api/resource/Enquiry/${encodeURIComponent(activity.enquiry_remote)}`;
+    const remote = await requestFrappe<{
+      data?: {
+        enquiry_messages?: Array<{
+          name?: string;
+          comment?: string;
+          mode?: string;
+          parent_message?: string;
+        }>;
+      };
+    }>(path, "GET", settings);
+    const messages = remote.data?.enquiry_messages;
+    if (!messages) throw AppError.conflict("Frappe did not return enquiry messages.");
+    const next = messages.map((message) => ({
+      name: message.name,
+      comment: message.name === linkedName ? activity.details : message.comment || "",
+      mode: message.name === linkedName ? activity.action : message.mode || "Comment",
+      ...(message.parent_message ? { parent_message: message.parent_message } : {})
+    }));
+    if (!linkedName)
+      next.push({ name: undefined, comment: activity.details, mode: activity.action });
+    const updated = await requestFrappe<{ data?: { enquiry_messages?: Array<{ name?: string }> } }>(
+      path,
+      "PUT",
+      settings,
+      { enquiry_messages: next },
+      { allowExport: true }
+    );
+    const updatedMessages = updated.data?.enquiry_messages;
+    const remoteName = linkedName || updatedMessages?.at(-1)?.name;
+    if (!remoteName) throw AppError.conflict("Frappe did not return the activity ID.");
+    await sql`INSERT INTO frappe_activity_imports (remote_name, local_activity_id)
+      VALUES (${remoteName}, ${id}) ON DUPLICATE KEY UPDATE remote_name=VALUES(remote_name)`.execute(
+      this.database
+    );
+    return remoteName;
+  }
+
+  private async exportCallLog(
+    id: number,
+    settings: FrappeSettings,
+    verifiedRemoteName: string | null
+  ) {
+    const result = await sql<{
+      direction: string;
+      from_number: string;
+      to_number: string;
+      call_status: string;
+      duration_seconds: number;
+      user_email: string | null;
+      started_at: string | Date;
+      remote_name: string | null;
+    }>`SELECT direction, from_number, to_number, call_status, duration_seconds,
+      user_email, started_at, remote_name FROM crm_call_logs WHERE id=${id} LIMIT 1`.execute(
+      this.database
+    );
+    const call = result.rows[0];
+    if (!call) throw AppError.notFound("Call log was not found.");
+    const linkedName = verifiedRemoteName ?? call.remote_name;
+    const payload = {
+      from: call.from_number,
+      to: call.to_number,
+      type: call.direction,
+      status: call.call_status,
+      duration: call.duration_seconds,
+      start_time: frappeDateTime(call.started_at),
+      ...(call.direction === "Incoming"
+        ? { receiver: call.user_email }
+        : { caller: call.user_email })
+    };
+    const response = await requestFrappe<{ data?: { name?: string } }>(
+      linkedName
+        ? `/api/resource/CRM%20Call%20Log/${encodeURIComponent(linkedName)}`
+        : "/api/resource/CRM%20Call%20Log",
+      linkedName ? "PUT" : "POST",
+      settings,
+      payload,
+      { allowExport: true }
+    );
+    const remoteName = response.data?.name || linkedName;
+    if (!remoteName) throw AppError.conflict("Frappe did not return the call log ID.");
+    await sql`UPDATE crm_call_logs SET remote_name=${remoteName} WHERE id=${id}`.execute(
+      this.database
+    );
+    return remoteName;
+  }
+}
+
+function dateOnly(value: string | Date) {
+  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+}
+
+function frappeDateTime(value: string | Date) {
+  return value instanceof Date ? value.toISOString().slice(0, 19).replace("T", " ") : String(value);
+}
+
+function titleCase(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1).replaceAll("_", " ");
+}
+
+function frappeStatus(value: string) {
+  const status = value.toLowerCase().replace(/[-_]/gu, " ");
+  if (status === "open") return "Pending";
+  if (status === "long hold" || status === "hold") return "Hold";
+  if (["won", "lost", "closed"].includes(status)) return "Closed";
+  return titleCase(value);
+}
+
+function normalized(value: string | null | undefined) {
+  return (value || "").trim().replace(/\s+/gu, " ").toLowerCase();
+}
+
+function digits(value: string | null | undefined) {
+  return (value || "").replace(/\D/gu, "");
+}
+
+function samePhone(left: string | null | undefined, right: string | null | undefined) {
+  const a = digits(left);
+  const b = digits(right);
+  if (a.length < 7 || b.length < 7) return false;
+  return a === b || (a.length >= 10 && b.length >= 10 && a.slice(-10) === b.slice(-10));
+}

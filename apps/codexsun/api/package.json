@@ -1,0 +1,26 @@
+{
+  "name": "@codexsun/codexsun-api",
+  "version": "1.0.99",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src",
+    "test": "tsx --test src/modules/**/*.test.ts"
+  },
+  "dependencies": {
+    "@codexsun/framework": "^1.0.99",
+    "fastify": "^5.12.5",
+    "kysely": "^0.29.6",
+    "socket.io": "^4.8.4",
+    "socket.io-client": "^4.8.4",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "mysql2": "^3.24.5"
+  }
+}

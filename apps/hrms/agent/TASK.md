@@ -1,0 +1,88 @@
+# CODEXSUN HRMS Tasks
+
+Track [PLAN.md](./PLAN.md). Check a task only after implementation and verification are complete.
+
+## Phase 0 - Existing foundation
+
+- [x] 0.1 Compose HRMS into Platform navigation, API, tenant migrations, and permissions.
+- [x] 0.2 Implement tenant-scoped employee records, unique employee codes, and optional existing-user mapping.
+- [x] 0.3 Implement employee search/list, separate create/edit pages, details, lifecycle, and activity history.
+- [x] 0.4 Implement manual present, absent, leave, and holiday attendance with employee/date uniqueness.
+- [x] 0.5 Implement attendance search, create/edit, soft delete/restore, activity history, and overview totals.
+- [x] 0.6 Connect the read-only overview to employee and attendance data.
+
+## Phase 1 - Attendance correctness
+
+- [x] 1.1 Set the current date rule to the tenant database calendar date; connections currently use UTC.
+- [x] 1.2 Reject future work dates in the backend and form; cover boundary dates with focused checks.
+- [x] 1.3 Verify create, edit, delete, and restore cannot produce duplicate employee/date records.
+- [x] 1.4 Define and enforce allowed attendance statuses and check-in/out combinations.
+- [x] 1.5 Label current overview figures as recorded attendance; avoid schedule-based claims until shifts exist.
+- [x] 1.6 Verify HRMS API permissions, tenant isolation, migration reruns, and permission seeding.
+- [ ] 1.7 Verify HRMS employee, attendance, and overview flows in the Platform-composed browser app.
+- [x] 1.8 Update `apps/hrms/README.md` to match current employee, attendance, and overview behavior.
+
+## Phase 2 - Employee and organization foundation
+
+- [x] 2.1 Review existing tenant department/designation text values and document migration handling for blanks and duplicates.
+- [x] 2.2 Define Department and Designation fields, permissions, lifecycle, and safe-delete rules.
+- [x] 2.3 Implement separate Department backend and frontend modules.
+- [x] 2.4 Implement separate Designation backend and frontend modules.
+- [ ] 2.5 Migrate employee text values to master references without losing existing values.
+- [ ] 2.6 Add employee form lookups and validate selected master records in the backend.
+- [ ] 2.7 Define manager relationship and employment status/end-date transitions.
+- [ ] 2.8 Implement manager validation, including existence, self-reporting, and circular reporting checks.
+- [ ] 2.9 Implement employment lifecycle history and safe behavior for existing user mappings.
+- [ ] 2.10 Verify API, migration, permission, tenant isolation, and Platform-composed employee flows.
+- [ ] 2.11 Update the HRMS README and expose only completed master modules in navigation.
+
+## Phase 3 - Scheduled attendance (only if required)
+
+- [ ] 3.1 Confirm work-week, tenant time zone, overnight shift, holiday, and attendance cutoff rules.
+- [ ] 3.2 Implement a separate Shift module and effective-dated employee assignments.
+- [ ] 3.3 Implement a separate Holiday module with explicit tenant applicability.
+- [ ] 3.4 Define half-day and non-working-day attendance behavior before adding statuses.
+- [ ] 3.5 Calculate scheduled and unmarked employees using shifts and holidays.
+- [ ] 3.6 Add date-range and employee filters plus a monthly attendance view if needed by HR users.
+- [ ] 3.7 Verify schedule calculations, corrections, permissions, tenant isolation, and overview links.
+
+## Phase 4 - One ZKTeco device integration
+
+### Device gate
+
+- [ ] 4.1 Record the customer device model, firmware, serial format, site network, and device time zone.
+- [ ] 4.2 Confirm supported protocol, connector location, SDK terms, and existing middleware.
+- [ ] 4.3 Approve a model-specific connection, retry, replay, and recovery design before coding.
+
+### Device and punch handling
+
+- [ ] 4.4 Define device registry, tenant/device-bound credential, rotation, revocation, and audit permissions.
+- [ ] 4.5 Implement the separate Attendance Devices module and LAN or approved middleware connector.
+- [ ] 4.6 Add authenticated TLS ingestion with server-resolved tenant/device scope and secret redaction.
+- [ ] 4.7 Persist immutable punch logs with source identifiers, device time, time zone, receive time, and deduplication.
+- [ ] 4.8 Add durable retry/replay; acknowledge device logs only after database commit.
+- [ ] 4.9 Add effective-dated badge-to-employee mappings and review for unmapped or ambiguous punches.
+- [ ] 4.10 Process reviewed punches through attendance rules without overwriting reviewed manual records silently.
+- [ ] 4.11 Define log retention, export access, and deletion before production use; collect no biometric data.
+- [ ] 4.12 Verify one confirmed model end to end, including tenant isolation, duplicate replay, offline recovery, and clock drift.
+- [ ] 4.13 Connect device health and source information to the overview and README.
+
+## Phase 5 - Leave requests (after manager relationships)
+
+- [ ] 5.1 Confirm leave types, partial-day rules, approval roles, and whether balances are required.
+- [ ] 5.2 Implement separate Leave Type and Leave Request modules with activity history.
+- [ ] 5.3 Add employee self-service limited to the employee's own requests.
+- [ ] 5.4 Add manager approval limited to authorized reporting scope.
+- [ ] 5.5 Validate overlaps, dates, transitions, and approver authority in the backend.
+- [ ] 5.6 Add an auditable balance ledger only when approved policy requires it.
+- [ ] 5.7 Reflect approved leave in attendance and overview without duplicate leave records.
+- [ ] 5.8 Verify concurrent/repeated approvals, access boundaries, tenant isolation, and Platform flows.
+- [ ] 5.9 Update the README and expose only completed leave pages in navigation.
+
+## Phase 6 - Release review
+
+- [ ] 6.1 Confirm every shipped HRMS module owns its business routes, permissions, migrations, seeds, UI, and history.
+- [ ] 6.2 Verify migrations and permission seeds rerun without changing tenant choices.
+- [ ] 6.3 Verify tenant isolation, denied permissions, empty states, and authenticated browser flows.
+- [ ] 6.4 Confirm overview metrics link to the correct filtered owner module.
+- [ ] 6.5 Remove stale scaffold claims from HRMS documentation and hide incomplete modules.

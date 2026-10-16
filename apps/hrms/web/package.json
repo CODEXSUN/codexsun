@@ -1,0 +1,30 @@
+{
+  "name": "@codexsun/hrms-web",
+  "version": "1.0.99",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./modules/employee": "./src/modules/employee/index.ts",
+    "./modules/attendance": "./src/modules/attendance/index.ts",
+    "./modules/department": "./src/modules/department/index.ts",
+    "./modules/designation": "./src/modules/designation/index.ts",
+    ".": "./src/index.ts",
+    "./modules/overview": "./src/modules/overview/index.ts",
+    "./modules/overview/gateway": "./src/modules/overview/overview.services.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/ui": "^1.0.99",
+    "@tanstack/react-query": "^5.104.1",
+    "@tanstack/react-router": "^1.170.41",
+    "@tanstack/react-table": "^9.2.6",
+    "lucide-react": "^1.52.0",
+    "react": "^19.3.0",
+    "sonner": "^2.0.8",
+    "zod": "^4.6.5"
+  }
+}

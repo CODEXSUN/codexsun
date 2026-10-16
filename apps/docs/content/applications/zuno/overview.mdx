@@ -1,0 +1,37 @@
+# Zuno developer guide
+
+Super Admin development diagnosis, conversations, cases and operational watch.
+
+<Callout title="Implementation scope">
+  Zuno is a privileged development/operations devkit, not a tenant business app. It reads repository
+  baseline docs, not another tenant's overrides.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                 |
+| ------------------- | ------------------------------------- |
+| Source owner        | `devkits/zuno`                        |
+| Documentation pages | `apps/docs/content/applications/zuno` |
+| Modules inventoried | 4                                     |
+| Tenant app key      | `See composition / devkit scope`      |
+
+## Core business
+
+Zuno is a privileged development/operations devkit, not a tenant business app. It reads repository baseline docs, not another tenant's overrides.
+
+## Primary workflow
+
+1. Configure the authorised source checkout, logs and model provider.
+2. Choose work mode and open a diagnostic conversation/case.
+3. Read bounded source/log/watch evidence through named tools.
+4. Search developer reference pages and cite the source path before proposing a change.
+5. Review plans and controlled correction workflows; never infer deployed state from repository text.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

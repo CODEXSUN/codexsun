@@ -1,0 +1,35 @@
+# UIUX developer guide
+
+Shared component/design-system gallery and developer specimens.
+
+<Callout title="Implementation scope">
+  UIUX is a development gallery, not a tenant-record database or CRUD engine.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                 |
+| ------------------- | ------------------------------------- |
+| Source owner        | `devkits/uiux`                        |
+| Documentation pages | `apps/docs/content/applications/uiux` |
+| Modules inventoried | 0                                     |
+| Tenant app key      | `See composition / devkit scope`      |
+
+## Core business
+
+UIUX is a development gallery, not a tenant-record database or CRUD engine.
+
+## Primary workflow
+
+1. Browse component index and shared layout/workspace patterns.
+2. Choose the existing primitive matching the interaction.
+3. Inspect accessibility/state examples and compose them in the owning app.
+4. Keep business fields and validation outside the UI package.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

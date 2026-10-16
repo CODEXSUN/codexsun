@@ -1,0 +1,35 @@
+# Himsx developer guide
+
+Hospital Information Management System app foundation.
+
+<Callout title="Implementation scope">
+  Patient, appointment, admission and clinical workflows are planned, not implemented by the
+  overview.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                  |
+| ------------------- | -------------------------------------- |
+| Source owner        | `apps/himsx`                           |
+| Documentation pages | `apps/docs/content/applications/himsx` |
+| Modules inventoried | 1                                      |
+| Tenant app key      | `himsx`                                |
+
+## Core business
+
+Patient, appointment, admission and clinical workflows are planned, not implemented by the overview.
+
+## Primary workflow
+
+1. Enable Himsx and seed its view permission.
+2. Open its authenticated overview and setup guide.
+3. Design patient/encounter/admission ownership, clinical access and audit before introducing clinical records.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

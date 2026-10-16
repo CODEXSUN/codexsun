@@ -1,0 +1,36 @@
+# Auditor developer guide
+
+Client portal access and audit-oriented client workspace.
+
+<Callout title="Implementation scope">
+  Auditor owns client portal/credential fields. Its overview does not imply a complete statutory
+  audit platform.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                    |
+| ------------------- | ---------------------------------------- |
+| Source owner        | `apps/auditor`                           |
+| Documentation pages | `apps/docs/content/applications/auditor` |
+| Modules inventoried | 2                                        |
+| Tenant app key      | `auditor`                                |
+
+## Core business
+
+Auditor owns client portal/credential fields. Its overview does not imply a complete statutory audit platform.
+
+## Primary workflow
+
+1. Register/update a client and inspect its owner details.
+2. Configure encrypted portal credentials using permitted management actions.
+3. Reveal/use credential fields only with the distinct permission.
+4. Review record activity; extend client audit workflows in the Auditor owner.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

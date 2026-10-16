@@ -1,0 +1,18 @@
+import type { FastifyInstance, FastifyRequest } from "fastify";
+import { z } from "zod";
+import { registerContractRoute } from "@codexsun/framework/http";
+import { DutyAssignmentRepository } from "./duty-assignment.repository.js";
+import { DutyAssignmentService } from "./duty-assignment.service.js";
+import type { DutyAssignmentContext } from "./duty-assignment.types.js";
+
+const base = "/crm/duty-assignments";
+const id = z.object({ id: z.coerce.number().int().positive() });
+const input = z.object({ sopItemId: z.number().int().positive(), revisionId: z.number().int().positive(), assigneeUserId: z.number().int().positive(), displayOrder: z.number().int().min(0), startDate: z.string().date(), endDate: z.string().date().nullable() }).strict();
+const row = z.object({ id: z.number(), uuid: z.string(), sopItemId: z.number(), revisionId: z.number(), assigneeUserId: z.number(), displayOrder: z.number(), startDate: z.string(), endDate: z.string().nullable(), status: z.enum(["active", "inactive"]), assignedBy: z.string(), sopCode: z.string(), sopTitle: z.string(), itemCode: z.string(), itemTitle: z.string(), department: z.string(), frequency: z.string(), instructions: z.string(), evidenceGuidance: z.string(), assigneeName: z.string(), assigneeEmail: z.string(), createdAt: z.string() });
+export function registerDutyAssignmentRoutes(app: FastifyInstance, context: (request: FastifyRequest) => Promise<DutyAssignmentContext>) {
+  registerContractRoute(app, { method: "GET", url: "/crm/duty-users", schemas: { response: z.array(z.object({ id: z.number(), name: z.string(), email: z.string() })) }, handler: async ({ request }) => { const ctx = await context(request); await ctx.authorize("crm.duty.assign"); return ctx.database.selectFrom("app_users").select(["id", "name", "email"]).where("status", "=", "active").orderBy("name").execute(); } });
+  registerContractRoute(app, { method: "GET", url: "/crm/duties", schemas: { response: z.array(row) }, handler: async ({ request }) => { const ctx = await context(request); await ctx.authorize("crm.duty.view.own"); return new DutyAssignmentService(new DutyAssignmentRepository(ctx.database)).listOwn(ctx.actorUserId); } });
+  registerContractRoute(app, { method: "GET", url: base, schemas: { response: z.array(row) }, handler: async ({ request }) => { const ctx = await context(request); await ctx.authorize("crm.duty.view.all"); return new DutyAssignmentService(new DutyAssignmentRepository(ctx.database)).listAll(); } });
+  registerContractRoute(app, { method: "POST", url: base, schemas: { body: input, response: row }, handler: async ({ body, request }) => { const ctx = await context(request); await ctx.authorize("crm.duty.assign"); const result = await new DutyAssignmentService(new DutyAssignmentRepository(ctx.database)).create(body, ctx.actorEmail); await ctx.queueSync?.("duty-assignment", result.id); return result; } });
+  registerContractRoute(app, { method: "POST", url: base + "/:id/deactivate", schemas: { params: id, response: z.object({ success: z.literal(true) }) }, handler: async ({ params, request }) => { const ctx = await context(request); await ctx.authorize("crm.duty.manage"); await new DutyAssignmentService(new DutyAssignmentRepository(ctx.database)).deactivate(params.id); return { success: true as const }; } });
+}

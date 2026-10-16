@@ -1,0 +1,22 @@
+{
+  "name": "@codexsun/notes-api",
+  "version": "1.0.99",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./modules/notes": "./src/modules/notes/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test src/modules/notes/note.spec.ts",
+    "typecheck": "npm run build -w @codexsun/framework && tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/framework": "^1.0.99",
+    "fastify": "^5.12.5",
+    "kysely": "^0.29.6",
+    "zod": "^4.6.5"
+  }
+}

@@ -1,0 +1,37 @@
+# Ecommerce developer guide
+
+Product enrichment, merchandising and storefront configuration.
+
+<Callout title="Implementation scope">
+  Ecommerce owns merchandising. Verify current source files for paid checkout/order capabilities; do
+  not infer them from a store page.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                      |
+| ------------------- | ------------------------------------------ |
+| Source owner        | `apps/ecommerce`                           |
+| Documentation pages | `apps/docs/content/applications/ecommerce` |
+| Modules inventoried | 15                                         |
+| Tenant app key      | `ecommerce`                                |
+
+## Core business
+
+Ecommerce owns merchandising. Verify current source files for paid checkout/order capabilities; do not infer them from a store page.
+
+## Primary workflow
+
+1. Link product information to Core identities or the configured ERP/provider source.
+2. Manage variants, images and the catalog data source.
+3. Configure sliders, promotions, featured cards, season strips, announcements, trust/service sections and store profile.
+4. Review active/published states and use the configured storefront delivery/composition.
+5. Inspect matching/sync and owner audit before exposing a product.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

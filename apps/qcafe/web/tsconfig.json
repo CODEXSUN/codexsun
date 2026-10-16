@@ -1,0 +1,18 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "paths": {
+      "@codexsun/ui": ["../../../packages/ui/src/index.ts"],
+      "@codexsun/ui/components/*": ["../../../packages/ui/src/components/*"],
+      "@codexsun/ui/features/interface-topology": [
+        "../../../packages/ui/src/features/interface-topology/index.ts"
+      ]
+    },
+    "types": ["vite/client", "node"],
+    "tsBuildInfoFile": "../../../dist/.cache/typescript/qcafe-web.tsbuildinfo"
+  },
+  "include": ["src", "vite.config.ts"]
+}

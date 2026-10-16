@@ -1,0 +1,55 @@
+# CODEXSUN Android
+
+This Flutter app uses the Platform tenant session and CODEXSUN API.
+It captures ideas, submits requirements, and approves or rejects the current revision.
+Socket.IO uses WebSocket transport for messages and saved-record notifications.
+The app reloads requirements after reconnecting.
+
+Sessions stay in memory. Sign in again after restarting the app.
+Android stores only a random device registration key between runs.
+Mobile drafts, background notifications, voice, attachments, and coding workers are future phases.
+
+## Local emulator
+
+Start the Platform API and web portal from the repository root.
+Connect the emulator to the local API:
+
+```text
+adb -s emulator-5554 reverse tcp:7010 tcp:7010
+npm run codexsun:mobile:analyze
+npm run codexsun:mobile:run -- -d emulator-5554
+```
+
+Use your tenant corporate ID, email, and password.
+The default API is `http://127.0.0.1:7010`.
+Debug Android builds permit HTTP. Other builds require HTTPS.
+
+For a hosted API, pass its full public API prefix:
+
+```text
+npm run codexsun:mobile:apk:debug -- --dart-define=CODEXSUN_API_URL=https://codexsun.com/api/app
+```
+
+This configures the endpoint. It does not deploy the server or certify the public domain.
+Set `CODEXSUN_FLUTTER_BIN` when Flutter is outside the default development folder.
+
+## Build output
+
+Run `npm run codexsun:mobile:apk:debug` from the repository root.
+The APK is `dist/apps/codexsun/mobile/app/outputs/flutter-apk/app-debug.apk`.
+The root tool creates an ignored `build` junction because Flutter requires that path.
+The junction points to root `dist`. It does not create another output tree.
+
+## Device integration test
+
+The integration test requires a connected browser and an emulator.
+It tests messages, idea capture, and mobile approval without manual refresh.
+Supply an ignored JSON file with `CODEXSUN_TEST_RUN`, `CODEXSUN_TEST_CORPORATE_ID`,
+`CODEXSUN_TEST_EMAIL`, and `CODEXSUN_TEST_PASSWORD`.
+
+```text
+npm run codexsun:mobile:test -- integration_test/device_sync_test.dart -d emulator-5554 --dart-define-from-file=<absolute-test-config>
+```
+
+Test defines enter credentials through the login form. Never distribute the test APK.
+Rebuild the normal app after testing. Keep credentials out of tracked source and screenshots.

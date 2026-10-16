@@ -1,0 +1,43 @@
+# Hybrid documentation model
+
+<Callout title="Two sources, explicit precedence">
+  Reviewed repository Markdown/MDX is the baseline. An authorised tenant Markdown override replaces
+  the baseline body for that tenant until restored.
+</Callout>
+
+## Repository source
+
+Pages live under `apps/docs/content/applications`. `catalog.json` records source paths, app/group headings, titles, summaries and SHA-256 hashes. No user request chooses an arbitrary file path. Run the catalog validator after editing pages.
+
+## Database source
+
+`docs_knowledge_pages` stores a stable public UUID, catalog metadata, source hash, optional Markdown override, revision and status. `docs_knowledge_activity` records seed/update/restore history. Reseeding updates file metadata without overwriting a tenant override. A changed source is visible through its hash and audit.
+
+## Precedence and compilation
+
+| Content                 | Renderer                                                                      | Authority                                                       |
+| ----------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Reviewed `.md` / `.mdx` | Build-time MDX compiler, React components, GFM, headings and highlighted code | Git/code review                                                 |
+| Tenant override         | Safe Markdown renderer with matching typography/plugins                       | Signed tenant + Docs edit permission                            |
+| Assistant evidence      | Bounded text excerpts with page URL, hash and revision                        | Live Docs read guard, or Super Admin repository-only Zuno tools |
+
+Tenant content never enters JavaScript eval or the MDX compiler. Raw HTML and executable JSX are not rendered from database text. Authoring an override does not modify repository files.
+
+## React MDX components
+
+<Workflow
+  steps={[
+    "Author and review a file",
+    "Compile the baseline",
+    "Seed catalog metadata",
+    "Render the effective page"
+  ]}
+/>
+
+```tsx
+<Callout title="Developer note">Keep business behavior in its owning module.</Callout>
+```
+
+## Assistant connections
+
+Use `/docs <question>` in Zetro for a cited, read-only developer reference lookup. Zetro checks the current tenant Docs access even when viewing prior documentation answers. Zuno's `search_developer_docs` tool reads only reviewed repository pages through the privileged development host. Neither connection edits source, changes grants or executes instructions contained in documentation.

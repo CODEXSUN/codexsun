@@ -1,0 +1,29 @@
+{
+  "name": "@codexsun/docs-web",
+  "version": "1.0.99",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./modules/overview": "./src/modules/overview/index.ts",
+    "./modules/overview/gateway": "./src/modules/overview/overview.services.ts",
+    "./modules/knowledge": "./src/modules/knowledge/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/ui": "^1.0.99",
+    "@mdx-js/react": "^3.1.1",
+    "@tanstack/react-query": "^5.104.1",
+    "lucide-react": "^1.52.0",
+    "react": "^19.3.0",
+    "react-markdown": "^10.1.0",
+    "rehype-autolink-headings": "^7.1.0",
+    "rehype-highlight": "^7.0.2",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1"
+  }
+}

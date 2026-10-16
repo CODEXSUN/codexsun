@@ -1,0 +1,36 @@
+# LogicX ERP developer guide
+
+ERP overview and Billing-linked scheme operations.
+
+<Callout title="Implementation scope">
+  Scheme rules stay in LogicX ERP; shared masters and financial documents keep their original
+  owners.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                       |
+| ------------------- | ------------------------------------------- |
+| Source owner        | `apps/logicx-erp`                           |
+| Documentation pages | `apps/docs/content/applications/logicx-erp` |
+| Modules inventoried | 2                                           |
+| Tenant app key      | `logicx-erp`                                |
+
+## Core business
+
+Scheme rules stay in LogicX ERP; shared masters and financial documents keep their original owners.
+
+## Primary workflow
+
+1. Enable the app and confirm the active tenant.
+2. Enable Billing before opening Scheme management.
+3. Select parent/master references and maintain scheme data through the scheme owner.
+4. If Billing is disabled, Scheme navigation is hidden and direct URLs return to Overview.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

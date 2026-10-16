@@ -1,0 +1,7 @@
+import { crmRequest } from "../../crm-request";
+export type Duty = { id:number; sopTitle:string; itemTitle:string; department:string; frequency:string; instructions:string; evidenceGuidance:string; startDate:string; endDate:string|null };
+export type DutyReport = { id:number; itemTitle:string; sopTitle:string; assigneeName:string; performedDate:string; actions:string; result:"completed"|"blocked"; issueDetails:string; frequency:string; createdAt:string };
+export const listMyDuties=()=>crmRequest<Duty[]>("/crm/duties");
+export const submitDutyReport=(input:{assignmentId:number;performedDate:string;actions:string;result:"completed"|"blocked";issueDetails:string})=>crmRequest<DutyReport>("/crm/duty-reports",{method:"POST",body:JSON.stringify(input)});
+export type DutyReportPage = { items: DutyReport[]; total: number; page: number; pageSize: number; summary: { total:number; completed:number; blocked:number } };
+export const listDutyReports=(filters:{search?:string;from?:string;to?:string;assigneeId?:number;result?:"completed"|"blocked";page?:number;pageSize?:number}={})=>{const query=new URLSearchParams({scope:"all",page:String(filters.page??1),pageSize:String(filters.pageSize??25)});for(const key of ["search","from","to","assigneeId","result"] as const){const value=filters[key];if(value!==undefined&&value!=="")query.set(key,String(value));}return crmRequest<DutyReportPage>(`/crm/duty-reports?${query}`);};

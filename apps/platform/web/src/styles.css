@@ -1,0 +1,83 @@
+.tenant-main-menu > header > div:first-child > button:first-child {
+  width: calc(var(--sidebar-width-icon) + 1rem);
+}
+
+.simple-page {
+  align-items: center;
+  display: grid;
+  justify-items: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.simple-page > section,
+.simple-page > div {
+  width: min(520px, 100%);
+}
+
+.status-list {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 150px minmax(0, 1fr);
+}
+
+.status-list span {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-field {
+  display: grid;
+  gap: 6px;
+}
+
+.form-error {
+  color: var(--destructive);
+  font-size: 13px;
+  margin: 0;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .workspace-scroll {
+    scrollbar-color: color-mix(in oklab, var(--foreground) 28%, transparent) transparent;
+    scrollbar-width: thin;
+  }
+
+  .auth-context-status {
+    color: var(--muted-foreground);
+    font-size: 13px;
+    margin: 0;
+    text-align: center;
+  }
+}
+
+.workspace-scroll::-webkit-scrollbar {
+  height: 3px;
+  width: 3px;
+}
+
+.workspace-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workspace-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--foreground) 28%, transparent);
+  border-radius: 999px;
+}
+
+.workspace-scroll:hover::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
+@media (max-width: 760px) {
+  .status-list {
+    grid-template-columns: 1fr;
+  }
+}

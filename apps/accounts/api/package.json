@@ -1,0 +1,22 @@
+{
+  "name": "@codexsun/accounts-api",
+  "version": "1.0.99",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "npm run build -w @codexsun/framework && tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src",
+    "test:e2e:accounting": "tsx src/modules/accounting/accounting.e2e.ts"
+  },
+  "dependencies": {
+    "@codexsun/framework": "^1.0.99",
+    "fastify": "^5.12.5",
+    "kysely": "^0.29.6",
+    "mysql2": "^3.24.5",
+    "zod": "^4.6.5"
+  }
+}

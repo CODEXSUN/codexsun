@@ -1,0 +1,842 @@
+.client-site-canvas[data-client="logicx"] {
+  --background: #f2f7ff;
+  --foreground: #071326;
+  --card: rgb(255 255 255 / 0.88);
+  --card-foreground: #071326;
+  --primary: #165dff;
+  --primary-foreground: #ffffff;
+  --secondary: #dceaff;
+  --secondary-foreground: #0b3fa6;
+  --muted: #e6effc;
+  --muted-foreground: #52647e;
+  --accent: #b8ff5d;
+  --accent-foreground: #102a00;
+  --border: #cbd9ed;
+  --input: #b8c9e2;
+  --ring: #165dff;
+  --client-glow: rgb(22 93 255 / 0.2);
+  background:
+    radial-gradient(circle at 84% 4%, rgb(58 138 255 / 0.22), transparent 27rem),
+    linear-gradient(rgb(7 19 38 / 0.032) 1px, transparent 1px), #f2f7ff;
+  background-size:
+    auto,
+    100% 8px,
+    auto;
+  transition:
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+.logicx-header {
+  gap: clamp(1rem, 2.4vw, 2.5rem);
+  max-width: none;
+  padding-inline: clamp(1rem, 3vw, 3rem);
+  width: 100%;
+}
+
+.client-site-canvas[data-client="logicx"] .logicx-header {
+  backdrop-filter: blur(18px);
+  background: rgb(242 247 255 / 0.78);
+  position: sticky;
+  top: 0;
+}
+
+.logicx-primary-nav {
+  align-items: center;
+  display: flex;
+  gap: clamp(1rem, 2vw, 2rem);
+  margin-left: auto;
+}
+
+.logicx-primary-nav a {
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: color 180ms ease;
+}
+
+.logicx-primary-nav a:hover {
+  color: var(--foreground);
+}
+
+.logicx-header-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+}
+
+.client-site-canvas[data-client="logicx"] .logicx-login-button {
+  background: color-mix(in oklab, var(--background) 90%, transparent);
+  border-color: color-mix(in oklab, var(--foreground) 22%, var(--border));
+  color: var(--foreground);
+}
+
+.client-site-canvas[data-client="logicx"] .logicx-theme-trigger {
+  background: color-mix(in oklab, var(--background) 90%, transparent);
+  border-color: color-mix(in oklab, var(--foreground) 22%, var(--border));
+  color: var(--foreground);
+  padding-inline: 0;
+  width: 2rem;
+}
+
+.logicx-theme-menu {
+  min-width: 10.5rem;
+  padding: 0.4rem;
+}
+
+.logicx-theme-menu-label {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.45rem 0.65rem;
+  text-transform: uppercase;
+}
+
+.logicx-theme-option {
+  border-radius: 0.35rem;
+  gap: 0.7rem;
+  min-height: 2.35rem;
+  padding-left: 2rem;
+  padding-right: 0.65rem;
+}
+
+.logicx-theme-option > span:first-child {
+  left: 0.65rem;
+}
+
+.logicx-theme-option > span:first-child svg {
+  height: 0.38rem;
+  opacity: 0.58;
+  width: 0.38rem;
+}
+
+.logicx-theme-option .logicx-theme-option-icon {
+  color: var(--muted-foreground);
+  height: 0.85rem;
+  opacity: 0.7;
+  stroke-width: 1.6;
+  width: 0.85rem;
+}
+
+.client-site-canvas[data-client="logicx"] .client-brand-mark {
+  background: linear-gradient(145deg, #165dff, #06328f);
+  box-shadow: 0 8px 24px rgb(22 93 255 / 0.26);
+  color: #fff;
+}
+
+.client-site-canvas[data-client="logicx"] .client-hero {
+  align-items: start;
+  min-height: calc(100svh - 82px);
+  padding-bottom: clamp(0.75rem, 2vh, 1.5rem);
+  padding-top: clamp(3.25rem, 7vh, 4.5rem);
+}
+
+.client-site-canvas[data-client="logicx"] .client-hero h1 {
+  background: linear-gradient(115deg, #071326 22%, #165dff 76%, #00a9c7);
+  background-clip: text;
+  color: transparent;
+  font-size: clamp(3.2rem, 4.2vw, 4.8rem);
+  line-height: 0.92;
+  margin: 1.1rem 0 1.25rem;
+  max-width: 11.8ch;
+}
+
+.logicx-hero-copy {
+  display: flex;
+  flex-direction: column;
+  height: 620px;
+  min-height: 620px;
+  padding-top: 0;
+}
+
+.logicx-hero-slide {
+  height: 455px;
+  min-height: 455px;
+}
+
+.logicx-hero-slide > p {
+  color: var(--muted-foreground);
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  line-height: 1.75;
+  max-width: 38rem;
+}
+
+.logicx-carousel-controls {
+  align-items: center;
+  display: flex;
+  gap: 0.7rem;
+  margin-top: auto;
+  padding-top: 2.2rem;
+}
+
+.logicx-carousel-arrow {
+  align-items: center;
+  background: color-mix(in oklab, var(--background) 88%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--foreground);
+  cursor: pointer;
+  display: inline-flex;
+  height: 2.45rem;
+  justify-content: center;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+  width: 2.45rem;
+}
+
+.logicx-carousel-arrow:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  transform: translateY(-2px);
+}
+
+.logicx-carousel-arrow svg {
+  height: 0.95rem;
+  width: 0.95rem;
+}
+
+.logicx-carousel-dots {
+  align-items: center;
+  display: flex;
+  gap: 0.38rem;
+}
+
+.logicx-carousel-dot {
+  background: color-mix(in oklab, var(--muted-foreground) 34%, transparent);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  height: 0.38rem;
+  padding: 0;
+  transition:
+    background 220ms ease,
+    width 220ms ease;
+  width: 0.38rem;
+}
+
+.logicx-carousel-dot[aria-pressed="true"] {
+  background: var(--primary);
+  width: 2.2rem;
+}
+
+.logicx-carousel-count {
+  color: var(--muted-foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  margin-left: 0.15rem;
+}
+
+.client-site-canvas[data-client="logicx"] .client-visual {
+  background:
+    radial-gradient(circle at 50% 50%, rgb(22 93 255 / 0.22), transparent 36%),
+    linear-gradient(145deg, #071326, #0b2144 64%, #103b69);
+  border-color: rgb(106 167 255 / 0.26);
+  box-shadow: 0 38px 90px -42px rgb(5 36 94 / 0.8);
+  color: #f6f9ff;
+  align-self: start;
+  height: clamp(480px, 64svh, 560px);
+  min-height: 0;
+}
+
+.client-site-canvas[data-client="logicx"] .client-visual::after {
+  background-image:
+    linear-gradient(rgb(121 174 255 / 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(121 174 255 / 0.12) 1px, transparent 1px);
+}
+
+.client-site-canvas[data-client="logicx"] .client-visual-top span,
+.client-site-canvas[data-client="logicx"] .client-visual-footer span {
+  color: rgb(213 229 255 / 0.72);
+}
+
+.logicx-live-status {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.45rem;
+}
+
+.logicx-live-status::before {
+  animation: logicx-live-pulse 1.8s ease-in-out infinite;
+  background: #a8ff5e;
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgb(168 255 94 / 0.9);
+  content: "";
+  height: 0.42rem;
+  width: 0.42rem;
+}
+
+@keyframes logicx-live-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgb(168 255 94 / 0),
+      0 0 10px rgb(168 255 94 / 0.5);
+    opacity: 0.62;
+    transform: scale(0.86);
+  }
+
+  45% {
+    box-shadow:
+      0 0 0 5px rgb(168 255 94 / 0.08),
+      0 0 18px rgb(168 255 94 / 0.86);
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.logicx-system-stage {
+  height: 360px;
+  margin: 1.6rem 0 0.6rem;
+  position: relative;
+  z-index: 1;
+}
+
+.logicx-wire-map {
+  height: 100%;
+  inset: 0;
+  overflow: visible;
+  position: absolute;
+  width: 100%;
+  z-index: 2;
+}
+
+.logicx-wire-base {
+  fill: none;
+  opacity: 0.5;
+  stroke: rgb(105 161 255 / 0.3);
+  stroke-width: 1;
+}
+
+.logicx-wire-pulse {
+  animation: logicx-wire-travel 3.1s linear infinite;
+  fill: none;
+  filter: url("#logicx-wire-glow");
+  opacity: 0.82;
+  stroke: url("#logicx-wire-gradient");
+  stroke-dasharray: 3 112;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.logicx-wire-pulse-b {
+  animation-delay: -0.7s;
+}
+
+.logicx-wire-pulse-c {
+  animation-delay: -1.4s;
+}
+
+.logicx-wire-pulse-d {
+  animation-delay: -2.1s;
+}
+
+.logicx-orbit-path {
+  fill: none;
+  stroke: transparent;
+}
+
+.logicx-orbit-light {
+  fill: #b8ff5d;
+  filter: url("#logicx-wire-glow");
+}
+
+.logicx-orbit-light-secondary {
+  fill: #63a0ff;
+}
+
+@keyframes logicx-wire-travel {
+  to {
+    stroke-dashoffset: -180;
+  }
+}
+
+.logicx-system-ring {
+  border: 1px solid rgb(120 174 255 / 0.28);
+  border-radius: 999px;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+}
+
+.logicx-system-ring-a {
+  height: 205px;
+  width: 360px;
+}
+
+.logicx-system-ring-b {
+  height: 315px;
+  transform: translate(-50%, -50%) rotate(34deg);
+  width: 190px;
+}
+
+.logicx-system-core {
+  align-items: center;
+  background: linear-gradient(145deg, #246dff, #0a43be);
+  border: 10px solid rgb(20 48 94 / 0.82);
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 1px rgb(113 171 255 / 0.58),
+    0 24px 58px rgb(0 25 79 / 0.68),
+    0 0 42px rgb(22 93 255 / 0.38);
+  display: flex;
+  flex-direction: column;
+  height: 116px;
+  justify-content: center;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 116px;
+  z-index: 3;
+}
+
+.logicx-system-core span {
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+}
+
+.logicx-system-core small {
+  color: rgb(225 237 255 / 0.7);
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.client-site-canvas[data-client="logicx"] .logicx-system-node {
+  align-items: center;
+  animation: logicx-node-drift var(--logicx-node-duration, 6.8s) ease-in-out infinite alternate;
+  animation-delay: var(--logicx-node-delay, 0s);
+  backdrop-filter: blur(14px);
+  background: rgb(18 51 99 / 0.82);
+  border-color: rgb(114 171 255 / 0.32);
+  border-radius: 0.85rem;
+  display: flex;
+  gap: 0.65rem;
+  min-height: auto;
+  padding: 0.75rem 0.9rem;
+  position: absolute;
+  width: max-content;
+  z-index: 4;
+}
+
+.client-site-canvas[data-client="logicx"] .logicx-system-node svg {
+  color: #a8ff5e;
+  margin: 0;
+}
+
+.client-site-canvas[data-client="logicx"] .logicx-system-node strong {
+  color: #fff;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.logicx-system-node-a {
+  --logicx-node-delay: -1.2s;
+  --logicx-node-duration: 6.4s;
+  --logicx-node-x: 5px;
+  --logicx-node-y: -4px;
+  left: 1%;
+  top: 17%;
+}
+
+.logicx-system-node-b {
+  --logicx-node-delay: -3.7s;
+  --logicx-node-duration: 7.2s;
+  --logicx-node-x: -4px;
+  --logicx-node-y: 5px;
+  right: 0;
+  top: 22%;
+}
+
+.logicx-system-node-c {
+  --logicx-node-delay: -2.4s;
+  --logicx-node-duration: 7.8s;
+  --logicx-node-x: 4px;
+  --logicx-node-y: 3px;
+  bottom: 12%;
+  left: 3%;
+}
+
+.logicx-system-node-d {
+  --logicx-node-delay: -5.1s;
+  --logicx-node-duration: 6.9s;
+  --logicx-node-x: -5px;
+  --logicx-node-y: -3px;
+  bottom: 8%;
+  right: 2%;
+}
+
+@keyframes logicx-node-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(var(--logicx-node-x, 4px), var(--logicx-node-y, -4px), 0);
+  }
+}
+
+.client-site-canvas[data-client="logicx"] .client-visual-footer {
+  gap: 0.7rem;
+  justify-content: center;
+}
+
+.client-site-canvas[data-client="logicx"] .client-visual-footer i {
+  background: rgb(135 182 255 / 0.34);
+  height: 1px;
+  overflow: hidden;
+  position: relative;
+  width: clamp(1.5rem, 4vw, 3.5rem);
+}
+
+.client-site-canvas[data-client="logicx"] .client-visual-footer i::after {
+  animation: logicx-footer-light-travel 3.8s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, rgb(114 167 255 / 0.78), transparent);
+  content: "";
+  height: 1px;
+  left: 0;
+  opacity: 0.52;
+  position: absolute;
+  top: 0;
+  transform: translateX(-180%);
+  width: 52%;
+}
+
+.client-site-canvas[data-client="logicx"] .client-visual-footer i:nth-of-type(2)::after {
+  animation-delay: 1.15s;
+}
+
+@keyframes logicx-footer-light-travel {
+  0%,
+  20% {
+    transform: translateX(-180%);
+  }
+
+  72%,
+  100% {
+    transform: translateX(290%);
+  }
+}
+
+.logicx-capability-strip {
+  background: #071326;
+  color: #eff5ff;
+  min-height: 72px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.logicx-capability-track {
+  animation: logicx-capability-marquee 24s linear infinite;
+  display: flex;
+  min-height: 72px;
+  width: max-content;
+  will-change: transform;
+}
+
+.logicx-capability-strip:hover .logicx-capability-track {
+  animation-play-state: paused;
+}
+
+.logicx-capability-group {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: clamp(2rem, 4.5vw, 5.5rem);
+  justify-content: space-around;
+  min-width: max(100vw, 52rem);
+  padding-inline: clamp(1.5rem, 3vw, 3rem);
+}
+
+.logicx-capability-item {
+  align-items: center;
+  display: inline-flex;
+  gap: clamp(2rem, 4.5vw, 5.5rem);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.logicx-capability-item::after {
+  background: #a8ff5e;
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgb(168 255 94 / 0.52);
+  content: "";
+  flex: 0 0 auto;
+  height: 0.32rem;
+  width: 0.32rem;
+}
+
+@keyframes logicx-capability-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.client-site-canvas[data-client="logicx"] .client-section-muted {
+  background:
+    radial-gradient(circle at 12% 16%, rgb(22 93 255 / 0.12), transparent 20rem),
+    rgb(228 238 252 / 0.62);
+}
+
+.client-site-canvas[data-client="logicx"] .client-card-grid {
+  gap: 0.85rem;
+}
+
+.client-site-canvas[data-client="logicx"] .client-service-card {
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 0.94), rgb(239 246 255 / 0.76)), var(--card);
+  border-color: rgb(22 93 255 / 0.12);
+  min-height: 280px;
+  overflow: hidden;
+  position: relative;
+}
+
+.client-site-canvas[data-client="logicx"] .client-service-card::after {
+  background: linear-gradient(135deg, transparent, rgb(22 93 255 / 0.09));
+  border-radius: 999px;
+  content: "";
+  height: 10rem;
+  position: absolute;
+  right: -5rem;
+  top: -5rem;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  width: 10rem;
+}
+
+.client-site-canvas[data-client="logicx"] .client-service-card:hover::after {
+  transform: scale(1.25);
+}
+
+.logicx-service-number {
+  color: rgb(7 19 38 / 0.34);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.66rem;
+  font-weight: 700;
+  position: absolute;
+  right: 1.4rem;
+  top: 1.35rem;
+}
+
+.logicx-service-icon {
+  align-items: center;
+  background: linear-gradient(145deg, #165dff, #0d44b5);
+  border-radius: 1rem;
+  box-shadow: 0 12px 28px rgb(22 93 255 / 0.24);
+  color: #fff;
+  display: flex;
+  height: 3.2rem;
+  justify-content: center;
+  width: 3.2rem;
+}
+
+.client-site-canvas[data-client="logicx"] .logicx-service-icon svg {
+  color: inherit;
+}
+
+.client-site-canvas[data-client="logicx"] .client-service-card h3 {
+  margin-top: 4.6rem;
+}
+
+.logicx-stat-index {
+  color: var(--primary) !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.64rem !important;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  margin-bottom: 2.4rem;
+}
+
+.client-site-canvas[data-client="logicx"] .client-cta {
+  background:
+    radial-gradient(circle at 88% 12%, rgb(54 122 255 / 0.52), transparent 20rem),
+    linear-gradient(135deg, #071326, #0c2c60);
+  box-shadow: 0 34px 80px -46px rgb(4 35 92 / 0.88);
+}
+
+html[data-logicx-theme="dark"] .client-site-canvas[data-client="logicx"] {
+  --background: #050b16;
+  --foreground: #edf4ff;
+  --card: rgb(12 25 46 / 0.9);
+  --card-foreground: #edf4ff;
+  --primary: #72a7ff;
+  --primary-foreground: #051126;
+  --secondary: #152a4b;
+  --secondary-foreground: #d9e8ff;
+  --muted: #101d32;
+  --muted-foreground: #9bacc4;
+  --accent: #213c65;
+  --accent-foreground: #f0f6ff;
+  --border: #263c5b;
+  --input: #334c70;
+  --ring: #72a7ff;
+  background:
+    radial-gradient(circle at 84% 4%, rgb(39 102 209 / 0.24), transparent 28rem),
+    linear-gradient(rgb(136 177 242 / 0.04) 1px, transparent 1px), #050b16;
+  background-size:
+    auto,
+    100% 8px,
+    auto;
+}
+
+html[data-logicx-theme="dark"] .client-site-canvas[data-client="logicx"] .logicx-header {
+  background: rgb(5 11 22 / 0.82);
+}
+
+html[data-logicx-theme="dark"] .client-site-canvas[data-client="logicx"] .client-hero h1 {
+  background: linear-gradient(115deg, #f4f8ff 18%, #72a7ff 70%, #69e7ff);
+  background-clip: text;
+  color: transparent;
+}
+
+html[data-logicx-theme="dark"] .client-site-canvas[data-client="logicx"] .client-section-muted {
+  background:
+    radial-gradient(circle at 12% 16%, rgb(38 104 218 / 0.15), transparent 22rem),
+    rgb(8 17 32 / 0.82);
+}
+
+html[data-logicx-theme="dark"] .client-site-canvas[data-client="logicx"] .client-service-card {
+  background: linear-gradient(145deg, rgb(15 31 56 / 0.96), rgb(7 16 30 / 0.9)), var(--card);
+  border-color: rgb(114 167 255 / 0.16);
+}
+
+html[data-logicx-theme="dark"] .logicx-service-number {
+  color: rgb(220 233 255 / 0.38);
+}
+
+@media (max-width: 860px) {
+  .logicx-primary-nav {
+    display: none;
+  }
+
+  .logicx-header-actions {
+    margin-left: auto;
+  }
+
+  .client-site-canvas[data-client="logicx"] .client-visual {
+    height: 500px;
+    min-height: 500px;
+  }
+
+  .logicx-system-ring-a {
+    width: min(360px, 82vw);
+  }
+}
+
+@media (max-width: 560px) {
+  .logicx-header {
+    min-height: 70px;
+    padding-inline: 0.8rem;
+  }
+
+  .logicx-header .client-brand {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .logicx-login-button span {
+    display: none;
+  }
+
+  .client-site-canvas[data-client="logicx"] .logicx-login-button,
+  .client-site-canvas[data-client="logicx"] .logicx-theme-trigger {
+    padding-inline: 0;
+    width: 2.3rem;
+  }
+
+  .logicx-hero-copy {
+    height: 600px;
+    min-height: 600px;
+  }
+
+  .logicx-hero-slide {
+    height: 425px;
+    min-height: 425px;
+  }
+
+  .client-site-canvas[data-client="logicx"] .client-visual {
+    height: 440px;
+    min-height: 440px;
+  }
+
+  .logicx-system-stage {
+    height: 300px;
+  }
+
+  .logicx-system-ring-a {
+    height: 168px;
+    width: 290px;
+  }
+
+  .logicx-system-ring-b {
+    height: 250px;
+    width: 152px;
+  }
+
+  .logicx-system-core {
+    height: 92px;
+    width: 92px;
+  }
+
+  .logicx-system-node-a,
+  .logicx-system-node-c {
+    left: 0;
+  }
+
+  .logicx-system-node-b,
+  .logicx-system-node-d {
+    right: 0;
+  }
+
+  .client-site-canvas[data-client="logicx"] .logicx-system-node {
+    padding: 0.58rem 0.65rem;
+  }
+
+  .client-site-canvas[data-client="logicx"] .logicx-system-node strong {
+    font-size: 0.58rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logicx-live-status::before,
+  .client-site-canvas[data-client="logicx"] .logicx-system-node,
+  .client-site-canvas[data-client="logicx"] .client-visual-footer i::after {
+    animation: none;
+  }
+
+  .logicx-wire-pulse {
+    animation: none;
+  }
+
+  .logicx-orbit-light {
+    display: none;
+  }
+
+  .logicx-capability-strip {
+    overflow-x: auto;
+  }
+
+  .logicx-capability-track {
+    animation: none;
+  }
+
+  .logicx-capability-group {
+    min-width: max-content;
+  }
+
+  .logicx-capability-group[aria-hidden="true"] {
+    display: none;
+  }
+}

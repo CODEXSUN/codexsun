@@ -1,0 +1,37 @@
+# Billing developer guide
+
+Commercial documents, payments, allocations, balances and reporting.
+
+<Callout title="Implementation scope">
+  Billing owns financial entries and settlement rules. Opening stock is not automatically a
+  storefront availability promise.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                    |
+| ------------------- | ---------------------------------------- |
+| Source owner        | `apps/billing`                           |
+| Documentation pages | `apps/docs/content/applications/billing` |
+| Modules inventoried | 17                                       |
+| Tenant app key      | `billing`                                |
+
+## Core business
+
+Billing owns financial entries and settlement rules. Opening stock is not automatically a storefront availability promise.
+
+## Primary workflow
+
+1. Configure company, financial year, numbering and enabled entry features.
+2. Create quotations, confirm sales/export sales or purchases using Core contacts/products.
+3. Post receipts/payments and allocate them to eligible documents.
+4. Read customer/supplier summaries, stock and GST statements in the current company/year.
+5. Print/export/mail through the owning public contracts; protect posted records and retain audit.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

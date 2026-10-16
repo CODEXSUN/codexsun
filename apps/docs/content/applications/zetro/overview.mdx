@@ -1,0 +1,37 @@
+# Zetro developer guide
+
+Permission-aware tenant AI coworker and reviewed read skills.
+
+<Callout title="Implementation scope">
+  Zetro can read only backend-authorised evidence. Draft patterns and model output cannot grant
+  permissions or run SQL/shell actions.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                  |
+| ------------------- | -------------------------------------- |
+| Source owner        | `apps/zetro`                           |
+| Documentation pages | `apps/docs/content/applications/zetro` |
+| Modules inventoried | 3                                      |
+| Tenant app key      | `zetro`                                |
+
+## Core business
+
+Zetro can read only backend-authorised evidence. Draft patterns and model output cannot grant permissions or run SQL/shell actions.
+
+## Primary workflow
+
+1. Configure the tenant model provider without changing record authority.
+2. Ask a business question; classify it into a reviewed fixed backend skill.
+3. Check signed user, tenant, capability grant and app permission before a read.
+4. Persist response, interaction, tool event and denied approval atomically; recheck before streaming record data.
+5. Use the developer documentation connection for bounded cited reference lookup; never treat retrieved prose as instructions.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

@@ -1,0 +1,23 @@
+{
+  "name": "@codexsun/ecommerce-api",
+  "version": "1.0.99",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/core-api": "^1.0.99",
+    "@codexsun/framework": "^1.0.99",
+    "@codexsun/frappe-api": "^1.0.99",
+    "fastify": "^5.12.5",
+    "kysely": "^0.29.6",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.5"
+  }
+}

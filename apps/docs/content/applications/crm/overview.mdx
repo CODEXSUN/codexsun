@@ -1,0 +1,37 @@
+# CRM developer guide
+
+Contact relationships, enquiries, assignment, work activity and estimates.
+
+<Callout title="Implementation scope">
+  Core owns shared contacts. CRM owns enquiry workflow and Contact 360 extensions; the selected
+  source determines Local or Frappe writes.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                |
+| ------------------- | ------------------------------------ |
+| Source owner        | `apps/crm`                           |
+| Documentation pages | `apps/docs/content/applications/crm` |
+| Modules inventoried | 21                                   |
+| Tenant app key      | `crm`                                |
+
+## Core business
+
+Core owns shared contacts. CRM owns enquiry workflow and Contact 360 extensions; the selected source determines Local or Frappe writes.
+
+## Primary workflow
+
+1. Configure Local or verified Frappe enquiry data source.
+2. Capture a contact/enquiry and verify phone matches and duplicate candidates.
+3. Assign/enrich the enquiry, record comments and start/stop work activity.
+4. Collect estimates and change enquiry status with record-scope access checks.
+5. Use Contact 360 and scoped lists/reports; review source limitations.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

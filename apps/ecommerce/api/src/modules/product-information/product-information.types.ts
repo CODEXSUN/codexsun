@@ -1,0 +1,65 @@
+export type PublicationStatus = "draft" | "published" | "archived";
+
+export type ProductInformationRecord = {
+  id: number;
+  uuid: string;
+  coreProductId: number;
+  coreProductName: string;
+  brandId: number | null;
+  brandName: string | null;
+  storefrontTitle: string;
+  subtitle: string;
+  slug: string;
+  shortDescription: string;
+  description: string;
+  bulletPoints: string[];
+  material: string;
+  countryOfOrigin: string;
+  manufacturer: string;
+  warranty: string;
+  returnPolicy: string;
+  shippingClass: string;
+  weight: number;
+  length: number;
+  width: number;
+  height: number;
+  minimumOrderQuantity: number;
+  maximumOrderQuantity: number | null;
+  seoTitle: string;
+  seoDescription: string;
+  publicationStatus: PublicationStatus;
+  isFeatured: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProductInformationSaveInput = {
+  coreProductId: number;
+  brandId?: number | null;
+  storefrontTitle: string;
+  subtitle?: string;
+  slug: string;
+  shortDescription?: string;
+  description?: string;
+  bulletPoints?: string[];
+  material?: string;
+  countryOfOrigin?: string;
+  manufacturer?: string;
+  warranty?: string;
+  returnPolicy?: string;
+  shippingClass?: string;
+  weight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
+  minimumOrderQuantity?: number;
+  maximumOrderQuantity?: number | null;
+  seoTitle?: string;
+  seoDescription?: string;
+  publicationStatus?: PublicationStatus;
+  isFeatured?: boolean;
+};
+
+export type ProductInformationFilters = { search?: string; status?: PublicationStatus };
+export type CoreProductOption = { id: number; name: string };
+export type CoreBrandOption = { id: number; name: string };

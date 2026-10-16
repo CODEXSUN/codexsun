@@ -1,0 +1,22 @@
+{
+  "name": "@codexsun/codexsun-web",
+  "version": "1.0.99",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./modules/requirements": "./src/modules/requirements/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/ui": "^1.0.99",
+    "@tanstack/react-query": "^5.104.1",
+    "react": "^19.3.0",
+    "socket.io-client": "^4.8.4",
+    "zod": "^4.6.5"
+  }
+}

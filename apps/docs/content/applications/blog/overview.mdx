@@ -1,0 +1,35 @@
+# Blog developer guide
+
+External Blog package integration and tenant publishing.
+
+<Callout title="Implementation scope">
+  Blog is maintained as an external package. This checkout documents integration boundaries, not
+  private package implementation.
+</Callout>
+
+## Application entry points
+
+| Contract            | Value                                 |
+| ------------------- | ------------------------------------- |
+| Source owner        | `external:@codexsun/blog`             |
+| Documentation pages | `apps/docs/content/applications/blog` |
+| Modules inventoried | 0                                     |
+| Tenant app key      | `blog`                                |
+
+## Core business
+
+Blog is maintained as an external package. This checkout documents integration boundaries, not private package implementation.
+
+## Primary workflow
+
+1. Enable Blog and provision the external package through its public migration/host contract.
+2. Open the composed article/editor workspace.
+3. Maintain permitted articles/authors/media and review publishing/SEO/discussion capabilities from the installed package.
+
+## Developer navigation
+
+- [Business and ownership](./business)
+- [Workflow](./workflow)
+- [Module catalog](./modules)
+
+Documentation separates executable source contracts from intended product scope. Module pages list detected files, explicit routes, tables and permissions; absence of a literal route does not mean a dynamically composed route is absent.

@@ -1,0 +1,26 @@
+{
+  "name": "@codexsun/mail-api",
+  "version": "1.0.99",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./modules/mail": "./src/modules/mail/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test src/modules/mail/mail.spec.ts",
+    "typecheck": "npm run build -w @codexsun/framework && tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/framework": "^1.0.99",
+    "fastify": "^5.12.5",
+    "imapflow": "^2.2.6",
+    "kysely": "^0.29.6",
+    "mailparser": "^3.9.36",
+    "node-pop3": "^0.15.3",
+    "nodemailer": "^10.0.15",
+    "zod": "^4.6.5"
+  }
+}

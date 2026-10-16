@@ -1,0 +1,21 @@
+import { crmRequest } from "../../crm-request";
+
+export type Sop = { id: number; code: string; title: string; purpose: string; status: "active" | "inactive" };
+export type SopItem = { id: number; sopId: number; code: string; title: string; department: string; frequency: string; sortOrder:number; status: "active" | "inactive"; currentRevision: { id: number; instructions: string; evidenceGuidance: string; revision: number; status: string } | null };
+export type DutyAssignment = { id: number; sopItemId: number; revisionId: number; assigneeUserId: number; displayOrder: number; startDate: string; endDate: string | null; sopTitle: string; itemTitle: string; assigneeName: string; assigneeEmail: string; status: string };
+export const listSops = () => crmRequest<Sop[]>("/crm/sops");
+export const createSop = (input: { code: string; title: string; purpose: string }) => crmRequest<Sop>("/crm/sops", { method: "POST", body: JSON.stringify(input) });
+export const updateSop = (id:number,input:{code:string;title:string;purpose:string}) => crmRequest<Sop>(`/crm/sops/${id}`,{method:"PUT",body:JSON.stringify(input)});
+export const setSopActive = (id:number,active:boolean) => crmRequest<Sop>(`/crm/sops/${id}/${active?"activate":"deactivate"}`,{method:"POST"});
+export const listSopItems = () => crmRequest<SopItem[]>("/crm/sop-items");
+export const createSopItem = (input: { sopId: number; code: string; title: string; department: string; frequency: "daily" | "weekly" | "monthly" | "quarterly" | "annually" | "once"; sortOrder: number; revision: { instructions: string; evidenceGuidance: string } }) => crmRequest<SopItem>("/crm/sop-items", { method: "POST", body: JSON.stringify(input) });
+export const publishSopItem = (itemId: number, revisionId: number) => crmRequest(`/crm/sop-items/${itemId}/revisions/${revisionId}/publish`, { method: "POST" });
+export type SopRevision={id:number;revision:number;instructions:string;evidenceGuidance:string;status:string;author:string;createdAt:string};
+export const updateSopItem=(id:number,input:{sopId:number;code:string;title:string;department:string;frequency:string;sortOrder:number})=>crmRequest<SopItem>(`/crm/sop-items/${id}`,{method:"PUT",body:JSON.stringify(input)});
+export const listSopRevisions=(id:number)=>crmRequest<SopRevision[]>(`/crm/sop-items/${id}/revisions`);
+export const createSopRevision=(id:number,input:{instructions:string;evidenceGuidance:string})=>crmRequest<SopRevision>(`/crm/sop-items/${id}/revisions`,{method:"POST",body:JSON.stringify(input)});
+export const updateSopRevision=(itemId:number,revisionId:number,input:{instructions:string;evidenceGuidance:string})=>crmRequest<SopRevision>(`/crm/sop-items/${itemId}/revisions/${revisionId}`,{method:"PUT",body:JSON.stringify(input)});
+export const listAssignments = () => crmRequest<DutyAssignment[]>("/crm/duty-assignments");
+export const assignDuty = (input: { sopItemId: number; revisionId: number; assigneeUserId: number; displayOrder: number; startDate: string; endDate: string | null }) => crmRequest<DutyAssignment>("/crm/duty-assignments", { method: "POST", body: JSON.stringify(input) });
+export const deactivateDuty=(id:number)=>crmRequest(`/crm/duty-assignments/${id}/deactivate`,{method:"POST"});
+export const listCrmUsers = () => crmRequest<Array<{ id: number; name: string; email: string }>>("/crm/duty-users");
