@@ -88,3 +88,51 @@ npm run build
 The E2E suite is restricted to isolated `codexsun_dev_` databases and verifies tenant access, persisted/audited overrides, stale revision conflicts, safe reseeding, restoration and Zuno's Super Admin boundary. Browser verification covers app-group navigation, compiled MDX, GFM/highlighting, source/TOC, edit/restore, search and mobile layout. Configure model providers separately; no live external model call is required by the focused assistant contract tests.
 
 Root production builds compile from current sources (`--force`) to avoid overlapping root-dist cache restores. The MDX plugin runs before Vite's JS transform, Docs module aliases resolve the physical workspace for development HMR, and Markdown dependencies are prebundled for browser-compatible imports.
+
+## Component documentation
+
+Versioned repository documentation, tenant body overrides, source-hash verification, and bounded developer-reference lookup.
+
+Repository sources remain protected. Tenant overrides do not grant application permissions. Keep cited source identity and live Docs authorization aligned.
+
+- [TASK.md](agent/TASK.md): work items and acceptance evidence.
+- [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.
+- [SKILLS.md](agent/SKILLS.md): component working rules and safety constraints.
+
+### Source inventory
+
+- `api/src/modules`: `knowledge`, `overview`.
+- `web/src/modules`: `knowledge`, `overview`.
+
+This inventory records source presence. It does not certify a deployed feature.
+
+### Workspace verification
+
+Run these commands from the repository root. Use the root installation and `dist` output tree.
+
+- `node tools/check-module-boundaries.mjs docs`
+- `npm run typecheck -w @codexsun/docs-api`
+- `npm run lint -w @codexsun/docs-api`
+- `npm run build -w @codexsun/docs-api`
+- `npm run typecheck -w @codexsun/docs-web`
+- `npm run lint -w @codexsun/docs-web`
+- `npm run build -w @codexsun/docs-web`
+
+Run `npm run check:component-docs` to verify the required documentation files.
+Run the relevant app tests and root release gates when implementation changes.
+Report database, browser, native, and deployment checks separately.
+
+### Workspace packages
+
+- `api`: `@codexsun/docs-api`.
+- `web`: `@codexsun/docs-web`.
+
+### Declared internal dependencies
+
+- `@codexsun/framework`
+- `@codexsun/ui`
+
+### Public package entry points
+
+- `@codexsun/docs-api`: `.`.
+- `@codexsun/docs-web`: `.`, `./modules/overview`, `./modules/overview/gateway`, `./modules/knowledge`.

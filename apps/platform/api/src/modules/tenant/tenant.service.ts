@@ -148,11 +148,7 @@ export class TenantService {
         if (key === "accounts.accounting") return "accounts.overview";
         return key;
       })
-      .filter(
-        (key) =>
-          key !== "devkit" &&
-          key !== "project-manager"
-      );
+      .filter((key) => key !== "devkit" && key !== "project-manager");
     const defaultKeys = includeDefaults
       ? defaultTenantModuleKeys.filter((key) => !disabledModuleKeys.includes(key))
       : ["platform.application"];
@@ -392,7 +388,7 @@ export async function resolvePublicStorefrontTenant(value: string): Promise<Tena
   const tenant = isSingleTenantMode()
     ? await configuredSingleTenant(repository).catch(() => null)
     : env.NODE_ENV === "development" &&
-        env.ENABLE_DEFAULT_TENANT_SEED === "1" &&
+        Boolean(env.DEFAULT_TENANT_CORPORATE_ID.trim()) &&
         (host === "localhost" || host === "127.0.0.1")
       ? await repository.findByCorporateId(env.DEFAULT_TENANT_CORPORATE_ID)
       : await repository.findByDomain(host);

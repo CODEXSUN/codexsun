@@ -1,18 +1,27 @@
 {
   "name": "@codexsun/sites-api",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": true,
   "type": "module",
   "exports": {
+    "./page-defaults": "./src/modules/site/page/page.defaults.ts",
+    "./public-contract": "./src/modules/site/site.public-contract.ts",
+    "./page-contract": "./src/modules/site/page/page.schema.ts",
+    "./page-content": "./src/modules/site/page/page.content.ts",
+    "./blog-contract": "./src/modules/site/blog/blog.schema.ts",
     ".": "./src/index.ts"
   },
   "scripts": {
+    "test:cms": "node --import tsx --test src/modules/site/site.cms.test.ts src/modules/site/site.cms-mariadb.test.ts src/modules/overview/overview.identity.test.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "oxlint src"
   },
+  "devDependencies": {
+    "mysql2": "^3.24.5"
+  },
   "dependencies": {
-    "@codexsun/framework": "^1.1.1",
+    "@codexsun/framework": "^1.1.2",
     "fastify": "^5.12.5",
     "kysely": "^0.29.6",
     "zod": "^4.6.5"

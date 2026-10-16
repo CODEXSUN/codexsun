@@ -5,8 +5,8 @@ import { AppError } from "@codexsun/framework/errors";
 
 export function loadZetroAgentRules() {
   const paths = [
-    resolve(import.meta.dirname, "../../../../agent/skills.md"),
-    resolve(import.meta.dirname, "../../../agent/skills.md")
+    resolve(import.meta.dirname, "../../../../agent/SKILLS.md"),
+    resolve(import.meta.dirname, "../../../agent/SKILLS.md")
   ];
   for (const path of paths) {
     try {

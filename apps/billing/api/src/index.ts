@@ -13,3 +13,7 @@ export {
   lookupBillingPeriod,
   lookupLongOutstandingSales
 } from "./modules/dashboard/dashboard.assistant-read.js";
+
+export { SalesComplianceRepository, configureSalesComplianceRuntime, processSalesComplianceJob } from "./modules/sales/index.js";
+
+export { ExportSalesComplianceRepository, configureExportSalesComplianceRuntime, processExportSalesComplianceJob } from "./modules/export-sales/index.js";

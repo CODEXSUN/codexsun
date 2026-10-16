@@ -19,6 +19,7 @@
 @source "../../../apps/crm/web/src";
 @source "../../../apps/mail/web/src";
 @source "../../../apps/platform/web/src";
+@source "../../../apps/qcafe/web/src/modules";
 @source "../../../apps/zetro/web/src";
 @source "../../../devkits/project-manager/web/src";
 @source "../../../devkits/zuno/web/src";
@@ -898,9 +899,26 @@
     backdrop-filter: blur(0);
     background: transparent;
     inset: 0;
+    isolation: isolate;
     min-height: 100svh;
+    overflow: hidden;
     position: fixed;
     will-change: background-color, backdrop-filter;
+  }
+
+  .global-loader-fullscreen::before {
+    animation: global-loader-aurora 18s ease-in-out infinite alternate;
+    background:
+      radial-gradient(ellipse at 15% 30%, rgb(110 231 183 / 0.12), transparent 55%),
+      radial-gradient(ellipse at 70% 20%, rgb(196 181 253 / 0.14), transparent 55%),
+      radial-gradient(ellipse at 80% 75%, rgb(125 211 252 / 0.12), transparent 55%),
+      radial-gradient(ellipse at 30% 85%, rgb(249 168 212 / 0.09), transparent 50%);
+    content: "";
+    filter: blur(36px);
+    inset: -15%;
+    pointer-events: none;
+    position: absolute;
+    z-index: -1;
   }
 
   .global-loader-fullscreen .global-loader-mark {
@@ -1025,8 +1043,17 @@
     }
 
     to {
-      backdrop-filter: blur(7px);
-      background-color: rgb(2 6 23 / 0.12);
+      backdrop-filter: blur(10px);
+      background-color: color-mix(in oklab, var(--background) 18%, transparent);
+    }
+  }
+
+  @keyframes global-loader-aurora {
+    from {
+      transform: translate(-3%, -2%) rotate(-6deg) scale(1);
+    }
+    to {
+      transform: translate(3%, 2%) rotate(6deg) scale(1.08);
     }
   }
 
@@ -1043,6 +1070,10 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .global-loader-fullscreen::before {
+      animation: none;
+    }
+
     .global-loader-fullscreen,
     .global-loader-fullscreen .global-loader-mark {
       animation-delay: 0ms;

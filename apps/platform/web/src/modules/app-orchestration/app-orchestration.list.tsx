@@ -9,7 +9,7 @@ export const appOperationTones: Record<
   { card: string; icon: string; metric: string }
 > = {
   platform: {
-    card: "border-cyan-200/80 from-cyan-100 via-sky-50 to-blue-100 hover:border-cyan-300 dark:border-cyan-800/70 dark:from-cyan-950/70 dark:via-sky-950/50 dark:to-blue-950/70",
+    card: "border-cyan-200/80 from-cyan-50 via-card to-blue-50 hover:border-cyan-300 dark:border-cyan-800/70 dark:from-cyan-950/70 dark:via-sky-950/50 dark:to-blue-950/70",
     icon: "border-cyan-200 bg-white/70 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/70 dark:text-cyan-300",
     metric:
       "border-cyan-100 from-cyan-50/80 via-card to-blue-50/70 dark:border-cyan-900 dark:from-cyan-950/35 dark:to-blue-950/25"

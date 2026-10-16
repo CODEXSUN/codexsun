@@ -9,6 +9,9 @@ import { env } from "../../env.js";
 import { withBillingScope } from "../../auth/billing-scope.js";
 import { QuotationService } from "./quotation.service.js";
 import { SalesService } from "../sales/index.js";
+import { loadComplianceParties as loadSalesParties } from "../sales/sales.compliance-parties.js";
+import { loadComplianceParties as loadExportParties } from "../export-sales/export-sales.compliance-parties.js";
+import { ExportSalesService } from "../export-sales/index.js";
 import { ReceiptService, assertExportInvoiceUnallocated } from "../receipt/index.js";
 import { OpeningBalanceService, readOpeningBalanceOverrides } from "../opening-balance/index.js";
 import {
@@ -17,7 +20,7 @@ import {
   type BillingDatabase
 } from "../../database/billing-database.js";
 
-export async function runQuotationE2e() {
+export async function runQuotationE2e(verifyCompliance?: (databaseName:string,saleId:string)=>Promise<void>) {
   const databaseName = `codexsun_quotation_e2e_${Date.now()}`;
   let admin = await createConnection({
     host: env.DB_HOST,
@@ -293,7 +296,7 @@ export async function runQuotationE2e() {
       assert.equal((await receipts.get(databaseName, mixed.id))?.allocations.length, 2);
 
       await admin.query(
-        "ALTER TABLE core_contacts ADD COLUMN opening_balance DECIMAL(18,2) NOT NULL DEFAULT 0, ADD COLUMN deleted_at DATETIME NULL"
+        "ALTER TABLE core_contacts ADD COLUMN opening_balance DECIMAL(18,2) NOT NULL DEFAULT 0"
       );
       await admin.query("UPDATE core_contacts SET opening_balance=125 WHERE id=1");
       const openings = new OpeningBalanceService();
@@ -372,6 +375,107 @@ export async function runQuotationE2e() {
         (await service.list(databaseName)).some((item) => item.id === otherScopeQuotation.id),
         false
       );
+      await admin.query(
+        "ALTER TABLE core_companies ADD COLUMN legal_name VARCHAR(180) NULL, ADD COLUMN gstin VARCHAR(40) NULL, ADD COLUMN addresses_json JSON NULL"
+      );
+      await admin.query(
+        "CREATE TABLE core_countries (id INT PRIMARY KEY, code VARCHAR(2) NOT NULL)"
+      );
+      await admin.query("INSERT INTO core_countries VALUES (1,'IN')");
+      await admin.query("ALTER TABLE core_contacts_addresses ADD COLUMN country_id INT NULL");
+      await admin.query("UPDATE core_contacts_addresses SET country_id=1 WHERE id=1");
+      await admin.query(
+        "UPDATE core_companies SET gstin='33ABCDE1234F1Z5', addresses_json=? WHERE id=1",
+        [
+          JSON.stringify([
+            {
+              addressLine1: "1 Company Road",
+              cityName: "Chennai",
+              pincodeName: "600001",
+              isDefault: true
+            }
+          ])
+        ]
+      );
+      const complianceSale = await new SalesService().getSale(databaseName, conversion.sale.id);
+      assert.ok(complianceSale);
+      const parties = await loadSalesParties(databaseName, complianceSale);
+      assert.equal(parties.seller.gstin, "33ABCDE1234F1Z5");
+      assert.equal(parties.seller.address.cityName, "Chennai");
+      assert.equal(parties.buyer.stateCode, "29");
+      assert.equal(parties.shipping.countryCode, "IN");
+      const exportInvoice = await new ExportSalesService().getExportSale(databaseName, "eeff0011");
+      assert.ok(exportInvoice);
+      assert.deepEqual(await loadExportParties(databaseName, exportInvoice), parties);
+      await assert.rejects(
+        () =>
+          withBillingScope({ companyId: 2, financialYearId: 1 }, () =>
+            loadSalesParties(databaseName, complianceSale)
+          ),
+        /must match/
+      );
+      const originalFetch = globalThis.fetch;
+      const originalProvider = { ...env };
+      Object.assign(env, {
+        GSP_ENVIRONMENT: "sandbox",
+        GSP_GSTIN: "33ABCDE1234F1Z5",
+        GSP_CLIENT_ID: "test-client",
+        GSP_CLIENT_SECRET: "test-secret",
+        GSP_USERNAME: "test-user",
+        GSP_PASSWORD: "test-password",
+        GSP_EMAIL: "test@example.invalid",
+        GSP_IP_ADDRESS: "127.0.0.1"
+      });
+      let providerCalls = 0;
+      globalThis.fetch = async (input) => {
+        providerCalls += 1;
+        const url = String(input);
+        return Response.json({
+          status_cd: "1",
+          data: url.includes("authenticate")
+            ? { AuthToken: "test-token" }
+            : url.includes("GENERATE_EWAYBILL")
+              ? { EwbNo: 123456789012, EwbDt: "16/10/2026 12:00:00" }
+              : {
+                  Irn: "a".repeat(64),
+                  AckNo: 1234567890,
+                  AckDt: "16/10/2026 12:00:00",
+                  SignedQRCode: "test-signed-qr"
+                }
+        });
+      };
+      try {
+        const salesService = new SalesService();
+        const generated = await salesService.generateEinvoice(databaseName, complianceSale.id);
+        assert.equal(generated?.einvoice.irn, "a".repeat(64));
+        assert.equal(
+          (await salesService.getSale(databaseName, complianceSale.id))?.einvoice.ackDate,
+          "2026-10-16T12:00:00"
+        );
+        const eway = await salesService.generateEway(
+          databaseName,
+          complianceSale.id,
+          { ...complianceSale.eway, part: "Part B", vehicleNo: "TN01AB1234" },
+          100
+        );
+        assert.equal(eway?.eway.billNo, "123456789012");
+        assert.equal(
+          (await salesService.getSale(databaseName, complianceSale.id))?.eway.billDate,
+          "2026-10-16"
+        );
+        const count = providerCalls;
+        await salesService.generateEinvoice(databaseName, complianceSale.id);
+        await salesService.generateEway(databaseName, complianceSale.id, undefined, 100);
+        assert.equal(providerCalls, count);
+        await assert.rejects(
+          () => salesService.cancelSale(databaseName, complianceSale.id),
+          /provider/
+        );
+      } finally {
+        globalThis.fetch = originalFetch;
+        Object.assign(env, originalProvider);
+      }
+      if(verifyCompliance) await verifyCompliance(databaseName,conversion.sale.id);
       return { databaseName, quotationId: convertible.id, saleId: conversion.sale.id };
     });
   } finally {
@@ -396,7 +500,7 @@ export async function runQuotationE2e() {
 const parentSchema = [
   "CREATE TABLE core_companies (id INT PRIMARY KEY, name VARCHAR(180) NOT NULL, status VARCHAR(24) NOT NULL)",
   "CREATE TABLE core_financial_years (id INT PRIMARY KEY, name VARCHAR(180) NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL, status VARCHAR(24) NOT NULL)",
-  "CREATE TABLE core_contacts (id INT PRIMARY KEY, name VARCHAR(180) NOT NULL, legal_name VARCHAR(180) NULL, primary_email VARCHAR(180) NULL, primary_phone VARCHAR(40) NULL, gstin VARCHAR(40) NULL, credit_limit DECIMAL(14,2) NOT NULL DEFAULT 0, status VARCHAR(24) NOT NULL)",
+  "CREATE TABLE core_contacts (id INT PRIMARY KEY, name VARCHAR(180) NOT NULL, legal_name VARCHAR(180) NULL, primary_email VARCHAR(180) NULL, primary_phone VARCHAR(40) NULL, gstin VARCHAR(40) NULL, credit_limit DECIMAL(14,2) NOT NULL DEFAULT 0, status VARCHAR(24) NOT NULL, deleted_at DATETIME NULL)",
   "CREATE TABLE core_states (id INT PRIMARY KEY, code VARCHAR(80) NOT NULL, name VARCHAR(180) NOT NULL)",
   "CREATE TABLE core_contacts_addresses (id INT PRIMARY KEY, parent_id INT NOT NULL, address_line1 VARCHAR(255) NOT NULL, address_line2 VARCHAR(255) NULL, city_name VARCHAR(120) NULL, district_name VARCHAR(120) NULL, state_id INT NULL, state_name VARCHAR(120) NULL, pincode_name VARCHAR(24) NULL, country_name VARCHAR(120) NULL)",
   "CREATE TABLE core_work_orders (id INT PRIMARY KEY, code VARCHAR(120) NOT NULL, name VARCHAR(180) NULL, status VARCHAR(24) NOT NULL)",
@@ -416,7 +520,7 @@ const parentSchema = [
 const parentRecords = [
   "INSERT INTO core_companies VALUES (1, 'E2E Company', 'active')",
   "INSERT INTO core_financial_years VALUES (1, '2026-27', '2026-04-01', '2027-03-31', 'active')",
-  "INSERT INTO core_contacts VALUES (1, 'E2E Customer', 'E2E Customer', 'customer@example.test', '9000000000', '33ABCDE1234F1Z5', 0, 'active')",
+  "INSERT INTO core_contacts (id,name,legal_name,primary_email,primary_phone,gstin,credit_limit,status) VALUES (1, 'E2E Customer', 'E2E Customer', 'customer@example.test', '9000000000', '33ABCDE1234F1Z5', 0, 'active')",
   "INSERT INTO core_states VALUES (1, '33', 'Tamil Nadu'), (2, '29', 'Karnataka')",
   "INSERT INTO core_contacts_addresses VALUES (1, 1, '1 Test Street', NULL, 'Chennai', 'Chennai', 1, 'Tamil Nadu', '600001', 'India')",
   "INSERT INTO core_work_orders VALUES (1, 'WO-1', 'E2E Work Order', 'active')",

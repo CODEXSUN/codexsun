@@ -1,4 +1,8 @@
 export { EcommerceOverviewWorkspace } from "./overview.workspace";
+export {
+  EcommerceStorefrontControls,
+  type EcommerceStorefrontRuntimeGateway
+} from "./overview.storefront-controls";
 export { ecommerceOverviewQueryKey, useEcommerceOverview } from "./overview.hooks";
 export {
   createEcommerceOverviewGateway,

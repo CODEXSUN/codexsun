@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const apiPackages = new Map([
+  ["@codexsun/qcafe-api", "qcafe"],
   ["@codexsun/codexsun-api", "codexsun"],
   ["@codexsun/hrms-api", "hrms"],
   ["@codexsun/docs-api", "docs"],
@@ -36,6 +37,20 @@ registerHooks({
 });
 
 function productionApiTarget(specifier) {
+  if (specifier.startsWith("@codexsun/qcafe-api/src/")) {
+    const source = resolve(
+      root,
+      "apps",
+      "qcafe",
+      "api",
+      specifier.slice("@codexsun/qcafe-api/".length)
+    );
+    if (!existsSync(source)) {
+      throw new Error(`Production source is missing for ${specifier}.`);
+    }
+    return source;
+  }
+
   for (const [packageName, app] of apiPackages) {
     if (specifier !== packageName && !specifier.startsWith(`${packageName}/`)) continue;
     const subpath = specifier.slice(packageName.length + 1);

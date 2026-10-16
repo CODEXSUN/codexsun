@@ -211,7 +211,7 @@ function launchChild() {
         TEMP: tmpdir(),
         TMP: tmpdir(),
         TMPDIR: tmpdir(),
-        ...(["platform-api", "platform-web"].includes(app)
+        ...(["platform-api", "platform-web", "qcafe-web", "ecommerce-web"].includes(app)
           ? {
               NODE_OPTIONS: withMaxHttpHeaderSize(
                 process.env.NODE_OPTIONS ?? env.NODE_OPTIONS,

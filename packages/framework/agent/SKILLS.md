@@ -1,0 +1,32 @@
+# Framework working skills
+
+## Apply this guidance
+
+Use this file when planning, implementing, debugging, or reviewing Framework.
+Read [the README](../README.md), [TASK.md](TASK.md), and [PLAN.md](PLAN.md) first.
+This file is component guidance. It does not install a global Codex skill or grant a runtime capability.
+
+## Domain responsibilities
+
+Shared transport, configuration, database, environment, error, event, health, logging, module, queue, and storage contracts.
+
+Keep this package free of app-owned fields and business CRUD. Expose intentional public contracts. Preserve runtime and source export resolution and root output paths.
+
+## Implementation rules
+
+- Inspect the affected source and public contracts before editing.
+- Keep concrete business behavior in its owning leaf or package.
+- Preserve authoritative validation, permission checks, and data ownership.
+- Add worker, event, or sync roles only when they contain real implemented behavior.
+- Keep secrets, generated files, and local runtime data out of source control.
+- Run npm commands from the repository root. Write generated output under root `dist`.
+- Update this owner documentation when scope, contracts, or supported operations change.
+
+## Review and evidence
+
+- `npm run typecheck -w @codexsun/framework`
+- `npm run lint -w @codexsun/framework`
+- `npm run build -w @codexsun/framework`
+
+Check affected consumers and relevant tests. Report skipped or blocked checks explicitly.
+Documentation and prompts never replace backend authorization or deployment approval.

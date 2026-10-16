@@ -17,70 +17,42 @@ import { ClientCanvas } from "../../shared/ClientCanvas";
 import { useClientDocument } from "../../shared/useClientDocument";
 import { LogicxThemeSelector } from "./LogicxThemeSelector";
 import "./logicx-site.css";
-
-const heroSlides = [
-  {
-    eyebrow: "Software that connects the work",
-    title: "Practical systems. Built around your business.",
-    description:
-      "Connect operations, finance and customer workflows through purposeful software that fits the way your team already works."
-  },
-  {
-    eyebrow: "Integrations without the friction",
-    title: "Your systems, data and people. Finally in sync.",
-    description:
-      "Join Tally, ERPNext, websites and internal tools with dependable flows that remove duplicate work and keep decisions clear."
-  },
-  {
-    eyebrow: "Delivery that stays accountable",
-    title: "From complex workflow to confident everyday use.",
-    description:
-      "Discover the real process, release improvements in useful stages, and keep every system supported after it reaches production."
-  }
-] as const;
-
-const services = [
-  {
-    icon: Braces,
-    title: "Custom software",
-    description: "Purpose-built systems for the way your team works."
-  },
-  {
-    icon: Database,
-    title: "Tally integration",
-    description: "Finance data connected, validated and reconciled."
-  },
-  {
-    icon: ServerCog,
-    title: "ERPNext delivery",
-    description: "Practical ERP rollout shaped around real operations."
-  },
-  {
-    icon: Globe2,
-    title: "Website engineering",
-    description: "Fast digital experiences built to keep evolving."
-  },
-  {
-    icon: Bot,
-    title: "Workflow automation",
-    description: "Rules and approvals that remove repetitive work."
-  },
-  {
-    icon: ServerCog,
-    title: "Hosting and care",
-    description: "Reliable production care after every launch."
-  }
-] as const;
-
-const capabilities = ["Custom software", "ERPNext", "Tally", "Web systems", "Automation"] as const;
+import { useSitePublication } from "../../shared/useSitePublication";
+import { PortfolioPages, PortfolioPageLinks } from "../../shared/PortfolioPages";
 
 export function LogicxSite() {
+  const { content, blogs, connected } = useSitePublication("logicx");
+  const heroSlides = [
+    {
+      eyebrow: content.hero.eyebrow,
+      title: `${content.hero.title} ${content.hero.secondLine} ${content.hero.emphasis}`,
+      description: content.hero.intro
+    },
+    {
+      eyebrow: content.about.label,
+      title: `${content.about.title} ${content.about.emphasis}`,
+      description: content.about.intro
+    },
+    {
+      eyebrow: content.processing.label,
+      title: `${content.processing.title} ${content.processing.emphasis}`,
+      description: content.processing.intro
+    }
+  ];
+  const icons = [Braces, Database, ServerCog, Globe2, Bot, ServerCog];
+  const services = content.finishes.items.map((item, index) => ({
+    icon: icons[index % icons.length]!,
+    title: item.name,
+    description: item.detail
+  }));
+  const capabilities = content.materials.names;
   const [heroIndex, setHeroIndex] = useState(0);
   const reducedMotion = useReducedMotion();
 
+  const article = blogs.find((post) => window.location.pathname === `/blogs/${post.slug}`);
   useClientDocument(
-    "Logicx Info Tech | Practical software systems",
-    "Custom software, ERPNext, Tally integration, website engineering and automation.",
+    article ? `${article.title} | ${content.profile.name}` : content.pageTitle,
+    article?.summary ?? content.description,
     "#f6f9ff"
   );
 
@@ -99,17 +71,21 @@ export function LogicxSite() {
     setHeroIndex((index + heroSlides.length) % heroSlides.length);
   }
 
+  if (window.location.pathname !== "/")
+    return <PortfolioPages content={content} blogs={blogs} connected={connected} />;
   return (
     <ClientCanvas client="logicx" theme="blue">
       <header className="client-header logicx-header">
         <a className="client-brand" href="#top" aria-label="Logicx home">
           <span className="client-brand-mark">LX</span>
-          Logicx Info Tech
+          {content.profile.brand}
         </a>
         <nav className="logicx-primary-nav" aria-label="Main navigation">
-          <a href="#services">Services</a>
+          <a href="/about">About</a>
+          <a href="/services">Services</a>
           <a href="#method">Method</a>
-          <a href="#contact">Contact</a>
+          <a href="/contact">Contact</a>
+          <a href="/blogs">Blog</a>
         </nav>
         <div className="logicx-header-actions">
           <Button asChild className="logicx-login-button" size="sm" variant="outline">
@@ -146,8 +122,8 @@ export function LogicxSite() {
               transition={{ delay: 0.18, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             >
               <Button asChild size="lg">
-                <a href="mailto:hello@logicx.in">
-                  Discuss your workflow <ArrowUpRight aria-hidden="true" />
+                <a href={`mailto:${content.profile.emails[0]}`}>
+                  {content.hero.button} <ArrowUpRight aria-hidden="true" />
                 </a>
               </Button>
               <Button asChild size="lg" variant="outline">
@@ -311,13 +287,12 @@ export function LogicxSite() {
         <section className="client-section client-section-muted" id="services">
           <div className="client-wrap">
             <div className="client-section-heading">
-              <span className="client-eyebrow">What we build</span>
+              <span className="client-eyebrow">{content.finishes.label}</span>
               <div>
-                <h2>Useful technology, joined properly.</h2>
-                <p>
-                  Each engagement starts with the real workflow, then chooses the smallest reliable
-                  combination of product, integration and infrastructure needed to improve it.
-                </p>
+                <h2>
+                  {content.finishes.title} {content.finishes.emphasis}
+                </h2>
+                <p>{content.finishes.intro}</p>
               </div>
             </div>
             <div className="client-card-grid">
@@ -350,55 +325,46 @@ export function LogicxSite() {
 
         <section className="client-section client-wrap" id="method">
           <div className="client-section-heading">
-            <span className="client-eyebrow">Delivery method</span>
+            <span className="client-eyebrow">{content.about.label}</span>
             <div>
-              <h2>Clear from discovery to support.</h2>
-              <p>
-                We map the process, establish the data and integration boundaries, release in useful
-                stages, and remain accountable after the system reaches production.
-              </p>
+              <h2>
+                {content.about.title} {content.about.emphasis}
+              </h2>
+              <p>{content.about.lead}</p>
             </div>
           </div>
           <div className="client-stats">
-            <div className="client-stat">
-              <span className="logicx-stat-index">01</span>
-              <strong>Discover first</strong>
-              <span>Process, people, data and exceptions</span>
-            </div>
-            <div className="client-stat">
-              <span className="logicx-stat-index">02</span>
-              <strong>Release in stages</strong>
-              <span>Useful milestones with visible progress</span>
-            </div>
-            <div className="client-stat">
-              <span className="logicx-stat-index">03</span>
-              <strong>Own the outcome</strong>
-              <span>Documentation, monitoring and continued care</span>
-            </div>
+            {content.processing.lines[0]?.stages.map(([name, detail], index) => (
+              <div className="client-stat" key={index}>
+                <span className="logicx-stat-index">{String(index + 1).padStart(2, "0")}</span>
+                <strong>{name}</strong>
+                <span>{detail}</span>
+              </div>
+            ))}
           </div>
         </section>
 
         <section className="client-section client-wrap" id="contact">
           <div className="client-cta">
             <div>
-              <h2>Make the next system easier to run.</h2>
-              <p>
-                Share the process that is slowing your team down. We will help shape a practical
-                path from the current workflow to a dependable software system.
-              </p>
+              <h2>
+                {content.contact.title} {content.contact.emphasis}
+              </h2>
+              <p>{content.contact.intro}</p>
             </div>
             <Button asChild size="lg" variant="secondary">
-              <a href="mailto:hello@logicx.in">
-                hello@logicx.in <ArrowUpRight aria-hidden="true" />
+              <a href={`mailto:${content.profile.emails[0]}`}>
+                {content.profile.emails[0]} <ArrowUpRight aria-hidden="true" />
               </a>
             </Button>
           </div>
         </section>
+        <PortfolioPageLinks />
       </main>
 
       <footer className="client-footer client-wrap">
-        <span>Logicx Info Tech</span>
-        <span>Custom software · ERPNext · Tally · Websites · Automation</span>
+        <span>{content.profile.name}</span>
+        <span>{content.footer.lineTwo}</span>
       </footer>
     </ClientCanvas>
   );

@@ -57,3 +57,51 @@ npm run test:e2e:tenant-app-foundations
 ```
 
 The E2E command requires the development Platform stack and an isolated `codexsun_dev_` master and tenant database. It verifies login, published launcher metadata, each overview, forged-header isolation, inactive module/permission rejection and repeatable permission seeding. It restores any temporary access changes. Root `npm run check`, `npm run dependencies:check` and `npm run build` remain the release gates.
+
+## Component documentation
+
+The tenant hospital-management app foundation and its authorized overview.
+
+The current overview foundation is not a complete clinical system. Do not fabricate patient, treatment, payroll, or medical records to make a screen appear implemented.
+
+- [TASK.md](agent/TASK.md): work items and acceptance evidence.
+- [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.
+- [SKILLS.md](agent/SKILLS.md): component working rules and safety constraints.
+
+### Source inventory
+
+- `api/src/modules`: `overview`.
+- `web/src/modules`: `overview`.
+
+This inventory records source presence. It does not certify a deployed feature.
+
+### Workspace verification
+
+Run these commands from the repository root. Use the root installation and `dist` output tree.
+
+- `node tools/check-module-boundaries.mjs himsx`
+- `npm run typecheck -w @codexsun/himsx-api`
+- `npm run lint -w @codexsun/himsx-api`
+- `npm run build -w @codexsun/himsx-api`
+- `npm run typecheck -w @codexsun/himsx-web`
+- `npm run lint -w @codexsun/himsx-web`
+- `npm run build -w @codexsun/himsx-web`
+
+Run `npm run check:component-docs` to verify the required documentation files.
+Run the relevant app tests and root release gates when implementation changes.
+Report database, browser, native, and deployment checks separately.
+
+### Workspace packages
+
+- `api`: `@codexsun/himsx-api`.
+- `web`: `@codexsun/himsx-web`.
+
+### Declared internal dependencies
+
+- `@codexsun/framework`
+- `@codexsun/ui`
+
+### Public package entry points
+
+- `@codexsun/himsx-api`: `.`.
+- `@codexsun/himsx-web`: `.`, `./modules/overview`, `./modules/overview/gateway`.

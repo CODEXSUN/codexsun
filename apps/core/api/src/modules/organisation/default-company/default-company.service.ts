@@ -46,6 +46,18 @@ export function getDefaultCompanyForDatabase(databaseName: string) {
   return runWithCoreDatabase(databaseName, () => new DefaultCompanyService().get());
 }
 
+export function getOrganisationOptionsForDatabase(databaseName: string) {
+  return runWithCoreDatabase(databaseName, async () => {
+    const service = new DefaultCompanyService();
+    const [companies, financialYears, defaults] = await Promise.all([
+      service.companyLookups(),
+      service.financialYearLookups(),
+      service.get()
+    ]);
+    return { companies, financialYears, defaults };
+  });
+}
+
 export function getApplicationCompanyBrandingForDatabase(databaseName: string) {
   return runWithCoreDatabase(databaseName, () =>
     new DefaultCompanyService().getApplicationBranding()

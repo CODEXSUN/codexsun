@@ -47,6 +47,7 @@ pids
 *.seed
 *.pid.lock
 /storage/
+/apps/platform/api/storage/
 *.user
 .vs/
 AppPackages/
@@ -179,6 +180,7 @@ vite.config.ts.timestamp-*
 /.vscode/
 
 # Native and local generated state
+**/src-tauri/gen/
 **/.dart_tool/
 **/.gradle/
 **/.pub-cache/

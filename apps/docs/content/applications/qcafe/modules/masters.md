@@ -1,17 +1,18 @@
-# Q Cafe: Masters
+# QCafe: restaurant menu
 
-This page records the `masters` module in the Q Cafe owner. The application business context is: restaurant/pos operations with its own pin login and desktop delivery.
+The web `menu` module owns tenant MariaDB menu items, their selling prices, category labels, activation status, and audit history.
 
 ## Workflow role
 
-Q Cafe has its own runtime, login and deployment contract. Do not reuse its PIN identity as Platform tenant authentication.
+Web access uses Platform identity and live `qcafe.menu.view` or `qcafe.menu.manage` permission. Desktop masters remain on their existing SQLite and PIN contracts.
 
 Trace this module's concrete entry points below before changing its behavior. Its service is the authority for validation, lifecycle and dependency decisions; frontend controls cannot grant permissions.
 
 ## Source contracts
 
-- `apps/qcafe/web/src/Masters.tsx`
-- `apps/qcafe/web/src/RestaurantTableMaster.tsx`
+- `apps/qcafe/web/src/modules/menu/index.ts`
+- `apps/qcafe/api/src/modules/menu/index.ts`
+- Desktop only: `apps/qcafe/web/src/Masters.tsx` and `apps/qcafe/web/src/RestaurantTableMaster.tsx`.
 
 ## Explicit route declarations
 

@@ -1,4 +1,8 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
+import {
+  storefrontOrganisationModule,
+  type StorefrontCompanyLogoReader
+} from "../storefront-organisation/index.js";
 import type { FrappeSettings } from "@codexsun/frappe-api";
 import { productInformationModule } from "../product-information/product-information.module.js";
 import { productVariantModule } from "../product-variant/product-variant.module.js";
@@ -31,6 +35,7 @@ export const ecommerceModuleKeys = [
   storefrontAnnouncementModule.key,
   catalogMatchingModule.key,
   storefrontProfileModule.key,
+  storefrontOrganisationModule.key,
   "ecommerce.catalog.data-source",
   "ecommerce.storefront.public"
 ] as const;
@@ -51,6 +56,7 @@ export async function registerEcommerceStaffModules(
   await storefrontAnnouncementModule.register(app);
   await catalogMatchingModule.register(app);
   await storefrontProfileModule.register(app, resolveActorEmail);
+  await storefrontOrganisationModule.register(app, resolveActorEmail);
   const control = createCatalogDataSourceControl(encryptionSecret, frappeSettings);
   await registerCatalogDataSourceRoutes(
     app,
@@ -62,12 +68,14 @@ export async function registerEcommerceStaffModules(
 export async function registerEcommercePublicModules(
   app: FastifyInstance,
   encryptionSecret: string,
-  frappeSettings: FrappeSettings
+  frappeSettings: FrappeSettings,
+  readCompanyLogo?: StorefrontCompanyLogoReader
 ) {
   const control = createCatalogDataSourceControl(encryptionSecret, frappeSettings);
   await registerStorefrontRoutes(
     app,
-    () => new StorefrontService(new CatalogDataSourceService(control))
+    () => new StorefrontService(new CatalogDataSourceService(control)),
+    readCompanyLogo
   );
   await registerStorefrontAnnouncementPublicRoutes(app);
   await registerStorefrontProfilePublicRoutes(app);

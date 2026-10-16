@@ -35,7 +35,7 @@ export function TopMenuAppLauncher({
         sideOffset={10}
       >
         <DropdownMenuLabel className="px-3 py-2 text-sm font-medium">Apps</DropdownMenuLabel>
-        <AppGrid items={items} />
+        <AppGrid items={orderApps(items)} />
         {addonItems.length ? (
           <>
             <DropdownMenuSeparator className="my-2" />
@@ -46,6 +46,16 @@ export function TopMenuAppLauncher({
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+function orderApps(items: TopMenuAppItem[]): TopMenuAppItem[] {
+  const firstApps = ["application", "codexsun", "billing"];
+  const priority = (item: TopMenuAppItem) => {
+    const index = firstApps.indexOf(item.title.trim().toLowerCase());
+    return index < 0 ? firstApps.length : index;
+  };
+
+  return [...items].sort((left, right) => priority(left) - priority(right));
 }
 
 function AppGrid({ items }: { items: TopMenuAppItem[] }) {

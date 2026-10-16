@@ -33,7 +33,10 @@ test("development commands keep API and web watchers independently available", (
   assert.match(preflightSource, /watchApiSources\(\)/u);
   assert.doesNotMatch(preflightSource, /"--watch"/u);
   assert.match(preflightSource, /nodePackageBin\("vite", "bin\/vite\.js"\)/u);
-  assert.match(preflightSource, /\["platform-api", "platform-web"\]\.includes\(app\)/u);
+  assert.match(
+    preflightSource,
+    /\["platform-api", "platform-web", "qcafe-web", "ecommerce-web"\]\.includes\(app\)/u
+  );
   assert.match(preflightSource, /--max-http-header-size=\$\{size\}/u);
   assert.match(preflightSource, /withMaxHttpHeaderSize\([\s\S]*?65_536/u);
 });

@@ -1,10 +1,10 @@
 # Q Cafe developer guide
 
-Restaurant/POS operations with its own PIN login and desktop delivery.
+Restaurant POS with Platform login for web and separate PIN login for desktop.
 
 <Callout title="Implementation scope">
-  Q Cafe has its own runtime, login and deployment contract. Do not reuse its PIN identity as
-  Platform tenant authentication.
+  Web menu and takeaway POS use Platform tenant identity and MariaDB. Desktop retains PIN login and
+  SQLite. Desktop enrollment and synchronization remain deferred.
 </Callout>
 
 ## Application entry points
@@ -18,15 +18,15 @@ Restaurant/POS operations with its own PIN login and desktop delivery.
 
 ## Core business
 
-Q Cafe has its own runtime, login and deployment contract. Do not reuse its PIN identity as Platform tenant authentication.
+Web requests require live Platform tenant activation and permissions. Desktop PINs and license keys do not grant cloud authority.
 
 ## Primary workflow
 
-1. Run the supported single-tenant Q Cafe deployment and activate its licence.
-2. Sign in using its separate PIN-based login.
-3. Configure restaurant masters/tables and available POS/catalog settings.
-4. Use the POS billing, payment collection and receipt/Z-report flows documented by the owner README.
-5. Package desktop resources and validate printer/receipt behavior on the target device.
+1. Enable QCafe for the tenant and apply its migrations and permission seeds.
+2. Sign in to Platform and open QCafe.
+3. Maintain the restaurant menu through the tenant API.
+4. Save takeaway bills, collect payments, and print receipts from saved records.
+5. Keep desktop PIN/SQLite operations separate. Dine-in, kitchen, tax configuration, and remaining web pages are follow-up work.
 
 ## Developer navigation
 

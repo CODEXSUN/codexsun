@@ -1,6 +1,6 @@
 # Zetro agent
 
-`skills.md` is Zetro's versioned business rule source. The Zetro API loads it from
+`SKILLS.md` is Zetro's versioned business rule source. The Zetro API loads it from
 the repository in development and from the collected build output in production.
 The API fails closed if the file is missing or empty. A SHA-256 hash of the loaded
 rules is stored with each interaction log.
@@ -25,7 +25,7 @@ File content never selects a Billing query or grants access to a business record
 
 ## Numbered catalog
 
-`skills.md` lists the live catalog using six fields: UUID, Serial #, Question
+`SKILLS.md` lists the live catalog using six fields: UUID, Serial #, Question
 pattern, Query pattern, Limitation, and Extra. The tenant database mirrors the
 eight live entries and 28 review drafts in `zetro_query_patterns`. The UUID stays stable across
 tenants. The serial number gives reviewers a short reference.
@@ -48,10 +48,10 @@ grant changes at `/sa/zetro/review`. The selected tenant is carried between
 these pages. The earlier `/sa/zetro` link opens query patterns.
 The backend stores the matching pattern UUID with each interaction. A Super
 Admin can add a numbered draft. A draft is only a proposal. To make it live,
-add a fixed backend contract, update `skills.md` and the built-in catalog, and
+add a fixed backend contract, update `SKILLS.md` and the built-in catalog, and
 review the permission and tests before release.
 Drafts #8–35 cover Billing statements, documents, stock, tax, rankings, and
-CRM enquiry and contact questions. `skills.md` records each six-field proposal.
+CRM enquiry and contact questions. `SKILLS.md` records each six-field proposal.
 They are seeded for Super Admin review and never run from chat. A user's varied
 wording may select a live intent, but it cannot select a draft query key.
 
@@ -96,7 +96,7 @@ Frappe enquiries, Zetro explains that #7 cannot read that source.
 `zetro_interaction_logs` records completed and failed requests, including the
 matching catalog UUID when classification succeeds. The existing
 review notes and approval records let Super Admin inspect conversations and
-denied skills. Reviewers use this evidence to propose a change to `skills.md`,
+denied skills. Reviewers use this evidence to propose a change to `SKILLS.md`,
 the classifier, or a module-owned skill. Each change needs a code review and
 verification before release. Zetro does not train itself, change its own rules,
 or activate a skill from chat content or a review note.

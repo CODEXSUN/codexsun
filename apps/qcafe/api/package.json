@@ -1,11 +1,29 @@
 {
   "name": "@codexsun/qcafe-api",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": true,
   "type": "module",
   "types": "src/store.d.ts",
   "scripts": {
     "start": "node src/server.mjs",
-    "test": "node --test src/*.test.mjs"
+    "test": "node --test src/*.test.mjs",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src/cloud src/modules",
+    "test:web": "node --import tsx --test src/modules/pos/pos.test.ts",
+    "test:web:database": "node --import tsx --test src/cloud/web.integration.test.ts"
+  },
+  "exports": {
+    "./cloud": "./src/cloud/index.ts",
+    "./src/store.mjs": "./src/store.mjs"
+  },
+  "dependencies": {
+    "@codexsun/framework": "^1.1.2",
+    "fastify": "^5.12.5",
+    "kysely": "^0.29.6",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "mysql2": "^3.24.5"
   }
 }

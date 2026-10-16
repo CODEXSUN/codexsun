@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { StorefrontOrganisationWorkspace } from "../storefront-organisation";
 import { CatalogOverviewWorkspace } from "../catalog-overview";
 import { CatalogDataSourceWorkspace } from "../catalog-data-source";
 import { ProductInformationWorkspace } from "../product-information";
@@ -11,6 +12,8 @@ import { FeaturedCardWorkspace } from "../featured-card";
 import { SeasonStripWorkspace } from "../season-strip";
 
 export type EcommerceModulePage =
+  | "ecommerce.campaign-events"
+  | "ecommerce.organisation"
   | "ecommerce.catalog"
   | "ecommerce.product-information"
   | "ecommerce.product-variants"
@@ -25,6 +28,8 @@ export type EcommerceModulePage =
   | "ecommerce.trusted-strip";
 
 export const ecommerceModulePages: readonly EcommerceModulePage[] = [
+  "ecommerce.campaign-events",
+  "ecommerce.organisation",
   "ecommerce.catalog",
   "ecommerce.product-information",
   "ecommerce.product-variants",
@@ -47,6 +52,10 @@ export function EcommerceModuleWorkspace({
   page: EcommerceModulePage;
 }) {
   switch (page) {
+    case "ecommerce.campaign-events":
+      return <PromotionCardWorkspace mode="campaigns" />;
+    case "ecommerce.organisation":
+      return <StorefrontOrganisationWorkspace />;
     case "ecommerce.catalog":
       return <CatalogOverviewWorkspace onOpenStore={onOpenStore} />;
     case "ecommerce.product-information":

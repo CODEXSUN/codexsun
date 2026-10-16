@@ -25,6 +25,9 @@ export type SitePayload = {
 };
 
 export type SiteGateway = {
+  page?: PageGateway;
+  blog?: BlogGateway;
+  start?(uuid: string): Promise<{ port: number; state: "running"; url: string }>;
   create(payload: SitePayload): Promise<CmsSite>;
   delete(uuid: string): Promise<{ deleted: boolean; uuid: string }>;
   get(uuid: string): Promise<CmsSite>;
@@ -33,3 +36,5 @@ export type SiteGateway = {
   suspend(uuid: string): Promise<CmsSite>;
   update(uuid: string, payload: SitePayload): Promise<CmsSite>;
 };
+import type { PageGateway } from "./page/index.js";
+import type { BlogGateway } from "./blog/index.js";

@@ -1,3 +1,4 @@
+import { ExportSalesComplianceService } from "./export-sales.compliance-service.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { AppError } from "@codexsun/framework/errors";
@@ -12,6 +13,18 @@ import type { CoreLookupMutation, CoreLookupRecord } from "../../shared/core-loo
 import { ExportSaleLookupService } from "./export-sales.lookup.js";
 import { ExportSalesService } from "./export-sales.service.js";
 
+const complianceJobs = new ExportSalesComplianceService();
+const complianceJobSchema = z.object({
+  uuid: z.string(),
+  invoiceUuid: z.string(),
+  action: z.enum(["einvoice.generate", "eway.generate", "einvoice.cancel", "eway.cancel"]),
+  status: z.enum(["pending", "running", "review", "failed", "completed"]),
+  error: z.string(),
+  attempts: z.number(),
+  companyId: z.number(),
+  financialYearId: z.number(),
+  actorEmail: z.string()
+});
 const service = new ExportSalesService();
 const lookups = new ExportSaleLookupService();
 const idSchema = z.object({
@@ -23,7 +36,7 @@ const lookupBodySchema = coreLookupMutationSchema;
 const lookupResponseSchema = coreLookupRecordSchema;
 const statusSchema = z.enum(["draft", "confirmed", "cancelled"]);
 const taxTypeSchema = z.enum(["cgst-sgst", "igst"]);
-const complianceStatusSchema = z.enum(["not-generated", "generated"]);
+const complianceStatusSchema = z.enum(["not-generated", "generated", "cancelled"]);
 const ewaySchema = z.object({
   billDate: z.string(),
   billNo: z.string(),
@@ -163,6 +176,66 @@ const exportSalePageSchema = z.object({
 
 export async function registerExportSalesRoutes(app: FastifyInstance) {
   registerContractRoute(app, {
+    method: "POST",
+    url: "/billing/export-sales/:id/einvoice/cancel",
+    schemas: {
+      params: idSchema,
+      body: z.object({
+        reasonCode: z.number().int().min(1).max(4),
+        remarks: z.string().trim().min(3).max(100)
+      }),
+      response: complianceJobSchema
+    },
+    handler: ({ params, body, request }) =>
+      complianceJobs.request(databaseName(request), params.id, "einvoice.cancel", body)
+  });
+  registerContractRoute(app, {
+    method: "POST",
+    url: "/billing/export-sales/:id/eway/cancel",
+    schemas: {
+      params: idSchema,
+      body: z.object({
+        reasonCode: z.number().int().min(1).max(4),
+        remarks: z.string().trim().min(3).max(100)
+      }),
+      response: complianceJobSchema
+    },
+    handler: ({ params, body, request }) =>
+      complianceJobs.request(databaseName(request), params.id, "eway.cancel", body)
+  });
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/billing/export-sales/:id/compliance-jobs",
+    schemas: { params: idSchema, response: z.array(complianceJobSchema) },
+    handler: ({ params, request }) => complianceJobs.list(databaseName(request), params.id)
+  });
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/billing/export-sales/:id/compliance-jobs/:jobUuid",
+    schemas: {
+      params: idSchema.extend({ jobUuid: z.string().regex(/^[a-f0-9]{8}$/) }),
+      response: complianceJobSchema
+    },
+    handler: ({ params, request }) =>
+      complianceJobs.get(databaseName(request), params.id, params.jobUuid)
+  });
+  registerContractRoute(app, {
+    method: "POST",
+    url: "/billing/export-sales/:id/compliance-jobs/:jobUuid/reconcile",
+    schemas: {
+      params: idSchema.extend({ jobUuid: z.string().regex(/^[a-f0-9]{8}$/) }),
+      body: z.object({
+        billNo: z
+          .string()
+          .regex(/^\d{12}$/)
+          .optional()
+      }),
+      response: complianceJobSchema
+    },
+    handler: ({ params, body, request }) =>
+      complianceJobs.reconcile(databaseName(request), params.id, params.jobUuid, body.billNo)
+  });
+  registerContractRoute(app, {
     method: "GET",
     url: "/billing/export-sales/page",
     schemas: { querystring: pageQuerySchema, response: exportSalePageSchema },
@@ -234,21 +307,27 @@ export async function registerExportSalesRoutes(app: FastifyInstance) {
     schemas: {
       body: z.object({ einvoice: einvoiceSchema.optional() }),
       params: idSchema,
-      response: exportSaleSchema
+      response: complianceJobSchema
     },
-    handler: async ({ body, params, request }) =>
-      required(await service.generateEinvoice(databaseName(request), params.id, body.einvoice))
+    handler: async ({ params, request }) =>
+      complianceJobs.request(databaseName(request), params.id, "einvoice.generate", {})
   });
   registerContractRoute(app, {
     method: "POST",
     url: "/billing/export-sales/:id/eway/generate",
     schemas: {
-      body: z.object({ eway: ewaySchema.optional() }),
+      body: z.object({
+        eway: ewaySchema.optional(),
+        distanceKm: z.number().int().min(1).max(4000)
+      }),
       params: idSchema,
-      response: exportSaleSchema
+      response: complianceJobSchema
     },
     handler: async ({ body, params, request }) =>
-      required(await service.generateEway(databaseName(request), params.id, body.eway))
+      complianceJobs.request(databaseName(request), params.id, "eway.generate", {
+        eway: body.eway,
+        distanceKm: body.distanceKm
+      })
   });
   registerLookupRoutes(app);
 }

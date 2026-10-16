@@ -7,6 +7,8 @@ import {
   Building2Icon,
   CircleGaugeIcon,
   CoffeeIcon,
+  UtensilsCrossedIcon,
+  ShoppingBagIcon,
   Clock3Icon,
   CreditCardIcon,
   FileTextIcon,
@@ -20,6 +22,7 @@ import {
   MessagesSquareIcon,
   NotebookPenIcon,
   PackageIcon,
+  PanelsTopLeftIcon,
   PhoneCallIcon,
   Settings2Icon,
   UsersIcon,
@@ -37,7 +40,10 @@ import {
   type LucideIcon
 } from "lucide-react";
 import { CrmBrandIcon } from "./crm-brand-icon";
-import type { SidemenuItem } from "@codexsun/ui/blocks/menu/sidemenu/sub/sidemenu-section";
+import type {
+  SidemenuItem,
+  SidemenuSubItem
+} from "@codexsun/ui/blocks/menu/sidemenu/sub/sidemenu-section";
 
 export type PlatformAppId =
   | "application"
@@ -83,6 +89,9 @@ export type PlatformAppRootPage =
   | "logicx-erp.overview"
   | "ecommerce.overview"
   | "qcafe.overview"
+  | "qcafe.menu"
+  | "qcafe.kot"
+  | "qcafe.take-away"
   | "hrms.overview"
   | "hrms.employees"
   | "docs.overview"
@@ -225,7 +234,7 @@ export const platformAppRegistry: PlatformAppDefinition[] = [
   },
   {
     id: "qcafe",
-    label: "Q Cafe",
+    label: "QCafe",
     moduleKey: "qcafe",
     stack: "qcafe",
     icon: CoffeeIcon,
@@ -392,29 +401,55 @@ export const platformAppRegistry: PlatformAppDefinition[] = [
   }
 ];
 
-const ecommerceMenuPages = [
-  ["Overview", "ecommerce.overview", LayoutDashboardIcon],
-  ["Catalog", "ecommerce.catalog", PackageIcon],
-  ["Items", "ecommerce.product-information", BoxesIcon],
-  ["Variants", "ecommerce.product-variants", LayersIcon],
-  ["Images", "ecommerce.product-images", PackageIcon],
-  ["Data Sources", "ecommerce.catalog-data-source", Settings2Icon],
-  ["Storefront", "ecommerce.storefront", Globe2Icon],
-  ["Sliders", "ecommerce.storefront-sliders", PackageIcon],
-  ["Promotions", "ecommerce.promotions", BadgePercentIcon],
-  ["Featured Cards", "ecommerce.featured-cards", PackageIcon],
-  ["Season Strips", "ecommerce.season-strips", PackageIcon],
-  ["Service Banner", "ecommerce.service-banner", PackageIcon],
-  ["Trusted Strip", "ecommerce.trusted-strip", PackageIcon]
-] as const;
-
 function ecommerceMenuItems(activePage: string, onSelect: (page: string) => void): SidemenuItem[] {
-  return ecommerceMenuPages.map(([title, page, icon]) => ({
-    icon,
+  const leaf = (title: string, page: string): SidemenuSubItem => ({
     title,
     isActive: activePage === page,
     onSelect: () => onSelect(page)
-  }));
+  });
+  const catalog = [
+    leaf("Items", "ecommerce.product-information"),
+    leaf("Categories", "ecommerce.categories"),
+    leaf("Products", "ecommerce.products"),
+    leaf("Variants", "ecommerce.product-variants"),
+    leaf("Product Images", "ecommerce.product-images")
+  ];
+  const storefront = [
+    leaf("Home Slider", "ecommerce.storefront-sliders"),
+    leaf("Trusted Strip", "ecommerce.trusted-strip"),
+    leaf("Promotion Cards", "ecommerce.promotions"),
+    leaf("Brands Strip", "ecommerce.brands-strip"),
+    leaf("Featured Cards", "ecommerce.featured-cards"),
+    leaf("Season Strip", "ecommerce.season-strips"),
+    leaf("Campaign Events", "ecommerce.campaign-events"),
+    leaf("Service Banner", "ecommerce.service-banner")
+  ];
+  const settings = [
+    leaf("Organisation", "ecommerce.organisation"),
+    leaf("Storefront Profile", "ecommerce.storefront"),
+    leaf("Data Source", "ecommerce.catalog-data-source")
+  ];
+  return [
+    { ...leaf("Overview", "ecommerce.overview"), icon: LayoutDashboardIcon },
+    {
+      title: "Catalog",
+      icon: PackageIcon,
+      isActive: catalog.some((item) => item.isActive),
+      items: catalog
+    },
+    {
+      title: "Storefront UX",
+      icon: PanelsTopLeftIcon,
+      isActive: storefront.some((item) => item.isActive),
+      items: storefront
+    },
+    {
+      title: "Settings",
+      icon: Settings2Icon,
+      isActive: settings.some((item) => item.isActive),
+      items: settings
+    }
+  ];
 }
 
 export function normalizeModuleKeys(moduleKeys: string[]) {
@@ -597,9 +632,34 @@ export function appMenuFor(
   if (appId === "qcafe") {
     return {
       icon: CoffeeIcon,
-      title: "Q Cafe",
-      isActive: activePage === "qcafe.overview",
-      onSelect: () => onSelect("qcafe.overview")
+      title: "QCafe",
+      isActive: activePage.startsWith("qcafe."),
+      items: [
+        {
+          icon: CoffeeIcon,
+          title: "POS",
+          isActive: activePage === "qcafe.overview",
+          onSelect: () => onSelect("qcafe.overview")
+        },
+        {
+          icon: ReceiptTextIcon,
+          title: "KOT",
+          isActive: activePage === "qcafe.kot",
+          onSelect: () => onSelect("qcafe.kot")
+        },
+        {
+          icon: ShoppingBagIcon,
+          title: "Take Away",
+          isActive: activePage === "qcafe.take-away",
+          onSelect: () => onSelect("qcafe.take-away")
+        },
+        {
+          icon: UtensilsCrossedIcon,
+          title: "Master",
+          isActive: activePage === "qcafe.menu",
+          onSelect: () => onSelect("qcafe.menu")
+        }
+      ]
     };
   }
   if (appId === "ecommerce") {
@@ -1156,9 +1216,27 @@ export function appMenuItemsFor(
     return [
       {
         icon: CoffeeIcon,
-        title: "Q Cafe",
-        isActive: true,
+        title: "POS",
+        isActive: activePage === "qcafe.overview",
         onSelect: () => onSelect("qcafe.overview")
+      },
+      {
+        icon: ReceiptTextIcon,
+        title: "KOT",
+        isActive: activePage === "qcafe.kot",
+        onSelect: () => onSelect("qcafe.kot")
+      },
+      {
+        icon: ShoppingBagIcon,
+        title: "Take Away",
+        isActive: activePage === "qcafe.take-away",
+        onSelect: () => onSelect("qcafe.take-away")
+      },
+      {
+        icon: UtensilsCrossedIcon,
+        title: "Master",
+        isActive: activePage === "qcafe.menu",
+        onSelect: () => onSelect("qcafe.menu")
       }
     ];
   }

@@ -28,11 +28,19 @@ export function TenantAppConnections({
   const [landingApp, setLandingApp] = useState<Tenant["defaultLandingApp"]>(
     tenant.defaultLandingApp
   );
-  const apps = (appsQuery.data ?? []).filter((app) => app.appId !== "devkit" && app.appId !== "project-manager");
+  const apps = (appsQuery.data ?? []).filter(
+    (app) => app.appId !== "devkit" && app.appId !== "project-manager"
+  );
 
   useEffect(() => {
-    setEnabledKeys(tenant.enabledModuleKeys.filter((key) => key !== "devkit" && key !== "project-manager"));
-    setLandingApp(["devkit", "project-manager"].includes(tenant.defaultLandingApp) ? "application" : tenant.defaultLandingApp);
+    setEnabledKeys(
+      tenant.enabledModuleKeys.filter((key) => key !== "devkit" && key !== "project-manager")
+    );
+    setLandingApp(
+      ["devkit", "project-manager"].includes(tenant.defaultLandingApp)
+        ? "application"
+        : tenant.defaultLandingApp
+    );
   }, [tenant]);
 
   const enabledApps = useMemo(
@@ -153,9 +161,7 @@ export function TenantAppSelectionCard({
       checked={checked}
       className={cn(
         "min-h-40 items-start p-4 opacity-100",
-        checked
-          ? "border-border bg-muted/45 dark:border-border dark:bg-muted/20"
-          : "border-border bg-card"
+        "border-border bg-muted/20 dark:bg-muted/10"
       )}
       disabled={locked}
       label={

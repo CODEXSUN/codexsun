@@ -1,3 +1,4 @@
+import { assertSalesComplianceUnlocked } from "./sales.compliance-repository.js";
 import { sql, type Kysely } from "kysely";
 import { runBillingTransaction } from "../../database/billing-database.js";
 import { assertSaleHasNoAllocations } from "./sales.allocation-guard.js";
@@ -44,7 +45,7 @@ type SaleEinvoiceRow = {
   irn: string | null;
   sales_id: number;
   signed_qr: string | null;
-  status: "not-generated" | "generated";
+  status: "not-generated" | "generated" | "cancelled";
 };
 
 type SaleEwayRow = {
@@ -53,7 +54,7 @@ type SaleEwayRow = {
   notes: string | null;
   part: "Part A" | "Part B";
   sales_id: number;
-  status: "not-generated" | "generated";
+  status: "not-generated" | "generated" | "cancelled";
   transport_gst: string | null;
   transport_id: number | null;
   transport_name: string | null;
@@ -455,6 +456,7 @@ export class SalesRepository {
     if (!existing) return null;
     try {
       await runBillingTransaction(database, async (transaction) => {
+        await assertSalesComplianceUnlocked(transaction, existing.id);
         await assertSaleHasNoAllocations(transaction, existing.id);
         await assertLinkedSaleIdentity(transaction, existing.id, input);
         await sql`
@@ -498,6 +500,7 @@ export class SalesRepository {
     const existing = await internalSale(database, uuid);
     if (!existing) return null;
     await runBillingTransaction(database, async (transaction) => {
+      await assertSalesComplianceUnlocked(transaction, existing.id);
       if (status !== "confirmed") await assertSaleHasNoAllocations(transaction, existing.id);
       await sql`
         UPDATE billing_sales SET status = ${status},
@@ -516,6 +519,7 @@ export class SalesRepository {
     const existing = await internalSale(database, uuid);
     if (!existing) return null;
     await runBillingTransaction(database, async (transaction) => {
+      await assertSalesComplianceUnlocked(transaction, existing.id);
       await assertSaleHasNoAllocations(transaction, existing.id);
       await assertLinkedSaleIdentity(transaction, existing.id);
       await insertActivity(
@@ -537,12 +541,14 @@ export class SalesRepository {
   async updateCompliance(
     databaseName: string,
     uuid: string,
-    patch: { einvoice?: SaleEinvoiceDetails; eway?: SaleEwayDetails }
+    patch: { einvoice?: SaleEinvoiceDetails; eway?: SaleEwayDetails },
+    auditAction = "generate"
   ) {
     const database = await salesDatabase(databaseName);
     const existing = await internalSale(database, uuid);
     if (!existing) return null;
     await runBillingTransaction(database, async (transaction) => {
+      await assertSalesComplianceUnlocked(transaction, existing.id);
       if (patch.einvoice) await upsertEinvoice(transaction, existing.id, patch.einvoice);
       if (patch.eway) await upsertEway(transaction, existing.id, patch.eway);
       await sql`UPDATE billing_sales SET updated_at = CURRENT_TIMESTAMP(3) WHERE id = ${existing.id}`.execute(
@@ -552,7 +558,7 @@ export class SalesRepository {
         transaction,
         existing.id,
         "compliance",
-        "generate",
+        auditAction,
         existing.status,
         existing.status
       );

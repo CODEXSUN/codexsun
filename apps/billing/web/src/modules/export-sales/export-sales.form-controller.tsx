@@ -1,3 +1,4 @@
+import { cancelExportSaleEinvoice, cancelExportSaleEway } from "./export-sales.services";
 import { productsQueryKey } from "@codexsun/core-web/modules/master/product";
 import { billingLookupQuery } from "../../shared/query/billing-lookup-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -222,15 +223,17 @@ export function useExportSalesFormController({
     mutationFn: ({
       id,
       kind,
-      details
+      details,
+      distanceKm
     }: {
       id: string;
+      distanceKm?: number;
       kind: "einvoice" | "eway";
       details: ExportSaleEinvoiceDetails | ExportSaleEwayDetails;
     }) =>
       kind === "einvoice"
         ? generateExportSaleEinvoice(id, details as ExportSaleEinvoiceDetails)
-        : generateExportSaleEway(id, details as ExportSaleEwayDetails)
+        : generateExportSaleEway(id, details as ExportSaleEwayDetails, distanceKm)
   });
   const selectedContact = (contactsQuery.data ?? []).find(
     (option) =>
@@ -358,7 +361,19 @@ export function useExportSalesFormController({
     patch({ einvoice: { ...einvoice, ...next } });
   }
 
-  async function generateEway() {
+  async function cancelCompliance(
+    documentType: "einvoice" | "eway",
+    reasonCode: number,
+    remarks: string
+  ) {
+    if (!exportSale) throw new Error("Save the invoice first.");
+    const updated = await (documentType === "einvoice"
+      ? cancelExportSaleEinvoice(exportSale.id, reasonCode, remarks)
+      : cancelExportSaleEway(exportSale.id, reasonCode, remarks));
+    patch({ einvoice: updated.einvoice, eway: updated.eway });
+    toast.success("Provider cancellation confirmed");
+  }
+  async function generateEway(distanceKm: number) {
     if (!exportSale) {
       toast.error("Save the export sale before generating the E-way bill.");
       return;
@@ -367,6 +382,7 @@ export function useExportSalesFormController({
       const updated = await complianceMutation.mutateAsync({
         id: exportSale.id,
         kind: "eway",
+        distanceKm,
         details: eway
       });
       patch({ eway: updated.eway, einvoice: updated.einvoice });
@@ -514,6 +530,8 @@ export function useExportSalesFormController({
     einvoice,
     patchEinvoice,
     generateEinvoice,
+    cancelCompliance,
+    complianceLoading: complianceMutation.isPending,
     onSubmit,
     activeTab,
     setActiveTab,

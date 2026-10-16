@@ -143,6 +143,7 @@ import {
   projectManagerTenantMigrations
 } from "@codexsun/project-manager-api";
 import type { TenantDatabase } from "./schema.js";
+import { qcafeMigrationBatch, migrateQCafeWeb, seedQCafeWeb } from "@codexsun/qcafe-api/cloud";
 import type { Tenant } from "../modules/tenant/tenant.types.js";
 import { tenantRuntimeMigrations } from "../modules/tenant/tenant.migration.js";
 import {
@@ -169,6 +170,11 @@ const chatTenantMigrations = chatMigrationBatch.steps.map(({ description, name }
 
 export function tenantDatabaseMigrationsFor(_tenant: Tenant) {
   return [
+    ...qcafeMigrationBatch.steps.map(({ name, description }) => ({
+      name,
+      description,
+      statements: [`RUN ${name}`]
+    })),
     ...tenantRuntimeMigrations.map(({ description, name, statements }) => ({
       description,
       name,
@@ -272,6 +278,8 @@ export function tenantDatabaseMigrationsFor(_tenant: Tenant) {
 
 export async function migrateSelectedTenantApps(database: Kysely<TenantDatabase>, tenant: Tenant) {
   const provisionedApps = ["application"];
+  await migrateQCafeWeb(database as never);
+  provisionedApps.push("qcafe");
 
   await migrateCoreTenantDatabase(tenant.dbName);
   await migrateEmployeeDatabase(database as unknown as Kysely<EmployeeDatabase>);
@@ -405,6 +413,11 @@ export async function seedSelectedTenantApps(database: Kysely<TenantDatabase>, t
     seededApps.push("notes");
   }
 
+  if (enabled.has("qcafe")) {
+    await seedQCafeWeb(database as never);
+    seededApps.push("qcafe");
+  }
+
   if (enabled.has("chat")) {
     await seedChatModule(database as never);
     seededApps.push("chat");
@@ -432,8 +445,7 @@ export async function rollbackSelectedTenantApps(database: Kysely<TenantDatabase
     await rollbackCodexsunDatabase(database as unknown as Kysely<CodexsunDatabase>);
   if (enabled.has("docs"))
     await rollbackKnowledgeDatabase(database as unknown as Kysely<KnowledgeDatabase>);
-  if (enabled.has("sites"))
-    await rollbackSiteModule(database as unknown as Kysely<SitesDatabase>);
+  if (enabled.has("sites")) await rollbackSiteModule(database as unknown as Kysely<SitesDatabase>);
   if (enabled.has("platform.task-manager"))
     await rollbackTaskManagerTenantModule(database as never);
   if (enabled.has("mail")) await rollbackMailModule(database as never);

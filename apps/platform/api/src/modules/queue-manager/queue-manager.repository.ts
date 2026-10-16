@@ -116,6 +116,23 @@ export class QueueManagerRepository {
     return row ? toQueueJob(row) : null;
   }
 
+  async expireRunningJobs(jobNames: string[], olderThan: Date) {
+    if (!jobNames.length) return 0;
+    const result = await getPlatformDatabase()
+      .updateTable("queue_jobs")
+      .set({
+        status: "failed",
+        error_message:
+          "Worker lease expired. The owning module must reconcile the operation before another submission.",
+        updated_at: new Date()
+      })
+      .where("job_name", "in", jobNames)
+      .where("status", "=", "running")
+      .where("updated_at", "<", olderThan)
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows);
+  }
+
   async nextRunnable() {
     const row = await getPlatformDatabase()
       .selectFrom("queue_jobs")
@@ -130,7 +147,7 @@ export class QueueManagerRepository {
   }
 
   async markRunning(id: number) {
-    await getPlatformDatabase()
+    const claim = await getPlatformDatabase()
       .updateTable("queue_jobs")
       .set({
         attempts: sql`attempts + 1`,
@@ -140,7 +157,9 @@ export class QueueManagerRepository {
         updated_at: new Date()
       })
       .where("id", "=", id)
-      .execute();
+      .where("status", "in", ["pending", "failed"])
+      .executeTakeFirst();
+    if (!Number(claim.numUpdatedRows)) return null;
     return this.find(id);
   }
 

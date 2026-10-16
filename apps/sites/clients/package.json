@@ -1,31 +1,31 @@
 {
   "name": "@codexsun/sites-clients",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./codexsun": "./src/clients/codexsun/index.ts",
     "./logicx": "./src/clients/logicx/index.ts",
-    "./techmedia": "./src/clients/techmedia/index.ts"
+    "./ramutex": "./src/clients/ramutex/index.ts"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json --noEmit && vite build --mode codexsun && vite build --mode logicx && vite build --mode techmedia",
-    "build:codexsun": "vite build --mode codexsun",
+    "build:portfolio": "vite build --mode portfolio",
+    "dev:portfolio": "vite --mode portfolio",
+    "build": "tsc -p tsconfig.json --noEmit && vite build --mode logicx && vite build --mode ramutex",
     "build:logicx": "vite build --mode logicx",
-    "build:techmedia": "vite build --mode techmedia",
-    "dev:codexsun": "vite --mode codexsun",
+    "build:ramutex": "vite build --mode ramutex",
     "dev:logicx": "vite --mode logicx",
-    "dev:techmedia": "vite --mode techmedia",
+    "dev:ramutex": "vite --mode ramutex",
     "lint": "oxlint src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@codexsun/ui": "^1.1.1",
+    "@codexsun/sites-api": "^1.1.2",
+    "@codexsun/ui": "^1.1.2",
     "framer-motion": "^14.0.0",
     "lucide-react": "^1.52.0",
     "react": "^19.3.0",
     "react-dom": "^19.0.0"
   },
-  "description": "Client public portfolio sites: CODEXSUN (7130), LogicX (7131), and TechMedia (7132)"
+  "description": "Client portfolio sites: LogicX (7131) and Ramutex (7132)"
 }

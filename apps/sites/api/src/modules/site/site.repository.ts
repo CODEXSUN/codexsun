@@ -1,4 +1,6 @@
 import type { Kysely, Selectable } from "kysely";
+import { PageRepository } from "./page/index.js";
+import { BlogRepository } from "./blog/index.js";
 import type {
   CmsSite,
   SiteCreatePayload,
@@ -11,13 +13,20 @@ import type {
 export class SiteRepository {
   constructor(private readonly database: Kysely<SitesDatabase>) {}
 
+  async hasManagedContent(siteId: number) {
+    return (
+      Boolean(await new PageRepository(this.database).find(siteId)) ||
+      (await new BlogRepository(this.database).list(siteId)).length > 0
+    );
+  }
+
   async list(): Promise<CmsSite[]> {
     const rows = await this.database
       .selectFrom("sites_portfolio_sites")
       .selectAll()
       .orderBy("name", "asc")
       .execute();
-    return rows.map(mapRowToSite);
+    return Promise.all(rows.map((row) => this.mapSite(row)));
   }
 
   async findByUuid(uuid: string): Promise<CmsSite | null> {
@@ -26,7 +35,7 @@ export class SiteRepository {
       .selectAll()
       .where("uuid", "=", uuid)
       .executeTakeFirst();
-    return row ? mapRowToSite(row) : null;
+    return row ? this.mapSite(row) : null;
   }
 
   async findBySlug(slug: string): Promise<CmsSite | null> {
@@ -35,7 +44,7 @@ export class SiteRepository {
       .selectAll()
       .where("slug", "=", slug)
       .executeTakeFirst();
-    return row ? mapRowToSite(row) : null;
+    return row ? this.mapSite(row) : null;
   }
 
   async findByDomain(domain: string): Promise<CmsSite | null> {
@@ -44,7 +53,21 @@ export class SiteRepository {
       .selectAll()
       .where("primary_domain", "=", domain)
       .executeTakeFirst();
-    return row ? mapRowToSite(row) : null;
+    return row ? this.mapSite(row) : null;
+  }
+
+  async findByPort(port: number): Promise<CmsSite | null> {
+    const row = await this.database
+      .selectFrom("sites_portfolio_sites")
+      .selectAll()
+      .where("port", "=", port)
+      .executeTakeFirst();
+    return row ? this.mapSite(row) : null;
+  }
+
+  private async mapSite(row: Selectable<SitesPortfolioTable>): Promise<CmsSite> {
+    const page = await new PageRepository(this.database).find(Number(row.id));
+    return { ...mapRowToSite(row), publishedPages: page?.published_json ? 5 : 0 };
   }
 
   async create(payload: SiteCreatePayload & { uuid: string }): Promise<CmsSite> {
@@ -55,7 +78,7 @@ export class SiteRepository {
         name: payload.name,
         port: payload.port ?? 0,
         primary_domain: payload.primaryDomain,
-        published_pages: 1,
+        published_pages: 0,
         slug: payload.slug,
         status: "active",
         theme_key: payload.themeKey,

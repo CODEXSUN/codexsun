@@ -1,7 +1,7 @@
 export type SaleStatus = "draft" | "confirmed" | "cancelled";
 export type SaleTaxType = "cgst-sgst" | "igst";
 export type SaleDecimalInput = string | number;
-export type SaleGstDocumentStatus = "not-generated" | "generated";
+export type SaleGstDocumentStatus = "not-generated" | "generated" | "cancelled";
 
 export type SaleEwayDetails = {
   billDate: string;

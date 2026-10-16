@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { registerSitesOverviewRoutes } from "./overview.routes.js";
 import type { SitesOverviewRequestContext } from "./overview.types.js";
+import { registerSitesIdentity } from "./overview.identity.js";
 
 export const sitesOverviewModule = {
   key: "sites.overview",
@@ -9,5 +10,8 @@ export const sitesOverviewModule = {
   register: (
     app: FastifyInstance,
     context: (request: FastifyRequest) => Promise<SitesOverviewRequestContext>
-  ) => registerSitesOverviewRoutes(app, context)
+  ) => {
+    registerSitesIdentity(app, context);
+    registerSitesOverviewRoutes(app, context);
+  }
 };

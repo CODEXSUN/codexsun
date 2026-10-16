@@ -106,7 +106,7 @@ All module SQL and seed behavior remains in the owning module's `*.migration.ts`
 
 `npm run db:migrate` runs migrations without application seeders. `npm run db:seed` ensures migrations and then runs seeders. Tenant setup and reinstall preserve existing data, run every installed tenant-app migration first, then run enabled app seeders repeatably. Accounts activation uses `accounts.overview`; the older `accounts.accounting` key resolves to it during tenant access and seeding, then normalizes on tenant update.
 
-Q Cafe currently runs as a separate SQLite service with its own database path and PIN login. Its local migration files are outside the shared tenant MariaDB lifecycle. Multi-tenant mode keeps its tenant activation off, including when a legacy tenant or plan contains `qcafe`. Give it a tenant-aware storage and authentication contract before operating multiple tenants on one Q Cafe service.
+QCafe web menu and POS use the module-owned tenant MariaDB migration batch. Permission seeds run only when QCafe is enabled. Desktop retains local SQLite and PIN login. Historical cloud SQLite files are preserved and require an explicit tenant-specific import before replacing an existing restaurant deployment.
 
 For a local full lifecycle check against a disposable database, run `tsx tools/e2e/all-tenant-apps-upgrade.e2e.ts --fresh`. Pass a tenant SQL dump path instead of `--fresh` to restore it into a uniquely named sandbox and check migration, existing row retention, and repeat seeding. The test leaves the sandbox database for inspection.
 

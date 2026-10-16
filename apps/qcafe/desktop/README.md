@@ -4,7 +4,7 @@
 
 Status: planned. The current desktop uses local SQLite and separate license activation.
 It does not yet enroll with Platform or synchronize restaurant records with MariaDB.
-The Platform QCafe adapter currently stores restaurant records in tenant-specific SQLite files.
+The Platform QCafe web menu and POS now use tenant MariaDB. Desktop enrollment and synchronization remain planned.
 
 ### Target scope
 

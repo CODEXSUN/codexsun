@@ -1,4 +1,8 @@
 import type { Kysely } from "kysely";
+import {
+  migrateStorefrontOrganisation,
+  upgradeStorefrontOrganisationBranding
+} from "../storefront-organisation/index.js";
 import { runMigrationBatch, type MigrationBatch } from "@codexsun/framework/db";
 import type { EcommerceDatabase } from "../../database/ecommerce-database.js";
 import {
@@ -71,7 +75,9 @@ const steps = [
   ["storefront-section-visibility", upgradeStorefrontSectionVisibility],
   ["storefront-schema", standardizeStorefrontSchema],
   ["storefront-performance", upgradeStorefrontReadPerformance],
-  ["legacy-cleanup", preserveLegacyEcommerceTables]
+  ["legacy-cleanup", preserveLegacyEcommerceTables],
+  ["storefront-organisation", migrateStorefrontOrganisation],
+  ["storefront-organisation-branding", upgradeStorefrontOrganisationBranding]
 ] as const;
 
 const versionedSteps = steps.map(([name, up], index) => ({

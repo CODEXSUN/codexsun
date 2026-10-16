@@ -89,8 +89,11 @@
 }
 .cx-store__brand-mark {
   display: block;
-  height: 24px;
-  width: 24px;
+  flex-shrink: 0;
+  height: 40px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
 }
 .cx-store__header nav {
   display: flex;
@@ -541,6 +544,9 @@
   outline-offset: -4px;
 }
 .cx-store__hero {
+  position: relative;
+  isolation: isolate;
+  background: #fff;
   align-items: center;
   display: grid;
   gap: 60px;
@@ -554,6 +560,25 @@
 .cx-store__hero-copy,
 .cx-store__hero-media {
   min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+.cx-store__hero-copy {
+  z-index: 3;
+}
+.cx-store__hero-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.cx-store__hero-aurora::after {
+  content: "";
+  position: absolute;
+  inset: clamp(40px, 10vw, 144px);
+  border-radius: 48px;
+  background: rgb(255 255 255 / 50%);
+  filter: blur(36px);
 }
 .cx-store__hero span,
 .cx-store__section-title span {
@@ -599,24 +624,30 @@
   text-decoration: none;
 }
 .cx-store__hero-media {
-  background: #fff;
+  background: transparent;
+  z-index: auto;
   border-radius: 8px;
   box-sizing: border-box;
   height: 464px;
-  overflow: hidden;
+  overflow: visible;
   padding: clamp(16px, 2vw, 26px) clamp(16px, 2vw, 26px) 42px;
   position: relative;
 }
 .cx-store__hero img {
+  position: relative;
+  z-index: 3;
   animation: cx-store-hero-image-in 1.15s 0.06s cubic-bezier(0.22, 1, 0.36, 1) both;
   border-radius: 4px;
   display: block;
   height: 100%;
   object-fit: contain;
   object-position: center;
-  width: 100%;
+  width: auto;
+  max-width: 82%;
+  margin-inline: auto;
 }
 .cx-store__hero-bullets {
+  z-index: 3;
   align-items: center;
   background: transparent;
   bottom: 20px;

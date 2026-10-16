@@ -34,10 +34,14 @@ export default defineConfig(({ command, mode }) => {
     envDir: "../../..",
     define: {
       __APP_VERSION__: JSON.stringify(rootPackage.version),
-      __CODEXSUN_ECOMMERCE_WEB_PORT__: JSON.stringify(Number(runtimeEnv.CODEXSUN_ECOMMERCE_WEB_PORT))
+      __CODEXSUN_ECOMMERCE_WEB_PORT__: JSON.stringify(
+        Number(runtimeEnv.CODEXSUN_ECOMMERCE_WEB_PORT)
+      )
     },
     optimizeDeps: {
       exclude: [
+        "@codexsun/qcafe-web",
+        "@codexsun/qcafe-web/web",
         "@codexsun/codexsun-web",
         "@codexsun/blog/web",
         "@codexsun/billing-web",
@@ -81,6 +85,7 @@ export default defineConfig(({ command, mode }) => {
     ],
     resolve: {
       alias: {
+        "@codexsun/qcafe-web/web": resolve(configDir, "../../qcafe/web/src/web/WebApp.tsx"),
         "@codexsun/ui/workspace/column-filter": resolve(
           configDir,
           "../../../packages/ui/src/workspace/column-filter.tsx"

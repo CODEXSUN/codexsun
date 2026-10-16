@@ -10,6 +10,7 @@ type EcommerceRequestScope = {
   databaseName: string | undefined;
   frappeEnabled: boolean;
   tenantKey: string;
+  publicStorageRoot?: string;
 };
 
 const requestScope = new AsyncLocalStorage<EcommerceRequestScope>();
@@ -19,12 +20,22 @@ export function runWithEcommerceRequestScope<T>(
   tenantKey: string,
   task: () => T,
   databaseName?: string,
-  frappeEnabled = false
+  frappeEnabled = false,
+  publicStorageRoot?: string
 ): T {
   if (!/^[a-zA-Z0-9_-]+$/u.test(tenantKey)) {
     throw AppError.validation("Invalid ecommerce tenant scope.");
   }
-  return requestScope.run({ database, databaseName, frappeEnabled, tenantKey }, task);
+  return requestScope.run(
+    {
+      database,
+      databaseName,
+      frappeEnabled,
+      tenantKey,
+      ...(publicStorageRoot ? { publicStorageRoot } : {})
+    },
+    task
+  );
 }
 
 export function enterEcommerceRequestScope(database: Kysely<EcommerceDatabase>, tenantKey: string) {
@@ -38,6 +49,12 @@ export function getEcommerceDatabase(): Kysely<EcommerceDatabase> {
   const scope = requestScope.getStore();
   if (!scope) throw AppError.forbidden("Ecommerce tenant context is required.");
   return scope.database;
+}
+
+export function getEcommercePublicStorageRoot() {
+  const root = requestScope.getStore()?.publicStorageRoot;
+  if (!root) throw AppError.forbidden("Ecommerce tenant storage context is required.");
+  return root;
 }
 
 export function getEcommerceTenantKey(): string {

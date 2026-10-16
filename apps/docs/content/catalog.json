@@ -2494,7 +2494,7 @@
       "title": "Q Cafe Overview",
       "summary": "Restaurant/POS operations with its own PIN login and desktop delivery.",
       "sourcePath": "applications/qcafe/overview.mdx",
-      "sourceHash": "563a97b769464b55f8cca09cc34ae3caf280d53d3bcd8fe6dfb1c95cbe6cf194",
+      "sourceHash": "9e96fac7596956a9ba5b7f7b3606d910a4c6abce30e1f1ba2918c647f080b758",
       "sortOrder": 0
     },
     {
@@ -2507,7 +2507,7 @@
       "title": "Q Cafe Business",
       "summary": "Restaurant/POS operations with its own PIN login and desktop delivery.",
       "sourcePath": "applications/qcafe/business.md",
-      "sourceHash": "ae9a201c16db8e10930705b0186b15701247db1899b59764bfaacb58fd52d63d",
+      "sourceHash": "9070e7821aa20a5da5d8f01e8eb88fd90f11f53d184c1d7de39406d9cbe4777e",
       "sortOrder": 1
     },
     {
@@ -2555,11 +2555,11 @@
       "appLabel": "Q Cafe",
       "groupKey": "modules",
       "groupLabel": "Modules",
-      "moduleKey": "masters",
+      "moduleKey": "menu",
       "title": "Masters",
       "summary": "Q Cafe source contracts for masters.",
       "sourcePath": "applications/qcafe/modules/masters.md",
-      "sourceHash": "65cd458c060a3df88fc99695e615a653a53c18d97b419e9db235893b0b355629",
+      "sourceHash": "991458e95c6b9f786389f602aa94e23b8ead8e1791814d62ec1e1749cf85be0f",
       "sortOrder": 12
     },
     {
@@ -2572,7 +2572,7 @@
       "title": "Pos",
       "summary": "Q Cafe source contracts for pos.",
       "sourcePath": "applications/qcafe/modules/pos.md",
-      "sourceHash": "9171cdaf7e6f6af664ee3f1f7c91712bbbaf410c9fbca43db6602ce0499cac10",
+      "sourceHash": "82b8590dcf6fc6a0b79dcd18f7e6410fb466c2a36bb310e2007115c5cf0e4d51",
       "sortOrder": 13
     },
     {

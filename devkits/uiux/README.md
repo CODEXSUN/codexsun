@@ -53,3 +53,43 @@ standalone gallery at `http://127.0.0.1:7040/uiux/main-layouts`. The embedded
 Super Admin desk keeps `/sa/uiux?uiux=main-layouts`. Run
 `npm run typecheck -w @codexsun/uiux` and `npm run build -w @codexsun/uiux` to check
 it. The existing component catalog remains at `/sa/design-system`.
+
+## Component documentation
+
+The design-system gallery, component examples, and live interface-topology inspection.
+
+Render the real shared components. Keep gallery examples separate from app business behavior. Preserve the five case-sensitive Main Layout region names.
+
+- [TASK.md](agent/TASK.md): work items and acceptance evidence.
+- [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.
+- [SKILLS.md](agent/SKILLS.md): component working rules and safety constraints.
+
+### Source inventory
+
+- `src/`: `gallery`.
+
+This inventory records source presence. It does not certify a deployed feature.
+
+### Workspace verification
+
+Run these commands from the repository root. Use the root installation and `dist` output tree.
+
+- `npm run typecheck -w @codexsun/uiux`
+- `npm run lint -w @codexsun/uiux`
+- `npm run build -w @codexsun/uiux`
+
+Run `npm run check:component-docs` to verify the required documentation files.
+Run the relevant app tests and root release gates when implementation changes.
+Report database, browser, native, and deployment checks separately.
+
+### Workspace packages
+
+- `.`: `@codexsun/uiux`.
+
+### Declared internal dependencies
+
+- `@codexsun/ui`
+
+### Public package entry points
+
+- `@codexsun/uiux`: `.`.

@@ -1,18 +1,18 @@
 # Q Cafe: core business and ownership
 
-Restaurant/POS operations with its own PIN login and desktop delivery.
+Restaurant POS with Platform identity and MariaDB for web, and PIN login with SQLite for desktop.
 
 ## Ownership boundary
 
-Q Cafe has its own runtime, login and deployment contract. Do not reuse its PIN identity as Platform tenant authentication.
+QCafe owns menu prices, bills, payment settlement, and their audit records. Platform owns tenant identity, activation, and permissions. Desktop PINs do not grant cloud access.
 
 ## Inputs and outputs
 
-- Run the supported single-tenant Q Cafe deployment and activate its licence.
-- Sign in using its separate PIN-based login.
-- Configure restaurant masters/tables and available POS/catalog settings.
-- Use the POS billing, payment collection and receipt/Z-report flows documented by the owner README.
-- Package desktop resources and validate printer/receipt behavior on the target device.
+- Open web QCafe through the authenticated Platform launcher.
+- Maintain tenant menu prices and activation status.
+- Create takeaway bills and collect partial or full payments with duplicate-request protection.
+- Print saved bills and receipts. Preserve immutable financial history.
+- Keep desktop login, SQLite, licensing, and native printing separate until desktop work resumes.
 
 ## Extension rules
 

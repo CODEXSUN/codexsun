@@ -24,6 +24,7 @@ import type {
 import type { StorefrontAnnouncement } from "./storefront.types";
 import { StorefrontAnnouncementBanner } from "./storefront.announcement";
 import { useStorefrontCartCount } from "./storefront.cart";
+import { StorefrontCompanyBrand } from "./storefront.branding";
 
 export function StoreHeader({
   announcement,
@@ -66,19 +67,7 @@ export function StoreHeader({
     <>
       <StorefrontAnnouncementBanner announcement={announcement} />
       <header className="cx-store__header">
-        <a className="cx-store__brand" href="/shop">
-          {branding?.logoUrl ? (
-            <img
-              alt=""
-              aria-hidden="true"
-              className="cx-store__brand-mark"
-              height={40}
-              src={branding.logoUrl}
-              width={40}
-            />
-          ) : null}
-          {branding?.brandName ? <strong>{branding.brandName}</strong> : null}
-        </a>
+        <StorefrontCompanyBrand branding={branding} className="cx-store__brand" />
         <StoreNavigation branding={branding} discovery={discovery} />
         <button
           aria-controls="storefront-mobile-menu"

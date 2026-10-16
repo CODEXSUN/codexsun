@@ -14,6 +14,7 @@ export {
 } from "./modules/master/contact/index.js";
 export {
   getApplicationCompanyBrandingForDatabase,
+  getOrganisationOptionsForDatabase,
   getDefaultCompanyForDatabase,
   setDefaultCompanyLandingAppForDatabase
 } from "./modules/organisation/default-company/index.js";

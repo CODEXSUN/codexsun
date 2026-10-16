@@ -1,3 +1,4 @@
+import { registerBillingComplianceHost } from "./billing-compliance-host.js";
 import { sql } from "kysely";
 import { codexsunApiModuleKeys } from "@codexsun/codexsun-api";
 import {
@@ -35,6 +36,7 @@ import {
   closeCoreDatabase,
   coreApiModuleKeys,
   registerCoreApi,
+  registerCoreTenantDatabaseConnection,
   getActiveContactForDatabase,
   resolveOrCreateCustomerForDatabase
 } from "@codexsun/core-api";
@@ -142,7 +144,11 @@ import { accessControlModule } from "./modules/access-control/index.js";
 import { platformActivityModule } from "./modules/platform-activity/index.js";
 import { databaseMaintenanceModule } from "./modules/database-maintenance/index.js";
 import { queueManagerModule } from "./modules/queue-manager/index.js";
-import { storageManagerModule } from "./modules/storage-manager/index.js";
+import {
+  storageManagerModule,
+  StorageManagerService,
+  tenantPublicStorageRoot
+} from "./modules/storage-manager/index.js";
 import { taskManagerModule } from "./modules/task-manager/index.js";
 import { credentialRecoveryModule } from "./modules/credential-recovery/index.js";
 import { appOrchestrationModule } from "./modules/app-orchestration/index.js";
@@ -157,7 +163,7 @@ import { requestHost, enforceBrowserRequestOrigin } from "./auth/auth-request-co
 import { tenantAccessContext } from "./auth/tenant-access-context.js";
 import { recordTenantAccessAudit } from "./database/tenant-access-audit.js";
 import { TenantRepository } from "./modules/tenant/tenant.repository.js";
-import { getTenantDatabase } from "./database/tenant-database.js";
+import { getTenantDatabase, resolveTenantDatabasePassword } from "./database/tenant-database.js";
 import { seedDefaultTenant } from "./modules/tenant/tenant.seed.js";
 import { env } from "./env.js";
 import { assertSingleTenantRegistry } from "./tenancy-mode.js";
@@ -219,6 +225,7 @@ export async function createApp() {
     ]
   });
   const queueService = new QueueManagerService();
+  registerBillingComplianceHost(app,queueService);
   registerAuthRequestContext(app);
   await registerProjectManagerHost(app);
   await registerZunoHost(app);
@@ -1679,6 +1686,13 @@ export async function createApp() {
       void (async () => {
         if (request.method !== "GET") enforceBrowserRequestOrigin(request);
         const tenant = await resolvePublicStorefrontTenant(requestHost(request));
+        registerCoreTenantDatabaseConnection({
+          database: tenant.dbName,
+          host: tenant.dbHost,
+          port: tenant.dbPort,
+          user: tenant.dbUser,
+          password: resolveTenantDatabasePassword(tenant)
+        });
         const database = getTenantDatabase(tenant);
         const enabled = await database
           .selectFrom("app_module_settings")
@@ -1693,21 +1707,29 @@ export async function createApp() {
           database,
           databaseName: tenant.dbName,
           tenantKey: tenant.uuid,
+          publicStorageRoot: tenantPublicStorageRoot(tenant.slug || tenant.tenantCode),
           frappeEnabled: modules.has("frappe") && modules.has("crm")
         };
       })().then(
-        ({ database, databaseName, tenantKey, frappeEnabled }) =>
+        ({ database, databaseName, tenantKey, frappeEnabled, publicStorageRoot }) =>
           runWithEcommerceRequestScope(
             database as unknown as import("kysely").Kysely<EcommerceDatabase>,
             tenantKey,
             done,
             databaseName,
-            frappeEnabled
+            frappeEnabled,
+            publicStorageRoot
           ),
         done
       );
     });
-    await registerEcommercePublicModules(scoped, env.JWT_SECRET, frappeSettings);
+    await registerEcommercePublicModules(
+      scoped,
+      env.JWT_SECRET,
+      frappeSettings,
+      (tenantKey, companyId, variant) =>
+        new StorageManagerService().readCompanyLogo(tenantKey, companyId, variant)
+    );
   });
   await app.register(async (scoped) => {
     scoped.addHook("onRequest", (request, _reply, done) => {
@@ -1735,15 +1757,22 @@ export async function createApp() {
           if (!frappeEnabled) throw AppError.forbidden("Frappe is not enabled for this tenant.");
           await context.authorize("frappe.connection.manage");
         }
-        return { context, frappeEnabled };
+        const tenant = await new TenantRepository().findByIdOrCode(context.tenantId);
+        if (!tenant) throw AppError.notFound("Tenant was not found.");
+        return {
+          context,
+          frappeEnabled,
+          publicStorageRoot: tenantPublicStorageRoot(tenant.slug || tenant.tenantCode)
+        };
       })().then(
-        ({ context, frappeEnabled }) =>
+        ({ context, frappeEnabled, publicStorageRoot }) =>
           runWithEcommerceRequestScope(
             context.database as unknown as import("kysely").Kysely<EcommerceDatabase>,
             context.tenantId,
             done,
-            undefined,
-            frappeEnabled
+            context.tenantDatabase,
+            frappeEnabled,
+            publicStorageRoot
           ),
         done
       );

@@ -1,6 +1,6 @@
 export type SaleStatus = "draft" | "confirmed" | "cancelled";
 export type SaleTaxType = "cgst-sgst" | "igst";
-export type GstDocumentStatus = "not-generated" | "generated";
+export type GstDocumentStatus = "not-generated" | "generated" | "cancelled";
 
 export type SaleContext = {
   companyId: number;

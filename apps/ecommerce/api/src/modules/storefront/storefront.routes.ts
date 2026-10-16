@@ -2,9 +2,13 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { AppError } from "@codexsun/framework/errors";
 import { registerContractRoute } from "@codexsun/framework/http";
-import { getApplicationCompanyBrandingForDatabase, getCompanyForDatabase } from "@codexsun/core-api";
-import { getEcommerceTenantDatabaseName } from "../../database/ecommerce-database.js";
+import { getEcommerceTenantKey } from "../../database/ecommerce-database.js";
+import {
+  StorefrontOrganisationService,
+  type StorefrontCompanyLogoReader
+} from "../storefront-organisation/index.js";
 import { StorefrontService } from "./storefront.service.js";
+import { StorefrontOrganisationLogoStorage } from "../storefront-organisation/index.js";
 
 const product = z.object({
   brand: z.string().nullable(),
@@ -117,8 +121,31 @@ const siteNavigation = z
 
 export async function registerStorefrontRoutes(
   app: FastifyInstance,
-  service: () => StorefrontService
+  service: () => StorefrontService,
+  readCompanyLogo?: StorefrontCompanyLogoReader
 ) {
+  const organisation = new StorefrontOrganisationService();
+  app.get("/storefront/organisation-logo/:fileName", async (request, reply) => {
+    const { fileName } = z
+      .object({ fileName: z.string().regex(/^[a-f0-9]{32}\.png$/u) })
+      .parse(request.params);
+    const content = await new StorefrontOrganisationLogoStorage().content(fileName);
+    return reply
+      .type("image/png")
+      .header("Cache-Control", "public, max-age=31536000, immutable")
+      .send(content);
+  });
+  app.get("/storefront/company-logo/:variant", async (request, reply) => {
+    const { variant } = z.object({ variant: z.enum(["logo", "logo-dark"]) }).parse(request.params);
+    const company = await organisation.company();
+    const configured = variant === "logo" ? company?.logoPath : company?.logoDarkPath;
+    const file =
+      company && configured && readCompanyLogo
+        ? await readCompanyLogo(getEcommerceTenantKey(), company.id, variant)
+        : null;
+    if (!file) throw AppError.notFound("Storefront company logo was not found.");
+    return reply.type(file.mimeType).header("Cache-Control", "no-store").send(file.buffer);
+  });
   app.addHook("onSend", async (request, reply, payload) => {
     if (request.raw.url?.startsWith("/storefront/") && !reply.hasHeader("Cache-Control")) {
       reply.header("Cache-Control", "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
@@ -139,24 +166,7 @@ export async function registerStorefrontRoutes(
         primaryPhone: z.string().nullable()
       })
     },
-    handler: async () => {
-      const databaseName = getEcommerceTenantDatabaseName();
-      const branding = await getApplicationCompanyBrandingForDatabase(databaseName);
-      const company = branding
-        ? await getCompanyForDatabase(databaseName, branding.companyId)
-        : null;
-      const version = branding ? encodeURIComponent(branding.updatedAt) : "";
-      return {
-        brandName: branding?.brandName ?? company?.name ?? "Store",
-        logoDarkUrl: branding?.logoDarkPath
-          ? `/api/platform/public/app-portal/company-logo/logo-dark?v=${version}`
-          : null,
-        logoUrl: branding?.logoPath
-          ? `/api/platform/public/app-portal/company-logo/logo?v=${version}`
-          : null,
-        primaryPhone: company?.primaryPhone ?? null
-      };
-    }
+    handler: () => organisation.branding()
   });
   registerContractRoute(app, {
     method: "POST",

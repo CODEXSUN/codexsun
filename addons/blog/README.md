@@ -1,0 +1,39 @@
+# Blog add-on
+
+## Component documentation
+
+The host integration for the external @codexsun/blog npm package.
+
+Vendor source remains in the published package. This folder contains integration documentation only. Keep exact version pins, integrity locks, manifest contracts, permissions, migrations, and public API/web composition aligned.
+
+- [TASK.md](agent/TASK.md): work items and acceptance evidence.
+- [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.
+- [SKILLS.md](agent/SKILLS.md): component working rules and safety constraints.
+
+### Source inventory
+
+- Host dependencies: `apps/platform/api/package.json` and `apps/platform/web/package.json`.
+- Public vendor exports: `@codexsun/blog/contracts`, `@codexsun/blog/api`, and `@codexsun/blog/web`.
+- Registry and manifest verification: `tools/check-addon-packages.mjs`.
+
+This inventory records source presence. It does not certify a deployed feature.
+
+### Workspace verification
+
+Run these commands from the repository root. Use the root installation and `dist` output tree.
+
+- `npm run addons:check`
+- `npm run test:addon-contract`
+
+Run `npm run check:component-docs` to verify the required documentation files.
+Run the relevant app tests and root release gates when implementation changes.
+Report database, browser, native, and deployment checks separately.
+
+### Integration contract
+
+The host API and web packages pin `@codexsun/blog` to `1.0.16`.
+`blogPluginManifest` is read from `@codexsun/blog/contracts` during the registry and manifest check.
+Keep the root lockfile synchronized with both host dependency declarations.
+Use published `contracts`, `api`, and `web` exports instead of copying private vendor files.
+Review host compatibility and migration requirements before changing the pin.
+The upstream source repository is maintained separately from this integration guide.

@@ -109,3 +109,51 @@ The employee E2E test uses two temporary `codexsun_dev_hrms_*` databases and rem
 It checks repeated migrations, permission seeding, user validation, uniqueness races, lifecycle, audit history, isolation and persistence after reconnect.
 It also checks module API authentication and permission gates with an injected test context.
 It does not replace composed Platform login or browser verification.
+
+## Component documentation
+
+Employee administration, manual attendance, Department and Designation leaves, and the workforce overview.
+
+Preserve one attendance record per employee and date. Distinguish standalone master leaves from completed Platform composition. Keep planned leave and device integration separate from implemented flows.
+
+- [TASK.md](agent/TASK.md): work items and acceptance evidence.
+- [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.
+- [SKILLS.md](agent/SKILLS.md): component working rules and safety constraints.
+
+### Source inventory
+
+- `api/src/modules`: `attendance`, `department`, `designation`, `employee`, `overview`.
+- `web/src/modules`: `attendance`, `department`, `designation`, `employee`, `overview`.
+
+This inventory records source presence. It does not certify a deployed feature.
+
+### Workspace verification
+
+Run these commands from the repository root. Use the root installation and `dist` output tree.
+
+- `node tools/check-module-boundaries.mjs hrms`
+- `npm run typecheck -w @codexsun/hrms-api`
+- `npm run lint -w @codexsun/hrms-api`
+- `npm run build -w @codexsun/hrms-api`
+- `npm run typecheck -w @codexsun/hrms-web`
+- `npm run lint -w @codexsun/hrms-web`
+- `npm run build -w @codexsun/hrms-web`
+
+Run `npm run check:component-docs` to verify the required documentation files.
+Run the relevant app tests and root release gates when implementation changes.
+Report database, browser, native, and deployment checks separately.
+
+### Workspace packages
+
+- `api`: `@codexsun/hrms-api`.
+- `web`: `@codexsun/hrms-web`.
+
+### Declared internal dependencies
+
+- `@codexsun/framework`
+- `@codexsun/ui`
+
+### Public package entry points
+
+- `@codexsun/hrms-api`: `.`.
+- `@codexsun/hrms-web`: `./modules/employee`, `./modules/attendance`, `./modules/department`, `./modules/designation`, `.`, `./modules/overview`, `./modules/overview/gateway`.

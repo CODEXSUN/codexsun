@@ -100,3 +100,104 @@ Statement tables and prints show bill age as elapsed calendar days from the bill
 Receipt and Payment movements show a dash instead of bill age. Future bill dates show zero days.
 Print layouts use centered headings and no longer show the separate outstanding ageing summary block.
 The backend ageing calculation remains unchanged. Chrome verified the customer rows at 62 and 44 days on October 1, 2026.
+
+## Component documentation
+
+Tenant billing entries, quotations, purchases, sales, receipts, payments, opening balances, and outstanding reports.
+
+Keep company and financial-year scope explicit. Draft reservations do not settle balances. Preserve allocation, tax, lifecycle, and accounting reconciliation rules.
+
+- [TASK.md](agent/TASK.md): work items and acceptance evidence.
+- [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.
+- [SKILLS.md](agent/SKILLS.md): component working rules and safety constraints.
+
+### Source inventory
+
+- `api/src/modules`: `dashboard`, `export-sales`, `opening-balance`, `payment`, `purchase`, `quotation`, `receipt`, `reports`, `reports/customer-statement`, `reports/customer-summary`, `reports/gst-statement`, `reports/stock-statement`, `reports/supplier-statement`, `reports/supplier-summary`, `runtime-persistence`, `sales`, `settings`.
+- `web/src/modules`: `dashboard`, `export-sales`, `opening-balance`, `payment`, `purchase`, `quotation`, `receipt`, `reports/customer-statement`, `reports/customer-summary`, `reports/gst-statement`, `reports/stock-statement`, `reports/supplier-statement`, `reports/supplier-summary`, `sales`, `settings`.
+
+This inventory records source presence. It does not certify a deployed feature.
+
+### Workspace verification
+
+Run these commands from the repository root. Use the root installation and `dist` output tree.
+
+- `node tools/check-module-boundaries.mjs billing`
+- `npm run typecheck -w @codexsun/billing-api`
+- `npm run lint -w @codexsun/billing-api`
+- `npm run build -w @codexsun/billing-api`
+- `npm run typecheck -w @codexsun/billing-web`
+- `npm run lint -w @codexsun/billing-web`
+- `npm run build -w @codexsun/billing-web`
+
+Run `npm run check:component-docs` to verify the required documentation files.
+Run the relevant app tests and root release gates when implementation changes.
+Report database, browser, native, and deployment checks separately.
+
+### Workspace packages
+
+- `api`: `@codexsun/billing-api`.
+- `web`: `@codexsun/billing-web`.
+
+### Declared internal dependencies
+
+- `@codexsun/core-web`
+- `@codexsun/framework`
+- `@codexsun/mail-web`
+- `@codexsun/ui`
+
+### Public package entry points
+
+- `@codexsun/billing-api`: `.`.
+- `@codexsun/billing-web`: `.`, `./modules/entries`, `./modules/dashboard`, `./modules/export-sales`, `./modules/payment`, `./modules/purchase`, `./modules/quotation`, `./modules/reports`, `./modules/receipt`, `./modules/sales`, `./modules/settings/services`.
+
+## WhiteBooks integration verification, October 16, 2026
+
+Sales and Export Sales own their WhiteBooks clients, payloads, and company/address reads.
+Domestic e-invoices use B2B with the stored customer GSTIN. Export invoices use EXPWP or EXPWOP.
+Both send schema version 1.1, provider dates, addresses, item taxes, and reconciled totals.
+Foreign-currency invoices remain blocked until an INR tax conversion workflow exists.
+
+E-way generation uses the IRN endpoint when an IRN exists. Domestic standalone generation supports E-way-only mode.
+Road transport requires a vehicle for Part B or a transporter GSTIN/TRANSIN for Part A.
+Enter transport distance from 1 to 4000 km for each generation request. This request field is not stored as invoice data.
+Export E-way requires an IRN and a selected Indian dispatch destination address.
+
+### Configuration
+
+The ignored root `.env` holds the shared GSP account. Restart the API after configuration changes.
+Use `GSP_ENVIRONMENT=sandbox` until production taxpayer onboarding and release checks are complete.
+Set `GSP_EMAIL`, `GSP_USERNAME`, `GSP_PASSWORD`, `GSP_CLIENT_ID`, `GSP_CLIENT_SECRET`, `GSP_GSTIN`, and `GSP_IP_ADDRESS`.
+The company GSTIN must match `GSP_GSTIN`. The server rejects a mismatch before submission.
+WhiteBooks product keys are separate even when the taxpayer login is shared.
+Optional `CODEXSUN_WHITEBOOKS_EWAY_CLIENT_ID` and `CODEXSUN_WHITEBOOKS_EWAY_CLIENT_SECRET` select standalone E-way product keys.
+Four `CODEXSUN_WHITEBOOKS_PRODUCTION_*` fields stage production product keys independently of the active sandbox keys.
+Production still requires the real company GSTIN and its registered API username/password in the shared GSP fields.
+The known WhiteBooks sandbox taxpayer cannot run in production mode.
+
+Run `node --import tsx apps/billing/api/src/modules/sales/whitebooks.sandbox.ts` from the root for sandbox authentication checks.
+E-invoice authentication returns a token. E-way authentication can return an accepted status without a token.
+Generation still requires a complete IRN/acknowledgment/QR response or a valid E-way number and date.
+Provider errors do not become generated records. Responses with missing data fail closed.
+Generated records cannot be edited, cleared, or revoked. Cancel the provider E-way first, then the IRN, before cancelling the local voucher. Cancelled identifiers remain stored and cannot be reused.
+Existing completed results return without another generation request.
+
+### Evidence and remaining gates
+
+- Sandbox e-invoice `CS792154392746`: acknowledgment `112610278703952`.
+- Sandbox E-way from that IRN: `131012938109`.
+- Standalone sandbox E-way `CW792154406854`: `191012938110`.
+- These calls used explicit sample data through the clients. They did not change tenant customer invoices.
+- Disposable MariaDB tests cover company/address reads, company scope rejection, saved provider dates, reload, and repeated generation.
+- The known four-digit HSN sample was rejected with provider code 2311. A six-digit HSN passed.
+- Browser QA invoice `WBQA2156318508` generated acknowledgment `112610278704526` and E-way `181012938120` through Queue Manager. Both provider cancellations completed. The interrupted E-way cancellation recovered through provider lookup.
+- Production authentication and generation remain unverified.
+- Durable tenant outboxes dispatch through Platform Queue Manager. Workers claim once, recheck live permissions, save provider outcomes before local updates, and reconcile interrupted submissions without blindly generating again.
+- Sales and Export Sales have additive `compliance-queue-v1` migrations. Existing migration checksums remain unchanged.
+- Uncertain standalone E-way generation requires the provider bill number for lookup. A lookup that cannot establish a result keeps the invoice locked for review. Cancellation lookup that confirms an active document releases the failed attempt for a fresh cancellation.
+- The isolated MariaDB suite passed concurrent claims, scope denial, invoice locks, cancellation ordering, unknown outcome recovery, saved-result replay, revoked permissions, and export cancellation.
+- These changes do not certify production readiness. No production invoice was submitted.
+
+Reference: [WhiteBooks IRN API](https://whitebooks.in/developer/e-invoice-api/post-einvoice-type-generate-version-v1-03),
+[IRN E-way API](https://whitebooks.in/developer/e-invoice-api/post-einvoice-type-generate-ewaybill-version-v1-03),
+and [standalone E-way API](https://whitebooks.in/developer/e-way-bill-api/post-ewaybillapi-v1.03-ewayapi-genewaybill).

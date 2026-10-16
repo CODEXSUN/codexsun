@@ -2,7 +2,14 @@ import { useEffect } from "react";
 
 export function useClientDocument(title: string, description: string, themeColor: string) {
   useEffect(() => {
-    document.title = title;
+    const path = window.location.pathname.replace(/\/$/, "");
+    const label: Record<string, string> = {
+      "/about": "About",
+      "/services": "Services",
+      "/contact": "Contact",
+      "/blogs": "Blog"
+    };
+    document.title = label[path] ? `${label[path]} | ${title}` : title;
 
     const descriptionMeta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     const themeMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');

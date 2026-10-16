@@ -1,0 +1,24 @@
+.qcafe-print-receipt {
+  display: none;
+}
+@media print {
+  body:has(.qcafe-print-receipt) * {
+    visibility: hidden !important;
+  }
+  body[data-qcafe-print="bill"] .qcafe-print-receipt[data-print-kind="bill"],
+  body[data-qcafe-print="bill"] .qcafe-print-receipt[data-print-kind="bill"] *,
+  body[data-qcafe-print="kot"] .qcafe-print-receipt[data-print-kind="kot"],
+  body[data-qcafe-print="kot"] .qcafe-print-receipt[data-print-kind="kot"] * {
+    visibility: visible !important;
+  }
+  body[data-qcafe-print="bill"] .qcafe-print-receipt[data-print-kind="bill"],
+  body[data-qcafe-print="kot"] .qcafe-print-receipt[data-print-kind="kot"] {
+    display: block;
+    position: fixed;
+    inset: 0;
+    padding: 12mm;
+    background: white;
+    color: black;
+    font: 12px monospace;
+  }
+}

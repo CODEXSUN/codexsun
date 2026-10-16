@@ -12,7 +12,9 @@ export type EcommerceOverview = {
 
 export type EcommerceOverviewRequestContext = {
   actorEmail: string;
-  authorize: (permission: EcommerceOverviewPermission) => Promise<void>;
+  authorize: (
+    permission: EcommerceOverviewPermission | "ecommerce.storefront.manage"
+  ) => Promise<void>;
   tenant: { code: string; name: string };
 };
 

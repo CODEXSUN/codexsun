@@ -59,7 +59,9 @@ export function useSites(gateway: SiteGateway) {
   const toggleStatus = useCallback(
     async (site: CmsSite) => {
       const updated =
-        site.status === "suspended" ? await gateway.restore(site.uuid) : await gateway.suspend(site.uuid);
+        site.status === "suspended"
+          ? await gateway.restore(site.uuid)
+          : await gateway.suspend(site.uuid);
       setRecords((prev) => prev.map((record) => (record.uuid === site.uuid ? updated : record)));
       return updated;
     },

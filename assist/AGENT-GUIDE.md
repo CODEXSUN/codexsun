@@ -250,3 +250,30 @@ Do not describe planned, inferred, or unexecuted verification as completed.
 - A login creates a new slot and must not revoke or clear another tab's session. Logout and session reset revoke and clear only the selected slot. A tenant switch must reload the desk and clear that tab's query and runtime caches.
 - Cache only non-secret session context: tenant/company labels and IDs, default company, financial year, enabled modules, landing page, and safe settings. Never cache credentials, authorization decisions, permissions, secrets, or raw tokens. Clear this cache on login and logout.
 - Authorization and tenant status are checked live for protected requests; cached session context is a performance convenience, not an authority.
+
+## Required component documentation
+
+Every app, developer kit, shared package, workspace tool, and add-on integration guide owns this structure:
+
+```text
+<component>/
+  README.md
+  agent/
+    TASK.md
+    PLAN.md
+    SKILLS.md
+```
+
+- `README.md` describes purpose, supported scope, source layout, public contracts, dependencies, and verification commands.
+- `TASK.md` records work items, acceptance criteria, and exact completion evidence. Preserve existing task states.
+- `PLAN.md` records ownership, current implementation limits, delivery order, and verification gates.
+- `SKILLS.md` records component-specific working rules. Documentation never grants runtime permissions.
+- Use exact uppercase filenames so Linux and Windows resolve the same files.
+- Keep component details accurate. A source folder or passing build does not prove a deployed feature.
+- Read these files before component work. Keep existing detailed plans and supporting documents when they remain useful.
+- External npm add-on integration guides live under `addons/<name>`. Vendor code remains in its published package.
+- Zetro is a deliberate runtime distinction: `apps/zetro/agent/SKILLS.md` remains its versioned business rule file.
+  Keep developer task instructions in its other documents. Its loader, build collector, backend permissions, and tests must agree.
+
+Run `npm run check:component-docs` and `npm run test:component-docs` before completion.
+The root `npm run check` includes both commands, so CI rejects missing component documents.

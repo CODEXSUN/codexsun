@@ -1,3 +1,4 @@
+import { cancelSaleEinvoice, cancelSaleEway } from "./sales.services";
 import { productsQueryKey } from "@codexsun/core-web/modules/master/product";
 import { billingLookupQuery } from "../../shared/query/billing-lookup-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -236,15 +237,17 @@ export function useSalesFormController({
     mutationFn: ({
       id,
       kind,
-      details
+      details,
+      distanceKm
     }: {
       id: string;
+      distanceKm?: number;
       kind: "einvoice" | "eway";
       details: SaleEinvoiceDetails | SaleEwayDetails;
     }) =>
       kind === "einvoice"
         ? generateSaleEinvoice(id, details as SaleEinvoiceDetails)
-        : generateSaleEway(id, details as SaleEwayDetails)
+        : generateSaleEway(id, details as SaleEwayDetails, distanceKm)
   });
   const clearComplianceMutation = useMutation({
     mutationFn: ({ id, kind }: { id: string; kind: "einvoice" | "eway" }) =>
@@ -526,7 +529,19 @@ export function useSalesFormController({
     }
   }
 
-  async function generateEway() {
+  async function cancelCompliance(
+    documentType: "einvoice" | "eway",
+    reasonCode: number,
+    remarks: string
+  ) {
+    if (!sale) throw new Error("Save the invoice first.");
+    const updated = await (documentType === "einvoice"
+      ? cancelSaleEinvoice(sale.id, reasonCode, remarks)
+      : cancelSaleEway(sale.id, reasonCode, remarks));
+    patch({ einvoice: updated.einvoice, eway: updated.eway });
+    toast.success("Provider cancellation confirmed");
+  }
+  async function generateEway(distanceKm: number) {
     if (!sale) {
       toast.error("Save the sale before generating the E-way bill.");
       return;
@@ -535,6 +550,7 @@ export function useSalesFormController({
       const updated = await complianceMutation.mutateAsync({
         id: sale.id,
         kind: "eway",
+        distanceKm,
         details: eway
       });
       patch({ eway: updated.eway });
@@ -689,6 +705,8 @@ export function useSalesFormController({
     patchEinvoice,
     clearEinvoice,
     generateEinvoice,
+    cancelCompliance,
+    complianceLoading: complianceMutation.isPending,
     onSubmit,
     activeTab,
     setActiveTab,

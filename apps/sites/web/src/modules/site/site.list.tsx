@@ -45,7 +45,9 @@ export function SiteList({
         {visibleSites.map((site) => (
           <button
             className={`flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-colors ${
-              site.uuid === selectedUuid ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"
+              site.uuid === selectedUuid
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:bg-muted/50"
             }`}
             key={site.uuid}
             onClick={() => onSelect(site.uuid)}

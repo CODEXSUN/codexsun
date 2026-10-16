@@ -75,7 +75,8 @@ export class QueueManagerService {
       return job;
     }
 
-    await this.repository.markRunning(id);
+    const claimed = await this.repository.markRunning(id);
+    if (!claimed) return this.repository.find(id);
     try {
       const result = await this.dispatch(job);
       const completed = await this.repository.markCompleted(id, result);
@@ -106,6 +107,10 @@ export class QueueManagerService {
       }
       return failed;
     }
+  }
+
+  expireRunningJobs(jobNames: string[], leaseMs: number) {
+    return this.repository.expireRunningJobs(jobNames, new Date(Date.now() - leaseMs));
   }
 
   async runNextJob() {

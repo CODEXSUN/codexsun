@@ -1,3 +1,4 @@
+import { ApplicationOverview } from "./application-overview";
 import {
   DocsKnowledgeWorkspace,
   useKnowledgeCatalog,
@@ -21,9 +22,13 @@ import {
   ecommerceModulePages,
   type EcommerceModulePage
 } from "@codexsun/ecommerce-web/modules/pages";
-import { EcommerceOverviewWorkspace } from "@codexsun/ecommerce-web/modules/overview";
+import {
+  EcommerceOverviewWorkspace,
+  EcommerceStorefrontControls
+} from "@codexsun/ecommerce-web/modules/overview";
 import {
   ecommerceOverviewGateway,
+  ecommerceStorefrontRuntimeGateway,
   openPublicStorefront
 } from "../../modules/ecommerce/ecommerce-host";
 import {
@@ -36,15 +41,7 @@ import {
   type ComponentType,
   type FormEvent
 } from "react";
-import {
-  Building2Icon,
-  LayoutDashboardIcon,
-  PlusIcon,
-  RocketIcon,
-  Settings2Icon,
-  ShieldCheckIcon,
-  UserRoundIcon
-} from "lucide-react";
+import { PlusIcon, RocketIcon } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { TenantMainLayout } from "./TenantMainLayout";
@@ -138,7 +135,9 @@ const LogicxErpOverviewWorkspace = lazyWorkspace(() =>
   )
 );
 const LogicxErpSchemeWorkspace = lazyWorkspace(() =>
-  import("@codexsun/logicx-erp-web/modules/scheme").then((module) => module.LogicxErpSchemeWorkspace)
+  import("@codexsun/logicx-erp-web/modules/scheme").then(
+    (module) => module.LogicxErpSchemeWorkspace
+  )
 );
 const CrmOverviewWorkspace = lazyWorkspace(() =>
   import("@codexsun/crm-web/modules/overview").then((module) => module.CrmOverviewWorkspace)
@@ -178,16 +177,24 @@ const FrappeCallLogImportWorkspace = lazyWorkspace(() =>
   )
 );
 const FrappeContactExportWorkspace = lazyWorkspace(() =>
-  import("@codexsun/frappe-web/modules/export").then((module) => module.FrappeContactExportWorkspace)
+  import("@codexsun/frappe-web/modules/export").then(
+    (module) => module.FrappeContactExportWorkspace
+  )
 );
 const FrappeEnquiryExportWorkspace = lazyWorkspace(() =>
-  import("@codexsun/frappe-web/modules/export").then((module) => module.FrappeEnquiryExportWorkspace)
+  import("@codexsun/frappe-web/modules/export").then(
+    (module) => module.FrappeEnquiryExportWorkspace
+  )
 );
 const FrappeActivityExportWorkspace = lazyWorkspace(() =>
-  import("@codexsun/frappe-web/modules/export").then((module) => module.FrappeActivityExportWorkspace)
+  import("@codexsun/frappe-web/modules/export").then(
+    (module) => module.FrappeActivityExportWorkspace
+  )
 );
 const FrappeCallLogExportWorkspace = lazyWorkspace(() =>
-  import("@codexsun/frappe-web/modules/export").then((module) => module.FrappeCallLogExportWorkspace)
+  import("@codexsun/frappe-web/modules/export").then(
+    (module) => module.FrappeCallLogExportWorkspace
+  )
 );
 const FrappeLiveSyncWorkspace = lazyWorkspace(() =>
   import("@codexsun/frappe-web/modules/live-sync").then((module) => module.FrappeLiveSyncWorkspace)
@@ -198,7 +205,9 @@ const FrappeLiveSyncQueueWorkspace = lazyWorkspace(() =>
   )
 );
 const FrappeConnectionWorkspace = lazyWorkspace(() =>
-  import("@codexsun/frappe-web/modules/connection").then((module) => module.FrappeConnectionWorkspace)
+  import("@codexsun/frappe-web/modules/connection").then(
+    (module) => module.FrappeConnectionWorkspace
+  )
 );
 const FrappeUserSyncWorkspace = lazyWorkspace(() =>
   import("@codexsun/frappe-web/modules/user-sync").then((module) => module.FrappeUserSyncWorkspace)
@@ -332,7 +341,9 @@ const SalesTypesWorkspace = lazyWorkspace(() =>
   )
 );
 const BrandsWorkspace = lazyWorkspace(() =>
-  import("@codexsun/core-web/modules/common/products/brands").then((module) => module.BrandsWorkspace)
+  import("@codexsun/core-web/modules/common/products/brands").then(
+    (module) => module.BrandsWorkspace
+  )
 );
 const ColoursWorkspace = lazyWorkspace(() =>
   import("@codexsun/core-web/modules/common/products/colours").then(
@@ -363,7 +374,9 @@ const SizesWorkspace = lazyWorkspace(() =>
   import("@codexsun/core-web/modules/common/products/sizes").then((module) => module.SizesWorkspace)
 );
 const StylesWorkspace = lazyWorkspace(() =>
-  import("@codexsun/core-web/modules/common/products/styles").then((module) => module.StylesWorkspace)
+  import("@codexsun/core-web/modules/common/products/styles").then(
+    (module) => module.StylesWorkspace
+  )
 );
 const TaxesWorkspace = lazyWorkspace(() =>
   import("@codexsun/core-web/modules/common/products/taxes").then((module) => module.TaxesWorkspace)
@@ -414,7 +427,9 @@ const WorkOrderWorkspace = lazyWorkspace(() =>
   import("@codexsun/core-web/modules/master/work-order").then((module) => module.WorkOrderWorkspace)
 );
 const CompanyWorkspace = lazyWorkspace(() =>
-  import("@codexsun/core-web/modules/organisation/company").then((module) => module.CompanyWorkspace)
+  import("@codexsun/core-web/modules/organisation/company").then(
+    (module) => module.CompanyWorkspace
+  )
 );
 const DefaultCompanyWorkspace = lazyWorkspace(() =>
   import("@codexsun/core-web/modules/organisation/default-company").then(
@@ -520,6 +535,9 @@ const BlogsEditorWorkspace = lazyWorkspace(() =>
   loadBlogModule().then((module) => module.BlogsEditorWorkspace)
 );
 
+const QCafeWebApp = lazy(() =>
+  import("@codexsun/qcafe-web/web").then((module) => ({ default: module.WebApp }))
+);
 const TenantUserWorkspace = lazy(() =>
   import("../../modules/tenant-user").then((module) => ({ default: module.TenantUserWorkspace }))
 );
@@ -562,6 +580,11 @@ type AppPage =
   | "auditor.overview"
   | "auditor.clients"
   | "ecommerce.overview"
+  | "ecommerce.categories"
+  | "ecommerce.products"
+  | "ecommerce.brands-strip"
+  | "ecommerce.campaign-events"
+  | "ecommerce.organisation"
   | "ecommerce.catalog"
   | "ecommerce.storefront"
   | "ecommerce.product-information"
@@ -575,6 +598,9 @@ type AppPage =
   | "ecommerce.service-banner"
   | "ecommerce.trusted-strip"
   | "qcafe.overview"
+  | "qcafe.menu"
+  | "qcafe.kot"
+  | "qcafe.take-away"
   | "hrms.overview"
   | "hrms.employees"
   | "hrms.attendance"
@@ -1169,24 +1195,6 @@ export function AppDesk() {
     return <GlobalLoader message="Preparing your workspace…" />;
   }
 
-  if (safePage === "qcafe.overview") {
-    return (
-      <div className="relative h-dvh bg-background">
-        <iframe
-          className="h-full w-full border-0"
-          src="/qcafe/"
-          title="Q Cafe restaurant workspace"
-        />
-        <a
-          className="absolute right-4 bottom-4 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium shadow-lg"
-          href="/app/application/overview"
-        >
-          Back to apps
-        </a>
-      </div>
-    );
-  }
-
   return (
     <TenantMainLayout
       fullBleed={safePage.startsWith("chat.") && safePage !== "chat.telegram.settings"}
@@ -1248,7 +1256,9 @@ export function AppDesk() {
           }
         : {})}
       headerActions={
-        safePage === "hrms.employees" ? (
+        safePage.startsWith("ecommerce.") ? (
+          <EcommerceStorefrontControls gateway={ecommerceStorefrontRuntimeGateway} />
+        ) : safePage === "hrms.employees" ? (
           location.pathname === "/app/hrms/employees" ? (
             <Button
               key="new-hrms-employee"
@@ -1358,6 +1368,7 @@ export function AppDesk() {
         ) : null
       }
       hideSidebarBrand={
+        activeApp === "ecommerce" ||
         activeApp === "crm" ||
         activeApp === "hrms" ||
         activeApp === "chat" ||
@@ -1387,21 +1398,25 @@ export function AppDesk() {
     >
       <main
         className={
-          safePage.startsWith("chat.")
-            ? "flex flex-1 min-h-0 w-full flex-col overflow-hidden"
-            : "mx-auto w-[calc(100%-2rem)] max-w-[92rem] space-y-5 py-4 lg:w-[calc(100%-3rem)] lg:py-5"
+          safePage.startsWith("qcafe.") && safePage !== "qcafe.menu"
+            ? "w-full min-w-0"
+            : safePage.startsWith("chat.")
+              ? "flex flex-1 min-h-0 w-full flex-col overflow-hidden"
+              : "mx-auto w-[calc(100%-2rem)] max-w-[92rem] space-y-5 py-4 lg:w-[calc(100%-3rem)] lg:py-5"
         }
         onChangeCapture={markUnsavedFormChanges}
         onInputCapture={markUnsavedFormChanges}
       >
         <Suspense
           key={
-            safePage.startsWith("core.") ||
-            safePage.startsWith("billing.") ||
-            safePage === "crm.contacts" ||
-            safePage === "logicx-erp.schemes"
-              ? safePage
-              : `${safePage}:${location.href}`
+            safePage.startsWith("qcafe.")
+              ? "qcafe"
+              : safePage.startsWith("core.") ||
+                  safePage.startsWith("billing.") ||
+                  safePage === "crm.contacts" ||
+                  safePage === "logicx-erp.schemes"
+                ? safePage
+                : `${safePage}:${location.href}`
           }
           fallback={
             <GlobalLoader
@@ -1485,6 +1500,9 @@ export function AppDesk() {
           {safePage === "ecommerce.overview" ? (
             <EcommerceOverviewWorkspace gateway={ecommerceOverviewGateway} />
           ) : null}
+          {safePage === "ecommerce.categories" ? <ProductCategoriesWorkspace /> : null}
+          {safePage === "ecommerce.products" ? <ProductWorkspace /> : null}
+          {safePage === "ecommerce.brands-strip" ? <BrandsWorkspace /> : null}
           {safePage === "logicx-erp.overview" ? (
             <LogicxErpOverviewWorkspace gateway={logicxErpOverviewGateway} />
           ) : null}
@@ -1516,6 +1534,28 @@ export function AppDesk() {
               gateway={auditorClientGateway}
               initialRecordId={recordIdFromUrl()}
               onRecordNavigate={selectAuditorRecord}
+            />
+          ) : null}
+          {safePage.startsWith("qcafe.") ? (
+            <QCafeWebApp
+              workspace={
+                safePage === "qcafe.menu"
+                  ? "menu"
+                  : safePage === "qcafe.kot"
+                    ? "kot"
+                    : safePage === "qcafe.take-away"
+                      ? "take-away"
+                      : "pos"
+              }
+              onWorkspaceChange={(workspace) =>
+                requestListNavigation(
+                  workspace === "pos"
+                    ? "qcafe.overview"
+                    : workspace === "kot"
+                      ? "qcafe.kot"
+                      : "qcafe.take-away"
+                )
+              }
             />
           ) : null}
           {safePage === "crm.overview" ? (
@@ -1618,7 +1658,16 @@ export function AppDesk() {
           {safePage === "crm.status" ? <StatusWorkspace key={safePage} /> : null}
           {safePage === "crm.priority" ? <PriorityWorkspace key={safePage} /> : null}
           {safePage === "application.overview" ? (
-            <ApplicationOverview signedInUser={signedInUser} />
+            <ApplicationOverview
+              companyName={selectedCompany ? companyBrandName(selectedCompany) : "—"}
+              financialYear={selectedFinancialYear?.name ?? "—"}
+              tenantName={runtime?.tenant?.tenantName ?? "—"}
+              signedInEmail={signedInUser.email}
+              enabledApps={switchableApps}
+              landingApp={landingApp}
+              onNavigate={requestListNavigation}
+              onOpenApp={(appId) => requestListNavigation(pageForApp(appId))}
+            />
           ) : null}
           {safePage === "application.landing" ? (
             <LandingDesk
@@ -1937,7 +1986,13 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     key === "auditor.clients" ||
     key === "ecommerce.overview" ||
     key === "qcafe.overview" ||
+    key === "qcafe.menu" ||
+    key === "qcafe.kot" ||
+    key === "qcafe.take-away" ||
     ecommerceModulePages.includes(key as EcommerceModulePage) ||
+    key === "ecommerce.categories" ||
+    key === "ecommerce.products" ||
+    key === "ecommerce.brands-strip" ||
     key === "logicx-erp.overview" ||
     key === "logicx-erp.schemes" ||
     key === "crm.overview" ||
@@ -2188,158 +2243,6 @@ function LandingDesk({
   );
 }
 
-function ApplicationOverview({
-  signedInUser
-}: {
-  signedInUser: ReturnType<typeof signedInTenantUser>;
-}) {
-  return (
-    <section className="space-y-5">
-      <div className="overflow-hidden rounded-md border bg-card shadow-sm">
-        <div className="relative min-h-36 p-5 md:p-6">
-          <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-gradient-to-l from-indigo-100 via-sky-50 to-transparent md:block" />
-          <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-4">
-              <span className="grid size-14 shrink-0 place-items-center rounded-md bg-slate-950 text-white shadow-sm">
-                <LayoutDashboardIcon className="size-7" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold uppercase text-muted-foreground">Application</p>
-                <h1 className="mt-1 text-3xl font-semibold tracking-normal">Application Desk</h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                  Tenant application workspace for landing setup, platform profile, settings, users,
-                  and access.
-                </p>
-              </div>
-            </div>
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border bg-background/90 px-4 py-2 text-sm font-medium shadow-sm">
-              <UserRoundIcon className="size-4" />
-              <span>
-                Signed in as {signedInUser.name} · {signedInUser.email}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <ApplicationDetailCard
-          caption="Default workspace selection"
-          icon={RocketIcon}
-          iconClassName="bg-slate-950 text-white"
-          statusTone="green"
-          title="Landing Desk"
-          value="Configured"
-        />
-        <ApplicationDetailCard
-          caption="Tenant identity and context"
-          icon={Building2Icon}
-          iconClassName="bg-sky-600 text-white"
-          statusTone="green"
-          title="Platform Profile"
-          value="Active"
-        />
-        <ApplicationDetailCard
-          caption="Tenant-scoped controls"
-          icon={Settings2Icon}
-          iconClassName="bg-amber-500 text-white"
-          statusTone="blue"
-          title="Settings"
-          value="Ready"
-        />
-        <ApplicationDetailCard
-          caption="Application and billing desks"
-          icon={ShieldCheckIcon}
-          iconClassName="bg-emerald-600 text-white"
-          statusTone="green"
-          title="App Access"
-          value="2 areas"
-        />
-      </div>
-
-      <div className="rounded-md border bg-card p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold tracking-normal">Application Menu</h2>
-          <StatusBadge tone="green">Ready</StatusBadge>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <ApplicationShortcut
-            description="Choose which enabled app opens first for this workspace."
-            icon={LayoutDashboardIcon}
-            title="Landing Desk"
-          />
-          <ApplicationShortcut
-            description="Review application identity and tenant workspace context."
-            icon={Building2Icon}
-            title="Platform Profile"
-          />
-          <ApplicationShortcut
-            description="Manage tenant-scoped application settings and access controls."
-            icon={Settings2Icon}
-            title="Settings"
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ApplicationDetailCard({
-  caption,
-  icon: Icon,
-  iconClassName,
-  statusTone,
-  title,
-  value
-}: {
-  caption: string;
-  icon: typeof LayoutDashboardIcon;
-  iconClassName: string;
-  statusTone: "blue" | "green";
-  title: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-md border bg-card p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <div className="mt-2 text-2xl font-semibold tracking-normal">{value}</div>
-        </div>
-        <span className={`grid size-11 shrink-0 place-items-center rounded-md ${iconClassName}`}>
-          <Icon className="size-5" />
-        </span>
-      </div>
-      <div className="mt-7 flex items-center justify-between gap-3 text-sm">
-        <span className="text-muted-foreground">{caption}</span>
-        <StatusBadge tone={statusTone}>Enabled</StatusBadge>
-      </div>
-    </div>
-  );
-}
-
-function ApplicationShortcut({
-  description,
-  icon: Icon,
-  title
-}: {
-  description: string;
-  icon: typeof LayoutDashboardIcon;
-  title: string;
-}) {
-  return (
-    <div className="flex min-h-28 items-start gap-3 rounded-md border bg-background p-4">
-      <span className="grid size-10 shrink-0 place-items-center rounded-md bg-muted text-foreground">
-        <Icon className="size-5" />
-      </span>
-      <div>
-        <h3 className="text-sm font-semibold">{title}</h3>
-        <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  );
-}
-
 function ApplicationProfile() {
   return (
     <Card
@@ -2538,7 +2441,10 @@ function titleForPage(page: AppPage) {
     "sites.studio": "Site Studio",
     "sites.sites": "Client Portfolios",
     "sites.guide": "Developer Guide",
-    "qcafe.overview": "Q Cafe",
+    "qcafe.overview": "POS",
+    "qcafe.menu": "Master",
+    "qcafe.kot": "KOT",
+    "qcafe.take-away": "Take Away",
     "frappe.overview": "Frappe",
     "frappe.contacts": "Import contacts",
     "frappe.enquiries": "Import enquiries",
@@ -2559,6 +2465,11 @@ function titleForPage(page: AppPage) {
     "ecommerce.overview": "Overview",
     "ecommerce.catalog": "Catalog",
     "ecommerce.storefront": "Storefront",
+    "ecommerce.categories": "Categories",
+    "ecommerce.products": "Products",
+    "ecommerce.brands-strip": "Brands Strip",
+    "ecommerce.campaign-events": "Campaign Events",
+    "ecommerce.organisation": "Storefront Organisation",
     "ecommerce.product-information": "Items",
     "ecommerce.product-variants": "Variants",
     "ecommerce.product-images": "Images",

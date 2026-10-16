@@ -1,3 +1,4 @@
+import { loadComplianceParties } from "./sales.compliance-parties.js";
 import { AppError } from "@codexsun/framework/errors";
 import { assertBillingEntryEditable } from "../../auth/billing-scope.js";
 import { billingDashboardProjection } from "../dashboard/index.js";
@@ -68,6 +69,14 @@ export class SalesService {
   }
 
   async createSale(databaseName: string, input: SaleSavePayload) {
+    if (
+      input.einvoice?.irn ||
+      input.einvoice?.status === "generated" ||
+      input.eway?.status === "generated"
+    )
+      throw AppError.validation(
+        "Generate compliance only after saving and confirming the invoice."
+      );
     const normalized = normalizeSaleInput(
       await this.repository.resolveMissingReferences(databaseName, input),
       { allowAutomaticNumber: true }
@@ -120,6 +129,8 @@ export class SalesService {
   async updateSale(databaseName: string, id: string, input: SaleSavePayload) {
     const current = await this.repository.get(databaseName, id);
     if (!current) return null;
+    if (current.einvoice.irn || current.eway.status === "generated")
+      throw AppError.conflict("Invoices with generated compliance cannot be edited.");
     assertBillingEntryEditable(current.status, "sales");
     const normalized = normalizeSaleInput({
       ...input,
@@ -197,6 +208,13 @@ export class SalesService {
   async cancelSale(databaseName: string, id: string) {
     const current = await this.repository.get(databaseName, id);
     if (!current) return null;
+    if (
+      (current.einvoice.irn && current.einvoice.status !== "cancelled") ||
+      current.eway.status === "generated"
+    )
+      throw AppError.conflict(
+        "Cancel the compliance documents with the provider before cancelling this invoice."
+      );
     if (current.status === "cancelled") throw AppError.conflict("Sale is already cancelled.");
     const sale = await this.repository.setStatus(databaseName, id, "cancelled");
     if (sale) await this.project(databaseName, "cancelled", sale);
@@ -206,7 +224,7 @@ export class SalesService {
   async revokeSale(databaseName: string, id: string) {
     const current = await this.repository.get(databaseName, id);
     if (!current) return null;
-    if (current.einvoice.status === "generated")
+    if (current.einvoice.irn || current.eway.status === "generated")
       throw AppError.conflict("Cancel the generated E-invoice before revoking this sale.");
     if (current.status === "draft")
       throw AppError.conflict("A draft sale does not need to be revoked.");
@@ -225,7 +243,7 @@ export class SalesService {
     return current;
   }
 
-  async generateEinvoice(databaseName: string, id: string, details?: SaleEinvoiceDetails) {
+  async generateEinvoice(databaseName: string, id: string, _details?: SaleEinvoiceDetails) {
     let sale = await this.repository.get(databaseName, id);
     if (!sale) return null;
     const settings = await this.settings.getBillingSettings(databaseName, sale.companyId);
@@ -233,25 +251,31 @@ export class SalesService {
       throw AppError.conflict("E-invoice is disabled for this company.");
     if (sale.status !== "confirmed")
       throw AppError.conflict("Confirm the sale before generating an E-invoice.");
-    if (details)
-      sale =
-        (await this.repository.updateCompliance(databaseName, id, { einvoice: details })) ?? sale;
-    const result = await generateSaleEinvoice(sale);
+    if (sale.einvoice.irn) return sale;
+    const result = await generateSaleEinvoice(
+      sale,
+      await loadComplianceParties(databaseName, sale)
+    );
     return this.repository.updateCompliance(databaseName, id, {
       einvoice: { ...sale.einvoice, ...result.einvoice, status: "generated" }
     });
   }
 
-  async generateEway(databaseName: string, id: string, details?: SaleEwayDetails) {
+  async generateEway(databaseName: string, id: string, details?: SaleEwayDetails, distanceKm = 0) {
     let sale = await this.repository.get(databaseName, id);
     if (!sale) return null;
     const settings = await this.settings.getBillingSettings(databaseName, sale.companyId);
     if (!settings.layout.useEway) throw AppError.conflict("E-way is disabled for this company.");
     if (sale.status !== "confirmed")
       throw AppError.conflict("Confirm the sale before generating an E-way bill.");
+    if (sale.eway.billNo && sale.eway.status === "generated") return sale;
     if (details)
-      sale = (await this.repository.updateCompliance(databaseName, id, { eway: details })) ?? sale;
-    const result = await generateSaleEway(sale);
+      sale = { ...sale, eway: { ...details, billNo: "", billDate: "", status: "not-generated" } };
+    const result = await generateSaleEway(
+      sale,
+      await loadComplianceParties(databaseName, sale),
+      distanceKm
+    );
     return this.repository.updateCompliance(databaseName, id, {
       eway: { ...sale.eway, ...result.eway, status: "generated" }
     });
@@ -260,6 +284,8 @@ export class SalesService {
   async clearEinvoice(databaseName: string, id: string) {
     const sale = await this.repository.get(databaseName, id);
     if (!sale) return null;
+    if (sale.einvoice.irn || sale.eway.status === "generated")
+      throw AppError.conflict("Generated compliance cannot be cleared locally.");
     if (sale.status !== "draft")
       throw AppError.conflict("Only draft Sale E-invoice details can be cleared.");
     return this.repository.updateCompliance(databaseName, id, {
@@ -270,6 +296,8 @@ export class SalesService {
   async clearEway(databaseName: string, id: string) {
     const sale = await this.repository.get(databaseName, id);
     if (!sale) return null;
+    if (sale.einvoice.irn || sale.eway.status === "generated")
+      throw AppError.conflict("Generated compliance cannot be cleared locally.");
     if (sale.status !== "draft")
       throw AppError.conflict("Only draft Sale E-way details can be cleared.");
     return this.repository.updateCompliance(databaseName, id, { eway: normalizeEway(undefined) });

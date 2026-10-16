@@ -193,15 +193,28 @@ export async function revokeExportSale(id: string) {
 }
 
 export async function generateExportSaleEinvoice(id: string, einvoice?: ExportSale["einvoice"]) {
-  return billingApiPost<ExportSale>(`/billing/export-sales/${id}/einvoice/generate`, {
-    einvoice
-  }).then(fromApiExportSale);
+  const job = await billingApiPost<ExportSaleComplianceJob>(
+    `/billing/export-sales/${id}/einvoice/generate`,
+    {
+      einvoice
+    }
+  );
+  return waitForExportSaleCompliance(id, job);
 }
 
-export async function generateExportSaleEway(id: string, eway?: ExportSale["eway"]) {
-  return billingApiPost<ExportSale>(`/billing/export-sales/${id}/eway/generate`, { eway }).then(
-    fromApiExportSale
+export async function generateExportSaleEway(
+  id: string,
+  eway?: ExportSale["eway"],
+  distanceKm?: number
+) {
+  const job = await billingApiPost<ExportSaleComplianceJob>(
+    `/billing/export-sales/${id}/eway/generate`,
+    {
+      eway,
+      distanceKm
+    }
   );
+  return waitForExportSaleCompliance(id, job);
 }
 
 export function createExportSaleContact(payload: ExportSaleContactSavePayload) {
@@ -639,4 +652,49 @@ function nullableNumericId(value: unknown) {
 
 function nullableStringId(value: unknown) {
   return value === null || value === undefined || value === "" ? null : String(value);
+}
+
+export type ExportSaleComplianceJob = {
+  uuid: string;
+  invoiceUuid: string;
+  action: string;
+  status: "pending" | "running" | "review" | "failed" | "completed";
+  error: string;
+  attempts: number;
+};
+export function listExportSaleComplianceJobs(id: string) {
+  return billingApiGet<ExportSaleComplianceJob[]>(`/billing/export-sales/${id}/compliance-jobs`);
+}
+export async function reconcileExportSaleCompliance(id: string, uuid: string, billNo?: string) {
+  return billingApiPost<ExportSaleComplianceJob>(
+    `/billing/export-sales/${id}/compliance-jobs/${uuid}/reconcile`,
+    { billNo }
+  );
+}
+export async function cancelExportSaleEinvoice(id: string, reasonCode: number, remarks: string) {
+  const job = await billingApiPost<ExportSaleComplianceJob>(
+    `/billing/export-sales/${id}/einvoice/cancel`,
+    { reasonCode, remarks }
+  );
+  return waitForExportSaleCompliance(id, job);
+}
+export async function cancelExportSaleEway(id: string, reasonCode: number, remarks: string) {
+  const job = await billingApiPost<ExportSaleComplianceJob>(
+    `/billing/export-sales/${id}/eway/cancel`,
+    { reasonCode, remarks }
+  );
+  return waitForExportSaleCompliance(id, job);
+}
+async function waitForExportSaleCompliance(id: string, initial: ExportSaleComplianceJob) {
+  let job = initial;
+  for (let attempt = 0; attempt < 60; attempt++) {
+    if (job.status === "completed") return getExportSale(id);
+    if (job.status === "failed" || job.status === "review")
+      throw new Error(job.error || "Compliance request needs review.");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    job = await billingApiGet<ExportSaleComplianceJob>(
+      `/billing/export-sales/${id}/compliance-jobs/${job.uuid}`
+    );
+  }
+  throw new Error("The request is still queued. Check Compliance requests before retrying.");
 }

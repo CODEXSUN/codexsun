@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Pencil, Plus, RefreshCw, Save, X } from "lucide-react";
 import { toast } from "sonner";
@@ -671,6 +671,21 @@ function TenantUpsertPage({
     }))
   );
   const [corporateIdTouched, setCorporateIdTouched] = useState(false);
+  useEffect(() => {
+    const disabledKeys = isStringArraySetting(tenant?.payloadSettings.apps, "disabled");
+    setAppAccess((current) =>
+      availableApps.map((app) => ({
+        ...app,
+        enabled:
+          app.alwaysEnabled ||
+          (current.find((item) => item.moduleKey === app.moduleKey)?.enabled ??
+            (tenant
+              ? tenant.enabledModuleKeys.includes(app.moduleKey) &&
+                !disabledKeys.includes(app.moduleKey)
+              : app.enabled))
+      }))
+    );
+  }, [availableApps, tenant]);
   const [primaryDomainTouched, setPrimaryDomainTouched] = useState(Boolean(tenant?.primaryDomain));
   const enabledAppCount = appAccess.filter((app) => app.enabled).length;
 
@@ -1387,15 +1402,15 @@ function tenantAppAccessFromRegistry(apps: PlatformApp[] | undefined): TenantApp
       }));
 
   return source
-    .filter(
-      (app) =>
-        app.appId === "application" ||
-        app.appId === "billing" ||
-        app.appId === "mail" ||
-        app.appId === "notes" ||
-        app.appId === "chat" ||
-        app.appId === "task-manager"
-    )
+    .filter((app) => app.appId !== "devkit" && app.appId !== "project-manager")
+    .sort((left, right) => {
+      const firstApps = ["application", "codexsun", "billing"];
+      const priority = (id: string) => {
+        const index = firstApps.indexOf(id);
+        return index < 0 ? firstApps.length : index;
+      };
+      return priority(left.appId) - priority(right.appId);
+    })
     .map((app) => {
       const local =
         platformAppRegistry.find(

@@ -5,6 +5,7 @@ const unknown = process.argv.slice(2).filter((argument) => argument !== "--datab
 if (unknown.length) throw new Error(`Unknown Billing test options: ${unknown.join(", ")}`);
 
 const unitTests = [
+  "apps/billing/api/src/modules/sales/whitebooks.client.test.ts",
   "apps/billing/api/src/modules/quotation/quotation.money.test.ts",
   "apps/billing/api/src/modules/quotation/quotation.conversion.test.ts",
   "apps/billing/api/src/modules/sales/sales.money.test.ts",
@@ -18,6 +19,10 @@ const unitTests = [
 const stages = [{ name: "Billing unit regressions", args: ["--test", ...unitTests] }];
 if (database) {
   stages.push(
+    {
+      name: "Isolated compliance queue",
+      args: ["apps/billing/api/src/modules/sales/sales.compliance.e2e.ts"]
+    },
     { name: "Isolated allocation guards", args: ["tools/e2e/billing-allocation-guards.e2e.ts"] },
     {
       name: "Isolated quotation conversion",

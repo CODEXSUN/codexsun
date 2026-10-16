@@ -21,7 +21,9 @@ export function SiteWorkspace({ sites }: { sites: SitesController }) {
   const [editingSite, setEditingSite] = useState<CmsSite | null>(null);
   const [draft, setDraft] = useState<SitePayload>(emptySitePayload);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ message: string; tone: "error" | "success" } | null>(null);
+  const [feedback, setFeedback] = useState<{ message: string; tone: "error" | "success" } | null>(
+    null
+  );
 
   function startCreate() {
     setEditingSite(null);
@@ -50,10 +52,16 @@ export function SiteWorkspace({ sites }: { sites: SitesController }) {
     try {
       if (editingSite) {
         await sites.update(editingSite.uuid, draft);
-        setFeedback({ message: `Portfolio site "${draft.name}" updated successfully.`, tone: "success" });
+        setFeedback({
+          message: `Portfolio site "${draft.name}" updated successfully.`,
+          tone: "success"
+        });
       } else {
         await sites.create(draft);
-        setFeedback({ message: `Portfolio site "${draft.name}" created with default workspace.`, tone: "success" });
+        setFeedback({
+          message: `Portfolio site "${draft.name}" created with default workspace.`,
+          tone: "success"
+        });
       }
       setShowForm(false);
     } catch (err) {
@@ -71,7 +79,10 @@ export function SiteWorkspace({ sites }: { sites: SitesController }) {
     try {
       const updated = await sites.toggleStatus(sites.selected);
       setFeedback({
-        message: updated.status === "active" ? "Portfolio restored to active status." : "Portfolio suspended safely.",
+        message:
+          updated.status === "active"
+            ? "Portfolio restored to active status."
+            : "Portfolio suspended safely.",
         tone: "success"
       });
     } catch (err) {
@@ -137,10 +148,12 @@ export function SiteWorkspace({ sites }: { sites: SitesController }) {
                 <span className="mx-auto grid size-12 place-items-center rounded-md bg-muted text-muted-foreground">
                   <Globe2Icon className="size-6" />
                 </span>
-                <h3 className="text-lg font-semibold text-foreground">No portfolio site selected</h3>
+                <h3 className="text-lg font-semibold text-foreground">
+                  No portfolio site selected
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  Select a client portfolio from the list to manage its publishing settings, dev port, and content, or
-                  create a new managed client site.
+                  Select a client portfolio from the list to manage its publishing settings, dev
+                  port, and content, or create a new managed client site.
                 </p>
                 <Button icon={<PlusIcon />} onClick={startCreate}>
                   Create client portfolio
@@ -169,7 +182,10 @@ export function SiteWorkspace({ sites }: { sites: SitesController }) {
                       {sites.selected.name}
                     </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Primary domain: <span className="font-mono text-foreground">{sites.selected.primaryDomain}</span>
+                      Primary domain:{" "}
+                      <span className="font-mono text-foreground">
+                        {sites.selected.primaryDomain}
+                      </span>
                       {sites.selected.description ? ` · ${sites.selected.description}` : ""}
                     </p>
                   </div>
@@ -201,11 +217,7 @@ export function SiteWorkspace({ sites }: { sites: SitesController }) {
                       </Button>
                     ) : null}
                     {sites.selected.port ? (
-                      <Button
-                        asChild
-                        variant="default"
-                        icon={<ExternalLinkIcon />}
-                      >
+                      <Button asChild variant="default" icon={<ExternalLinkIcon />}>
                         <a
                           href={`http://127.0.0.1:${sites.selected.port}`}
                           target="_blank"
@@ -237,7 +249,8 @@ export function SiteWorkspace({ sites }: { sites: SitesController }) {
                     <Globe2Icon className="size-4" /> Published Pages
                   </div>
                   <div className="mt-2 text-base font-semibold text-foreground">
-                    {sites.selected.publishedPages} active {sites.selected.publishedPages === 1 ? "page" : "pages"}
+                    {sites.selected.publishedPages} active{" "}
+                    {sites.selected.publishedPages === 1 ? "page" : "pages"}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     Home, Insights, Work, Case Studies
@@ -258,9 +271,12 @@ export function SiteWorkspace({ sites }: { sites: SitesController }) {
               </div>
 
               <div className="rounded-md border bg-card p-5 shadow-sm">
-                <h3 className="text-base font-semibold text-foreground">Client Portfolio Architecture</h3>
+                <h3 className="text-base font-semibold text-foreground">
+                  Client Portfolio Architecture
+                </h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Each client portfolio in Sites Studio owns its public layout, stylesheets, and assets located in
+                  Each client portfolio in Sites Studio owns its public layout, stylesheets, and
+                  assets located in
                   <code className="ml-1 rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
                     apps/sites/clients/src/clients/{sites.selected.slug}
                   </code>

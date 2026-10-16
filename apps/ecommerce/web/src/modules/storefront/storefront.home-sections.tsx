@@ -16,7 +16,7 @@ import type {
   StorefrontPromotion,
   StorefrontSlider
 } from "./storefront.types";
-import { CampaignsAndEventsSection, resolveStorefrontCampaigns } from "./storefront.campaigns";
+import { CampaignsAndEventsSection } from "./storefront.campaigns";
 
 type HomeSectionKey =
   | "hero"
@@ -66,16 +66,8 @@ export function StorefrontHomeSections(props: HomeSectionsProps) {
     "service-banner": <ServiceBanner content={props.siteNavigation?.serviceBanner} />,
     promotions: <PromotionsSection promotions={props.promotions} />,
     season: <SeasonBanner promotions={props.seasonStrips} />,
-    "campaigns-events": (
-      <CampaignsAndEventsSection
-        campaigns={
-          props.campaignEvents.length
-            ? props.campaignEvents
-            : resolveStorefrontCampaigns(props.promotions, props.featuredCards, props.slides)
-        }
-      />
-    ),
-    brands: <BrandsSection brands={props.brandStrips.length ? props.brandStrips : props.brands} />,
+    "campaigns-events": <CampaignsAndEventsSection campaigns={props.campaignEvents} />,
+    brands: <BrandsSection brands={props.brandStrips} />,
     featured: <FeaturedCardsSection cards={props.featuredCards} />,
     catalog: props.catalog,
     journal: <BlogSolutionsSection brandName={props.brandName} posts={props.blogPosts} />,

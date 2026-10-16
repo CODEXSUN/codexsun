@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Printer, RefreshCw } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import { cn } from "@codexsun/ui/lib/utils";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { useCustomerSummary } from "./customer-summary.hooks";
 import { CustomerSummaryForm } from "./customer-summary.form";
 import { CustomerSummaryList } from "./customer-summary.list";
+import { CustomerSummaryPrint } from "./customer-summary.print";
 import { customerSummaryFiltersSchema } from "./customer-summary.schema";
 import { formatCustomerSummaryMoney } from "./customer-summary.services";
 
@@ -20,16 +21,27 @@ export function CustomerSummaryWorkspace() {
   );
   return (
     <WorkspacePage
+      className="billing-document-print-page"
       actions={
-        <Button
-          disabled={query.isFetching}
-          onClick={() => void query.refetch()}
-          type="button"
-          variant="outline"
-        >
-          <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
-          Refresh
-        </Button>
+        <div className="flex gap-2 print:hidden">
+          <Button
+            disabled={!summary || query.isFetching || query.isError}
+            onClick={() => window.print()}
+            type="button"
+          >
+            <Printer className="size-4" />
+            Print
+          </Button>
+          <Button
+            disabled={query.isFetching}
+            onClick={() => void query.refetch()}
+            type="button"
+            variant="outline"
+          >
+            <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
       }
       description="One receivable outstanding balance per customer for the active financial year. Debit includes opening balance."
       technicalName="page.billing.reports.customer-summary"
@@ -50,6 +62,13 @@ export function CustomerSummaryWorkspace() {
           <SummaryTotal label="Outstanding balance" strong value={summary?.totalBalance ?? 0} />
         </div>
         <CustomerSummaryList entries={entries} loading={query.isLoading} />
+        <section className="billing-print-area hidden print:block">
+          <div>
+            {summary && !query.isError ? (
+              <CustomerSummaryPrint summary={summary} entries={entries} search={filters.search} />
+            ) : null}
+          </div>
+        </section>
       </main>
     </WorkspacePage>
   );

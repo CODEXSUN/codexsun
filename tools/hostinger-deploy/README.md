@@ -42,3 +42,42 @@ pinned VPS.
 The CODEXSUN demo deployment needs its own checkout, database, containers, and
 Cloudflare hostname. Do not use the production `/home/cxapp` checkout or its
 database for the demo.
+
+## Component documentation
+
+The pinned-host SSH status, demo checkout bootstrap, and reviewed commit synchronization tooling.
+
+Keep private credentials outside source. Verify the configured host and separate demo checkout. A source sync does not deploy containers. Do not contact or change a host merely to update documentation.
+
+- [TASK.md](agent/TASK.md): work items and acceptance evidence.
+- [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.
+- [SKILLS.md](agent/SKILLS.md): component working rules and safety constraints.
+
+### Source inventory
+
+- `src/`.
+
+This inventory records source presence. It does not certify a deployed feature.
+
+### Workspace verification
+
+Run these commands from the repository root. Use the root installation and `dist` output tree.
+
+- `node --check tools/hostinger-deploy/src/cli.mjs`
+- `npm run check:versions`
+
+Run `npm run check:component-docs` to verify the required documentation files.
+Run the relevant app tests and root release gates when implementation changes.
+Report database, browser, native, and deployment checks separately.
+
+### Workspace packages
+
+- `.`: `@codexsun/hostinger-deploy`.
+
+### Declared internal dependencies
+
+This owner declares no internal workspace dependency in its package manifests.
+
+### Public package entry points
+
+- CLI `codexsun-hostinger`: `./src/cli.mjs` in `@codexsun/hostinger-deploy`.

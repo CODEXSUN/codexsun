@@ -1,5 +1,7 @@
 import { sitePayloadSchema } from "./site.schema.js";
 import type { CmsSite, SiteGateway, SitePayload } from "./site.types.js";
+import { createPageGateway } from "./page/index.js";
+import { createBlogGateway } from "./blog/index.js";
 
 type HttpClient = {
   delete<T>(path: string): Promise<T>;
@@ -10,6 +12,11 @@ type HttpClient = {
 
 export function createSiteGateway(client: HttpClient): SiteGateway {
   return {
+    page: createPageGateway(client),
+    blog: createBlogGateway(client),
+    start(uuid: string) {
+      return client.post<{ port: number; state: "running"; url: string }>(`/sites/${uuid}/start`);
+    },
     create(payload: SitePayload): Promise<CmsSite> {
       return client.post<CmsSite>("/sites", sitePayloadSchema.parse(payload));
     },

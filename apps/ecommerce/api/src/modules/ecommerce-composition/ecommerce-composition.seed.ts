@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { seedStorefrontOrganisation } from "../storefront-organisation/index.js";
 import { sql, type Kysely } from "kysely";
 import type { EcommerceDatabase } from "../../database/ecommerce-database.js";
 import { runWithEcommerceRequestScope } from "../../database/ecommerce-database.js";
@@ -28,6 +29,7 @@ export async function seedEcommerceTenantModules(
       WHERE role.\`key\`='admin' ON DUPLICATE KEY UPDATE status='active'`.execute(database);
   }
   await runWithEcommerceRequestScope(database, tenantKey, () => seedStorefrontProfileModule());
+  await runWithEcommerceRequestScope(database, tenantKey, () => seedStorefrontOrganisation());
 }
 
 function stable(value: string) {

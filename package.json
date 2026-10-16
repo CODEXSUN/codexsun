@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": true,
   "packageManager": "npm@12.2.0",
   "description": "CODEXSUN",
@@ -48,7 +48,7 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "verify:platform": "npm run check:module-boundaries && npm run typecheck && npm run build",
-    "check": "npm run check:module-boundaries && npm run test:module-boundaries && npm run addons:check && npm run docs:check && npm run typecheck && npm run lint",
+    "check": "npm run check:component-docs && npm run test:component-docs && npm run check:module-boundaries && npm run test:module-boundaries && npm run addons:check && npm run docs:check && npm run typecheck && npm run lint",
     "check:module-boundaries": "node tools/check-module-boundaries.mjs",
     "addons:check": "node tools/check-addon-packages.mjs",
     "addons:latest": "node tools/check-addon-updates.mjs",
@@ -123,7 +123,7 @@
     "test:e2e:tenant-app-foundations": "tsx tools/e2e/tenant-app-foundations.e2e.ts",
     "docs:check": "node tools/check-docs-content.mjs",
     "docs:catalog": "node tools/check-docs-content.mjs --refresh-hashes",
-    "test:docs": "node --import tsx --test apps/docs/api/src/modules/knowledge/knowledge.content.test.ts apps/zetro/api/src/modules/chat/chat.docs.test.ts devkits/zuno/api/src/modules/diagnostics/diagnostics.docs.test.ts",
+    "test:docs": "node --import tsx --test apps/docs/api/src/modules/knowledge/knowledge.content.test.ts apps/zetro/api/src/modules/chat/chat.docs.test.ts devkits/zuno/api/src/modules/diagnostics/diagnostics.docs.test.ts apps/zetro/api/src/modules/chat/chat.agent.test.ts",
     "test:e2e:docs": "tsx tools/e2e/docs-knowledge.e2e.ts",
     "test:codexsun": "tsx --test apps/codexsun/api/src/modules/**/*.test.ts apps/codexsun/web/src/sync/sync.spec.ts apps/platform/web/src/app/codexsun-app-registry.test.ts",
     "test:e2e:codexsun": "tsx apps/codexsun/api/src/codexsun.e2e.ts",
@@ -138,7 +138,9 @@
     "codexsun:mobile:analyze": "node tools/codexsun-mobile.mjs analyze",
     "codexsun:mobile:test": "node tools/codexsun-mobile.mjs test",
     "clean:dist": "node tools/clean-root-dist.mjs",
-    "test:module-boundaries": "node --test tools/check-module-boundaries.test.mjs"
+    "test:module-boundaries": "node --test tools/check-module-boundaries.test.mjs",
+    "check:component-docs": "node tools/check-component-docs.mjs",
+    "test:component-docs": "node --test tools/check-component-docs.test.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { existsSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readdirSync, readlinkSync, rmSync } from "node:fs";
+import { dirname, join, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const root = resolve(import.meta.dirname, "..");
@@ -29,5 +29,19 @@ if (existsSync(gradleCache) && existsSync(wrapper)) {
 }
 
 rmSync(rootDist, { force: true, recursive: true });
+for (const area of ["apps", "devkits", "packages", "tools"]) removeGeneratedLinks(join(root, area));
 
 console.log(`Cleaned root build output at ${rootDist}`);
+
+function removeGeneratedLinks(directory) {
+  if (!existsSync(directory)) return;
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isSymbolicLink()) {
+      const target = resolve(dirname(path), readlinkSync(path));
+      if (target.startsWith(rootDist + sep)) rmSync(path, { force: true });
+    } else if (entry.isDirectory() && entry.name !== "node_modules") {
+      removeGeneratedLinks(path);
+    }
+  }
+}

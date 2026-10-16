@@ -12,7 +12,7 @@ const saleEinvoiceSchema = z
     ackNo: z.string(),
     irn: z.string(),
     signedQr: z.string(),
-    status: z.enum(["not-generated", "generated"])
+    status: z.enum(["not-generated", "generated", "cancelled"])
   })
   .strict();
 
@@ -22,7 +22,7 @@ const saleEwaySchema = z
     billNo: z.string(),
     notes: z.string(),
     part: z.enum(["Part A", "Part B"]),
-    status: z.enum(["not-generated", "generated"]),
+    status: z.enum(["not-generated", "generated", "cancelled"]),
     transport: z.string(),
     transportGst: z.string(),
     transportId: z.number().int().positive().nullable(),

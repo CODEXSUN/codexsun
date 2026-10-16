@@ -1,4 +1,12 @@
 import {
+  salesComplianceMigration,
+  migrateSalesCompliance
+} from "../modules/sales/sales.compliance-migration.js";
+import {
+  exportsalesComplianceMigration,
+  migrateExportSalesCompliance
+} from "../modules/export-sales/export-sales.compliance-migration.js";
+import {
   ensureStandardTableColumns,
   rollbackMigrationBatch,
   runMigrationBatch,
@@ -208,6 +216,16 @@ const billingMigrationSteps = [
     description: gstStatementFilingMigration.description,
     key: gstStatementFilingMigration.key,
     migrate: migrateGstStatementFiling
+  },
+  {
+    description: salesComplianceMigration.description,
+    key: salesComplianceMigration.key,
+    migrate: migrateSalesCompliance
+  },
+  {
+    description: exportsalesComplianceMigration.description,
+    key: exportsalesComplianceMigration.key,
+    migrate: migrateExportSalesCompliance
   }
 ] as const;
 

@@ -22,7 +22,11 @@ import type {
   PromotionCardStatus
 } from "./promotion-card.types";
 
-export function PromotionCardWorkspace() {
+export function PromotionCardWorkspace({
+  mode = "promotions"
+}: {
+  mode?: "promotions" | "campaigns";
+}) {
   const client = useQueryClient();
   const [search, setSearch] = useState("");
   const [status] = useState<PromotionCardStatus | undefined>();
@@ -67,11 +71,17 @@ export function PromotionCardWorkspace() {
     );
   return (
     <WorkspacePage
-      title="Promotion Cards"
-      description="Manage locally stored storefront slides and refresh their linked items and source documents from Frappe."
+      title={mode === "campaigns" ? "Campaign Events" : "Promotion Cards"}
+      description={
+        mode === "campaigns"
+          ? "Manage the promotional content used by homepage campaigns and events. Local campaigns share promotion records."
+          : "Manage promotion cards shown on the storefront home page."
+      }
       actions={
         <div className="flex flex-wrap gap-2">
-          <StorefrontSectionSwitch module="promotions" />
+          <StorefrontSectionSwitch
+            module={mode === "campaigns" ? "campaign-events" : "promotions"}
+          />
           <Button variant="outline" disabled={pull.isPending} onClick={() => pull.mutate()}>
             <Download className="size-4" />
             {pull.isPending ? "Pulling..." : "Pull from Frappe"}

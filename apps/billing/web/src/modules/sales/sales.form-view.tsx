@@ -97,6 +97,7 @@ export function SalesFormView({ model }: { model: ReturnType<typeof useSalesForm
     patchEinvoice,
     clearEinvoice,
     generateEinvoice,
+    cancelCompliance,
     onSubmit,
     activeTab,
     setActiveTab,
@@ -410,12 +411,15 @@ export function SalesFormView({ model }: { model: ReturnType<typeof useSalesForm
             label: "E-way",
             content: (
               <SaleEwayTab
+                invoiceId={sale?.id}
+                onUpdated={(updated) => patch({ einvoice: updated.einvoice, eway: updated.eway })}
+                onCancel={(reasonCode, remarks) => cancelCompliance("eway", reasonCode, remarks)}
                 value={eway}
                 onChange={patchEway}
                 onClear={clearEway}
                 onGenerate={generateEway}
                 options={transportsQuery.data ?? []}
-                loading={transportsQuery.isLoading}
+                loading={transportsQuery.isLoading || model.complianceLoading}
                 selected={selectedTransport}
                 onTransportChange={(value, option) =>
                   patchEway({
@@ -447,6 +451,12 @@ export function SalesFormView({ model }: { model: ReturnType<typeof useSalesForm
             label: "E-invoice",
             content: (
               <SaleEinvoiceTab
+                loading={model.complianceLoading}
+                invoiceId={sale?.id}
+                onUpdated={(updated) => patch({ einvoice: updated.einvoice, eway: updated.eway })}
+                onCancel={(reasonCode, remarks) =>
+                  cancelCompliance("einvoice", reasonCode, remarks)
+                }
                 value={einvoice}
                 onChange={patchEinvoice}
                 onClear={clearEinvoice}

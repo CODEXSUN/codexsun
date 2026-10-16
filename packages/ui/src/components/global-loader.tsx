@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 import { cn } from "../lib/utils";
 
@@ -18,6 +18,7 @@ export function GlobalLoader({
   fullScreen = true,
   message = "Loading…"
 }: GlobalLoaderProps) {
+  const reducedMotion = useReducedMotion();
   return (
     <div
       className={cn(
@@ -29,17 +30,17 @@ export function GlobalLoader({
       <div className="global-loader-mark" aria-hidden="true">
         <div className="global-loader-core" />
         <motion.div
-          animate={{ rotate: 360 }}
+          animate={{ rotate: reducedMotion ? 0 : 360 }}
           className="global-loader-ring global-loader-ring-accent"
           transition={{ ...ringTransition, duration: 3 }}
         />
         <motion.div
-          animate={{ rotate: 360 }}
+          animate={{ rotate: reducedMotion ? 0 : 360 }}
           className="global-loader-ring global-loader-ring-dark"
           transition={{ ...ringTransition, duration: 2.5 }}
         />
         <motion.div
-          animate={{ rotate: -360 }}
+          animate={{ rotate: reducedMotion ? 0 : -360 }}
           className="global-loader-ring global-loader-ring-soft"
           transition={{ ...ringTransition, duration: 4 }}
         />

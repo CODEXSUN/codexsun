@@ -1,3 +1,4 @@
+import { loadComplianceParties } from "./export-sales.compliance-parties.js";
 import { AppError } from "@codexsun/framework/errors";
 import { assertBillingEntryEditable } from "../../auth/billing-scope.js";
 import { billingDashboardProjection } from "../dashboard/index.js";
@@ -59,6 +60,14 @@ export class ExportSalesService {
   }
 
   async createExportSale(databaseName: string, input: ExportSaleSavePayload) {
+    if (
+      input.einvoice?.irn ||
+      input.einvoice?.status === "generated" ||
+      input.eway?.status === "generated"
+    )
+      throw AppError.validation(
+        "Generate compliance only after saving and confirming the invoice."
+      );
     const normalized = normalizeExportSaleInput(
       await this.repository.resolveMissingReferences(databaseName, input)
     );
@@ -93,6 +102,8 @@ export class ExportSalesService {
   async updateExportSale(databaseName: string, id: string, input: ExportSaleSavePayload) {
     const current = await this.repository.get(databaseName, id);
     if (!current) return null;
+    if (current.einvoice.irn || current.eway.status === "generated")
+      throw AppError.conflict("Invoices with generated compliance cannot be edited.");
     assertBillingEntryEditable(current.status, "export sales");
     const normalized = normalizeExportSaleInput({
       ...input,
@@ -143,6 +154,13 @@ export class ExportSalesService {
   async cancelExportSale(databaseName: string, id: string) {
     const current = await this.repository.get(databaseName, id);
     if (!current) return null;
+    if (
+      (current.einvoice.irn && current.einvoice.status !== "cancelled") ||
+      current.eway.status === "generated"
+    )
+      throw AppError.conflict(
+        "Cancel the compliance documents with the provider before cancelling this invoice."
+      );
     if (current.status === "cancelled")
       throw AppError.conflict("Export sale is already cancelled.");
     const exportSale = await this.repository.setStatus(databaseName, id, "cancelled");
@@ -155,7 +173,7 @@ export class ExportSalesService {
     if (!current) return null;
     if (current.status === "draft")
       throw AppError.conflict("A draft export sale does not need to be revoked.");
-    if (current.einvoice.status === "generated")
+    if (current.einvoice.irn || current.eway.status === "generated")
       throw AppError.conflict("Cancel the generated E-invoice before revoking this export sale.");
     const exportSale = await this.repository.setStatus(databaseName, id, "draft");
     if (exportSale) await this.project(databaseName, "updated", exportSale);
@@ -174,7 +192,7 @@ export class ExportSalesService {
     return current;
   }
 
-  async generateEinvoice(databaseName: string, id: string, details?: ExportSaleEinvoiceDetails) {
+  async generateEinvoice(databaseName: string, id: string, _details?: ExportSaleEinvoiceDetails) {
     let exportSale = await this.repository.get(databaseName, id);
     if (!exportSale) return null;
     const settings = await this.settings.getBillingSettings(databaseName, exportSale.companyId);
@@ -182,27 +200,39 @@ export class ExportSalesService {
       throw AppError.conflict("E-invoice is disabled for this company.");
     if (exportSale.status !== "confirmed")
       throw AppError.conflict("Confirm the export sale before generating an E-invoice.");
-    if (details)
-      exportSale =
-        (await this.repository.updateCompliance(databaseName, id, { einvoice: details })) ??
-        exportSale;
-    const result = await generateExportSaleEinvoice(exportSale);
+    if (exportSale.einvoice.irn) return exportSale;
+    const result = await generateExportSaleEinvoice(
+      exportSale,
+      await loadComplianceParties(databaseName, exportSale)
+    );
     return this.repository.updateCompliance(databaseName, id, {
       einvoice: { ...exportSale.einvoice, ...result.einvoice, status: "generated" }
     });
   }
 
-  async generateEway(databaseName: string, id: string, details?: ExportSaleEwayDetails) {
+  async generateEway(
+    databaseName: string,
+    id: string,
+    details?: ExportSaleEwayDetails,
+    distanceKm = 0
+  ) {
     let exportSale = await this.repository.get(databaseName, id);
     if (!exportSale) return null;
     const settings = await this.settings.getBillingSettings(databaseName, exportSale.companyId);
     if (!settings.layout.useEway) throw AppError.conflict("E-way is disabled for this company.");
     if (exportSale.status !== "confirmed")
       throw AppError.conflict("Confirm the export sale before generating an E-way bill.");
+    if (exportSale.eway.billNo && exportSale.eway.status === "generated") return exportSale;
     if (details)
-      exportSale =
-        (await this.repository.updateCompliance(databaseName, id, { eway: details })) ?? exportSale;
-    const result = await generateExportSaleEway(exportSale);
+      exportSale = {
+        ...exportSale,
+        eway: { ...details, billNo: "", billDate: "", status: "not-generated" }
+      };
+    const result = await generateExportSaleEway(
+      exportSale,
+      await loadComplianceParties(databaseName, exportSale),
+      distanceKm
+    );
     return this.repository.updateCompliance(databaseName, id, {
       eway: { ...exportSale.eway, ...result.eway, status: "generated" }
     });

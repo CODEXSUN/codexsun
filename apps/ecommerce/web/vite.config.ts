@@ -13,7 +13,20 @@ export default defineConfig(({ command, mode }) => {
   if (command === "serve" && (!Number.isInteger(apiPort) || apiPort < 1))
     throw new Error("PLATFORM_API_PORT is required");
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: "ecommerce-storefront-identity",
+        configureServer(server) {
+          server.middlewares.use("/__codexsun_ecommerce_identity", (_request, response) => {
+            response.setHeader("Content-Type", "application/json");
+            response.setHeader("Cache-Control", "no-store");
+            response.end(JSON.stringify({ app: "ecommerce-storefront" }));
+          });
+        }
+      }
+    ],
     envDir: root,
     cacheDir: resolve(root, "dist/.cache/vite/ecommerce-web"),
     define: {

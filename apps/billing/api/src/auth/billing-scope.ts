@@ -3,6 +3,8 @@ import type { FastifyRequest } from "fastify";
 import { AppError } from "@codexsun/framework/errors";
 
 export type BillingScope = {
+  complianceJobUuid?: string;
+  complianceLease?: string;
   actorEmail?: string;
   canEditFinalizedEntries?: boolean;
   companyId: number;

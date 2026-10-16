@@ -58,7 +58,7 @@ app activation. Platform identity/access and Core prerequisites run first. Billi
 Tenant module settings and app permission/default seeders still follow the tenant's enabled modules. A prepared table
 does not enable an app. Managed tenant setup, reinstall, and database CLI actions use this ordered composition contract.
 After changing tenant app activation, run managed setup or the tenant seed command to reconcile app defaults and
-permission grants. Q Cafe is a separate SQLite service and does not yet share this tenant database lifecycle.
+permission grants. QCafe web menu and POS use tenant MariaDB through the QCafe migration batch. The QCafe desktop API remains a separate local SQLite service.
 Managed lifecycle actions invalidate only the target tenant's Core and Billing bootstrap state before running, so a
 database recreated while the API process remains online receives the complete selected-app schema.
 

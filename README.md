@@ -369,3 +369,39 @@ A repository version does not imply that an installer or signed release exists.
 This repository includes the [GNU General Public License, version 3](LICENSE).
 Review the license before using, modifying, or distributing the software.
 Third-party dependencies remain subject to their respective licenses.
+
+## Component documentation index
+
+Every component owns a README and `agent/TASK.md`, `agent/PLAN.md`, and `agent/SKILLS.md`.
+
+| Component        | Owner guide                                                            |
+| ---------------- | ---------------------------------------------------------------------- |
+| Accounts         | [apps/accounts/README.md](apps/accounts/README.md)                     |
+| Auditor          | [apps/auditor/README.md](apps/auditor/README.md)                       |
+| Billing          | [apps/billing/README.md](apps/billing/README.md)                       |
+| Chat             | [apps/chat/README.md](apps/chat/README.md)                             |
+| CODEXSUN         | [apps/codexsun/README.md](apps/codexsun/README.md)                     |
+| Core             | [apps/core/README.md](apps/core/README.md)                             |
+| CRM              | [apps/crm/README.md](apps/crm/README.md)                               |
+| Docs             | [apps/docs/README.md](apps/docs/README.md)                             |
+| Ecommerce        | [apps/ecommerce/README.md](apps/ecommerce/README.md)                   |
+| Frappe           | [apps/frappe/README.md](apps/frappe/README.md)                         |
+| HIMSX            | [apps/himsx/README.md](apps/himsx/README.md)                           |
+| HRMS             | [apps/hrms/README.md](apps/hrms/README.md)                             |
+| LogicX ERP       | [apps/logicx-erp/README.md](apps/logicx-erp/README.md)                 |
+| Mail             | [apps/mail/README.md](apps/mail/README.md)                             |
+| Notes            | [apps/notes/README.md](apps/notes/README.md)                           |
+| Platform         | [apps/platform/README.md](apps/platform/README.md)                     |
+| QCafe            | [apps/qcafe/README.md](apps/qcafe/README.md)                           |
+| Sites            | [apps/sites/README.md](apps/sites/README.md)                           |
+| Zetro            | [apps/zetro/README.md](apps/zetro/README.md)                           |
+| Framework        | [packages/framework/README.md](packages/framework/README.md)           |
+| UI               | [packages/ui/README.md](packages/ui/README.md)                         |
+| Project Manager  | [devkits/project-manager/README.md](devkits/project-manager/README.md) |
+| UIUX             | [devkits/uiux/README.md](devkits/uiux/README.md)                       |
+| Zuno             | [devkits/zuno/README.md](devkits/zuno/README.md)                       |
+| Hostinger Deploy | [tools/hostinger-deploy/README.md](tools/hostinger-deploy/README.md)   |
+| Version Tools    | [tools/version/README.md](tools/version/README.md)                     |
+| Blog add-on      | [addons/blog/README.md](addons/blog/README.md)                         |
+
+Run `npm run check:component-docs` to check all owners and external add-on integration guides.

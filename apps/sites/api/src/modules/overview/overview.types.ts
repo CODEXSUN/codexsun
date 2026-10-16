@@ -1,4 +1,15 @@
-export const sitesOverviewPermissions = ["sites.overview.view"] as const;
+export const sitesOverviewPermissions = [
+  "sites.overview.view",
+  "sites.site.runtime.start",
+  "sites.site.registry.create",
+  "sites.page.content.view",
+  "sites.page.content.update",
+  "sites.page.content.publish",
+  "sites.blog.post.view",
+  "sites.blog.post.update",
+  "sites.blog.post.publish",
+  "sites.blog.post.delete"
+] as const;
 export type SitesOverviewPermission = (typeof sitesOverviewPermissions)[number];
 
 export type SitesOverview = {

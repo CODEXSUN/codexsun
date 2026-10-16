@@ -51,3 +51,6 @@ The top-menu app launcher renders the host's `appItems` grid first. When the
 host also passes `addonItems`, the launcher renders a separator followed by a
 second `Add-ons` grid for add-on tiles. Both lists use the same
 `TopMenuAppItem` contract.
+
+The Apps grid places Application first, CODEXSUN second, and Billing third
+when those apps are available. Other apps retain their host-supplied order.

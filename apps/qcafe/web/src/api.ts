@@ -136,13 +136,25 @@ export const imageUrl = (fileName?: string | null) =>
   fileName ? `${base}/images/${encodeURIComponent(fileName)}` : "";
 const endpoint = (path = "") => (path ? `${base}/${path.replace(/^\/+/, "")}` : base);
 async function apiFetch(input: RequestInfo | URL, init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  if (cloudRuntime) {
+    const slot = sessionStorage.getItem("codexsun.auth.slot");
+    if (slot && /^[0-9a-f]{32}$/u.test(slot)) headers.set("x-codexsun-session-slot", slot);
+  }
   try {
-    return await fetch(input, { credentials: cloudRuntime ? "include" : "same-origin", ...init });
+    return await fetch(input, {
+      credentials: cloudRuntime ? "include" : "same-origin",
+      ...init,
+      headers
+    });
   } catch {
     throw new Error(
       "Q Cafe local service is unavailable. Close and reopen Q Cafe. If this continues, review the Q Cafe API log in the selected data folder."
     );
   }
+}
+function apiError(value: { error?: string | { message?: string } }, fallback: string): string {
+  return typeof value.error === "string" ? value.error : (value.error?.message ?? fallback);
 }
 export async function signIn(pin: string): Promise<string> {
   const response = await apiFetch(`${base}/auth/pin`, {
@@ -152,7 +164,7 @@ export async function signIn(pin: string): Promise<string> {
   });
   const value = await response.json();
   const payload = cloudRuntime ? value.data : value;
-  if (!response.ok) throw new Error(value.error ?? "Unable to sign in.");
+  if (!response.ok) throw new Error(apiError(value, "Unable to sign in."));
   return payload.access_token;
 }
 export async function signInWithCredentials(username: string, password: string): Promise<string> {
@@ -163,7 +175,7 @@ export async function signInWithCredentials(username: string, password: string):
   });
   const value = await response.json();
   const payload = cloudRuntime ? value.data : value;
-  if (!response.ok) throw new Error(value.error ?? "Unable to sign in with username.");
+  if (!response.ok) throw new Error(apiError(value, "Unable to sign in with username."));
   return payload.access_token;
 }
 export async function request<T>(token: string, path = "", body?: unknown): Promise<T> {
@@ -177,7 +189,7 @@ export async function request<T>(token: string, path = "", body?: unknown): Prom
     ...(body ? { body: JSON.stringify(cloudRuntime ? { action: path, input: body } : body) } : {})
   });
   const value = await response.json();
-  if (!response.ok) throw new Error(value.error ?? "Q Cafe is unavailable.");
+  if (!response.ok) throw new Error(apiError(value, "Q Cafe is unavailable."));
   return (cloudRuntime ? value.data : value) as T;
 }
 
@@ -198,10 +210,10 @@ export async function setupOwner(pin: string): Promise<string> {
   const value = (await response.json()) as {
     data?: { access_token?: string };
     access_token?: string;
-    error?: string;
+    error?: string | { message?: string };
   };
   const payload = cloudRuntime ? value.data : value;
   if (!response.ok || !payload?.access_token)
-    throw new Error(value.error ?? "Could not set owner PIN.");
+    throw new Error(apiError(value, "Could not set owner PIN."));
   return payload.access_token;
 }

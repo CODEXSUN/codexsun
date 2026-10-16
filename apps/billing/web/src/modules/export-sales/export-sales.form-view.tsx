@@ -56,7 +56,7 @@ export function ExportSalesFormView({
 }) {
   // Prettier keeps the controller projection compact so this focused view stays under the source-size limit.
   // prettier-ignore
-  const { contactsQuery, form, patch, applyContactSelection, contactSaveMutation, applyContactAddresses, selectedContact, setEditingContact, workOrdersQuery, masterSaveMutation, selectedWorkOrder, setEditingWorkOrder, itemDraft, editingItemIndex, coloursQuery, productsQuery, itemResetSignal, settings, sizesQuery, roundOffManual, suggestedRoundOff, addOrUpdateItem, patchDraft, editItem, applyProductSelection, applyRoundOff, removeItem, setRoundOffManual, resetDraft, setEditingProduct, contactAddressChoices, billingAddressChoice, setEditingAddressKind, applyAddressDraft, shippingAddressChoice, eway, patchEway, generateEway, transportsQuery, selectedTransport, transportSaveMutation, einvoice, patchEinvoice, generateEinvoice, onSubmit, activeTab, setActiveTab, errorMessage, loading, onBack, workflowAction, setWorkflowAction, exportSale, editingContact, editingProduct, editingWorkOrder, shippingAddressDraft, billingAddressDraft, editingAddressKind, contactAddressSaveMutation } = model;
+  const { contactsQuery, form, patch, applyContactSelection, contactSaveMutation, applyContactAddresses, selectedContact, setEditingContact, workOrdersQuery, masterSaveMutation, selectedWorkOrder, setEditingWorkOrder, itemDraft, editingItemIndex, coloursQuery, productsQuery, itemResetSignal, settings, sizesQuery, roundOffManual, suggestedRoundOff, addOrUpdateItem, patchDraft, editItem, applyProductSelection, applyRoundOff, removeItem, setRoundOffManual, resetDraft, setEditingProduct, contactAddressChoices, billingAddressChoice, setEditingAddressKind, applyAddressDraft, shippingAddressChoice, eway, patchEway, generateEway, transportsQuery, selectedTransport, transportSaveMutation, einvoice, patchEinvoice, generateEinvoice, cancelCompliance, onSubmit, activeTab, setActiveTab, errorMessage, loading, onBack, workflowAction, setWorkflowAction, exportSale, editingContact, editingProduct, editingWorkOrder, shippingAddressDraft, billingAddressDraft, editingAddressKind, contactAddressSaveMutation } = model;
   const tabs: WorkspaceAnimatedTab[] = [
     {
       value: "details",
@@ -309,11 +309,14 @@ export function ExportSalesFormView({
             label: "E-way",
             content: (
               <ExportSaleEwayTab
+                invoiceId={exportSale?.id}
+                onUpdated={(updated) => patch({ einvoice: updated.einvoice, eway: updated.eway })}
+                onCancel={(reasonCode, remarks) => cancelCompliance("eway", reasonCode, remarks)}
                 value={eway}
                 onChange={patchEway}
                 onGenerate={generateEway}
                 options={transportsQuery.data ?? []}
-                loading={transportsQuery.isLoading}
+                loading={transportsQuery.isLoading || model.complianceLoading}
                 selected={selectedTransport}
                 onTransportChange={(value, option) =>
                   patchEway({
@@ -345,6 +348,12 @@ export function ExportSalesFormView({
             label: "E-invoice",
             content: (
               <ExportSaleEinvoiceTab
+                loading={model.complianceLoading}
+                invoiceId={exportSale?.id}
+                onUpdated={(updated) => patch({ einvoice: updated.einvoice, eway: updated.eway })}
+                onCancel={(reasonCode, remarks) =>
+                  cancelCompliance("einvoice", reasonCode, remarks)
+                }
                 value={einvoice}
                 onChange={patchEinvoice}
                 onGenerate={generateEinvoice}

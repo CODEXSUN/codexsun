@@ -1,5 +1,10 @@
 import { createEcommerceOverviewGateway } from "@codexsun/ecommerce-web/modules/overview/gateway";
-import { apiGet } from "../../shared/api/platform-api";
+import { apiGet, apiPost } from "../../shared/api/platform-api";
+import type { EcommerceStorefrontRuntimeGateway } from "@codexsun/ecommerce-web/modules/overview";
+export const ecommerceStorefrontRuntimeGateway: EcommerceStorefrontRuntimeGateway = {
+  status: () => apiGet("/ecommerce/overview/storefront-runtime", "tenant"),
+  start: () => apiPost("/ecommerce/overview/storefront-runtime/start", {}, "tenant")
+};
 export const ecommerceOverviewGateway = createEcommerceOverviewGateway(<T>(path: string) =>
   apiGet<T>(path, "tenant")
 );

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { StorefrontCompanyBrand } from "./storefront.branding";
+import SoftAurora from "./storefront.soft-aurora";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpIcon,
@@ -46,6 +48,16 @@ type FilterProps = {
 
 export function HeroSlider({ slides }: { slides: StorefrontSlider[] }) {
   const [active, setActive] = useState(0);
+  const [auroraColors] = useState(() => {
+    const palettes = [
+      ["#70e1e8", "#b77cff"],
+      ["#69d8b7", "#79b8ff"],
+      ["#f1a2c7", "#b49aef"],
+      ["#f2c38a", "#ef9fae"],
+      ["#83c6ef", "#93d5b1"]
+    ] as const;
+    return palettes[Math.floor(Math.random() * palettes.length)] ?? palettes[0];
+  });
   useEffect(() => {
     if (slides.length < 2) return;
     const timer = window.setInterval(() => setActive((value) => (value + 1) % slides.length), 6800);
@@ -59,6 +71,18 @@ export function HeroSlider({ slides }: { slides: StorefrontSlider[] }) {
       aria-roledescription="carousel"
       className="cx-store__hero"
     >
+      <div className="cx-store__hero-aurora" aria-hidden="true">
+        <SoftAurora
+          color1={auroraColors[0]}
+          color2={auroraColors[1]}
+          speed={0.4}
+          spectrum={0.35}
+          lightMode
+          opacity={0.65}
+          bandSpread={0.6}
+          clickPulse={false}
+        />
+      </div>
       <div className="cx-store__hero-copy" key={`copy-${slide.sliderCode}`}>
         {slide.eyebrow ? <span className="cx-store__hero-reveal">{slide.eyebrow}</span> : null}
         <h1 className="cx-store__hero-reveal">{slide.title}</h1>
@@ -67,8 +91,9 @@ export function HeroSlider({ slides }: { slides: StorefrontSlider[] }) {
           {slide.actionLabel}
         </a>
       </div>
-      <div className="cx-store__hero-media" key={`media-${slide.sliderCode}`}>
+      <div className="cx-store__hero-media">
         <img
+          key={slide.sliderCode}
           alt={slide.imageAlt || slide.title}
           decoding="async"
           fetchPriority="high"
@@ -446,6 +471,7 @@ function badgeColor(value: string) {
 }
 
 export function BrandsSection({ brands }: { brands: StorefrontDiscovery["brands"] }) {
+  if (!brands.length) return null;
   const items = [...brands, ...brands];
   return (
     <section className="cx-store__brands" id="brands">
@@ -825,7 +851,7 @@ export function StoreFooter({
 }) {
   const copyrightText =
     navigation?.copyrightText.trim() ||
-    `© ${new Date().getFullYear()} ${branding?.brandName || "Tech Media"}. All rights reserved.`;
+    `© ${new Date().getFullYear()} ${branding?.brandName.trim() || "Store"}. All rights reserved.`;
   const poweredByText = navigation?.poweredByText.trim() || "Powered by Logicx Softwares";
   const groups = (navigation?.groups ?? defaultFooterGroups).map((group) => ({
     ...group,
@@ -850,10 +876,7 @@ export function StoreFooter({
       <footer className="cx-store__footer">
         <div className="cx-store__footer-main">
           <section className="cx-store__footer-brand">
-            <a className="cx-store__footer-logo" href="/shop">
-              <StoreBrandMark branding={branding} dark />
-              {branding?.brandName ? <strong>{branding.brandName}</strong> : null}
-            </a>
+            <StorefrontCompanyBrand branding={branding} className="cx-store__footer-logo" dark />
             {navigation?.tagline ? <b>{navigation.tagline}</b> : null}
             {navigation?.about ? <p>{navigation.about}</p> : null}
           </section>
@@ -1001,18 +1024,6 @@ function StoreBenefitsBar() {
       })}
     </aside>
   );
-}
-
-function StoreBrandMark({
-  branding,
-  dark = false
-}: {
-  branding: StorefrontBranding | null;
-  dark?: boolean;
-}) {
-  const source = dark ? (branding?.logoDarkUrl ?? branding?.logoUrl) : branding?.logoUrl;
-  if (!source) return null;
-  return <img alt="" aria-hidden="true" className="cx-store__brand-mark" src={source} />;
 }
 
 function FooterColumn({ title, links }: { title: string; links: Array<[string, string]> }) {

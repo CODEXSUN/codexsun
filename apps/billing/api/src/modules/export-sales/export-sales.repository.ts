@@ -1,3 +1,4 @@
+import { assertExportSalesComplianceUnlocked } from "./export-sales.compliance-repository.js";
 import { sql, type Kysely } from "kysely";
 import { assertExportInvoiceUnallocated } from "../receipt/index.js";
 import { currentBillingScope } from "../../auth/billing-scope.js";
@@ -39,7 +40,7 @@ type ExportSaleEinvoiceRow = {
   export_sale_id: number;
   irn: string;
   signed_qr: string | null;
-  status: "not-generated" | "generated";
+  status: "not-generated" | "generated" | "cancelled";
 };
 
 type ExportSaleEwayRow = {
@@ -48,7 +49,7 @@ type ExportSaleEwayRow = {
   export_sale_id: number;
   notes: string | null;
   part: "Part A" | "Part B";
-  status: "not-generated" | "generated";
+  status: "not-generated" | "generated" | "cancelled";
   transport_gst: string | null;
   transport_id: number | null;
   transport_name: string | null;
@@ -405,6 +406,7 @@ export class ExportSalesRepository {
     const existing = await internalExportSale(database, uuid);
     if (!existing) return null;
     await database.transaction().execute(async (transaction) => {
+      await assertExportSalesComplianceUnlocked(transaction, existing.id);
       await assertExportInvoiceUnallocated(transaction, existing.id);
       await sql`
         UPDATE billing_export_sales SET
@@ -439,6 +441,7 @@ export class ExportSalesRepository {
     const existing = await internalExportSale(database, uuid);
     if (!existing) return null;
     await database.transaction().execute(async (transaction) => {
+      await assertExportSalesComplianceUnlocked(transaction, existing.id);
       if (status !== "confirmed") await assertExportInvoiceUnallocated(transaction, existing.id);
       await sql`
         UPDATE billing_export_sales SET status = ${status},
@@ -457,6 +460,7 @@ export class ExportSalesRepository {
     const existing = await internalExportSale(database, uuid);
     if (!existing) return null;
     await database.transaction().execute(async (transaction) => {
+      await assertExportSalesComplianceUnlocked(transaction, existing.id);
       await assertExportInvoiceUnallocated(transaction, existing.id);
       await insertActivity(
         transaction,
@@ -477,12 +481,14 @@ export class ExportSalesRepository {
   async updateCompliance(
     databaseName: string,
     uuid: string,
-    patch: { einvoice?: ExportSaleEinvoiceDetails; eway?: ExportSaleEwayDetails }
+    patch: { einvoice?: ExportSaleEinvoiceDetails; eway?: ExportSaleEwayDetails },
+    auditAction = "generate"
   ) {
     const database = await exportSalesDatabase(databaseName);
     const existing = await internalExportSale(database, uuid);
     if (!existing) return null;
     await database.transaction().execute(async (transaction) => {
+      await assertExportSalesComplianceUnlocked(transaction, existing.id);
       if (patch.einvoice) await upsertEinvoice(transaction, existing.id, patch.einvoice);
       if (patch.eway) await upsertEway(transaction, existing.id, patch.eway);
       await sql`UPDATE billing_export_sales SET updated_at = CURRENT_TIMESTAMP(3) WHERE id = ${existing.id}`.execute(
@@ -492,7 +498,7 @@ export class ExportSalesRepository {
         transaction,
         existing.id,
         "compliance",
-        "generate",
+        auditAction,
         existing.status,
         existing.status
       );

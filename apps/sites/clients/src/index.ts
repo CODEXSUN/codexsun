@@ -1,6 +1,5 @@
-export { CodexsunSite } from "./clients/codexsun/index.js";
 export { LogicxSite } from "./clients/logicx/index.js";
-export { TechMediaSite } from "./clients/techmedia/index.js";
+export { RamutexSite } from "./clients/ramutex/site.js";
 
 export type ClientPortfolioDefinition = {
   defaultPort: number;
@@ -13,14 +12,6 @@ export type ClientPortfolioDefinition = {
 
 export const clientPortfolios: ClientPortfolioDefinition[] = [
   {
-    defaultPort: 7130,
-    description: "Flagship corporate engineering and technology portfolio site.",
-    name: "CODEXSUN",
-    primaryDomain: "codexsun.com",
-    slug: "codexsun",
-    themeKey: "portfolio-codexsun"
-  },
-  {
     defaultPort: 7131,
     description: "Enterprise operations, ERP, and integration solutions portfolio.",
     name: "LogicX ERP",
@@ -30,10 +21,10 @@ export const clientPortfolios: ClientPortfolioDefinition[] = [
   },
   {
     defaultPort: 7132,
-    description: "Technology gear, custom computers, and retail services portfolio.",
-    name: "Tech Media",
-    primaryDomain: "techmedia.in",
-    slug: "techmedia",
-    themeKey: "portfolio-techmedia"
+    description: "Textile processing and specialty fabric finishes in Tirupur, Tamil Nadu.",
+    name: "Ramu Tex Processors India Inc",
+    primaryDomain: "ramumag.com",
+    slug: "ramutex",
+    themeKey: "portfolio-ramutex"
   }
 ];

@@ -208,7 +208,7 @@ names, purpose text, taglines, and other business identity must not be added to 
 - `apps/qcafe/api` owns the SQLite restaurant store, staff PIN authentication, and standalone local API.
 - `apps/qcafe/web` owns restaurant POS, tables, kitchen, inventory, bookings, masters, receipts, and settings.
 - `apps/qcafe/desktop` owns the Tauri Windows host and print service.
-- Platform registers the `qcafe` app and opens `/app/qcafe`. Its API adapter selects a separate SQLite store for each authenticated tenant.
+- Platform registers `qcafe` at `/app/qcafe` and directly composes its web export. Web menu and takeaway POS use Platform identity, live permissions, and tenant MariaDB. Desktop remains on PIN login and SQLite.
 - Desktop uses the standalone local API. Its database must not be shared between tenants.
 - Existing storage identities remain unchanged. See `apps/qcafe/README.md` for rename and deployment requirements.
 

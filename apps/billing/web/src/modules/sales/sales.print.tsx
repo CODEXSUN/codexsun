@@ -286,6 +286,11 @@ function SalePrintPage({
     <article
       className={`bg-white px-2 text-[10px] text-black ${pageIndex > 0 ? "break-before-page" : ""}`}
     >
+      {sale.einvoice.status === "cancelled" || sale.eway.status === "cancelled" ? (
+        <div className="border border-red-700 px-2 py-1 text-center font-bold text-red-700">
+          {sale.einvoice.status === "cancelled" ? "IRN CANCELLED" : "E-WAY BILL CANCELLED"}
+        </div>
+      ) : null}
       <div className="border border-slate-300">
         <header className="border-b border-slate-300 px-2 py-1">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center">

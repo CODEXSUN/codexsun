@@ -1,0 +1,33 @@
+# Accounts tasks
+
+## Responsibility
+
+Accounting workspaces and owned accounting, bank-book, and cash-book API contracts.
+
+Keep ledger and book behavior inside Accounts. Billing owns sales, purchases, receipts, and payments. Reconcile persisted balances before changing accounting sources.
+
+Read [the component README](../README.md), [the plan](PLAN.md), and [the skills](SKILLS.md) before changing this owner.
+These tasks define acceptance for a change. Unchecked items are not claims of missing production features.
+
+## Change checklist
+
+- [ ] Identify the affected Accounts source contracts and their public consumers.
+- [ ] Confirm the requested behavior against the ownership constraints above.
+- [ ] Record schema, permissions, stored-data, and compatibility effects before implementation.
+- [ ] Keep validation, persistence, API responses, and relevant UI or adapters aligned.
+- [ ] Verify the affected owner and its Platform or package consumers.
+- [ ] Record exact checks and unresolved limitations. Update the existing plan only from evidence.
+
+## Acceptance evidence
+
+- `node tools/check-module-boundaries.mjs accounts`
+- `npm run typecheck -w @codexsun/accounts-api`
+- `npm run lint -w @codexsun/accounts-api`
+- `npm run build -w @codexsun/accounts-api`
+- `npm run typecheck -w @codexsun/accounts-web`
+- `npm run lint -w @codexsun/accounts-web`
+- `npm run build -w @codexsun/accounts-web`
+
+Use `npm run check:component-docs` for this documentation contract.
+Run applicable tests before marking implementation work complete.
+Do not treat documentation, a build, or a model response as proof of live persistence or deployment.

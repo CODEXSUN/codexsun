@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, type ComponentType } from "react";
+import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
   AppWindowIcon,
@@ -20,12 +20,13 @@ import type { SidemenuItem } from "@codexsun/ui/blocks/menu/sidemenu/sub/sidemen
 import { GlobalLoader } from "@codexsun/ui/components/global-loader";
 import { AppOperationsStrip } from "../../modules/app-orchestration/app-orchestration.list";
 import { useAppOperationsQuery } from "../../modules/app-orchestration/app-orchestration.hooks";
-import type { OrchestratedAppId } from "../../modules/app-orchestration/app-orchestration.types";
 import { logout } from "../../shared/api/platform-api";
 import { AuthGate } from "../../shared/auth/AuthGate";
 import { requiredClientEnv } from "../../shared/env/client-env";
 import { ProjectManagerWorkspaceHost } from "@codexsun/project-manager-web";
 import { zetroPageFromUrl, type SaZetroPage } from "./sa-zetro-pages";
+import { SaAppCatalog } from "./sa-app-catalog";
+import { SaAppDetails } from "./sa-app-details";
 
 const ZunoWorkspace = lazyWorkspace(() =>
   import("@codexsun/zuno-web").then((module) => module.ZunoWorkspace)
@@ -41,7 +42,9 @@ function lazyWorkspace<Props>(loader: () => Promise<ComponentType<Props>>) {
 const DesignSystemGallery = lazyWorkspace(() =>
   import("../../modules/design-system").then((module) => module.DesignSystemGallery)
 );
-const UiuxGallery = lazyWorkspace(() => import("@codexsun/uiux").then((module) => module.UiuxGallery));
+const UiuxGallery = lazyWorkspace(() =>
+  import("@codexsun/uiux").then((module) => module.UiuxGallery)
+);
 const TenantList = lazyWorkspace(() =>
   import("../../modules/tenant").then((module) => module.TenantList)
 );
@@ -137,10 +140,12 @@ type SaPage =
 export function SaDesk() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [workspaceRevision, setWorkspaceRevision] = useState(0);
   const page = pageFromUrl(location.pathname);
   const tenantSearch = (location.search as Record<string, unknown>).tenant;
   const selectedZetroTenant = typeof tenantSearch === "string" ? tenantSearch : "";
-  const selectedAppId: OrchestratedAppId = "platform";
+  const appSearch = (location.search as Record<string, unknown>).app;
+  const selectedAppId = typeof appSearch === "string" ? appSearch : "platform";
 
   useEffect(() => {
     const canonicalPath = page === "overview" ? "/sa" : `/sa/${page}`;
@@ -150,6 +155,7 @@ export function SaDesk() {
   }, [location.pathname, location.search, navigate, page]);
 
   function selectPage(nextPage: SaPage) {
+    setWorkspaceRevision((revision) => revision + 1);
     const path = nextPage === "overview" ? "/sa" : `/sa/${nextPage}`;
     void navigate({
       to: path,
@@ -174,7 +180,7 @@ export function SaDesk() {
     });
   }
 
-  function openAppOperations(appId: OrchestratedAppId) {
+  function openAppOperations(appId: string) {
     void navigate({
       params: { _splat: "app-operations" },
       search: { app: appId },
@@ -409,13 +415,16 @@ export function SaDesk() {
           versionLabel={`v ${__APP_VERSION__}`}
           workspace={page === "task-manager" ? "task-manager" : "platform"}
         >
-          <Suspense fallback={<GlobalLoader className="min-h-[24rem]" fullScreen={false} />}>
+          <Suspense
+            key={`${page}:${workspaceRevision}`}
+            fallback={<GlobalLoader className="min-h-[24rem]" fullScreen={false} />}
+          >
             {page === "overview" ? <SaOverview onOpenApp={openAppOperations} /> : null}
-            {page === "app-operations" ? (
-              <AppOrchestrationWorkspace
-                appId={selectedAppId}
-                onBack={() => selectPage("overview")}
-              />
+            {page === "app-operations" && selectedAppId === "platform" ? (
+              <AppOrchestrationWorkspace appId="platform" onBack={() => selectPage("overview")} />
+            ) : null}
+            {page === "app-operations" && selectedAppId !== "platform" ? (
+              <SaAppDetails appId={selectedAppId} onBack={() => selectPage("overview")} />
             ) : null}
             {page === "task-manager" ? <TaskManagerWorkspace /> : null}
             {page === "zuno" ? <ZunoWorkspace /> : null}
@@ -498,7 +507,7 @@ function pageFromUrl(pathname: string): SaPage {
     : "overview";
 }
 
-function SaOverview({ onOpenApp }: { onOpenApp: (appId: OrchestratedAppId) => void }) {
+function SaOverview({ onOpenApp }: { onOpenApp: (appId: string) => void }) {
   const apps = useAppOperationsQuery();
   return (
     <main className="mx-auto w-[calc(100%-2rem)] max-w-[92rem] space-y-4 py-5 lg:w-[calc(100%-3rem)]">
@@ -517,6 +526,7 @@ function SaOverview({ onOpenApp }: { onOpenApp: (appId: OrchestratedAppId) => vo
         </section>
       ) : null}
       <AppOperationsStrip apps={apps.data ?? []} onSelect={onOpenApp} />
+      <SaAppCatalog onOpenApp={onOpenApp} />
     </main>
   );
 }

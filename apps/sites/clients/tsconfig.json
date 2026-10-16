@@ -11,7 +11,7 @@
       "@codexsun/ui/workspace/*": ["../../../packages/ui/src/workspace/*"],
       "@codexsun/ui/presets/*": ["../../../packages/ui/src/workspace/presets/*"],
       "@codexsun/ui/lib/*": ["../../../packages/ui/src/lib/*"],
-      "@sites-client-entry": ["./src/clients/codexsun/site.tsx"]
+      "@sites-client-entry": ["./src/clients/ramutex/site.tsx"]
     },
     "noEmit": true,
     "types": ["vite/client", "node"]

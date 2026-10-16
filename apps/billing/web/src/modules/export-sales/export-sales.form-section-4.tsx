@@ -1,3 +1,8 @@
+import {
+  ExportSaleComplianceCancel,
+  ExportSaleComplianceRequests
+} from "./export-sales.compliance";
+import type { ExportSale } from "./export-sales.types";
 import { Button } from "@codexsun/ui/components/button";
 import { DialogFooter, DialogHeader, DialogTitle } from "@codexsun/ui/components/dialog";
 import { Input } from "@codexsun/ui/components/input";
@@ -102,6 +107,9 @@ export function ExportSaleEwayTab({
   onChange,
   onCreateTransport,
   onGenerate,
+  onCancel,
+  invoiceId,
+  onUpdated,
   onTransportChange,
   options,
   selected,
@@ -112,27 +120,59 @@ export function ExportSaleEwayTab({
   onCreateTransport: (
     payload: ExportSaleTransportSavePayload
   ) => Promise<{ description: string; label: string; meta: string; value: string }>;
-  onGenerate: () => void;
+  onCancel: (reasonCode: number, remarks: string) => Promise<void>;
+  invoiceId: string | undefined;
+  onUpdated: (invoice: ExportSale) => void;
+  onGenerate: (distanceKm: number) => void;
   onTransportChange: (value: string, option?: ExportSaleLookupOption | null) => void;
   options: ExportSaleLookupOption[];
   selected: ExportSaleLookupOption | undefined;
   value: ExportSaleEwayDetails;
 }) {
+  const [distanceKm, setDistanceKm] = useState("");
+  const validDistance =
+    Number.isInteger(Number(distanceKm)) && Number(distanceKm) >= 1 && Number(distanceKm) <= 4000;
   return (
     <div className="space-y-5">
+      <ExportSaleComplianceRequests invoiceId={invoiceId} onUpdated={onUpdated} />
+      {value.status === "generated" ? (
+        <ExportSaleComplianceCancel documentType="eway" onCancel={onCancel} />
+      ) : null}
       <div className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-3">
         <div className="text-sm text-muted-foreground">
           E-way status{" "}
           <span className="ml-2 rounded-sm bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700">
-            {value.status === "generated" ? "Generated" : "Not generated"}
+            {value.status === "cancelled"
+              ? "Cancelled"
+              : value.status === "generated"
+                ? "Generated"
+                : "Not generated"}
           </span>
         </div>
-        <Button type="button" className="h-9 rounded-md" onClick={onGenerate}>
+        <Button
+          type="button"
+          className="h-9 rounded-md"
+          disabled={loading || !validDistance || value.status !== "not-generated"}
+          onClick={() => onGenerate(Number(distanceKm))}
+        >
           <Send className="size-4" />
           Generate
         </Button>
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
+        <Field label="Transport distance (km)" required>
+          <Input
+            type="number"
+            min={1}
+            max={4000}
+            step={1}
+            value={distanceKm}
+            onChange={(event) => setDistanceKm(event.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Enter 1�4000 km for this generation request.
+          </p>
+        </Field>
         <Field label="E-way bill no">
           <Input
             value={value.billNo}
@@ -207,24 +247,45 @@ export function ExportSaleEwayTab({
 }
 
 export function ExportSaleEinvoiceTab({
+  loading,
   onChange,
   onGenerate,
+  onCancel,
+  invoiceId,
+  onUpdated,
   value
 }: {
+  loading: boolean;
   onChange: (next: Partial<ExportSaleEinvoiceDetails>) => void;
+  onCancel: (reasonCode: number, remarks: string) => Promise<void>;
+  invoiceId: string | undefined;
+  onUpdated: (invoice: ExportSale) => void;
   onGenerate: () => void;
   value: ExportSaleEinvoiceDetails;
 }) {
   return (
     <div className="space-y-5">
+      <ExportSaleComplianceRequests invoiceId={invoiceId} onUpdated={onUpdated} />
+      {value.status === "generated" ? (
+        <ExportSaleComplianceCancel documentType="einvoice" onCancel={onCancel} />
+      ) : null}
       <div className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-3">
         <div className="text-sm text-muted-foreground">
           E-invoice status{" "}
           <span className="ml-2 rounded-sm bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700">
-            {value.status === "generated" ? "Generated" : "Not generated"}
+            {value.status === "cancelled"
+              ? "Cancelled"
+              : value.status === "generated"
+                ? "Generated"
+                : "Not generated"}
           </span>
         </div>
-        <Button type="button" className="h-9 rounded-md" onClick={onGenerate}>
+        <Button
+          type="button"
+          className="h-9 rounded-md"
+          disabled={loading || value.status !== "not-generated"}
+          onClick={onGenerate}
+        >
           <Send className="size-4" />
           Generate
         </Button>

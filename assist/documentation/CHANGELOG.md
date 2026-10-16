@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.1
+Current version: 1.1.2
 
-Release tag: v-1.1.1
+Release tag: v-1.1.2
 
-Changelog label: v 1.1.1
+Changelog label: v 1.1.2
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,35 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.2
+
+### [v 1.1.2] 2026-10-16 8:06 pm - Business applications and component documentation
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Includes Billing compliance persistence and queue migrations, Q Cafe tenant POS/menu/order tables, Sites page/blog storage, and Ecommerce organisation settings.
+- Includes tenant, company-selection, and app composition changes. Existing databases require reviewed migration preflight, backup, migration, and applicable permission seeds.
+- Live database migration and production provider compatibility were not verified during this release preparation.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.2.
+- Added component README, task, plan, and skills documents across apps, developer kits, shared packages, workspace tools, and add-on guides.
+- Added component-documentation checks and aligned Zetro's runtime loader, tests, and build collection with uppercase `SKILLS.md`.
+- Added Sales and Export Sales compliance requests, provider result persistence, durable queue dispatch, cancellation recovery, and WhiteBooks configuration templates.
+- Added Customer Summary and Supplier Summary print views and compliance controls in invoice forms and details.
+- Added Q Cafe cloud modules and tenant web POS, menu masters, saved dine-in orders, table and seat allocation, kitchen tickets, and service pages.
+- Added Sites portfolio page/blog editing, publication contracts, client identities, runtime controls, and standard portfolio templates.
+- Added Ecommerce organisation settings, tenant branding/logo storage, storefront presentation updates, and local storefront runtime controls.
+- Updated Platform application catalog, tenant app launch behavior, shared loading UI, production package resolution, and container source configuration.
+- Excluded local Ecommerce upload storage from source control. Removed tracked generated Windows schemas under the existing generated-file ignore rule.
+- Passed component documentation checks and both regression tests, module boundaries and their regression test, add-on validation, and repository lint.
+- Passed 11 focused WhiteBooks client, Ecommerce runtime, and Zetro rule-loader tests, plus the version-bump test and version alignment.
+- Passed the separate repository TypeScript run with 91 successful tasks and the final root dependency-layout check. Frontend dependency builds reported bundle-size warnings.
+- Full `npm run check` stopped at Docs validation: the Ecommerce storefront-organisation module has no developer reference page.
+- Prior component task files record local browser, sandbox provider, and database evidence. Those live checks were not repeated during release preparation.
 
 ## v-1.1.1
 

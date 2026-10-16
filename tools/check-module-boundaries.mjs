@@ -4,6 +4,7 @@ import { join } from "node:path";
 const requestedApp = process.argv[2]?.trim();
 
 const moduleRoots = [
+  { app: "qcafe-api", path: join(process.cwd(), "apps", "qcafe", "api", "src", "modules") },
   { app: "codexsun-api", path: join(process.cwd(), "apps", "codexsun", "api", "src", "modules") },
   { app: "hrms-api", path: join(process.cwd(), "apps", "hrms", "api", "src", "modules") },
   { app: "docs-api", path: join(process.cwd(), "apps", "docs", "api", "src", "modules") },
@@ -106,6 +107,10 @@ const crmContact360Leaves = [
   "contact-documents"
 ];
 const capabilityBackendRoles = new Map([
+  ["qcafe-api/menu", reducedBackendRoles],
+  ["qcafe-api/pos", reducedBackendRoles],
+  ["qcafe-api/order", reducedBackendRoles],
+  ["qcafe-api/table", reducedBackendRoles],
   ["hrms-api/attendance", reducedBackendRoles],
   ["hrms-api/department", reducedBackendRoles],
   ["hrms-api/designation", reducedBackendRoles],
@@ -120,7 +125,7 @@ const capabilityBackendRoles = new Map([
   ["docs-api/overview", ["module", "service", "routes", "seed", "types"]],
   ["himsx-api/overview", ["module", "service", "routes", "seed", "types"]],
   ["sites-api/overview", ["module", "service", "routes", "seed", "types"]],
-  ["platform-api/qcafe", ["module", "routes", "types"]],
+  ["platform-api/qcafe", ["module"]],
 
   ["auditor-api/client", ["module", "service", "repository", "routes", "migration", "types"]],
   ["ecommerce-api/catalog-data-source", ["service", "repository", "routes", "migration", "types"]],
@@ -135,6 +140,7 @@ const capabilityBackendRoles = new Map([
   ["ecommerce-api/storefront", ["service", "repository", "routes", "types"]],
   ["ecommerce-api/storefront-announcement", reducedBackendRoles],
   ["ecommerce-api/storefront-profile", reducedBackendRoles],
+  ["ecommerce-api/storefront-organisation", reducedBackendRoles],
   ["ecommerce-api/storefront-slider", reducedBackendRoles],
   ["ecommerce-api/overview", ["module", "service", "routes", "seed", "types"]],
   ["logicx-erp-api/overview", ["module", "service", "routes", "seed", "types"]],
@@ -185,6 +191,7 @@ const capabilityBackendRoles = new Map([
 ]);
 
 const webModuleRoots = [
+  { app: "qcafe-web", path: join(process.cwd(), "apps", "qcafe", "web", "src", "modules") },
   { app: "codexsun-web", path: join(process.cwd(), "apps", "codexsun", "web", "src", "modules") },
   { app: "hrms-web", path: join(process.cwd(), "apps", "hrms", "web", "src", "modules") },
   { app: "docs-web", path: join(process.cwd(), "apps", "docs", "web", "src", "modules") },
@@ -258,6 +265,10 @@ const capabilityFrontendRoles = new Map([
   ["ecommerce-web/overview", ["workspace", "services", "hooks", "types"]],
   ["ecommerce-web/storefront", ["page", "services", "types"]],
   [
+    "ecommerce-web/storefront-organisation",
+    ["workspace", "form", "services", "hooks", "types", "schema"]
+  ],
+  [
     "ecommerce-web/storefront-profile",
     ["workspace", "form", "services", "hooks", "types", "schema"]
   ],
@@ -315,6 +326,10 @@ const forbiddenScaffoldPatterns = [
 ];
 
 const declaredSynchronousModules = new Set([
+  "qcafe-api/menu",
+  "qcafe-api/pos",
+  "qcafe-api/order",
+  "qcafe-api/table",
   "hrms-api/attendance",
   "hrms-api/department",
   "hrms-api/designation",

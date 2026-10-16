@@ -13,7 +13,17 @@ npm run dev
 
 `npm run dev:ecommerce` starts the public Ecommerce web app at `/shop`. Its other paths redirect to the Platform staff desk. `npm run dev:storefront` starts that same web app. It proxies `/api/platform` to the Platform API. Enable Ecommerce for the tenant through Plan Access before using either app.
 
+The Ecommerce app header checks the local storefront every 10 seconds. It shows **Start storefront** when stopped and **Starting storefront…** during startup. Green **Storefront live** requires the server identity, `/shop` HTML, and successful branding/catalog API responses through the storefront proxy. Checks include the current browser cookies so oversized-header failures do not show green. Failed page or tenant API checks show **Storefront unavailable** with Recheck. This does not verify every browser interaction or asset. Both local launch paths allow 64 KiB request headers, consistent with Platform development servers.
+
+Runtime controls require a loopback browser session and a non-production API. Starting requires `ecommerce.storefront.manage`, the source checkout, and root development dependencies. Status requires `ecommerce.overview.view`. The API starts only the fixed storefront development server and closes its child process during shutdown. Existing external storefront processes remain independently managed. These controls do not deploy or start production services. No database migration is required.
+
 ## Modules
+
+The Ecommerce sidebar groups pages under Catalog, Storefront UX, and Settings. Overview remains first. Catalog links to Ecommerce item extensions, variants, and images, plus Core-owned categories and products. Storefront UX links to Home Slider, Trusted Strip, Promotion Cards, Brands Strip, Featured Cards, Season Strip, Campaign Events, and Service Banner. Settings contains Organisation, Storefront Profile, and Data Source.
+
+The homepage section order matches the requested `cxshop` reference: hero, trust, promotions, brands, featured cards, season, catalog, campaigns/events, service banner, journal, and closing action. Existing Ecommerce routes and tenant APIs remain authoritative. Brands Strip edits Core brand logos and storefront visibility. Local Campaign Events and Promotion Cards share promotion records, as in the reference. Their section visibility controls remain separate. Empty or disabled brand/campaign feeds do not fall back to unrelated homepage content.
+
+The hero slider uses the supplied SoftAurora with a broad, soft band at 65% opacity behind a feathered white surface. It keeps random color pairs per page load, respects reduced motion and page visibility, and does not intercept slide controls. MagicRings has been removed.
 
 The staff desk owns product information, variants, images, catalog data sources, matching, sliders, promotions, featured cards, season strips, announcements, and the storefront profile. Core owns the underlying product, category, and brand records. Ecommerce reads those through its tenant database and keeps its own published storefront content. The staff UI is available from the Ecommerce menu in Platform.
 
@@ -24,8 +34,73 @@ The current Platform activation contract requires CRM and Frappe to be enabled t
 
 The public storefront reads published products and content through `/storefront/*` routes. It resolves the tenant from the verified request hostname and requires an active Ecommerce entitlement. The basket is local browser state; it does not submit orders, collect payment, or reserve stock. The Piko button has a product search fallback while the optional chat endpoint and panda sprite are unavailable.
 
+Open **Ecommerce → Organisation Settings** at `/app/ecommerce/organisation` to select the default company and accounting year. Both dropdowns read active records from this tenant's Core organisation modules. Ecommerce saves its selection without changing the Application Default Company. Until saved, it uses the tenant's Default Company selection.
+
+Set an optional **Display name** and upload a **Storefront logo** on that page. Save applies them to the top menu, footer, and default copyright through `/storefront/branding`. Blank display names use the company name. Removing the custom logo restores company logos. Uploads accept PNG, JPG, and WebP up to 2 MB. Ecommerce validates and converts them to PNG, preserves their proportions, and saves them under `storage/<tenant>/public/ecommerce/logo`. Platform supplies the storage root from the verified tenant registry. Browsers cannot choose a tenant folder or file path.
+
+Settings reads require `ecommerce.storefront.view`. Saves and uploads require `ecommerce.storefront.manage`. The tenant migration adds organisation settings and activity tables, then display-name and logo columns. The organisation module is a synchronous singleton settings module with no list, delete, event, worker, or sync roles. Public logo routes resolve the request's tenant and require active Ecommerce access.
+
+In local development, localhost storefront traffic uses `DEFAULT_TENANT_CORPORATE_ID` independently of `ENABLE_DEFAULT_TENANT_SEED`. Production still requires verified tenant-domain routing. Staff requests pass the server-verified tenant database name to Core lookups.
+
 The tenant migration installs the new Ecommerce tables, then drops the retired `ecommerce_catalog`, `ecommerce_catalog_activity`, and `ecommerce_storefront_*` quote/config/activity tables. Existing records in those retired tables are deleted. Core tables and records are not dropped. The migration ledger records each step for repeatable startup. The seed creates Ecommerce permissions and the default storefront profile.
 
 Staff permissions are `ecommerce.catalog.view`, `ecommerce.catalog.edit`, `ecommerce.storefront.view`, and `ecommerce.storefront.manage`. Platform checks them before the staff routes run. Frappe catalog connection settings use the tenant's Frappe connection when that module is enabled.
 
 The storefront still needs a verified tenant domain for public access outside the local development hostname. See the repository's tenant isolation and migration runbooks before applying the schema to an existing deployment.
+
+## Component documentation
+
+Staff catalog management, matching and publishing controls, and the public storefront.
+
+Core owns shared product identity and Frappe owns connection credentials. Public routes return published tenant content only. A browser basket does not prove order, payment, or stock-reservation support.
+
+- [TASK.md](agent/TASK.md): work items and acceptance evidence.
+- [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.
+- [SKILLS.md](agent/SKILLS.md): component working rules and safety constraints.
+
+### Source inventory
+
+- `api/src/modules`: `catalog-matching`, `ecommerce-composition`, `featured-card`, `overview`, `product-image`, `product-information`, `product-variant`, `promotion-card`, `season-strip`, `storefront-announcement`, `storefront-profile`, `storefront-slider`.
+- `web/src/modules`: `catalog-data-source`, `catalog-overview`, `featured-card`, `overview`, `product-image`, `product-information`, `product-variant`, `promotion-card`, `season-strip`, `storefront-profile`, `storefront-slider`.
+
+This inventory records source presence. It does not certify a deployed feature.
+
+### Workspace verification
+
+Run these commands from the repository root. Use the root installation and `dist` output tree.
+
+- `node tools/check-module-boundaries.mjs ecommerce`
+- `npm run typecheck -w @codexsun/ecommerce-api`
+- `npm run lint -w @codexsun/ecommerce-api`
+- `npm run build -w @codexsun/ecommerce-api`
+- `npm run typecheck -w @codexsun/ecommerce-storefront`
+- `npm run lint -w @codexsun/ecommerce-storefront`
+- `npm run build -w @codexsun/ecommerce-storefront`
+- `npm run typecheck -w @codexsun/ecommerce-web`
+- `npm run lint -w @codexsun/ecommerce-web`
+- `npm run build -w @codexsun/ecommerce-web`
+
+Run `npm run check:component-docs` to verify the required documentation files.
+Run the relevant app tests and root release gates when implementation changes.
+Report database, browser, native, and deployment checks separately.
+
+### Workspace packages
+
+- `api`: `@codexsun/ecommerce-api`.
+- `storefront`: `@codexsun/ecommerce-storefront`.
+- `web`: `@codexsun/ecommerce-web`.
+
+### Declared internal dependencies
+
+- `@codexsun/core-api`
+- `@codexsun/ecommerce-web`
+- `@codexsun/framework`
+- `@codexsun/frappe-api`
+- `@codexsun/ui`
+
+### Public package entry points
+
+- `@codexsun/ecommerce-api`: `.`.
+- `@codexsun/ecommerce-storefront`: `.`.
+- `@codexsun/ecommerce-web`: `.`, `./modules/overview`, `./modules/overview/gateway`, `./modules/pages`, `./modules/storefront`.
+

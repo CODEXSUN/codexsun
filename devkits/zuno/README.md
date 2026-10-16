@@ -8,8 +8,8 @@ For an emergency client data correction, create a `data_correction` case, save t
 
 Set these values in the Platform API environment:
 
-| Variable                       | Purpose                                                       |
-| ------------------------------ | ------------------------------------------------------------- |
+| Variable                          | Purpose                                                       |
+| --------------------------------- | ------------------------------------------------------------- |
 | `CODEXSUN_ZUNO_SOURCE_ROOT`       | Read-only source checkout mounted in the API runtime.         |
 | `CODEXSUN_ZUNO_PLATFORM_LOG_PATH` | Platform API log file mounted in the API runtime.             |
 | `CODEXSUN_ZUNO_PROVIDER_BASE_URL` | HTTPS base URL for an OpenAI-compatible chat-completions API. |
@@ -23,3 +23,51 @@ The conversations module owns the `zuno_threads` and `zuno_messages` migration. 
 ## Developer documentation evidence
 
 The injected `search_developer_docs` model tool and Super Admin-only `GET /zuno/developer-docs?query=...` read up to five reviewed repository reference pages, with bounded excerpts and source hashes. Saved development conversations can use the same tool. Zuno does not read tenant Markdown overrides, change Docs permissions or execute instructions in documentation. Source files are packaged with the Docs API; model-provider configuration is still required for diagnosis.
+
+## Component documentation
+
+Super Admin support conversations, bounded diagnostics, operational watch, and reviewed correction cases.
+
+Diagnostic tools remain read-only. Production correction cases require the existing backup, approval, unchanged-value, and exact-row checks. Never turn chat Build mode into source or arbitrary SQL execution.
+
+- [TASK.md](agent/TASK.md): work items and acceptance evidence.
+- [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.
+- [SKILLS.md](agent/SKILLS.md): component working rules and safety constraints.
+
+### Source inventory
+
+- `api/src/modules`: `cases`, `conversations`, `diagnostics`, `watch`.
+- `web/src/modules`: `cases`, `conversations`, `diagnostics`, `watch`.
+
+This inventory records source presence. It does not certify a deployed feature.
+
+### Workspace verification
+
+Run these commands from the repository root. Use the root installation and `dist` output tree.
+
+- `node tools/check-module-boundaries.mjs zuno`
+- `npm run typecheck -w @codexsun/zuno-api`
+- `npm run lint -w @codexsun/zuno-api`
+- `npm run build -w @codexsun/zuno-api`
+- `npm run typecheck -w @codexsun/zuno-web`
+- `npm run lint -w @codexsun/zuno-web`
+- `npm run build -w @codexsun/zuno-web`
+
+Run `npm run check:component-docs` to verify the required documentation files.
+Run the relevant app tests and root release gates when implementation changes.
+Report database, browser, native, and deployment checks separately.
+
+### Workspace packages
+
+- `api`: `@codexsun/zuno-api`.
+- `web`: `@codexsun/zuno-web`.
+
+### Declared internal dependencies
+
+- `@codexsun/framework`
+- `@codexsun/ui`
+
+### Public package entry points
+
+- `@codexsun/zuno-api`: `.`.
+- `@codexsun/zuno-web`: `.`.
