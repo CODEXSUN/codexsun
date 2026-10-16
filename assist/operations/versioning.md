@@ -4,16 +4,19 @@
 
 CODEXSUN uses lockstep versioning across the root package and all workspaces.
 
+Package versions use three numeric components. The current release line starts at `1.1.0`.
+Explicit user requests may change the major or minor component. Default bumps increment the patch component.
+
 Package version format:
 
 ```text
-1.0.<reference>
+<major>.<minor>.<patch>
 ```
 
 Git tags use the `v-` prefix:
 
 ```text
-v-1.0.<reference>
+v-<major>.<minor>.<patch>
 ```
 
 Workspace package versions describe a tested source-repository baseline and remain lockstep. Deployable
@@ -31,7 +34,7 @@ changes are released through the normal lockstep baseline first and must pass ev
 Changelog entry labels use the human-readable form:
 
 ```text
-v 1.0.<reference>
+v <major>.<minor>.<patch>
 ```
 
 ## Reference Policy
@@ -41,7 +44,8 @@ Every meaningful batch uses a reference number such as `#1`, `#2`, or `#155`.
 Rules:
 
 - The batch reference in `assist/execution/task.md` must match `assist/execution/planning.md` when those files exist.
-- App version `1.0.<reference>` derives from the batch reference number.
+- Legacy `1.0.x` batches derive the patch component from the batch reference. Explicit major or minor updates use the requested version.
+- The current commit helper uses the patch component as its numeric reference. Include the full version in the title after a major or minor update.
 - Changelog entries use the same reference and workspace local time.
 - Changelog entry format is `### [v 1.0.10] YYYY-MM-DD h:mm am - Title`.
 - Commit subjects use the latest versioned changelog entry as `#<ref> - <title>`.
@@ -131,6 +135,10 @@ npm run version:bump -- --title "<title>" --no-database-update
 ```
 
 Choose exactly one database flag when the database impact is known.
+
+The default bump command increments only the patch component. The legacy explicit-version command updates only the root package and changelog.
+For an exact major or minor update, synchronize every workspace, internal dependency range, root lockfile, Windows manifest, and deployment sample.
+Run `npm run check:versions` after synchronization.
 
 After a version bump command, review the generated changelog entry and add precise bullets for the work completed in that version.
 

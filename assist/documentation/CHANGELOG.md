@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.99
+Current version: 1.1.0
 
-Release tag: v-1.0.99
+Release tag: v-1.1.0
 
-Changelog label: v 1.0.99
+Changelog label: v 1.1.0
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,25 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.0
+
+### [v 1.1.0] 2026-10-16 9:37 am - Open-source README and version 1.1.0
+
+#### Database Changes
+
+- Database update: No. This update adds no schema, migration, seed, or tenant-data changes.
+
+#### App Codebase Changes
+
+- Rewrote the root README for public contributors with project scope, prerequisites, environment setup, configuration, architecture, tests, deployment, contribution steps, support, security reporting limits, and GPL-3.0 licensing.
+- Corrected the supervised development service list and linked detailed operational and client guides.
+- Set the root and all 51 npm workspaces to the requested version 1.1.0. Updated internal dependency ranges and root lockfile metadata.
+- Aligned Windows Tauri/Cargo version metadata, the Windows Cargo lockfile entry, and deployment sample image tags with 1.1.0.
+- Updated the versioning guide and README to allow explicitly requested major and minor version changes while retaining lockstep workspace versions.
+- Documentation review passed formatting, all 33 local file links, all 24 referenced npm scripts, documentation validation, and version alignment before this release update.
+- Passed npm run check for 1.1.0, including module-boundary checks and regression tests, add-on validation, Docs content validation, TypeScript, and lint. Passed the version-bump test, final dependency-layout check, version alignment, and focused formatting checks.
+- No live database, browser E2E, native installer, or full production-build validation was performed for this documentation and version update.
 
 ## v-1.0.99
 

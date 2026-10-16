@@ -1,230 +1,371 @@
 # CODEXSUN
 
-Software makes simple.
+**A modular, self-hosted platform for business applications.**
 
-## Working Repository
+[![Repository checks](https://github.com/CODEXSUN/codexsun/actions/workflows/ci.yml/badge.svg)](https://github.com/CODEXSUN/codexsun/actions/workflows/ci.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-This CODEXSUN CODEXSUN project is owned and developed from:
+CODEXSUN brings tenant administration, business modules, and developer tools into one npm workspace repository.
+The Platform API and web shell compose application packages with shared Framework and UI packages.
 
-```text
-D:\workspace\codexsun
-```
+[Documentation](#documentation) · [Quick start](#quick-start) · [Contributing](#contributing) · [Report an issue](https://github.com/CODEXSUN/codexsun/issues) · [Changelog](assist/documentation/CHANGELOG.md)
 
-Treat this checkout and its `https://github.com/CODEXSUN/codexsun.git` Git remote as
-the current project.
-Do not use files, configuration, or assumptions from older CODEXSUN/CODEXSUN
-workspaces outside `D:\workspace\codexsun`.
+## Project status
 
-CODEXSUN is a monorepo foundation for a multi-tenant business application
-platform. The current workspace includes the Platform API, Platform web shell,
-shared Framework and UI packages, composed Core and Billing business modules,
-tenant-owned Mail modules, master database bootstrap, and version/changelog
-tooling.
+CODEXSUN is under active development. Application maturity varies, and some desks provide foundations for future workflows.
+Repository versions identify source baselines. A version number alone does not establish production readiness or feature completeness.
 
-## Start
+Read the [changelog](assist/documentation/CHANGELOG.md) for validation results and known limitations.
+Check [GitHub Actions](https://github.com/CODEXSUN/codexsun/actions/workflows/ci.yml) for the status of each revision.
 
-Set `CODEXSUN_TENANCY_MODE=multi` in the root `.env` for shared multi-tenant use, or
-set `CODEXSUN_TENANCY_MODE=single` with `CODEXSUN_SINGLE_TENANT_CORPORATE_ID` for one
-registered client. Single mode still uses a tenant database and tenant-scoped
-sessions. The configured tenant must be the only tenant in the master registry.
-For containers, set these values in `.container/deploy.env` instead of root `.env`.
-Create a separate `.container/deploy.env` for this application. Do not reuse a
-deployment file or persistent volumes from the previous application.
+## What is included
+
+- **Platform:** tenant registration, authentication, app activation, permissions, administration, and database operations.
+- **Business applications:** Core masters, Billing, Accounts, CRM, Ecommerce, Mail, Notes, Chat, and other app packages.
+- **Specialized applications:** HRMS, Himsx, Q Cafe, Sites, and integration packages, with different implementation scopes.
+- **Documentation and assistants:** the Docs library, Zetro, and Zuno developer tools.
+- **Shared packages:** a TypeScript Framework and React UI controls for module-owned applications.
+- **Additional clients:** Windows desktop hosts and selected Flutter mobile applications with separate toolchain requirements.
+
+Most business modules run inside the composed Platform API and web shell.
+An application folder does not necessarily represent an independently deployable service.
+App access depends on Plan Access, tenant Entitlements, and backend permissions.
+
+See the [project inventory](assist/documentation/project-inventory.md) and each application's documentation for its implemented scope.
+
+## Contents
+
+- [Requirements](#requirements)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Development commands](#development-commands)
+- [Docker deployment](#docker-deployment)
+- [Repository structure](#repository-structure)
+- [Architecture](#architecture)
+- [Checks and tests](#checks-and-tests)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [Support and bug reports](#support-and-bug-reports)
+- [Security](#security)
+- [Versions and releases](#versions-and-releases)
+- [License](#license)
+
+## Requirements
+
+For local web and API development:
+
+| Requirement      | Repository configuration                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------------------- |
+| Git              | Clone this repository and submit changes through pull requests.                                         |
+| Node.js          | `>=26.5.0`, as declared in `package.json`.                                                              |
+| npm              | `>=12.2.0`; the declared package manager is `npm@12.2.0`.                                               |
+| MariaDB          | A reachable server. The container baseline uses MariaDB 11.8.                                           |
+| Database account | Credentials with permission to create and migrate the configured local master and tenant databases.     |
+| Redis            | Required when using the `bullmq-redis` queue backend. The development template selects database queues. |
+
+Run npm commands from the repository root. Use the root `package-lock.json` and one root `node_modules` installation.
+
+Docker deployment requires Docker Engine or Docker Desktop with Compose v2 and Bash.
+Windows desktop and Flutter mobile builds require additional SDKs. See their [client guides](#documentation).
+
+## Quick start
+
+### 1. Clone and install
 
 ```bash
-npm install
+git clone https://github.com/CODEXSUN/codexsun.git
+cd codexsun
+npm ci
+```
+
+### 2. Prepare the development environment
+
+Copy `.env.example` to `.env` with your editor or shell.
+
+Bash:
+
+```bash
+cp .env.example .env
+```
+
+PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Edit `.env` before starting configuration:
+
+- Set `DB_HOST`, `DB_PORT`, `DB_USER`, and `DB_PASSWORD` for your local MariaDB server.
+- Set different names for `DB_MASTER_NAME` and `DEFAULT_TENANT_DB_NAME`.
+- Review `PLATFORM_WEB_ORIGIN`, the port settings, storage paths, and tenancy mode.
+- For a local seeded tenant, fill the `DEFAULT_TENANT_*` identity and administrator settings.
+- Choose your local bootstrap administrator settings. There are no published default login credentials.
+- Keep database reset flags disabled for normal startup.
+
+The development sample enables `ENABLE_DEFAULT_TENANT_SEED=1` for local testing.
+Set it to `0` when you do not want the test tenant seed.
+
+Run the interactive configurator in a terminal:
+
+```bash
+npm run env:configure
+npm run env:check
+```
+
+The configurator generates a missing JWT secret and prompts for credentials.
+It validates the complete template, so fill any remaining required values reported by the command.
+It does not install MariaDB or create database user grants.
+
+### 3. Start development
+
+Start MariaDB, then run:
+
+```bash
 npm run dev
 ```
 
-The single root command starts the Platform API, Platform web shell, and separate Ecommerce frontend together.
-It supervises each process separately. An API restart does not stop the web process,
-and a web restart does not stop the API process.
+Normal API startup bootstraps the configured database and applies the configured seeds.
+The supervisor starts Platform, Ecommerce, Q Cafe web, UIUX, and Project Manager services.
+Single-tenant mode also starts the local Q Cafe API.
+Each service has its own health checks and restart handling.
 
-The API watcher restarts after backend source or `.env` changes. Vite updates frontend
-source through hot reload and restarts its server when its configuration changes. The
-supervisor also restarts only the unhealthy process after sustained health-check failures.
-Development startup replaces a known CODEXSUN listener on its configured API or web port.
-It stops the previous CODEXSUN watcher or supervisor process tree before starting fresh.
-Set `CODEXSUN_DEV_PORT_POLICY=abort` to refuse a port takeover, or `force` to replace
-an unrelated listener on the configured port. Normal API restarts and shutdowns
-run HTTP and application close hooks before the process exits.
+| Service         | Default local address                     |
+| --------------- | ----------------------------------------- |
+| Platform web    | <http://127.0.0.1:7020>                   |
+| Platform API    | <http://127.0.0.1:7010>                   |
+| Ecommerce shop  | <http://127.0.0.1:7030/shop>              |
+| UIUX gallery    | <http://127.0.0.1:7040/uiux/main-layouts> |
+| Project Manager | <http://127.0.0.1:7050/registry>          |
+| Q Cafe web      | <http://127.0.0.1:5180/qcafe/>            |
 
-Use `npm run dev:api`, `npm run dev:web`, `npm run dev:ecommerce`, or `npm run dev:storefront` when you need only one development process.
-The separate web command waits for a healthy API before it starts.
-Use one runner for each service; an IDE that relaunches a stopped process can race another runner.
+These addresses use the sample ports. Your `.env` determines the actual ports and canonical web origin.
+Use a hostname that resolves to your development machine when you configure a custom origin.
+Tenant login requires the configured Corporate ID and tenant user credentials.
 
-Core, Billing, and Mail attach as packages; they have no standalone development
-entrypoints.
+## Configuration
 
-Install dependencies only from this repository root. All apps, packages, and
-tools resolve dependencies from the root `node_modules`; workspace-local
-`node_modules` folders are removed automatically and rejected by
-`npm run dependencies:check`.
+| File                                                           | Purpose                                       |
+| -------------------------------------------------------------- | --------------------------------------------- |
+| [`.env.example`](.env.example)                                 | Shareable template for local development.     |
+| `.env`                                                         | Private development settings. Ignored by Git. |
+| [`.container/deploy.env.sample`](.container/deploy.env.sample) | Shareable container deployment template.      |
+| `.container/deploy.env`                                        | Private container settings. Ignored by Git.   |
 
-Platform API: <http://127.0.0.1:7010>
+Container scripts read `.container/deploy.env`. They do not copy development settings from `.env`.
+Never commit real passwords, API keys, private signing keys, database dumps, or tenant data.
 
-Platform web: <http://127.0.0.1:7020>
+### Tenancy
 
-Ecommerce web: <http://127.0.0.1:7030> (`CODEXSUN_ECOMMERCE_WEB_PORT`)
+- `CODEXSUN_TENANCY_MODE=multi` supports multiple registered tenants with separate tenant databases.
+- `CODEXSUN_TENANCY_MODE=single` requires `CODEXSUN_SINGLE_TENANT_CORPORATE_ID` and exactly one active registered tenant.
+- Single mode still uses tenant-scoped sessions and a tenant database.
+- When default tenant seeding is enabled in single mode, its Corporate ID must match the configured single tenant.
 
-Ecommerce public shop: <http://127.0.0.1:7030/shop>
+Restart the API after changing tenancy mode.
+See [tenant isolation](assist/architecture/tenant-isolation.md) for the complete contract.
 
-UIUX gallery: <http://127.0.0.1:7040/uiux/main-layouts> (`CODEXSUN_UIUX_WEB_PORT`)
+### Database changes
 
-Project Manager: <http://127.0.0.1:7050/registry> (`CODEXSUN_PROJECT_MANAGER_WEB_PORT`)
+Use the [database migration runbook](assist/operations/database-migration-runbook.md) for existing databases.
+The available commands include:
 
-## Docker Deployment
+```bash
+npm run db:migrations:list
+npm run db:migrations:preflight
+npm run db:migrations:run
+npm run db:seed
+```
 
-Docker deployment files live in `.container/`. Shared MariaDB, Redis, and
-Media services are installed once alongside the composed Platform API and web
-runtime.
+These commands target the databases selected by your environment.
+Production migration preflight requires a verified backup.
+
+## Development commands
+
+| Command                        | Purpose                                                               |
+| ------------------------------ | --------------------------------------------------------------------- |
+| `npm run dev`                  | Start the supervised development services.                            |
+| `npm run dev:api`              | Start only the Platform API watcher.                                  |
+| `npm run dev:web`              | Start only Platform web after the API becomes healthy.                |
+| `npm run dev:ecommerce`        | Start the Ecommerce frontend.                                         |
+| `npm run dev:qcafe`            | Start Q Cafe development services.                                    |
+| `npm run dev:uiux`             | Start the UI gallery.                                                 |
+| `npm run dev:project-manager`  | Start the Project Manager frontend.                                   |
+| `npm run build`                | Build the repository and collect output under root `dist`.            |
+| `npm run start:api:production` | Start the built Platform API with production package resolution.      |
+| `npm run dependencies:check`   | Verify the root dependency and generated-output layout.               |
+| `npm run clean:dist`           | Clear generated output after stopping development servers and builds. |
+
+Use one runner per service. Development startup can replace an existing CODEXSUN listener on its configured port.
+Set `CODEXSUN_DEV_PORT_POLICY=abort` to refuse a port takeover.
+
+Use root build and mobile commands to keep generated files under `dist`.
+Avoid simultaneous builds because workspaces share the root output tree.
+See [package.json](package.json) for all commands.
+
+## Docker deployment
+
+From the repository root:
 
 ```bash
 bash prepare-env.sh
 bash setup.sh
 ```
 
-`prepare-env.sh` creates or updates the private `.container/deploy.env` from
-`.container/deploy.env.sample`. It never reads or copies the development
-`.env`. `setup.sh` only validates the prepared deployment file before applying
-the container installation.
+The first command prepares private deployment settings. The second validates them and installs the container stack.
+The stack includes the composed API/web runtime, MariaDB, Redis, and Media services.
+A Linux deployment host can use the declared Docker Node image without a host Node.js installation.
 
-A Linux deployment host needs Docker and Compose, but does not need Node.js or
-npm installed: environment preparation runs through the declared Docker Node
-image when host Node.js is unavailable. Press Enter at a credential prompt to
-preserve its existing deployment value.
+On Windows, run these commands through Git Bash when no WSL distribution is installed.
 
-For a non-interactive host where administrator credentials already exist in
-`.container/deploy.env`, run:
-
-```bash
-bash prepare-env.sh --non-interactive
-bash setup.sh --yes
-```
-
-For repeated local deployments, open the cleanup menu before reinstalling:
-
-```bash
-bash setup.sh --clean
-```
-
-The menu offers application-only cleanup, complete runtime cleanup while
-preserving all data, or full local data cleanup including MariaDB, Redis, File
-Browser, application storage, named volumes, and the CODEXSUN network. Docker
-build-cache pruning is a separate optional choice.
-
-On Windows, use Git Bash explicitly when `bash` resolves to WSL but no Linux
-distribution is installed:
-
-```powershell
-& "C:\Program Files\Git\bin\bash.exe" setup.sh
-```
-
-After pulling or copying an updated checkout, validate the existing deployment
-without changing it:
+Before applying an existing deployment update:
 
 ```bash
 bash update.sh --check
 ```
 
-Apply a guarded source update interactively, or use `--yes` on an automated
-deployment host:
+To apply the reviewed update:
 
 ```bash
 bash update.sh
-bash update.sh --yes
 ```
 
-MariaDB is exposed at the host binding and port declared in
-`.container/deploy.env`. Root `.env` is development-only; container setup,
-updates, migrations, and smoke checks read only `.container/deploy.env`. Normal
-updates preserve configuration, credentials, databases, uploads, and named
-volumes. The updater verifies Compose ownership before any build, creates a
-validated MariaDB backup before migration, replaces only `codexsun-api` and
-`codexsun-web`, runs the complete deployment smoke test, and restores the previous
-application images if replacement fails. See `.container/README.md` for the
-full port map, registry flow, persistence contract, and verification commands.
+Use the [container deployment guide](.container/README.md) for HTTPS, ports, persistent volumes, backups, migrations, and recovery.
+Provision unique credentials and verify restore procedures before storing production data.
 
-## Workspace
+## Repository structure
 
 ```text
-apps/platform/api
-apps/platform/web
-apps/ecommerce/api
-apps/ecommerce/web
-apps/ecommerce/storefront
-apps/core/api
-apps/core/web
-apps/billing/api
-apps/billing/web
-apps/mail/api
-apps/mail/web
-devkits/uiux
-packages/framework
-packages/ui
-tools/version
-assist
+apps/
+  platform/           # Composed API, web shell, and Windows host
+  core/               # Shared business masters and organization modules
+  billing/            # Billing application modules
+  crm/                # CRM API, web, and mobile modules
+  ...                 # Other application packages and clients
+devkits/
+  project-manager/    # Project registry and development workflows
+  uiux/               # UI component gallery
+  zuno/               # Developer diagnostics
+packages/
+  framework/          # Backend and runtime infrastructure
+  ui/                 # Shared React controls and layouts
+tools/                # Checks, builds, environment, and release commands
+assist/               # Architecture, governance, operations, and changelog
+.container/           # Container deployment and environment templates
+.github/              # CI, release workflows, and dependency updates
 ```
 
-## Strict UI/Form Guardrails
+## Architecture
 
-Before changing tenant/common/master forms, relation lookups, switch cards, placeholders, or shared form controls, read:
+CODEXSUN uses a modular monolith with explicit application and module ownership.
 
-```text
-assist/devops/ui-form-regression-guardrails.md
-```
+- Each business module owns its migrations, persistence, validation, routes, and frontend behavior.
+- Composition roots register modules through their public contracts.
+- Shared Framework and UI packages provide infrastructure and reusable controls.
+- Tenant database selection isolates tenant business data.
+- Backend checks enforce permissions, protected records, and relationship rules.
+- Browser sessions use encrypted HttpOnly cookies. Prompts and tenant settings cannot grant backend capabilities.
 
-Required commands:
+Read the [module-boundary rules](assist/architecture/module-boundaries.md) before adding or moving module code.
+Read the [UI/form guardrails](assist/devops/ui-form-regression-guardrails.md) before changing shared forms or lookups.
+
+## Checks and tests
+
+Run the standard checks from the repository root:
 
 ```bash
 npm run check
 npm run build
+npm run dependencies:check
+npm run check:versions
 ```
 
-Use the root checks before finishing shared UI, lookup, common module, or master
-module work.
+`npm run check` covers module boundaries, boundary regression tests, add-on packages, documentation, TypeScript, and lint.
+Check formatting separately with `npm run format:check`.
 
-## Strict App Module Shape
+Run the relevant additional suites for your change:
 
-Zetro's runtime business rules are in `apps/zetro/agent/skills.md`. Read
-`apps/zetro/agent/README.md` before changing its skills, prompts, or review log.
-The root `AGENTS.md` points repository agents to these rules.
-
-Business apps keep backend and frontend modules paired:
-
-```text
-apps/billing/api/src/modules/sales
-apps/billing/web/src/modules/sales
-apps/billing/web/src/shared
+```bash
+npm run test:docs
+npm run test:product-stacks
+npm run test:deployment-env
+npm run test:dev-stack
 ```
 
-Backend modules must use the complete behavior-bearing file contract in `assist/architecture/module-boundaries.md`.
+Database E2E suites require configured local databases and credentials.
+Review the relevant script and environment before running a database test.
+The [CI workflow](.github/workflows/ci.yml) records the shared automation gates.
 
-Frontend full modules use `index.ts`, `sales.workspace.tsx`, `sales.list.tsx`, `sales.form.tsx`, `sales.services.ts`, `sales.hooks.ts`, `sales.types.ts`, `sales.schema.ts`, and `sales.spec.ts`, with settings/print files when those capabilities exist. Alias-only wrappers and empty role files are forbidden.
+## Documentation
 
-Use `web/src/shared` only for cross-module web code; module-specific screens stay under `web/src/modules/{module}`.
+| Guide                                                                  | Use it for                                        |
+| ---------------------------------------------------------------------- | ------------------------------------------------- |
+| [Agent and contributor guide](assist/AGENT-GUIDE.md)                   | Repository conventions and required checks.       |
+| [Governance rules](assist/governance/rules.md)                         | Architecture, data, UI, and security constraints. |
+| [Project inventory](assist/documentation/project-inventory.md)         | Application and package context.                  |
+| [Container deployment](.container/README.md)                           | Installation, updates, storage, and recovery.     |
+| [Database migrations](assist/operations/database-migration-runbook.md) | Migration preflight, execution, and rollback.     |
+| [Docs application](apps/docs/README.md)                                | Developer Library and documentation authoring.    |
+| [Windows client](apps/platform/windows/README.md)                      | Desktop setup and packaging.                      |
+| [CRM mobile](apps/crm/mobile/README.md)                                | CRM Flutter development.                          |
+| [CODEXSUN mobile](apps/codexsun/mobile/README.md)                      | CODEXSUN Flutter development.                     |
+| [Q Cafe](apps/qcafe/README.md)                                         | Q Cafe architecture and clients.                  |
+| [Versioning](assist/operations/versioning.md)                          | Changelog, version, commit, and release rules.    |
+| [Changelog](assist/documentation/CHANGELOG.md)                         | Versioned changes and verification limits.        |
 
-### New tenant desks
+## Contributing
 
-[HRMS](apps/hrms/README.md), [Docs](apps/docs/README.md), and [Himsx](apps/himsx/README.md) are separate tenant apps composed into Platform Web/API. Enable their app keys through Plan Access and tenant Entitlements, seed their permissions, then open them from the launcher. Each owns an Overview and Getting Started side menu. These are app foundations; workforce CRUD, document editing and clinical workflows are planned modules.
+Bug reports, documentation improvements, and focused pull requests are welcome.
 
-Developer reference: open **Docs → Developer Library** or see [Docs authoring and hybrid storage](apps/docs/README.md). Reviewed Markdown/MDX covers 19 application groups; `npm run docs:check` verifies source hashes and module coverage. Zetro `/docs` and Super Admin Zuno developer tools consume bounded, cited read contracts.
+1. Search existing issues and pull requests before starting work.
+2. Open an issue to discuss substantial changes or new application behavior.
+3. Fork the repository and create a branch for your change.
+4. Read the [contributor guide](assist/AGENT-GUIDE.md), [governance rules](assist/governance/rules.md), and the owning module's documentation.
+5. Keep changes within the owning module and update the relevant documentation.
+6. Add tests when behavior changes and run the applicable checks.
+7. Open a pull request with the problem, change, test results, and any database migration requirements.
 
-The root production build runs Turbo with `--force`: current workspace outputs share the root `dist` tree, so restoring broad cached snapshots can overwrite another app's compiled output. A fresh root build keeps compiled Docs code, copied content hashes and frontend MDX chunks aligned. TypeScript/lint caching remains available.
+Keep unrelated changes out of your pull request. Report checks that you could not run.
+Update the current changelog entry for meaningful work. Version bumps require an explicit release decision.
 
-## Local repository and generated files
+For Zetro changes, also read its [agent guide](apps/zetro/agent/README.md) and [runtime business rules](apps/zetro/agent/skills.md).
+Treat other contributors respectfully and keep reviews focused on the work.
 
-Use `D:\workspace\codexsun` and `https://github.com/CODEXSUN/codexsun.git`.
-The repository uses `@codexsun/*` packages and `CODEXSUN_*` environment variables.
-Configure deployment variables and GitHub signing secrets with these names before release.
-Renamed cookies and storage keys require a new login. Existing database names and native application IDs also change.
+## Support and bug reports
 
-Run npm commands from the repository root. Keep only the root `node_modules` installation.
-Build output and local npm, Vite, Turbo, Flutter, Gradle, and temporary files use root `dist`.
-Desktop output uses `dist/apps/platform/windows`, `dist/.cargo/windows`, and `dist/releases/windows`.
-Mobile output uses `dist/apps/<app>/mobile`. Use the root mobile scripts to create the required Flutter directory links.
-Stop running builds and development servers, then run `npm run clean:dist` to clear generated output. The next command recreates the required directories.
-Installed SDKs, operating-system caches, and application data are outside this cleanup.
+Use [GitHub Issues](https://github.com/CODEXSUN/codexsun/issues) for reproducible bugs, feature requests, and setup questions.
+Include:
 
-Build-task caching is disabled because workspaces share the root output tree.
-Nested task processes use absolute cache and temporary paths under `dist`.
+- The commit or version and your operating system.
+- Node.js/npm versions or Docker/Compose versions.
+- Steps to reproduce, expected behavior, and actual behavior.
+- Relevant logs with secrets and personal or tenant data removed.
+
+Community support has no guaranteed response time.
+For security concerns, follow the private-contact guidance below.
+
+## Security
+
+Do not publish vulnerability details, credentials, or customer data in public issues or pull requests.
+
+GitHub private vulnerability reporting is currently disabled for this repository, and no dedicated security contact is published here.
+If you find a vulnerability, request a private reporting channel from the maintainers without disclosing technical details publicly.
+If private reporting becomes available, use the repository's [Security page](https://github.com/CODEXSUN/codexsun/security).
+
+Production operators must configure HTTPS, protect environment files, maintain backups, and review enabled integrations.
+See the [governance rules](assist/governance/rules.md) for tenant isolation and authentication requirements.
+
+## Versions and releases
+
+Workspace packages use lockstep `<major>.<minor>.<patch>` versions.
+Release tags use `v-<major>.<minor>.<patch>`.
+See [versioning and releases](assist/operations/versioning.md) for independent product-stack tags and signing requirements.
+
+Use the [changelog](assist/documentation/CHANGELOG.md) for release notes and [GitHub Releases](https://github.com/CODEXSUN/codexsun/releases) for published artifacts.
+A repository version does not imply that an installer or signed release exists.
+
+## License
+
+This repository includes the [GNU General Public License, version 3](LICENSE).
+Review the license before using, modifying, or distributing the software.
+Third-party dependencies remain subject to their respective licenses.
