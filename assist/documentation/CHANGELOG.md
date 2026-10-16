@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.0
+Current version: 1.1.1
 
-Release tag: v-1.1.0
+Release tag: v-1.1.1
 
-Changelog label: v 1.1.0
+Changelog label: v 1.1.1
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,20 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.1
+
+### [v 1.1.1] 2026-10-16 10:06 am - Version 1.1.1 release
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.1.
+- Set Git commit labels to the requested minor.patch sequence. This release uses `#1.1`; later patch releases use `#1.2`, `#1.3`, and so on.
+- Updated the GitHub commit helper to derive that label from the latest changelog version.
 
 ## v-1.1.0
 

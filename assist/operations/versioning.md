@@ -45,10 +45,10 @@ Rules:
 
 - The batch reference in `assist/execution/task.md` must match `assist/execution/planning.md` when those files exist.
 - Legacy `1.0.x` batches derive the patch component from the batch reference. Explicit major or minor updates use the requested version.
-- The current commit helper uses the patch component as its numeric reference. Include the full version in the title after a major or minor update.
+- Commit subjects use the minor and patch components as a numeric reference. Version `1.1.1` uses `#1.1`, then `1.1.2` uses `#1.2`.
 - Changelog entries use the same reference and workspace local time.
 - Changelog entry format is `### [v 1.0.10] YYYY-MM-DD h:mm am - Title`.
-- Commit subjects use the latest versioned changelog entry as `#<ref> - <title>`.
+- Commit subjects use the latest versioned changelog entry as `#<minor>.<patch> - <title>`.
 
 ## Active Changelog File
 

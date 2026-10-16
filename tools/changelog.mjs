@@ -12,15 +12,17 @@ export function parseLatestVersionedChangelogEntry(changelogContent) {
     throw new Error(`Could not read latest versioned changelog entry from ${CHANGELOG_PATH}.`);
   }
 
+  const minor = Number.parseInt(match[2] ?? "", 10);
   const reference = Number.parseInt(match[3] ?? "", 10);
   const title = match[4]?.trim();
 
-  if (!Number.isInteger(reference) || reference < 0 || !title) {
+  if (!Number.isInteger(minor) || minor < 0 || !Number.isInteger(reference) || reference < 0 || !title) {
     throw new Error("Latest changelog reference or title is invalid.");
   }
 
   return {
     reference,
+    commitReference: `${minor}.${reference}`,
     title,
     version: `${match[1]}.${match[2]}.${match[3]}`
   };
@@ -32,5 +34,5 @@ export function readLatestVersionedChangelogEntry(rootDir) {
 }
 
 export function formatChangelogCommitSubject(entry) {
-  return `#${entry.reference} - ${entry.title}`;
+  return `#${entry.commitReference ?? entry.reference} - ${entry.title}`;
 }
