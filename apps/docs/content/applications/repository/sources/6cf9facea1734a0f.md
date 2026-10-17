@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/WORK-LOG.md`
 
-Source SHA-256 (LF line endings): `9184c5a6f924b29bdbe469bf512d9f90e8b545d180078dd396ba34be87bcbc4d`
+Source SHA-256 (LF line endings): `f17dbdd342c52529ac45935ab152c084ca4b6ed47d43845e544c4c8cdfc57fd1`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -68,4 +68,11 @@ Detailed evidence is retained in [CRM task notes](TASK.md) and [Frappe duty fiel
 - Failed submissions preserve input. Duty edits preserve the original report date and outcome. Record history refreshes after submission.
 - Flutter analysis and 26 tests passed. Android emulator enquiry checkout through the new drawer appeared in the open web Actions tab without reload, with GPS and accuracy. The saved emulator session is an administrator; normal-user ownership is covered by API integration tests.
 - Earlier local checks passed work-report, duty, task-contact, and closure integration flows. Production deployment and live Frappe verification were not repeated for this change.
+
+
+## Mobile Home counts: 2026-10-17
+
+Home includes Enquiries, Tasks, Duty, Activities, Chat, and administrator-only device Call logs. Task totals come from the server; other cards count accessible records or conversations. Counts refresh every 20 seconds. Call logs read only after permission is already granted. Failed counts show Unavailable.
+The top-right bell and Chat card show unread Chat message badges, including assignment/work conversations. The bell opens the unread conversation list. It does not claim a separate push notification inbox.
+Fixed duty report requests to pass query parameters separately from the URL path, restoring duty loading and counts.
 ```

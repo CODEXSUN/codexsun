@@ -35,6 +35,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Bumped workspace version to 1.1.6.
 - Completed the pending CRM work-report host integration, transactional Chat delivery, duty notifications, and enquiry/task/duty action history changes.
 - Updated CRM mobile action drawers, duty report history, work feeds, messaging, WebSocket adapters, and widget tests.
+- Included the final mobile duty-report request fix: own-scope and pagination values use the API client's query argument.
 - Updated Chat participant access, work-message creation, permission seeds, and realtime hooks.
 - Updated tenant registry list handling, public blog delivery, static public document rendering, startup composition, and container/runtime configuration.
 - Updated Ramu Tex fabric pages, responsive image assets, enquiry links, and contact metadata.

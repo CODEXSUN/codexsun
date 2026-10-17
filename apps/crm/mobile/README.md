@@ -40,3 +40,10 @@ Duty reports can be edited from their history. Editing preserves the report date
 Related work messages appear in Chat. Its conversation list and message thread refresh automatically.
 
 The Android build cache, including Kotlin state, is redirected under root `dist` by the mobile launcher.
+
+
+## Mobile Home counts: 2026-10-17
+
+Home includes Enquiries, Tasks, Duty, Activities, Chat, and administrator-only device Call logs. Task totals come from the server; other cards count accessible records or conversations. Counts refresh every 20 seconds. Call logs read only after permission is already granted. Failed counts show Unavailable.
+The top-right bell and Chat card show unread Chat message badges, including assignment/work conversations. The bell opens the unread conversation list. It does not claim a separate push notification inbox.
+Fixed duty report requests to pass query parameters separately from the URL path, restoring duty loading and counts.

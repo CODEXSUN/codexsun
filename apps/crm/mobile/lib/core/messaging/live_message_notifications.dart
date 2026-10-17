@@ -169,4 +169,3 @@ Map<String, dynamic>? _decode(Object? raw) {
     return null;
   }
 }
-

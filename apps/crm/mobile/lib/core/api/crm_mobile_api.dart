@@ -152,17 +152,15 @@ class CrmMobileApi {
   }
 
   Future<int> activitiesCount(String accessToken) async {
-    try {
-      final data = await _request(
-        '/crm/activities',
-        accessToken: accessToken,
-        query: const {'pageSize': '1'},
-      );
-      if (data is Map<String, dynamic> && data['total'] is num) {
-        return (data['total'] as num).toInt();
-      }
-    } catch (_) {}
-    return 0;
+    final data = await _request(
+      '/crm/activities',
+      accessToken: accessToken,
+      query: const {'pageSize': '1'},
+    );
+    if (data is Map<String, dynamic> && data['total'] is num) {
+      return (data['total'] as num).toInt();
+    }
+    throw const CrmMobileApiException('Unexpected activities response.');
   }
 
   Future<List<CrmCustomerReference>> customerReferences({
@@ -624,8 +622,9 @@ class CrmMobileApi {
   Future<List<CrmDuty>> duties(String accessToken) async {
     final data = await _request('/crm/duties', accessToken: accessToken);
     final reportData = await _request(
-      '/crm/duty-reports?scope=own&page=1&pageSize=100',
+      '/crm/duty-reports',
       accessToken: accessToken,
+      query: const {'scope': 'own', 'page': '1', 'pageSize': '100'},
     );
     final reportsPage = reportData is Map<String, dynamic>
         ? reportData['items']
@@ -1741,4 +1740,3 @@ const _months = [
   'Nov',
   'Dec',
 ];
-
