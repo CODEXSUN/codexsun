@@ -15,7 +15,9 @@ All sample businesses and associations are fictional. Membership does not imply 
 - `api/src/modules/message`: immutable messages, sender identity, history pages, and message limits.
 - `api/src/modules/quotation`: seller offers, exact INR totals, validity, withdrawal, and private comparison data.
 - `web/src/modules`: matching public pages and separate staff form, list, and workspace implementations.
-- `web/src/portal.tsx`: public page composition. `web/src/workspace.tsx`: Platform workspace composition.
+- `web/src/public.ts`: public data services, form schemas, and response types for Sites.
+- `../sites/clients/src/clients/tirupurconnect`: public page composition and branding.
+- `web/src/workspace.tsx`: authenticated Platform workspace composition.
 
 Platform hosts the API and supplies authoritative tenant context, app activation, sessions, and permissions.
 Public pages resolve a verified tenant domain. Local development uses the configured default tenant.
@@ -237,7 +239,7 @@ The login choice page links to existing Platform buyer and member authentication
 The footer publishes the supplied brand website, email, and telephone. These are not listing contact details.
 Policy pages identify production operator and retention details that require approval.
 Production email delivery, recovery delivery configuration, approved business information, image attribution review, and domain deployment remain external setup.
-Image source notes are in `web/public/textiles/ASSETS.md`. Photography does not identify listed businesses.
+Image source notes are in `../sites/agent/tirupurconnect-assets.md`. Photography does not identify listed businesses.
 
 ## Full journey and responsive checks
 
@@ -252,7 +254,7 @@ Use the negotiation E2E with `CODEXSUN_TCONNECT_BROWSER_CHECK=1` for seller quot
 The two browser suites use fresh Chrome profiles. They do not send email or contact external companies.
 
 The public site uses twelve coordinated AI-created textile studies and a portrait hero. Images are illustrative and do not verify businesses.
-Asset descriptions and generation prompts are in `web/public/textiles/ASSETS.md`.
+Asset descriptions and generation prompts are in `../sites/agent/tirupurconnect-assets.md`.
 
 ## Network snapshot and sourcing standards
 
@@ -261,7 +263,7 @@ Counts include demo records and do not measure transactions, verified connection
 Animations start when visible and honor reduced-motion preferences.
 Business spotlights link to published textile company profiles and retain sample labels. They do not imply paid sponsorship or enterprise certification.
 The sourcing standards section links to official GOTS, GRS, OEKO-TEX STANDARD 100, and ISO quality-management resources.
-It provides educational references only. No company certification claims or badges are assigned. Reference logos identify GOTS, GRS, and OEKO-TEX. ISO 9001 uses neutral reference typography because ISO restricts its logo. Sources are recorded in `web/public/standards/README.md`.
+It provides educational references only. No company certification claims or badges are assigned. Reference logos identify GOTS, GRS, and OEKO-TEX. ISO 9001 uses neutral reference typography because ISO restricts its logo. Sources are recorded in `../sites/agent/tirupurconnect-standards.md`.
 
 Company cards distinguish illustrative Sample badges from reviewed credentials. Published credentials link to evidence, issuer, scope, reference, review date, and validity.
 Staff manage reviews through the Credentials desk. Approval requires an explicit evidence-review confirmation and an unexpired date.
@@ -296,7 +298,7 @@ Run `node --import tsx tools/e2e/tconnect-discovery-browser.e2e.mjs` for public 
 ## Cloudflare frontend and dedicated tenant
 
 The public frontend runs on `https://tirupurconnect.com`. The www hostname redirects to the canonical hostname.
-The Worker configuration is `web/cloudflare/wrangler.jsonc`. It uses existing zone routes and does not replace DNS records.
+The Worker configuration is `../sites/clients/cloudflare/wrangler.tirupurconnect.jsonc`. It uses existing zone routes and does not replace DNS records.
 Public requests use the fixed upstream `https://codexsun.com/api/platform`.
 Account workspaces and authentication remain on CODEXSUN. Production login links select Corporate ID `TIRUPURCONNECT`.
 
@@ -321,7 +323,7 @@ CODEXSUN_TCONNECT_BUILD_HOST=codexsun.com
 CODEXSUN_TCONNECT_BUILD_API_ORIGIN=https://codexsun.com/api/platform
 ```
 
-Run `npm run build -w @codexsun/tconnect-web`, then `wrangler deploy --config apps/tconnect/web/cloudflare/wrangler.jsonc --keep-vars`.
+Run `npm run build:tirupurconnect -w @codexsun/sites-clients`, then `wrangler deploy --config apps/sites/clients/cloudflare/wrangler.tirupurconnect.jsonc --keep-vars`.
 The metadata build checks the expected tenant and excludes records from a different tenant.
 Run `node --test tools/e2e/tconnect-worker.test.mjs` for routing and tenant guard checks.
 Run `node tools/e2e/tconnect-frontend-live.e2e.mjs` for read-only public browser checks.

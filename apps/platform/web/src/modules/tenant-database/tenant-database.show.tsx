@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { formatDateTime } from "@codexsun/ui/workspace";
+import { formatDateTime } from "@codexsun/ui/workspace/utils";
 import { ArrowLeftIcon, DownloadIcon, RefreshCwIcon, RotateCcwIcon } from "lucide-react";
-import { GlobalLoader, StatusBadge } from "@codexsun/ui";
+import { GlobalLoader } from "@codexsun/ui/components/global-loader";
+import { StatusBadge } from "@codexsun/ui/components/StatusBadge";
 import { Button } from "@codexsun/ui/components/button";
 import {
   WorkspaceAnimatedTabs,

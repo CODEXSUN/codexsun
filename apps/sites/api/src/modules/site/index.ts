@@ -5,3 +5,5 @@ export * from "./site.repository.js";
 export * from "./site.service.js";
 export * from "./site.routes.js";
 export * from "./site.module.js";
+
+export * from "./deployment/index.js";

@@ -133,3 +133,26 @@ test(
     }
   }
 );
+
+test(
+  "starts the Tirupur Connect named client with its verified identity",
+  { timeout: 30000 },
+  async () => {
+    const runtime = new SiteRuntimeService({ dataRoot: testDirectory });
+    try {
+      const result = await runtime.start({
+        ...site,
+        uuid: "tirupur-test",
+        slug: "tirupurconnect",
+        themeKey: "portfolio-tirupurconnect",
+        port: await unusedPort()
+      });
+      assert.equal(result.state, "running");
+      const response = await fetch(`${result.url}/__codexsun_sites_identity`);
+      assert.equal((await response.json()).client, "tirupurconnect");
+      assert.match(await (await fetch(result.url!)).text(), /Tirupur Connect/);
+    } finally {
+      runtime.close();
+    }
+  }
+);

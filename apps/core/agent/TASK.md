@@ -65,3 +65,8 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - Local browser evidence: submitting sundar with 9655227738 was rejected with the duplicate message.
 - Core API typecheck, lint, build, Core/CRM boundaries, formatting, and component documentation checks passed.
 - Regression evidence: 90 CRM/Frappe unit tests and both contact database E2E tests passed.
+
+
+## 2026-10-17: Live CRM workspace acceptance
+
+Core workspace read seeds now include Admin, Super Admin, and Manager. Reconciled both live tenant databases. Master write grants remain Admin-only.

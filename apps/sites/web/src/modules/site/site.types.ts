@@ -25,6 +25,7 @@ export type SitePayload = {
 };
 
 export type SiteGateway = {
+  deployment?: import("./deployment/index.js").DeploymentGateway;
   exportPublication?(
     uuid: string
   ): Promise<import("@codexsun/sites-api/delivery-contract").DeliverySnapshot>;

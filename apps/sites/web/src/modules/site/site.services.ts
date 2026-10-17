@@ -1,3 +1,4 @@
+import { createDeploymentGateway } from "./deployment/index.js";
 import { createEnquiryGateway } from "./enquiry/index.js";
 import { sitePayloadSchema } from "./site.schema.js";
 import type { CmsSite, SiteGateway, SitePayload } from "./site.types.js";
@@ -15,6 +16,7 @@ type HttpClient = {
 export function createSiteGateway(client: HttpClient): SiteGateway {
   return {
     enquiries: createEnquiryGateway(client),
+    deployment: createDeploymentGateway(client),
     exportPublication: async (uuid) =>
       deliverySnapshotSchema.parse(await client.post(`/sites/${uuid}/publication/export`)),
     page: createPageGateway(client),

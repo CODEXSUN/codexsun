@@ -1,6 +1,7 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "paths": {
       "@codexsun/ui": ["../../../packages/ui/src/index.ts"],
       "@codexsun/ui/styles.css": ["../../../packages/ui/src/styles.css"],

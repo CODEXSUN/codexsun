@@ -1,4 +1,3 @@
-import { TconnectWorkspace } from "@codexsun/tconnect-web";
 import { tconnectGateway } from "../../modules/tconnect/tconnect-host";
 import { QCafeAppearance } from "./QCafeAppearance";
 import { WorkspaceNavigationProvider } from "@codexsun/ui/workspace/navigation";
@@ -10,16 +9,11 @@ import {
 } from "@codexsun/docs-web/modules/knowledge";
 import { docsKnowledgeGateway } from "../../modules/docs/docs-host";
 import { CodexsunHost } from "../../modules/codexsun/codexsun-host";
-import { HrmsOverviewWorkspace } from "@codexsun/hrms-web/modules/overview";
 import { EmployeeWorkspace, employeeFormId } from "@codexsun/hrms-web/modules/employee";
-import { AttendanceWorkspace as HrmsAttendanceWorkspace } from "@codexsun/hrms-web/modules/attendance";
 import { attendanceGateway, employeeGateway } from "../../modules/hrms/hrms-host";
 import { hrmsOverviewGateway } from "../../modules/hrms/hrms-host";
-import { DocsOverviewWorkspace } from "@codexsun/docs-web/modules/overview";
 import { docsOverviewGateway } from "../../modules/docs/docs-host";
-import { HimsxOverviewWorkspace } from "@codexsun/himsx-web/modules/overview";
 import { himsxOverviewGateway } from "../../modules/himsx/himsx-host";
-import { SitesOverviewWorkspace } from "@codexsun/sites-web/modules/overview";
 import { siteGateway, sitesOverviewGateway } from "../../modules/sites/sites-host";
 import {
   EcommerceModuleWorkspace,
@@ -101,7 +95,7 @@ import {
   chatTelegramLauncherItem,
   chatTelegramMenuItems,
   useChatNavigationCounts
-} from "@codexsun/chat-web/modules/chat";
+} from "@codexsun/chat-web/modules/chat/navigation";
 import { ZetroLogo } from "@codexsun/zetro-web/logo";
 import { landingAppChoices } from "./landing-app-choices";
 import { CrmContactApplicationHeader } from "./crm-contact-application-header";
@@ -116,6 +110,25 @@ import {
 function lazyWorkspace<Props>(loader: () => Promise<ComponentType<Props>>) {
   return lazy(async () => ({ default: await loader() }));
 }
+
+const TconnectWorkspace = lazyWorkspace(() =>
+  import("@codexsun/tconnect-web").then((module) => module.TconnectWorkspace)
+);
+const HrmsOverviewWorkspace = lazyWorkspace(() =>
+  import("@codexsun/hrms-web/modules/overview").then((module) => module.HrmsOverviewWorkspace)
+);
+const DocsOverviewWorkspace = lazyWorkspace(() =>
+  import("@codexsun/docs-web/modules/overview").then((module) => module.DocsOverviewWorkspace)
+);
+const HimsxOverviewWorkspace = lazyWorkspace(() =>
+  import("@codexsun/himsx-web/modules/overview").then((module) => module.HimsxOverviewWorkspace)
+);
+const SitesOverviewWorkspace = lazyWorkspace(() =>
+  import("@codexsun/sites-web/modules/overview").then((module) => module.SitesOverviewWorkspace)
+);
+const HrmsAttendanceWorkspace = lazyWorkspace(() =>
+  import("@codexsun/hrms-web/modules/attendance").then((module) => module.AttendanceWorkspace)
+);
 
 const loadBillingDashboardModule = () => import("@codexsun/billing-web/modules/dashboard");
 const loadQuotationModule = () => import("@codexsun/billing-web/modules/quotation");

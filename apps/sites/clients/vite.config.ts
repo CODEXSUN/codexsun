@@ -1,4 +1,5 @@
 import { clientEnquiryPlugin } from "./runtime/enquiry/enquiry.vite.mjs";
+import { tirupurconnectConfig } from "./deploy/tirupurconnect.vite.js";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
@@ -23,6 +24,7 @@ const surfaces = {
 type SurfaceId = keyof typeof surfaces;
 
 export default defineConfig(({ command, mode }) => {
+  if(mode === "tirupurconnect") return tirupurconnectConfig(repositoryDirectory,{...loadEnv(mode,repositoryDirectory,""),...process.env},command);
   const surfaceId = resolveSurfaceId(mode);
   const surface = surfaces[surfaceId];
   const runtimeEnv = { ...loadEnv(mode, repositoryDirectory, ""), ...process.env };

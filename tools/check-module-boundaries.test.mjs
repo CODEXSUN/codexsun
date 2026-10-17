@@ -41,6 +41,11 @@ test("TConnect member roles remain executable and synchronous capabilities stay 
         join(fixture, `apps/tconnect/${part}/src/modules`),
         { recursive: true }
       );
+    cpSync(
+      join(root, "apps/sites/clients/src/clients/tirupurconnect/modules"),
+      join(fixture, "apps/sites/clients/src/clients/tirupurconnect/modules"),
+      { recursive: true }
+    );
     const check = () =>
       spawnSync(process.execPath, [join(root, "tools/check-module-boundaries.mjs"), "tconnect"], {
         cwd: fixture,
@@ -54,7 +59,7 @@ test("TConnect member roles remain executable and synchronous capabilities stay 
     writeFileSync(definition, original);
     const registration = join(
       fixture,
-      "apps/tconnect/web/src/modules/member/member.registration.tsx"
+      "apps/sites/clients/src/clients/tirupurconnect/modules/member/member.registration.tsx"
     );
     writeFileSync(registration, 'export { TconnectMemberWorkspace } from "./member.workspace";');
     assert.match(check().stderr, /registration role/u);

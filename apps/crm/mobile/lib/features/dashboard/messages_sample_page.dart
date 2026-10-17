@@ -39,11 +39,13 @@ class MessagesPage extends StatefulWidget {
     required this.api,
     required this.session,
     this.embedded = false,
+    this.onRead,
     super.key,
   });
   final CrmMobileApi api;
   final UserSession session;
   final bool embedded;
+  final VoidCallback? onRead;
 
   @override
   MessagesPageState createState() => MessagesPageState();
@@ -75,7 +77,9 @@ class MessagesPageState extends State<MessagesPage> {
       );
 
   Future<void> _reload() async {
-    setState(() => _conversations = _loadConversations());
+    setState(() {
+      _conversations = _loadConversations();
+    });
     await _conversations;
   }
 
@@ -160,14 +164,12 @@ class MessagesPageState extends State<MessagesPage> {
   }
 
   Future<void> _openConversation(MessagingConversation conversation) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (context) => _ConversationThread(
-          api: widget.api,
-          session: widget.session,
-          conversation: conversation,
-        ),
-      ),
+    await openMessagingConversation(
+      context: context,
+      api: widget.api,
+      session: widget.session,
+      conversation: conversation,
+      onRead: widget.onRead,
     );
     await _reload();
   }
@@ -207,12 +209,16 @@ class _NewChatPageState extends State<_NewChatPage> {
       );
 
   void _searchContacts(String value) {
-    setState(() => _contacts = _loadContacts(value.trim()));
+    setState(() {
+      _contacts = _loadContacts(value.trim());
+    });
   }
 
   Future<void> _openContact(MessagingContact contact) async {
     if (_openingContactId != null) return;
-    setState(() => _openingContactId = contact.id);
+    setState(() {
+      _openingContactId = contact.id;
+    });
     try {
       final conversation = await widget.api.openDirectConversation(
         accessToken: widget.session.accessToken,
@@ -226,7 +232,10 @@ class _NewChatPageState extends State<_NewChatPage> {
             .showSnackBar(SnackBar(content: Text(error.message)));
       }
     } finally {
-      if (mounted) setState(() => _openingContactId = null);
+      if (mounted)
+        setState(() {
+          _openingContactId = null;
+        });
     }
   }
 
@@ -347,15 +356,34 @@ class _ConversationTile extends StatelessWidget {
   );
 }
 
+Future<void> openMessagingConversation({
+  required BuildContext context,
+  required CrmMobileApi api,
+  required UserSession session,
+  required MessagingConversation conversation,
+  VoidCallback? onRead,
+}) => Navigator.of(context).push<void>(
+  MaterialPageRoute(
+    builder: (_) => _ConversationThread(
+      api: api,
+      session: session,
+      conversation: conversation,
+      onRead: onRead,
+    ),
+  ),
+);
+
 class _ConversationThread extends StatefulWidget {
   const _ConversationThread({
     required this.api,
     required this.session,
     required this.conversation,
+    this.onRead,
   });
   final CrmMobileApi api;
   final UserSession session;
   final MessagingConversation conversation;
+  final VoidCallback? onRead;
 
   @override
   State<_ConversationThread> createState() => _ConversationThreadState();
@@ -399,6 +427,7 @@ class _ConversationThreadState extends State<_ConversationThread> {
         conversationId: channelId,
         messageId: messages.last.id,
       );
+      widget.onRead?.call();
     }
     _scrollToBottom();
     return messages;
@@ -406,23 +435,24 @@ class _ConversationThreadState extends State<_ConversationThread> {
 
   Future<void> _pollMessages() async {
     try {
-      final channelId = widget.conversation.channelIdentifier;
-      final messages = await widget.api.messages(
-        widget.session.accessToken,
-        channelId,
-      );
-      if (mounted) {
-        setState(() => _messages = Future.value(messages));
-      }
+      final messages = await _loadMessages();
+      if (mounted)
+        setState(() {
+          _messages = Future.value(messages);
+        });
     } catch (_) {}
   }
 
-  void _refresh() => setState(() => _messages = _loadMessages());
+  void _refresh() => setState(() {
+    _messages = _loadMessages();
+  });
 
   Future<void> _send() async {
     final content = _composer.text.trim();
     if (content.isEmpty || _isSending) return;
-    setState(() => _isSending = true);
+    setState(() {
+      _isSending = true;
+    });
     try {
       await widget.api.sendMessage(
         accessToken: widget.session.accessToken,
@@ -438,7 +468,10 @@ class _ConversationThreadState extends State<_ConversationThread> {
             .showSnackBar(SnackBar(content: Text(error.message)));
       }
     } finally {
-      if (mounted) setState(() => _isSending = false);
+      if (mounted)
+        setState(() {
+          _isSending = false;
+        });
     }
   }
 

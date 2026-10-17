@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/WORK-LOG.md`
 
-Source SHA-256 (LF line endings): `f17dbdd342c52529ac45935ab152c084ca4b6ed47d43845e544c4c8cdfc57fd1`
+Source SHA-256 (LF line endings): `6ac0a42b1e39cc46a22ba54849c517bfbf393da39cf052d1b825786c6cdf5cd7`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -75,4 +75,34 @@ Detailed evidence is retained in [CRM task notes](TASK.md) and [Frappe duty fiel
 Home includes Enquiries, Tasks, Duty, Activities, Chat, and administrator-only device Call logs. Task totals come from the server; other cards count accessible records or conversations. Counts refresh every 20 seconds. Call logs read only after permission is already granted. Failed counts show Unavailable.
 The top-right bell and Chat card show unread Chat message badges, including assignment/work conversations. The bell opens the unread conversation list. It does not claim a separate push notification inbox.
 Fixed duty report requests to pass query parameters separately from the URL path, restoring duty loading and counts.
+
+
+## 2026-10-17: Home card and badge acceptance
+
+- Verified all six Home destinations on the Android emulator: Enquiries, Tasks, Duty, Activities, Chat, and administrator Call Logs.
+- A labeled local assignment increased active Tasks from 1 to 2 and Chat conversations from 2 to 3. Reading its conversation cleared the bell, Chat, and Task badges. A subsequent message raised the badges again; reading cleared them. Closing the labeled task through request/approval returned the active count to 1.
+- Fixed Future-returning refresh callbacks in Chat, Duty, Actions, and Call Logs. Open Chat threads mark newly polled messages read and immediately refresh Home badges. The bell opens the selected conversation directly.
+- Activities now shares the page data source and three-day window with its Home count. Work badges derive from unread Enquiry, Task, and Duty conversations rather than the unavailable legacy notification endpoint.
+- Added Home navigation/count-refresh, unread-snapshot, and visible-thread read tests. All 29 mobile tests pass. The work-report database E2E also checks assignment unread counts, same-second messages, read clearing, and stale cursor protection.
+- Emulator testing uses the saved administrator session and labeled local fixtures. User assignment isolation is covered by the isolated API E2E. No production or live Frappe change is claimed.
+
+
+## 2026-10-17: Live Techmedia and Rainbow acceptance
+
+- Connected TECHMEDIA to `techmedia_db` and RAINBOW to `rainbow_db`. Verified backups and preserved existing users.
+- Deployed the checked API and web. Both tenants passed the five CRM page checks without browser warnings or errors.
+- Verified normal-user Android enquiry GPS reports and duty report creation/editing against the live VPS.
+- Fixed repeatable role grants, authoritative mobile role display, request timeouts, and Task completion permission mapping.
+- Reconciled workspace read permissions and verified both live Application overview pages.
+- Evidence and verification limits: [LIVE-VERIFICATION-2026-10-17.md](LIVE-VERIFICATION-2026-10-17.md).
+
+
+## 2026-10-17: Admin and Manager role acceptance and client APKs
+
+- Verified exact Admin and Manager sessions in both live tenants. All 88 API reads and 60 browser page checks passed.
+- Fixed missing Manager read grants in Contact, Call Log, SOP, Duty, and Contact 360 owners. Duty filter lookups accept all-duty read access.
+- Deployed `codexsun/api:1.1.6-crm-roles-20261017`. Preserved database records and prior runtime artifacts.
+- Regression checks preserve denied Contact/SOP/Duty/Core writes for Manager. The database E2E passed.
+- Built separate Techmedia and Rainbow APKs, version 1.1.6, with distinct app IDs and tenant defaults.
+- Evidence: [LIVE-VERIFICATION-2026-10-17.md](LIVE-VERIFICATION-2026-10-17.md).
 ```

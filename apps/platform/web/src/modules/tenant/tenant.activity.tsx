@@ -1,4 +1,4 @@
-import { formatDateTime } from "@codexsun/ui/workspace";
+import { formatDateTime } from "@codexsun/ui/workspace/utils";
 import { GlobalLoader } from "@codexsun/ui/components/global-loader";
 import { WorkspaceShowCard } from "@codexsun/ui/workspace/show";
 import type { AuditEventDTO } from "./tenant.types";

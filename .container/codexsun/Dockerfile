@@ -31,6 +31,7 @@ RUN npm run build -w @codexsun/framework \
   && npm run build -w @codexsun/mail-api \
   && npm run build -w @codexsun/notes-api \
   && npm run build -w @codexsun/project-manager-api \
+  && npm run build -w @codexsun/qcafe-api \
   && npm run build -w @codexsun/sites-api \
   && npm run build -w @codexsun/tconnect-api \
   && npm run build -w @codexsun/zetro-api \

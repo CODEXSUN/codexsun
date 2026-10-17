@@ -57,3 +57,10 @@ It does not contact external messaging providers. CRM resolves related people an
 The standard Chat permission seed grants Admin, Super Admin, Manager, and User access.
 Channel and message reads require active membership; channel administration and editing another user's message require channel administration.
 Web channel/message queries poll for messages written by the CRM transaction contract.
+
+
+## 2026-10-17: Read cursor correctness
+
+Migration `chat.008_read_cursor` adds nullable `chat_channel_reads.last_message_id` and backfills existing rows from their saved read timestamp. It changes only Chat read tracking; no message rows are removed. The migration is repeatable and was applied twice on the local test tenant.
+Unread counts compare message IDs, which avoids timezone and same-second timestamp ambiguity. HTTP read requests accept an optional messageId and advance the cursor monotonically. Membership and company checks remain required. Existing clients without a cursor retain mark-current-channel-read behavior. New messages use UTC, and newest-message queries use ID order.
+Validation: the isolated work-report E2E covers assignment unread, new messages after read, old cursor retries, and read clearing. Apply the tracked migration to each target tenant before deploying this code. Production migration was not run.

@@ -10,10 +10,13 @@ export async function seedContactEmployments(database: Kysely<ContactEmployments
     await sql`INSERT INTO app_permissions (uuid, \`key\`, label, description, status, is_protected)
       VALUES (${stable(key)}, ${key}, ${label}, ${label}, 'active', TRUE)
       ON DUPLICATE KEY UPDATE label=VALUES(label), status='active'`.execute(database);
-    await sql`INSERT INTO app_role_permissions (uuid, role_id, permission_id, status, is_protected)
-      SELECT ${stable(`role-permission:admin:${key}`)}, role.id, permission.id, 'active', TRUE
-      FROM app_roles role INNER JOIN app_permissions permission ON permission.\`key\`=${key}
-      WHERE role.\`key\`='admin'
-      ON DUPLICATE KEY UPDATE status='active'`.execute(database);
+    const roles = action === "view" ? ["admin", "super-admin", "manager"] : ["admin"];
+    for (const roleKey of roles) {
+      await sql`INSERT INTO app_role_permissions (uuid, role_id, permission_id, status, is_protected)
+        SELECT ${stable(`role-permission:${roleKey}:${key}`)}, role.id, permission.id, 'active', TRUE
+        FROM app_roles role INNER JOIN app_permissions permission ON permission.\`key\`=${key}
+        WHERE role.\`key\`=${roleKey}
+        ON DUPLICATE KEY UPDATE status='active'`.execute(database);
+    }
   }
 }

@@ -487,3 +487,33 @@ browser, mobile, and end-to-end results separately.
 - Failed submissions preserve input. Duty edits preserve the original report date and outcome. Record history refreshes after submission.
 - Flutter analysis and 26 tests passed. Android emulator enquiry checkout through the new drawer appeared in the open web Actions tab without reload, with GPS and accuracy. The saved emulator session is an administrator; normal-user ownership is covered by API integration tests.
 - Earlier local checks passed work-report, duty, task-contact, and closure integration flows. Production deployment and live Frappe verification were not repeated for this change.
+
+
+## 2026-10-17: Home card and badge acceptance
+
+- Verified all six Home destinations on the Android emulator: Enquiries, Tasks, Duty, Activities, Chat, and administrator Call Logs.
+- A labeled local assignment increased active Tasks from 1 to 2 and Chat conversations from 2 to 3. Reading its conversation cleared the bell, Chat, and Task badges. A subsequent message raised the badges again; reading cleared them. Closing the labeled task through request/approval returned the active count to 1.
+- Fixed Future-returning refresh callbacks in Chat, Duty, Actions, and Call Logs. Open Chat threads mark newly polled messages read and immediately refresh Home badges. The bell opens the selected conversation directly.
+- Activities now shares the page data source and three-day window with its Home count. Work badges derive from unread Enquiry, Task, and Duty conversations rather than the unavailable legacy notification endpoint.
+- Added Home navigation/count-refresh, unread-snapshot, and visible-thread read tests. All 29 mobile tests pass. The work-report database E2E also checks assignment unread counts, same-second messages, read clearing, and stale cursor protection.
+- Emulator testing uses the saved administrator session and labeled local fixtures. User assignment isolation is covered by the isolated API E2E. No production or live Frappe change is claimed.
+
+
+## 2026-10-17: Live Techmedia and Rainbow acceptance
+
+- Connected TECHMEDIA to `techmedia_db` and RAINBOW to `rainbow_db`. Verified backups and preserved existing users.
+- Deployed the checked API and web. Both tenants passed the five CRM page checks without browser warnings or errors.
+- Verified normal-user Android enquiry GPS reports and duty report creation/editing against the live VPS.
+- Fixed repeatable role grants, authoritative mobile role display, request timeouts, and Task completion permission mapping.
+- Reconciled workspace read permissions and verified both live Application overview pages.
+- Evidence and verification limits: [LIVE-VERIFICATION-2026-10-17.md](LIVE-VERIFICATION-2026-10-17.md).
+
+
+## 2026-10-17: Admin and Manager role acceptance and client APKs
+
+- Verified exact Admin and Manager sessions in both live tenants. All 88 API reads and 60 browser page checks passed.
+- Fixed missing Manager read grants in Contact, Call Log, SOP, Duty, and Contact 360 owners. Duty filter lookups accept all-duty read access.
+- Deployed `codexsun/api:1.1.6-crm-roles-20261017`. Preserved database records and prior runtime artifacts.
+- Regression checks preserve denied Contact/SOP/Duty/Core writes for Manager. The database E2E passed.
+- Built separate Techmedia and Rainbow APKs, version 1.1.6, with distinct app IDs and tenant defaults.
+- Evidence: [LIVE-VERIFICATION-2026-10-17.md](LIVE-VERIFICATION-2026-10-17.md).

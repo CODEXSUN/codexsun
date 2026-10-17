@@ -476,7 +476,18 @@ for (const root of webModuleRoots) {
       ].includes(role)
         ? "tsx"
         : "ts";
-      const filePath = join(modulePath, `${moduleDir.name}.${role}.${extension}`);
+      const publicSiteRole =
+        root.app === "tconnect-web" &&
+        ((["buyer", "member"].includes(moduleDir.name) && role === "registration") ||
+          (moduleDir.name === "inquiry" && role === "form"));
+      const filePath = publicSiteRole
+        ? join(
+            process.cwd(),
+            "apps/sites/clients/src/clients/tirupurconnect/modules",
+            moduleDir.name,
+            `${moduleDir.name}.${role}.${extension}`
+          )
+        : join(modulePath, `${moduleDir.name}.${role}.${extension}`);
       if (!existsSync(filePath)) {
         missing.push(
           `${root.app}/${moduleDir.name}: missing ${moduleDir.name}.${role}.${extension}`

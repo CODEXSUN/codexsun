@@ -1,3 +1,4 @@
+import { sitesDeliveryHost } from "./sites-delivery-host.js";
 import { getDefaultCompanyForDatabase, getCompanyForDatabase } from "@codexsun/core-api";
 import { deliverDutyUpdate } from "@codexsun/crm-api";
 import {
@@ -52,6 +53,7 @@ import {
 } from "@codexsun/core-api";
 import {
   enquiryModule,
+  taskPermissionForRequest,
   activitiesModule,
   closureModule,
   enquiryLocationModule,
@@ -327,15 +329,18 @@ export async function createApp() {
   registerRequestLogging(app);
   registerHealthRoute(app, healthChecks);
   registerHealthRoute(app, platformReadinessChecks(queueService), "/ready");
-  app.get("/public/runtime-config", async () => ({
-    data: {
-      VITE_DEV_AUTO_TENANT_LOGIN: env.DEV_AUTO_TENANT_LOGIN,
-      VITE_PLATFORM_API_URL: "/api/app",
-      VITE_TENANT_NAME: env.DEFAULT_TENANT_NAME,
-      VITE_TENANCY_MODE: env.CODEXSUN_TENANCY_MODE
-    },
-    success: true
-  }));
+  app.get("/public/runtime-config", async (_request, reply) => {
+    reply.header("Cache-Control", "private, max-age=60");
+    return {
+      data: {
+        VITE_DEV_AUTO_TENANT_LOGIN: env.DEV_AUTO_TENANT_LOGIN,
+        VITE_PLATFORM_API_URL: "/api/app",
+        VITE_TENANT_NAME: env.DEFAULT_TENANT_NAME,
+        VITE_TENANCY_MODE: env.CODEXSUN_TENANCY_MODE
+      },
+      success: true
+    };
+  });
   console.info("[platform.routes] health ready");
   await registerAuthRoutes(app);
   console.info("[platform.routes] auth ready");
@@ -568,20 +573,7 @@ export async function createApp() {
       resource === "call-log" &&
       request.method === "POST" &&
       /^\/crm\/(?:mobile\/)?call-logs(?:\/CL-\d+\/comments)?$/u.test(path);
-    const taskAction =
-      resource === "task" &&
-      request.method === "PATCH" &&
-      /^\/crm\/tasks\/\d+\/properties$/u.test(path)
-        ? "respond"
-        : resource === "task" && request.method === "POST"
-          ? /^\/crm\/tasks\/closure-requests\/\d+\/review$/u.test(path)
-            ? "closure.review"
-            : /^\/crm\/tasks\/\d+\/comments$/u.test(path)
-              ? "respond"
-              : /^\/crm\/tasks\/\d+\/jobs\/(?:start|stop)$/u.test(path)
-                ? "work"
-                : null
-          : null;
+    const taskAction = resource === "task" ? taskPermissionForRequest(request.method, path) : null;
     const action =
       taskAction ??
       (request.method === "GET" || /^\/crm\/enquiries\/alerts\/\d+\/read$/u.test(path)
@@ -2060,22 +2052,27 @@ export async function createApp() {
       tenant: { code: tenant.tenantCode, name: tenant.tenantName }
     };
   });
-  await siteModule.register(app, async (request) => {
-    const context = tenantAccessContext(request);
-    const enabled = await context.database
-      .selectFrom("app_module_settings")
-      .select("id")
-      .where("module_key", "=", "sites")
-      .where("enabled", "=", true)
-      .where("status", "=", "active")
-      .executeTakeFirst();
-    if (!enabled) throw AppError.forbidden("Sites is not enabled for this tenant.");
-    return {
-      actorEmail: context.actorEmail,
-      database: context.database,
-      tenantId: context.tenantId
-    };
-  });
+  await siteModule.register(
+    app,
+    async (request) => {
+      const context = tenantAccessContext(request);
+      const enabled = await context.database
+        .selectFrom("app_module_settings")
+        .select("id")
+        .where("module_key", "=", "sites")
+        .where("enabled", "=", true)
+        .where("status", "=", "active")
+        .executeTakeFirst();
+      if (!enabled) throw AppError.forbidden("Sites is not enabled for this tenant.");
+      return {
+        actorEmail: context.actorEmail,
+        database: context.database,
+        tenantId: context.tenantId
+      };
+    },
+    sitesDeliveryHost(app, queueService)
+  );
+
   await ecommerceOverviewModule.register(app, async (request) => {
     const context = tenantAccessContext(request);
     const enabled = await context.database
@@ -2174,8 +2171,10 @@ export async function createApp() {
     }
   );
   startQueueManagerWorker(app, queueService);
-  startCrmDutySyncRelay(queueService);
-  startFrappeLiveSyncScheduler(queueService);
+  if (env.CODEXSUN_QUEUE_WORKER_ENABLED === "1") {
+    startCrmDutySyncRelay(queueService);
+    startFrappeLiveSyncScheduler(queueService);
+  }
   console.info("[platform.worker] queue manager ready");
   console.info("[platform.boot] bootstrap completed");
 

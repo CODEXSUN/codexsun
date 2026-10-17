@@ -19,6 +19,8 @@ class DashboardHome extends StatelessWidget {
     this.onReauthenticate,
     this.unreadChatCount = 0,
     this.assignmentCount = 0,
+    this.taskUnreadCount = 0,
+    this.dutyUnreadCount = 0,
     super.key,
   });
 
@@ -30,6 +32,8 @@ class DashboardHome extends StatelessWidget {
   final VoidCallback? onReauthenticate;
   final int unreadChatCount;
   final int assignmentCount;
+  final int taskUnreadCount;
+  final int dutyUnreadCount;
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +113,8 @@ class DashboardHome extends StatelessWidget {
               jobCount: jobs.length,
               unreadChatCount: unreadChatCount,
               assignmentCount: assignmentCount,
+              taskUnreadCount: taskUnreadCount,
+              dutyUnreadCount: dutyUnreadCount,
               onOpenList: onOpenList,
               api: api,
               session: session,

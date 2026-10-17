@@ -20,6 +20,11 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Loading release preparation, 17-10-2026
+
+- Added the public modules/chat/navigation entry for host navigation hooks and Telegram menu contracts. The host no longer statically imports the full Chat workspace barrel.
+- Version 1.1.7 passed the full repository check, version alignment, 31 focused release tests, and 15 deployment/runtime/persistence contract tests. The local clean-all build is blocked by a Windows dist file lock. Production rollout is pending at commit preparation.
+
 - `node tools/check-module-boundaries.mjs chat`
 - `npm run typecheck -w @codexsun/chat-api`
 - `npm run lint -w @codexsun/chat-api`
@@ -40,3 +45,10 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - [x] Verify participant and unrelated-user access, company isolation, and rollback through the CRM work-report database E2E.
 - [x] Seven existing realtime tests passed. Chat API/web type checks, lint, boundaries, and builds passed locally.
 - [ ] Production permission rollout and deployment.
+
+
+## 2026-10-17: Read cursor correctness
+
+Migration `chat.008_read_cursor` adds nullable `chat_channel_reads.last_message_id` and backfills existing rows from their saved read timestamp. It changes only Chat read tracking; no message rows are removed. The migration is repeatable and was applied twice on the local test tenant.
+Unread counts compare message IDs, which avoids timezone and same-second timestamp ambiguity. HTTP read requests accept an optional messageId and advance the cursor monotonically. Membership and company checks remain required. Existing clients without a cursor retain mark-current-channel-read behavior. New messages use UTC, and newest-message queries use ID order.
+Validation: the isolated work-report E2E covers assignment unread, new messages after read, old cursor retries, and read clearing. Apply the tracked migration to each target tenant before deploying this code. Production migration was not run.

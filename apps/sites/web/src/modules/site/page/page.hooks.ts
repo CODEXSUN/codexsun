@@ -66,7 +66,7 @@ export function usePageEditor(uuid: string, gateway: PageGateway | undefined) {
       const value = await gateway.publish(uuid, state.revision);
       setState(value);
       setMessage(
-        "Page published. Connected local clients refresh published content within 30 seconds."
+        "Page published. Check live publishing status for delivery progress."
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Publishing failed.");

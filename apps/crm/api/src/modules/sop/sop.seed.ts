@@ -22,10 +22,10 @@ export async function seedSopPermissions(database: Kysely<SopDatabase>) {
       database
     );
     const roles =
-      key === "crm.duty-report.view.all"
+      key === "crm.duty-report.view.all" || key === "crm.duty.view.all"
         ? ["admin", "super-admin", "manager"]
         : key.endsWith("view.own") || key === "crm.sop.view"
-          ? ["admin", "super-admin", "user", "auditor"]
+          ? ["admin", "super-admin", "manager", "user", "auditor"]
           : key === "crm.duty-report.create.own"
             ? ["admin", "super-admin", "user"]
             : ["admin", "super-admin"];

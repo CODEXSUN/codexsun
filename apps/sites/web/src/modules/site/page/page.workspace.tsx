@@ -12,19 +12,21 @@ import { formatDateTime } from "@codexsun/ui/workspace";
 import { PageCompanyPhone } from "./page.company-phone.js";
 export function PageWorkspace({
   withApplications = false,
+  textile = false,
   uuid,
   gateway,
   view,
   publicOrigin
 }: {
   withApplications?: boolean;
+  textile?: boolean;
   uuid: string;
   gateway: PageGateway | undefined;
   view: "profile" | "sections";
   publicOrigin: string;
 }) {
   const editor = usePageEditor(uuid, gateway);
-  const [section, setSection] = useState<PageSection>("hero");
+  const [section, setSection] = useState<PageSection>(textile ? "textile" : "hero");
   const [activity, setActivity] = useState<Awaited<ReturnType<PageGateway["activity"]>>>([]);
   return (
     <Card className="grid gap-5 p-5">
@@ -53,25 +55,37 @@ export function PageWorkspace({
         </div>
       </div>
       <p className="text-sm text-muted-foreground">
-        Home, About, Services and Contact share this website draft. Save preserves the draft;
-        Publish updates the public version. Use Start to connect local delivery.
+        {textile
+          ? "Tirupur Connect pages share this draft. Save, then Publish to update the connected live site. Check Live publishing for progress. Business data stays in TIRUPURCONNECT."
+          : "Home, About, Services and Contact share this website draft. Save preserves the draft; Publish updates the public version. Use Start to connect local delivery."}
       </p>
       {view === "sections" ? (
         <nav aria-label="Public website pages" className="flex flex-wrap gap-2">
-          {[
-            ["Home", "/"],
-            ["About", "/about"],
-            ["Services", "/services"],
-            ["Contact", "/contact"],
-            ["Blog", "/blogs"],
-            ["Privacy", "/privacy"],
-            ...(withApplications
-              ? [
-                  ["Apps", "/apps"],
-                  ["Support", "/support"]
-                ]
-              : [])
-          ].map(([name, path]) => (
+          {(textile
+            ? [
+                ["Home", "/"],
+                ["Categories", "/categories"],
+                ["Businesses", "/companies"],
+                ["Associations", "/associations"],
+                ["Community", "/community"],
+                ["Contact", "/contact"],
+                ["Standards", "/standards"]
+              ]
+            : [
+                ["Home", "/"],
+                ["About", "/about"],
+                ["Services", "/services"],
+                ["Contact", "/contact"],
+                ["Blog", "/blogs"],
+                ["Privacy", "/privacy"],
+                ...(withApplications
+                  ? [
+                      ["Apps", "/apps"],
+                      ["Support", "/support"]
+                    ]
+                  : [])
+              ]
+          ).map(([name, path]) => (
             <Button key={path} asChild size="sm" variant="outline">
               <a href={`${publicOrigin}${path}`} target="_blank" rel="noreferrer">
                 Open {name} ↗
@@ -124,6 +138,7 @@ export function PageWorkspace({
             <>
               <PageList
                 withApplications={withApplications}
+                textile={textile}
                 selected={section}
                 onSelect={setSection}
               />

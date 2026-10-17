@@ -1,5 +1,25 @@
 # Site Studio plan
 
+## Tirupur Connect content management — October 17, 2026
+
+Open Sites → Tirupur Connect → Manage. Client details edits branding and public contacts. Pages → Textile edits hero imagery, category copy and images, directory and community headings, the sourcing guide, the closing banner, pending-state copy and public page introductions. Hero, Page & SEO, and Footer have their own sections. Individual category images use full crops. Image sheets use a 3 by 2 crop. Use deployed local image paths or public HTTPS JPG, PNG or WebP URLs. File upload is not included.
+
+Save draft keeps edits private. Publish page creates the public version using existing permissions and revision checks. Start connects the local preview to this client's publication. Business records, credentials, account access, enquiries and conversations remain TConnect-owned and require TIRUPURCONNECT. CMS content never changes that tenant selection.
+
+Live delivery uses an authenticated publication export, not a development API or public management endpoint. Export through the existing client publication control. Set `CODEXSUN_SITES_TIRUPURCONNECT_SNAPSHOT` to the absolute exported JSON filename. Run `npm run build:tirupurconnect -w @codexsun/sites-clients`, then `wrangler deploy --config apps/sites/clients/cloudflare/wrangler.tirupurconnect.jsonc --keep-vars`. The builder verifies checksum, slug, domain and pinned site UUID `e303865e`. It embeds only the published content and blogs, without delivery keys or private drafts. The deployed site reads that version through a read-only same-origin endpoint. Subsequent Studio publication needs another export/build/deploy; automatic remote delivery is not implemented.
+
+No SQL column migration is required for the optional textile content field. Existing publications remain valid. Existing Tirupur Connect generic drafts need approved content initialized before export. The local CMS integration check verifies draft isolation, publish, stale saves, unsafe-image rejection and export. Unit checks cover deployment identity and safe embedding. VPS configuration and a remote Studio registry remain separate.
+
+## Tirupur Connect public client — October 17, 2026
+
+Sites owns the public textile-network layout, assets, metadata, local startup, and Cloudflare delivery.
+TConnect owns public business contracts, form validation, and authenticated business workspaces.
+Keep cross-app imports on `@codexsun/tconnect-web/public`. Do not import private TConnect workspace implementations.
+Register the named client locally and preserve the existing Cloudflare Worker and zone routes during the move.
+Never use CODEXSUN records as a fallback for TIRUPURCONNECT. Keep the pending-state sourcing guide useful and truthful.
+Keep the current scope frontend-only. The user manages VPS tenant setup separately.
+The custom layout remains code-owned. Public copy, images, banners and contacts are editable in its Sites Page publication.
+
 Status: LogicX is deployed to its Cloudflare custom domain. The redesign also retains its local runtime. Updated: 2026-10-17.
 
 The LogicX redesign masterplan below supersedes earlier visual directions for LogicX.

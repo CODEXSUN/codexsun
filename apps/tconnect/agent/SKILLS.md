@@ -1,5 +1,9 @@
 # TConnect working rules
 
+## Sites public client ownership — October 17, 2026
+
+Public pages, assets, metadata and the frontend Worker belong to the Sites client `tirupurconnect`. TConnect retains business contracts, authentication integration and private workspaces. Use `@codexsun/tconnect-web/public` for public business access. The local Sites registry includes this client on port 7040; no remote Studio registry record is claimed. The frontend requires the dedicated `TIRUPURCONNECT` context from codexsun.com. A CODEXSUN response must remain blocked. VPS setup is separate.
+
 For the hosted frontend, require the configured TIRUPURCONNECT tenant before forwarding registrations or returning dynamic records.
 Keep public API proxy routes restricted. Never forward browser credentials or caller-selected tenant headers to the public backend.
 The current user scope excludes further VPS configuration. Keep backend setup and full tenant journeys pending until separately connected.

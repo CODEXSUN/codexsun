@@ -10,6 +10,23 @@ export function sitePublicPaths(
   content: PageContent,
   blogs: { slug: string }[] = []
 ) {
+  if (slug === "tirupurconnect")
+    return [
+      "/",
+      "/companies",
+      "/categories",
+      "/associations",
+      "/community",
+      "/contact",
+      "/privacy",
+      "/terms",
+      "/standards",
+      "/enterprises",
+      "/join",
+      "/login",
+      "/register",
+      "/register/buyer"
+    ];
   const base = [
     "/",
     "/about",

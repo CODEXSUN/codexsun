@@ -15,3 +15,6 @@ apps/*/*/node_modules
 apps/*/*/dist
 packages/*/node_modules
 *.tsbuildinfo
+
+!packages/framework/src/storage
+!packages/framework/src/storage/**

@@ -1,3 +1,4 @@
+import type { DeploymentDatabase } from "./deployment/index.js";
 import type { ColumnType, Generated } from "kysely";
 import type { PageDatabase } from "./page/index.js";
 import type { BlogDatabase } from "./blog/index.js";
@@ -20,7 +21,8 @@ export type SitesPortfolioTable = {
   uuid: string;
 };
 
-export type SitesDatabase = PublicationDatabase &
+export type SitesDatabase = DeploymentDatabase &
+  PublicationDatabase &
   PageDatabase &
   BlogDatabase & {
     sites_portfolio_sites: SitesPortfolioTable;

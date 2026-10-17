@@ -45,3 +45,8 @@ This owner declares no internal workspace dependency in its package manifests.
 `workspace/navigation` exports `WorkspaceNavigationProvider`, `WorkspaceHeaderActions`, and `useWorkspaceQueryValue`. The host supplies its router search and header action target. The provider batches query changes made in one event.
 `workspace/list-tools` supplies column search controls and visibility state. Owning modules supply their column labels and record projections. It contains no business CRUD or permission decisions.
 With an application header target, `WorkspaceUpsertDialog` renders a form panel in the workspace. Other hosts retain the existing dialog behavior.
+
+### Startup loader
+
+The global loader uses CSS ring animations and respects reduced-motion preferences.
+It does not import an animation library during application startup.

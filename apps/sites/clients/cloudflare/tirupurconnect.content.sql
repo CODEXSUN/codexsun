@@ -1,0 +1,2 @@
+CREATE TABLE IF NOT EXISTS sites_live_publications (site_uuid TEXT PRIMARY KEY, version INTEGER NOT NULL, checksum TEXT NOT NULL, published_at TEXT NOT NULL, payload_json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sites_publication_history (site_uuid TEXT NOT NULL, version INTEGER NOT NULL, checksum TEXT NOT NULL, published_at TEXT NOT NULL, payload_json TEXT NOT NULL, PRIMARY KEY(site_uuid,version));

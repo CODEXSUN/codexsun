@@ -63,6 +63,13 @@ export const chatMigrationBatch: MigrationBatch<ChatDatabase> = {
       name: "chat.007_telegram_account",
       up: applyChatTelegramAccountSchema,
       version: 7
+    },
+    {
+      checksum: "chat.008_read_cursor:v1",
+      description: "Message ID watermark for timezone-independent unread counts.",
+      name: "chat.008_read_cursor",
+      up: applyChatReadCursorSchema,
+      version: 8
     }
   ],
   version: "1.0.91"
@@ -242,4 +249,15 @@ async function applyChatMessageExtrasSchema(database: Kysely<ChatDatabase>) {
   `
     )
     .execute(database);
+}
+
+async function applyChatReadCursorSchema(database: Kysely<ChatDatabase>) {
+  await sql`ALTER TABLE chat_channel_reads ADD COLUMN IF NOT EXISTS last_message_id INT NULL`.execute(
+    database
+  );
+  await sql`UPDATE chat_channel_reads AS r SET last_message_id = COALESCE((
+    SELECT MAX(message.id) FROM chat_messages AS message
+    WHERE message.channel_id = r.channel_id AND message.company_id = r.company_id
+      AND message.created_at <= r.last_read_at
+  ), 0) WHERE last_message_id IS NULL`.execute(database);
 }

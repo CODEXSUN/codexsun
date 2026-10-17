@@ -182,6 +182,18 @@ function CatalogPage({ category, searchPage = false }: { category: string; searc
     };
   }, [searchPage]);
   useEffect(() => {
+    if (searchPage || !contentReady) return;
+    let active = true;
+    void listLatestBlogPosts()
+      .then((posts) => {
+        if (active) setBlogPosts(posts.slice(0, 3));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [searchPage, contentReady]);
+  useEffect(() => {
     if (!branding?.brandName) return;
     setStorefrontSeo({
       description:
@@ -556,7 +568,7 @@ async function loadOptional<T>(request: Promise<T>, apply: (value: T) => void) {
 
 async function loadCatalogPageContent(searchPage: boolean) {
   const optional = <T,>(request: Promise<T>, fallback: T) => request.catch(() => fallback);
-  const [bootstrap, branding, blogPosts] = await Promise.all([
+  const [bootstrap, branding] = await Promise.all([
     optional(getStorefrontBootstrap(), {
       announcement: null,
       brandStrips: [],
@@ -568,17 +580,11 @@ async function loadCatalogPageContent(searchPage: boolean) {
       siteNavigation: null,
       sliders: []
     }),
-    optional(getStorefrontBranding(), null),
-    searchPage
-      ? Promise.resolve([])
-      : optional(
-          listLatestBlogPosts().then((items) => items.slice(0, 3)),
-          []
-        )
+    optional(getStorefrontBranding(), null)
   ]);
   return {
     announcement: bootstrap.announcement,
-    blogPosts,
+    blogPosts: [] as StorefrontBlogPost[],
     branding,
     discovery: bootstrap.discovery,
     brandStrips: searchPage ? [] : bootstrap.brandStrips,

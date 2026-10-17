@@ -1,4 +1,4 @@
-import { StatusBadge } from "@codexsun/ui";
+import { StatusBadge } from "@codexsun/ui/components/StatusBadge";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiGet } from "../../shared/api/platform-api";

@@ -36,7 +36,10 @@ test("development and deployment samples own independent runtime endpoints", asy
   assert.equal(deployment.DB_HOST, "codexsun-mariadb");
   assert.equal(deployment.CODEXSUN_QUEUE_BACKEND, "bullmq-redis");
   assert.equal(deployment.CODEXSUN_TENANCY_MODE, "single");
-  assert.equal(deployment.CODEXSUN_SINGLE_TENANT_CORPORATE_ID, deployment.DEFAULT_TENANT_CORPORATE_ID);
+  assert.equal(
+    deployment.CODEXSUN_SINGLE_TENANT_CORPORATE_ID,
+    deployment.DEFAULT_TENANT_CORPORATE_ID
+  );
   assert.equal(deployment.CODEXSUN_IMAGE_REGISTRY, "codexsun");
 });
 
@@ -90,4 +93,14 @@ test("cloud environment preparation is separate from setup and never copies loca
   assert.match(prepare, /\.container\/deploy\.env\.sample/u);
   assert.doesNotMatch(prepare, /--copy-local/u);
   assert.doesNotMatch(configurator, /--copy-local|localCopyKeys|localSecretCopyKeys/u);
+});
+
+test("composed API image builds every first-party package used by its production resolver", async () => {
+  const dockerfile = await read(".container/codexsun/Dockerfile");
+  const resolver = await read("tools/register-production-package-resolution.mjs");
+  const packages = [...resolver.matchAll(/\["(@codexsun\/[a-z-]+-api)",/gu)].map(
+    (match) => match[1]
+  );
+  for (const name of packages)
+    assert.ok(dockerfile.includes(`npm run build -w ${name}`), `Missing container build: ${name}`);
 });

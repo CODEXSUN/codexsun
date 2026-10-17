@@ -1,8 +1,10 @@
+import { seedDeploymentPermissions } from "../site/deployment/index.js";
 import { createHash } from "node:crypto";
 import { sql, type Kysely } from "kysely";
 import { sitesOverviewPermissions, type SitesPermissionDatabase } from "./overview.types.js";
 
 export async function seedSitesOverviewPermissions(database: Kysely<SitesPermissionDatabase>) {
+  await seedDeploymentPermissions(database);
   for (const key of sitesOverviewPermissions) {
     const label = key.replaceAll(".", " ");
     await sql`

@@ -1,4 +1,4 @@
-import { formatDateTime } from "@codexsun/ui/workspace";
+import { formatDateTime } from "@codexsun/ui/workspace/utils";
 import { useRef, useState } from "react";
 import { ArrowLeftIcon, DownloadIcon } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";

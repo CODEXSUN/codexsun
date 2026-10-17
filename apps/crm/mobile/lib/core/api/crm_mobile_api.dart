@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
@@ -151,16 +152,31 @@ class CrmMobileApi {
     return Future.wait(jobs.map((item) => job(accessToken, item.sourceId)));
   }
 
+  Future<List<CrmJob>> activityJobs(String accessToken) async {
+    final assigned = await assignedJobDetails(accessToken);
+    if (assigned.isNotEmpty) return assigned;
+    final visible = await enquiries(accessToken: accessToken, scope: 'all');
+    return Future.wait(visible.map((item) => job(accessToken, item.sourceId)));
+  }
+
   Future<int> activitiesCount(String accessToken) async {
-    final data = await _request(
-      '/crm/activities',
-      accessToken: accessToken,
-      query: const {'pageSize': '1'},
+    final jobs = await activityJobs(accessToken);
+    final now = DateTime.now();
+    return jobs.fold<int>(
+      0,
+      (count, job) =>
+          count +
+          job.activities
+              .where(
+                (item) => now.difference(item.createdAt.toLocal()).inDays < 3,
+              )
+              .length +
+          job.jobs
+              .where(
+                (item) => now.difference(item.createdAt.toLocal()).inDays < 3,
+              )
+              .length,
     );
-    if (data is Map<String, dynamic> && data['total'] is num) {
-      return (data['total'] as num).toInt();
-    }
-    throw const CrmMobileApiException('Unexpected activities response.');
   }
 
   Future<List<CrmCustomerReference>> customerReferences({
@@ -879,7 +895,7 @@ class CrmMobileApi {
       '/chat/channels/$channelUuid/read',
       accessToken: accessToken,
       method: 'POST',
-      body: {},
+      body: {'messageId': ?messageId},
     );
   }
 
@@ -907,9 +923,21 @@ class CrmMobileApi {
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode(body);
     }
-    final response = await request.send();
+    final response = await request.send().timeout(
+      const Duration(seconds: 30),
+      onTimeout: () => throw const CrmMobileApiException(
+        'The server did not respond. Check your connection and try again.',
+      ),
+    );
     final payload = jsonDecode(
-      utf8.decode(await response.stream.toBytes()),
+      utf8.decode(
+        await response.stream.toBytes().timeout(
+          const Duration(seconds: 30),
+          onTimeout: () => throw const CrmMobileApiException(
+            'The server response timed out. Try again.',
+          ),
+        ),
+      ),
     ) as Map<String, dynamic>;
     if (payload['success'] != true || response.statusCode >= 400) {
       final error = payload['error'];
@@ -1014,13 +1042,7 @@ class UserProfile {
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     final email = json['email'] as String? ?? '';
-    final explicitRole = json['role'] as String?;
-    final userType = json['userType'] as String?;
-    final derivedRole =
-        explicitRole ??
-        ((userType == 'tenant' || email.toLowerCase().startsWith('admin@'))
-            ? 'admin'
-            : 'user');
+    final derivedRole = json['role'] as String? ?? 'user';
     return UserProfile(
       email: email,
       name: json['name'] as String? ?? email,

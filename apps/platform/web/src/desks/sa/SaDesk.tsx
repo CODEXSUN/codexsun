@@ -23,13 +23,15 @@ import { useAppOperationsQuery } from "../../modules/app-orchestration/app-orche
 import { logout } from "../../shared/api/platform-api";
 import { AuthGate } from "../../shared/auth/AuthGate";
 import { requiredClientEnv } from "../../shared/env/client-env";
-import { ProjectManagerWorkspaceHost } from "@codexsun/project-manager-web";
 import { zetroPageFromUrl, type SaZetroPage } from "./sa-zetro-pages";
 import { SaAppCatalog } from "./sa-app-catalog";
 import { SaAppDetails } from "./sa-app-details";
 
 const ZunoWorkspace = lazyWorkspace(() =>
   import("@codexsun/zuno-web").then((module) => module.ZunoWorkspace)
+);
+const ProjectManagerWorkspaceHost = lazyWorkspace(() =>
+  import("@codexsun/project-manager-web").then((module) => module.ProjectManagerWorkspaceHost)
 );
 const ZetroAdminWorkspace = lazyWorkspace(() =>
   import("@codexsun/zetro-web/modules/admin").then((module) => module.ZetroAdminWorkspace)
@@ -45,8 +47,10 @@ const DesignSystemGallery = lazyWorkspace(() =>
 const UiuxGallery = lazyWorkspace(() =>
   import("@codexsun/uiux").then((module) => module.UiuxGallery)
 );
+const loadTenantList = () => import("../../modules/tenant");
+const initialTenantList = window.location.pathname === "/sa/tenants" ? loadTenantList() : undefined;
 const TenantList = lazyWorkspace(() =>
-  import("../../modules/tenant").then((module) => module.TenantList)
+  (initialTenantList ?? loadTenantList()).then((module) => module.TenantList)
 );
 const TenantDomainList = lazyWorkspace(() =>
   import("../../modules/tenant-domain").then((module) => module.TenantDomainList)

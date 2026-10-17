@@ -96,7 +96,7 @@ function normalize<T extends SiteCreatePayload | SiteUpdatePayload>(payload: T):
   if (
     payload.themeKey !== "portfolio-standard" &&
     !(
-      ["logicx", "ramutex"].includes(payload.slug) &&
+      ["logicx", "ramutex", "tirupurconnect"].includes(payload.slug) &&
       payload.themeKey === `portfolio-${payload.slug}`
     )
   ) {

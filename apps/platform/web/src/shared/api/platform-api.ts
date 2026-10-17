@@ -168,6 +168,13 @@ async function request<T>(path: string, options: RequestInit = {}, desk?: Desk):
   const response = await fetch(`${requiredClientEnv("VITE_PLATFORM_API_URL")}${path}`, {
     ...options,
     credentials: "include",
+    ...((options.method ?? "GET").toUpperCase() === "GET"
+      ? {
+          signal: options.signal
+            ? AbortSignal.any([options.signal, AbortSignal.timeout(15_000)])
+            : AbortSignal.timeout(15_000)
+        }
+      : {}),
     headers: {
       ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
       ...authHeaders(desk),

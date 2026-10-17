@@ -9,7 +9,8 @@ import { WorkspaceShowCard } from "@codexsun/ui/workspace/show";
 import { WorkspaceStatusBadge, WorkspaceSwitchCard } from "@codexsun/ui/workspace/status";
 import { WorkspaceFormField } from "@codexsun/ui/workspace/upsert";
 import { platformAppRegistry } from "../../app/app-registry";
-import { usePlatformAppsQuery, type PlatformApp } from "../app-registry";
+import { usePlatformAppsQuery } from "../app-registry/app-registry.hooks";
+import type { PlatformApp } from "../app-registry/app-registry.types";
 import { updateTenantAppConnections } from "./tenant.services";
 import type { Tenant } from "./tenant.types";
 

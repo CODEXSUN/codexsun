@@ -1,3 +1,4 @@
+import { PageTextileForm } from "./page.textile-form.js";
 import { PageMarketingForm } from "./page.marketing-form.js";
 import { PageApplicationsForm } from "./page.applications-form.js";
 import { PageResponsibilityForm } from "./page.responsibility-form.js";
@@ -19,6 +20,7 @@ export function PageForm({
   const hero = value.hero;
   return (
     <div className="grid gap-5">
+      {section === "textile" ? <PageTextileForm value={value} onChange={onChange} /> : null}
       {section === "marketing" ? <PageMarketingForm value={value} onChange={onChange} /> : null}
       {section === "applications" ? (
         <PageApplicationsForm value={value} onChange={onChange} />
@@ -38,7 +40,28 @@ export function PageForm({
           />
         </>
       ) : null}
-      {section === "hero" ? (
+      {section === "hero" && value.textile ? (
+        <>
+          {(
+            [
+              ["eyebrow", "Eyebrow"],
+              ["title", "Heading line 1"],
+              ["secondLine", "Heading line 2"],
+              ["emphasis", "Emphasized line"],
+              ["intro", "Introduction"]
+            ] as const
+          ).map(([field, label]) => (
+            <PageField
+              key={field}
+              label={label}
+              multiline={field === "intro"}
+              value={hero[field]}
+              onChange={(text) => onChange({ ...value, hero: { ...hero, [field]: text } })}
+            />
+          ))}
+        </>
+      ) : null}
+      {section === "hero" && !value.textile ? (
         <>
           <PageField
             label="Eyebrow"

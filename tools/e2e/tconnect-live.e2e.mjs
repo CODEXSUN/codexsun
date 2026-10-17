@@ -1,7 +1,9 @@
+import http from "node:http";
+import https from "node:https";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { BrowserPage, runNegotiationBrowserChecks } from "./tconnect-negotiation-browser.mjs";
 
@@ -13,18 +15,22 @@ assert.equal(
 const publicOrigin = "https://tirupurconnect.com";
 const platformOrigin = "https://codexsun.com";
 const corporateId = "TIRUPURCONNECT";
+const retainDemo = process.env.CODEXSUN_TCONNECT_RETAIN_DEMO === "1";
+let verified = false;
 const stamp = Date.now().toString(36);
-const accounts = ["seller-a", "seller-b", "buyer"].map((kind) => ({
-  kind,
-  email: `tconnect-live-${stamp}-${kind}@example.invalid`,
-  password: `Tc!${randomBytes(24).toString("base64url")}`
-}));
+const accounts = process.env.CODEXSUN_TCONNECT_DEMO_ACCOUNTS_FILE
+  ? JSON.parse(await readFile(process.env.CODEXSUN_TCONNECT_DEMO_ACCOUNTS_FILE, "utf8"))
+  : ["seller-a", "seller-b", "buyer"].map((kind) => ({
+      kind,
+      email: `tconnect-live-${stamp}-${kind}@example.invalid`,
+      password: `Tc!${randomBytes(24).toString("base64url")}`
+    }));
 class Session {
   cookie = "";
   slot = "";
   async request(method, path, body, expected = 200) {
     console.info(`LIVE step: ${method} ${path}`);
-    const response = await fetch(`${platformOrigin}/api/platform${path}`, {
+    const response = await httpsFetch(`${platformOrigin}/api/platform${path}`, {
       method,
       headers: {
         Origin: platformOrigin,
@@ -66,7 +72,9 @@ const conversations = [];
 let requirementUuid;
 let enquiryUuid;
 const requirement = {
-  title: `Live verification ${stamp} — DO NOT TRADE`,
+  title: retainDemo
+    ? `Demo cotton jersey sourcing ${stamp} — no real order`
+    : `Live verification ${stamp} — DO NOT TRADE`,
   category: "Cotton jersey",
   description:
     "Test sourcing requirement for deployment verification only. No real order, supplier contact or purchase commitment.",
@@ -77,14 +85,14 @@ const requirement = {
 };
 try {
   const context = await (
-    await fetch(`${publicOrigin}/api/platform/public/tconnect/registration`)
+    await httpsFetch(`${publicOrigin}/api/platform/public/tconnect/registration`)
   ).json();
   assert.equal(
     context.data?.corporateId,
     corporateId,
     "Dedicated tenant must be connected before any live account is created."
   );
-  await registerThroughBrowser();
+  if (!process.env.CODEXSUN_TCONNECT_DEMO_ACCOUNTS_FILE) await registerThroughBrowser();
   await sellers[0].login(accounts[0]);
   await sellers[1].login(accounts[1]);
   await buyer.login(accounts[2]);
@@ -119,7 +127,7 @@ try {
   const catalog = await buyer.request("GET", `/tconnect/product/search?q=${stamp}`);
   assert.equal(catalog.length, 2);
   const publicCatalog = await (
-    await fetch(`${publicOrigin}/api/platform/public/tconnect/product/search?q=${stamp}`)
+    await httpsFetch(`${publicOrigin}/api/platform/public/tconnect/product/search?q=${stamp}`)
   ).json();
   assert.equal(publicCatalog.data.length, 2);
   requirementUuid = (await buyer.request("POST", "/tconnect/requirement", requirement)).uuid;
@@ -178,7 +186,7 @@ try {
   assert.equal(quotes[1].total, 65625);
   const offers = await buyer.request("GET", "/tconnect/quotation");
   assert(quotes.every((quote) => offers.some((row) => row.uuid === quote.uuid)));
-  await sellers[1].request("GET", `/tconnect/conversation/${conversations[0]}`, undefined, 403);
+  await sellers[1].request("GET", `/tconnect/conversation/${conversations[0]}`, undefined, 404);
   const enquiryConversation = await sellers[0].request("POST", "/tconnect/conversation", {
     requirementUuid: null,
     inquiryUuid: enquiryUuid
@@ -221,42 +229,54 @@ try {
   console.info(
     "LIVE BROWSER PASS: seller/buyer login, seller quotation form, buyer comparison and private replies on codexsun.com."
   );
+  verified = true;
+  if (retainDemo) {
+    await mkdir(resolve("dist/.secrets"), { recursive: true });
+    await writeFile(
+      resolve("dist/.secrets/tconnect-demo-accounts.json"),
+      JSON.stringify({ corporateId, accounts, requirementUuid, enquiryUuid }, null, 2)
+    );
+  }
 } finally {
-  if (requirementUuid)
-    await buyer
-      .request("PUT", `/tconnect/requirement/${requirementUuid}`, {
-        ...requirement,
-        status: "closed"
-      })
-      .catch(() => {});
-  if (enquiryUuid)
-    await sellers[0]
-      .request("PUT", `/tconnect/inquiry/${enquiryUuid}`, { status: "closed" })
-      .catch(() => {});
-  for (let index = 0; index < companies.length; index++) {
-    const quotes = await sellers[index].request("GET", "/tconnect/quotation").catch(() => []);
-    for (const quote of quotes.filter(
-      (row) => conversations.includes(row.conversationUuid) && row.status === "sent"
-    ))
-      await sellers[index]
-        .request("PUT", `/tconnect/quotation/${quote.uuid}/withdraw`, {})
+  if (!(retainDemo && verified)) {
+    if (requirementUuid)
+      await buyer
+        .request("PUT", `/tconnect/requirement/${requirementUuid}`, {
+          ...requirement,
+          status: "closed"
+        })
         .catch(() => {});
-    if (products[index]) {
-      const { uuid, ...input } = products[index];
+    if (enquiryUuid)
+      await sellers[0]
+        .request("PUT", `/tconnect/inquiry/${enquiryUuid}`, { status: "closed" })
+        .catch(() => {});
+    for (let index = 0; index < companies.length; index++) {
+      const quotes = await sellers[index].request("GET", "/tconnect/quotation").catch(() => []);
+      for (const quote of quotes.filter(
+        (row) => conversations.includes(row.conversationUuid) && row.status === "sent"
+      ))
+        await sellers[index]
+          .request("PUT", `/tconnect/quotation/${quote.uuid}/withdraw`, {})
+          .catch(() => {});
+      if (products[index]) {
+        const { uuid, ...input } = products[index];
+        await sellers[index]
+          .request("PUT", `/tconnect/product/${uuid}`, { ...input, status: "inactive" })
+          .catch(() => {});
+      }
+      const { uuid, ...input } = companies[index];
       await sellers[index]
-        .request("PUT", `/tconnect/product/${uuid}`, { ...input, status: "inactive" })
+        .request("PUT", `/tconnect/company/${uuid}`, { ...input, status: "inactive" })
         .catch(() => {});
     }
-    const { uuid, ...input } = companies[index];
-    await sellers[index]
-      .request("PUT", `/tconnect/company/${uuid}`, { ...input, status: "inactive" })
-      .catch(() => {});
   }
   for (const session of [...sellers, buyer])
     if (session.cookie)
       await session.request("POST", "/auth/logout", { desk: "tenant" }).catch(() => {});
   console.info(
-    `Live fixture ${stamp}: test companies/products unpublished, requirement/enquiry closed and quotations withdrawn. Private account/history records retained.`
+    retainDemo && verified
+      ? `Demo ${stamp}: labelled supplier profiles, products, requirement, quotations and conversations retained for the demonstration tenant. Credentials are saved privately under root dist.`
+      : `Live fixture ${stamp}: test companies/products unpublished, requirement/enquiry closed and quotations withdrawn. Private account/history records retained.`
   );
 }
 
@@ -288,14 +308,15 @@ async function registerThroughBrowser() {
     }
     assert(port);
     control = await BrowserPage.connect(
-      (await (await fetch(`http://127.0.0.1:${port}/json/version`)).json()).webSocketDebuggerUrl
+      (await (await httpsFetch(`http://127.0.0.1:${port}/json/version`)).json())
+        .webSocketDebuggerUrl
     );
     for (const account of accounts) {
       const isBuyer = account.kind === "buyer";
       const { targetId } = await control.send("Target.createTarget", {
         url: `${publicOrigin}/register${isBuyer ? "/buyer" : ""}`
       });
-      const target = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find(
+      const target = (await (await httpsFetch(`http://127.0.0.1:${port}/json/list`)).json()).find(
         (row) => row.id === targetId
       );
       const page = await BrowserPage.connect(target.webSocketDebuggerUrl);
@@ -314,8 +335,12 @@ async function registerThroughBrowser() {
         name: "Live Verification Only",
         email: account.email,
         password: account.password,
-        companyName: `Live Verification ${account.kind} ${stamp}`,
-        businessName: `Live Verification Buyer ${stamp}`,
+        companyName: retainDemo
+          ? `Demo Tirupur ${account.kind === "seller-a" ? "Cotton Works" : "Knit Studio"} ${stamp}`
+          : `Live Verification ${account.kind} ${stamp}`,
+        businessName: retainDemo
+          ? `Demo Tirupur Sourcing Desk ${stamp}`
+          : `Live Verification Buyer ${stamp}`,
         industry: "Textiles & Apparel",
         city: "Tirupur",
         phone: "0000000000"
@@ -345,4 +370,26 @@ async function registerThroughBrowser() {
     }
     chrome.kill();
   }
+}
+
+function httpsFetch(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const request = (String(url).startsWith("https:") ? https : http).request(
+      url,
+      { method: options.method ?? "GET", headers: options.headers, signal: options.signal },
+      (response) => {
+        const chunks = [];
+        response.on("data", (chunk) => chunks.push(chunk));
+        response.on("error", reject);
+        response.on("end", () => {
+          const headers = new Headers();
+          for (let index = 0; index < response.rawHeaders.length; index += 2)
+            headers.append(response.rawHeaders[index], response.rawHeaders[index + 1]);
+          resolve(new Response(Buffer.concat(chunks), { status: response.statusCode, headers }));
+        });
+      }
+    );
+    request.on("error", reject);
+    request.end(options.body);
+  });
 }

@@ -3,6 +3,7 @@ import { BlogSolutionsSection, StoreFooter } from "./storefront.components";
 import { StoreHeader } from "./storefront.navigation";
 import {
   getStorefrontBranding,
+  getStorefrontBlogAvailability,
   getStorefrontDiscovery,
   getStorefrontSiteNavigation,
   listLatestBlogPosts
@@ -28,20 +29,23 @@ export function StorefrontJournalPage({ slug }: { slug: string }) {
   });
   const [posts, setPosts] = useState<StorefrontBlogPost[]>([]);
   const [error, setError] = useState("");
+  const [blogEnabled, setBlogEnabled] = useState<boolean | null>(null);
   useEffect(() => {
     let active = true;
     void Promise.all([
       getStorefrontBranding(),
       getStorefrontSiteNavigation(),
       getStorefrontDiscovery(),
-      slug ? Promise.resolve([]) : listLatestBlogPosts()
+      slug ? Promise.resolve([]) : listLatestBlogPosts(),
+      getStorefrontBlogAvailability()
     ])
-      .then(([brand, site, catalog, articles]) => {
+      .then(([brand, site, catalog, articles, enabled]) => {
         if (!active) return;
         setBranding(brand);
         setNavigation(site);
         setDiscovery(catalog);
         setPosts(articles);
+        setBlogEnabled(enabled);
       })
       .catch(() => {
         if (active) setError("The journal could not be loaded. Please try again.");
@@ -68,7 +72,11 @@ export function StorefrontJournalPage({ slug }: { slug: string }) {
       />
       <div>
         {error ? <p role="alert">{error}</p> : null}
-        {slug ? (
+        {blogEnabled === null ? (
+          <p role="status">Loading journal…</p>
+        ) : !blogEnabled ? (
+          <p role="status">Stories are not available for this site.</p>
+        ) : slug ? (
           <Suspense fallback={<p role="status">Loading article…</p>}>
             <Article slug={slug} />
           </Suspense>

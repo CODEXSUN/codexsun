@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../core/api/crm_mobile_api.dart';
-import '../../core/platform/mobile_actions.dart';
 import 'action_form_drawer.dart';
 
 enum WorkAction {
@@ -13,8 +12,6 @@ enum WorkAction {
   stopJob,
   checkIn,
   checkOut,
-  takePhoto,
-  scanDocument,
   logLocation,
   markCompleted,
   charges,
@@ -28,8 +25,6 @@ extension WorkActionLabel on WorkAction {
     WorkAction.stopJob => 'Stop job',
     WorkAction.checkIn => 'Check in',
     WorkAction.checkOut => 'Check out',
-    WorkAction.takePhoto => 'Take photo',
-    WorkAction.scanDocument => 'Scan document',
     WorkAction.logLocation => 'Log location',
     WorkAction.markCompleted => 'Mark completed',
     WorkAction.charges => 'Charges',
@@ -226,17 +221,6 @@ class _WorkActionSheetState extends State<WorkActionSheet> {
               note: body,
             );
           }
-        case WorkAction.takePhoto:
-        case WorkAction.scanDocument:
-          final opened = await (_action == WorkAction.takePhoto
-              ? MobileActions.photo()
-              : MobileActions.scanDocument());
-          if (!opened)
-            throw Exception('${_action.label} is unavailable on this device.');
-          await _saveReport(
-            'report',
-            body.isEmpty ? '${_action.label} opened from mobile.' : body,
-          );
       }
       if (mounted) Navigator.pop(context, true);
     } catch (error) {

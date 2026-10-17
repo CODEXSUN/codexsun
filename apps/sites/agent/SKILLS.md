@@ -1,5 +1,20 @@
 # Site Studio skills
 
+## Tirupur Connect content management — October 17, 2026
+
+Open Sites → Tirupur Connect → Manage. Client details edits branding and public contacts. Pages → Textile edits hero imagery, category copy and images, directory and community headings, the sourcing guide, the closing banner, pending-state copy and public page introductions. Hero, Page & SEO, and Footer have their own sections. Individual category images use full crops. Image sheets use a 3 by 2 crop. Use deployed local image paths or public HTTPS JPG, PNG or WebP URLs. File upload is not included.
+
+Save draft keeps edits private. Publish page creates the public version using existing permissions and revision checks. Start connects the local preview to this client's publication. Business records, credentials, account access, enquiries and conversations remain TConnect-owned and require TIRUPURCONNECT. CMS content never changes that tenant selection.
+
+Live delivery uses an authenticated publication export, not a development API or public management endpoint. Export through the existing client publication control. Set `CODEXSUN_SITES_TIRUPURCONNECT_SNAPSHOT` to the absolute exported JSON filename. Run `npm run build:tirupurconnect -w @codexsun/sites-clients`, then `wrangler deploy --config apps/sites/clients/cloudflare/wrangler.tirupurconnect.jsonc --keep-vars`. The builder verifies checksum, slug, domain and pinned site UUID `e303865e`. It embeds only the published content and blogs, without delivery keys or private drafts. The deployed site reads that version through a read-only same-origin endpoint. Subsequent Studio publication needs another export/build/deploy; automatic remote delivery is not implemented.
+
+No SQL column migration is required for the optional textile content field. Existing publications remain valid. Existing Tirupur Connect generic drafts need approved content initialized before export. The local CMS integration check verifies draft isolation, publish, stale saves, unsafe-image rejection and export. Unit checks cover deployment identity and safe embedding. VPS configuration and a remote Studio registry remain separate.
+
+Tirupur Connect public presentation belongs to the named Sites client. Its business forms and data use TConnect public contracts.
+Keep the TIRUPURCONNECT guard on every proxied public request. Preserve the existing Worker identity and zone routes.
+Do not duplicate company, product, enquiry, quotation, or messaging persistence in Sites.
+Keep private TConnect workspaces in TConnect. Distinguish local Studio registration from a remote Studio database record.
+
 Use this file for Site Studio planning, implementation, refactoring, and review.
 Read the [task and working rules](TASK.md) for scope and ownership, and the [plan](PLAN.md) for architecture and delivery order.
 This is repository guidance, not a globally installed skill or runtime permission source.

@@ -185,8 +185,19 @@ export class ChatRepository {
     return { uuid: channel.uuid };
   }
 
-  async markRead(context: ChatRuntimeContext, idOrUuid: string): Promise<{ uuid: string }> {
+  async markRead(
+    context: ChatRuntimeContext,
+    idOrUuid: string,
+    messageId?: number
+  ): Promise<{ uuid: string }> {
     const channel = await this.requireChannel(context, idOrUuid);
+    const latest = await context.database
+      .selectFrom("chat_messages")
+      .select((eb) => eb.fn.max<number>("id").as("id"))
+      .where("channel_id", "=", channel.id)
+      .where("company_id", "=", context.companyId)
+      .executeTakeFirst();
+    const cursor = Math.min(messageId ?? Number(latest?.id ?? 0), Number(latest?.id ?? 0));
     const existing = await context.database
       .selectFrom("chat_channel_reads")
       .select("id")
@@ -197,7 +208,8 @@ export class ChatRepository {
       await context.database
         .updateTable("chat_channel_reads")
         .set({
-          last_read_at: sql`CURRENT_TIMESTAMP`,
+          last_read_at: sql`UTC_TIMESTAMP()`,
+          last_message_id: sql`GREATEST(COALESCE(last_message_id, 0), ${cursor})`,
           updated_by: context.actorEmail
         })
         .where("id", "=", Number(existing.id))
@@ -209,7 +221,8 @@ export class ChatRepository {
           channel_id: channel.id,
           company_id: context.companyId,
           created_by: context.actorEmail,
-          last_read_at: sql`CURRENT_TIMESTAMP`,
+          last_read_at: sql`UTC_TIMESTAMP()`,
+          last_message_id: cursor,
           status: "active",
           updated_by: context.actorEmail,
           user_email: context.actorEmail.toLowerCase(),
@@ -282,7 +295,7 @@ export class ChatRepository {
       .selectFrom("chat_messages")
       .selectAll()
       .where("channel_id", "=", channel.id)
-      .orderBy("created_at", "desc")
+      .orderBy("id", "desc")
       .limit(filters.limit ?? 100)
       .execute();
     const messages: ChatMessage[] = [];
@@ -354,6 +367,8 @@ export class ChatRepository {
         channel_id: channel.id,
         company_id: context.companyId,
         created_by: context.actorEmail,
+        created_at: sql`UTC_TIMESTAMP()`,
+        updated_at: sql`UTC_TIMESTAMP()`,
         reply_to_message_id: replyToId,
         sender_email: senderEmail,
         status: "active",
@@ -610,7 +625,7 @@ export class ChatRepository {
       .where("message.company_id", "=", context.companyId)
       .where("message.status", "=", "active")
       .where("message.sender_email", "!=", context.actorEmail)
-      .where(sql<boolean>`message.created_at > COALESCE(reads.last_read_at, '1970-01-01')`)
+      .where(sql<boolean>`message.id > COALESCE(reads.last_message_id, 0)`)
       .groupBy("message.channel_id")
       .execute();
     return new Map(rows.map((row) => [Number(row.channel_id), Number(row.total)]));
@@ -643,7 +658,7 @@ export class ChatRepository {
       .selectFrom("chat_messages")
       .select(["body", "created_at", "sender_email"])
       .where("channel_id", "=", Number(row.id))
-      .orderBy("created_at", "desc")
+      .orderBy("id", "desc")
       .limit(1)
       .executeTakeFirst();
     return {

@@ -7,7 +7,8 @@ import type { PageOwner } from "./page.types.js";
 export class PageService {
   constructor(
     private readonly repository: PageRepository,
-    private readonly site: PageOwner
+    private readonly site: PageOwner,
+    private readonly afterPublish?: (revision: number, content: PageContent) => Promise<void>
   ) {}
   async show(): Promise<PageState> {
     const row = await this.repository.find(this.site.id);
@@ -27,7 +28,12 @@ export class PageService {
     if (this.site.status !== "active")
       throw AppError.conflict("Activate the site before publishing.");
     await this.repository.publish(this.site.id, revision, actor);
-    return this.show();
+    const content = await this.published();
+    const state = await this.show();
+    if (state.publishedRevision !== revision)
+      throw AppError.conflict("A newer page was published. Reload before publishing again.");
+    if (content && this.afterPublish) await this.afterPublish(revision, content);
+    return state;
   }
   activity() {
     return this.repository.activity(this.site.id);

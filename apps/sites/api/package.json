@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/sites-api",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "private": true,
   "type": "module",
   "exports": {
@@ -16,7 +16,8 @@
     "./enquiry-contract": "./src/modules/site/enquiry/enquiry.schema.ts",
     "./enquiry-runtime": "./src/modules/site/enquiry/index.ts",
     "./page-routes": "./src/modules/site/page/page.public-routes.ts",
-    "./marketing-defaults": "./src/modules/site/page/page.marketing-defaults.ts"
+    "./marketing-defaults": "./src/modules/site/page/page.marketing-defaults.ts",
+    "./deployment-contract": "./src/modules/site/deployment/deployment.schema.ts"
   },
   "scripts": {
     "test:d1": "node --import tsx --test src/modules/site/enquiry/enquiry.d1.test.mjs",
@@ -29,7 +30,7 @@
     "mysql2": "^3.24.5"
   },
   "dependencies": {
-    "@codexsun/framework": "^1.1.6",
+    "@codexsun/framework": "^1.1.7",
     "fastify": "^5.12.5",
     "kysely": "^0.29.6",
     "zod": "^4.6.5"

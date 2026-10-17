@@ -14,7 +14,8 @@ async function start() {
     ]);
     window.__CODEXSUN_RUNTIME_CONFIG__ = Object.freeze(config);
     showApplication(PlatformWebApp);
-  } catch {
+  } catch (error) {
+    console.error("Platform startup failed", error);
     const { showConnectionError } = await renderer;
     showConnectionError(() => void start());
   }

@@ -1,8 +1,10 @@
 import { AppWindowIcon } from "lucide-react";
-import { Button, GlobalLoader } from "@codexsun/ui";
+import { Button } from "@codexsun/ui/components/button";
+import { GlobalLoader } from "@codexsun/ui/components/global-loader";
 import { deskAddonAppIds, platformAppRegistry } from "../../app/app-registry";
-import { usePlatformAppsQuery } from "../../modules/app-registry";
-import { AppServiceList, useAppOperationsQuery } from "../../modules/app-orchestration";
+import { usePlatformAppsQuery } from "../../modules/app-registry/app-registry.hooks";
+import { AppServiceList } from "../../modules/app-orchestration/app-orchestration.list";
+import { useAppOperationsQuery } from "../../modules/app-orchestration/app-orchestration.hooks";
 
 export function SaAppDetails({ appId, onBack }: { appId: string; onBack: () => void }) {
   const query = usePlatformAppsQuery();

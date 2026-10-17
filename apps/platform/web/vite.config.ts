@@ -1,4 +1,4 @@
-import { createWorkspaceDocument } from "./public-document";
+import { createWorkspaceDocument } from "./public-document.ts";
 import mdx from "@mdx-js/rollup";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
@@ -297,6 +297,10 @@ export default defineConfig(({ command, mode }) => {
         "@codexsun/core-web/modules/master/contact": resolve(
           configDir,
           "../../core/web/src/modules/master/contact/index.ts"
+        ),
+        "@codexsun/chat-web/modules/chat/navigation": resolve(
+          configDir,
+          "../../chat/web/src/modules/chat/chat.navigation.ts"
         ),
         "@codexsun/chat-web/modules/chat": resolve(
           configDir,

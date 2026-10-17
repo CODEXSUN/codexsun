@@ -183,8 +183,12 @@ export function registerChatRoutes(app: FastifyInstance, dependencies: ChatModul
   registerContractRoute(app, {
     method: "POST",
     url: "/chat/channels/:id/read",
-    schemas: { params: idSchema, response: z.object({ uuid: z.string() }).strict() },
-    handler: ({ params, request }) => service.markRead(request, params.id)
+    schemas: {
+      params: idSchema,
+      body: z.object({ messageId: z.number().int().positive().optional() }).optional(),
+      response: z.object({ uuid: z.string() }).strict()
+    },
+    handler: ({ params, body, request }) => service.markRead(request, params.id, body?.messageId)
   });
   registerContractRoute(app, {
     method: "GET",

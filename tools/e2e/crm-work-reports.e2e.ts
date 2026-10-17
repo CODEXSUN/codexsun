@@ -6,6 +6,10 @@ import {
 import {
   workReportModule,
   recordWorkEvent,
+  seedEnquiryModule,
+  seedCrmTenantDatabase,
+  dutyAssignmentModule,
+  taskPermissionForRequest,
   type WorkReportContext,
   type WorkReportDatabase
 } from "../../apps/crm/api/src/index.js";
@@ -67,6 +71,85 @@ test(
     const database = getCoreDatabase(name) as unknown as TaskContext["database"];
     await migrateTenantRuntimeModule(database as never);
     await migrateCrmTenantDatabase(database as never);
+    await sql`INSERT INTO app_roles (uuid,\`key\`,label,status) VALUES ('f00d0001','admin','Admin','active'),('f00d0002','super-admin','Super Admin','active'),('f00d0003','manager','Manager','active'),('f00d0004','user','User','active')`.execute(
+      database
+    );
+    await seedCoreTenantDatabase(name);
+    const coreGrants = await sql<{
+      role: string;
+      permission: string;
+    }>`SELECT r.\`key\` AS role,p.\`key\` AS permission FROM app_role_permissions rp JOIN app_roles r ON r.id=rp.role_id JOIN app_permissions p ON p.id=rp.permission_id WHERE p.\`key\` LIKE 'core.application.records.%' AND rp.status='active'`.execute(
+      database
+    );
+    for (const role of ["super-admin", "manager"]) {
+      assert.ok(
+        coreGrants.rows.some(
+          (g) => g.role === role && g.permission === "core.application.records.view"
+        )
+      );
+      assert.equal(
+        coreGrants.rows.filter(
+          (g) => g.role === role && g.permission !== "core.application.records.view"
+        ).length,
+        0,
+        "workspace read access must not grant master writes"
+      );
+    }
+    await seedEnquiryModule(database as never);
+    await seedEnquiryModule(database as never);
+    const grants = await sql<{
+      role: string;
+      permission: string;
+    }>`SELECT role.\`key\` AS role, permission.\`key\` AS permission FROM app_role_permissions grant_row JOIN app_roles role ON role.id=grant_row.role_id JOIN app_permissions permission ON permission.id=grant_row.permission_id WHERE permission.\`key\` LIKE 'crm.enquiry.%' AND grant_row.status='active'`.execute(
+      database
+    );
+    for (const role of ["admin", "super-admin", "manager", "user"]) {
+      for (const action of ["view", "create", "update"])
+        assert.ok(
+          grants.rows.some((g) => g.role === role && g.permission === "crm.enquiry." + action)
+        );
+    }
+    assert.equal(
+      grants.rows.filter((g) => g.role === "user" && g.permission === "crm.enquiry.view-all")
+        .length,
+      0
+    );
+    assert.equal(grants.rows.length, 15, "repeatable role grants must not duplicate");
+    await seedCrmTenantDatabase(database as never);
+    await seedCrmTenantDatabase(database as never);
+    const managerGrants = await sql<{ permission: string }>`
+      SELECT p.\`key\` AS permission FROM app_role_permissions rp
+      JOIN app_roles r ON r.id=rp.role_id JOIN app_permissions p ON p.id=rp.permission_id
+      WHERE r.\`key\`='manager' AND rp.status='active'
+    `.execute(database);
+    const managerPermissions = new Set(managerGrants.rows.map((row) => row.permission));
+    assert.equal(
+      managerPermissions.size,
+      managerGrants.rows.length,
+      "role seeds must be repeatable"
+    );
+    for (const permission of [
+      "crm.contact.view",
+      "crm.call-log.view",
+      "crm.sop.view",
+      "crm.duty.view.own",
+      "crm.duty.view.all",
+      "crm.duty-report.view.all",
+      "crm.contact-profiles.view",
+      "crm.contact-people.view",
+      "crm.contact-tags.view"
+    ])
+      assert.ok(managerPermissions.has(permission), permission);
+    for (const permission of [
+      "crm.contact.create",
+      "crm.call-log.create",
+      "crm.sop.create",
+      "crm.duty.assign",
+      "crm.duty.manage",
+      "crm.contact-profiles.update",
+      "core.application.records.update"
+    ])
+      assert.equal(managerPermissions.has(permission), false, permission);
     await seedStatusMaster(database as never);
     await seedPriorityMaster(database as never);
     await sql`INSERT INTO app_users (uuid,name,email,password_hash,status) VALUES ('testuser','Task tester','task@example.test','test-only','active')`.execute(
@@ -113,25 +196,39 @@ test(
       sendMessage: async (trx, message) =>
         writeWorkMessage(trx as never, { ...message, actorEmail, companyId: 1 })
     });
-    await taskModule.register(app, async () => ({
-      database,
+    await taskModule.register(app, async (request) => {
+      const permission = taskPermissionForRequest(request.method, request.url.split("?")[0]!);
+      if (permission) await authorize(`crm.task.${permission}`);
+      return {
+        database,
+        actorEmail,
+        actorUserId: actorId,
+        canViewAll: manager,
+        authorize,
+        workEvent: async (trx, taskId, action, body) => {
+          await recordWorkEvent(
+            workContext(),
+            trx as unknown as Transaction<WorkReportDatabase>,
+            { taskId, enquiryId: null },
+            action,
+            body
+          );
+        }
+      };
+    });
+    await workReportModule.register(app, async () => workContext());
+    let dutyRole = "manager";
+    await dutyAssignmentModule.register(app, async () => ({
+      database: database as never,
       actorEmail,
       actorUserId: actorId,
-      canViewAll: manager,
-      authorize,
-      workEvent: async (trx, taskId, action, body) => {
-        await recordWorkEvent(
-          workContext(),
-          trx as unknown as Transaction<WorkReportDatabase>,
-          { taskId, enquiryId: null },
-          action,
-          body
-        );
+      authorize: async (permission) => {
+        if (dutyRole !== "manager" || !managerPermissions.has(permission))
+          throw AppError.forbidden("Permission required");
       }
     }));
-    await workReportModule.register(app, async () => workContext());
     const send = async (
-      method: "GET" | "POST",
+      method: "GET" | "POST" | "PUT",
       url: string,
       payload?: unknown,
       statusCode = 200
@@ -144,6 +241,27 @@ test(
       assert.equal(response.statusCode, statusCode, response.body);
       return response.json().data;
     };
+    assert.ok((await send("GET", "/crm/duty-users")).length > 0);
+    const dutyOptions = await send("GET", "/crm/duty-assignments/options");
+    assert.equal(dutyOptions.canViewAll, true);
+    assert.equal(dutyOptions.canCreate, false);
+    assert.equal(dutyOptions.canEdit, false);
+    await send(
+      "POST",
+      "/crm/duty-assignments",
+      {
+        sopItemId: 1,
+        revisionId: 1,
+        assigneeUserId: actorId,
+        displayOrder: 0,
+        startDate: "2026-10-17",
+        endDate: null
+      },
+      403
+    );
+    dutyRole = "user";
+    await send("GET", "/crm/duty-users", undefined, 403);
+    dutyRole = "manager";
     const task = await send("POST", "/crm/tasks", {
       title: "Deliver office bill",
       description: "Deliver to linked customer",
@@ -229,6 +347,27 @@ test(
         (message) => message.body.includes("Delivered bill") && message.body.includes("GPS:")
       )
     );
+    const channelId = userChannels[0]!.uuid;
+    const reader = chatContext();
+    assert.equal((await chat.listChannels(reader, {}))[0]!.unreadCount, 1);
+    const seen = userChat.messages.at(-1)!.id;
+    await chat.markRead(reader, channelId, seen);
+    assert.equal((await chat.listChannels(reader, {}))[0]!.unreadCount, 0);
+    const sender = { ...reader, actorEmail: "task@example.test" };
+    const freshMessage = await chat.createMessage(sender, {
+      channelUuid: channelId,
+      body: "CODEXSUN unread after assignment read"
+    });
+    // A later message remains unread even when both inserts use the same second.
+    assert.equal((await chat.listChannels(reader, {}))[0]!.unreadCount, 1);
+    await chat.markRead(reader, channelId, seen);
+    assert.equal(
+      (await chat.listChannels(reader, {}))[0]!.unreadCount,
+      1,
+      "old read cursor must not hide a newer message"
+    );
+    await chat.markRead(reader, channelId, freshMessage.id);
+    assert.equal((await chat.listChannels(reader, {}))[0]!.unreadCount, 0);
     actorEmail = "other@example.test";
     actorId = (
       await database
@@ -312,6 +451,24 @@ test(
     await assert.rejects(chat.requireMessage(chatContext(), fallback.messages[0]!.uuid));
     actorEmail = "field@example.test";
     actorId = field.id;
+    await send(
+      "PUT",
+      `/crm/tasks/${task.id}`,
+      {
+        title: "Must not edit",
+        description: "",
+        listInId: null,
+        priorityId: priority.id,
+        statusId: status.id,
+        assignedUserId: field.id,
+        dueDate: null
+      },
+      403
+    );
+    const completion = await send("POST", `/crm/tasks/${task.id}/closure-requests`, {
+      reason: "Field work completed"
+    });
+    assert.equal(completion.status, "pending");
     // Failed chat delivery must roll back the action report as well.
     const before = (await send("GET", `/crm/work-reports?enquiryId=${enquiryId}`)).length;
     const failing = workContext();

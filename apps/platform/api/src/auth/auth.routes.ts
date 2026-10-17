@@ -162,6 +162,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         tenantDbName: payload.tenantDbName,
         tenantId: payload.tenantId,
         tenantUuid: payload.tenantUuid,
+        role: await authService.sessionRole(payload),
         userType: payload.userType
       },
       { requestId: request.id, ...(payload.tenantId ? { tenantId: payload.tenantId } : {}) }

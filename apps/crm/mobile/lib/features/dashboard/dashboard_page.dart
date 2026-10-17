@@ -233,7 +233,9 @@ class _DashboardPageState extends State<DashboardPage> {
         session: widget.session,
         jobsFeed: _jobsFeed,
         unreadChatCount: _messageNotifications.unreadCount,
-        assignmentCount: _mobileNotifications.assignmentCount,
+        assignmentCount: _messageNotifications.unreadFor("Enquiry:"),
+        taskUnreadCount: _messageNotifications.unreadFor("Task:"),
+        dutyUnreadCount: _messageNotifications.unreadFor("Duty:"),
         onOpenList: _selectDestination,
         onOpenActions: _openActions,
         onReauthenticate: widget.onReauthenticate,
@@ -256,6 +258,7 @@ class _DashboardPageState extends State<DashboardPage> {
         api: widget.api,
         session: widget.session,
         embedded: true,
+        onRead: () => unawaited(_messageNotifications.refresh()),
       );
     }
     return DashboardListPage(
@@ -277,7 +280,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _updateBadges() => widget.navigation.updateBadges(
-    jobs: _mobileNotifications.assignmentCount,
+    jobs: _messageNotifications.unreadFor("Enquiry:"),
     chat: _messageNotifications.unreadCount,
   );
 
@@ -377,7 +380,16 @@ class _DashboardPageState extends State<DashboardPage> {
                   subtitle: Text(item.preview),
                   onTap: () {
                     Navigator.pop(context);
-                    _selectDestination(3);
+                    unawaited(
+                      openMessagingConversation(
+                        context: this.context,
+                        api: widget.api,
+                        session: widget.session,
+                        conversation: item,
+                        onRead: () =>
+                            unawaited(_messageNotifications.refresh()),
+                      ),
+                    );
                   },
                 ),
             ],

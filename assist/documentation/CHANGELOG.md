@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.6
+Current version: 1.1.7
 
-Release tag: v-1.1.6
+Release tag: v-1.1.7
 
-Changelog label: v 1.1.6
+Changelog label: v 1.1.7
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -20,17 +20,77 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.1.7
+
+### [v 1.1.7] 2026-10-17 10:00 pm - Loading stability and complete application release
+
+#### Database Changes
+
+- Database update: Yes. Add the nullable Chat read cursor and backfill its message watermark without deleting messages.
+- Add Sites deployment records with revision uniqueness and a restricted site foreign key. Keep existing publication records.
+- Include pending CRM and Core permission seed corrections. Apply only forward migrations and preserve current databases and uploads.
+- Verify the existing CODEXSUN shop domain through its public DNS TXT token. Keep the existing Ecommerce entitlement unchanged.
+- Require a verified database backup and retain the previous API, web, and shop images before rollout.
+
+#### App Codebase Changes
+
+- Bump every workspace, lockfile, deployment sample, and Windows package manifest to version 1.1.7.
+- Load the shared loader stylesheet independently, with fixed logo dimensions, theme visibility, token fallbacks, and reduced-motion support.
+- Use narrow UI imports for login and recovery. Download tenant desk code alongside session verification while retaining authentication gates.
+- Lazy-load additional app workspaces and expose a small Chat navigation contract. Avoid eager Super Admin workspace imports through query barrels.
+- Bound Platform reads without automatically cancelling or retrying writes. Keep optional shop stories outside the primary loading path and skip disabled Blog requests.
+- Include pending Chat read handling, CRM permissions and mobile navigation, Platform tenant operations, Sites publication/deployment, and TConnect-to-Sites composition changes.
+- Preserve the existing WhatsApp basket request flow. This release does not add payment collection or stock reservation.
+- Add the missing Sites deployment developer reference and synchronize 521 Docs pages across 25 app groups.
+- Pass the full repository check, version alignment, 31 focused release tests, and 15 deployment/runtime/persistence contract tests.
+- Add QCafe to the composed API Docker build and validate every resolver package against the build list.
+- Revalidate shop HTML on refresh while retaining immutable hashed assets.
+- The local clean-all build stopped on a Windows dist file lock. Targeted Framework, Platform web, and shop production builds passed.
+- The Platform web build emits one remaining ineffective dynamic-import warning for the HRMS attendance gateway barrel, plus bundle-size warnings. Production rollout remains pending at commit preparation.
+
 ## v-1.1.6
+
+### [v 1.1.6] 2026-10-17 - Live CRM role access and client APKs
+
+#### Database Changes
+
+- Reconciled Manager read grants for Contacts, Call Logs, SOPs, Duties, and Contact 360 in `techmedia_db` and `rainbow_db`. No table changes were required.
+- Preserved write restrictions and existing data. Saved prior permission grants and runtime files for rollback.
+
+#### App Codebase Changes
+
+- Duty user filters accept all-duty read permission without assignment write permission.
+- Verified Admin and Manager in both live tenants: 88 API reads and 60 browser page checks passed.
+- Built separate Techmedia and Rainbow release APKs with distinct Android app IDs, Corporate ID defaults, and version 1.1.6.
+- Passed the permission/work-report database regression, CRM API build and lint, boundaries, dependency layout, and component-documentation checks.
+
+### [v 1.1.6] 2026-10-17 - Live CRM tenant acceptance
+
+#### Database Changes
+
+- Backed up and upgraded existing `techmedia_db` and `rainbow_db` through tracked migrations and seeds. Preserved existing users and shared infrastructure.
+- Applied Chat read cursors and reconciled CRM/Core role grants. Admin, Super Admin, and Manager can read workspace setup.
+
+#### App Codebase Changes
+
+- Fixed Vite configuration startup warnings, persisted-role display, mobile request timeouts, and normal-user Task completion permission mapping.
+- Verified both live Application overview pages and all five CRM pages for each tenant without browser warnings or errors.
+- Verified Android enquiry GPS actions and duty report creation/editing against the live API. All 30 mobile tests passed.
+- Detailed evidence and limits are in `apps/crm/agent/LIVE-VERIFICATION-2026-10-17.md`.
 
 ### [v 1.1.6] 2026-10-17 7:07 pm - CRM work reports, mobile workflows, and public delivery
 
 #### Database Changes
+
+- Added Chat read-message cursors to preserve unread counts across timezone differences and messages created in the same second. Applied and repeated the migration locally only.
 
 - Database update: Yes (manual).
 - Updates CRM work-report persistence and Chat permission seeds. Existing databases require reviewed migrations and permission seed execution before rollout.
 - No live migration, external deployment, provider submission, or physical-device verification was performed during this release preparation.
 
 #### App Codebase Changes
+
+- Verified mobile Home card destinations, live task counts, assignment/message badges, and clear-after-read behavior. Fixed refresh callbacks and aligned the Activities count with its default page filter. Added three mobile regression tests and database unread-cursor assertions.
 
 - Bumped workspace version to 1.1.6.
 - Completed the pending CRM work-report host integration, transactional Chat delivery, duty notifications, and enquiry/task/duty action history changes.

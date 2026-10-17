@@ -2,7 +2,7 @@
 
 Repository source: `apps/tconnect/agent/SKILLS.md`
 
-Source SHA-256 (LF line endings): `e28dc6c4736ee0547822753fc65791e64c472bb6ca739d48cdea87811ef385f9`
+Source SHA-256 (LF line endings): `50fd75d3f4c86811ecf64ba66e0830aea8fc220a24ca75c4167524cc2da9f95a`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -10,6 +10,10 @@ Historical notes and unchecked plans retain their original status.
 
 ```markdown
 # TConnect working rules
+
+## Sites public client ownership — October 17, 2026
+
+Public pages, assets, metadata and the frontend Worker belong to the Sites client `tirupurconnect`. TConnect retains business contracts, authentication integration and private workspaces. Use `@codexsun/tconnect-web/public` for public business access. The local Sites registry includes this client on port 7040; no remote Studio registry record is claimed. The frontend requires the dedicated `TIRUPURCONNECT` context from codexsun.com. A CODEXSUN response must remain blocked. VPS setup is separate.
 
 For the hosted frontend, require the configured TIRUPURCONNECT tenant before forwarding registrations or returning dynamic records.
 Keep public API proxy routes restricted. Never forward browser credentials or caller-selected tenant headers to the public backend.

@@ -16,6 +16,7 @@ export type QueueJobPayload = {
 };
 
 export type QueueJobFilters = {
+  jobName?: string;
   correlationId?: string;
   queueName?: string;
   status?: QueueJobStatus;

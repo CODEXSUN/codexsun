@@ -1,0 +1,42 @@
+{
+  "name": "codexsun-tconnect",
+  "account_id": "a68cf61bf5bae3f83ddb7765dc29a835",
+  "main": "tirupurconnect.mjs",
+  "compatibility_date": "2026-10-17",
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "CODEXSUN_TCONNECT_API_ORIGIN": "https://codexsun.com",
+    "CODEXSUN_TCONNECT_CORPORATE_ID": "TIRUPURCONNECT",
+    "CODEXSUN_SITES_TIRUPURCONNECT_SITE_UUID": "e303865e",
+    "CODEXSUN_SITES_TIRUPURCONNECT_SITE_KEY": "cb73bbbe2d796f097ab7b2a5d46c346a0ca2f94729e9289bb7dd265fd7fa2aa8"
+  },
+  "routes": [
+    {
+      "pattern": "tirupurconnect.com/*",
+      "zone_id": "d3cda9449945a79239fa7ab5f74bef09"
+    },
+    {
+      "pattern": "www.tirupurconnect.com/*",
+      "zone_id": "d3cda9449945a79239fa7ab5f74bef09"
+    }
+  ],
+  "assets": {
+    "directory": "../../../../dist/apps/sites/clients/tirupurconnect",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "none",
+    "not_found_handling": "none"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  },
+  "d1_databases": [
+    {
+      "binding": "CODEXSUN_TCONNECT_CONTENT",
+      "database_name": "codexsun-tirupurconnect-content",
+      "database_id": "ea739127-db2c-4a57-aef9-0e017351a900"
+    }
+  ]
+}

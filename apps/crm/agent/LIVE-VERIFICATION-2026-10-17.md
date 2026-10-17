@@ -1,0 +1,92 @@
+# CRM live verification: 17-10-2026
+
+## Scope
+
+Verify warning-free local web startup and the Enquiries, Tasks, SOPs, Duties, and Duty Reporting pages. Deploy the checked API and web artifacts to the existing CODEXSUN VPS. Test normal mobile users against the live TECHMEDIA and RAINBOW tenants.
+
+## Database and release controls
+
+- TECHMEDIA uses `techmedia_db`; RAINBOW uses `rainbow_db`.
+- Verified a compressed backup of the Platform master, default tenant, Techmedia, and Rainbow databases. Backup path: `/home/codexsun-update-backup/crm-live-20261017T1445`.
+- Restored Techmedia into an isolated preflight database and ran the standard upgrade before changing the live database.
+- The existing tracked runtime upgrade adopts legacy runtime table names under `app_`. All five existing Techmedia user IDs, UUIDs, email addresses, and password hashes matched after the upgrade. Rainbow's existing user also matched.
+- Applied the additive Chat read-cursor migration to both target tenants. No database or data volume was removed.
+- Built candidate images, checked readiness and health, and replaced only CODEXSUN API and web. Prior images, source files, Compose files, and the verified backup remain available for rollback.
+- CXApp, MariaDB, Redis, Media, Cloudflared, and the Shop application were preserved.
+
+## Fixes found during live acceptance
+
+- Enquiry role seeds now include Super Admin, Manager, and normal users for their existing view/create/update operations. Normal users do not receive view-all permission.
+- Core workspace read permission is available to tenant Super Admin and Manager roles. This change does not grant those roles master-record write permissions.
+- Login and session responses derive the display role from current persisted role assignments. Mobile defaults to User when role information is missing. Tenant identity and an admin-looking email do not imply an administrator role.
+- Task completion uses the Task owner's response-permission mapping. Normal users retain their denial for full task updates.
+- Mobile requests time out after 30 seconds for connection or response stalls and preserve the action form for retry.
+
+## Evidence recorded so far
+
+- Both Vite configuration loaders load without the former extension warning. Local CRM pages load and return live data.
+- All five production CRM pages passed for each tenant in a clean browser context, with no console warnings or errors on the stable release.
+- Normal-user sessions can read the assigned enquiry, task, and duty in each tenant.
+- Forged tenant database headers do not change the authenticated tenant. Normal users receive 403 for all-user duty reporting.
+- Isolated database tests cover repeatable permission seeds, normal-user update denial, task completion requests, Chat unread cursors, GPS sequences, retry handling, and tenant/company isolation.
+
+## Native and workspace acceptance
+
+- Android normal users signed in to each live tenant through the public login flow.
+- Both tenants saved enquiry check-in, action reports, and checkout from Android. Server reads confirmed the normal-user author and coordinates.
+- GPS values were latitude `13.0827000`, longitude `80.2707000`, and accuracy `5.00` meters.
+- Both tenants submitted and edited a duty report from Android. Server reads confirmed the edited text, completed result, date, and author.
+- Both tenants requested task completion from Android. Administrators approved them through the web Closure requests tab. Android then showed Closed.
+- Final server reads confirmed each task retained its linked contact and each duty report retained its edited content, result, date, and author.
+- Rainbow requested enquiry completion from Android and showed the pending approval message.
+- Repeated the Core permission seed on both live databases after the reported workspace error.
+- Admin, Super Admin, and Manager roles receive `core.application.records.view`. Normal users do not receive administrative master permissions.
+- Fresh administrator browser sessions opened `/app/application/overview` for both tenants without permission errors or console warnings.
+- All 30 mobile tests passed after the request-timeout change.
+- Signed out the emulator after verification. Labeled test records remain as audit evidence.
+- Deactivated both temporary normal-user accounts through the Super Admin API. Removed temporary credential and session files.
+
+## Final runtime checks
+
+- This task deployed API image `codexsun/api:1.1.6-crm-home-20261017-r6` and verified its health.
+- Parallel Sites work subsequently updated API to `codexsun/api:1.1.6-sites-direct-20261017-r3` and web to `codexsun/web:1.1.6-sites-direct-20261017-r2`. Both were healthy at final inspection.
+- Rechecked default company, companies, and financial years through fresh administrator logins on the final runtime. Both tenants returned 200 for all three setup endpoints.
+- A redundant final Rainbow browser pass timed out waiting for the setup response. The earlier browser pass and final authenticated API checks passed.
+- The final browser checks passed all five CRM pages for each tenant with no browser warnings or errors.
+- Removed this task's R4, R5, and R6 candidate API containers after the active API passed health checks.
+- The R5 candidate failed its readiness gate and never received production traffic. The full R6 build corrected its packaging gap.
+- Local startup is free of the reported Vite configuration warning. Production builds retain known bundle-size and dynamic-import warnings.
+
+Android checks used an emulator against the live VPS. Physical devices and live Frappe delivery are outside this verification scope.
+
+## Admin and Manager follow-up acceptance
+
+- Created temporary accounts with exactly one Admin or Manager role in each live tenant. Session responses confirmed all four roles.
+- Initial Admin checks passed. Manager checks found missing Contacts, SOP, Duty, and Call Log read grants.
+- Updated the owning permission seeds, including Contact 360 section reads. Repeated the seeds on `techmedia_db` and `rainbow_db`.
+- Duty user lookups accept duty assignment permission or all-duty read permission. Manager filters do not require assignment write permission.
+- The isolated work-report E2E verifies repeatable Manager grants, duty lookup access, denied duty assignment, and normal-user lookup denial.
+- Manager grants do not add Contact writes, SOP creation, duty assignment, duty management, or Core master writes.
+- Deployed `codexsun/api:1.1.6-crm-roles-20261017`. The active API passed health checks. Removed its temporary candidate container.
+- Rollback files: `/home/codexsun-update-backup/crm-roles-20261017`. Permission snapshots remain under `/storage/backups/database/codexsun-crm-role-grants-before-*.json`.
+- All 22 authenticated API reads passed for each role in each tenant: 88 checks.
+- All 15 browser pages passed for each role in each tenant: 60 checks. No permission errors, failed API responses, or browser console issues occurred.
+- Pages: Application overview, CRM overview, Contacts, Enquiries, Tasks, List In, Activities, SOPs, Duties, Duty Reporting, Call Logs, Reports, Contact 360, Status, and Priority.
+- Opened all Contact 360 groups and sections using the labeled live contact. Empty person sections remain empty.
+- CRM API build and lint, module boundaries, dependency layout, component documentation, and both component-documentation tests passed.
+
+## Separate client APKs
+
+Both APKs target `https://codexsun.com/api/platform`. The server still resolves tenant identity and checks permissions at login.
+
+| Artifact under root `dist/apps/crm/mobile/clients` | Android app ID | Corporate ID | Android version |
+| --- | --- | --- | --- |
+| `techmedia_apk.apk` | `in.codexsun.techmedia_crm` | `TECHMEDIA` | `1.1.6` |
+| `rainbow_apk.apk` | `in.codexsun.rainbow_crm` | `RAINBOW` | `1.1.6` |
+
+- Built each release APK separately. Explicit `--build-name=1.1.6` corrects the older Android manifest version inherited from `pubspec.yaml`.
+- Verified each package ID, app label, manifest version, and APK signature. The existing Android development signing key signs these release builds.
+- SHA-256 Techmedia: `0c08a880d052f550898be39462a6d090b166c9aea93773f86fbe869cfea25adb`.
+- SHA-256 Rainbow: `41bae9d3924b19756a141d811914a119bf63bce28fafed1b875d8625146c56d9`.
+- Installed both APKs together on the emulator. Verified each Corporate ID default and live administrator login through to Home. Signed out afterward.
+- Deactivated all four temporary role-test accounts through the Super Admin API. Removed their saved credentials and sessions from the server and workstation.

@@ -20,6 +20,12 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Loading release preparation, 17-10-2026
+
+- Storefront stories check the public Blog availability contract before requesting posts. Optional stories load after primary home content and do not block it.
+- Browser verification reached the live mapped shop. The catalog now returns an empty result instead of a domain error. No product records were fabricated or published.
+- Version 1.1.7 passed the full repository check, version alignment, 31 focused release tests, and 15 deployment/runtime/persistence contract tests. The local clean-all build is blocked by a Windows dist file lock. Production rollout is pending at commit preparation.
+
 ### Storefront section fit review, 17-10-2026
 
 - Reviewed all 11 homepage sections live at desktop and mobile widths, plus narrow phone and tablet fit checks at 320 and 768 pixels.

@@ -7,7 +7,12 @@ import {
   normalizeTenantDomain
 } from "../modules/tenant-domain/tenant-domain.repository.js";
 import { getTenantDatabase } from "../database/tenant-database.js";
-import { signAuthToken, type AuthUserType, type TenantAccessMode } from "./jwt.js";
+import {
+  signAuthToken,
+  type AuthUserType,
+  type TenantAccessMode,
+  type AuthTokenPayload
+} from "./jwt.js";
 import { hashPassword, passwordNeedsRehash, verifyPassword } from "./password-hash.js";
 import {
   AuthSessionRepository,
@@ -32,6 +37,13 @@ export class AuthService {
     if (desk === "tenant") return this.loginTenant({ ...input, email, loginHost, password });
     if (!isSharedApplicationHost(loginHost)) return null;
     return this.loginPlatformUser({ desk, email, loginHost, password });
+  }
+
+  async sessionRole(payload: AuthTokenPayload) {
+    if (payload.userType !== "tenant") return payload.userType;
+    const tenant = await tenantRepository.findByIdOrCode(payload.tenantId ?? "");
+    if (!tenant || tenant.dbName !== payload.tenantDbName) return "user";
+    return tenantProfileRole(tenant, payload.userId);
   }
 
   private async loginTenant(
@@ -100,6 +112,7 @@ export class AuthService {
       accessToken,
       context,
       corporateId: tenant.corporateId,
+      role: await tenantProfileRole(tenant, user.uuid),
       email: user.email,
       name: user.name,
       tenantCode: tenant.tenantCode,
@@ -224,4 +237,22 @@ async function buildTenantSessionCache(tenant: Tenant): Promise<TenantSessionCac
     safeSettings: { landing: landingPage },
     tenant: { code: tenant.tenantCode, id: tenant.uuid, name: tenant.tenantName }
   };
+}
+
+async function tenantProfileRole(tenant: Tenant, userUuid: string) {
+  const rows = await getTenantDatabase(tenant)
+    .selectFrom("app_users as user")
+    .innerJoin("app_user_roles as assignment", "assignment.user_id", "user.id")
+    .innerJoin("app_roles as role", "role.id", "assignment.role_id")
+    .select("role.key")
+    .where("user.uuid", "=", userUuid)
+    .where("user.status", "=", "active")
+    .where("assignment.status", "=", "active")
+    .where("role.status", "=", "active")
+    .execute();
+  return (
+    ["super-admin", "admin", "manager", "auditor", "user"].find((key) =>
+      rows.some((row) => row.key === key)
+    ) ?? "user"
+  );
 }

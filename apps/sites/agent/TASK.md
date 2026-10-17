@@ -1,5 +1,31 @@
 # Site Studio task and working rules
 
+## Tirupur Connect content management — October 17, 2026
+
+Verified: local authenticated draft/publication persistence and export sequence 24; six publication/Worker checks; six runtime checks; Sites CMS checks (13 passed, one opt-in MariaDB check skipped); affected TypeScript, lint, module boundaries and dependency layout. Deployed the latest public frontend as Worker version `0665e060-cb68-4195-a145-c509f7edec05`. Live content matches the approved Sites export; all 14 public routes passed at 1440, 768, 390 and 320px without runtime exceptions. The separate remote Studio/VPS release was not performed.
+
+Open Sites → Tirupur Connect → Manage. Client details edits branding and public contacts. Pages → Textile edits hero imagery, category copy and images, directory and community headings, the sourcing guide, the closing banner, pending-state copy and public page introductions. Hero, Page & SEO, and Footer have their own sections. Individual category images use full crops. Image sheets use a 3 by 2 crop. Use deployed local image paths or public HTTPS JPG, PNG or WebP URLs. File upload is not included.
+
+Save draft keeps edits private. Publish page creates the public version using existing permissions and revision checks. Start connects the local preview to this client's publication. Business records, credentials, account access, enquiries and conversations remain TConnect-owned and require TIRUPURCONNECT. CMS content never changes that tenant selection.
+
+Live delivery uses an authenticated publication export, not a development API or public management endpoint. Export through the existing client publication control. Set `CODEXSUN_SITES_TIRUPURCONNECT_SNAPSHOT` to the absolute exported JSON filename. Run `npm run build:tirupurconnect -w @codexsun/sites-clients`, then `wrangler deploy --config apps/sites/clients/cloudflare/wrangler.tirupurconnect.jsonc --keep-vars`. The builder verifies checksum, slug, domain and pinned site UUID `e303865e`. It embeds only the published content and blogs, without delivery keys or private drafts. The deployed site reads that version through a read-only same-origin endpoint. Subsequent Studio publication needs another export/build/deploy; automatic remote delivery is not implemented.
+
+No SQL column migration is required for the optional textile content field. Existing publications remain valid. Existing Tirupur Connect generic drafts need approved content initialized before export. The local CMS integration check verifies draft isolation, publish, stale saves, unsafe-image rejection and export. Unit checks cover deployment identity and safe embedding. VPS configuration and a remote Studio registry remain separate.
+
+## Tirupur Connect client move — October 17, 2026
+
+- Moved all TConnect public pages, public components, styles, imagery, metadata builder, and Worker into Sites clients.
+- Added the named template, catalogue entry, seed identity, build mode, and verified local Studio client registration.
+- Studio Start opened the client on port 7040 and returned the matching client identity.
+- Kept private TConnect workspaces and public business schemas/services in their owning app through a public package export.
+- Preserved the live hostname and Worker. Published the Sites-built frontend through the existing Cloudflare zone routes.
+- Reduced the production JavaScript artifact from about 642 kB to 387 kB and replaced external font imports with a self-hosted font.
+- Added a coherent sourcing-guide view and single directory setup state while the dedicated backend tenant is unavailable.
+- Worker tenant guard tests, boundaries and boundary regression tests, Sites/TConnect/Platform type checks, Sites lint, and production build passed.
+- Sites CMS tests passed 13 checks with one opt-in MariaDB test skipped. Five runtime checks passed.
+- The backend still reports CODEXSUN. TIRUPURCONNECT data and full account workflows remain pending the separate VPS setup.
+- No VPS configuration changed in this client move. Remote Studio registry creation was not performed.
+
 ## Client workspace task
 
 Manage must open the selected portfolio's Studio within Sites, with client details, pages, and blogs.

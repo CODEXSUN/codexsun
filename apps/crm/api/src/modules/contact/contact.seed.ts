@@ -12,7 +12,8 @@ export async function seedCrmContactPermissions(database: Kysely<EnquiryDatabase
       ON DUPLICATE KEY UPDATE label=VALUES(label), description=VALUES(description), status='active'
     `.execute(database);
 
-    const roleKeys = action === "view" ? ["admin", "super-admin", "user", "auditor"] : ["admin"];
+    const roleKeys =
+      action === "view" ? ["admin", "super-admin", "manager", "user", "auditor"] : ["admin"];
     for (const roleKey of roleKeys) {
       await sql`
         INSERT INTO app_role_permissions (uuid, role_id, permission_id, status, is_protected)

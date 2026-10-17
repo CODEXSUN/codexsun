@@ -26,6 +26,21 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Loading release preparation, 17-10-2026
+
+- Startup reads now have a 15-second deadline without automatic write cancellation or write retries. Tenant desk code downloads alongside session verification. Authentication still gates protected rendering.
+- Login and recovery pages use narrow shared UI imports. Pure app workspaces load lazily, and the host consumes the small Chat navigation contract.
+- The CODEXSUN shop mapping now passed public DNS token verification. Its existing Ecommerce entitlement remains unchanged.
+- Version 1.1.7 passed the full repository check, version alignment, 31 focused release tests, and 15 deployment/runtime/persistence contract tests. The local clean-all build is blocked by a Windows dist file lock. Production rollout is pending at commit preparation.
+
+### Loading and flow review, 17-10-2026
+
+- The global loader now imports its own small stylesheet. It preserves theme fallback colors, logo dimensions, CSS layer order, and one visible theme variant before application styles load. Local Chrome verified fixed positioning and one visible logo.
+- Repository type checking completed 95 tasks. Repository lint completed 49 package tasks. Boundaries, component documentation, dependency layout, 37 focused frontend/backend tests, and the Platform web production build passed. Some repository task results used cache.
+- The full repository check stopped at stale generated Docs. Bundle warnings and serial loading phases remain review findings.
+- The live shop domain did not resolve to a tenant. Its bootstrap, branding, catalog, and Blog paths returned 404. No domain, entitlement, or data changes were made.
+- Release operations are paused at the user request. The loader change is local only. Full findings and coverage limits are in dist/reports/codexsun-loading-review-2026-10-17.html.
+
 ### Public homepage startup deployment, 17-10-2026
 
 - Deployed focused startup fixes to codexsun.com using an isolated production-baseline build. API, web, and the unchanged shop containers are healthy. Original images remain available for rollback. Database volumes, tenant permissions, and publication settings remain unchanged.
@@ -278,3 +293,38 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - [x] Resolve Chat's default company through Core's public contract and validate the selected active company.
 - [x] Platform API typecheck and lint passed locally. CRM/Chat workflow and denied-access checks are recorded in their owner task files.
 - [ ] Production rollout.
+
+### Container loading performance, 17-10-2026
+
+- Updated the three CodexSun application images with parallel startup loading, early hero discovery, non-blocking homepage styles, and explicit HTML cache policy.
+- Public runtime configuration uses a private 60-second browser cache. Authentication and tenant business responses do not use this policy.
+- Browser cold-load sample: first content 612 ms and load event 2085 ms, without startup errors. The earlier audit measured 2144 ms and 3903 ms; timings vary with network conditions.
+- Browser Super Admin sign-in passed and every previously imported tenant remained visible. Both CXApp container start times were unchanged.
+- UI/API/web typechecks, focused lint, UI build, Platform boundaries, and component-documentation checks passed. The root dependency check remains blocked by the existing `apps/tconnect/web/dist` folder.
+
+### Tenant page loading and build layout, 17-10-2026
+
+- Load Project Manager only when its workspace opens. Start tenant-page module loading alongside session validation.
+- Import UI components through their public subpaths to avoid loading the editor through the root export.
+- Preserve registry-only tenant listing. These changes do not provision or connect tenant databases.
+- Moved the obsolete TConnect web cache from `apps/tconnect/web/dist` into the root `dist/.cache` folder. No cache content was deleted.
+- The earlier dependency-check blocker is resolved. TConnect build, dependency layout, and version checks passed.
+
+### Deployment with tenant database hold, 17-10-2026
+
+- Chat, CRM, and Frappe tenant sync scans now honor `CODEXSUN_QUEUE_WORKER_ENABLED`, together with queue processing.
+- Set this existing worker option to `0` during a deployment that must avoid background tenant database scans.
+- Keep default tenant seeding and database reset disabled. App availability can be configured in the master registry without tenant provisioning.
+
+- VPS Git pull completed at `1b66316`, version 1.1.6. Preserved deployment and page-loading fixes.
+- Built and deployed API, web, and shop as `1.1.6-1b66316`. Staged API readiness passed before replacement.
+- Public Super Admin sign-in, all 15 tenant rows, and CODEXSUN effective access to 20 tenant workspace apps passed.
+- Added 18 tenant entitlement exceptions and refreshed the existing TConnect grant. Existing plan access remains unchanged.
+- CXApp image IDs and start times, tenant connection settings, and the database schema list remained unchanged.
+- Public web and shop frontend assets and health endpoints returned 200. Shop bootstrap returned 404 because its domain binding remains disabled and unverified.
+- Full repository check, Platform API typecheck, lint, and module boundaries passed. Tenant role and data-backed workspace checks remain deferred.
+
+
+## 2026-10-17: Live CRM workspace acceptance
+
+Verified live Techmedia and Rainbow Application overview access. Login/session role display uses active persisted role assignments. Task permission classification delegates to the CRM Task owner, including normal-user closure requests.

@@ -20,6 +20,19 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Loading release preparation, 17-10-2026
+
+- The loader imports its small stylesheet independently. It retains explicit image size, token fallbacks, theme-specific logo visibility, stable layer order, and reduced-motion behavior.
+- Version 1.1.7 passed the full repository check, version alignment, 31 focused release tests, and 15 deployment/runtime/persistence contract tests. The local clean-all build is blocked by a Windows dist file lock. Production rollout is pending at commit preparation.
+
+### Loading and flow review, 17-10-2026
+
+- The global loader now imports its own small stylesheet. It preserves theme fallback colors, logo dimensions, CSS layer order, and one visible theme variant before application styles load. Local Chrome verified fixed positioning and one visible logo.
+- Repository type checking completed 95 tasks. Repository lint completed 49 package tasks. Boundaries, component documentation, dependency layout, 37 focused frontend/backend tests, and the Platform web production build passed. Some repository task results used cache.
+- The full repository check stopped at stale generated Docs. Bundle warnings and serial loading phases remain review findings.
+- The live shop domain did not resolve to a tenant. Its bootstrap, branding, catalog, and Blog paths returned 404. No domain, entitlement, or data changes were made.
+- Release operations are paused at the user request. The loader change is local only. Full findings and coverage limits are in dist/reports/codexsun-loading-review-2026-10-17.html.
+
 ### Global loader aurora backdrop, 16-10-2026
 
 - The fullscreen loader uses a translucent theme background with soft mint, lavender, blue, and pink aurora gradients.

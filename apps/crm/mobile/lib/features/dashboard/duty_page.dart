@@ -26,7 +26,9 @@ class _DutyPageState extends State<DutyPage> {
   Future<List<CrmDuty>> _load() =>
       widget.api.duties(widget.session.accessToken);
 
-  void _refresh() => setState(() => _duties = _load());
+  void _refresh() => setState(() {
+    _duties = _load();
+  });
 
   @override
   Widget build(BuildContext context) {

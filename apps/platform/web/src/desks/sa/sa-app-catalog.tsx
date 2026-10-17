@@ -1,7 +1,8 @@
 import { AppWindowIcon } from "lucide-react";
-import { GlobalLoader } from "@codexsun/ui";
+import { GlobalLoader } from "@codexsun/ui/components/global-loader";
 import { deskAddonAppIds, platformAppRegistry } from "../../app/app-registry";
-import { usePlatformAppsQuery, type PlatformApp } from "../../modules/app-registry";
+import { usePlatformAppsQuery } from "../../modules/app-registry/app-registry.hooks";
+import type { PlatformApp } from "../../modules/app-registry/app-registry.types";
 
 export function SaAppCatalog({ onOpenApp }: { onOpenApp: (appId: string) => void }) {
   const query = usePlatformAppsQuery();

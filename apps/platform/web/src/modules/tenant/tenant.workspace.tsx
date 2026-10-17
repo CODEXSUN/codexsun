@@ -35,7 +35,8 @@ import {
   defaultTenantDomain,
   normalizeTenantDomain
 } from "../tenant-domain/tenant-domain.services";
-import { usePlatformAppsQuery, type PlatformApp } from "../app-registry";
+import { usePlatformAppsQuery } from "../app-registry/app-registry.hooks";
+import type { PlatformApp } from "../app-registry/app-registry.types";
 import { TenantDatabaseControl } from "../tenant-database";
 import { TenantDomainControl } from "../tenant-domain";
 import { TenantActivityControl } from "./tenant.activity";

@@ -1,11 +1,5 @@
-import { motion, useReducedMotion } from "framer-motion";
-
+import "./global-loader.css";
 import { cn } from "../lib/utils";
-
-const ringTransition = {
-  ease: "linear",
-  repeat: Infinity
-} as const;
 
 type GlobalLoaderProps = {
   className?: string;
@@ -18,7 +12,6 @@ export function GlobalLoader({
   fullScreen = true,
   message = "Loading…"
 }: GlobalLoaderProps) {
-  const reducedMotion = useReducedMotion();
   return (
     <div
       className={cn(
@@ -29,24 +22,24 @@ export function GlobalLoader({
     >
       <div className="global-loader-mark" aria-hidden="true">
         <div className="global-loader-core" />
-        <motion.div
-          animate={{ rotate: reducedMotion ? 0 : 360 }}
-          className="global-loader-ring global-loader-ring-accent"
-          transition={{ ...ringTransition, duration: 3 }}
-        />
-        <motion.div
-          animate={{ rotate: reducedMotion ? 0 : 360 }}
-          className="global-loader-ring global-loader-ring-dark"
-          transition={{ ...ringTransition, duration: 2.5 }}
-        />
-        <motion.div
-          animate={{ rotate: reducedMotion ? 0 : -360 }}
-          className="global-loader-ring global-loader-ring-soft"
-          transition={{ ...ringTransition, duration: 4 }}
-        />
+        <div className="global-loader-ring global-loader-ring-accent" />
+        <div className="global-loader-ring global-loader-ring-dark" />
+        <div className="global-loader-ring global-loader-ring-soft" />
         <div className="global-loader-logo" aria-hidden="true">
-          <img className="dark:hidden" src="/logo/logo.svg" alt="" />
-          <img className="hidden dark:block" src="/logo/logo-dark.svg" alt="" />
+          <img
+            className="global-loader-logo-light"
+            width={41}
+            height={41}
+            src="/logo/logo.svg"
+            alt=""
+          />
+          <img
+            className="global-loader-logo-dark"
+            width={41}
+            height={41}
+            src="/logo/logo-dark.svg"
+            alt=""
+          />
         </div>
       </div>
       <p className="global-loader-message" role="status" aria-live="polite">

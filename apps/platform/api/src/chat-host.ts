@@ -12,6 +12,7 @@ export function telegramChatDependencies(queue: QueueManagerService): TelegramDe
     secretKey: env.JWT_SECRET,
     enqueue: (input) => queue.enqueue(input),
     scopes: async () => {
+      if (env.CODEXSUN_QUEUE_WORKER_ENABLED !== "1") return [];
       const scopes = [];
       for (const tenant of await new TenantRepository().list()) {
         if (tenant.status !== "active" || !tenant.enabledModuleKeys.includes("chat")) continue;

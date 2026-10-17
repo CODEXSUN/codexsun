@@ -18,6 +18,31 @@ import 'package:codexsun_crm_mobile/features/dashboard/messages_sample_page.dart
 import 'package:codexsun_crm_mobile/features/dashboard/my_enquiries_page.dart';
 
 void main() {
+  test(
+    'tenant identity and email prefixes do not imply an administrator role',
+    () {
+      expect(
+        UserProfile.fromJson({
+          'email': 'admin@example.test',
+          'userType': 'tenant',
+        }).role,
+        'user',
+      );
+      expect(
+        UserProfile.fromJson({
+          'email': 'field@example.test',
+          'userType': 'tenant',
+          'role': 'user',
+        }).role,
+        'user',
+      );
+      expect(
+        UserProfile.fromJson({'email': 'admin@example.test', 'role': 'admin'})
+            .role,
+        'admin',
+      );
+    },
+  );
   test('uses the local development host for Android emulator API calls', () {
     expect(CrmMobileApi('http://10.0.2.2:7010').hostHeader, '127.0.0.1:7010');
     expect(CrmMobileApi('https://crm.example.com').hostHeader, isNull);
@@ -427,8 +452,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();
-    expect(find.text('Scan document'), findsOneWidget);
-    expect(find.text('Take photo'), findsOneWidget);
+    expect(find.text('Scan document'), findsNothing);
+    expect(find.text('Take photo'), findsNothing);
     expect(find.text('Log location'), findsOneWidget);
     expect(find.text('Mark completed'), findsOneWidget);
     expect(find.text('Charges'), findsOneWidget);

@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { AppError } from "@codexsun/framework/errors";
 import { registerContractRoute } from "@codexsun/framework/http";
 import { DutyAssignmentRepository } from "./duty-assignment.repository.js";
 import { DutyAssignmentService } from "./duty-assignment.service.js";
@@ -103,7 +104,12 @@ export function registerDutyAssignmentRoutes(
     },
     handler: async ({ request }) => {
       const ctx = await context(request);
-      await ctx.authorize("crm.duty.assign");
+      try {
+        await ctx.authorize("crm.duty.assign");
+      } catch (error) {
+        if (!(error instanceof AppError) || error.statusCode !== 403) throw error;
+        await ctx.authorize("crm.duty.view.all");
+      }
       return ctx.database
         .selectFrom("app_users")
         .select(["id", "name", "email"])
@@ -119,9 +125,9 @@ export function registerDutyAssignmentRoutes(
     handler: async ({ request }) => {
       const ctx = await context(request);
       await ctx.authorize("crm.duty.view.own");
-      return new DutyAssignmentService(new DutyAssignmentRepository(ctx.database, ctx.notifyWork)).listOwn(
-        ctx.actorUserId
-      );
+      return new DutyAssignmentService(
+        new DutyAssignmentRepository(ctx.database, ctx.notifyWork)
+      ).listOwn(ctx.actorUserId);
     }
   });
   registerContractRoute(app, {
@@ -131,7 +137,9 @@ export function registerDutyAssignmentRoutes(
     handler: async ({ request }) => {
       const ctx = await context(request);
       await ctx.authorize("crm.duty.view.all");
-      return new DutyAssignmentService(new DutyAssignmentRepository(ctx.database, ctx.notifyWork)).listAll();
+      return new DutyAssignmentService(
+        new DutyAssignmentRepository(ctx.database, ctx.notifyWork)
+      ).listAll();
     }
   });
   registerContractRoute(app, {
@@ -155,9 +163,9 @@ export function registerDutyAssignmentRoutes(
     handler: async ({ params, request }) => {
       const ctx = await context(request);
       await ctx.authorize("crm.duty.manage");
-      await new DutyAssignmentService(new DutyAssignmentRepository(ctx.database, ctx.notifyWork)).deactivate(
-        params.id
-      );
+      await new DutyAssignmentService(
+        new DutyAssignmentRepository(ctx.database, ctx.notifyWork)
+      ).deactivate(params.id);
       return { success: true as const };
     }
   });

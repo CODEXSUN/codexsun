@@ -16,6 +16,8 @@ class DashboardStats extends StatefulWidget {
     required this.onOpenActions,
     this.unreadChatCount = 0,
     this.assignmentCount = 0,
+    this.taskUnreadCount = 0,
+    this.dutyUnreadCount = 0,
     super.key,
   });
   final CrmMobileApi api;
@@ -23,6 +25,8 @@ class DashboardStats extends StatefulWidget {
   final int jobCount;
   final int unreadChatCount;
   final int assignmentCount;
+  final int taskUnreadCount;
+  final int dutyUnreadCount;
   final ValueChanged<int> onOpenList;
   final Future<void> Function() onOpenActions;
   @override
@@ -142,11 +146,12 @@ class _DashboardStatsState extends State<DashboardStats> {
               ),
             );
             _refresh();
-          }),
+          }, badge: widget.taskUnreadCount),
           _card(
             'Duty',
             Icons.calendar_month_outlined,
             () => widget.onOpenList(2),
+            badge: widget.dutyUnreadCount,
           ),
           _card('Activities', Icons.bolt_outlined, widget.onOpenActions),
           _card(

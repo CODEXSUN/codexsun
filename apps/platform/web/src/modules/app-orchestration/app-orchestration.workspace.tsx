@@ -1,4 +1,5 @@
-import { GlobalLoader, StatusBadge } from "@codexsun/ui";
+import { GlobalLoader } from "@codexsun/ui/components/global-loader";
+import { StatusBadge } from "@codexsun/ui/components/StatusBadge";
 import { AppOrchestrationForm } from "./app-orchestration.form";
 import { useAppOperationsQuery } from "./app-orchestration.hooks";
 import { appOperationTones, AppServiceList } from "./app-orchestration.list";

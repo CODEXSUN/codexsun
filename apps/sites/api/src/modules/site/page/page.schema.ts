@@ -1,4 +1,10 @@
 import { z } from "zod";
+import { textileContentSchema } from "./page.textile-schema.js";
+export {
+  textileContentSchema,
+  textileImageSchema,
+  type TextileContent
+} from "./page.textile-schema.js";
 import { logicxMarketingSchema } from "./page.marketing-schema.js";
 export {
   logicxMarketingSchema,
@@ -11,6 +17,7 @@ const short = z.string().trim().min(1).max(180);
 const title = z.strictObject({ label: short, title: short, emphasis: short, intro: text });
 export const pageContentSchema = z.strictObject({
   marketing: logicxMarketingSchema.optional(),
+  textile: textileContentSchema.optional(),
   applications: z
     .array(
       z.strictObject({

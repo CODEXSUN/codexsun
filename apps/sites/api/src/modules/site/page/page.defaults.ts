@@ -1,3 +1,4 @@
+import { tirupurConnectPage } from "./page.textile-content.js";
 import { initialRamuTexPage, initialLogicxPage } from "./page.content.js";
 import type { PageContent } from "./page.schema.js";
 import type { PageOwner } from "./page.types.js";
@@ -6,7 +7,7 @@ export function initialSitePage(site: PageOwner): PageContent {
   if (site.slug === "ramutex") return structuredClone(initialRamuTexPage);
   if (site.slug === "logicx") return structuredClone(initialLogicxPage);
   const name = site.name ?? site.slug;
-  return {
+  const content: PageContent = {
     pageTitle: name,
     description: site.description || `Learn about ${name}, our services and how to contact us.`,
     profile: {
@@ -89,4 +90,5 @@ export function initialSitePage(site: PageOwner): PageContent {
     },
     footer: { lineOne: name, lineTwo: "Company portfolio" }
   };
+  return site.slug === "tirupurconnect" ? tirupurConnectPage(content) : content;
 }

@@ -1,5 +1,6 @@
 import { Button } from "@codexsun/ui/components/button";
 export type PageSection =
+  | "textile"
   | "marketing"
   | "applications"
   | "seo"
@@ -14,10 +15,12 @@ export type PageSection =
   | "footer";
 export function PageList({
   withApplications = false,
+  textile = false,
   selected,
   onSelect
 }: {
   withApplications?: boolean;
+  textile?: boolean;
   selected: PageSection;
   onSelect: (section: PageSection) => void;
 }) {
@@ -25,6 +28,7 @@ export function PageList({
     <nav aria-label="Homepage sections" className="flex flex-wrap gap-2">
       {(
         [
+          "textile",
           "marketing",
           "applications",
           "seo",
@@ -39,7 +43,13 @@ export function PageList({
           "footer"
         ] as const
       )
-        .filter((section) => !["applications", "marketing"].includes(section) || withApplications)
+        .filter((section) =>
+          section === "textile"
+            ? textile
+            : textile
+              ? ["seo", "hero", "footer"].includes(section)
+              : !["applications", "marketing"].includes(section) || withApplications
+        )
         .map((section) => (
           <Button
             key={section}

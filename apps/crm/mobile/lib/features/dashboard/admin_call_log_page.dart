@@ -110,7 +110,9 @@ class _AdminCallLogPageState extends State<AdminCallLogPage> {
   }
 
   Future<void> _requestAccess() async {
-    setState(() => _calls = _loadCalls());
+    setState(() {
+      _calls = _loadCalls();
+    });
   }
 
   Future<void> _restoreSavedAccess() async {
@@ -128,7 +130,9 @@ class _AdminCallLogPageState extends State<AdminCallLogPage> {
   }
 
   Future<void> _reload() async {
-    setState(() => _calls = _loadCalls());
+    setState(() {
+      _calls = _loadCalls();
+    });
     await _calls!;
   }
 

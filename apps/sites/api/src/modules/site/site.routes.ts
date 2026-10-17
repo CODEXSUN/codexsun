@@ -1,3 +1,9 @@
+import {
+  deploymentModule,
+  DeploymentRepository,
+  DeploymentService,
+  type DeploymentHost
+} from "./deployment/index.js";
 import { registerEnquiryRoutes } from "./enquiry/enquiry.routes.js";
 import { sitePublicationSchema } from "./site.public-contract.js";
 import { registerContractRoute } from "@codexsun/framework/http";
@@ -56,7 +62,8 @@ const siteParamsSchema = z.strictObject({
 
 export function registerSiteRoutes(
   app: FastifyInstance,
-  resolveContext: (request: FastifyRequest) => SitesRequestContext | Promise<SitesRequestContext>
+  resolveContext: (request: FastifyRequest) => SitesRequestContext | Promise<SitesRequestContext>,
+  deploymentHost?: DeploymentHost
 ) {
   const runtime = new SiteRuntimeService();
   const publicReader = new SitePublicReader();
@@ -79,13 +86,54 @@ export function registerSiteRoutes(
       blogs: await new BlogService(new BlogRepository(database), site).published()
     };
   });
+  deploymentModule.register(app, async (request, uuid, action) => {
+    const identity = await authorizeSitesAction(app, request, `sites.site.deployment.${action}`);
+    const ctx = await resolveContext(request);
+    const database = ctx.database as Kysely<SitesDatabase>;
+    const site = await new SiteService(new SiteRepository(database)).show(uuid);
+    return new DeploymentService(
+      new DeploymentRepository(database),
+      {
+        siteId: site.id,
+        siteUuid: site.uuid,
+        siteSlug: site.slug,
+        domain: site.primaryDomain,
+        tenantId: ctx.tenantId,
+        actor: identity.actorEmail
+      },
+      deploymentHost
+    );
+  });
   pageModule.register(app, async (request, uuid, action) => {
     const identity = await authorizeSitesAction(app, request, `sites.page.content.${action}`);
     const ctx = await resolveContext(request);
     const database = ctx.database as Kysely<SitesDatabase>;
     const site = await new SiteService(new SiteRepository(database)).show(uuid);
     return {
-      service: new PageService(new PageRepository(database), site),
+      service: new PageService(new PageRepository(database), site, async (revision, content) => {
+        const deployment = new DeploymentService(
+          new DeploymentRepository(database),
+          {
+            siteId: site.id,
+            siteUuid: site.uuid,
+            siteSlug: site.slug,
+            domain: site.primaryDomain,
+            tenantId: ctx.tenantId,
+            actor: identity.actorEmail
+          },
+          deploymentHost
+        );
+        await deployment.schedule(
+          revision,
+          async () =>
+            new PublicationService(new PublicationRepository(database), site, ctx.tenantId).export(
+              content,
+              await new BlogService(new BlogRepository(database), site).published(),
+              identity.actorEmail
+            ),
+          request.id
+        );
+      }),
       actor: identity.actorEmail
     };
   });

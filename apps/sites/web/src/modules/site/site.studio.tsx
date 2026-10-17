@@ -1,3 +1,4 @@
+import { DeploymentWorkspace } from "./deployment/index.js";
 import { EnquiryWorkspace } from "./enquiry/index.js";
 import { useState } from "react";
 import { PageWorkspace } from "./page/index.js";
@@ -120,6 +121,9 @@ export function SiteStudio({
           <SiteRuntimeControls key={`${site.uuid}:${site.port}`} site={site} gateway={gateway} />
         </div>
       </Card>
+      {site.slug === "tirupurconnect" ? (
+        <DeploymentWorkspace uuid={site.uuid} gateway={gateway?.deployment} />
+      ) : null}
       <WorkspaceAnimatedTabs
         value={tab}
         onValueChange={(value) => {
@@ -142,10 +146,15 @@ export function SiteStudio({
       <div hidden={tab === "blogs" || tab === "enquiries"}>
         <PageWorkspace
           withApplications={site.slug === "logicx"}
+          textile={site.slug === "tirupurconnect"}
           uuid={site.uuid}
           gateway={gateway?.page}
           view={tab === "details" ? "profile" : "sections"}
-          publicOrigin={`http://127.0.0.1:${site.port}`}
+          publicOrigin={
+            site.slug === "tirupurconnect"
+              ? "https://tirupurconnect.com"
+              : `http://127.0.0.1:${site.port}`
+          }
         />
       </div>
       {tab === "enquiries" ? (

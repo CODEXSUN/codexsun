@@ -69,3 +69,24 @@ test("SA and tenant tabs keep independent session selectors through login and lo
   Object.assign(globalThis, { sessionStorage: saStorage });
   assert.equal(getSessionSlot(), "a".repeat(32));
 });
+
+test("reads have a deadline without automatically cancelling writes", async () => {
+  Object.assign(globalThis, {
+    sessionStorage: storage(),
+    window: { __CODEXSUN_RUNTIME_CONFIG__: { VITE_PLATFORM_API_URL: "/api/app" } }
+  });
+  const signals: Array<AbortSignal | null | undefined> = [];
+  globalThis.fetch = async (_input, init) => {
+    signals.push(init?.signal);
+    return Response.json({ success: true, data: { authenticated: false } });
+  };
+  const { apiGet, apiPost } = await import("./platform-api");
+  await apiGet("/deadline-test");
+  assert.ok(signals[0] instanceof AbortSignal);
+  await apiPost("/write-test", {});
+  assert.equal(
+    signals[1],
+    undefined,
+    "writes must not acquire an ambiguous automatic deadline or retry"
+  );
+});

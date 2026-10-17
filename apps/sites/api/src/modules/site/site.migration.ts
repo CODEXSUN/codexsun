@@ -1,3 +1,4 @@
+import { migrateDeploymentModule } from "./deployment/index.js";
 import { sql, type Kysely } from "kysely";
 import type { SitesDatabase } from "./site.types.js";
 import { migratePageModule } from "./page/index.js";
@@ -30,9 +31,11 @@ export async function migrateSiteModule(database: Kysely<SitesDatabase>) {
   await migratePageModule(database);
   await migrateBlogModule(database);
   await migratePublicationModule(database);
+  await migrateDeploymentModule(database);
 }
 
 export async function rollbackSiteModule(database: Kysely<SitesDatabase>) {
+  await sql`DROP TABLE IF EXISTS sites_deployments`.execute(database);
   await sql`DROP TABLE IF EXISTS sites_publications`.execute(database);
   await sql`DROP TABLE IF EXISTS sites_blog_activity`.execute(database);
   await sql`DROP TABLE IF EXISTS sites_blog_posts`.execute(database);

@@ -90,3 +90,5 @@ export type { WorkReportContext, WorkReportDatabase } from "./modules/work-repor
 export { recordWorkEvent } from "./modules/work-report/index.js";
 
 export { deliverDutyUpdate } from "./modules/duty-assignment/index.js";
+
+export { taskPermissionForRequest } from "./modules/task/index.js";

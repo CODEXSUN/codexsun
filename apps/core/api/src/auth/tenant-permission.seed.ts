@@ -23,14 +23,18 @@ export async function seedCoreTenantPermissions(database: Kysely<unknown>) {
       ON DUPLICATE KEY UPDATE
         label=VALUES(label), description=VALUES(description), status='active', is_protected=TRUE
     `.execute(database);
-    await sql`
-      INSERT INTO app_role_permissions (uuid, role_id, permission_id, status, is_protected)
-      SELECT ${stable(`role-permission:admin:${key}`)}, role.id, permission.id, 'active', TRUE
-      FROM app_roles role
-      INNER JOIN app_permissions permission ON permission.\`key\`=${key}
-      WHERE role.\`key\`='admin'
-      ON DUPLICATE KEY UPDATE status='active', is_protected=TRUE
-    `.execute(database);
+    const roles =
+      key === "core.application.records.view" ? ["admin", "super-admin", "manager"] : ["admin"];
+    for (const roleKey of roles) {
+      await sql`
+        INSERT INTO app_role_permissions (uuid, role_id, permission_id, status, is_protected)
+        SELECT ${stable(`role-permission:${roleKey}:${key}`)}, role.id, permission.id, 'active', TRUE
+        FROM app_roles role
+        INNER JOIN app_permissions permission ON permission.\`key\`=${key}
+        WHERE role.\`key\`=${roleKey}
+        ON DUPLICATE KEY UPDATE status='active', is_protected=TRUE
+      `.execute(database);
+    }
   }
 }
 

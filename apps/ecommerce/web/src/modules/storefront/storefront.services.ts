@@ -68,7 +68,13 @@ export const getStorefrontFeaturedCards = () =>
   get<StorefrontFeaturedCard[]>("/storefront/featured-cards");
 export const getStorefrontProduct = (slug: string) =>
   get<StorefrontProductDetail>(`/storefront/products/${encodeURIComponent(slug)}`);
-export const listLatestBlogPosts = () => get<StorefrontBlogPost[]>("/public/blog?kind=post");
+export async function getStorefrontBlogAvailability() {
+  return (await get<{ blogEnabled?: boolean }>("/public/app-portal")).blogEnabled === true;
+}
+export const listLatestBlogPosts = async () =>
+  (await getStorefrontBlogAvailability())
+    ? get<StorefrontBlogPost[]>("/public/blog?kind=post")
+    : [];
 export const getStorefrontSiteNavigation = () =>
   get<StorefrontSiteNavigation>("/storefront/site-navigation");
 export const getStorefrontAnnouncement = () =>

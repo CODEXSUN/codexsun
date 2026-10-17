@@ -8,6 +8,7 @@ export const siteSeed = {
 };
 
 const defaultPortfolios = [
+  {description:"Textile business discovery and association communities, connected to the Tirupur Connect tenant.",name:"Tirupur Connect",port:7040,primaryDomain:"tirupurconnect.com",publishedPages:0,slug:"tirupurconnect",status:"active" as const,themeKey:"portfolio-tirupurconnect",uuid:"c0de0005"},
   {
     description:
       "Custom software, Frappe and ERPNext, React and mobile apps, integrations, and business automation support.",

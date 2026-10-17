@@ -83,8 +83,12 @@ export class ChatService {
     return this.repository.forceDeleteChannel(await this.context(request), id);
   }
 
-  async markRead(request: Parameters<ChatModuleDependencies["resolveContext"]>[0], id: string) {
-    return this.repository.markRead(await this.context(request), id);
+  async markRead(
+    request: Parameters<ChatModuleDependencies["resolveContext"]>[0],
+    id: string,
+    messageId?: number
+  ) {
+    return this.repository.markRead(await this.context(request), id, messageId);
   }
 
   async listMembers(request: Parameters<ChatModuleDependencies["resolveContext"]>[0], id: string) {

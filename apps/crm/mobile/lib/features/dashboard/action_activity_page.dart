@@ -61,28 +61,12 @@ class _ActionActivityPageState extends State<ActionActivityPage> {
     );
   }
 
-  void _setPeriod(_ActionPeriod period) => setState(() => _period = period);
+  void _setPeriod(_ActionPeriod period) => setState(() {
+    _period = period;
+  });
 
-  Future<List<CrmJob>> _loadJobs() async {
-    try {
-      final jobs = await widget.api.assignedJobDetails(
-        widget.session.accessToken,
-      );
-      if (jobs.isNotEmpty) return jobs;
-      final enquiries = await widget.api.enquiries(
-        accessToken: widget.session.accessToken,
-        scope: 'all',
-      );
-      if (enquiries.isEmpty) return jobs;
-      return await Future.wait(
-        enquiries.map(
-          (e) => widget.api.job(widget.session.accessToken, e.sourceId),
-        ),
-      );
-    } catch (_) {
-      return widget.api.assignedJobDetails(widget.session.accessToken);
-    }
-  }
+  Future<List<CrmJob>> _loadJobs() =>
+      widget.api.activityJobs(widget.session.accessToken);
 
   Future<void> _openQuickActions() async {
     final jobs = await _jobs;
@@ -93,7 +77,10 @@ class _ActionActivityPageState extends State<ActionActivityPage> {
       session: widget.session,
       jobs: jobs,
     );
-    if (changed && mounted) setState(() => _jobs = _loadJobs());
+    if (changed && mounted)
+      setState(() {
+        _jobs = _loadJobs();
+      });
   }
 }
 

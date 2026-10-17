@@ -14,6 +14,7 @@ import type {
 export class QueueManagerRepository {
   async list(filters: QueueJobFilters = {}) {
     let query = getPlatformDatabase().selectFrom("queue_jobs").selectAll();
+    if (filters.jobName) query = query.where("job_name", "=", filters.jobName);
     if (filters.status) query = query.where("status", "=", filters.status);
     if (filters.queueName) query = query.where("queue_name", "=", filters.queueName);
     if (filters.tenantId) query = query.where("tenant_id", "=", filters.tenantId);

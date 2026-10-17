@@ -55,13 +55,13 @@ const apps = {
     args: [nodePackageBin("vite", "bin/vite.js"), "--strictPort"]
   },
   "tconnect-web": {
-    displayName: "TConnect web",
-    cwd: "apps/tconnect/web",
+    displayName: "Sites · Tirupur Connect",
+    cwd: "apps/sites/clients",
     envKey: "CODEXSUN_TCONNECT_WEB_PORT",
     defaultPort: 7040,
     host: "127.0.0.1",
     command: process.execPath,
-    args: [nodePackageBin("vite", "bin/vite.js"), "--strictPort"]
+    args: ["--import", "tsx", nodePackageBin("vite", "bin/vite.js"), "--mode", "tirupurconnect", "--strictPort"]
   },
   "ecommerce-web": {
     displayName: "ecommerce web",

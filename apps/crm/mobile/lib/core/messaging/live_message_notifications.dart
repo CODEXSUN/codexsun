@@ -35,6 +35,10 @@ class LiveMessageNotifications extends ChangeNotifier {
   List<MessagingConversation> get unreadConversations =>
       List.unmodifiable(_unreadConversations);
 
+  int unreadFor(String prefix) => _unreadConversations
+      .where((item) => item.title.startsWith(prefix))
+      .fold(0, (sum, item) => sum + item.unreadCount);
+
   void updateSession(UserSession updatedSession) {
     if (session.accessToken == updatedSession.accessToken) return;
     session = updatedSession;
@@ -56,11 +60,13 @@ class LiveMessageNotifications extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    final token = session.accessToken;
     try {
       final conversations = await api.conversations(
         accessToken: session.accessToken,
         currentEmail: session.profile.email,
       );
+      if (_closed || token != session.accessToken) return;
       _unreadConversations = conversations
           .where((item) => item.unreadCount > 0)
           .toList();
