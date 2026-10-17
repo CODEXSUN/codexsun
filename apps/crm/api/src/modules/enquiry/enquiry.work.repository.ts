@@ -14,7 +14,10 @@ import type {
 } from "./enquiry.types.js";
 
 export class EnquiryWorkRepository {
-  constructor(private readonly database: Kysely<EnquiryDatabase>, private readonly workEvent?: import("./enquiry.routes.js").EnquiryRequestContext["workEvent"]) {}
+  constructor(
+    private readonly database: Kysely<EnquiryDatabase>,
+    private readonly workEvent?: import("./enquiry.routes.js").EnquiryRequestContext["workEvent"]
+  ) {}
 
   async listJobs(enquiryId: number): Promise<EnquiryJob[]> {
     const rows = await this.database

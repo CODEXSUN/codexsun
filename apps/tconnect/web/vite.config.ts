@@ -1,4 +1,4 @@
-import { publicMetadataPlugin } from "./seo.plugin";
+import { publicMetadataPlugin } from "./seo.plugin.js";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
@@ -11,8 +11,25 @@ export default defineConfig(({ mode }) => {
   );
   const apiPort = Number(process.env.PLATFORM_API_PORT ?? env.PLATFORM_API_PORT);
   return {
-    plugins: [react(), publicMetadataPlugin(`http://127.0.0.1:${apiPort}`, resolve(root, "dist/apps/tconnect/web"), mode !== "production", env.CODEXSUN_TCONNECT_BUILD_HOST ?? (env.NODE_ENV === "development" ? `127.0.0.1:${port}` : "tirupurconnect.com"))],
+    plugins: [
+      react(),
+      publicMetadataPlugin(
+        process.env.CODEXSUN_TCONNECT_BUILD_API_ORIGIN ??
+          env.CODEXSUN_TCONNECT_BUILD_API_ORIGIN ??
+          `http://127.0.0.1:${apiPort}`,
+        resolve(root, "dist/apps/tconnect/web"),
+        mode !== "production",
+        process.env.CODEXSUN_TCONNECT_BUILD_HOST ??
+          env.CODEXSUN_TCONNECT_BUILD_HOST ??
+          (env.NODE_ENV === "development" ? `127.0.0.1:${port}` : "tirupurconnect.com")
+      )
+    ],
     define: {
+      __CODEXSUN_TCONNECT_CORPORATE_ID__: JSON.stringify(
+        process.env.CODEXSUN_TCONNECT_CORPORATE_ID ??
+          env.CODEXSUN_TCONNECT_CORPORATE_ID ??
+          (mode === "production" ? "TIRUPURCONNECT" : "")
+      ),
       __CODEXSUN_PLATFORM_WEB_ORIGIN__: JSON.stringify(env.PLATFORM_WEB_ORIGIN),
       __CODEXSUN_PLATFORM_WEB_PORT__: JSON.stringify(Number(env.PLATFORM_WEB_PORT))
     },

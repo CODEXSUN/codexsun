@@ -6,6 +6,8 @@ import { ProductService } from "./modules/product/product.service.js";
 import { MemberService } from "./modules/member/member.service.js";
 import { brandImage } from "./modules/company/company.branding.js";
 import type { TconnectContext } from "./context.js";
+import { CredentialService } from "./modules/credential/credential.service.js";
+import { credentialInput } from "./modules/credential/credential.types.js";
 const registration = {
   corporateId: "CODEXSUN",
   name: "Test Seller",
@@ -29,6 +31,49 @@ const context: TconnectContext = {
   },
   authorize: async () => undefined
 };
+test("portal members cannot review credentials even with a permissive permission adapter", async () => {
+  const service = new CredentialService(context);
+  await assert.rejects(service.list(), /authorized staff/);
+  await assert.rejects(service.save({}), /authorized staff/);
+  const buyer = new CredentialService({
+    ...context,
+    member: null,
+    buyer: {
+      uuid: "b1234567",
+      name: "Fixture buyer",
+      email: "buyer@example.invalid",
+      businessName: "Fixture business",
+      city: "Tirupur",
+      phone: "",
+      status: "active"
+    }
+  });
+  await assert.rejects(buyer.list(), /authorized staff/);
+  await assert.rejects(buyer.save({}), /authorized staff/);
+});
+test("credential evidence rejects invalid dates, unsafe URLs and caller-selected review identity", () => {
+  const input = {
+    companyUuid: "b1234567",
+    kind: "certification",
+    standardName: "Fixture standard",
+    issuer: "Fixture issuer",
+    reference: "reference",
+    scope: "Fixture evidence scope",
+    publicEvidenceUrl: "https://example.invalid/evidence",
+    expiresOn: "2099-12-31",
+    privateNotes: "",
+    status: "pending"
+  };
+  assert(credentialInput.safeParse(input).success);
+  for (const patch of [
+    { expiresOn: "2026-02-31" },
+    { publicEvidenceUrl: "javascript:alert(1)" },
+    { publicEvidenceUrl: "https://user:secret@example.invalid/evidence" },
+    { reviewedBy: "forged" },
+    { reviewedAt: "2099-01-01" }
+  ])
+    assert.equal(credentialInput.safeParse({ ...input, ...patch }).success, false);
+});
 const company = {
   name: "Test Company",
   slug: "test-company",

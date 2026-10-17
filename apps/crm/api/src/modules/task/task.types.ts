@@ -103,7 +103,12 @@ export type TaskContext = {
   actorUserId: number | null;
   canViewAll: boolean;
   authorize: (permission: string) => Promise<void>;
-  workEvent?: (transaction: Transaction<TaskDatabase>, taskId: number, action: string, body: string) => Promise<void>;
+  workEvent?: (
+    transaction: Transaction<TaskDatabase>,
+    taskId: number,
+    action: string,
+    body: string
+  ) => Promise<void>;
   resolveContact?: (
     input: Pick<TaskInput, "contactId" | "capturedName" | "capturedPhone">,
     transaction: Transaction<TaskDatabase>

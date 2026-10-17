@@ -89,7 +89,7 @@ export function registerDutyAssignmentRoutes(
       const ctx = await context(request);
       await ctx.authorize("crm.duty.manage");
       const result = await new DutyAssignmentService(
-        new DutyAssignmentRepository(ctx.database)
+        new DutyAssignmentRepository(ctx.database, ctx.notifyWork)
       ).update(params.id, body, ctx.actorEmail);
       await ctx.queueSync?.("duty-assignment", result.id);
       return result;
@@ -119,7 +119,7 @@ export function registerDutyAssignmentRoutes(
     handler: async ({ request }) => {
       const ctx = await context(request);
       await ctx.authorize("crm.duty.view.own");
-      return new DutyAssignmentService(new DutyAssignmentRepository(ctx.database)).listOwn(
+      return new DutyAssignmentService(new DutyAssignmentRepository(ctx.database, ctx.notifyWork)).listOwn(
         ctx.actorUserId
       );
     }
@@ -131,7 +131,7 @@ export function registerDutyAssignmentRoutes(
     handler: async ({ request }) => {
       const ctx = await context(request);
       await ctx.authorize("crm.duty.view.all");
-      return new DutyAssignmentService(new DutyAssignmentRepository(ctx.database)).listAll();
+      return new DutyAssignmentService(new DutyAssignmentRepository(ctx.database, ctx.notifyWork)).listAll();
     }
   });
   registerContractRoute(app, {
@@ -142,7 +142,7 @@ export function registerDutyAssignmentRoutes(
       const ctx = await context(request);
       await ctx.authorize("crm.duty.assign");
       const result = await new DutyAssignmentService(
-        new DutyAssignmentRepository(ctx.database)
+        new DutyAssignmentRepository(ctx.database, ctx.notifyWork)
       ).create(body, ctx.actorEmail);
       await ctx.queueSync?.("duty-assignment", result.id);
       return result;
@@ -155,7 +155,7 @@ export function registerDutyAssignmentRoutes(
     handler: async ({ params, request }) => {
       const ctx = await context(request);
       await ctx.authorize("crm.duty.manage");
-      await new DutyAssignmentService(new DutyAssignmentRepository(ctx.database)).deactivate(
+      await new DutyAssignmentService(new DutyAssignmentRepository(ctx.database, ctx.notifyWork)).deactivate(
         params.id
       );
       return { success: true as const };

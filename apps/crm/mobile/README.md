@@ -26,3 +26,17 @@ Approval reloads the Closed status. Rejection shows the review note and allows a
 The Flutter widget suite covers both review outcomes and cancels polling when the screen closes.
 On Windows without Developer Mode, set `FLUTTER_WINDOWS=false` before `npm run crm:mobile:test -- --no-pub`.
 This runs widget tests without the Windows desktop plugin symlinks. It does not replace Android device verification.
+
+## Assigned tasks and action reports
+
+Open Menu > Tasks for accessible active tasks. A task shows its optional contact, status, action history, and completion request.
+Choose Add action on an enquiry, task, or duty. The shared drawer contains an Action dropdown, the selected action form, Cancel, and Confirm.
+Enquiries and tasks support reports, GPS checkpoints, job timers, completion requests, and collection notes. Duties use their report/result fields in the same drawer.
+GPS checkpoints require location permission and a fresh capture.
+A failed submission retains its retry key and input. Permission errors remain visible during history polling.
+The server enforces assignment, checkpoint sequence, and duplicate protection. Reports appear in the web Actions tab.
+Completion stays pending until an administrator approves or rejects it. Task details poll for the decision.
+Duty reports can be edited from their history. Editing preserves the report date and changes Actions through the existing protected update API.
+Related work messages appear in Chat. Its conversation list and message thread refresh automatically.
+
+The Android build cache, including Kotlin state, is redirected under root `dist` by the mobile launcher.

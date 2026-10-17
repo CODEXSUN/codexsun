@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.5
+Current version: 1.1.6
 
-Release tag: v-1.1.5
+Release tag: v-1.1.6
 
-Changelog label: v 1.1.5
+Changelog label: v 1.1.6
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -20,6 +20,33 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.1.6
+
+### [v 1.1.6] 2026-10-17 7:07 pm - CRM work reports, mobile workflows, and public delivery
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Updates CRM work-report persistence and Chat permission seeds. Existing databases require reviewed migrations and permission seed execution before rollout.
+- No live migration, external deployment, provider submission, or physical-device verification was performed during this release preparation.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.6.
+- Completed the pending CRM work-report host integration, transactional Chat delivery, duty notifications, and enquiry/task/duty action history changes.
+- Updated CRM mobile action drawers, duty report history, work feeds, messaging, WebSocket adapters, and widget tests.
+- Updated Chat participant access, work-message creation, permission seeds, and realtime hooks.
+- Updated tenant registry list handling, public blog delivery, static public document rendering, startup composition, and container/runtime configuration.
+- Updated Ramu Tex fabric pages, responsive image assets, enquiry links, and contact metadata.
+- Updated TConnect enquiry/registration feedback, public metadata, SEO delivery, and Cloudflare Worker source configuration.
+- Included pending work-report, tenant, public-document, and TConnect browser verification tools. Component task files preserve earlier live verification evidence.
+- Refreshed repository references and catalog hashes. Final Docs validation covers 519 pages across 25 app groups.
+- Passed eight Platform/public-document tests, 21 TConnect tests, seven Docs tests, and all 26 CRM Flutter tests.
+- CRM mobile analysis stopped before analysis because Flutter plugin builds require Windows Developer Mode symlink support. System settings were not changed.
+- Passed the full repository check, including component documentation, cleanup regression tests, module boundaries, add-on validation, Docs validation, TypeScript, and lint.
+- The first production build stopped on generated-output cleanup (`ENOTEMPTY`). The retry passed all 50 forced build tasks, artifact collection, and cleanup.
+- Frontend bundle-size and ineffective dynamic-import warnings remain. Passed the version-bump regression test and version alignment.
+
 ## v-1.1.5
 
 ### [v 1.1.5] 2026-10-17 6:11 pm - CRM duty administration and public site updates
@@ -27,6 +54,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 #### Database Changes
 
 - Database update: Yes (manual).
+- Added tenant-scoped CRM work reports with GPS, retry protection, and checkpoint sequence validation. Applied and repeated the additive migration on the local test tenant.
 - Adds CRM duty-assignment/report edit-history migrations and administrative report permission seeds.
 - Adds TConnect company credential persistence and a Sites D1 enquiry schema. Review and apply migrations and permissions for each configured target before rollout.
 - Production database upgrades, external deployments, and provider operations were not repeated during this release preparation.
@@ -34,6 +62,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 #### App Codebase Changes
 
 - Bumped workspace version to 1.1.5.
+- Unified mobile enquiry, task, and duty action drawers with an Action dropdown, input form, and Confirm & sync. Added shared web action history, assignment/report Chat delivery, and closure refresh.
+- Verified native mobile GPS reports against local web history, task rejection/resubmission/approval, 26 Flutter tests, and focused CRM integration flows. No production deployment or new live Frappe verification is claimed.
 - Added CRM duty assignment/report administration, edit history, grouped reporting summaries, task status filters, and simpler SOP screens.
 - Updated Frappe duty field mappings and worker behavior with corresponding test and operational documentation.
 - Added TConnect company credentials, public discovery and directory updates, standards references, sample badge presentation, and account/public browser verification scripts.

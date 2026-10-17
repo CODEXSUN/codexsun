@@ -201,35 +201,121 @@ class CrmMobileApi {
         .toList();
   }
 
-  Future<List<Map<String, dynamic>>> workReports(String accessToken, {int? enquiryId, int? taskId}) async {
-    final data = await _request('/crm/work-reports', accessToken: accessToken, query: {if(enquiryId != null) 'enquiryId': '$enquiryId', if(taskId != null) 'taskId': '$taskId'});
-    return (data as List).cast<Map<String,dynamic>>();
+  Future<List<Map<String, dynamic>>> workReports(
+    String accessToken, {
+    int? enquiryId,
+    int? taskId,
+  }) async {
+    final data = await _request(
+      '/crm/work-reports',
+      accessToken: accessToken,
+      query: {
+        if (enquiryId != null) 'enquiryId': '$enquiryId',
+        if (taskId != null) 'taskId': '$taskId',
+      },
+    );
+    return (data as List).cast<Map<String, dynamic>>();
   }
 
-  Future<void> sendWorkReport(String accessToken, Map<String,dynamic> payload) async {
-    await _request('/crm/work-reports',accessToken:accessToken,method:'POST',body:payload);
+  Future<void> sendWorkReport(
+    String accessToken,
+    Map<String, dynamic> payload,
+  ) async {
+    await _request(
+      '/crm/work-reports',
+      accessToken: accessToken,
+      method: 'POST',
+      body: payload,
+    );
   }
 
-  Future<List<Map<String,dynamic>>> tasks(String accessToken) async {
-    final data = await _request('/crm/tasks',accessToken:accessToken,query:{'filter':'active','pageSize':'200'}) as Map<String,dynamic>;
-    return (data['items'] as List).cast<Map<String,dynamic>>();
+  Future<int> tasksCount(String accessToken) async {
+    final data = await _request(
+      '/crm/tasks',
+      accessToken: accessToken,
+      query: {'filter': 'active', 'pageSize': '1'},
+    ) as Map<String, dynamic>;
+    return (data['total'] as num).toInt();
   }
 
-  Future<Map<String,dynamic>> task(String accessToken, int id) async =>
-    await _request('/crm/tasks/$id',accessToken:accessToken) as Map<String,dynamic>;
-
-  Future<List<Map<String,dynamic>>> taskComments(String accessToken, int id) async =>
-    (await _request('/crm/tasks/$id/comments',accessToken:accessToken) as List).cast<Map<String,dynamic>>();
-
-  Future<List<Map<String,dynamic>>> taskClosures(String accessToken, int id) async =>
-    (await _request('/crm/tasks/$id/closure-requests',accessToken:accessToken) as List).cast<Map<String,dynamic>>();
-
-  Future<void> requestTaskClosure(String accessToken, int id) async {
-    await _request('/crm/tasks/$id/closure-requests',accessToken:accessToken,method:'POST',body:{'reason':'Completed from mobile.'});
+  Future<List<Map<String, dynamic>>> tasks(
+    String accessToken, {
+    String filter = "active",
+  }) async {
+    final data = await _request(
+      '/crm/tasks',
+      accessToken: accessToken,
+      query: {'filter': filter, 'pageSize': '200'},
+    ) as Map<String, dynamic>;
+    return (data['items'] as List).cast<Map<String, dynamic>>();
   }
 
-  Future<void> editDutyReport({required String accessToken,required int id,required String date,required String actions}) async {
-    await _request('/crm/duty-reports/$id',accessToken:accessToken,method:'PUT',body:{'reportDate':date,'actions':actions});
+  Future<Map<String, dynamic>> task(String accessToken, int id) async =>
+      await _request('/crm/tasks/$id', accessToken: accessToken)
+          as Map<String, dynamic>;
+
+  Future<List<Map<String, dynamic>>> taskComments(
+    String accessToken,
+    int id,
+  ) async => (await _request(
+    '/crm/tasks/$id/comments',
+    accessToken: accessToken,
+  ) as List).cast<Map<String, dynamic>>();
+
+  Future<List<Map<String, dynamic>>> taskClosures(
+    String accessToken,
+    int id,
+  ) async => (await _request(
+    '/crm/tasks/$id/closure-requests',
+    accessToken: accessToken,
+  ) as List).cast<Map<String, dynamic>>();
+
+  Future<List<Map<String, dynamic>>> taskJobs(String token, int id) async =>
+      (await _request('/crm/tasks/$id/jobs', accessToken: token) as List)
+          .cast<Map<String, dynamic>>();
+  Future<void> startTaskJob(String token, int id) async {
+    await _request(
+      '/crm/tasks/$id/jobs/start',
+      accessToken: token,
+      method: 'POST',
+      body: {},
+    );
+  }
+
+  Future<void> stopTaskJob(String token, int id) async {
+    await _request(
+      '/crm/tasks/$id/jobs/stop',
+      accessToken: token,
+      method: 'POST',
+      body: {},
+    );
+  }
+
+  Future<void> requestTaskClosure(
+    String accessToken,
+    int id, {
+    String reason = "Completed from mobile.",
+  }) async {
+    await _request(
+      '/crm/tasks/$id/closure-requests',
+      accessToken: accessToken,
+      method: 'POST',
+      body: {'reason': reason},
+    );
+  }
+
+  Future<void> editDutyReport({
+    required String accessToken,
+    required int id,
+    required String date,
+    required String actions,
+  }) async {
+    await _request(
+      '/crm/duty-reports/$id',
+      accessToken: accessToken,
+      method: 'PUT',
+      body: {'performedDate': date, 'actions': actions},
+    );
   }
 
   Future<CrmJob> job(String accessToken, String id) async {
@@ -407,7 +493,7 @@ class CrmMobileApi {
       enquiryGroup: enquiryGroup,
       assignedToUserId: assignedToUserId,
       message:
-          '$message\n\n${direction.trim()} call Â· ${durationSeconds}s Â· ${occurredAt.toLocal()}',
+          '$message\n\n${direction.trim()} call · ${durationSeconds}s · ${occurredAt.toLocal()}',
     );
   }
 
@@ -537,14 +623,30 @@ class CrmMobileApi {
 
   Future<List<CrmDuty>> duties(String accessToken) async {
     final data = await _request('/crm/duties', accessToken: accessToken);
-    final reportData = await _request('/crm/duty-reports?scope=own&page=1&pageSize=100', accessToken: accessToken);
-    final reportsPage = reportData is Map<String, dynamic> ? reportData['items'] : reportData;
+    final reportData = await _request(
+      '/crm/duty-reports?scope=own&page=1&pageSize=100',
+      accessToken: accessToken,
+    );
+    final reportsPage = reportData is Map<String, dynamic>
+        ? reportData['items']
+        : reportData;
     if (data is! List || reportsPage is! List)
       throw const CrmMobileApiException('Unexpected duties response.');
-    final reports = reportsPage.whereType<Map<String, dynamic>>().map(CrmDutyReport.fromJson).toList();
+    final reports = reportsPage
+        .whereType<Map<String, dynamic>>()
+        .map(CrmDutyReport.fromJson)
+        .toList();
     return data.whereType<Map<String, dynamic>>().map((item) {
-      final id = item['id'] is int ? item['id'] as int : int.tryParse('${item['id']}') ?? -1;
-      return CrmDuty.fromJson({...item, 'reports': reports.where((report) => report.assignmentId == id).map((report) => report.toJson()).toList()});
+      final id = item['id'] is int
+          ? item['id'] as int
+          : int.tryParse('${item['id']}') ?? -1;
+      return CrmDuty.fromJson({
+        ...item,
+        'reports': reports
+            .where((report) => report.assignmentId == id)
+            .map((report) => report.toJson())
+            .toList(),
+      });
     }).toList();
   }
 
@@ -561,7 +663,10 @@ class CrmMobileApi {
       method: 'POST',
       body: {
         'assignmentId': assignmentId,
-        'performedDate': DateTime.now().toUtc().toIso8601String().substring(0, 10),
+        'performedDate': DateTime.now().toUtc().toIso8601String().substring(
+          0,
+          10,
+        ),
         'actions': actions,
         'result': result,
         'issueDetails': issueDetails,
@@ -1246,9 +1351,9 @@ class CrmDuty {
   final String steps;
 
   factory CrmDuty.fromJson(Map<String, dynamic> json) => CrmDuty(
-        assignmentId: json['id'] is int
-            ? json['id'] as int
-            : int.tryParse(json['sopItem'] as String? ?? '') ?? 0,
+    assignmentId: json['id'] is int
+        ? json['id'] as int
+        : int.tryParse(json['sopItem'] as String? ?? '') ?? 0,
     department: json['department'] as String? ?? '',
     frequency: json['frequency'] as String? ?? 'Daily',
     index: json['index'] as int? ?? 0,
@@ -1256,13 +1361,13 @@ class CrmDuty {
         .whereType<Map<String, dynamic>>()
         .map(CrmDutyReport.fromJson)
         .toList(),
-        sopItem: (json['sopItemId'] ?? json['sopItem'] ?? '').toString(),
-        sopName: json['itemTitle'] is String
-            ? '${json['sopTitle'] ?? 'SOP'} Â· ${json['itemTitle']}'
-            : json['sopName'] as String? ?? '',
-        steps: _plainTextComment(
-          json['instructions'] as String? ?? json['steps'] as String? ?? '',
-        ),
+    sopItem: (json['sopItemId'] ?? json['sopItem'] ?? '').toString(),
+    sopName: json['itemTitle'] is String
+        ? '${json['sopTitle'] ?? 'SOP'} · ${json['itemTitle']}'
+        : json['sopName'] as String? ?? '',
+    steps: _plainTextComment(
+      json['instructions'] as String? ?? json['steps'] as String? ?? '',
+    ),
   );
 }
 
@@ -1295,7 +1400,9 @@ class CrmDutyReport {
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     date: json['performedDate'] as String? ?? json['date'] as String? ?? '',
     name: (json['name'] ?? json['id'] ?? '').toString(),
-    assignmentId: json['assignmentId'] is int ? json['assignmentId'] as int : int.tryParse('${json['assignmentId']}') ?? -1,
+    assignmentId: json['assignmentId'] is int
+        ? json['assignmentId'] as int
+        : int.tryParse('${json['assignmentId']}') ?? -1,
   );
 }
 
@@ -1420,7 +1527,7 @@ String _plainTextComment(String value) {
       )
       .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
       .replaceAll(RegExp(r'</(?:div|li|p)>', caseSensitive: false), '\n')
-      .replaceAll(RegExp(r'<li\b[^>]*>', caseSensitive: false), 'â€¢ ')
+      .replaceAll(RegExp(r'<li\b[^>]*>', caseSensitive: false), '• ')
       .replaceAll(RegExp(r'<[^>]+>'), '');
 
   text = text.replaceAllMapped(RegExp(r'&#(?:x([0-9a-fA-F]+)|(\d+));'), (
@@ -1634,3 +1741,4 @@ const _months = [
   'Nov',
   'Dec',
 ];
+

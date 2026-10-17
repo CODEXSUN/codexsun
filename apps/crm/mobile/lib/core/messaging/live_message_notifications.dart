@@ -1,3 +1,5 @@
+import 'websocket_connector.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -29,6 +31,9 @@ class LiveMessageNotifications extends ChangeNotifier {
   int _unreadCount = 0;
 
   int get unreadCount => _unreadCount;
+  List<MessagingConversation> _unreadConversations = [];
+  List<MessagingConversation> get unreadConversations =>
+      List.unmodifiable(_unreadConversations);
 
   void updateSession(UserSession updatedSession) {
     if (session.accessToken == updatedSession.accessToken) return;
@@ -56,8 +61,12 @@ class LiveMessageNotifications extends ChangeNotifier {
         accessToken: session.accessToken,
         currentEmail: session.profile.email,
       );
-      _conversationUuids =
-          conversations.map((item) => item.channelIdentifier).toList();
+      _unreadConversations = conversations
+          .where((item) => item.unreadCount > 0)
+          .toList();
+      _conversationUuids = conversations
+          .map((item) => item.channelIdentifier)
+          .toList();
       final count = conversations.fold<int>(
         0,
         (total, item) => total + item.unreadCount,
@@ -68,6 +77,7 @@ class LiveMessageNotifications extends ChangeNotifier {
         notifyListeners();
         if (hasNewMessages) onNewUnreadMessages?.call(count);
       }
+      notifyListeners();
       _hasInitialSnapshot = true;
       if (_authenticated) _subscribeToConversations();
     } on Exception {
@@ -78,7 +88,10 @@ class LiveMessageNotifications extends ChangeNotifier {
   Future<void> _connect() async {
     if (_closed) return;
     try {
-      final channel = WebSocketChannel.connect(_webSocketUri(session));
+      final channel = connectMessagingSocket(
+        _webSocketUri(session),
+        hostHeader: api.hostHeader,
+      );
       _channel = channel;
       await channel.ready;
       _authenticated = true;
@@ -144,10 +157,7 @@ Uri _webSocketUri(UserSession session) {
   return api.replace(
     scheme: api.scheme == 'https' ? 'wss' : 'ws',
     path: '${api.path.replaceFirst(RegExp(r'/$'), '')}/chat/realtime',
-    queryParameters: {
-      'token': session.accessToken,
-      'companyId': '1',
-    },
+    queryParameters: {'token': session.accessToken},
   );
 }
 
@@ -159,3 +169,4 @@ Map<String, dynamic>? _decode(Object? raw) {
     return null;
   }
 }
+

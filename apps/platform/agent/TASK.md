@@ -1,5 +1,11 @@
 # Platform tasks
 
+## TConnect public discovery composition — October 17, 2026
+
+- Added fixed credential list/create/update adapters to the TConnect gateway and composed its app-owned staff Credentials tab.
+- Kept evidence review, publication, permissions, and persistence in TConnect.
+- Platform web type checking passed. Local buyer and seller login, quotation comparison, and messaging browser journeys passed.
+
 ## Responsibility
 
 The authenticated runtime, tenant routing, application composition, entitlements, permissions, queues, storage, administration, and Windows host.
@@ -19,6 +25,20 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 - [ ] Record exact checks and unresolved limitations. Update the existing plan only from evidence.
 
 ## Acceptance evidence
+
+### Public homepage startup deployment, 17-10-2026
+
+- Deployed focused startup fixes to codexsun.com using an isolated production-baseline build. API, web, and the unchanged shop containers are healthy. Original images remain available for rollback. Database volumes, tenant permissions, and publication settings remain unchanged.
+- Runtime configuration and application code load in parallel. The small entry loads the renderer asynchronously. Initial compressed bootstrap JavaScript fell from 72.3 KB to about 2.5 KB; the full application still loads asynchronously.
+- Homepage HTML has zero blocking external stylesheets and a direct, preloaded hero image. Workspace routes use a separate 516-byte HTML document and do not download the homepage hero.
+- HTML revalidates on refresh; hashed assets retain immutable caching. Normal refresh loaded the deployed entry. Previously cached tabs can require one hard refresh.
+- Read-only production inspection confirmed the active CODEXSUN tenant and disabled Blog module. Public portal responses expose availability. Disabled homepage stories skip their code and requests; the Blog page displays an availability message. Canonical or verified production domain checks remain enforced.
+- Browser baseline first paint was 1.72 s and initial largest-content paint was 2.71 s. The latest complete cold navigation measured 0.61 s and 0.93 s. Valid final samples ranged from 0.61–1.05 s and 0.93–2.63 s without artificial throttling. Network timing varies; these are samples, not guaranteed scores.
+- Failing Blog requests fell from two to zero. Login and login refresh retained the form and route, with no homepage hero or Blog requests. Anonymous session checks can still return an expected nonblocking 401.
+- The existing carousel remains. A longer sample produced a later 10.32 s LCP candidate after autoplay; initial-screen measurements do not remove that caveat. The trace did not classify long tasks or establish leak-free behavior.
+- The app_modules type error is cleared in current source through the correctly typed app_module_settings query. The API production build passed. Nine focused startup, workspace-document, and Blog contract tests passed, along with Platform web type checking, lint, module boundaries, component documentation, and isolated production web builds.
+- The repository dependency-layout check is currently blocked by the unrelated apps/tconnect/web/dist directory from concurrent work. No authenticated business transaction or full application regression was performed.
+- Detailed measurements and remaining loading costs are in dist/reports/codexsun-startup-2026-10-17.html and its JSON companion. Stories require explicit Blog activation before publication can be served.
 
 ### Development stability and completed accessible-list audit, 17-10-2026
 
@@ -244,3 +264,17 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - This avoids stale Vite modules under the ignored workspace junction in node_modules.
 - Browser verification: enquiry #4 and its Closure approvals tab loaded without the missing-export error.
 - Platform typecheck, lint, and module boundaries passed.
+
+### Tenant registry visibility, 17-10-2026
+
+- Removed tenant-company lookups from the Super Admin tenant list. Blank connection fields no longer fail the entire list.
+- Regression test passed for active and inactive registry entries without connection settings.
+- Verified the authenticated public tenant API returns 200 with 14 records and the browser at `/sa/tenants` shows all 14 rows.
+- The 11 imported records remain inactive with blank connection fields. No tenant provisioning or connection changes were performed.
+
+## CRM mobile work composition - 17-10-2026
+
+- [x] Register the CRM work-report API and inject transactional Chat delivery into enquiry, task, duty assignment, and duty report workflows.
+- [x] Resolve Chat's default company through Core's public contract and validate the selected active company.
+- [x] Platform API typecheck and lint passed locally. CRM/Chat workflow and denied-access checks are recorded in their owner task files.
+- [ ] Production rollout.

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
 import { WorkspaceFormBanner } from "@codexsun/ui/workspace/upsert";
+import { WorkspacePagination } from "@codexsun/ui/workspace";
 import type { TconnectGateway } from "../../workspace.types";
 import type { Credential } from "./credential.types";
 import { useCredentialRecords } from "./credential.hooks";
@@ -14,6 +15,12 @@ export function CredentialWorkspace({ gateway }: { gateway: TconnectGateway }) {
   const client = useQueryClient();
   const [record, setRecord] = useState<Credential | null | undefined>();
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const filtered = (query.data ?? []).filter((row) =>
+    `${row.companyName} ${row.standardName} ${row.status}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
   const [saved, setSaved] = useState(false);
   if (record !== undefined)
     return (
@@ -36,7 +43,10 @@ export function CredentialWorkspace({ gateway }: { gateway: TconnectGateway }) {
           aria-label="Search credential reviews"
           placeholder="Company, standard or status"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
         />
         <Button onClick={() => setRecord(null)}>New review</Button>
         <Button variant="outline" onClick={() => void query.refetch()}>
@@ -55,15 +65,17 @@ export function CredentialWorkspace({ gateway }: { gateway: TconnectGateway }) {
       ) : query.isPending ? (
         <p role="status">Loading reviews…</p>
       ) : (
-        <CredentialList
-          records={(query.data ?? []).filter((row) =>
-            `${row.companyName} ${row.standardName} ${row.status}`
-              .toLowerCase()
-              .includes(search.toLowerCase())
-          )}
-          onEdit={setRecord}
-        />
+        <CredentialList records={filtered.slice((page - 1) * 20, page * 20)} onEdit={setRecord} />
       )}
+      <WorkspacePagination
+        page={page}
+        rowsPerPage={20}
+        totalCount={filtered.length}
+        totalPages={Math.max(1, Math.ceil(filtered.length / 20))}
+        onPageChange={setPage}
+        singularLabel="credential"
+        showingLabel={`${filtered.length} records`}
+      />
     </section>
   );
 }

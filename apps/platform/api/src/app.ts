@@ -1,8 +1,14 @@
-import { workReportModule, recordWorkEvent, type WorkReportContext, type WorkReportDatabase } from "@codexsun/crm-api";
+import { getDefaultCompanyForDatabase, getCompanyForDatabase } from "@codexsun/core-api";
+import { deliverDutyUpdate } from "@codexsun/crm-api";
+import {
+  workReportModule,
+  recordWorkEvent,
+  type WorkReportContext,
+  type WorkReportDatabase
+} from "@codexsun/crm-api";
 import { writeWorkMessage } from "@codexsun/chat-api";
 import { registerTconnectHost } from "./tconnect-host.js";
 import { registerBillingComplianceHost } from "./billing-compliance-host.js";
-import { sql } from "kysely";
 import { codexsunApiModuleKeys } from "@codexsun/codexsun-api";
 import {
   hrmsOverviewModule,
@@ -709,6 +715,15 @@ export async function createApp() {
       database: context.database as unknown as import("kysely").Kysely<
         import("@codexsun/crm-api").ClosureDatabase
       >,
+      workEvent: async (transaction, enquiryId, action, body) => {
+        await recordWorkEvent(
+          await workReportContext(request),
+          transaction as never,
+          { enquiryId, taskId: null },
+          action,
+          body
+        );
+      },
       actorEmail: context.actorEmail,
       actorUserId: actor?.id ?? null,
       canViewAll,
@@ -741,22 +756,37 @@ export async function createApp() {
     };
   });
   const workReportContext = async (request: FastifyRequest): Promise<WorkReportContext> => {
-    const context = await crmAccess(request, "enquiry", "/crm/enquiries");
-    const actor = await context.database.selectFrom("app_users").select("id").where("email", "=", context.actorEmail).where("status", "=", "active").executeTakeFirst();
-    const chat = await chatContext(request);
-    return {database: context.database as unknown as import("kysely").Kysely<WorkReportDatabase>, actorEmail: context.actorEmail, actorUserId: actor?.id ?? null, authorize: context.authorize,
-      sendMessage: async (transaction, message) => writeWorkMessage(transaction as never, {...message, actorEmail: context.actorEmail, companyId: chat.companyId})};
-  };
-  workReportModule.register(app, async (request) => {
-    // Module routes enforce enquiry/task permissions after resolving the requested parent.
     const context = tenantAccessContext(request);
-    const enabled = await context.database.selectFrom("app_module_settings").select("id").where("module_key", "=", "crm").where("enabled", "=", true).where("status", "=", "active").executeTakeFirst();
+    const enabled = await context.database
+      .selectFrom("app_module_settings")
+      .select("id")
+      .where("module_key", "=", "crm")
+      .where("enabled", "=", true)
+      .where("status", "=", "active")
+      .executeTakeFirst();
     if (!enabled) throw AppError.forbidden("CRM is not enabled for this tenant.");
-    const actor = await context.database.selectFrom("app_users").select("id").where("email", "=", context.actorEmail).where("status", "=", "active").executeTakeFirst();
+    const actor = await context.database
+      .selectFrom("app_users")
+      .select("id")
+      .where("email", "=", context.actorEmail)
+      .where("status", "=", "active")
+      .executeTakeFirst();
+    if (!actor) throw AppError.forbidden("An active tenant user is required.");
     const chat = await chatContext(request);
-    return {database: context.database as unknown as import("kysely").Kysely<WorkReportDatabase>, actorEmail:context.actorEmail,actorUserId:actor?.id ?? null,authorize:context.authorize,
-      sendMessage: async (transaction, message) => writeWorkMessage(transaction as never, {...message, actorEmail:context.actorEmail,companyId:chat.companyId})};
-  });
+    return {
+      database: context.database as unknown as import("kysely").Kysely<WorkReportDatabase>,
+      actorEmail: context.actorEmail,
+      actorUserId: actor.id,
+      authorize: context.authorize,
+      sendMessage: async (transaction, message) =>
+        writeWorkMessage(transaction as never, {
+          ...message,
+          actorEmail: context.actorEmail,
+          companyId: chat.companyId
+        })
+    };
+  };
+  workReportModule.register(app, workReportContext);
   await enquiryModule.register(app, async (request) => {
     const context = await crmAccess(request, "enquiry", "/crm/enquiries");
     const actor = await context.database
@@ -774,7 +804,13 @@ export async function createApp() {
     }
     return {
       workEvent: async (transaction, enquiryId, action, body) => {
-        await recordWorkEvent(await workReportContext(request), transaction as never, {enquiryId,taskId:null}, action, body);
+        await recordWorkEvent(
+          await workReportContext(request),
+          transaction as never,
+          { enquiryId, taskId: null },
+          action,
+          body
+        );
       },
       actorEmail: context.actorEmail,
       actorUserId: actor?.id ?? null,
@@ -1198,6 +1234,27 @@ export async function createApp() {
       actorEmail: context.actorEmail,
       actorUserId: user?.id ?? null,
       authorize: context.authorize,
+      notifyWork: async (
+        transaction: import("kysely").Transaction<import("@codexsun/crm-api").DutyReportDatabase>,
+        assignmentId: number,
+        body: string
+      ) => {
+        const chat = await chatContext(request);
+        await deliverDutyUpdate(
+          transaction as unknown as import("kysely").Kysely<
+            import("@codexsun/crm-api").DutyAssignmentDatabase
+          >,
+          assignmentId,
+          context.actorEmail,
+          body,
+          (message) =>
+            writeWorkMessage(transaction as never, {
+              ...message,
+              actorEmail: context.actorEmail,
+              companyId: chat.companyId
+            })
+        );
+      },
       queueSync: async (entity: "sop-item" | "duty-assignment" | "duty-report", id: number) => {
         const sync = await new CrmFrappeSyncRepository(
           context.database as unknown as import("kysely").Kysely<CrmFrappeSyncDatabase>
@@ -1250,8 +1307,25 @@ export async function createApp() {
       >,
       workEvent: async (transaction, taskId, action, body) => {
         const chat = await chatContext(request);
-        const workContext: WorkReportContext = {database: transaction as never, actorEmail: context.actorEmail,actorUserId: actor?.id ?? null,authorize:context.authorize,sendMessage: async (trx, message) => writeWorkMessage(trx as never,{...message,actorEmail:context.actorEmail,companyId:chat.companyId})};
-        await recordWorkEvent(workContext, transaction as never, {enquiryId:null,taskId},action,body);
+        const workContext: WorkReportContext = {
+          database: transaction as never,
+          actorEmail: context.actorEmail,
+          actorUserId: actor?.id ?? null,
+          authorize: context.authorize,
+          sendMessage: async (trx, message) =>
+            writeWorkMessage(trx as never, {
+              ...message,
+              actorEmail: context.actorEmail,
+              companyId: chat.companyId
+            })
+        };
+        await recordWorkEvent(
+          workContext,
+          transaction as never,
+          { enquiryId: null, taskId },
+          action,
+          body
+        );
       },
       actorEmail: context.actorEmail,
       actorUserId: actor?.id ?? null,
@@ -2185,30 +2259,13 @@ async function notesContext(request: FastifyRequest) {
 
 async function chatContext(request: FastifyRequest) {
   const context = tenantAccessContext(request);
-  const header = request.headers["x-company-id"];
-  let companyId = Number(Array.isArray(header) ? header[0] : header);
-  if (!Number.isInteger(companyId) || companyId <= 0) {
-    const defaultCompanyId = request.authContext?.session?.context?.defaultCompany?.companyId;
-    if (typeof defaultCompanyId === "number" && defaultCompanyId > 0) {
-      companyId = defaultCompanyId;
-    } else {
-      try {
-        const rows = await sql<{
-          company_id: number;
-        }>`SELECT company_id FROM company ORDER BY company_id ASC LIMIT 1`.execute(
-          context.database
-        );
-        const firstCompany = rows.rows[0];
-        if (firstCompany && firstCompany.company_id > 0) {
-          companyId = firstCompany.company_id;
-        }
-      } catch {
-        // ignore
-      }
-    }
-  }
-  if (!Number.isInteger(companyId) || companyId <= 0) {
-    throw AppError.validation("x-company-id is required for Chat access.");
+  const defaults = await getDefaultCompanyForDatabase(context.tenantDatabase);
+  const requested = request.headers["x-company-id"];
+  const header = Number(Array.isArray(requested) ? requested[0] : requested);
+  const companyId = Number.isInteger(header) && header > 0 ? header : defaults?.companyId;
+  const company = companyId ? await getCompanyForDatabase(context.tenantDatabase, companyId) : null;
+  if (!companyId || !company || company.status !== "active") {
+    throw AppError.validation("Configure an active default company for work conversations.");
   }
   return { ...context, companyId, database: context.database as never };
 }

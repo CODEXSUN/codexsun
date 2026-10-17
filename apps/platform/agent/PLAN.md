@@ -54,3 +54,6 @@ Keep buyer persistence and business routes inside TConnect. Retain buyer entry p
 
 TConnect negotiation extends the existing fixed buyer and seller roles with participant permissions.
 Keep quote calculations, messages, privacy checks, and persistence in TConnect. Platform supplies desk navigation and fixed transport adapters.
+
+Compose TConnect credential list/create/update adapters and its staff Credentials tab.
+Use Platform Access management for staff permission assignment. Keep evidence review and publication checks in TConnect.

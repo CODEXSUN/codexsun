@@ -32,9 +32,8 @@ export class TenantService {
     private readonly access = new EntitlementAccessService()
   ) {}
 
-  async listTenants() {
-    const tenants = await this.repository.list();
-    return Promise.all(tenants.map((tenant) => this.withDefaultCompanyLandingApp(tenant)));
+  listTenants() {
+    return this.repository.list();
   }
 
   getTenant(value: string) {
@@ -200,14 +199,6 @@ export class TenantService {
       status: input.status,
       tenantCode,
       tenantName: input.tenantName.trim()
-    };
-  }
-
-  private async withDefaultCompanyLandingApp(tenant: Tenant): Promise<Tenant> {
-    const defaultCompany = await getDefaultCompanyForDatabase(tenant.dbName).catch(() => null);
-    return {
-      ...tenant,
-      defaultLandingApp: resolveLandingApp(defaultCompany?.landingApp, tenant.enabledModuleKeys)
     };
   }
 }
@@ -408,8 +399,12 @@ export async function resolvePublicApplicationTenant(
 ): Promise<Tenant> {
   const host = normalizeTenantDomain(value);
   const repository = new TenantRepository();
+  const canonicalTconnect = moduleKey === "tconnect" &&
+    host === new URL(env.PLATFORM_WEB_ORIGIN).hostname && Boolean(env.DEFAULT_TENANT_CORPORATE_ID.trim());
   const tenant = isSingleTenantMode()
     ? await configuredSingleTenant(repository).catch(() => null)
+    : canonicalTconnect
+      ? await repository.findByCorporateId(env.DEFAULT_TENANT_CORPORATE_ID)
     : env.NODE_ENV === "development" &&
         Boolean(env.DEFAULT_TENANT_CORPORATE_ID.trim()) &&
         (host === "localhost" || host === "127.0.0.1")

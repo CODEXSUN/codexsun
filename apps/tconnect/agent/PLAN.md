@@ -1,5 +1,12 @@
 # TConnect plan
 
+## Current hosted frontend scope
+
+The user now owns VPS setup in a separate task. Continue only frontend work in this task.
+Keep Cloudflare public pages on tirupurconnect.com and authentication links on codexsun.com.
+Require the server-selected TIRUPURCONNECT tenant before exposing dynamic records or forwarding registrations.
+Show the setup-pending state while the backend still identifies CODEXSUN. Do not report dedicated-tenant account journeys as verified.
+
 ## Ownership
 
 TConnect owns company profiles, association profiles, community posts, enquiries, and their tenant tables.
@@ -71,3 +78,12 @@ Certification references remain educational until an owned certification record 
 Use standard logos only as educational references with source records. Keep the ISO reference distinct from its restricted official logo.
 
 Keep sample credential badges explicit at the badge level. Actual company credentials require server-owned evidence, approval, validity, and revocation before publication.
+
+## Discovery and credential delivery
+
+Keep supplier discovery immediately after hero shortcuts. Preserve independent feed failures and static public page access.
+Use published product records for product search, supplied price and MOQ, and selected-product enquiry context.
+Keep association member search and community article routes independent from account operations.
+Credential migration v5 follows v1 through v4. Preserve earlier ledger checksums.
+Staff review requires explicit permission, evidence, confirmation, and current validity. Portal identities cannot review credentials.
+Production builds need the verified tenant host and published API data for crawler metadata. Rebuild after public content changes.

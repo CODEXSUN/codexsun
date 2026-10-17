@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/WORK-LOG.md`
 
-Source SHA-256 (LF line endings): `939bc3841418f0eb9b5520aeb7bad8c5fbedcbf5890f62ccdcd24123941e62ee`
+Source SHA-256 (LF line endings): `9184c5a6f924b29bdbe469bf512d9f90e8b545d180078dd396ba34be87bcbc4d`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -60,4 +60,12 @@ This log records the CRM work and its verification. Application changes remain l
 - The latest scoped work did not repeat the full repository build. A separate dependency check encountered the existing `apps/tconnect/web/dist` directory.
 
 Detailed evidence is retained in [CRM task notes](TASK.md) and [Frappe duty field mapping](../../frappe/agent/CRM-DUTY-FIELD-MAPPING.md).
+
+
+## 2026-10-17: Shared mobile action drawer
+
+- Enquiries, Tasks, and Duties use one drawer layout: Action dropdown, input form, Cancel, and Confirm & sync. Separate enquiry/task Actions navigation was removed.
+- Failed submissions preserve input. Duty edits preserve the original report date and outcome. Record history refreshes after submission.
+- Flutter analysis and 26 tests passed. Android emulator enquiry checkout through the new drawer appeared in the open web Actions tab without reload, with GPS and accuracy. The saved emulator session is an administrator; normal-user ownership is covered by API integration tests.
+- Earlier local checks passed work-report, duty, task-contact, and closure integration flows. Production deployment and live Frappe verification were not repeated for this change.
 ```

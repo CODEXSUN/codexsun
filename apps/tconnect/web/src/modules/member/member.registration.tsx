@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { Association } from "../association/association.types";
 import { memberRegistration } from "./member.schema";
 import { memberLoginUrl, registerMember } from "./member.services";
@@ -10,9 +10,19 @@ export function MemberRegistration({
   corporateId: string;
 }) {
   const requestedAssociation = new URLSearchParams(location.search).get("association");
-  const validAssociation = associations.some(item => item.uuid === requestedAssociation) ? requestedAssociation : null;
-  const [accountType, setAccountType] = useState<"seller" | "association-member">(validAssociation ? "association-member" : "seller");
+  const validAssociation = associations.some((item) => item.uuid === requestedAssociation)
+    ? requestedAssociation
+    : null;
+  const [accountType, setAccountType] = useState<"seller" | "association-member">(
+    validAssociation ? "association-member" : "seller"
+  );
   const [association, setAssociation] = useState<string | null>(validAssociation);
+  useEffect(() => {
+    if (validAssociation) {
+      setAssociation(validAssociation);
+      setAccountType("association-member");
+    }
+  }, [validAssociation]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -170,6 +180,7 @@ export function MemberRegistration({
                       <input
                         type="radio"
                         name="associationChoice"
+                        value={item.uuid}
                         checked={association === item.uuid}
                         onChange={() => setAssociation(item.uuid)}
                       />

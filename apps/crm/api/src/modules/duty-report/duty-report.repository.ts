@@ -1,3 +1,4 @@
+import type { DutyReportContext } from "./duty-report.types.js";
 import type { SopFrequency } from "../sop-item/index.js";
 import { AppError } from "@codexsun/framework/errors";
 import { randomUUID } from "node:crypto";
@@ -6,7 +7,10 @@ import type { DutyReport, DutyReportDatabase, DutyReportInput } from "./duty-rep
 import { enqueueCrmFrappeSync } from "../frappe-sync/index.js";
 import type { CrmFrappeSyncDatabase } from "../frappe-sync/index.js";
 export class DutyReportRepository {
-  constructor(private readonly db: Kysely<DutyReportDatabase>) {}
+  constructor(
+    private readonly db: Kysely<DutyReportDatabase>,
+    private readonly notifyWork?: DutyReportContext["notifyWork"]
+  ) {}
   query() {
     return this.db
       .selectFrom("crm_duty_reports as report")
@@ -162,6 +166,11 @@ export class DutyReportRepository {
           id,
           actor
         );
+        await this.notifyWork?.(
+          trx,
+          report.assignment_id,
+          `Report edited (${input.performedDate}): ${input.actions}`
+        );
       });
     } catch (error) {
       if (
@@ -226,6 +235,11 @@ export class DutyReportRepository {
           "duty-report",
           id,
           actor
+        );
+        await this.notifyWork?.(
+          trx,
+          assignment.id,
+          `Report ${input.result} (${input.performedDate}): ${input.actions}${input.issueDetails ? `\nIssue: ${input.issueDetails}` : ""}`
         );
         return id;
       });

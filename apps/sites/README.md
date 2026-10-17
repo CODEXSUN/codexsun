@@ -335,3 +335,17 @@ Run `node --import tsx --test apps/sites/clients/cloudflare/worker.test.mjs` to 
 Preserve each client's D1 database during updates. Never copy an enquiry database or publication identity between clients.
 The Ramu Tex brochure, artwork, fonts, canonical metadata, and public pages are included in its release.
 The Studio registry label update was blocked by the local API being offline after export. Cloudflare DNS and publishing succeeded.
+
+Ramu Tex includes a template-owned fabric guide for knitted hosiery and polyester sportswear.
+Home introduces both fabric groups. Services covers ten constructions, garment applications, quality checkpoints, and sample briefs.
+Contact links prefill the selected fabric. These editorial sections do not change saved publications or imply stock availability.
+Four original illustrative images have 1200px and 640px WebP variants with lazy loading and responsive selection.
+
+### Latest Ramu Tex deployment - 17-10-2026
+
+Ramu Tex now serves the hosiery and polyester sports fabric guide with all four new images and their mobile variants.
+Worker version: `477f103f-db36-4110-9e58-373ff6fb77d4`. Authenticated export sequence: 21.
+All six live pages passed viewport checks at 320, 390, and 430px.
+A live mobile enquiry persisted in D1. The synthetic test record was moved to recoverable trash.
+The Studio domain label now matches `ramutex.codexsun.com`.
+Physical mobile-device testing was not performed.

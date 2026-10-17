@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/sites-clients",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "private": true,
   "type": "module",
   "exports": {
@@ -26,8 +26,8 @@
   },
   "dependencies": {
     "zod": "^4.6.5",
-    "@codexsun/sites-api": "^1.1.5",
-    "@codexsun/ui": "^1.1.5",
+    "@codexsun/sites-api": "^1.1.6",
+    "@codexsun/ui": "^1.1.6",
     "framer-motion": "^14.0.0",
     "lucide-react": "^1.52.0",
     "react": "^19.3.0",

@@ -2,10 +2,31 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Company } from "../company/company.types";
 import { publicRequest } from "../../transport";
 import { inquirySchema } from "./inquiry.schema";
+import { publicProducts } from "../product/product.services";
 export function InquiryForm({ company, onClose }: { company: Company; onClose: () => void }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [reference, setReference] = useState("");
+  const [requirement, setRequirement] = useState("");
+  useEffect(() => {
+    let active = true;
+    const selected = new URLSearchParams(location.search).get("product");
+    if (selected)
+      void publicProducts(company.uuid)
+        .then((products) => {
+          const product = products.find((item) => item.uuid === selected);
+          if (active && product)
+            setRequirement(
+              (current) =>
+                current ||
+                `I am interested in ${product.name}. Please share availability, specifications and a quotation.`
+            );
+        })
+        .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [company.uuid]);
   const dialog = useRef<HTMLElement>(null);
   useEffect(() => {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -90,7 +111,10 @@ export function InquiryForm({ company, onClose }: { company: Company; onClose: (
           </div>
         ) : (
           <form onSubmit={submit}>
-            <p className="tc-enquiry-account-note">Want to track replies and compare quotations? <a href="/login">Sign in as a buyer</a>. You can also send this enquiry as a guest.</p>
+            <p className="tc-enquiry-account-note">
+              Want to track replies and compare quotations? <a href="/login">Sign in as a buyer</a>.
+              You can also send this enquiry as a guest.
+            </p>
             {error ? (
               <p role="alert" className="tc-error">
                 {error}
@@ -115,6 +139,8 @@ export function InquiryForm({ company, onClose }: { company: Company; onClose: (
               Your requirement *
               <textarea
                 name="requirement"
+                value={requirement}
+                onChange={(event) => setRequirement(event.target.value)}
                 required
                 minLength={20}
                 rows={4}

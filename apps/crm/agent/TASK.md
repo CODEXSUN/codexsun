@@ -479,3 +479,11 @@ browser, mobile, and end-to-end results separately.
 - [x] Browser: switch to User wise, open matching reports, return with the selected view preserved.
       CRM API/web typecheck, lint, boundaries, and expanded Duty E2E passed locally.
       Deployment and global web-login restrictions are outside this report-page change.
+
+
+## 2026-10-17: Shared mobile action drawer
+
+- Enquiries, Tasks, and Duties use one drawer layout: Action dropdown, input form, Cancel, and Confirm & sync. Separate enquiry/task Actions navigation was removed.
+- Failed submissions preserve input. Duty edits preserve the original report date and outcome. Record history refreshes after submission.
+- Flutter analysis and 26 tests passed. Android emulator enquiry checkout through the new drawer appeared in the open web Actions tab without reload, with GPS and accuracy. The saved emulator session is an administrator; normal-user ownership is covered by API integration tests.
+- Earlier local checks passed work-report, duty, task-contact, and closure integration flows. Production deployment and live Frappe verification were not repeated for this change.

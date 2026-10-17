@@ -14,12 +14,28 @@ export function usePortalData() {
   } as Awaited<ReturnType<typeof registrationContext>>);
   const products = usePublicFeed(searchPublicProducts, []);
   const credentials = usePublicFeed(publicCredentials, []);
+  useEffect(() => {
+    const refresh = () => credentials.reload();
+    const interval = window.setInterval(refresh, 60000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [credentials.reload]);
   return {
     companies,
     associations,
     posts,
     products,
-    credentials,
+    credentials: {
+      ...credentials,
+      data: credentials.error
+        ? []
+        : credentials.data.filter(
+            (record) => record.expiresOn >= new Date().toISOString().slice(0, 10)
+          )
+    },
     corporateId: registration.data.corporateId,
     registration
   };

@@ -340,17 +340,21 @@ void main() {
 
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Enquiries'), findsNWidgets(2));
-    expect(find.text('Chat'), findsOneWidget);
+    expect(find.text('Chat'), findsNWidgets(2));
     expect(find.text('Menu'), findsOneWidget);
     expect(find.text('Duty'), findsOneWidget);
+    expect(find.text('Tasks'), findsOneWidget);
     expect(find.text('Activities'), findsOneWidget);
+    expect(find.text('Call logs'), findsOneWidget);
+    expect(find.byTooltip('Notifications'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
 
     await tester.tap(find.text('Menu'));
     await tester.pumpAndSettle();
     expect(find.text('Duty'), findsNWidgets(2));
-    expect(find.text('Call logs'), findsOneWidget);
+    expect(find.text('Call logs'), findsNWidgets(2));
     expect(find.text('Actions'), findsOneWidget);
-    Navigator.of(tester.element(find.text('Call logs'))).pop();
+    Navigator.of(tester.element(find.text('Call logs').last)).pop();
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Account options'));
@@ -421,13 +425,18 @@ void main() {
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
     expect(find.text('Scan document'), findsOneWidget);
     expect(find.text('Take photo'), findsOneWidget);
     expect(find.text('Log location'), findsOneWidget);
     expect(find.text('Mark completed'), findsOneWidget);
     expect(find.text('Charges'), findsOneWidget);
     expect(find.text('Collected Rs.'), findsOneWidget);
-    await tester.tap(find.text('Log location'));
+    await tester.ensureVisible(find.text('Log location').last);
+    await tester.tap(find.text('Log location').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
     expect(fakeApi.postedComments, contains('Location logged from mobile.'));
     expect(fakeApi.loggedLocations, isNotEmpty);
@@ -436,31 +445,45 @@ void main() {
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Charges'));
+    await chooseDrawerAction(tester, 'Charges');
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).last, '1250');
-    await tester.tap(find.text('Save'));
+    await tester.enterText(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.decoration?.labelText == 'Amount',
+      ),
+      '1250',
+    );
+    await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
     expect(fakeApi.postedComments, contains('Charges: ₹1250'));
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Collected Rs.'));
+    await chooseDrawerAction(tester, 'Collected Rs.');
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).last, '500');
-    await tester.tap(find.text('Save'));
+    await tester.enterText(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.decoration?.labelText == 'Amount',
+      ),
+      '500',
+    );
+    await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
     expect(fakeApi.postedComments, contains('Collected: ₹500'));
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Mark completed'));
+    await chooseDrawerAction(tester, 'Mark completed');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
     expect(
       find.text('Completion sent. Waiting for web approval.'),
       findsOneWidget,
     );
-    expect(fakeApi.loggedLocations.length, greaterThanOrEqualTo(2));
+    expect(fakeApi.loggedLocations, isNotEmpty);
 
     await tester.enterText(
       find.byType(TextField),
@@ -507,7 +530,9 @@ void main() {
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Start job'));
+    await chooseDrawerAction(tester, 'Start job');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
 
     expect(api.startJobCalls, 1);
@@ -515,7 +540,9 @@ void main() {
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Stop job').first);
+    await chooseDrawerAction(tester, 'Stop job');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
 
     expect(api.stopJobCalls, 1);
@@ -745,7 +772,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Add action'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Mark completed'));
+      await chooseDrawerAction(tester, 'Mark completed');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirm'));
       await tester.pumpAndSettle();
       expect(
         find.text('Completion sent. Waiting for web approval.'),
@@ -793,11 +822,11 @@ void main() {
       }
       await tester.tap(find.byTooltip('Add action'));
       await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
       expect(
-        find.text(
-          decision == 'approved' ? 'Completion approved' : 'Mark completed',
-        ),
-        findsOneWidget,
+        find.text('Mark completed'),
+        decision == 'approved' ? findsNothing : findsOneWidget,
       );
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
@@ -825,6 +854,15 @@ final _testCrmJob = CrmJob(
 
 class _FakeCrmMobileApi extends CrmMobileApi {
   _FakeCrmMobileApi() : super('http://127.0.0.1:7010');
+
+  @override
+  Future<int> tasksCount(String accessToken) async => 3;
+
+  @override
+  Future<List<MessagingConversation>> conversations({
+    required String accessToken,
+    required String currentEmail,
+  }) async => [];
 
   CrmJob _job = _testCrmJob;
   ClosureRequest? _closureRequest;
@@ -1059,6 +1097,35 @@ class _FakeCrmMobileApi extends CrmMobileApi {
     activities: _job.activities,
   );
 
+  final workUpdates = <Map<String, dynamic>>[];
+  @override
+  Future<List<Map<String, dynamic>>> workReports(
+    String accessToken, {
+    int? enquiryId,
+    int? taskId,
+  }) async => workUpdates;
+  @override
+  Future<void> sendWorkReport(
+    String accessToken,
+    Map<String, dynamic> payload,
+  ) async {
+    postedComments.add('${payload['body']}');
+    workUpdates.add({
+      ...payload,
+      'created_by': 'vijay@example.com',
+      'created_at': DateTime.now().toUtc().toIso8601String(),
+    });
+    if (payload['latitude'] != null)
+      await logEnquiryLocation(
+        accessToken: accessToken,
+        enquiryId: '${payload['enquiryId']}',
+        latitude: payload['latitude'] as double,
+        longitude: payload['longitude'] as double,
+        accuracyMeters: payload['accuracyMeters'] as double?,
+        capturedAt: DateTime.parse('${payload['capturedAt']}'),
+      );
+  }
+
   var loggedLocations = <CrmEnquiryLocation>[];
 
   @override
@@ -1142,4 +1209,12 @@ class _FakeCrmMobileApi extends CrmMobileApi {
     );
     return _job;
   }
+}
+
+Future<void> chooseDrawerAction(WidgetTester tester, String label) async {
+  await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text(label).last);
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
 }

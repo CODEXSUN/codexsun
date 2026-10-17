@@ -108,7 +108,6 @@ test("public portal reports Blog availability without enabling the module", () =
   assert.equal(publicPortalForTenant(null, "unknown.example").blogEnabled, false);
 });
 
-
 test("public portal HTTP contract preserves Blog availability and media path", async () => {
   const portal = publicPortalForTenant(fixture({ enabledModuleKeys: [] }), "codexsun.com");
   const getPortal = mock.method(TenantService.prototype, "getPublicPortal", async () => portal);
@@ -119,5 +118,8 @@ test("public portal HTTP contract preserves Blog availability and media path", a
     assert.equal(response.statusCode, 200);
     assert.equal(response.json().data.blogEnabled, false);
     assert.equal(response.json().data.blogMediaPath, portal.blogMediaPath);
-  } finally { getPortal.mock.restore(); await app.close(); }
+  } finally {
+    getPortal.mock.restore();
+    await app.close();
+  }
 });

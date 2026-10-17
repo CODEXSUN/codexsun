@@ -8,11 +8,12 @@ export async function seedChatModule(database: Kysely<Record<string, Record<stri
     VALUES (${stable(key)}, ${key}, 'Chat manage', 'Allows tenant team channels and messages.', 'active', TRUE)
     ON DUPLICATE KEY UPDATE label=VALUES(label), description=VALUES(description), status='active', is_protected=TRUE
   `.execute(database);
-  await sql`
+  for (const roleKey of ["admin", "super-admin", "manager", "user"])
+    await sql`
     INSERT INTO app_role_permissions (uuid, role_id, permission_id, status, is_protected)
-    SELECT ${stable(`role-permission:admin:${key}`)}, role.id, permission.id, 'active', TRUE
+    SELECT ${stable(`role-permission:${roleKey}:${key}`)}, role.id, permission.id, 'active', TRUE
     FROM app_roles role INNER JOIN app_permissions permission ON permission.\`key\`=${key}
-    WHERE role.\`key\`='admin'
+    WHERE role.\`key\`=${roleKey}
     ON DUPLICATE KEY UPDATE status='active', is_protected=TRUE
   `.execute(database);
   return { seeded: 1 };

@@ -99,7 +99,7 @@ export function EnquiryShow({
     onError: (failure) => toast.error("Unable to update job", { description: failure.message })
   });
   const tabs = [
-    {value:"actions",label:"Actions",content:<WorkReportWorkspace enquiryId={Number(id)}/>},
+    { value: "actions", label: "Actions", content: <WorkReportWorkspace enquiryId={Number(id)} /> },
     {
       value: "comments",
       label: (
@@ -304,7 +304,7 @@ function EnquirySummary({ record, users }: { record: EnquiryRecord; users: Enqui
         <div className="flex flex-col items-start gap-2 sm:items-end">
           <div className="flex flex-wrap gap-2">
             <WorkspaceStatusBadge
-              label={`List in Â· ${record.listIn || "Unlisted"}`}
+              label={`List in · ${record.listIn || "Unlisted"}`}
               tone="info"
               showIcon={false}
             />
@@ -314,7 +314,7 @@ function EnquirySummary({ record, users }: { record: EnquiryRecord; users: Enqui
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Created by {creatorName} Â· {formatCreatedAt(record.createdAt)}
+            Created by {creatorName} · {formatCreatedAt(record.createdAt)}
           </p>
         </div>
       </div>
@@ -338,7 +338,7 @@ function enquiryHeading(record: EnquiryRecord, mobile: string | null) {
   const customer = record.contactName ?? record.capturedName;
   return [`#${record.enquiryNo}`, mobile, customer !== mobile ? customer : null]
     .filter(Boolean)
-    .join(" Â· ");
+    .join(" · ");
 }
 
 function formatCreatedAt(value: string) {

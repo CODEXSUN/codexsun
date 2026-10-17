@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/crm_mobile_api.dart';
 import 'duty_report_history.dart';
+import 'duty_action_sheet.dart';
 
 class DutyPage extends StatefulWidget {
   const DutyPage({required this.api, required this.session, super.key});
@@ -22,7 +23,8 @@ class _DutyPageState extends State<DutyPage> {
     _duties = _load();
   }
 
-  Future<List<CrmDuty>> _load() => widget.api.duties(widget.session.accessToken);
+  Future<List<CrmDuty>> _load() =>
+      widget.api.duties(widget.session.accessToken);
 
   void _refresh() => setState(() => _duties = _load());
 
@@ -61,6 +63,7 @@ class _DutyPageState extends State<DutyPage> {
             itemBuilder: (context, index) => _DutyCard(
               duty: duties[index],
               onReport: () => _report(duties[index]),
+              onEdit: (report) => _report(duties[index], report: report),
             ),
           ),
         );
@@ -68,41 +71,28 @@ class _DutyPageState extends State<DutyPage> {
     );
   }
 
-  Future<void> _report(CrmDuty duty) async {
-    final submission = await showModalBottomSheet<_DutyReportInput>(
+  Future<void> _report(CrmDuty duty, {CrmDutyReport? report}) async {
+    final saved = await showDutyActionSheet(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => _DutyReportSheet(duty: duty),
+      api: widget.api,
+      session: widget.session,
+      duty: duty,
+      report: report,
     );
-    if (submission == null || !mounted) return;
-    try {
-      await widget.api.reportDuty(
-        accessToken: widget.session.accessToken,
-        assignmentId: duty.assignmentId,
-        actions: submission.actions,
-        result: submission.result,
-        issueDetails: submission.issueDetails,
-      );
-      _refresh();
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Duty report posted.')));
-      }
-    } on CrmMobileApiException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.message)));
-      }
-    }
+    if (saved && mounted) _refresh();
   }
 }
 
 class _DutyCard extends StatelessWidget {
-  const _DutyCard({required this.duty, required this.onReport});
+  const _DutyCard({
+    required this.duty,
+    required this.onReport,
+    required this.onEdit,
+  });
 
   final CrmDuty duty;
   final VoidCallback onReport;
+  final ValueChanged<CrmDutyReport> onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -154,13 +144,15 @@ class _DutyCard extends StatelessWidget {
                 'No report posted yet.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+            if (duty.reports.isNotEmpty)
+              DutyReportHistory(reports: duty.reports, onEdit: onEdit),
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
                 onPressed: onReport,
                 icon: const Icon(Icons.add_task_outlined),
-                label: const Text('Report duty'),
+                label: const Text('Add action'),
               ),
             ),
           ],
@@ -186,106 +178,6 @@ class _FrequencyBadge extends StatelessWidget {
       child: Text(label, style: Theme.of(context).textTheme.labelMedium),
     ),
   );
-}
-
-class _DutyReportSheet extends StatefulWidget {
-  const _DutyReportSheet({required this.duty});
-
-  final CrmDuty duty;
-
-  @override
-  State<_DutyReportSheet> createState() => _DutyReportSheetState();
-}
-
-class _DutyReportSheetState extends State<_DutyReportSheet> {
-  final _controller = TextEditingController();
-  final _issueController = TextEditingController();
-  String _result = 'completed';
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _issueController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    padding: EdgeInsets.fromLTRB(
-      20,
-      4,
-      20,
-      MediaQuery.viewInsetsOf(context).bottom + 24,
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          widget.duty.sopName,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        if (widget.duty.reports.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          DutyReportHistory(reports: widget.duty.reports),
-        ],
-        const SizedBox(height: 12),
-        TextField(
-          controller: _controller,
-          autofocus: true,
-          minLines: 4,
-          maxLines: 8,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            alignLabelWithHint: true,
-            border: OutlineInputBorder(),
-            hintText: 'What did you complete?',
-            labelText: 'Duty report',
-          ),
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          initialValue: _result,
-          decoration: const InputDecoration(labelText: 'Result', border: OutlineInputBorder()),
-          items: const [
-            DropdownMenuItem(value: 'completed', child: Text('Completed')),
-            DropdownMenuItem(value: 'blocked', child: Text('Blocked')),
-          ],
-          onChanged: (value) => setState(() => _result = value ?? 'completed'),
-        ),
-        if (_result == 'blocked') ...[
-          const SizedBox(height: 12),
-          TextField(
-            controller: _issueController,
-            minLines: 2,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              alignLabelWithHint: true,
-              border: OutlineInputBorder(),
-              labelText: 'Issue details',
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-        FilledButton(
-          onPressed: () {
-            final action = _controller.text.trim();
-            final issue = _issueController.text.trim();
-            if (action.isNotEmpty && (_result != 'blocked' || issue.isNotEmpty)) {
-              Navigator.pop(context, _DutyReportInput(actions: action, result: _result, issueDetails: issue));
-            }
-          },
-          child: const Text('Post report'),
-        ),
-      ],
-    ),
-  );
-}
-
-class _DutyReportInput {
-  const _DutyReportInput({required this.actions, required this.result, required this.issueDetails});
-  final String actions;
-  final String result;
-  final String issueDetails;
 }
 
 class _DutyState extends StatelessWidget {

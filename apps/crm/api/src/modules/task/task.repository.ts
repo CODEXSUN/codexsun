@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { Kysely, Transaction } from "kysely";
+import { sql, type Kysely, type Transaction } from "kysely";
 import { AppError } from "@codexsun/framework/errors";
 import { listActiveListInsForDatabase, type ListInDatabase } from "../list-in/index.js";
 import { listActivePrioritiesForDatabase, type PriorityDatabase } from "../priority/index.js";
@@ -15,7 +15,10 @@ import type {
 type TaskExecutor = Kysely<TaskDatabase> | Transaction<TaskDatabase>;
 
 export class TaskRepository {
-  constructor(private readonly db: Kysely<TaskDatabase>, private readonly workEvent?: TaskContext["workEvent"]) {}
+  constructor(
+    private readonly db: Kysely<TaskDatabase>,
+    private readonly workEvent?: TaskContext["workEvent"]
+  ) {}
   private query() {
     return this.db
       .selectFrom("crm_tasks as t")
@@ -177,6 +180,7 @@ export class TaskRepository {
         await trx
           .updateTable("crm_tasks")
           .set({
+            updated_at: sql`UTC_TIMESTAMP()`,
             contact_id: contactId,
             title: input.title,
             description: input.description,
@@ -201,7 +205,9 @@ export class TaskRepository {
             status_id: input.statusId,
             assigned_user_id: input.assignedUserId,
             due_date: input.dueDate,
-            created_by: actor
+            created_by: actor,
+            created_at: sql`UTC_TIMESTAMP()`,
+            updated_at: sql`UTC_TIMESTAMP()`
           })
           .executeTakeFirstOrThrow();
         id = Number(result.insertId);
@@ -231,6 +237,7 @@ export class TaskRepository {
       await trx
         .updateTable("crm_tasks")
         .set({
+          updated_at: sql`UTC_TIMESTAMP()`,
           ...(patch.listInId !== undefined ? { list_in_id: patch.listInId } : {}),
           ...(patch.priorityId !== undefined ? { priority_id: patch.priorityId } : {}),
           ...(patch.statusId !== undefined ? { status_id: patch.statusId } : {}),
@@ -259,10 +266,13 @@ export class TaskRepository {
         event_type: eventType,
         description,
         actor,
-        created_by: actor
+        created_by: actor,
+        created_at: sql`UTC_TIMESTAMP()`,
+        updated_at: sql`UTC_TIMESTAMP()`
       })
       .execute();
-    if (db.isTransaction) await this.workEvent?.(db as Transaction<TaskDatabase>, taskId, eventType, description);
+    if (db.isTransaction && eventType !== "created" && eventType !== "updated")
+      await this.workEvent?.(db as Transaction<TaskDatabase>, taskId, eventType, description);
   }
   async activity(taskId: number) {
     return this.db
@@ -306,9 +316,16 @@ export class TaskRepository {
     return this.db.transaction().execute(async (trx) => {
       const result = await trx
         .insertInto("crm_task_comments")
-        .values({ uuid: publicUuid(), task_id: taskId, body, created_by: actor })
+        .values({
+          uuid: publicUuid(),
+          task_id: taskId,
+          body,
+          created_by: actor,
+          created_at: sql`UTC_TIMESTAMP()`,
+          updated_at: sql`UTC_TIMESTAMP()`
+        })
         .executeTakeFirstOrThrow();
-      await this.insertActivity(trx, taskId, "comment", "Comment added.", actor);
+      await this.insertActivity(trx, taskId, "comment", body, actor);
       return trx
         .selectFrom("crm_task_comments")
         .select([
@@ -370,7 +387,10 @@ export class TaskRepository {
           uuid: publicUuid(),
           task_id: taskId,
           started_by: actor,
-          created_by: actor
+          started_at: sql`UTC_TIMESTAMP()`,
+          created_by: actor,
+          created_at: sql`UTC_TIMESTAMP()`,
+          updated_at: sql`UTC_TIMESTAMP()`
         })
         .executeTakeFirstOrThrow();
       await this.insertActivity(trx, taskId, "job-started", "Job timer started.", actor);
@@ -397,6 +417,7 @@ export class TaskRepository {
       if (!canManage) q = q.where("started_by", "=", actor);
       const result = await q
         .set({
+          updated_at: sql`UTC_TIMESTAMP()`,
           stopped_at: new Date().toISOString().slice(0, 19).replace("T", " "),
           status: "inactive"
         })
@@ -455,6 +476,8 @@ export class TaskRepository {
           task_id: taskId,
           requested_by: actor,
           created_by: actor,
+          created_at: sql`UTC_TIMESTAMP()`,
+          updated_at: sql`UTC_TIMESTAMP()`,
           reason,
           status: "pending",
           reviewed_by: null,
@@ -532,7 +555,12 @@ export class TaskRepository {
         throw AppError.conflict("The active Closed status is not configured.");
       const result = await trx
         .updateTable("crm_task_closure_requests")
-        .set({ status: decision, reviewed_by: actor, review_note: note })
+        .set({
+          updated_at: sql`UTC_TIMESTAMP()`,
+          status: decision,
+          reviewed_by: actor,
+          review_note: note
+        })
         .where("id", "=", id)
         .where("status", "=", "pending")
         .executeTakeFirst();
@@ -540,7 +568,7 @@ export class TaskRepository {
       if (closed)
         await trx
           .updateTable("crm_tasks")
-          .set({ status_id: closed.id })
+          .set({ updated_at: sql`UTC_TIMESTAMP()`, status_id: closed.id })
           .where("id", "=", request.task_id)
           .execute();
       await this.insertActivity(

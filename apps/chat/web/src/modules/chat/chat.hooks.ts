@@ -37,12 +37,14 @@ export function useChatWorkspace(search: string, channelUuid: string | null) {
   return {
     channels: useQuery({
       queryKey: [...chatQueryKey, "channels", search],
-      queryFn: () => listChannels(search)
+      queryFn: () => listChannels(search),
+      refetchInterval: 10000
     }),
     messages: useQuery({
       enabled: Boolean(channelUuid),
       queryKey: [...chatQueryKey, "messages", channelUuid],
-      queryFn: () => listMessages(channelUuid ?? "")
+      queryFn: () => listMessages(channelUuid ?? ""),
+      refetchInterval: 5000
     }),
     createChannel: useMutation({
       mutationFn: (payload: ChatChannelSavePayload) => createChannel(payload),

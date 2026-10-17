@@ -1,3 +1,9 @@
+import {
+  migrateChatModule,
+  writeWorkMessage,
+  ChatRepository
+} from "../../apps/chat/api/src/index.js";
+import { deliverDutyUpdate } from "../../apps/crm/api/src/modules/duty-assignment/index.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
@@ -85,6 +91,7 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
   let denyAllReports = false;
   let managerReportAccessOnly = false;
   await migrateTenantUserModule(database as never);
+  await migrateChatModule(database as never);
   await migrateSopModule(database as never);
   await migrateSopItemModule(database as never);
   await migrateDutyAssignmentModule(database as never);
@@ -104,6 +111,15 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
     database,
     actorEmail: actor.email,
     actorUserId,
+    notifyWork: async (
+      trx: import("kysely").Transaction<DutyReportDatabase>,
+      assignmentId: number,
+      body: string
+    ) => {
+      await deliverDutyUpdate(trx, assignmentId, actor.email, body, (message) =>
+        writeWorkMessage(trx as never, { ...message, actorEmail: actor.email, companyId: 1 })
+      );
+    },
     authorize: async (permission: string) => {
       if (
         denyPermissions ||
@@ -232,6 +248,36 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
   });
   assert.equal(submitted.statusCode, 200, submitted.body);
   reportId = submitted.json().data.id;
+  const conversations = await new ChatRepository().listChannels(
+    {
+      database: database as never,
+      actorEmail: actor.email,
+      companyId: 1,
+      tenantDatabase: testDatabaseName,
+      tenantId: "e2e",
+      authorize: async () => {}
+    },
+    {}
+  );
+  assert.equal(
+    conversations.length,
+    1,
+    "duty assignment and reporting share one participant conversation"
+  );
+  const conversation = await new ChatRepository().channelDetail(
+    {
+      database: database as never,
+      actorEmail: actor.email,
+      companyId: 1,
+      tenantDatabase: testDatabaseName,
+      tenantId: "e2e",
+      authorize: async () => {}
+    },
+    conversations[0]!.uuid
+  );
+  assert.ok(conversation.messages.some((message) => message.body.includes("duty assigned")));
+  assert.ok(conversation.messages.some((message) => message.body.includes("Report completed")));
+
   const protectedAssignment = await app.inject({
     method: "PUT",
     url: `/crm/duty-assignments/${assignmentId}`,

@@ -1,3 +1,4 @@
+import { createWorkspaceDocument } from "./public-document";
 import mdx from "@mdx-js/rollup";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
@@ -94,6 +95,26 @@ export default defineConfig(({ command, mode }) => {
       ]
     },
     plugins: [
+      {
+        name: "codexsun-workspace-document",
+        enforce: "post",
+        generateBundle: {
+          order: "post",
+          handler(_output, bundle) {
+            const entry = bundle["index.html"];
+            if (!entry || entry.type !== "asset") throw new Error("Homepage HTML is missing.");
+            const html =
+              typeof entry.source === "string"
+                ? entry.source
+                : new TextDecoder().decode(entry.source);
+            this.emitFile({
+              type: "asset",
+              fileName: "app.html",
+              source: createWorkspaceDocument(html)
+            });
+          }
+        }
+      },
       {
         enforce: "pre",
         ...mdx({

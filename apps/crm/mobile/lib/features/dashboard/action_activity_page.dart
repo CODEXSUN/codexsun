@@ -65,8 +65,9 @@ class _ActionActivityPageState extends State<ActionActivityPage> {
 
   Future<List<CrmJob>> _loadJobs() async {
     try {
-      final jobs =
-          await widget.api.assignedJobDetails(widget.session.accessToken);
+      final jobs = await widget.api.assignedJobDetails(
+        widget.session.accessToken,
+      );
       if (jobs.isNotEmpty) return jobs;
       final enquiries = await widget.api.enquiries(
         accessToken: widget.session.accessToken,

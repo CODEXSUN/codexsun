@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import '../../core/api/crm_mobile_api.dart';
 
 class DutyReportHistory extends StatelessWidget {
-  const DutyReportHistory({required this.reports, super.key});
+  const DutyReportHistory({required this.reports, this.onEdit, super.key});
 
   final List<CrmDutyReport> reports;
+  final ValueChanged<CrmDutyReport>? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -19,16 +20,22 @@ class DutyReportHistory extends StatelessWidget {
           style: Theme.of(context).textTheme.labelLarge,
         ),
         const SizedBox(height: 8),
-        ...recentReports.map((report) => _DutyReportCard(report: report)),
+        ...recentReports.map(
+          (report) => _DutyReportCard(
+            report: report,
+            onEdit: onEdit == null ? null : () => onEdit!(report),
+          ),
+        ),
       ],
     );
   }
 }
 
 class _DutyReportCard extends StatelessWidget {
-  const _DutyReportCard({required this.report});
+  const _DutyReportCard({required this.report, this.onEdit});
 
   final CrmDutyReport report;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -58,11 +65,16 @@ class _DutyReportCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
               ),
-              Text(_dateLabel(report.date), style: Theme.of(context).textTheme.labelSmall),
+              Text(
+                _dateLabel(report.date),
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
             ],
           ),
           const SizedBox(height: 7),
           Text(report.actions),
+          if (onEdit != null)
+            TextButton(onPressed: onEdit, child: const Text("Edit report")),
         ],
       ),
     ),

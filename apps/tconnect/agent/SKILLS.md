@@ -1,5 +1,9 @@
 # TConnect working rules
 
+For the hosted frontend, require the configured TIRUPURCONNECT tenant before forwarding registrations or returning dynamic records.
+Keep public API proxy routes restricted. Never forward browser credentials or caller-selected tenant headers to the public backend.
+The current user scope excludes further VPS configuration. Keep backend setup and full tenant journeys pending until separately connected.
+
 Read the root Agent Guide, governance rules, this component README, TASK.md, and PLAN.md before changes.
 Keep entity fields, schemas, seeds, persistence, routes, and UI in their owning modules.
 Use Platform only for composition and trusted identity, tenant selection, activation, and permission checks.
@@ -62,3 +66,10 @@ Do not convert standards reference panels or editorial company spotlights into u
 Preserve logo colors, proportions, clear space, and source provenance. Do not replace the ISO typographic reference with a certification seal.
 
 Never infer certification or trust from an active profile, association affiliation, products, company name, or seller registration. Sample badges must each say Sample.
+
+Only publish approved, unexpired credentials for active companies. Keep staff notes and reviewer identity out of public responses.
+Require evidence-review confirmation on every approval. Support revocation and audit all changes.
+Refresh published credentials on focus and periodically. Hide actual credential claims when their feed fails.
+Never assign credential review permissions to fixed buyer or seller roles.
+Preserve public product query validation, article metadata, enquiry focus handling, and association registration context.
+Test feed failures with blocked requests. Static content must remain available and failed statistics must stay hidden.

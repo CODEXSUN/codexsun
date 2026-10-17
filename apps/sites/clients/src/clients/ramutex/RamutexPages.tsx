@@ -3,6 +3,7 @@ import type { PageContent } from "@codexsun/sites-api/page-contract";
 import type { BlogContent } from "@codexsun/sites-api/blog-contract";
 import { RamutexCapabilities } from "./RamutexCapabilities";
 import { RamutexContact } from "./RamutexContact";
+import { RamutexFabrics } from "./RamutexFabrics";
 import { RamutexArticle, RamutexJournal, RamutexPrivacy } from "./RamutexReading";
 import profileUrl from "./assets/ramu-tex-company-profile.pdf?url";
 
@@ -44,6 +45,7 @@ export function RamutexPages({
       ) : path === "/services" ? (
         <>
           <RamutexMaterialBanner />
+          <RamutexFabrics detailed />
           <RamutexCapabilities content={content} />
         </>
       ) : path === "/contact" ? (

@@ -106,10 +106,13 @@ function PortalPage({ data }: { data: PortalData }) {
         />
         {data.registration.error ? (
           <main className="tc-container tc-empty">
-            <h1>Registration is temporarily unavailable.</h1>
-            <p>You can continue exploring and try creating your account again shortly.</p>
-            <a href="/companies" className="tc-button">
-              Explore businesses
+            <h1>New connections are coming soon.</h1>
+            <p>
+              We’re preparing the Tirupur Connect workspace. Please check back shortly to create
+              your account.
+            </p>
+            <a href="/categories" className="tc-button">
+              Explore textile categories
             </a>
           </main>
         ) : path[1] === "buyer" ? (
@@ -164,7 +167,16 @@ function PortalPage({ data }: { data: PortalData }) {
       <NotFound />
     );
   }
-  if ((path[0] === "associations" && data.associations.loading) || (path[0] === "community" && data.posts.loading)) return <main className="tc-container tc-empty"><h1>{path[0] === "community" ? "Community & knowledge" : "Associations"}</h1><p role="status">Loading published profiles…</p></main>;
+  if (
+    (path[0] === "associations" && data.associations.loading) ||
+    (path[0] === "community" && data.posts.loading)
+  )
+    return (
+      <main className="tc-container tc-empty">
+        <h1>{path[0] === "community" ? "Community & knowledge" : "Associations"}</h1>
+        <p role="status">Loading published profiles…</p>
+      </main>
+    );
   if (path[0] === "associations")
     return (
       <>

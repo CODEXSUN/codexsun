@@ -1,6 +1,6 @@
 import { sitePathname } from "../../shared/sitePathname";
 import { ArrowDown, ArrowDownToLine, ArrowUpRight, SlidersHorizontal } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useClientDocument } from "../../shared/useClientDocument";
 import { useSitePublication } from "../../shared/useSitePublication";
 import { RamutexHeader } from "./RamutexHeader";
@@ -9,6 +9,7 @@ import { RamutexCapabilities } from "./RamutexCapabilities";
 import { RamutexFooter, RamutexContact } from "./RamutexContact";
 import { RamutexBlogs } from "./RamutexBlogs";
 import { RamutexPortfolio } from "./RamutexPortfolio";
+import { RamutexFabrics } from "./RamutexFabrics";
 import { WhatsAppEnquiry } from "../../shared/SiteContactTools";
 import profileUrl from "./assets/ramu-tex-company-profile.pdf?url";
 import "./ramutex.css";
@@ -21,6 +22,10 @@ export function RamutexSite() {
   const { content, blogs, connected } = useSitePublication("ramutex");
   const { profile, hero, materials, about } = content;
   const path = sitePathname().replace(/\/$/, "") || "/";
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (id) document.getElementById(id)?.scrollIntoView({ block: "start" });
+  }, [path]);
   const slug = sitePathname().startsWith("/blogs/") ? sitePathname().slice(7) : null;
   const post = blogs.find((item) => item.slug === slug);
   useClientDocument(
@@ -91,6 +96,7 @@ export function RamutexSite() {
             </div>
           </div>
           <RamutexPortfolio content={content} />
+          <RamutexFabrics />
           <section id="about" className="rt-section rt-wrap rt-about">
             <div>
               <p className="rt-eyebrow">{about.label}</p>

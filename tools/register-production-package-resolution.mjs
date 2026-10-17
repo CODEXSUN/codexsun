@@ -11,6 +11,7 @@ const apiPackages = new Map([
   ["@codexsun/docs-api", "docs"],
   ["@codexsun/himsx-api", "himsx"],
   ["@codexsun/sites-api", "sites"],
+  ["@codexsun/tconnect-api", "tconnect"],
 
   ["@codexsun/accounts-api", "accounts"],
   ["@codexsun/auditor-api", "auditor"],

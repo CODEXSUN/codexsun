@@ -7,6 +7,7 @@ import 'dashboard_list_page.dart';
 import 'job_duration.dart';
 import 'dashboard_jobs_feed.dart';
 import 'job_detail_page.dart';
+import 'dashboard_stats.dart';
 
 class DashboardHome extends StatelessWidget {
   const DashboardHome({
@@ -16,6 +17,8 @@ class DashboardHome extends StatelessWidget {
     required this.onOpenActions,
     required this.jobsFeed,
     this.onReauthenticate,
+    this.unreadChatCount = 0,
+    this.assignmentCount = 0,
     super.key,
   });
 
@@ -25,6 +28,8 @@ class DashboardHome extends StatelessWidget {
   final Future<void> Function() onOpenActions;
   final DashboardJobsFeed jobsFeed;
   final VoidCallback? onReauthenticate;
+  final int unreadChatCount;
+  final int assignmentCount;
 
   @override
   Widget build(BuildContext context) {
@@ -100,8 +105,10 @@ class DashboardHome extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            _StatsRow(
+            DashboardStats(
               jobCount: jobs.length,
+              unreadChatCount: unreadChatCount,
+              assignmentCount: assignmentCount,
               onOpenList: onOpenList,
               api: api,
               session: session,
@@ -235,149 +242,6 @@ class _RunningJobCardState extends State<_RunningJobCard> {
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  const _StatsRow({
-    required this.jobCount,
-    required this.onOpenList,
-    required this.api,
-    required this.session,
-    required this.onOpenActions,
-  });
-
-  final int jobCount;
-  final ValueChanged<int> onOpenList;
-  final CrmMobileApi api;
-  final UserSession session;
-  final Future<void> Function() onOpenActions;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _StatCard(
-            icon: Icons.assignment_outlined,
-            label: 'Enquiries',
-            value: '$jobCount',
-            onTap: () => onOpenList(1),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _LiveStatCard(
-            icon: Icons.calendar_month_outlined,
-            label: 'Duty',
-            count: () =>
-                api.duties(session.accessToken).then((duties) => duties.length),
-            onTap: () async => onOpenList(2),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _LiveStatCard(
-            icon: Icons.bolt_outlined,
-            label: 'Activities',
-            count: () async {
-              try {
-                final count = await api.activitiesCount(session.accessToken);
-                if (count > 0) return count;
-                final enquiries = await api.enquiries(
-                  accessToken: session.accessToken,
-                  scope: 'all',
-                );
-                return enquiries.fold<int>(
-                  0,
-                  (sum, e) => sum + e.activities.length + e.jobs.length,
-                );
-              } catch (_) {
-                return 0;
-              }
-            },
-            onTap: onOpenActions,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _LiveStatCard extends StatefulWidget {
-  const _LiveStatCard({
-    required this.icon,
-    required this.label,
-    required this.count,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final Future<int> Function() count;
-  final Future<void> Function() onTap;
-
-  @override
-  State<_LiveStatCard> createState() => _LiveStatCardState();
-}
-
-class _LiveStatCardState extends State<_LiveStatCard> {
-  late final Future<int> _count = widget.count();
-
-  @override
-  Widget build(BuildContext context) => FutureBuilder<int>(
-    future: _count,
-    builder: (context, snapshot) => _StatCard(
-      icon: widget.icon,
-      label: widget.label,
-      value: snapshot.hasData ? '${snapshot.data}' : '—',
-      onTap: () => widget.onTap(),
-    ),
-  );
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Semantics(
-      button: true,
-      label: 'Open $label list',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Ink(
-          height: 96,
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE9E1EE)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 17, color: theme.colorScheme.primary),
-              const Spacer(),
-              Text(value, style: theme.textTheme.titleMedium),
-              Text(label, style: theme.textTheme.labelMedium),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _Greeting {
   const _Greeting(this.label, this.quote);
 
@@ -410,3 +274,4 @@ class _Greeting {
     );
   }
 }
+

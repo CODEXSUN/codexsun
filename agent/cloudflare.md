@@ -191,3 +191,9 @@ Both sites passed live route, asset, sitemap, canonical, health, and enquiry rej
 A browser enquiry was confirmed only in Ramu Tex D1 and then moved to trash.
 Ramu Tex Studio domain-label update remains pending because the local API returned 502 after export.
 Use the site-specific configs in `apps/sites/clients/cloudflare`. Preserve both databases on upgrades.
+
+## Ramu Tex fabric release - 17-10-2026
+
+Ramu Tex version `477f103f-db36-4110-9e58-373ff6fb77d4` serves published export 21 and the latest fabric guide and images.
+Verified all six live routes at phone viewport widths 320, 390, and 430px, responsive images, menu, fabric details, and D1 contact submission.
+Studio domain metadata now matches ramutex.codexsun.com. The prior local-API metadata blocker is resolved.

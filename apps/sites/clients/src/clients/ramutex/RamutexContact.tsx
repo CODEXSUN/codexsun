@@ -30,6 +30,19 @@ export function RamutexContact({
               </>
             ) : null}
             <p className="rt-contact-intro">{contact.intro}</p>
+            {!showIntro ? (
+              <aside className="rt-fabric-contact-tip">
+                <h2>Start with the fabric details.</h2>
+                <p>
+                  For knitted hosiery, include the construction, blend, GSM and finished width. For
+                  polyester sports fabrics, add stretch, moisture and drying requirements. A sample
+                  or reference garment helps frame the discussion.
+                </p>
+                <a className="rt-text-link" href="/services#fabrics">
+                  Explore the fabric guide <ArrowUpRight size={16} />
+                </a>
+              </aside>
+            ) : null}
             <div className="rt-contact-block">
               <MapPin size={20} />
               <div>

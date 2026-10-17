@@ -10,6 +10,7 @@ export const registerMember = (input: z.infer<typeof memberRegistration>) =>
   );
 declare const __CODEXSUN_PLATFORM_WEB_ORIGIN__: string;
 declare const __CODEXSUN_PLATFORM_WEB_PORT__: number;
+declare const __CODEXSUN_TCONNECT_CORPORATE_ID__: string;
 export function memberLoginUrl(corporateId?: string) {
   const local = import.meta.env.DEV && ["127.0.0.1", "localhost"].includes(location.hostname);
   const base = local
@@ -17,6 +18,7 @@ export function memberLoginUrl(corporateId?: string) {
     : __CODEXSUN_PLATFORM_WEB_ORIGIN__;
   const url = new URL("/login", base);
   url.searchParams.set("app", "tconnect");
-  if (corporateId) url.searchParams.set("corporateId", corporateId);
+  const selectedCorporateId = corporateId || __CODEXSUN_TCONNECT_CORPORATE_ID__;
+  if (selectedCorporateId) url.searchParams.set("corporateId", selectedCorporateId);
   return url.href;
 }

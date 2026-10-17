@@ -12,6 +12,12 @@ type Scope = {
   actorUserId: number | null;
   canViewAll: boolean;
   canReview: boolean;
+  workEvent?: (
+    transaction: import("kysely").Transaction<ClosureDatabase>,
+    enquiryId: number,
+    action: string,
+    body: string
+  ) => Promise<void>;
 };
 
 const reference = z.coerce.number().int().positive();
@@ -102,6 +108,12 @@ export function registerClosureRoutes(
             ? `Closure requested: ${body.note}`
             : "Closure requested and is waiting for verification.",
           scope.actorEmail
+        );
+        await scope.workEvent?.(
+          trx,
+          enquiry.id,
+          "closure-requested",
+          body.note || "Completion sent for approval."
         );
         return Number(inserted.insertId);
       });
@@ -254,6 +266,12 @@ export function registerClosureRoutes(
               ? `Closure request rejected: ${body.note}`
               : "Closure request rejected.",
           scope.actorEmail
+        );
+        await scope.workEvent?.(
+          trx,
+          current.enquiry_id,
+          body.decision === "approve" ? "closure-approved" : "closure-rejected",
+          body.note || (body.decision === "approve" ? "Verified and closed." : "Rework requested.")
         );
       });
       return loadRequest(scope.database, params.id);

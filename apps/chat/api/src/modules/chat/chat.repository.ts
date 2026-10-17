@@ -49,7 +49,10 @@ export class ChatRepository {
     let query = context.database
       .selectFrom("chat_channels")
       .selectAll()
-      .where("company_id", "=", context.companyId);
+      .where("company_id", "=", context.companyId)
+      .where(
+        sql<boolean>`EXISTS (SELECT 1 FROM chat_channel_members member WHERE member.channel_id=chat_channels.id AND member.company_id=${context.companyId} AND member.user_email=${context.actorEmail.toLowerCase()} AND member.status='active')`
+      );
     if (filters.search?.trim()) {
       query = query.where("name", "like", `%${filters.search.trim()}%`);
     }
@@ -66,6 +69,13 @@ export class ChatRepository {
   async requireChannel(context: ChatRuntimeContext, idOrUuid: string): Promise<ChatChannel> {
     const row = await this.findChannelRow(context, idOrUuid);
     if (!row) throw AppError.notFound("Chat channel was not found.");
+    const member = await this.findMemberRow(
+      context,
+      Number(row.id),
+      context.actorEmail.toLowerCase()
+    );
+    if (!member || member.status !== "active")
+      throw AppError.forbidden("Channel membership is required.");
     return this.toChannel(context, row);
   }
 
@@ -117,6 +127,7 @@ export class ChatRepository {
     input: { name: string }
   ): Promise<ChatChannel> {
     const channel = await this.requireChannel(context, idOrUuid);
+    await this.requireAdmin(context, channel.id);
     const name = normalizeChannelName(input.name);
     await context.database
       .updateTable("chat_channels")
@@ -132,6 +143,7 @@ export class ChatRepository {
     status: ChatStatus
   ): Promise<ChatChannel> {
     const channel = await this.requireChannel(context, idOrUuid);
+    await this.requireAdmin(context, channel.id);
     await context.database
       .updateTable("chat_channels")
       .set({ status, updated_by: context.actorEmail })
@@ -142,6 +154,7 @@ export class ChatRepository {
 
   async forceDeleteChannel(context: ChatRuntimeContext, idOrUuid: string) {
     const channel = await this.requireChannel(context, idOrUuid);
+    await this.requireAdmin(context, channel.id);
     const linkedTelegram = await context.database
       .selectFrom("chat_telegram_dialogs")
       .select("id")
@@ -312,6 +325,7 @@ export class ChatRepository {
       )
       .executeTakeFirst();
     if (!row) throw AppError.notFound("Chat message was not found.");
+    await this.requireChannel(context, String(row.channel_uuid));
     return this.toMessage(context, row, String(row.channel_uuid));
   }
 
@@ -438,6 +452,10 @@ export class ChatRepository {
     input: { body: string }
   ): Promise<ChatMessage> {
     const message = await this.requireMessage(context, idOrUuid);
+    if (message.senderEmail.toLowerCase() !== context.actorEmail.toLowerCase()) {
+      const channel = await this.requireChannel(context, message.channelUuid);
+      await this.requireAdmin(context, channel.id);
+    }
     const body = normalizeMessageBody(input.body);
     await context.database
       .updateTable("chat_messages")
@@ -457,6 +475,10 @@ export class ChatRepository {
     status: ChatStatus
   ): Promise<ChatMessage> {
     const message = await this.requireMessage(context, idOrUuid);
+    if (message.senderEmail.toLowerCase() !== context.actorEmail.toLowerCase()) {
+      const channel = await this.requireChannel(context, message.channelUuid);
+      await this.requireAdmin(context, channel.id);
+    }
     await context.database
       .updateTable("chat_messages")
       .set({ status, updated_by: context.actorEmail })
@@ -467,6 +489,10 @@ export class ChatRepository {
 
   async forceDeleteMessage(context: ChatRuntimeContext, idOrUuid: string) {
     const message = await this.requireMessage(context, idOrUuid);
+    if (message.senderEmail.toLowerCase() !== context.actorEmail.toLowerCase()) {
+      const channel = await this.requireChannel(context, message.channelUuid);
+      await this.requireAdmin(context, channel.id);
+    }
     const accountMessage = await context.database
       .selectFrom("chat_telegram_account_messages")
       .select("id")
@@ -513,7 +539,7 @@ export class ChatRepository {
       channelId,
       context.actorEmail.toLowerCase()
     );
-    if (!membership || membership.role !== "admin") {
+    if (!membership || membership.status !== "active" || membership.role !== "admin") {
       throw AppError.forbidden("Only channel admins can perform this action.");
     }
   }

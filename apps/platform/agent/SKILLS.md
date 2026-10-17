@@ -43,3 +43,6 @@ management permissions. A buyer login parameter selects a fixed shell; it cannot
 
 Compose TConnect conversation, message, and quotation self-access grants only for the fixed portal roles.
 Do not treat Platform staff permissions as ownership of buyer-seller conversations or competing quotations.
+
+Do not grant TConnect credential review to portal identities. Credential approval belongs to explicitly authorized staff.
+Keep credential persistence, expiry, evidence, publication, and audit rules inside TConnect.

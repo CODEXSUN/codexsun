@@ -47,3 +47,13 @@ Report database, browser, native, and deployment checks separately.
 
 - `@codexsun/chat-api`: `.`, `./modules/chat`.
 - `@codexsun/chat-web`: `.`, `./modules/chat`.
+
+## CRM work conversations
+
+The trusted `writeWorkMessage` public contract writes work messages using the caller's transaction.
+CRM supplies the authorized record participants. The writer creates a participant-specific group and its memberships,
+then stores the message with the work event UUID. All timestamps are stored in UTC.
+It does not contact external messaging providers. CRM resolves related people and its admin fallback.
+The standard Chat permission seed grants Admin, Super Admin, Manager, and User access.
+Channel and message reads require active membership; channel administration and editing another user's message require channel administration.
+Web channel/message queries poll for messages written by the CRM transaction contract.

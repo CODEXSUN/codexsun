@@ -51,11 +51,21 @@ class MessagesPage extends StatefulWidget {
 
 class MessagesPageState extends State<MessagesPage> {
   late Future<List<MessagingConversation>> _conversations;
+  Timer? _conversationTimer;
 
   @override
   void initState() {
     super.initState();
     _conversations = _loadConversations();
+    _conversationTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) _reload();
+    });
+  }
+
+  @override
+  void dispose() {
+    _conversationTimer?.cancel();
+    super.dispose();
   }
 
   Future<List<MessagingConversation>> _loadConversations() =>

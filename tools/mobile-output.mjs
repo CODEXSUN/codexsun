@@ -9,7 +9,8 @@ export function prepareMobileOutput(root, app) {
   for (const [source, target] of [
     [join(appRoot, "build"), output],
     [join(appRoot, ".dart_tool"), join(cache, "dart-tool")],
-    [join(appRoot, "android", ".gradle"), join(cache, "android-gradle")]
+    [join(appRoot, "android", ".gradle"), join(cache, "android-gradle")],
+    [join(appRoot, "android", ".kotlin"), join(cache, "android-kotlin")]
   ]) {
     mkdirSync(target, { recursive: true });
     if (!existsSync(source))

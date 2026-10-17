@@ -1,5 +1,34 @@
 # TConnect tasks
 
+## Hosted frontend — October 17, 2026
+
+- Deployed codexsun-tconnect through Cloudflare zone routes for tirupurconnect.com and www.tirupurconnect.com.
+- Set codexsun.com as the public API upstream and TIRUPURCONNECT as the expected Corporate ID.
+- Added tenant-context validation before public data, registrations, and enquiries. No CODEXSUN fallback is allowed.
+- Verified live public layouts at 1440, 768, 390, and 320 pixels, loaded imagery, login links, registration guards, and metadata.
+- Three Worker guard/routing tests, frontend type checking, lint, and production build passed.
+- The user moved VPS setup to a separate task. No Tirupur Connect tenant was created in this task.
+- The backend currently reports CODEXSUN. Registration and dynamic data therefore show setup pending.
+- Full buyer/seller journeys for TIRUPURCONNECT remain unverified until that tenant is connected.
+- Before the scope changed, the authorized VPS update added TConnect to the existing CODEXSUN tenant and account shell.
+- The pre-update database backup and isolated restore/migration evidence are under /home/codexsun-tconnect-20261017/backup on the VPS.
+- Earlier CODEXSUN live fixtures were closed or unpublished. Private account/history records remain for audit.
+
+## Public discovery upgrade — October 17, 2026
+
+- Implemented earlier company discovery, compact mobile layouts, matched card rows, clear buyer actions, and a role-choice Join page.
+- Added published product search, price and MOQ context, direct enquiries, and selected-product enquiry text.
+- Added searchable association members, contextual membership registration, topic filters, and individual community articles.
+- Added independent feed feedback and route-specific crawler metadata, share assets, and a generated sitemap.
+- Added staff-owned credential evidence, approval confirmation, validity checks, revocation, audit events, and public evidence links.
+- Applied the additive v5 migration to the registry-selected local development database.
+- Configured credential view/manage for the existing local Admin role through Platform access APIs. Portal roles remain unchanged.
+- Local unit checks, type checks, mobile layout checks, account journeys, quotation comparison, messaging, and credential API checks passed.
+- The discovery browser check passed for selected-product enquiries, article filters, contextual association registration, blocked feeds, and server metadata.
+- All 21 focused tests passed. API and web builds, lint, Platform web type checking, boundaries, component documentation, dependencies, and version checks passed.
+- The web build retains a JavaScript chunk-size advisory. No performance score or production deployment was claimed.
+- Production deployment, real business approval, issuer confirmation, and production metadata refresh remain operational tasks.
+
 ## Scope
 
 Create a buyer and seller portal with multi-industry company discovery, association branding, member profiles, and community sharing.

@@ -118,12 +118,9 @@ export function registerDutyReportRoutes(
     handler: async ({ params, body, request }) => {
       const ctx = await context(request);
       await ctx.authorize("crm.duty-report.create.own");
-      const result = await new DutyReportService(new DutyReportRepository(ctx.database)).update(
-        params.id,
-        body,
-        ctx.actorUserId,
-        ctx.actorEmail
-      );
+      const result = await new DutyReportService(
+        new DutyReportRepository(ctx.database, ctx.notifyWork)
+      ).update(params.id, body, ctx.actorUserId, ctx.actorEmail);
       await ctx.queueSync?.("duty-report", result.id);
       return result;
     }
@@ -170,7 +167,7 @@ export function registerDutyReportRoutes(
       }
       if (query.from && query.to && query.from > query.to)
         throw AppError.validation("From date must be on or before to date.");
-      return new DutyReportService(new DutyReportRepository(ctx.database)).list({
+      return new DutyReportService(new DutyReportRepository(ctx.database, ctx.notifyWork)).list({
         search: query.search,
         page: query.page,
         pageSize: query.pageSize,
@@ -199,12 +196,9 @@ export function registerDutyReportRoutes(
         .where("crm_duty_assignments.id", "=", body.assignmentId)
         .executeTakeFirst();
       if (!assignment) throw AppError.notFound("Duty assignment was not found.");
-      const result = await new DutyReportService(new DutyReportRepository(ctx.database)).create(
-        body,
-        ctx.actorUserId,
-        ctx.actorEmail,
-        assignment.frequency
-      );
+      const result = await new DutyReportService(
+        new DutyReportRepository(ctx.database, ctx.notifyWork)
+      ).create(body, ctx.actorUserId, ctx.actorEmail, assignment.frequency);
       await ctx.queueSync?.("duty-report", result.id);
       return result;
     }

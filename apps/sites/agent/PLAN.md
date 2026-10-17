@@ -763,3 +763,33 @@ LogicX and Ramu Tex share only the transport implementation. Entry points, origi
 The preparation and live verification commands accept only the two approved client slugs.
 Shared transport tests reject the other client's hostname and cross-origin enquiry submissions.
 Manual deployment and the remote inbox limitations above remain unchanged.
+
+### Ramu Tex fabric content and imagery — 2026-10-17
+
+The Ramu Tex client owns the new hosiery and polyester sports fabric guide.
+The guide stays in its template and does not modify a client's immutable publication or company capability claims.
+Images are illustrative material and application studies. Order suitability, processing routes, and finishes require a sample brief.
+
+Reference reading:
+- https://cottonworks.com/learning-hub/knitting/single-and-double-knits/
+- https://cottonworks.com/product-innovation/digital-cotton-basics/
+- https://cottonworks.com/learning-hub/quality-assurance/shrinking-and-skewing/
+- https://members.aatcc.org/store/tm217/4012/
+- https://www.hohenstein.us/en-us/textile-testing/quality/textile-and-chemical-tests/
+- https://textileexchange.org/polyester/
+
+Image generation used the built-in tool. Each prompt produced one original photograph.
+Final delivery files are under `clients/public/ramutex/ramutex`, with a matching `-640.webp` variant for each file.
+
+- `hosiery-materials.webp`: Landscape 1536x1024 premium editorial textile photograph. Cotton knitted hosiery fabric swatches: creamy ivory fine single jersey draped in soft loops, a folded denim blue interlock knit, muted copper rib fabric with clearly visible vertical ribs. A cotton yarn cone on pale limestone. Macro tactile loop stitches and real soft cotton fibres, gentle natural side light, clean restrained luxury Apple product photography art direction, warm ivory seamless studio, rich navy accents. No green, people, text, logos, watermarks, factory or collage. Composition fills lower two thirds with breathing room. Original illustrative material study for a textile processing website, not a company stock or facility photograph.
+- `sports-materials.webp`: Landscape 1536x1024 extraordinary premium textile product photograph. Navy polyester sports jersey folded in sculptural waves alongside a section of pale slate blue breathable birdseye mesh and copper micro polyester knit. Close enough to show the different knit surfaces and regular small mesh apertures, realistic smooth technical textile sheen, no fake water droplets or glowing effects. Minimal warm ivory studio background with pale stone block. Controlled directional softbox light like Apple premium product photography. Sophisticated navy, denim, ivory and copper palette only. No green, text, logos, people, branding, collage or factory. Original illustrative sports fabric study for a textile processing portfolio.
+- `hosiery-applications.webp`: Landscape 1536x1024 luxury textile editorial still life. Unbranded folded ivory cotton crewneck T-shirt with a neat ribbed neckline, folded navy soft cotton lounge trousers and one copper rib knit fabric swatch on a pale warm stone surface. Fine cotton knit stitch detail, quiet generous composition, soft morning side light, natural plausible garment proportions, no print, no labels, no people. Elevated Apple catalogue photography quality, cream navy copper palette, no green, text, logos, watermarks or collage. Illustrative garment application study, not a client's product or claimed manufacturing output.
+- `sports-applications.webp`: Landscape 1536x1024 luxury editorial sports textile still life. A single unbranded midnight navy short sleeve athletic training shirt neatly laid on a warm ivory surface, a subtle slate blue mesh ventilation panel visible along one side seam, folded copper technical knit fabric next to it, small unbranded pale stone exercise block at far background. Macro visible fine polyester knit, refined fabric drape, photographic realistic cloth, soft dramatic side lighting. Premium Apple product catalogue art direction with breathing room. No green, text, logos, people, medals, watermarks, collage or false performance effects. Illustrative activewear application study, not company stock or a client project.
+
+### Live Ramu Tex fabric release - 17-10-2026
+
+The latest fabric guide and all eight image variants are deployed externally.
+The Worker serves export sequence 21 at ramutex.codexsun.com.
+Mobile viewport checks passed for all six routes at 320, 390, and 430px.
+Four responsive fabric images, menu behavior, fabric details, enquiry prefilling, and persisted mobile submission were verified live.
+The Studio domain metadata blocker is resolved. Manual promotion and remote inbox limitations remain unchanged.

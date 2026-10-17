@@ -13,6 +13,12 @@ export const closureModule = {
       actorUserId: number | null;
       canViewAll: boolean;
       canReview: boolean;
+      workEvent?: (
+        transaction: import("kysely").Transaction<ClosureDatabase>,
+        enquiryId: number,
+        action: string,
+        body: string
+      ) => Promise<void>;
     }>
   ) => registerClosureRoutes(app, context)
 };

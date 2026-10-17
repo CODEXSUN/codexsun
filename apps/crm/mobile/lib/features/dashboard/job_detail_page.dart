@@ -4,11 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../core/api/crm_mobile_api.dart';
-import '../../core/platform/mobile_actions.dart';
 import 'dashboard_list_page.dart';
-import 'job_add_action_sheet.dart';
+import 'work_action_sheet.dart';
 import 'job_duration.dart';
-import 'work_actions_page.dart';
 import 'job_work_feed.dart';
 
 const _detailSurfaceTone = Color(0xFFFCF9FD);
@@ -41,6 +39,7 @@ class _JobDetailPageState extends State<JobDetailPage>
   late CrmJob _job;
   ClosureRequest? _closureRequest;
   List<CrmEnquiryLocation> _locations = const [];
+  List<Map<String, dynamic>> _workReports = [];
   var _isLoading = false;
   var _isSending = false;
   Timer? _runningTimer;
@@ -51,7 +50,7 @@ class _JobDetailPageState extends State<JobDetailPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _closureTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (mounted && !_isLoading && _closureRequest?.status == 'pending') {
+      if (mounted && !_isLoading) {
         _refresh();
       }
     });
@@ -94,7 +93,6 @@ class _JobDetailPageState extends State<JobDetailPage>
         onPressed: _isSending ? null : _openAddActions,
         child: const Icon(Icons.add),
       ),
-      appBar: AppBar(title: const Text('Enquiry'), actions: [TextButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => WorkActionsPage(api: widget.api, session: widget.session, enquiryId: widget.initialJob.id, capturePosition: widget.capturePosition))), child: const Text('Actions'))]),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -127,6 +125,7 @@ class _JobDetailPageState extends State<JobDetailPage>
                 job: _job,
                 session: widget.session,
                 locations: _locations,
+                reports: _workReports,
               ),
             ),
           ],
@@ -148,6 +147,10 @@ class _JobDetailPageState extends State<JobDetailPage>
           accessToken: widget.session.accessToken,
           id: widget.initialJob.sourceId,
         ),
+        widget.api.workReports(
+          widget.session.accessToken,
+          enquiryId: widget.initialJob.id,
+        ),
         widget.api.enquiryLocations(
           accessToken: widget.session.accessToken,
           enquiryId: widget.initialJob.sourceId,
@@ -158,7 +161,8 @@ class _JobDetailPageState extends State<JobDetailPage>
         setState(() {
           _job = job;
           _closureRequest = results[1] as ClosureRequest?;
-          _locations = results[2] as List<CrmEnquiryLocation>;
+          _workReports = results[2] as List<Map<String, dynamic>>;
+          _locations = results[3] as List<CrmEnquiryLocation>;
         });
         _syncRunningTimer();
         widget.onJobChanged?.call();
@@ -171,33 +175,16 @@ class _JobDetailPageState extends State<JobDetailPage>
   }
 
   Future<void> _openAddActions() async {
-    final runningJob = _job.jobs.where((job) => job.isRunning).firstOrNull;
-    final action = await showJobAddActions(
-      context,
-      isJobRunning: runningJob != null,
+    final saved = await showWorkActionSheet(
+      context: context,
+      api: widget.api,
+      session: widget.session,
+      enquiries: [_job],
       closurePending: _closureRequest?.status == 'pending',
-      closureApproved: _closureRequest?.status == 'approved',
-      timerLabel: runningJob == null ? null : formatJobDuration(runningJob),
+      closed: _closureRequest?.status == 'approved',
+      capturePosition: widget.capturePosition,
     );
-    if (!mounted || action == null) return;
-    switch (action) {
-      case JobAddAction.startJob:
-        await _startJob();
-      case JobAddAction.stopJob:
-        await _stopJob();
-      case JobAddAction.takePhoto:
-        await _runDeviceAction(MobileActions.photo, 'Camera');
-      case JobAddAction.scanDocument:
-        await _runDeviceAction(MobileActions.scanDocument, 'Document scanner');
-      case JobAddAction.logLocation:
-        await _captureLocation();
-      case JobAddAction.markCompleted:
-        await _requestClosure();
-      case JobAddAction.charges:
-        await _recordAmount('Charges');
-      case JobAddAction.collected:
-        await _recordAmount('Collected');
-    }
+    if (saved && mounted) await _refresh();
   }
 
   Future<void> _addComment() async {
@@ -206,12 +193,6 @@ class _JobDetailPageState extends State<JobDetailPage>
     await _saveComment(message);
     _replyController.clear();
     if (mounted) FocusScope.of(context).unfocus();
-  }
-
-  Future<void> _recordAmount(String label) async {
-    final amount = await _requestAmount(context, label);
-    if (!mounted || amount == null) return;
-    await _saveComment('$label: â‚¹$amount');
   }
 
   Future<void> _saveComment(String comment) async {
@@ -229,118 +210,6 @@ class _JobDetailPageState extends State<JobDetailPage>
       }
     } on CrmMobileApiException catch (error) {
       if (mounted) _showError(error.message);
-    } finally {
-      if (mounted) setState(() => _isSending = false);
-    }
-  }
-
-  Future<void> _startJob() async {
-    await _runJobAction(
-      () => widget.api.startJob(
-        accessToken: widget.session.accessToken,
-        id: widget.initialJob.sourceId,
-      ),
-    );
-    _logActionLocation();
-  }
-
-  Future<void> _stopJob() async {
-    final running = _job.jobs.where((job) => job.isRunning).firstOrNull;
-    if (running == null) {
-      _showError('No running job to mark completed.');
-      return;
-    }
-    await _runJobAction(
-      () => widget.api.stopJob(
-        accessToken: widget.session.accessToken,
-        id: widget.initialJob.sourceId,
-        jobName: running.name,
-      ),
-    );
-    _logActionLocation();
-  }
-
-  Future<void> _requestClosure() async {
-    if (_closureRequest?.status == 'pending') {
-      _showError('Completion is already waiting for approval.');
-      return;
-    }
-    setState(() => _isSending = true);
-    try {
-      final closureRequest = await widget.api.requestClosure(
-        accessToken: widget.session.accessToken,
-        id: widget.initialJob.sourceId,
-      );
-      if (mounted) {
-        setState(() => _closureRequest = closureRequest);
-        _logActionLocation();
-        await _refresh();
-        if (!mounted) return;
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(content: Text('Completion sent for approval.')),
-          );
-      }
-    } on CrmMobileApiException catch (error) {
-      if (mounted) _showError(error.message);
-    } finally {
-      if (mounted) setState(() => _isSending = false);
-    }
-  }
-
-  Future<void> _runDeviceAction(
-    Future<bool> Function() action,
-    String label,
-  ) async {
-    if (await action()) return;
-    if (mounted) _showError('$label is not available on this device.');
-  }
-
-  Future<void> _captureLocation() async {
-    setState(() => _isSending = true);
-    try {
-      final position =
-          await (widget.capturePosition ?? _captureDevicePosition)();
-      final results = await Future.wait([
-        widget.api.logEnquiryLocation(
-          accessToken: widget.session.accessToken,
-          enquiryId: widget.initialJob.sourceId,
-          latitude: position.latitude,
-          longitude: position.longitude,
-          accuracyMeters: position.accuracy.isFinite ? position.accuracy : null,
-          capturedAt: position.timestamp,
-        ),
-        widget.api.addJobComment(
-          accessToken: widget.session.accessToken,
-          id: widget.initialJob.sourceId,
-          comment: 'Location logged from mobile.',
-        ),
-      ]);
-      final saved = results[0] as CrmEnquiryLocation;
-      final updated = results[1] as CrmJob;
-      if (mounted) {
-        setState(() {
-          _locations = [saved, ..._locations];
-          _job = updated;
-        });
-        widget.onJobChanged?.call();
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(content: Text('Location saved to enquiry.')),
-          );
-      }
-    } on CrmMobileApiException catch (error) {
-      if (mounted) _showError(error.message);
-    } on LocationServiceDisabledException {
-      if (mounted) _showError('Turn on device location and try again.');
-    } on PermissionDeniedException {
-      if (mounted) {
-        _showError('Allow location access to log this enquiry location.');
-      }
-    } catch (error) {
-      if (mounted) _showError('Could not get location: $error');
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -408,22 +277,6 @@ class _JobDetailPageState extends State<JobDetailPage>
         return fallback;
       }
       rethrow;
-    }
-  }
-
-  Future<void> _runJobAction(Future<CrmJob> Function() action) async {
-    setState(() => _isSending = true);
-    try {
-      final job = await action();
-      if (mounted) {
-        setState(() => _job = job);
-        _syncRunningTimer();
-        widget.onJobChanged?.call();
-      }
-    } on CrmMobileApiException catch (error) {
-      if (mounted) _showError(error.message);
-    } finally {
-      if (mounted) setState(() => _isSending = false);
     }
   }
 
@@ -659,7 +512,7 @@ class _CompactJobDetail extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Created by ${enquiry.createdBy} Â· ${enquiry.createdDate} | ${enquiry.createdAgo}',
+            'Created by ${enquiry.createdBy} · ${enquiry.createdDate} | ${enquiry.createdAgo}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -839,53 +692,4 @@ class _ReplyComposer extends StatelessWidget {
       ),
     );
   }
-}
-
-Future<String?> _requestAmount(BuildContext context, String label) async {
-  final amount = await showDialog<String>(
-    context: context,
-    builder: (context) => _AmountDialog(label: label),
-  );
-  if (amount == null || double.tryParse(amount) == null) return null;
-  return amount;
-}
-
-class _AmountDialog extends StatefulWidget {
-  const _AmountDialog({required this.label});
-
-  final String label;
-
-  @override
-  State<_AmountDialog> createState() => _AmountDialogState();
-}
-
-class _AmountDialogState extends State<_AmountDialog> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text('${widget.label} amount'),
-    content: TextField(
-      controller: _controller,
-      autofocus: true,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: const InputDecoration(prefixText: 'â‚¹ ', hintText: '0.00'),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('Cancel'),
-      ),
-      FilledButton(
-        onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-        child: const Text('Save'),
-      ),
-    ],
-  );
 }

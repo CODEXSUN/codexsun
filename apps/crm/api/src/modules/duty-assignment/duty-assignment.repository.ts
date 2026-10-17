@@ -1,3 +1,4 @@
+import type { DutyAssignmentContext } from "./duty-assignment.types.js";
 import { AppError } from "@codexsun/framework/errors";
 import { randomUUID } from "node:crypto";
 import { sql, type Kysely } from "kysely";
@@ -10,7 +11,10 @@ import { enqueueCrmFrappeSync } from "../frappe-sync/index.js";
 import type { CrmFrappeSyncDatabase } from "../frappe-sync/index.js";
 
 export class DutyAssignmentRepository {
-  constructor(private readonly db: Kysely<DutyAssignmentDatabase>) {}
+  constructor(
+    private readonly db: Kysely<DutyAssignmentDatabase>,
+    private readonly notifyWork?: DutyAssignmentContext["notifyWork"]
+  ) {}
   async listForUser(userId: number) {
     const today = new Date().toISOString().slice(0, 10);
     return this.listBase()
@@ -124,6 +128,7 @@ export class DutyAssignmentRepository {
         Number(result.insertId),
         actor
       );
+      await this.notifyWork?.(trx, Number(result.insertId), "SOP duty assigned.");
       return Number(result.insertId);
     });
     return id
@@ -216,6 +221,7 @@ export class DutyAssignmentRepository {
         id,
         actor
       );
+      await this.notifyWork?.(trx, id, "SOP duty assignment updated.");
     });
     return (await this.listBase().where("assignment.id", "=", id).execute()).map(map)[0]!;
   }

@@ -2,7 +2,7 @@
 
 Repository source: `apps/platform/agent/SKILLS.md`
 
-Source SHA-256 (LF line endings): `9364b3ee76716dc5f909c1acbf7ec1a652d21854530cc07b6fd77dcad9faa74b`
+Source SHA-256 (LF line endings): `0fee3176747184bfc360b325dab2973da4929b3b73b0fa5d8f8a55267fda7b36`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -54,4 +54,7 @@ management permissions. A buyer login parameter selects a fixed shell; it cannot
 
 Compose TConnect conversation, message, and quotation self-access grants only for the fixed portal roles.
 Do not treat Platform staff permissions as ownership of buyer-seller conversations or competing quotations.
+
+Do not grant TConnect credential review to portal identities. Credential approval belongs to explicitly authorized staff.
+Keep credential persistence, expiry, evidence, publication, and audit rules inside TConnect.
 ```

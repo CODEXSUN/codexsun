@@ -9,3 +9,5 @@ export type {
   DutyAssignment
 } from "./duty-assignment.types.js";
 export type { DutyAssignmentInput } from "./duty-assignment.types.js";
+
+export { deliverDutyUpdate } from "./duty-assignment.notifications.js";

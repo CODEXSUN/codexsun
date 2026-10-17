@@ -16,6 +16,9 @@ export async function checkPublicPages(control, port, origin) {
     "/companies",
     "/associations",
     "/community",
+    "/standards",
+    "/enterprises",
+    "/join",
     "/register",
     "/register/buyer",
     "/login",
@@ -38,10 +41,12 @@ export async function checkPublicPages(control, port, origin) {
       "hero image"
     );
     await checkWidth(page, `homepage ${width}`);
-    await checkNetworkSections(page);
+    await checkNetworkSections(page, origin);
     for (const selector of [".tc-category-panel", ".tc-company"])
       await checkCardRows(page, selector);
-    profile ??= await page.evaluate("document.querySelector('.tc-company')?.getAttribute('href')");
+    profile ??= await page.evaluate(
+      "document.querySelector('.tc-company h3 a')?.getAttribute('href')"
+    );
     association ??= await page.evaluate(
       "document.querySelector('.tc-association-stack a')?.getAttribute('href')"
     );
@@ -143,6 +148,7 @@ export async function checkPublicPages(control, port, origin) {
       `Image ${filename} must load`
     );
   }
+  await checkDiscovery(page, origin, association);
   await page.send("Emulation.setEmulatedMedia", {
     features: [{ name: "prefers-reduced-motion", value: "reduce" }]
   });
@@ -155,7 +161,79 @@ export async function checkPublicPages(control, port, origin) {
   page.socket.close();
 }
 
+export async function checkDiscovery(page, origin, association) {
+  await navigate(page, origin, "/companies?view=products&q=cotton");
+  await page.waitFor(
+    "document.querySelector('.tc-discovery-product')!==null",
+    "public product search"
+  );
+  const productLink = await page.evaluate(
+    "document.querySelector('.tc-discovery-product-copy > a').getAttribute('href')"
+  );
+  await navigate(page, origin, productLink);
+  await page.waitFor(
+    "document.querySelector('.tc-dialog textarea')?.value.includes('Please share availability')",
+    "selected product enquiry prefill"
+  );
+  await checkWidth(page, "product enquiry");
+  await navigate(page, origin, "/community");
+  await page.waitFor("document.querySelector('.tc-post h3 a')!==null", "community cards");
+  const post = await page.evaluate("document.querySelector('.tc-post h3 a').getAttribute('href')");
+  await page.clickText("event");
+  assert(
+    await page.evaluate(
+      "[...document.querySelectorAll('.tc-post-category')].every(item=>item.textContent==='event')"
+    )
+  );
+  await navigate(page, origin, post);
+  await page.waitFor("document.querySelector('.tc-article-body')!==null", "individual article");
+  assert(await page.evaluate("document.title.includes(document.querySelector('h1').textContent)"));
+  await checkWidth(page, "article");
+  await navigate(page, origin, association);
+  await page.waitFor(
+    "document.querySelector('a[href^=\"/register?association=\"]')!==null",
+    "association membership link"
+  );
+  const join = await page.evaluate(
+    "document.querySelector('a[href^=\"/register?association=\"]').getAttribute('href')"
+  );
+  await navigate(page, origin, join);
+  await page.waitFor(
+    "document.querySelector('[name=associationChoice]:checked')?.value===new URLSearchParams(location.search).get('association')",
+    "requested association prefill"
+  );
+  await page.send("Network.enable");
+  await page.send("Network.setBlockedURLs", { urls: ["*/public/tconnect/*"] });
+  try {
+    await navigate(page, origin, "/");
+    await page.waitFor(
+      "document.querySelector('.tc-feed-error')!==null",
+      "independent feed failure"
+    );
+    assert(
+      await page.evaluate(
+        "document.querySelector('.tc-hero h1')!==null&&document.querySelector('.tc-footer')!==null&&document.querySelector('.tc-network-figures')===null"
+      )
+    );
+    await navigate(page, origin, "/contact");
+    assert(await page.evaluate("document.body.innerText.includes('info@tirupurconnect.com')"));
+  } finally {
+    await page.send("Network.setBlockedURLs", { urls: [] });
+  }
+  console.info(
+    "BROWSER PASS: public product search and enquiry prefill, community filtering and article, association joining, isolated feed failures"
+  );
+}
+
 async function navigate(page, origin, route) {
+  for (let attempt = 0; attempt < 60; attempt++) {
+    try {
+      if ((await fetch(`${origin}/api/platform/ready`, { signal: AbortSignal.timeout(1000) })).ok)
+        break;
+    } catch {}
+    if (attempt === 59) throw new Error("Local API did not finish restarting.");
+    await new Promise((done) => setTimeout(done, 700));
+  }
   await page.send("Page.navigate", { url: `${origin}${route}` });
   await page.waitFor(
     `location.pathname===${JSON.stringify(route.split("?")[0])}&&document.querySelector('.tc-footer')!==null&&!document.body.innerText.includes('Opening your next connection')&&document.readyState==='complete'`,
@@ -195,9 +273,9 @@ async function checkCardRows(page, selector) {
   }
 }
 
-async function checkNetworkSections(page) {
+async function checkNetworkSections(page, origin) {
   const expected = await page.evaluate(
-    `(async()=>{const companies=(await(await fetch('/api/platform/public/tconnect/company')).json()).data;const associations=(await(await fetch('/api/platform/public/tconnect/association')).json()).data;return [companies.length,associations.length,new Set(companies.map(x=>x.industry)).size,new Set(companies.map(x=>x.city.trim()).filter(Boolean)).size];})()`
+    `(async()=>{async function read(resource){for(let attempt=0;attempt<8;attempt++){try{const response=await fetch('/api/platform/public/tconnect/'+resource);if(response.ok){const result=await response.json();if(result.success)return result.data;}}catch{}await new Promise(done=>setTimeout(done,500));}throw new Error('Public feed unavailable: '+resource);}const companies=await read('company');const associations=await read('association');return [companies.length,associations.length,new Set(companies.map(x=>x.industry)).size,new Set(companies.map(x=>x.city.trim()).filter(Boolean)).size];})()`
   );
   await page.evaluate(
     "document.querySelector('.tc-network-figures').scrollIntoView({block:'center'})"
@@ -213,6 +291,7 @@ async function checkNetworkSections(page) {
     expected,
     "Counts must match the public API"
   );
+  await navigate(page, origin, "/standards");
   assert.equal(await page.evaluate("document.querySelectorAll('.tc-standard').length"), 4);
   await page.evaluate("document.querySelector('.tc-standards').scrollIntoView({block:'center'})");
   await page.waitFor(
@@ -237,12 +316,24 @@ async function checkNetworkSections(page) {
       "document.querySelector('.tc-standards-note').textContent.includes('does not certify companies')"
     )
   );
-  for (const selector of [".tc-enterprise-banner", ".tc-standard"])
-    await checkCardRows(page, selector);
+  await checkCardRows(page, ".tc-standard");
+  await navigate(page, origin, "/enterprises");
+  await page.waitFor(
+    "document.querySelector('.tc-enterprise-banner')!==null",
+    "company spotlights"
+  );
+  await checkCardRows(page, ".tc-enterprise-banner");
   assert(
     await page.evaluate(
       "[...document.querySelectorAll('.tc-enterprise-banner')].every(el=>el.getAttribute('href').startsWith('/companies/'))"
     )
   );
-  await page.evaluate("window.scrollTo(0,0)");
+  await navigate(page, origin, "/");
+  await page.waitFor("document.querySelector('.tc-company')!==null", "featured businesses");
+  assert(
+    await page.evaluate(
+      "document.querySelector('.tc-company').getBoundingClientRect().top+scrollY<2300"
+    ),
+    "Supplier discovery must appear near the top"
+  );
 }

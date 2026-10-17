@@ -263,4 +263,66 @@ Business spotlights link to published textile company profiles and retain sample
 The sourcing standards section links to official GOTS, GRS, OEKO-TEX STANDARD 100, and ISO quality-management resources.
 It provides educational references only. No company certification claims or badges are assigned. Reference logos identify GOTS, GRS, and OEKO-TEX. ISO 9001 uses neutral reference typography because ISO restricts its logo. Sources are recorded in `web/public/standards/README.md`.
 
-Company cards show Certified and Trusted sample badges only on explicitly fictional demonstration profiles. Each badge carries its own Sample label. These are visual examples, not verified credentials. Other profiles show Credentials not published. A production verification and certification approval workflow remains unimplemented.
+Company cards distinguish illustrative Sample badges from reviewed credentials. Published credentials link to evidence, issuer, scope, reference, review date, and validity.
+Staff manage reviews through the Credentials desk. Approval requires an explicit evidence-review confirmation and an unexpired date.
+Pending, rejected, revoked, expired, and inactive-company records never appear in the public credential feed. Private notes remain private.
+TConnect records staff review. It does not certify companies or guarantee product quality.
+
+## Public discovery upgrade
+
+The homepage places business discovery directly after the hero and category shortcuts.
+Individual feeds have loading, retry, and error states. An unavailable feed does not hide static pages or the homepage.
+The directory separates business discovery from published product search. Products show supplied images, prices, minimum orders, and direct enquiry links.
+Product enquiries prefill the selected product. Join offers buyer and seller account choices.
+Association profiles include member search and membership requests. Community pages include topic filters, search, and individual articles.
+
+Each public route has a title, description, canonical URL, and social metadata.
+The production build creates route-specific HTML metadata, a sitemap, and public company-logo share assets. It does not render the React body on the server.
+Set `CODEXSUN_TCONNECT_BUILD_HOST` to the verified portal tenant host when building production assets.
+The build reads published public APIs. Rebuild after profile publication changes to refresh crawler metadata and share assets.
+Sample detail pages remain excluded from the sitemap and carry noindex metadata. Local development also carries noindex metadata.
+
+Migration `tconnect.credentials.v5` adds the credential table without changing previous migration checksums.
+Seeding creates staff permissions `tconnect.credential.view` and `tconnect.credential.manage` without assigning them to portal roles.
+An authorized Platform administrator must assign these permissions to the intended staff role through Access management.
+Revoke records to remove published credentials. Preserve credential and activity records when rolling back presentation changes.
+
+Run `node --import tsx tools/e2e/tconnect-public-upgrade.e2e.ts` for the registry-resolved local migration and publication checks.
+This development-only test configures missing credential grants for the existing Admin role through Platform's audited access APIs.
+It never reactivates an inactive grant or assigns credential permissions to buyers or sellers. Its evidence fixture remains revoked after cleanup.
+
+Run `node --import tsx tools/e2e/tconnect-discovery-browser.e2e.mjs` for public product enquiries, article filters, association joining, blocked-feed behavior, and server metadata.
+
+## Cloudflare frontend and dedicated tenant
+
+The public frontend runs on `https://tirupurconnect.com`. The www hostname redirects to the canonical hostname.
+The Worker configuration is `web/cloudflare/wrangler.jsonc`. It uses existing zone routes and does not replace DNS records.
+Public requests use the fixed upstream `https://codexsun.com/api/platform`.
+Account workspaces and authentication remain on CODEXSUN. Production login links select Corporate ID `TIRUPURCONNECT`.
+
+The Worker checks the upstream registration context before serving public data or forwarding account creation and enquiries.
+The context must return `{ "success": true, "data": { "corporateId": "TIRUPURCONNECT" } }`.
+A missing or different tenant returns `503 TENANT_SETUP_PENDING`. Static pages remain available and registration stays disabled.
+The Worker never falls back to CODEXSUN records. It strips cookies, authorization, and caller-supplied tenant headers from public requests.
+Private quotation, conversation, and account APIs are not exposed through this Worker.
+
+For the separate VPS setup, create or select the dedicated Tirupur Connect tenant and its own database.
+Bind the public TConnect API to that tenant on the server. Enable TConnect and provision its restricted buyer and seller roles.
+Retain exact Corporate ID resolution, signed sessions, and per-record ownership in the API.
+Do not resolve a tenant from a browser-provided database or tenant header.
+Run live account and negotiation verification only after the registration context confirms `TIRUPURCONNECT`.
+
+Build the frontend from the repository root with these process environment values:
+
+```text
+PLATFORM_WEB_ORIGIN=https://codexsun.com
+CODEXSUN_TCONNECT_CORPORATE_ID=TIRUPURCONNECT
+CODEXSUN_TCONNECT_BUILD_HOST=codexsun.com
+CODEXSUN_TCONNECT_BUILD_API_ORIGIN=https://codexsun.com/api/platform
+```
+
+Run `npm run build -w @codexsun/tconnect-web`, then `wrangler deploy --config apps/tconnect/web/cloudflare/wrangler.jsonc --keep-vars`.
+The metadata build checks the expected tenant and excludes records from a different tenant.
+Run `node --test tools/e2e/tconnect-worker.test.mjs` for routing and tenant guard checks.
+Run `node tools/e2e/tconnect-frontend-live.e2e.mjs` for read-only public browser checks.
+The separate live journey requires `CODEXSUN_TCONNECT_LIVE_CHECK=1` and refuses account creation until the dedicated tenant is connected.

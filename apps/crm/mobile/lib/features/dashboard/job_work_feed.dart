@@ -9,16 +9,18 @@ class JobWorkFeed extends StatelessWidget {
     required this.job,
     required this.session,
     this.locations = const [],
+    this.reports = const [],
     super.key,
   });
 
   final CrmJob job;
   final UserSession session;
   final List<CrmEnquiryLocation> locations;
+  final List<Map<String, dynamic>> reports;
 
   @override
   Widget build(BuildContext context) {
-    final entries = _WorkFeedEntry.fromJob(job, session, locations);
+    final entries = _WorkFeedEntry.fromJob(job, session, locations, reports);
     if (entries.isEmpty) {
       return const Center(child: Text('No comments or job records yet.'));
     }
@@ -55,8 +57,26 @@ class _WorkFeedEntry {
     CrmJob job,
     UserSession session,
     List<CrmEnquiryLocation> locations,
+    List<Map<String, dynamic>> reports,
   ) {
     final entries = <_WorkFeedEntry>[
+      ...reports.map(
+        (report) => _WorkFeedEntry(
+          icon: report['latitude'] == null
+              ? Icons.task_alt
+              : Icons.location_on_outlined,
+          title: '${report['action']}'.replaceAll('-', ' '),
+          detail:
+              '${report['body']}${report['latitude'] == null ? '' : '\nGPS: ${report['latitude']}, ${report['longitude']} · ${report['accuracy_meters']} m'}',
+          author: _author('${report['created_by']}', session),
+          createdAt: DateTime.parse('${report['created_at']}'),
+          onTap: report['latitude'] == null
+              ? null
+              : () => MobileActions.location(
+                  '${report['latitude']},${report['longitude']}',
+                ),
+        ),
+      ),
       ...job.comments.map(
         (comment) => _WorkFeedEntry(
           icon: Icons.chat_bubble_outline,

@@ -56,5 +56,10 @@ export type DutyAssignmentContext = {
   actorEmail: string;
   actorUserId: number | null;
   authorize: (permission: string) => Promise<void>;
+  notifyWork?: (
+    transaction: import("kysely").Transaction<DutyAssignmentDatabase>,
+    assignmentId: number,
+    body: string
+  ) => Promise<void>;
   queueSync?: (entity: "sop-item" | "duty-assignment" | "duty-report", id: number) => Promise<void>;
 };

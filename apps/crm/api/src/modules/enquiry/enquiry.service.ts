@@ -196,6 +196,13 @@ export class EnquiryService {
   }
 
   private async prepare(input: EnquiryInput, current: EnquiryRecord | null): Promise<EnquiryInput> {
+    if (
+      !this.viewer.canViewAll &&
+      (current
+        ? input.assignedUserId !== current.assignedUserId
+        : input.assignedUserId !== null && input.assignedUserId !== this.viewer.actorUserId)
+    )
+      throw AppError.forbidden("Only an enquiry manager can change the assignee.");
     const title = input.title.trim() || titleFromMessage(input.description);
     if (!title) throw AppError.validation("Enter an enquiry message or title.");
     if (!input.contactId && !input.capturedName?.trim() && !input.capturedPhone?.trim()) {

@@ -144,3 +144,12 @@ TConnect owns requirements, catalog search, and sender/recipient enquiry access 
 The TConnect buyer and seller desks compose app-owned Quotations and Messages workspaces.
 Both fixed portal roles receive conversation, message, and quotation self-access permissions.
 TConnect verifies participant ownership. These grants do not provide tenant-wide negotiation access.
+
+The TConnect staff desk composes an app-owned Credentials workspace through fixed transport adapters.
+Credential review permissions require explicit staff-role assignment. Buyer and seller roles cannot review company credentials.
+
+### Super Admin tenant registry
+
+The tenant list reads the Platform registry only. It includes inactive, unconnected tenants
+and preserves each record's configured landing app. Opening the list does not inspect
+tenant company records or create, connect, or provision tenant databases.

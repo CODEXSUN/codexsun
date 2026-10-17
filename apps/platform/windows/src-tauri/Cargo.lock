@@ -332,7 +332,7 @@ dependencies = [
 
 [[package]]
 name = "codexsun-windows"
-version = "1.1.5"
+version = "1.1.6"
 dependencies = [
  "rusqlite",
  "serde",

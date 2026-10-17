@@ -31,3 +31,12 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 Use `npm run check:component-docs` for this documentation contract.
 Run applicable tests before marking implementation work complete.
 Do not treat documentation, a build, or a model response as proof of live persistence or deployment.
+
+## CRM work conversation integration - 17-10-2026
+
+- [x] Add a public transactional work-message contract and participant-specific conversations.
+- [x] Enforce active membership on channel/message reads and administration on channel lifecycle and other-user message mutations.
+- [x] Extend the standard Chat permission seed to administrative and user roles.
+- [x] Verify participant and unrelated-user access, company isolation, and rollback through the CRM work-report database E2E.
+- [x] Seven existing realtime tests passed. Chat API/web type checks, lint, boundaries, and builds passed locally.
+- [ ] Production permission rollout and deployment.

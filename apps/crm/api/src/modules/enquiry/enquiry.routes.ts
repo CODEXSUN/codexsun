@@ -195,7 +195,12 @@ export type EnquiryRequestContext = {
   relations: EnquiryRelations;
   listUsers: () => Promise<Array<{ id: number; name: string; email: string; status: string }>>;
   pendingClosureLookup?: PendingClosureLookup;
-  workEvent?: (transaction: import("kysely").Transaction<EnquiryDatabase>, enquiryId: number, action: string, body: string) => Promise<void>;
+  workEvent?: (
+    transaction: import("kysely").Transaction<EnquiryDatabase>,
+    enquiryId: number,
+    action: string,
+    body: string
+  ) => Promise<void>;
 };
 
 export function registerEnquiryRoutes(

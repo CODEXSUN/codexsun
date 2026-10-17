@@ -129,6 +129,15 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           actions: switch (_selectedIndex) {
             0 => [
+              IconButton(
+                tooltip: 'Notifications',
+                onPressed: _showNotifications,
+                icon: Badge.count(
+                  count: _messageNotifications.unreadCount,
+                  isLabelVisible: _messageNotifications.unreadCount > 0,
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+              ),
               PopupMenuButton<_HomeMenuAction>(
                 tooltip: 'Account options',
                 icon: const Icon(Icons.more_vert_rounded),
@@ -223,6 +232,8 @@ class _DashboardPageState extends State<DashboardPage> {
         api: widget.api,
         session: widget.session,
         jobsFeed: _jobsFeed,
+        unreadChatCount: _messageNotifications.unreadCount,
+        assignmentCount: _mobileNotifications.assignmentCount,
         onOpenList: _selectDestination,
         onOpenActions: _openActions,
         onReauthenticate: widget.onReauthenticate,
@@ -346,6 +357,36 @@ class _DashboardPageState extends State<DashboardPage> {
     if (task != null) unawaited(task());
   }
 
+  void _showNotifications() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListenableBuilder(
+          listenable: _messageNotifications,
+          builder: (context, _) => ListView(
+            shrinkWrap: true,
+            children: [
+              const ListTile(title: Text('Notifications')),
+              if (_messageNotifications.unreadConversations.isEmpty)
+                const ListTile(title: Text('No notifications')),
+              for (final item in _messageNotifications.unreadConversations)
+                ListTile(
+                  leading: const Icon(Icons.notifications_outlined),
+                  title: Text(item.title),
+                  subtitle: Text(item.preview),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _selectDestination(3);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showMenu() {
     showModalBottomSheet<void>(
       context: context,
@@ -368,7 +409,19 @@ class _DashboardPageState extends State<DashboardPage> {
                     _selectDestination(2);
                   },
                 ),
-                ListTile(leading: const Icon(Icons.task_alt),title: const Text('Tasks'),onTap:(){Navigator.pop(context);Navigator.of(this.context).push(MaterialPageRoute<void>(builder:(_)=>TasksPage(api:widget.api,session:widget.session)));}),
+                ListTile(
+                  leading: const Icon(Icons.task_alt),
+                  title: const Text('Tasks'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.of(this.context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            TasksPage(api: widget.api, session: widget.session),
+                      ),
+                    );
+                  },
+                ),
                 if (_canViewCallLogs)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -454,3 +507,4 @@ class _CurrentVersionMenuItem extends StatelessWidget {
     ],
   );
 }
+
