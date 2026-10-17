@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { animate, motion, useReducedMotion } from "framer-motion";
+import { animate, m as motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpRight,
   ArrowRight,
@@ -60,7 +60,10 @@ export function LogicxHero({ content }: { content: PageContent }) {
   return (
     <section className="lx-new-hero">
       <div className="lx-hero-sculpture" aria-hidden="true">
-        <img src={design.heroImage} alt="" fetchPriority="high" />
+        <picture>
+          {design.heroImage === "/design/logicx-architecture.webp" ? <source media="(max-width: 600px)" srcSet="/design/logicx-architecture-640.webp" /> : null}
+          <img src={design.heroImage} alt="" fetchPriority="high" decoding="async" width="1200" height="800" />
+        </picture>
         <span />
       </div>
       <div className="lx-shell lx-new-hero-inner">
@@ -275,7 +278,10 @@ export function LogicxApproach({ content }: { content: PageContent }) {
   const design = content.marketing ?? initialLogicxMarketing;
   return (
     <section className="lx-new-approach" id="approach">
-      <img className="lx-approach-photo" src={design.approachImage} alt="" loading="lazy" />
+      <picture>
+        {design.approachImage === "/design/logicx-architecture.webp" ? <source media="(max-width: 600px)" srcSet="/design/logicx-architecture-640.webp" /> : null}
+        <img className="lx-approach-photo" src={design.approachImage} alt="" loading="lazy" decoding="async" />
+      </picture>
       <svg
         className="lx-approach-wave"
         viewBox="0 0 1440 120"

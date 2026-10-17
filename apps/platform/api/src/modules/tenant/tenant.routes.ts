@@ -32,6 +32,8 @@ export async function registerTenantRoutes(app: FastifyInstance) {
     schemas: {
       response: z.object({
         brandName: z.string(),
+        blogEnabled: z.boolean(),
+        blogMediaPath: z.string().nullable(),
         configured: z.boolean(),
         domain: z.string(),
         eyebrow: z.string(),

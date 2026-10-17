@@ -235,10 +235,12 @@ const SopWorkspace = lazyWorkspace(() =>
   import("@codexsun/crm-web/modules/sop").then((module) => module.SopWorkspace)
 );
 const MyDutiesWorkspace = lazyWorkspace(() =>
-  import("@codexsun/crm-web/modules/duties").then((module) => module.MyDutiesWorkspace)
+  import("@codexsun/crm-web/modules/duty-assignment").then(
+    (module) => module.DutyAssignmentWorkspace
+  )
 );
 const DutyReportingWorkspace = lazyWorkspace(() =>
-  import("@codexsun/crm-web/modules/duties").then((module) => module.DutyReportingWorkspace)
+  import("@codexsun/crm-web/modules/duty-report").then((module) => module.DutyReportWorkspace)
 );
 const ClosureWorkspace = lazyWorkspace(() =>
   import("@codexsun/crm-web/modules/closure").then((module) => module.ClosureWorkspace)
@@ -2622,7 +2624,7 @@ function titleForPage(page: AppPage) {
     "crm.closures": "Closure Approvals",
     "crm.call-logs": "Call Logs",
     "crm.sops": "SOPs",
-    "crm.duties": "My Duties",
+    "crm.duties": "Duties",
     "crm.duty-reporting": "Duty Reporting",
     "crm.enquiries.new": "New enquiry",
     "crm.my-job": "My Job",

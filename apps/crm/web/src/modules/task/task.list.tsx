@@ -1,7 +1,7 @@
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
-import { WorkspaceStatusBadge } from "@codexsun/ui/workspace";
+import { CrmStatusBadge } from "../../crm-colors";
 import { TaskInlineFilter } from "./task.inline-filter";
 import type { TaskColumnFilters, TaskRecord } from "./task.types";
 
@@ -109,7 +109,7 @@ export function TaskList({
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => (
-        <WorkspaceStatusBadge status={row.original.status} label={row.original.statusName} />
+        <CrmStatusBadge code={row.original.status} label={row.original.statusName} />
       )
     },
     {

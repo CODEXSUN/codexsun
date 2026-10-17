@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 const delay = (milliseconds) => new Promise((done) => setTimeout(done, milliseconds));
-class BrowserPage {
+export class BrowserPage {
   constructor(socket) {
     this.socket = socket;
     this.sequence = 0;

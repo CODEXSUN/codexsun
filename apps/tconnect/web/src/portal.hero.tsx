@@ -39,6 +39,14 @@ export function PortalHero() {
             <ArrowRight size={22} />
           </button>
         </form>
+        <div className="tc-hero-actions">
+          <a className="tc-text-link" href="/register/buyer">
+            Post a requirement <ArrowRight size={17} />
+          </a>
+          <a href="/register" className="tc-hero-seller">
+            List your business <ArrowRight size={15} />
+          </a>
+        </div>
         <div className="tc-popular">
           <span>Explore</span>
           {quick.map(([label, category]) => (

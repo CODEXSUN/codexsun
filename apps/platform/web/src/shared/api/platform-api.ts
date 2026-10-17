@@ -1,7 +1,6 @@
 import { requiredClientEnv } from "../env/client-env";
 import { clearSessionSlot, getSessionSlot, setSessionSlot } from "../auth/tab-session";
 
-const apiBaseUrl = requiredClientEnv("VITE_PLATFORM_API_URL");
 export type Desk = "sa" | "admin" | "tenant";
 
 const LEGACY_TOKEN_KEYS = [
@@ -166,7 +165,7 @@ function authHeaders(desk?: Desk): Record<string, string> {
 }
 
 async function request<T>(path: string, options: RequestInit = {}, desk?: Desk): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(`${requiredClientEnv("VITE_PLATFORM_API_URL")}${path}`, {
     ...options,
     credentials: "include",
     headers: {

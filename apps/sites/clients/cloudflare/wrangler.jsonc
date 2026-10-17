@@ -1,0 +1,26 @@
+{
+  "name": "codexsun-sites-logicx",
+  "account_id": "a68cf61bf5bae3f83ddb7765dc29a835",
+  "main": "logicx.mjs",
+  "compatibility_date": "2026-10-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "logicx.codexsun.com", "custom_domain": true }],
+  "assets": {
+    "directory": "../../../../dist/apps/sites/cloudflare/logicx/public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "none",
+    "not_found_handling": "none"
+  },
+  "d1_databases": [
+    {
+      "binding": "CODEXSUN_SITES_DB",
+      "database_name": "codexsun-sites-logicx",
+      "database_id": "72202591-6faf-4c6c-8bed-4b9b4086f04d"
+    }
+  ],
+  "triggers": { "crons": ["17 2 * * *"] },
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 }
+}

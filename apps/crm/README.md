@@ -112,10 +112,46 @@ Closure requests show an orange Closure pending badge.
 
 ## SOP workspace
 
-SOPs use the shared enquiry-style list toolbar, search, status filters, column search,
-column visibility, pagination, and row actions. Active and published badges are green;
-drafts are amber, and inactive or superseded records use neutral badges.
-New SOP and Edit SOP show only name, code, and purpose. Cancel protects unsaved input.
-Open an SOP to manage its own items, revision history, publication, and duty assignments.
-Item creation and duty assignment forms stay collapsed until needed. Instructions and
-evidence guidance use multiline fields. The existing API, revision rules, and Frappe mapping remain unchanged.
+SOPs show only the LogicX SOP Item content: SOP name, Department, Frequency, and Steps.
+The list supports search and frequency filtering. New and edit forms use those same four required fields.
+Daily, Weekly, Monthly, and Yearly match Frappe. Existing unsupported local frequencies remain visible on edit.
+Save maintains the existing internal SOP/item identities and publishes the instruction revision through the existing API.
+Codes, purpose, revisions, evidence guidance, ordering, lifecycle controls, and assignments are not shown on this screen.
+Existing revision history and evidence guidance remain stored. Duty work stays in its existing screens.
+
+## Duties and Duty Reporting
+
+Duties represents LogicX SOP Assigned. Its list and new/edit forms show SOP, User, and Index.
+Department, Frequency, and Steps are read-only SOP details. Users with assignment permission can create;
+management permission is required to edit. Without all-duty permission, the list shows the user's active duties.
+Duplicate SOP/user pairs are rejected. Assignments with reports retain their SOP, user, revision, and valid report dates.
+
+Duty Reporting represents LogicX SOP Reporting. New reports select an assigned SOP and show its User,
+Date, Actions, Department, Frequency, and Steps. Only the signed-in assignee can submit or edit their reports.
+Edits change Date and Actions, preserve the assignment/instruction snapshot and existing outcome/issue fields,
+and keep one report per recurrence period. The server enforces all these rules.
+Both lists support search and refresh; Duties filters frequency and reports filter dates with pagination.
+Cancel protects unsaved form input. Existing mobile endpoints and report result fields remain supported.
+
+The additive duty-assignment and duty-report edit-history-v2 migrations preserve prior record data and editor identity.
+They were applied and repeat-checked on the local development tenant. Deployment must run these migrations.
+Run `npm run test:e2e:crm-duties` for persistence, edit ownership, report collisions, history protection, and outbound queue checks.
+
+## Task default filters and status colors
+
+Tasks opens with the same Active filter as Enquiries. It excludes won, lost, and closed tasks.
+All tasks and individual status filters remain available. Hold, Pending, and Other use the enquiry status groups.
+Filter counts come from the authorized, searched records and refresh with the list every 15 seconds.
+Task list, detail, and creation context use the enquiry status color badges. Closure pending keeps its orange badge.
+
+## Administrative Duty Reporting
+
+Duty Reporting uses the List in report pattern: SOP-wise, User-wise, Department-wise, and Frequency-wise summaries.
+Date and search filters use Apply and Clear. Completed, Blocked, and Total counts open matching report rows.
+Back to summary preserves the chosen view and applied filters. All reports opens the tenant-wide detail list.
+
+The web options, summaries, and detail list require crm.duty-report.view.all.
+Default grants include Admin, Manager, and Super Admin. The local tenant seed was applied and verified for those roles.
+The web page never falls back to own-report scope. Normal users retain their mobile own-report API access.
+Existing report creation and edit permissions remain separate from all-report viewing.
+Grouped totals run on the server across all matching records, before detail pagination, within the current tenant.

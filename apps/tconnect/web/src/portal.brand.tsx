@@ -29,6 +29,8 @@ export function PortalFooter() {
           ["Categories", "/categories"],
           ["Associations", "/associations"],
           ["Community", "/community"],
+          ["Standards", "/standards"],
+          ["Spotlights", "/enterprises"],
           ["Contact", "/contact"],
           ["Privacy", "/privacy"],
           ["Terms", "/terms"]
@@ -44,7 +46,7 @@ export function PortalFooter() {
         <a href="tel:+919655227767">9655227767</a>
         <small>
           Demonstration listings are fictional. Information is supplied by profile owners; no
-          verification or certification is implied.
+          verification is implied unless current reviewed credential details are published.
         </small>
       </div>
     </footer>

@@ -1,3 +1,4 @@
+import type { Credential, CredentialInput } from "./modules/credential/credential.types";
 import type { Message, MessagePage } from "./modules/message/message.types";
 import type { Conversation, ConversationInput } from "./modules/conversation/conversation.types";
 import type { Quotation, QuotationInput } from "./modules/quotation/quotation.types";
@@ -15,6 +16,10 @@ import type { Inquiry } from "./modules/inquiry/inquiry.types";
 import type { Product, ProductInput } from "./modules/product/product.types";
 import type { Member, MemberSession, MemberReview } from "./modules/member/member.types";
 export type TconnectGateway = {
+  credential: {
+    list: () => Promise<Credential[]>;
+    save: (input: CredentialInput, uuid?: string) => Promise<Credential>;
+  };
   message: {
     messages: (uuid: string, before?: string) => Promise<MessagePage>;
     send: (uuid: string, body: string) => Promise<Message>;

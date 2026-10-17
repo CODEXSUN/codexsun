@@ -83,6 +83,7 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
   let actorUserId: number | null = null;
   let denyPermissions = false;
   let denyAllReports = false;
+  let managerReportAccessOnly = false;
   await migrateTenantUserModule(database as never);
   await migrateSopModule(database as never);
   await migrateSopItemModule(database as never);
@@ -104,7 +105,13 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
     actorEmail: actor.email,
     actorUserId,
     authorize: async (permission: string) => {
-      if (denyPermissions || (permission === "crm.duty-report.view.all" && denyAllReports))
+      if (
+        denyPermissions ||
+        (permission === "crm.duty-report.view.all" && denyAllReports) ||
+        (managerReportAccessOnly &&
+          permission.startsWith("crm.duty-report.") &&
+          permission.endsWith(".own"))
+      )
         throw Object.assign(new Error("Forbidden"), { statusCode: 403 });
     }
   });
@@ -180,6 +187,22 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
   });
   assert.equal(assigned.statusCode, 200, assigned.body);
   assignmentId = assigned.json().data.id;
+  assert.equal(assigned.json().data.startDate, today);
+  const editedAssignment = await app.inject({
+    method: "PUT",
+    url: `/crm/duty-assignments/${assignmentId}`,
+    payload: {
+      sopItemId: itemId,
+      revisionId,
+      assigneeUserId: actor.id,
+      displayOrder: 3,
+      startDate: today,
+      endDate: null
+    }
+  });
+  assert.equal(editedAssignment.statusCode, 200, editedAssignment.body);
+  assert.equal(editedAssignment.json().data.id, assignmentId);
+  assert.equal(editedAssignment.json().data.displayOrder, 3);
   const changedFrequency = await app.inject({
     method: "PUT",
     url: `/crm/sop-items/${itemId}`,
@@ -209,6 +232,45 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
   });
   assert.equal(submitted.statusCode, 200, submitted.body);
   reportId = submitted.json().data.id;
+  const protectedAssignment = await app.inject({
+    method: "PUT",
+    url: `/crm/duty-assignments/${assignmentId}`,
+    payload: {
+      sopItemId: itemId,
+      revisionId,
+      assigneeUserId: actor.id + 100,
+      displayOrder: 3,
+      startDate: today,
+      endDate: null
+    }
+  });
+  assert.equal(protectedAssignment.statusCode, 409, protectedAssignment.body);
+  const reorderWithHistory = await app.inject({
+    method: "PUT",
+    url: `/crm/duty-assignments/${assignmentId}`,
+    payload: {
+      sopItemId: itemId,
+      revisionId,
+      assigneeUserId: actor.id,
+      displayOrder: 4,
+      startDate: today,
+      endDate: null
+    }
+  });
+  assert.equal(reorderWithHistory.statusCode, 200, reorderWithHistory.body);
+  const invalidWindow = await app.inject({
+    method: "PUT",
+    url: `/crm/duty-assignments/${assignmentId}`,
+    payload: {
+      sopItemId: itemId,
+      revisionId,
+      assigneeUserId: actor.id,
+      displayOrder: 4,
+      startDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+      endDate: null
+    }
+  });
+  assert.equal(invalidWindow.statusCode, 409, invalidWindow.body);
   actorUserId = actor.id + 100;
   const wrongActor = await app.inject({
     method: "POST",
@@ -576,12 +638,34 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
         endDate: null
       }
     });
-    assert.equal(secondAssignment.statusCode, 200, secondAssignment.body);
+    assert.equal(secondAssignment.statusCode, 409, secondAssignment.body);
+    // Legacy duplicate assignments can still exist and must reuse the remote pair.
+    const legacy = await database
+      .insertInto("crm_duty_assignments")
+      .values({
+        uuid: randomUUID(),
+        sop_item_id: itemId!,
+        revision_id: revisionId,
+        assignee_user_id: actor.id,
+        display_order: 2,
+        start_date: today,
+        end_date: null,
+        status: "active",
+        assigned_by: actor.email
+      })
+      .executeTakeFirstOrThrow();
+    const legacyAssignmentId = Number(legacy.insertId);
+    await enqueueCrmFrappeSync(
+      database as never,
+      "duty-assignment",
+      legacyAssignmentId,
+      actor.email
+    );
     const secondEvent = await database
       .selectFrom("crm_frappe_sync_queue")
       .select("id")
       .where("entity_type", "=", "duty-assignment")
-      .where("local_record_id", "=", secondAssignment.json().data.id)
+      .where("local_record_id", "=", legacyAssignmentId)
       .executeTakeFirstOrThrow();
     globalThis.fetch = async (input, init) => {
       if (init?.method === "GET") return Response.json({ data: [{ name: "EXISTING-ASSIGNMENT" }] });
@@ -740,6 +824,12 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
       0,
       "identical user identities in another tenant cannot see first tenant reports"
     );
+    const emptySummary = await otherApp.inject({
+      method: "GET",
+      url: "/crm/duty-reports/summary?view=user"
+    });
+    assert.equal(emptySummary.statusCode, 200, emptySummary.body);
+    assert.deepEqual(emptySummary.json().data, [], "report summary cannot cross tenant databases");
     const crossTenant = await otherApp.inject({
       method: "POST",
       url: "/crm/duty-reports",
@@ -758,6 +848,193 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
     assert.match(otherName, /^codexsun_crm_duties_e2e_[a-f0-9]{16}$/);
     await admin.query(`DROP DATABASE \`${otherName}\``);
   }
+  await sql`INSERT INTO app_users (uuid,name,email,password_hash) VALUES ('othermgr','Other reporter','other-report@local.invalid','test-only')`.execute(
+    database
+  );
+  const otherReporter = await database
+    .selectFrom("app_users")
+    .select("id")
+    .where("email", "=", "other-report@local.invalid")
+    .executeTakeFirstOrThrow();
+  const otherDuty = await app.inject({
+    method: "POST",
+    url: "/crm/duty-assignments",
+    payload: {
+      sopItemId: itemId,
+      revisionId,
+      assigneeUserId: otherReporter.id,
+      displayOrder: 5,
+      startDate: today,
+      endDate: null
+    }
+  });
+  assert.equal(otherDuty.statusCode, 200, otherDuty.body);
+  actorUserId = otherReporter.id;
+  const otherReport = await app.inject({
+    method: "POST",
+    url: "/crm/duty-reports",
+    payload: {
+      assignmentId: otherDuty.json().data.id,
+      performedDate: today,
+      actions: "Other reporter completed work.",
+      result: "completed",
+      issueDetails: ""
+    }
+  });
+  assert.equal(otherReport.statusCode, 200, otherReport.body);
+  actorUserId = actor.id;
+  const allReports = await app.inject({ method: "GET", url: "/crm/duty-reports?scope=all" });
+  assert.equal(allReports.json().data.total, 3);
+  const ownReports = await app.inject({ method: "GET", url: "/crm/duty-reports?scope=own" });
+  assert.equal(ownReports.json().data.total, 2, "mobile own scope remains restricted");
+  for (const view of ["sop", "user", "department", "frequency"]) {
+    const summary = await app.inject({
+      method: "GET",
+      url: `/crm/duty-reports/summary?view=${view}`
+    });
+    assert.equal(summary.statusCode, 200, summary.body);
+    assert.equal(
+      summary.json().data.reduce((sum: number, row: { total: number }) => sum + row.total, 0),
+      3,
+      view
+    );
+  }
+  const sopSummary = await app.inject({ method: "GET", url: "/crm/duty-reports/summary?view=sop" });
+  assert.equal(sopSummary.json().data[0].completed, 2);
+  assert.equal(sopSummary.json().data[0].blocked, 1);
+  const userDrilldown = await app.inject({
+    method: "GET",
+    url: `/crm/duty-reports?scope=all&assigneeId=${otherReporter.id}`
+  });
+  assert.equal(userDrilldown.json().data.total, 1);
+  const blockedDrilldown = await app.inject({
+    method: "GET",
+    url: `/crm/duty-reports?scope=all&sopItemId=${itemId}&department=Stores&frequency=daily&result=blocked`
+  });
+  assert.equal(blockedDrilldown.json().data.total, 1);
+  const dateSummary = await app.inject({
+    method: "GET",
+    url: `/crm/duty-reports/summary?view=sop&from=${today}&to=${today}`
+  });
+  assert.equal(dateSummary.json().data[0].total, 2);
+  const searchedSummary = await app.inject({
+    method: "GET",
+    url: "/crm/duty-reports/summary?view=user&search=Other%20reporter"
+  });
+  assert.equal(searchedSummary.json().data[0].total, 1);
+  denyAllReports = true;
+  assert.equal(
+    (await app.inject({ method: "GET", url: "/crm/duty-reports/summary" })).statusCode,
+    403
+  );
+  assert.equal(
+    (await app.inject({ method: "GET", url: "/crm/duty-reports/options" })).statusCode,
+    403,
+    "web report page cannot fall back to own scope"
+  );
+  assert.equal(
+    (await app.inject({ method: "GET", url: "/crm/duty-reports?scope=own" })).statusCode,
+    200,
+    "mobile own API remains available"
+  );
+  denyAllReports = false;
+  managerReportAccessOnly = true;
+  const managerOptions = await app.inject({ method: "GET", url: "/crm/duty-reports/options" });
+  assert.equal(managerOptions.statusCode, 200, managerOptions.body);
+  assert.equal(managerOptions.json().data.canViewAll, true);
+  assert.equal(managerOptions.json().data.canCreate, false);
+  assert.equal(
+    (await app.inject({ method: "GET", url: "/crm/duty-reports/summary" })).statusCode,
+    200
+  );
+  assert.equal(
+    (await app.inject({ method: "GET", url: "/crm/duty-reports?scope=all" })).json().data.total,
+    3
+  );
+  assert.equal(
+    (await app.inject({ method: "GET", url: "/crm/duty-reports?scope=own" })).statusCode,
+    403
+  );
+  managerReportAccessOnly = false;
+  const dutyEditPayload = {
+    sopItemId: itemId,
+    revisionId,
+    assigneeUserId: actor.id,
+    displayOrder: 9,
+    startDate: today,
+    endDate: null
+  };
+  const editedDuty = await app.inject({
+    method: "PUT",
+    url: `/crm/duty-assignments/${assignmentId}`,
+    payload: dutyEditPayload
+  });
+  assert.equal(editedDuty.statusCode, 409, "legacy duplicate pairs prevent edits until resolved");
+  const ownOptions = await app.inject({ method: "GET", url: "/crm/duty-reports/options" });
+  assert.equal(ownOptions.statusCode, 200, ownOptions.body);
+  assert.equal(ownOptions.json().data.actorUserId, actor.id);
+  const reportEdit = await app.inject({
+    method: "PUT",
+    url: `/crm/duty-reports/${reportId}`,
+    payload: { performedDate: today, actions: "Corrected counter check." }
+  });
+  assert.equal(reportEdit.statusCode, 200, reportEdit.body);
+  assert.equal(reportEdit.json().data.actions, "Corrected counter check.");
+  const editHistory = await database
+    .selectFrom("crm_duty_report_edits")
+    .selectAll()
+    .where("report_id", "=", reportId!)
+    .execute();
+  assert.equal(editHistory.length, 1);
+  const before =
+    typeof editHistory[0]!.before_data === "string"
+      ? JSON.parse(editHistory[0]!.before_data)
+      : editHistory[0]!.before_data;
+  assert.equal(before.actions, "Counter checked.");
+  assert.equal(editHistory[0]!.changed_by, actor.email);
+  assert.equal(reportEdit.json().data.revisionId, submitted.json().data.revisionId);
+  assert.equal(reportEdit.json().data.instructions, "Check the counter.");
+  const conflictingDate = await app.inject({
+    method: "PUT",
+    url: `/crm/duty-reports/${reportId}`,
+    payload: { performedDate: tomorrow, actions: "Must not overwrite another report." }
+  });
+  assert.equal(conflictingDate.statusCode, 409, conflictingDate.body);
+  actorUserId = actor.id + 100;
+  const forbiddenEdit = await app.inject({
+    method: "PUT",
+    url: `/crm/duty-reports/${reportId}`,
+    payload: { performedDate: today, actions: "Not mine." }
+  });
+  assert.equal(forbiddenEdit.statusCode, 403, forbiddenEdit.body);
+  actorUserId = actor.id;
+  denyPermissions = true;
+  assert.equal(
+    (
+      await app.inject({
+        method: "PUT",
+        url: `/crm/duty-assignments/${assignmentId}`,
+        payload: dutyEditPayload
+      })
+    ).statusCode,
+    403
+  );
+  assert.equal(
+    (
+      await app.inject({
+        method: "PUT",
+        url: `/crm/duty-reports/${reportId}`,
+        payload: { performedDate: today, actions: "Denied." }
+      })
+    ).statusCode,
+    403
+  );
+  denyPermissions = false;
+  await app.inject({
+    method: "PUT",
+    url: `/crm/duty-reports/${reportId}`,
+    payload: { performedDate: today, actions: "Counter checked." }
+  });
   await app.close();
   await database.destroy();
 

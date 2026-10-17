@@ -14,7 +14,7 @@ import type {
 } from "./enquiry.types.js";
 
 export class EnquiryWorkRepository {
-  constructor(private readonly database: Kysely<EnquiryDatabase>) {}
+  constructor(private readonly database: Kysely<EnquiryDatabase>, private readonly workEvent?: import("./enquiry.routes.js").EnquiryRequestContext["workEvent"]) {}
 
   async listJobs(enquiryId: number): Promise<EnquiryJob[]> {
     const rows = await this.database
@@ -54,6 +54,7 @@ export class EnquiryWorkRepository {
         actor
       );
       await insertEnquiryComment(transaction, enquiryId, `Job started by ${employee}.`, actor);
+      await this.workEvent?.(transaction, enquiryId, "job-started", `Job started by ${employee}.`);
       return Number(result.insertId);
     });
     return this.getJob(enquiryId, id);
@@ -89,6 +90,7 @@ export class EnquiryWorkRepository {
         actor
       );
       await insertEnquiryComment(transaction, enquiryId, `Job #${jobId} stopped.`, actor);
+      await this.workEvent?.(transaction, enquiryId, "job-stopped", `Job #${jobId} stopped.`);
     });
     return this.getJob(enquiryId, jobId);
   }

@@ -93,3 +93,7 @@ function escapeText(value: string) {
 export function dutyReportDate(value: string | Date) {
   return value instanceof Date ? value.toISOString().slice(0, 10) : value.slice(0, 10);
 }
+
+export function dutyItemName(sopTitle: string, itemTitle: string) {
+  return sopTitle.trim() === itemTitle.trim() ? itemTitle.trim() : `${sopTitle}: ${itemTitle}`;
+}

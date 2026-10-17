@@ -108,6 +108,61 @@ test(
     };
     const empty = await app.inject({ method: "POST", url: "/crm/tasks", payload });
     assert.equal(empty.statusCode, 200, empty.body);
+    for (const code of ["closed", "won", "lost", "open", "hold-for-approval"]) {
+      const lookup = await database
+        .selectFrom("crm_enquiry_statuses")
+        .select("id")
+        .where("code", "=", code)
+        .executeTakeFirstOrThrow();
+      const fixture = await app.inject({
+        method: "POST",
+        url: "/crm/tasks",
+        payload: { ...payload, title: `Task filter ${code}` }
+      });
+      assert.equal(fixture.statusCode, 200, fixture.body);
+      await database
+        .updateTable("crm_tasks")
+        .set({ status_id: lookup.id })
+        .where("id", "=", fixture.json().data.id)
+        .execute();
+    }
+    const activeTasks = await app.inject({
+      method: "GET",
+      url: "/crm/tasks?filter=active&pageSize=50"
+    });
+    assert.equal(activeTasks.statusCode, 200, activeTasks.body);
+    assert.equal(activeTasks.json().data.total, 3);
+    assert.ok(
+      activeTasks
+        .json()
+        .data.items.every(
+          (task: { status: string }) => !["closed", "won", "lost"].includes(task.status)
+        )
+    );
+    const allTasks = await app.inject({ method: "GET", url: "/crm/tasks?filter=all&pageSize=50" });
+    assert.equal(allTasks.json().data.total, 6);
+    assert.equal(
+      allTasks
+        .json()
+        .data.statusCounts.reduce((sum: number, item: { count: number }) => sum + item.count, 0),
+      6
+    );
+    assert.equal(
+      activeTasks.json().data.statusCounts.find((item: { code: string }) => item.code === "closed")
+        ?.count,
+      1
+    );
+    for (const [filter, expected] of [
+      ["closed", 1],
+      ["hold", 1],
+      ["pending-group", 1],
+      ["other", 0]
+    ] as const) {
+      const filtered = await app.inject({ method: "GET", url: `/crm/tasks?filter=${filter}` });
+      assert.equal(filtered.statusCode, 200, filtered.body);
+      assert.equal(filtered.json().data.total, expected, filter);
+    }
+
     assert.equal(empty.json().data.contactId, null);
     const customer = await resolveOrCreateCustomerForDatabase(name, {
       name: "Bill recipient",

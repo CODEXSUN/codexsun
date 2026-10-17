@@ -3,15 +3,21 @@ import { ArrowLeft, ArrowUpRight, MapPin } from "lucide-react";
 import type { Company } from "./company.types";
 import type { Association } from "../association/association.types";
 import { PublicProducts } from "../product/product.public";
+import type { PublicCredential } from "../credential/credential.types";
+import { CompanyBadges } from "./company.badges";
 import { InquiryForm } from "../inquiry/inquiry.form";
 export function CompanyProfile({
   company,
-  association
+  association,
+  credentials = []
 }: {
   company: Company;
   association: Association | undefined;
+  credentials?: PublicCredential[];
 }) {
-  const [enquire, setEnquire] = useState(false);
+  const [enquire, setEnquire] = useState(
+    new URLSearchParams(location.search).get("enquire") === "1"
+  );
   return (
     <>
       <main className="tc-container">
@@ -40,21 +46,76 @@ export function CompanyProfile({
           <h1>{company.name}</h1>
           <p>{company.tagline}</p>
         </div>
+        <nav className="tc-profile-tabs" aria-label="Company profile sections">
+          <a href="#overview">Overview</a>
+          <a href="#products">Products & capabilities</a>
+          <a href="#credentials">Credentials & trust</a>
+          <a href="#company-enquiry">Enquire</a>
+        </nav>
         <div className="tc-profile-grid">
-          <article>
+          <article id="overview">
             <span className="tc-eyebrow">MEET THE BUSINESS</span>
             <h2>
               Good work.
               <br />A team worth knowing.
             </h2>
             <p>{company.description}</p>
-            <h3>Products & capabilities</h3>
+            <h3 id="products">Products & capabilities</h3>
             <PublicProducts companyUuid={company.uuid} />
             <div className="tc-product-tags">
               {company.products.split(",").map((product) => (
                 <span key={product}>{product}</span>
               ))}
             </div>
+            <section className="tc-profile-credentials" id="credentials">
+              <span className="tc-eyebrow">EVIDENCE BEHIND THE BADGE</span>
+              <h2>Credentials & trust</h2>
+              <CompanyBadges
+                sample={company.description.toLowerCase().includes("fictional")}
+                credentials={credentials}
+              />
+              {credentials.length ? (
+                credentials.map((record) => (
+                  <article className="tc-credential-detail" key={record.uuid}>
+                    <h3>
+                      {record.kind === "identity"
+                        ? "Business identity review"
+                        : record.standardName}
+                    </h3>
+                    <dl>
+                      <dt>Issuer / source</dt>
+                      <dd>{record.issuer}</dd>
+                      <dt>Reference</dt>
+                      <dd>{record.reference}</dd>
+                      <dt>Reviewed</dt>
+                      <dd>{record.reviewedAt}</dd>
+                      <dt>Valid until</dt>
+                      <dd>{record.expiresOn}</dd>
+                    </dl>
+                    <p>{record.scope}</p>
+                    <a
+                      className="tc-text-link"
+                      href={record.publicEvidenceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View public evidence <ArrowUpRight size={16} />
+                    </a>
+                  </article>
+                ))
+              ) : (
+                <p>
+                  No current approved evidence is published for this profile. Any Sample badge is
+                  illustrative. Ask the business for documents covering your specific product,
+                  process and delivery requirements.
+                </p>
+              )}
+              <small>
+                Staff review records the evidence checked. It does not guarantee product quality or
+                commercial performance. Expired and revoked reviews do not display as current
+                credentials.
+              </small>
+            </section>
             {association ? (
               <section className="tc-membership">
                 <span className="tc-eyebrow">ASSOCIATION MEMBER</span>
@@ -66,7 +127,7 @@ export function CompanyProfile({
               </section>
             ) : null}
           </article>
-          <aside className="tc-profile-aside">
+          <aside className="tc-profile-aside" id="company-enquiry">
             <h3>Let’s make a connection.</h3>
             <p>Share your requirements and start a business conversation.</p>
             <button className="tc-button" onClick={() => setEnquire(true)}>
@@ -78,7 +139,7 @@ export function CompanyProfile({
               <dt>Based in</dt>
               <dd>
                 <MapPin size={15} />
-                {company.city}, Tamil Nadu
+                {company.city}
               </dd>
               <dt>Established</dt>
               <dd>{company.established}</dd>
@@ -88,11 +149,21 @@ export function CompanyProfile({
             <small>
               Information supplied by the profile owner
               <br />
-              No verification or certification implied.
+              Credential status is limited to the evidence and scope shown on this page.
             </small>
           </aside>
         </div>
       </main>
+      <a
+        className="tc-mobile-enquire"
+        href="#company-enquiry"
+        onClick={(event) => {
+          event.preventDefault();
+          setEnquire(true);
+        }}
+      >
+        Send an enquiry <ArrowUpRight size={17} />
+      </a>
       {enquire ? <InquiryForm company={company} onClose={() => setEnquire(false)} /> : null}
     </>
   );

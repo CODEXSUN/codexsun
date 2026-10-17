@@ -26,7 +26,7 @@ type PersistedRow = Selectable<EnquiryRow> & {
 };
 
 export class EnquiryRepository {
-  constructor(private readonly database: Kysely<EnquiryDatabase>) {}
+  constructor(private readonly database: Kysely<EnquiryDatabase>, private readonly workEvent?: (transaction: Transaction<EnquiryDatabase>, enquiryId: number, action: string, body: string) => Promise<void>) {}
 
   async listPage(options: EnquiryListOptions): Promise<EnquiryPage> {
     let query = this.scopedQuery(options);
@@ -397,6 +397,7 @@ export class EnquiryRepository {
         `Enquiry #${enquiryNo} created`,
         actor
       );
+      await this.workEvent?.(transaction, enquiryId, "assigned", prepared.description || prepared.title);
       return enquiryId;
     });
     return this.get(id);
@@ -470,6 +471,7 @@ export class EnquiryRepository {
           actor
         );
       }
+      await this.workEvent?.(transaction, id, previous.assigned_user_id !== prepared.assignedUserId ? "assigned" : "updated", details);
       if (previous.status_id === prepared.statusId) {
         await insertEnquiryActivity(transaction, id, "updated", details, actor);
       }
@@ -583,6 +585,7 @@ export class EnquiryRepository {
         parentId ? "Reply added" : "Comment added",
         actor
       );
+      await this.workEvent?.(transaction, enquiryId, "comment", body);
       return inserted;
     });
     const row = await this.database

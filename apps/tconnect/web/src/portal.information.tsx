@@ -4,7 +4,7 @@ export function PortalInformation({ page, corporateId }: { page: string; corpora
   const title =
     page === "contact"
       ? "Let’s make a connection."
-      : page === "login"
+      : page === "login" || page === "join"
         ? "Your next chapter starts here."
         : page === "privacy"
           ? "Privacy, with clarity."
@@ -13,18 +13,21 @@ export function PortalInformation({ page, corporateId }: { page: string; corpora
     <main className="tc-container tc-information">
       <span className="tc-eyebrow">TIRUPUR CONNECT · {page}</span>
       <h1>{title}</h1>
-      {page === "login" ? (
+      {page === "login" || page === "join" ? (
         <>
           <p>
-            Choose the account you registered. Secure sign-in and password recovery are managed by
-            the Platform.
+            Choose the account that fits your work. Buyers source products and compare offers.
+            Businesses manage profiles, products and enquiries.
           </p>
           <div className="tc-account-choices">
             <article>
               <h2>For buyers</h2>
               <p>Post requirements, send enquiries, compare quotations and talk to sellers.</p>
-              <a className="tc-button" href={buyerLoginUrl(corporateId)}>
-                Buyer login
+              <a
+                className="tc-button"
+                href={page === "join" ? "/register/buyer" : buyerLoginUrl(corporateId)}
+              >
+                {page === "join" ? "Create buyer account" : "Buyer login"}
               </a>
               <a className="tc-text-link" href="/register/buyer">
                 Create a buyer account →
@@ -33,8 +36,11 @@ export function PortalInformation({ page, corporateId }: { page: string; corpora
             <article>
               <h2>For businesses</h2>
               <p>Manage your company branding, products, enquiries and private quotations.</p>
-              <a className="tc-button" href={memberLoginUrl(corporateId)}>
-                Seller / member login
+              <a
+                className="tc-button"
+                href={page === "join" ? "/register" : memberLoginUrl(corporateId)}
+              >
+                {page === "join" ? "List your business" : "Seller / member login"}
               </a>
               <a className="tc-text-link" href="/register">
                 Register your business →

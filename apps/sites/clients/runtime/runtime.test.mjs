@@ -102,6 +102,14 @@ test(
           421
         );
       }
+      for (const runtime of servers) {
+        const compressed = await fetch(runtime.origin + "/", { headers: { "Accept-Encoding": "gzip" } });
+        assert.equal(compressed.headers.get("content-encoding"), "gzip");
+        assert.ok((await compressed.text()).includes("<h1"));
+        const plain = await fetch(runtime.origin + "/", { headers: { "Accept-Encoding": "gzip;q=0" } });
+        assert.equal(plain.headers.get("content-encoding"), null);
+        assert.ok((await plain.text()).includes("<h1"));
+      }
       const first = servers[0],
         second = servers[1];
       const key = randomUUID();

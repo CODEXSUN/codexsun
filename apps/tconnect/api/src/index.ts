@@ -1,4 +1,9 @@
 import {
+  registerCredentialRoutes,
+  migrateCredential,
+  seedCredentialPermissions
+} from "./modules/credential/index.js";
+import {
   registerMessageRoutes,
   migrateMessage,
   seedMessagePermissions
@@ -68,8 +73,13 @@ export async function registerTconnect(app: FastifyInstance, resolve: ResolveTco
   await registerRequirementRoutes(app, resolve);
   await registerMemberRoutes(app, resolve);
   await registerProductRoutes(app, resolve);
+  await registerCredentialRoutes(app, resolve);
 }
 export const tconnectTenantMigrations = [
+  {
+    name: "tconnect.credentials.v5",
+    description: "Staff-reviewed company credentials and evidence."
+  },
   {
     name: "tconnect.negotiation.v4",
     description: "Private buyer-seller conversations and immutable quotations."
@@ -135,12 +145,20 @@ export async function migrateTconnect(database: Kysely<TconnectDatabase>) {
           await migrateMessage(db);
           await migrateQuotation(db);
         }
+      },
+      {
+        name: "tconnect.credentials.v5",
+        description: "Reviewed company credentials",
+        checksum: "tconnect.credentials.v5",
+        version: 5,
+        up: migrateCredential
       }
     ]
   });
 }
 export async function seedTconnect(database: Kysely<TconnectDatabase>) {
   await seedTconnectPermissions(database);
+  await seedCredentialPermissions(database);
   await seedMemberPermissions(database);
   await seedConversationPermissions(database);
   await seedMessagePermissions(database);

@@ -4,14 +4,18 @@ import { ArrowRight } from "lucide-react";
 import { useTenantSite } from "../tenant-site.context";
 
 export function TenantNewsDeskSection() {
-  const { portal } = useTenantSite();
+  const { portal, loading } = useTenantSite();
   const query = useQuery({
+    enabled: !loading && portal.blogEnabled !== false,
     queryFn: () => searchPublicArticles(),
-    queryKey: ["public-blog"]
+    queryKey: ["public-blog", portal.domain, portal.tenantCode],
+    retry: false
   });
   const tenantKey = portal.tenantCode?.trim().toLowerCase() || "codexsun";
   const mediaBasePath = portal.blogMediaPath || `/storage/${tenantKey}/public/blogs/images`;
   const stories = (query.data ?? []).slice(0, 6);
+
+  if (loading || portal.blogEnabled === false) return null;
 
   return (
     <section className="tenant-news-desk">

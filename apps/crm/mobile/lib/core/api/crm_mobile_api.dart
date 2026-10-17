@@ -201,6 +201,37 @@ class CrmMobileApi {
         .toList();
   }
 
+  Future<List<Map<String, dynamic>>> workReports(String accessToken, {int? enquiryId, int? taskId}) async {
+    final data = await _request('/crm/work-reports', accessToken: accessToken, query: {if(enquiryId != null) 'enquiryId': '$enquiryId', if(taskId != null) 'taskId': '$taskId'});
+    return (data as List).cast<Map<String,dynamic>>();
+  }
+
+  Future<void> sendWorkReport(String accessToken, Map<String,dynamic> payload) async {
+    await _request('/crm/work-reports',accessToken:accessToken,method:'POST',body:payload);
+  }
+
+  Future<List<Map<String,dynamic>>> tasks(String accessToken) async {
+    final data = await _request('/crm/tasks',accessToken:accessToken,query:{'filter':'active','pageSize':'200'}) as Map<String,dynamic>;
+    return (data['items'] as List).cast<Map<String,dynamic>>();
+  }
+
+  Future<Map<String,dynamic>> task(String accessToken, int id) async =>
+    await _request('/crm/tasks/$id',accessToken:accessToken) as Map<String,dynamic>;
+
+  Future<List<Map<String,dynamic>>> taskComments(String accessToken, int id) async =>
+    (await _request('/crm/tasks/$id/comments',accessToken:accessToken) as List).cast<Map<String,dynamic>>();
+
+  Future<List<Map<String,dynamic>>> taskClosures(String accessToken, int id) async =>
+    (await _request('/crm/tasks/$id/closure-requests',accessToken:accessToken) as List).cast<Map<String,dynamic>>();
+
+  Future<void> requestTaskClosure(String accessToken, int id) async {
+    await _request('/crm/tasks/$id/closure-requests',accessToken:accessToken,method:'POST',body:{'reason':'Completed from mobile.'});
+  }
+
+  Future<void> editDutyReport({required String accessToken,required int id,required String date,required String actions}) async {
+    await _request('/crm/duty-reports/$id',accessToken:accessToken,method:'PUT',body:{'reportDate':date,'actions':actions});
+  }
+
   Future<CrmJob> job(String accessToken, String id) async {
     final data = await _request(
       '/crm/enquiries/${Uri.encodeComponent(id)}',
@@ -376,7 +407,7 @@ class CrmMobileApi {
       enquiryGroup: enquiryGroup,
       assignedToUserId: assignedToUserId,
       message:
-          '$message\n\n${direction.trim()} call · ${durationSeconds}s · ${occurredAt.toLocal()}',
+          '$message\n\n${direction.trim()} call Â· ${durationSeconds}s Â· ${occurredAt.toLocal()}',
     );
   }
 
@@ -1227,7 +1258,7 @@ class CrmDuty {
         .toList(),
         sopItem: (json['sopItemId'] ?? json['sopItem'] ?? '').toString(),
         sopName: json['itemTitle'] is String
-            ? '${json['sopTitle'] ?? 'SOP'} · ${json['itemTitle']}'
+            ? '${json['sopTitle'] ?? 'SOP'} Â· ${json['itemTitle']}'
             : json['sopName'] as String? ?? '',
         steps: _plainTextComment(
           json['instructions'] as String? ?? json['steps'] as String? ?? '',
@@ -1389,7 +1420,7 @@ String _plainTextComment(String value) {
       )
       .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
       .replaceAll(RegExp(r'</(?:div|li|p)>', caseSensitive: false), '\n')
-      .replaceAll(RegExp(r'<li\b[^>]*>', caseSensitive: false), '• ')
+      .replaceAll(RegExp(r'<li\b[^>]*>', caseSensitive: false), 'â€¢ ')
       .replaceAll(RegExp(r'<[^>]+>'), '');
 
   text = text.replaceAllMapped(RegExp(r'&#(?:x([0-9a-fA-F]+)|(\d+));'), (

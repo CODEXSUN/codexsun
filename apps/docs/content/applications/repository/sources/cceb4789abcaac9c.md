@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `7578d381f2e9c9fcb9901971a300ba07d277e7f82afa8783c6cc0f85c334d327`
+Source SHA-256 (LF line endings): `0cacd942069fb17dc0e942cdfa7e77302d6e08ab559a0e53758b907f8b7d8c2b`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -71,4 +71,14 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 Use `npm run check:component-docs` for this documentation contract.
 Run applicable tests before marking implementation work complete.
 Do not treat documentation, a build, or a model response as proof of live persistence or deployment.
+
+## Live CRM create and edit regression - 17-10-2026
+
+- [x] Verify all four SOP frequencies against logicx.tmnext.in using the saved connection.
+- [x] Verify assignment Index edits and report Date/Actions edits update existing remote documents.
+- [x] Verify mapped and fetched fields, outcome/issue preservation, revision evidence, and local edit history.
+- [x] Check one remote report per SOP and stable identity on retry.
+- [x] Delete twelve test documents and confirm no labelled remote documents or disposable databases remain.
+      Evidence: `npm run test:e2e:crm-duties-live`; eight mapping tests and isolated Duty E2E also passed.
+      Direct worker dispatch was used. Background relay scheduling was not tested.
 ```

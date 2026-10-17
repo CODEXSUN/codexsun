@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { m as motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import type { PageContent } from "@codexsun/sites-api/page-contract";
 import { initialLogicxMarketing } from "@codexsun/sites-api/marketing-defaults";
@@ -48,7 +48,7 @@ export function LogicxServiceCarousel({ content }: { content: PageContent }) {
           <span>01</span>
           {design.services.label}
         </p>
-        <motion.div className="lx-service-overview-heading" initial={reducedMotion ? false : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.65 }}> 
+        <motion.div className="lx-service-overview-heading" initial={false} whileInView={{ opacity: 1, y: reducedMotion ? 0 : [12, 0] }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.65 }}> 
           <div>
             <h2>
               {design.services.title
@@ -99,8 +99,8 @@ export function LogicxServiceCarousel({ content }: { content: PageContent }) {
           {services.map((service, index) => {
             return (
               <motion.a
-                initial={reducedMotion ? false : { opacity: 0, y: 22 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={false}
+                whileInView={{ opacity: 1, y: reducedMotion ? 0 : [12, 0] }}
                 viewport={{ once: true, amount: 0.15 }}
                 transition={{ duration: 0.5, delay: reducedMotion ? 0 : (index % 4) * 0.07 }}
                 whileHover={reducedMotion ? {} : { y: -6, transition: { duration: 0.2, delay: 0 } }}

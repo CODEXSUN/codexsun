@@ -2,7 +2,7 @@
 
 Repository source: `apps/tconnect/agent/SKILLS.md`
 
-Source SHA-256 (LF line endings): `986682390b7cffb486339701b5e0111f962cbc3033ce7fe901c415b74a13841c`
+Source SHA-256 (LF line endings): `a8177267ee9979340d668ce2e067797bee5162b13514dd429e78f129d5e2455d`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -61,4 +61,16 @@ Public branding uses Tirupur Connect, while internal identifiers remain `tconnec
 Do not infer exporter registration, certification, or independent verification from textile category matches.
 Keep buyer and seller login links connected to the fixed Platform authentication entry points.
 Illustrative photographs must not imply a pictured facility belongs to a listed company.
+
+Use `test:e2e:tconnect-journey` for public mobile layout and browser account-to-enquiry checks.
+Keep generated image prompts and illustrative-use notes with the public source assets.
+Preserve natural image proportions and aligned card rows. Do not stretch contact-sheet subjects.
+Keep enquiry dialog focus inside the dialog, support Escape, and restore the initiating control.
+
+Keep network counts grounded in public records and disclose included demo data. Honor reduced-motion settings.
+Do not convert standards reference panels or editorial company spotlights into unverified certification or sponsorship claims.
+
+Preserve logo colors, proportions, clear space, and source provenance. Do not replace the ISO typographic reference with a certification seal.
+
+Never infer certification or trust from an active profile, association affiliation, products, company name, or seller registration. Sample badges must each say Sample.
 ```

@@ -119,7 +119,8 @@ const capabilityBackendRoles = new Map([
     "requirement",
     "conversation",
     "message",
-    "quotation"
+    "quotation",
+    "credential"
   ].map((key) => [`tconnect-api/${key}`, reducedBackendRoles]),
   ["qcafe-api/menu", reducedBackendRoles],
   ["qcafe-api/pos", reducedBackendRoles],
@@ -363,7 +364,8 @@ const declaredSynchronousModules = new Set([
     "requirement",
     "conversation",
     "message",
-    "quotation"
+    "quotation",
+    "credential"
   ].map((key) => `tconnect-api/${key}`),
   "qcafe-api/menu",
   "qcafe-api/pos",

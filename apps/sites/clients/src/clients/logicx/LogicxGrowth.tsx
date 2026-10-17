@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from "framer-motion";
+import { m as motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Check, Plus } from "lucide-react";
 import type { PageContent } from "@codexsun/sites-api/page-contract";
 import { initialLogicxMarketing } from "@codexsun/sites-api/marketing-defaults";
@@ -12,9 +12,9 @@ export function LogicxGrowth({ content }: { content: PageContent }) {
   const industryBackdrop = design.industryBackdrop ?? initialLogicxMarketing.industryBackdrop;
   const deliveryBackdrop = design.deliveryBackdrop ?? initialLogicxMarketing.deliveryBackdrop;
   const reveal = {
-    initial: reducedMotion ? false as const : { opacity: 0, y: 28 },
+    initial: false as const,
     animate: reducedMotion ? { opacity: 1, y: 0 } : {},
-    whileInView: { opacity: 1, y: 0 },
+    whileInView: { opacity: 1, y: reducedMotion ? 0 : [12, 0] },
     viewport: { once: true, amount: 0.12 },
     transition: { duration: reducedMotion ? 0 : 0.7 }
   };

@@ -97,3 +97,15 @@ Allow only deployed local marketing image paths. Do not accept arbitrary HTML, s
 Preserve checksum inputs for older snapshots. Do not inject new defaults into an immutable delivery snapshot.
 Treat dashboard numbers as labeled demonstration content. Do not turn them into company statistics.
 When replacing a design, remove unused template components and selectors after the replacement passes review.
+
+## Cloudflare delivery
+
+Keep Worker deployment code under `clients/cloudflare`. Keep D1 enquiry persistence inside the Enquiry API leaf.
+Clients must use the public `@codexsun/sites-api/enquiry-d1` export.
+Prepare artifacts from a verified authenticated publication export. Deploy only its published projection and approved public assets.
+Use a dedicated database per deployed client. Verify both the site UUID and opaque site key before database operations.
+Keep management credentials in Wrangler OAuth or ignored environment storage, never the Worker bundle.
+Preserve atomic rate enforcement, duplicate-request conflict checks, consent, exact-origin validation, bounded bodies, and retention.
+Use root dist for build output and absolute paths for Wrangler output flags.
+Remote D1 inbox integration remains unimplemented. Never bypass Studio permissions with a public management route.
+Manual operator promotion is supported. Future automated delivery requires queued, auditable deployment jobs.

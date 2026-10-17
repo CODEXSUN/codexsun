@@ -9,8 +9,10 @@ export function MemberRegistration({
   associations: Association[];
   corporateId: string;
 }) {
-  const [accountType, setAccountType] = useState<"seller" | "association-member">("seller");
-  const [association, setAssociation] = useState<string | null>(null);
+  const requestedAssociation = new URLSearchParams(location.search).get("association");
+  const validAssociation = associations.some(item => item.uuid === requestedAssociation) ? requestedAssociation : null;
+  const [accountType, setAccountType] = useState<"seller" | "association-member">(validAssociation ? "association-member" : "seller");
+  const [association, setAssociation] = useState<string | null>(validAssociation);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);

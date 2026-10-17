@@ -15,7 +15,7 @@ import type {
 type TaskExecutor = Kysely<TaskDatabase> | Transaction<TaskDatabase>;
 
 export class TaskRepository {
-  constructor(private readonly db: Kysely<TaskDatabase>) {}
+  constructor(private readonly db: Kysely<TaskDatabase>, private readonly workEvent?: TaskContext["workEvent"]) {}
   private query() {
     return this.db
       .selectFrom("crm_tasks as t")
@@ -80,7 +80,6 @@ export class TaskRepository {
           eb("a.name", "like", `%${search}%`)
         ])
       );
-    if (filter && filter !== "all") q = q.where("s.code", "=", filter);
     if (columnFilters.title) q = q.where("t.title", "like", `%${columnFilters.title}%`);
     if (columnFilters.listIn) q = q.where("l.name", "like", `%${columnFilters.listIn}%`);
     if (columnFilters.dueDate) q = q.where("t.due_date", "like", `%${columnFilters.dueDate}%`);
@@ -94,7 +93,25 @@ export class TaskRepository {
       );
     if (columnFilters.assignedTo) q = q.where("a.name", "like", `%${columnFilters.assignedTo}%`);
     if (columnFilters.status) q = q.where("s.name", "like", `%${columnFilters.status}%`);
-    const [rows, count] = await Promise.all([
+    const statusQuery = q;
+    const holds = ["hold-for-approval", "long-hold", "hold-for-spares", "hold-for-job-out"];
+    if (filter === "active") q = q.where("s.code", "not in", ["won", "lost", "closed"]);
+    else if (filter === "hold") q = q.where("s.code", "in", holds);
+    else if (filter === "pending-group")
+      q = q.where("s.code", "in", ["open", "reopen", "escalation"]);
+    else if (filter === "other")
+      q = q.where("s.code", "not in", [
+        "new",
+        "open",
+        "reopen",
+        "escalation",
+        ...holds,
+        "won",
+        "lost",
+        "closed"
+      ]);
+    else if (filter && filter !== "all") q = q.where("s.code", "=", filter);
+    const [rows, count, statusCounts] = await Promise.all([
       q
         .orderBy("t.id", "desc")
         .limit(pageSize)
@@ -103,7 +120,13 @@ export class TaskRepository {
       q
         .clearSelect()
         .select(({ fn }) => fn.count<number>("t.id").as("total"))
-        .executeTakeFirstOrThrow()
+        .executeTakeFirstOrThrow(),
+      statusQuery
+        .clearSelect()
+        .select("s.code as code")
+        .select(({ fn }) => fn.count<number>("t.id").as("count"))
+        .groupBy("s.code")
+        .execute()
     ]);
     const ids = rows.map((row) => Number(row.id));
     const pendingRows = ids.length
@@ -117,6 +140,7 @@ export class TaskRepository {
     const pending = new Set(pendingRows.map((row) => Number(row.task_id)));
     return {
       items: rows.map((row) => this.map(row, pending.has(Number(row.id)))),
+      statusCounts: statusCounts.map((row) => ({ code: row.code, count: Number(row.count) })),
       total: Number(count.total)
     };
   }
@@ -189,6 +213,7 @@ export class TaskRepository {
         creating ? "Task created." : "Task details updated.",
         actor
       );
+      await this.workEvent?.(trx, id, "assigned", input.description || input.title);
       return id;
     });
   }
@@ -237,6 +262,7 @@ export class TaskRepository {
         created_by: actor
       })
       .execute();
+    if (db.isTransaction) await this.workEvent?.(db as Transaction<TaskDatabase>, taskId, eventType, description);
   }
   async activity(taskId: number) {
     return this.db

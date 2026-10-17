@@ -67,8 +67,8 @@ export function registerEnquiryWorkRoutes(
     return {
       scope,
       work: new EnquiryWorkService(
-        new EnquiryService(new EnquiryRepository(scope.database), scope.relations, scope),
-        new EnquiryWorkRepository(scope.database),
+        new EnquiryService(new EnquiryRepository(scope.database, scope.workEvent), scope.relations, scope),
+        new EnquiryWorkRepository(scope.database, scope.workEvent),
         scope.relations
       )
     };

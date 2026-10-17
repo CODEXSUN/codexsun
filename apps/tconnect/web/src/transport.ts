@@ -7,6 +7,7 @@ export async function publicRequest<T>(path: string, body?: unknown): Promise<T>
           body: JSON.stringify(body)
         }
       : {}),
+    signal: AbortSignal.timeout(12000),
     credentials: "same-origin"
   });
   const result = await response.json().catch(() => {

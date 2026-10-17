@@ -43,7 +43,7 @@ export function useSitePublication(slug: string, fallback?: PageContent) {
         pending = false;
       }
     }
-    void refresh();
+    if (!bootstrap?.content) void refresh();
     const interval = setInterval(() => void refresh(), 30000);
     const onFocus = () => void refresh();
     window.addEventListener("focus", onFocus);
@@ -53,7 +53,7 @@ export function useSitePublication(slug: string, fallback?: PageContent) {
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
-  }, [slug, initial]);
+  }, [slug, initial, bootstrap]);
   return { content, blogs, connected, published };
 }
 

@@ -1,10 +1,8 @@
 import { useEffect } from "react";
 import { requiredClientEnv } from "../env/client-env";
 
-const tenantDisplayName = requiredClientEnv("VITE_TENANT_NAME");
-
 export function setPlatformDocumentTitle(pageTitle: string) {
-  document.title = `${tenantDisplayName} | ${pageTitle}`;
+  document.title = `${requiredClientEnv("VITE_TENANT_NAME")} | ${pageTitle}`;
 }
 
 const pageTitles: Record<string, string> = {

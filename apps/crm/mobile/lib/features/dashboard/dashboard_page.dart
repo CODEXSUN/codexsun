@@ -14,6 +14,7 @@ import 'dashboard_home.dart';
 import 'dashboard_jobs_feed.dart';
 import 'dashboard_list_page.dart';
 import 'duty_page.dart';
+import 'tasks_page.dart';
 import 'messages_sample_page.dart';
 import 'my_enquiries_page.dart';
 import 'home_enquiry_form_page.dart';
@@ -367,6 +368,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     _selectDestination(2);
                   },
                 ),
+                ListTile(leading: const Icon(Icons.task_alt),title: const Text('Tasks'),onTap:(){Navigator.pop(context);Navigator.of(this.context).push(MaterialPageRoute<void>(builder:(_)=>TasksPage(api:widget.api,session:widget.session)));}),
                 if (_canViewCallLogs)
                   ListTile(
                     contentPadding: EdgeInsets.zero,

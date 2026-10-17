@@ -24,7 +24,7 @@ test("blocked duty reports require issue details and preserve the blocked result
     create: async (...args: unknown[]) => {
       writes.push(args);
       return { id: 1 };
-    },
+    }
   } as unknown as DutyReportRepository;
   const service = new DutyReportService(repository);
   const base = {
@@ -32,12 +32,12 @@ test("blocked duty reports require issue details and preserve the blocked result
     performedDate: "2026-10-14",
     actions: "Checked the machine.",
     result: "blocked" as const,
-    issueDetails: "Replacement part is unavailable.",
+    issueDetails: "Replacement part is unavailable."
   };
 
   await assert.rejects(
     service.create({ ...base, issueDetails: "  " }, 3, "worker@example.test", "daily"),
-    /blocked reports need issue details/,
+    /blocked reports need issue details/
   );
   await service.create(base, 3, "worker@example.test", "daily");
 

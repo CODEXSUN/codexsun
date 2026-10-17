@@ -12,7 +12,7 @@ This field correspondence does not enable inbound Frappe writes to local CRM.
 | Frappe field | Local source                                          | Binding                                                                                                                                                                  |
 | ------------ | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `name`       | `crm_frappe_sync_queue.remote_name`                   | Save returned identity. Use PUT after the first successful POST. Never substitute the local integer ID.                                                                  |
-| `sop_name`   | SOP title and item title                              | Send `SOP title: item title` so sibling items remain distinguishable.                                                                                                    |
+| `sop_name`   | SOP title and item title                              | Send the name once when SOP and item titles match; otherwise send `SOP title: item title` to distinguish legacy grouped items.                                                                                                    |
 | `department` | `crm_sop_items.department`                            | Resolve an active Department by exact document name, then by a unique department_name. Send the remote name. Ambiguous or missing results fail without a document write. |
 | `frequency`  | `crm_sop_items.frequency`                             | daily ↔ Daily, weekly ↔ Weekly, monthly ↔ Monthly, annually ↔ Yearly. Reverse correspondence is tested but does not activate an import.                                  |
 | `steps`      | Published revision instructions and evidence guidance | Send escaped text-editor content. Include evidence guidance when present.                                                                                                |
@@ -119,3 +119,20 @@ A separate read-only check found zero remaining labelled SOP Item, SOP Assigned,
 
 This proves live module API → database outbox → worker → Frappe delivery and readback.
 The test injects module request context and invokes the worker directly. Platform login, queue relay scheduling, browser, and mobile-device flows remain separate gates.
+
+## Live create and edit verification - 17-10-2026
+
+The expanded live test passed against logicx.tmnext.in after the Duties and Duty Reporting upserts were added.
+It used the saved encrypted connection and an existing active Employee mapping.
+
+- Daily, Weekly, Monthly, and Yearly passed live create, update, and readback.
+- Daily also checked the simplified SOP name without a repeated header prefix.
+- Assignment Index changed from 7 to 8. All other mapped fields and the remote identity stayed unchanged.
+- Report Date and Actions changed through the local PUT endpoint and reached the same remote report.
+- Employee, SOP link, fetched SOP fields, result, issue details, revision reference, and original instructions remained correct.
+- Report edit history retained the original Actions and editor identity locally.
+- Each SOP had one remote report after editing. A further retry retained the same remote identity.
+- Cleanup deleted all twelve created remote documents. Read-only checks found zero labelled documents and zero disposable databases.
+
+Validation: `npm run test:e2e:crm-duties-live`, eight mapping unit tests, and the isolated Duty E2E passed.
+The live run used module APIs and direct worker dispatch. It did not exercise the Platform login, browser, native mobile, or background relay scheduler.

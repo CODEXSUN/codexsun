@@ -81,7 +81,7 @@ export function RamutexCapabilities({ content }: { content: PageContent }) {
               </summary>
               <p>
                 {finish.detail}{" "}
-                <a href="#contact">
+                <a href={`/contact?service=${encodeURIComponent(finish.name)}`}>
                   Talk to our team <ArrowUpRight size={15} />
                 </a>
               </p>

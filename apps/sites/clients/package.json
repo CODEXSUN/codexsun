@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/sites-clients",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "private": true,
   "type": "module",
   "exports": {
@@ -15,7 +15,7 @@
     "dev:portfolio": "node --max-http-header-size=262144 --import tsx ../../../node_modules/vite/bin/vite.js --mode portfolio",
     "build": "tsc -p tsconfig.json --noEmit && node --import tsx deploy/build.mjs logicx ramutex",
     "build:logicx": "node deploy/build.mjs logicx",
-    "build:ramutex": "node deploy/build.mjs ramutex",
+    "build:ramutex": "node --import tsx deploy/build.mjs ramutex",
     "dev:logicx": "node --max-http-header-size=262144 --import tsx ../../../node_modules/vite/bin/vite.js --mode logicx",
     "dev:ramutex": "node --max-http-header-size=262144 --import tsx ../../../node_modules/vite/bin/vite.js --mode ramutex",
     "lint": "oxlint src",
@@ -26,8 +26,8 @@
   },
   "dependencies": {
     "zod": "^4.6.5",
-    "@codexsun/sites-api": "^1.1.4",
-    "@codexsun/ui": "^1.1.4",
+    "@codexsun/sites-api": "^1.1.5",
+    "@codexsun/ui": "^1.1.5",
     "framer-motion": "^14.0.0",
     "lucide-react": "^1.52.0",
     "react": "^19.3.0",

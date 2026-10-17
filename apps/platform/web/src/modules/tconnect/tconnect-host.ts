@@ -2,6 +2,13 @@ import { apiGet, apiPost, apiPut } from "../../shared/api/platform-api";
 import type { TconnectGateway } from "@codexsun/tconnect-web";
 declare const __CODEXSUN_TCONNECT_WEB_PORT__: number;
 export const tconnectGateway: TconnectGateway = {
+  credential: {
+    list: () => apiGet("/tconnect/credential", "tenant"),
+    save: (input, uuid) =>
+      uuid
+        ? apiPut(`/tconnect/credential/${uuid}`, input, "tenant")
+        : apiPost("/tconnect/credential", input, "tenant")
+  },
   message: {
     messages: (uuid, before) =>
       apiGet(

@@ -2,7 +2,7 @@
 
 Repository source: `apps/sites/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `af48b53cfdef4a843b022a5c9a02d6eead8642091a1658e1fdeb30049a68a160`
+Source SHA-256 (LF line endings): `e7806663b1c4dad212fa4e293f4eff39d8b02a7a73a894640eadbb79e06e398e`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.

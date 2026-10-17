@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from "framer-motion";
+import { m as motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { ReceiptText, Layers, Package, Coffee, Users, MessagesSquare, Sparkles } from "lucide-react";
 import type { PageContent } from "@codexsun/sites-api/page-contract";
@@ -28,9 +28,9 @@ export function LogicxAppCard({ app, index, catalogue = false }: {
     <motion.a
       className="lx-application-card"
       href={`/apps/${app.slug}`}
-      initial={reducedMotion ? false : { opacity: 0, y: 22 }}
+      initial={false}
       animate={reducedMotion ? { opacity: 1, y: 0 } : {}}
-      whileInView={{ opacity: 1, y: 0 }}
+      whileInView={{ opacity: 1, y: reducedMotion ? 0 : [12, 0] }}
       viewport={{ once: true, amount: 0.15 }}
       transition={{ duration: reducedMotion ? 0 : 0.5, delay: reducedMotion ? 0 : (index % 4) * 0.07 }}
       whileHover={reducedMotion ? {} : { y: -6, transition: { duration: 0.2, delay: 0 } }}

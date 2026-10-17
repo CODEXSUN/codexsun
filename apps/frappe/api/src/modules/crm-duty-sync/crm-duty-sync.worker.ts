@@ -10,7 +10,8 @@ import {
   resolveDutyDepartment,
   dutyReportActions,
   dutyReportDate,
-  dutyItemSteps
+  dutyItemSteps,
+  dutyItemName
 } from "./crm-duty-sync.mapping.js";
 export async function processCrmDutySync(
   database: Kysely<SyncDatabase>,
@@ -131,7 +132,7 @@ async function buildDocument(
       path: "/api/resource/SOP Item",
       remoteName: existingRemoteName,
       payload: {
-        sop_name: `${value.sop_title}: ${value.item_title}`,
+        sop_name: dutyItemName(value.sop_title, value.item_title),
         department,
         frequency,
         steps: dutyItemSteps(value.instructions, value.evidence_guidance)

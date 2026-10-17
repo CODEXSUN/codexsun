@@ -1,3 +1,5 @@
+import "@codexsun/ui/styles.css";
+import "../styles.css";
 import React, { type ErrorInfo, type ReactNode } from "react";
 import { RouterProvider } from "@tanstack/react-router";
 import { Button } from "@codexsun/ui/components/button";

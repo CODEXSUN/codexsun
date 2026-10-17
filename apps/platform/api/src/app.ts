@@ -1,3 +1,5 @@
+import { workReportModule, recordWorkEvent, type WorkReportContext, type WorkReportDatabase } from "@codexsun/crm-api";
+import { writeWorkMessage } from "@codexsun/chat-api";
 import { registerTconnectHost } from "./tconnect-host.js";
 import { registerBillingComplianceHost } from "./billing-compliance-host.js";
 import { sql } from "kysely";
@@ -738,6 +740,23 @@ export async function createApp() {
       canViewAll
     };
   });
+  const workReportContext = async (request: FastifyRequest): Promise<WorkReportContext> => {
+    const context = await crmAccess(request, "enquiry", "/crm/enquiries");
+    const actor = await context.database.selectFrom("app_users").select("id").where("email", "=", context.actorEmail).where("status", "=", "active").executeTakeFirst();
+    const chat = await chatContext(request);
+    return {database: context.database as unknown as import("kysely").Kysely<WorkReportDatabase>, actorEmail: context.actorEmail, actorUserId: actor?.id ?? null, authorize: context.authorize,
+      sendMessage: async (transaction, message) => writeWorkMessage(transaction as never, {...message, actorEmail: context.actorEmail, companyId: chat.companyId})};
+  };
+  workReportModule.register(app, async (request) => {
+    // Module routes enforce enquiry/task permissions after resolving the requested parent.
+    const context = tenantAccessContext(request);
+    const enabled = await context.database.selectFrom("app_module_settings").select("id").where("module_key", "=", "crm").where("enabled", "=", true).where("status", "=", "active").executeTakeFirst();
+    if (!enabled) throw AppError.forbidden("CRM is not enabled for this tenant.");
+    const actor = await context.database.selectFrom("app_users").select("id").where("email", "=", context.actorEmail).where("status", "=", "active").executeTakeFirst();
+    const chat = await chatContext(request);
+    return {database: context.database as unknown as import("kysely").Kysely<WorkReportDatabase>, actorEmail:context.actorEmail,actorUserId:actor?.id ?? null,authorize:context.authorize,
+      sendMessage: async (transaction, message) => writeWorkMessage(transaction as never, {...message, actorEmail:context.actorEmail,companyId:chat.companyId})};
+  });
   await enquiryModule.register(app, async (request) => {
     const context = await crmAccess(request, "enquiry", "/crm/enquiries");
     const actor = await context.database
@@ -754,6 +773,9 @@ export async function createApp() {
       if (!(error instanceof AppError) || error.code !== "FORBIDDEN") throw error;
     }
     return {
+      workEvent: async (transaction, enquiryId, action, body) => {
+        await recordWorkEvent(await workReportContext(request), transaction as never, {enquiryId,taskId:null}, action, body);
+      },
       actorEmail: context.actorEmail,
       actorUserId: actor?.id ?? null,
       canViewAll,
@@ -1226,6 +1248,11 @@ export async function createApp() {
       database: context.database as unknown as import("kysely").Kysely<
         import("@codexsun/crm-api").TaskDatabase
       >,
+      workEvent: async (transaction, taskId, action, body) => {
+        const chat = await chatContext(request);
+        const workContext: WorkReportContext = {database: transaction as never, actorEmail: context.actorEmail,actorUserId: actor?.id ?? null,authorize:context.authorize,sendMessage: async (trx, message) => writeWorkMessage(trx as never,{...message,actorEmail:context.actorEmail,companyId:chat.companyId})};
+        await recordWorkEvent(workContext, transaction as never, {enquiryId:null,taskId},action,body);
+      },
       actorEmail: context.actorEmail,
       actorUserId: actor?.id ?? null,
       canViewAll,

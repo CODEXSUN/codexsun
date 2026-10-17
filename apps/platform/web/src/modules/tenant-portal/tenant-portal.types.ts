@@ -27,5 +27,6 @@ export type TenantPublicPortal = {
   summary: string;
   tenantCode: string | null;
   blogMediaPath: string | null;
+  blogEnabled?: boolean;
   theme: TenantPortalTheme;
 };

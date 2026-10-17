@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.4
+Current version: 1.1.5
 
-Release tag: v-1.1.4
+Release tag: v-1.1.5
 
-Changelog label: v 1.1.4
+Changelog label: v 1.1.5
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -20,6 +20,36 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.1.5
+
+### [v 1.1.5] 2026-10-17 6:11 pm - CRM duty administration and public site updates
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Adds CRM duty-assignment/report edit-history migrations and administrative report permission seeds.
+- Adds TConnect company credential persistence and a Sites D1 enquiry schema. Review and apply migrations and permissions for each configured target before rollout.
+- Production database upgrades, external deployments, and provider operations were not repeated during this release preparation.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.5.
+- Added CRM duty assignment/report administration, edit history, grouped reporting summaries, task status filters, and simpler SOP screens.
+- Updated Frappe duty field mappings and worker behavior with corresponding test and operational documentation.
+- Added TConnect company credentials, public discovery and directory updates, standards references, sample badge presentation, and account/public browser verification scripts.
+- Updated LogicX and Ramu Tex public pages, branding assets, font delivery, responsive layouts, and shared public styling.
+- Added Sites Cloudflare Worker/D1 source configuration and enquiry storage, plus packaged-runtime performance and caching updates.
+- Updated Platform app composition and repository documentation. Prior task files retain their existing browser, database, and performance evidence.
+- Added the TConnect Credential developer guide and registered its declared synchronous contract in the module-boundary checker.
+- Refreshed repository references and catalog hashes. Documentation validation covers 514 pages across 25 app groups.
+- Passed 19 TConnect tests, 11 focused CRM/Frappe tests, seven Docs tests, three D1 enquiry tests, and the version-bump test.
+- The Sites packaged-runtime integration test was skipped without its prepared runtime fixture. Its source test runner required the TypeScript loader for API imports.
+- The initial full repository check passed after registering Credential's synchronous capability contract. More CRM work-report/chat and tenant public-blog changes arrived during the subsequent production build.
+- Aligned the public portal's required blogEnabled response type with its service and route contract.
+- Production build completed 49 of 50 tasks but failed Platform API compilation on the blogEnabled mismatch. The subsequent Platform typecheck reached a newer CRM work-report query against app_modules, which is absent from TenantDatabase.
+- The final concurrent work-report and public-blog changes are included as source work. A successful full check/build for that later state remains unverified.
+- Added a Work Report developer reference with its verification limits. Final Docs validation passes for 516 pages across 25 app groups.
+
 ## v-1.1.4
 
 ### [v 1.1.4] 2026-10-17 5:14 pm - Q Cafe kitchen workflows and CRM task improvements
@@ -29,6 +59,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Database update: Yes (manual).
 - Adds CRM task contact migration `crm.task.optional-contact-v4` and Q Cafe waiter, kitchen delivery, audit, and durable print-state migrations.
 - Existing databases require reviewed migration preflight, backups, migration execution, and applicable permission seeds.
+- CRM follow-up (2026-10-17): adds assignment/report edit-history migrations and administrative all-report permission grants. Applied and verified locally; production rollout remains pending.
 
 #### App Codebase Changes
 
@@ -46,6 +77,11 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Passed all seven Docs tests and the version-bump regression test.
 - The first production build stopped on a Windows `EPERM` cleanup lock. The retry passed cleanup, all 50 forced build tasks, artifact collection, and workspace cleanup.
 - Frontend bundle-size and ineffective dynamic-import warnings remain. No physical printing or production rollout is certified by these builds.
+- CRM follow-up (2026-10-17): simplified SOPs to name, Department, Frequency, and Steps; added separate duty/report lists and new/edit forms with protected history and stable Frappe identities.
+- Added administrative Duty Reporting summaries, date/search filters, totals, and report drill-through. Admin, Manager, and Super Admin can view all tenant reports; mobile own-report access is preserved.
+- Matched task default Active filters and status badges to enquiries, refreshed recent enquiry/task panels, protected unsaved forms during navigation, and moved List in after Tasks.
+- Passed scoped browser, type, lint, boundary, mapping, and isolated workflow checks. Live logicx.tmnext.in create/edit/readback checks passed for all four supported frequencies; all 12 remote test documents were removed and cleanup was verified.
+- Live checks used direct worker execution. Background scheduling, final native mobile acceptance, and production deployment remain pending. See the [CRM work log](../../apps/crm/agent/WORK-LOG.md) for evidence and limits.
 
 ## v-1.1.3
 

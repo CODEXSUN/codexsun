@@ -4,9 +4,11 @@ import { TenantSiteTemplate } from "./tenant-site/templates/tenant-site.template
 import { useTenantSite } from "./tenant-site/tenant-site.context";
 
 function TenantBlogContent({ slug }: { slug?: string }) {
-  const { portal } = useTenantSite();
+  const { portal, loading } = useTenantSite();
   const tenantKey = portal.tenantCode?.trim().toLowerCase() || "codexsun";
   const mediaBasePath = portal.blogMediaPath || `/storage/${tenantKey}/public/blogs/images`;
+  if (loading) return <p role="status">Loading stories�</p>;
+  if (portal.blogEnabled === false) return <p>Stories are not available for this site.</p>;
   if (slug) return <PublicArticlePage slug={slug} mediaBasePath={mediaBasePath} />;
   return <PublicBlogPage mediaBasePath={mediaBasePath} />;
 }

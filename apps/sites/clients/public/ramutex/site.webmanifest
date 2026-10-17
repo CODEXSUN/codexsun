@@ -3,8 +3,8 @@
   "short_name": "ramutex",
   "start_url": "/",
   "display": "browser",
-  "background_color": "#f5f3eb",
-  "theme_color": "#294e40",
+  "background_color": "#faf8f5",
+  "theme_color": "#182b49",
   "icons": [
     {
       "src": "/icon-192.png",

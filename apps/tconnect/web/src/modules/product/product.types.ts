@@ -11,3 +11,10 @@ export type Product = {
   status: "active" | "inactive";
 };
 export type ProductInput = Omit<Product, "uuid">;
+
+export type PublicCatalogProduct = Product & {
+  sellerName: string;
+  sellerSlug: string;
+  city: string;
+  industry: string;
+};

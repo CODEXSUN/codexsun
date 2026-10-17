@@ -3,24 +3,37 @@ import type { PageContent } from "@codexsun/sites-api/page-contract";
 import { ContactForm } from "../../enquiry/ContactForm";
 import { CompanyMap } from "../../shared/SiteContactTools";
 import profileUrl from "./assets/ramu-tex-company-profile.pdf?url";
-export function RamutexContact({ content }: { content: PageContent }) {
-  const { profile, contact, footer } = content;
+export function RamutexContact({
+  content,
+  showFooter = true,
+  showIntro = true
+}: {
+  content: PageContent;
+  showFooter?: boolean;
+  showIntro?: boolean;
+}) {
+  const { profile, contact } = content;
+  const OfficeHeading = showIntro ? "h3" : "h2";
   return (
     <>
       <section id="contact" className="rt-section rt-contact">
         <div className="rt-wrap rt-contact-grid">
           <div>
-            <p className="rt-eyebrow">{contact.label}</p>
-            <h2>
-              {contact.title}
-              <br />
-              <em>{contact.emphasis}</em>
-            </h2>
+            {showIntro ? (
+              <>
+                <p className="rt-eyebrow">{contact.label}</p>
+                <h2>
+                  {contact.title}
+                  <br />
+                  <em>{contact.emphasis}</em>
+                </h2>
+              </>
+            ) : null}
             <p className="rt-contact-intro">{contact.intro}</p>
             <div className="rt-contact-block">
               <MapPin size={20} />
               <div>
-                <h3>{contact.officeLabel}</h3>
+                <OfficeHeading className="rt-office-heading">{contact.officeLabel}</OfficeHeading>
                 <address>
                   {profile.address.map((line, index) => (
                     <span key={index}>{line}</span>
@@ -64,32 +77,46 @@ export function RamutexContact({ content }: { content: PageContent }) {
       <div className="rt-wrap">
         <CompanyMap profile={profile} />
       </div>
-      <footer className="rt-footer rt-wrap">
-        <div className="rt-footer-top">
-          <a className="rt-footer-name" href="#">
-            {profile.brand}
-            <ArrowUpRight size={32} />
-          </a>
-          <p>
-            {footer.lineOne}
-            <br />
-            {footer.lineTwo}
-          </p>
-          <a className="rt-text-link" href={profileUrl} download>
-            Company profile
-            <ArrowDownToLine size={17} />
-          </a>
-        </div>
-        <div className="rt-footer-bottom">
-          <span>{profile.name}</span>
-          <a href="/privacy">Privacy notice</a>
-          {profile.gstin ? <span>GSTIN {profile.gstin}</span> : null}
-          <a href={`https://${profile.domain}`} target="_blank" rel="noreferrer">
-            {profile.domain}
-            <ArrowRight size={14} />
-          </a>
-        </div>
-      </footer>
+      {showFooter ? <RamutexFooter content={content} /> : null}
     </>
+  );
+}
+
+export function RamutexFooter({ content }: { content: PageContent }) {
+  const { profile, footer } = content;
+  return (
+    <footer className="rt-footer rt-wrap">
+      <div className="rt-footer-top">
+        <a className="rt-footer-name" href="/">
+          {profile.brand}
+          <ArrowUpRight size={32} />
+        </a>
+        <p>
+          {footer.lineOne}
+          <br />
+          {footer.lineTwo}
+        </p>
+        <a className="rt-text-link" href={profileUrl} download>
+          Company profile
+          <ArrowDownToLine size={17} />
+        </a>
+      </div>
+      <nav className="rt-footer-navigation" aria-label="Footer navigation">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/services">Services</a>
+        <a href="/blogs">Journal</a>
+        <a href="/contact">Contact</a>
+      </nav>
+      <div className="rt-footer-bottom">
+        <span>{profile.name}</span>
+        <a href="/privacy">Privacy notice</a>
+        {profile.gstin ? <span>GSTIN {profile.gstin}</span> : null}
+        <a href={`https://${profile.domain}`} target="_blank" rel="noreferrer">
+          {profile.domain}
+          <ArrowRight size={14} />
+        </a>
+      </div>
+    </footer>
   );
 }

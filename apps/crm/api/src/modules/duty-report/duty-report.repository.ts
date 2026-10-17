@@ -1,3 +1,5 @@
+import type { SopFrequency } from "../sop-item/index.js";
+import { AppError } from "@codexsun/framework/errors";
 import { randomUUID } from "node:crypto";
 import { sql, type Kysely } from "kysely";
 import type { DutyReport, DutyReportDatabase, DutyReportInput } from "./duty-report.types.js";
@@ -11,6 +13,7 @@ export class DutyReportRepository {
       .innerJoin("crm_duty_assignments as assignment", "assignment.id", "report.assignment_id")
       .innerJoin("crm_sop_items as item", "item.id", "assignment.sop_item_id")
       .innerJoin("crm_sops as sop", "sop.id", "item.sop_id")
+      .innerJoin("crm_sop_item_revisions as revision", "revision.id", "report.revision_id")
       .innerJoin("app_users as person", "person.id", "report.assignee_user_id")
       .select([
         "report.id",
@@ -28,6 +31,8 @@ export class DutyReportRepository {
         "item.title as item_title",
         "sop.title as sop_title",
         "item.frequency",
+        "item.department",
+        "revision.instructions",
         "person.name as assignee_name"
       ]);
   }
@@ -38,6 +43,9 @@ export class DutyReportRepository {
       from?: string;
       to?: string;
       assigneeId?: number;
+      sopItemId?: number;
+      department?: string;
+      frequency?: SopFrequency;
       result?: "completed" | "blocked";
       page?: number;
       pageSize?: number;
@@ -48,6 +56,11 @@ export class DutyReportRepository {
         query = query.where("report.assignee_user_id", "=", filters.userId);
       if (filters.assigneeId !== undefined)
         query = query.where("report.assignee_user_id", "=", filters.assigneeId);
+      if (filters.sopItemId !== undefined) query = query.where("item.id", "=", filters.sopItemId);
+      if (filters.department !== undefined)
+        query = query.where("item.department", "=", filters.department);
+      if (filters.frequency !== undefined)
+        query = query.where("item.frequency", "=", filters.frequency);
       if (filters.from) query = query.where("report.performed_date", ">=", filters.from);
       if (filters.to) query = query.where("report.performed_date", "<=", filters.to);
       if (filters.result) query = query.where("report.result", "=", filters.result);
@@ -105,6 +118,66 @@ export class DutyReportRepository {
         blocked: Number(summary?.blocked ?? 0)
       }
     };
+  }
+  async update(
+    id: number,
+    input: Pick<DutyReportInput, "performedDate" | "actions">,
+    userId: number,
+    actor: string,
+    key: string
+  ) {
+    try {
+      await this.db.transaction().execute(async (trx) => {
+        const report = await trx
+          .selectFrom("crm_duty_reports")
+          .selectAll()
+          .where("id", "=", id)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!report) throw AppError.notFound("Duty report was not found.");
+        if (Number(report.assignee_user_id) !== userId)
+          throw AppError.forbidden("Only your own duty reports can be edited.");
+        const assignment = await trx
+          .selectFrom("crm_duty_assignments")
+          .select(["start_date", "end_date"])
+          .where("id", "=", report.assignment_id)
+          .executeTakeFirstOrThrow();
+        if (
+          dateOnly(assignment.start_date) > input.performedDate ||
+          (assignment.end_date && dateOnly(assignment.end_date) < input.performedDate)
+        )
+          throw AppError.validation("Report date must be within the duty assignment dates.");
+        await trx
+          .insertInto("crm_duty_report_edits")
+          .values({ report_id: id, before_data: JSON.stringify(report), changed_by: actor })
+          .execute();
+        await trx
+          .updateTable("crm_duty_reports")
+          .set({ performed_date: input.performedDate, recurrence_key: key, actions: input.actions })
+          .where("id", "=", id)
+          .execute();
+        await enqueueCrmFrappeSync(
+          trx as unknown as Kysely<CrmFrappeSyncDatabase>,
+          "duty-report",
+          id,
+          actor
+        );
+      });
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        error.code === "ER_DUP_ENTRY"
+      )
+        throw AppError.conflict("A report already exists for this duty period.");
+      throw error;
+    }
+    return (await this.query().where("report.id", "=", id).execute()).map(map)[0]!;
+  }
+  async get(id: number) {
+    const row = await this.query().where("report.id", "=", id).executeTakeFirst();
+    return row ? map(row) : null;
   }
   async create(input: DutyReportInput, userId: number, actor: string, recurrenceKey: string) {
     const assignment = await this.db
@@ -197,6 +270,8 @@ function map(row: SelectedReport): DutyReport {
     itemTitle: row.item_title,
     sopTitle: row.sop_title,
     assigneeName: row.assignee_name,
+    department: row.department,
+    instructions: row.instructions,
     frequency: row.frequency
   };
 }

@@ -1,3 +1,4 @@
+import { workReportMigrationBatch, migrateWorkReportModule } from "./modules/work-report/index.js";
 import type { Kysely } from "kysely";
 import { callLogMigrationBatch, migrateCallLogModule } from "./modules/call-log/index.js";
 import { contact360MigrationBatches, migrateContact360Database } from "./contact-360.migration.js";
@@ -42,7 +43,8 @@ const batches = [
   dutyAssignmentMigrationBatch,
   dutyReportMigrationBatch,
   frappeSyncMigrationBatch,
-  taskMigrationBatch
+  taskMigrationBatch,
+  workReportMigrationBatch
 ];
 
 export const crmTenantMigrations = batches.flatMap((batch) =>
@@ -81,9 +83,10 @@ export async function migrateCrmTenantDatabase(database: Kysely<EnquiryDatabase>
   await migrateFrappeSyncModule(
     database as unknown as Kysely<import("./modules/frappe-sync/index.js").CrmFrappeSyncDatabase>
   );
-  return migrateTaskModule(
+  await migrateTaskModule(
     database as unknown as Kysely<import("./modules/task/index.js").TaskDatabase>
   );
+  return migrateWorkReportModule(database as unknown as Kysely<import("./modules/work-report/index.js").WorkReportDatabase>);
 }
 
 export const rollbackCrmTenantDatabase = rollbackEnquiryDatabase;

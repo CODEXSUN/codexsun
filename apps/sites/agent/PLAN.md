@@ -1,6 +1,6 @@
 # Site Studio plan
 
-Status: corrected LogicX redesign implemented and verified locally. Updated: 2026-10-17.
+Status: LogicX is deployed to its Cloudflare custom domain. The redesign also retains its local runtime. Updated: 2026-10-17.
 
 The LogicX redesign masterplan below supersedes earlier visual directions for LogicX.
 Existing ownership, tenant isolation, publication, and enquiry requirements remain in effect.
@@ -693,3 +693,73 @@ Studio media and service selectors use friendly labels. File paths and service s
 ### 2026-10-17 growth-section refinement
 Implemented editorial workflow stories, navy/copper industry expertise, and an indigo delivery sequence. Content is editable through the existing marketing collections in Studio and published locally at revision 17. Responsive packaged-browser and content checks passed. The manually launched preview still needs Studio Start binding for live public-content reads; external deployment is not verified.
 
+
+## Cloudflare Worker delivery - 17-10-2026
+
+LogicX now has a separate Cloudflare Worker delivery adapter and dedicated D1 enquiry database.
+See the README deployment commands and TASK verification record for the deployed version and evidence.
+The adapter consumes only an authenticated published export and serves 39 prerendered routes.
+It never connects the public Worker to tenant MariaDB or exposes Studio credentials.
+D1 writes retain strict input validation, exact-origin checks, consent, idempotency, atomic rate limits, and 90-day retention.
+The shared SQLite implementation remains unchanged for ordinary hosts.
+
+Manual promotion is implemented. Automated deployment queues, publication replication, remote D1 inbox integration, and email notification remain planned.
+A future remote inbox must resolve the authenticated tenant/site and enforce live Sites permissions before selecting D1.
+Do not add a public enquiry-list or import endpoint as a shortcut.
+Preserve D1 during application upgrades and check schema compatibility before Worker rollback.
+
+### Ramu Tex presentation baseline — 2026-10-17
+
+The Ramu Tex client now owns a consistent six-page portfolio with navy, ivory, and copper styling.
+Its shared header, footer, material imagery, reading layouts, and mobile navigation stay inside Sites.
+Published page and blog projections remain the content authority. No storage schema or permission change is required.
+Phone, tablet, desktop, production client-build, and isolated enquiry checks passed. External delivery remains a separate deployment gate.
+New artwork uses the built-in image generator. It depicts navy, ivory, and copper fabric folds and swatches with yarn cones.
+Final assets are fabric-sculpture-navy.webp and material-study-navy.webp under clients/public/ramutex/ramutex.
+
+## 2026-10-17 public-site performance audit
+
+Scope: Sites client delivery, LogicX homepage and route composition, styles/fonts, motion, static assets, SSR, publication refresh, Node runtime and deployment proxy. This is not a complete security review of every Studio business module or the repository.
+
+Measured with packaged Node/SQLite delivery in isolated headless Chrome: 390x844 viewport, 4x CPU slowdown, 150ms latency, 200000 bytes/second download, disabled HTTP cache, three fresh contexts per build. Measurements are local lab medians, not field data or production guarantees. Long-task totals use a five-second observer window and are not Lighthouse TBT or real-user INP.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| First contentful paint | 7.404s | 1.880s |
+| Largest contentful paint | 7.420s | 2.060s |
+| Transferred subresources | 1,347,134 bytes | 345,772 bytes |
+| Layout shift | 0 | 0 |
+| Render-blocking CSS, raw | 357,525 bytes | about 55,900 bytes |
+| Main JavaScript, raw | 531,277 bytes | about 472,000 bytes |
+
+Fixed:
+- Public clients no longer import the Platform-wide stylesheet and scan unrelated apps. Added a small public reset and one locally hosted Latin font with optional display; retained font licensing.
+- Deferred Motion animation features into their own chunk with LazyMotion. Content remains rendered and visible before animation code arrives.
+- Removed hidden SSR states from service, application and growth cards. Kept a gentle transform reveal and hover effects after hydration.
+- Hero entrance begins visibly instead of waiting for an opacity-zero animation.
+- Reused bootstrap publication data without an immediate duplicate fetch; background refresh and client identity validation remain.
+- Optimized the architecture image and served a 640px version for mobile hero and approach imagery.
+- Added gzip negotiation for eligible text responses, bounded static-file caching and reusable compressed static buffers. Preserved no-store HTML/content and immutable hashed assets. Added proxy gzip configuration.
+
+Verification:
+- Client typecheck/lint, root component-document checks and five SQLite/runtime unit tests passed.
+- Explicitly enabled packaged HTTP test passed for LogicX and Ramu Tex: route rendering, origin rejection, enquiry persistence/idempotency/isolation, restart recovery, publication replacement and gzip negotiation.
+- Browser checks passed for hydration, mobile overflow, responsive image selection, eight application cards, contact-form submission, cache headers, gzip;q=0 and visible content with JavaScript disabled. Desktop and mobile screenshots reviewed.
+- DevTools MCP tools were available but its Chrome profile was locked by another session. Used a separate Chrome instance with Playwright/CDP throttling and PerformanceObserver instead.
+
+Remaining limits and blockers:
+- dependencies:check reports the existing apps/tconnect/web/dist directory. It was not modified or removed.
+- The manually launched development preview still needs authorized Studio Start binding for live content reads. Packaged SQLite delivery is working; this is separate from production page speed.
+- Main JavaScript still includes React, schema validation and several route templates. Further route/island splitting is a follow-up, with SSR/hydration compatibility tests required. It was not reduced by weakening validation.
+- Local long-task totals were noisy under concurrent workstation activity. Production INP, field data, CDN/TLS and remote TTFB are not measured. No Lighthouse performance score is claimed.
+- External deployment, nginx execution and Cloudflare hosting were not verified in this audit.
+
+References: https://web.dev/articles/optimize-lcp and https://motion.dev/docs/react-reduce-bundle-size . Raw measurements, logs and screenshots are under root dist/apps/sites/verification and are generated local evidence.
+
+## Two-site Cloudflare delivery - 17-10-2026
+
+Ramu Tex now has a separate Worker, static release, custom domain, and D1 enquiry database.
+LogicX and Ramu Tex share only the transport implementation. Entry points, origin checks, publication data, and database bindings remain separate.
+The preparation and live verification commands accept only the two approved client slugs.
+Shared transport tests reject the other client's hostname and cross-origin enquiry submissions.
+Manual deployment and the remote inbox limitations above remain unchanged.

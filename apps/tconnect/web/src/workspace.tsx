@@ -1,3 +1,4 @@
+import { CredentialWorkspace } from "./modules/credential/index";
 import { ProductWorkspace } from "./modules/product/index";
 import { MemberReviewWorkspace } from "./modules/member/index";
 import { useState } from "react";
@@ -22,18 +23,24 @@ export function TconnectWorkspace({ gateway }: { gateway: TconnectGateway }) {
       description="Company profiles, associations, community publishing and buyer enquiries."
     >
       <div className="flex flex-wrap gap-2">
-        {["companies", "products", "associations", "members", "community", "enquiries"].map(
-          (item) => (
-            <Button
-              key={item}
-              variant={tab === item ? "default" : "outline"}
-              onClick={() => setTab(item)}
-            >
-              {item[0]?.toUpperCase()}
-              {item.slice(1)}
-            </Button>
-          )
-        )}
+        {[
+          "companies",
+          "products",
+          "credentials",
+          "associations",
+          "members",
+          "community",
+          "enquiries"
+        ].map((item) => (
+          <Button
+            key={item}
+            variant={tab === item ? "default" : "outline"}
+            onClick={() => setTab(item)}
+          >
+            {item[0]?.toUpperCase()}
+            {item.slice(1)}
+          </Button>
+        ))}
         <a
           className="ml-auto text-sm underline"
           href={gateway.publicPortalUrl}
@@ -47,6 +54,8 @@ export function TconnectWorkspace({ gateway }: { gateway: TconnectGateway }) {
         <CompanyWorkspace gateway={gateway} associations={associations.data ?? []} />
       ) : tab === "products" ? (
         <ProductWorkspace gateway={gateway} />
+      ) : tab === "credentials" ? (
+        <CredentialWorkspace gateway={gateway} />
       ) : tab === "members" ? (
         <MemberReviewWorkspace gateway={gateway} />
       ) : tab === "associations" ? (

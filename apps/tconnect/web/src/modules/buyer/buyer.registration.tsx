@@ -129,7 +129,11 @@ export function BuyerRegistration({ corporateId }: { corporateId: string }) {
                 <input name="consent" type="checkbox" required />I agree to share my enquiry contact
                 details with the sellers I contact.
               </label>
-              {error ? <p role="alert" className="tc-error">{error}</p> : null}
+              {error ? (
+                <p role="alert" className="tc-error">
+                  {error}
+                </p>
+              ) : null}
               <button className="tc-button" disabled={busy || !corporateId}>
                 {busy ? "Creating account…" : "Create buyer account →"}
               </button>

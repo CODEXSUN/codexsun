@@ -156,7 +156,7 @@
       <div id="public-home-shell">
         <nav aria-label="CODEXSUN product navigation">
           <a class="brand" href="/" aria-label="CODEXSUN home">
-            <img id="public-home-logo" alt="" width="38" height="32" />
+            <img id="public-home-logo" src="/logo/logo.svg" alt="" width="38" height="32" />
             <span><strong>CODEXSUN</strong><small>Business Operating Platform</small></span>
           </a>
           <div class="menu">
@@ -177,6 +177,7 @@
           <figure>
             <img
               id="public-home-hero-image"
+              src="/marketing/codexsun-product-desk.jpg"
               alt="A connected business desk for billing, reporting, dispatch, and product work"
               width="1080"
               height="860"
@@ -186,13 +187,6 @@
         </main>
       </div>
     </div>
-    <script>
-      if (document.documentElement.dataset.publicHome) {
-        document.getElementById("public-home-logo").src = "/logo/logo.svg";
-        document.getElementById("public-home-hero-image").src =
-          "/marketing/codexsun-product-desk.jpg";
-      }
-    </script>
     <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>

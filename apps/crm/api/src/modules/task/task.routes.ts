@@ -72,7 +72,7 @@ const closure = z.object({
   createdAt: z.union([z.string(), z.date()])
 });
 const service = async (ctx: TaskContext) => {
-  const repo = new TaskRepository(ctx.database);
+  const repo = new TaskRepository(ctx.database, ctx.workEvent);
   return { ctx, repo, work: new TaskService(repo, ctx) };
 };
 async function permissionAvailable(ctx: TaskContext, permission: string) {
@@ -143,7 +143,11 @@ export function registerTaskRoutes(
         assignedTo: z.string().trim().max(191).default(""),
         status: z.string().trim().max(64).default("")
       }),
-      response: z.object({ items: z.array(record), total: z.number() })
+      response: z.object({
+        items: z.array(record),
+        total: z.number(),
+        statusCounts: z.array(z.object({ code: z.string(), count: z.number() }))
+      })
     },
     handler: async ({ request, query }) => {
       const { ctx, work } = await service(await context(request));

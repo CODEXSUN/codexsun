@@ -31,10 +31,12 @@ export function PublicProducts({ companyUuid }: { companyUuid: string }) {
       ) : error ? (
         <p role="alert">{error}</p>
       ) : !products.length ? (
-        <p className="tc-product-empty">No products published yet. Ask this business about its current capabilities.</p>
+        <p className="tc-product-empty">
+          No products published yet. Ask this business about its current capabilities.
+        </p>
       ) : (
         products.map((product) => (
-          <article className="tc-public-product" key={product.uuid}>
+          <article className="tc-public-product" key={product.uuid} id={`product-${product.uuid}`}>
             {product.imageDataUrl ? (
               <img src={product.imageDataUrl} alt={product.name} />
             ) : (

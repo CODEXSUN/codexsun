@@ -83,16 +83,20 @@ export function matchesCategory(company: Company, selected: string) {
     : !selected;
 }
 export function CategoryDiscovery({ full = false }: { full?: boolean }) {
+  const Heading = full ? "h1" : "h2";
   return (
-    <section className={`tc-container tc-category-section ${full ? "tc-category-full" : ""}`} aria-labelledby="textile-discovery">
+    <section
+      className={`tc-container tc-category-section ${full ? "tc-category-full" : ""}`}
+      aria-labelledby="textile-discovery"
+    >
       <div className="tc-section-heading">
         <div>
           <span className="tc-eyebrow">EXPLORE TIRUPUR’S TEXTILE ECOSYSTEM</span>
-          <h2 id="textile-discovery">
+          <Heading id="textile-discovery">
             Different expertise.
             <br />
             <em>Same ambition.</em>
-          </h2>
+          </Heading>
         </div>
         <div className="tc-category-aside">
           <p>
@@ -112,7 +116,13 @@ export function CategoryDiscovery({ full = false }: { full?: boolean }) {
             href={`/companies?category=${encodeURIComponent(item.name)}`}
           >
             <div className="tc-category-visual" aria-hidden="true">
-              <span className="tc-category-image" style={{backgroundImage: `url(/textiles/${index < 6 ? "textile-collection" : "industry-collection"}.webp)`,backgroundPosition: `${(index % 3) * 50}% ${Math.floor((index % 6) / 3) * 100}%`}} />
+              <span
+                className="tc-category-image"
+                style={{
+                  backgroundImage: `url(/textiles/${index < 6 ? "textile-collection" : "industry-collection"}.webp)`,
+                  backgroundPosition: `${(index % 3) * 50}% ${Math.floor((index % 6) / 3) * 100}%`
+                }}
+              />
               <span className="tc-category-number">{String(index + 1).padStart(2, "0")}</span>
             </div>
             <div className="tc-category-caption">
@@ -124,7 +134,8 @@ export function CategoryDiscovery({ full = false }: { full?: boolean }) {
         ))}
       </div>
       <p className="tc-art-credit">
-        AI-created textile studies for illustration. Images do not depict listed businesses or certify their capabilities.
+        AI-created textile studies for illustration. Images do not depict listed businesses or
+        certify their capabilities.
       </p>
     </section>
   );

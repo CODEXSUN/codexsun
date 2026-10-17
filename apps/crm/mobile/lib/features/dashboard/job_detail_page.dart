@@ -8,6 +8,7 @@ import '../../core/platform/mobile_actions.dart';
 import 'dashboard_list_page.dart';
 import 'job_add_action_sheet.dart';
 import 'job_duration.dart';
+import 'work_actions_page.dart';
 import 'job_work_feed.dart';
 
 const _detailSurfaceTone = Color(0xFFFCF9FD);
@@ -93,6 +94,7 @@ class _JobDetailPageState extends State<JobDetailPage>
         onPressed: _isSending ? null : _openAddActions,
         child: const Icon(Icons.add),
       ),
+      appBar: AppBar(title: const Text('Enquiry'), actions: [TextButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => WorkActionsPage(api: widget.api, session: widget.session, enquiryId: widget.initialJob.id, capturePosition: widget.capturePosition))), child: const Text('Actions'))]),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -209,7 +211,7 @@ class _JobDetailPageState extends State<JobDetailPage>
   Future<void> _recordAmount(String label) async {
     final amount = await _requestAmount(context, label);
     if (!mounted || amount == null) return;
-    await _saveComment('$label: ₹$amount');
+    await _saveComment('$label: â‚¹$amount');
   }
 
   Future<void> _saveComment(String comment) async {
@@ -657,7 +659,7 @@ class _CompactJobDetail extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Created by ${enquiry.createdBy} · ${enquiry.createdDate} | ${enquiry.createdAgo}',
+            'Created by ${enquiry.createdBy} Â· ${enquiry.createdDate} | ${enquiry.createdAgo}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -873,7 +875,7 @@ class _AmountDialogState extends State<_AmountDialog> {
       controller: _controller,
       autofocus: true,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: const InputDecoration(prefixText: '₹ ', hintText: '0.00'),
+      decoration: const InputDecoration(prefixText: 'â‚¹ ', hintText: '0.00'),
     ),
     actions: [
       TextButton(

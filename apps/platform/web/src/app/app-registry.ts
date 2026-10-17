@@ -800,7 +800,7 @@ export function appMenuFor(
           onSelect: () => onSelect("crm.sops")
         },
         {
-          title: "My Duties",
+          title: "Duties",
           isActive: activePage === "crm.duties",
           onSelect: () => onSelect("crm.duties")
         },
@@ -1501,6 +1501,12 @@ export function appMenuItemsFor(
         count: crmTaskCount
       },
       {
+        icon: BarChart3Icon,
+        isActive: activePage === "crm.reports",
+        onSelect: () => onSelect("crm.reports"),
+        title: "List in"
+      },
+      {
         icon: LogsIcon,
         isActive: activePage === "crm.activities",
         onSelect: () => onSelect("crm.activities"),
@@ -1516,7 +1522,7 @@ export function appMenuItemsFor(
         icon: ClipboardListIcon,
         isActive: activePage === "crm.duties",
         onSelect: () => onSelect("crm.duties"),
-        title: "My Duties"
+        title: "Duties"
       },
       {
         icon: BarChart3Icon,
@@ -1529,12 +1535,6 @@ export function appMenuItemsFor(
         isActive: activePage === "crm.call-logs",
         onSelect: () => onSelect("crm.call-logs"),
         title: "Call Logs"
-      },
-      {
-        icon: BarChart3Icon,
-        isActive: activePage === "crm.reports",
-        onSelect: () => onSelect("crm.reports"),
-        title: "List in"
       },
       {
         icon: SearchIcon,

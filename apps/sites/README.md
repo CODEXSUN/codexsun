@@ -161,8 +161,9 @@ Use a different Compose project name for each client so its data volume remains 
 Never remove the data volume during an application upgrade. Keep one writer process per client database.
 The detailed installation, backup, and rollback steps are in [PLAN.md](agent/PLAN.md#node-and-sqlite-deployment-runbook).
 
-This is manual, approved artifact delivery. Automatic remote sync, hosting promotion, deployment jobs, monitoring, and Cloudflare D1 delivery remain planned.
+This is manual, approved artifact delivery. Automatic remote sync, hosting promotion, deployment jobs, and monitoring remain planned.
 The Node SQLite runtime is not a Cloudflare Worker deployment.
+LogicX has a separate Worker adapter described below.
 Media upload, rich text, custom page CRUD, and a visual builder also remain planned.
 
 ## Enquiries, maps, and WhatsApp
@@ -227,6 +228,47 @@ The server-only `./enquiry-runtime` export supplies SQLite submission persistenc
 Clients export the named LogicX and Ramu Tex surfaces. Web exports the overview, gateway, and site modules.
 Report source checks, live database changes, browser verification, and production deployment separately.
 
+## LogicX Cloudflare deployment
+
+The production address is [logicx.codexsun.com](https://logicx.codexsun.com).
+The dedicated Worker is `codexsun-sites-logicx` in account `a68cf61bf5bae3f83ddb7765dc29a835`.
+Its custom domain manages the subdomain and TLS through Cloudflare.
+Wrangler OAuth authenticates operator commands. No Cloudflare management token is shipped to the website.
+
+The Worker serves 39 prerendered published routes and a bundled public-content projection.
+It stores contact submissions in the dedicated `codexsun-sites-logicx` D1 database.
+The Enquiry API leaf owns D1 persistence through the public `@codexsun/sites-api/enquiry-d1` export.
+The adapter preserves consent validation, exact-origin checks, bounded bodies, honeypot handling, idempotency, and persisted rate limits.
+SQLite triggers enforce the D1 insertion limit atomically. Daily cleanup enforces the 90-day retention policy.
+The database identity must match the exported site UUID and opaque tenant/site key.
+
+This is an operator deployment of a trusted Studio export. Saving or publishing inside Studio does not redeploy the Worker.
+The existing Studio inbox reads attached SQLite stores. It does not read this remote D1 database.
+Operators can inspect D1 through authorized Wrangler commands. There is no public inbox or administration endpoint.
+No email notification or remote inbox synchronization is implemented.
+
+Run from the repository root after obtaining a fresh authenticated LogicX deployment export:
+
+```powershell
+npm run prepare:deploy -w @codexsun/sites-clients -- --snapshot D:/path/to/logicx-export.json --origin https://logicx.codexsun.com
+node --import tsx apps/sites/clients/cloudflare/prepare.mjs
+npm run test:d1 -w @codexsun/sites-api
+wrangler whoami
+wrangler deploy --config apps/sites/clients/cloudflare/wrangler.jsonc --dry-run --outdir D:/workspace/codexsun/dist/apps/sites/cloudflare/dry-run
+wrangler deploy --config apps/sites/clients/cloudflare/wrangler.jsonc
+node apps/sites/clients/cloudflare/verify.mjs
+```
+
+First-time setup creates the dedicated D1 database and applies `dist/apps/sites/cloudflare/logicx/migration.sql` with `wrangler d1 execute --remote --file`.
+This database and its schema were created for the initial deployment on 17-10-2026.
+For future schema changes, back up D1 and review the migration before applying it.
+Do not recreate or delete D1 during a site content upgrade.
+Use an absolute dry-run output path because Wrangler resolves it relative to its configuration directory.
+Generated files stay under root `dist`. Local Wrangler state is ignored.
+The publication export remains outside the public asset directory.
+Rollback uses `wrangler rollback --config apps/sites/clients/cloudflare/wrangler.jsonc` after checking schema compatibility.
+Retain the prior release, export, and Worker version before future updates.
+
 For packaged HTTP verification, prepare both named releases, set `CODEXSUN_SITES_RELEASE_TEST=1`, and run:
 
 ```sh
@@ -261,3 +303,35 @@ LogicX branding uses the supplied vector geometry stored in clients/deploy/logic
 
 The growth sections use an original generated textile-workshop WebP and the existing generated architectural image as decorative backdrops. Manage their images or hide them through Pages > Design and marketing > Section backdrops. Images stay within the client asset allowlist.
 
+
+## Ramu Tex portfolio presentation
+
+Ramu Tex uses an ivory, ink-blue, and copper palette across Home, About, Services, Contact, Journal, and Privacy.
+The client owns its shared header, footer, reading pages, responsive layouts, and illustrative material images.
+Existing published profile, processing, finishing, responsibility, contact, and blog data remain the content source.
+The journal shows an empty state until articles are published. The template does not invent client work or company statistics.
+Build with `npm run build:ramutex --workspace @codexsun/sites-clients` from the repository root.
+The result is a client build. External hosting and a current published delivery export require separate verification.
+
+## Ramu Tex and shared Cloudflare delivery
+
+Ramu Tex is published at https://ramutex.codexsun.com with its own `codexsun-sites-ramutex` Worker.
+Its D1 database is `codexsun-sites-ramutex`, ID `1e5f1379-1433-490d-9317-dd8d3d308200`.
+The initial cloud release uses authenticated export sequence 19 and six published routes.
+LogicX was refreshed from current source and authenticated export sequence 18.
+The common Worker transport uses separate entry points, host checks, published projections, and D1 bindings.
+
+After preparing the Ramu Tex release with `--origin https://ramutex.codexsun.com`, run:
+
+```powershell
+node --import tsx apps/sites/clients/cloudflare/prepare.mjs ramutex
+wrangler deploy --config apps/sites/clients/cloudflare/wrangler.ramutex.jsonc --dry-run --outdir D:/workspace/codexsun/dist/apps/sites/cloudflare/dry-run-ramutex
+wrangler deploy --config apps/sites/clients/cloudflare/wrangler.ramutex.jsonc
+node apps/sites/clients/cloudflare/verify.mjs ramutex
+```
+
+For LogicX, use `prepare.mjs logicx`, `wrangler.jsonc`, and `verify.mjs logicx`.
+Run `node --import tsx --test apps/sites/clients/cloudflare/worker.test.mjs` to check host isolation and route handling.
+Preserve each client's D1 database during updates. Never copy an enquiry database or publication identity between clients.
+The Ramu Tex brochure, artwork, fonts, canonical metadata, and public pages are included in its release.
+The Studio registry label update was blocked by the local API being offline after export. Cloudflare DNS and publishing succeeded.

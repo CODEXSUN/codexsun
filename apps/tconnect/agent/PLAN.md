@@ -56,3 +56,18 @@ Use the Tirupur Connect name in the public site. Preserve internal TConnect cont
 Keep category discovery in public presentation. Match existing published capabilities without inventing verification or exporter roles.
 Use locally served illustrative images and identify sample organizations, events, and company profiles.
 Approve policy details, business data, and production image rights before public deployment.
+
+## Journey review and visual proportions
+
+Keep account forms, search, private enquiries, quotations, and messaging connected to their existing owner contracts.
+Run the browser journey for registration, sign-in, catalog, enquiry, and public mobile changes.
+Run the negotiation browser option for quote forms, comparison, and private messages.
+Use equal square category studies, matched row heights, readable copy, and original illustrative textile artwork.
+Do not attach illustrative artwork to a real business as evidence of its products or facilities.
+
+Network statistics must use public published records. Do not infer states, countries, transactions, or verification from city and industry fields.
+Certification references remain educational until an owned certification record and approval workflow exist.
+
+Use standard logos only as educational references with source records. Keep the ISO reference distinct from its restricted official logo.
+
+Keep sample credential badges explicit at the badge level. Actual company credentials require server-owned evidence, approval, validity, and revocation before publication.

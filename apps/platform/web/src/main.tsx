@@ -1,7 +1,5 @@
 import { createRoot } from "react-dom/client";
 import { GlobalLoader } from "@codexsun/ui/components/global-loader";
-import "@codexsun/ui/styles.css";
-import "./styles.css";
 import { loadRuntimeConfig } from "./startup-config";
 
 const root = createRoot(document.getElementById("root") as HTMLElement);
@@ -12,14 +10,12 @@ async function start() {
     root.render(<GlobalLoader message="Connecting to Platform…" />);
   }
   try {
-    window.__CODEXSUN_RUNTIME_CONFIG__ = Object.freeze(await loadRuntimeConfig());
-    if (!hasPublicHomeShell) {
-      root.render(<GlobalLoader message="Opening your workspace…" />);
-    }
-    const [{ PlatformWebApp }] = await Promise.all([
+    const [config, { PlatformWebApp }] = await Promise.all([
+      loadRuntimeConfig(),
       import("./app/PlatformWebApp"),
       hasPublicHomeShell ? import("./public/tenant-home") : Promise.resolve()
     ]);
+    window.__CODEXSUN_RUNTIME_CONFIG__ = Object.freeze(config);
     root.render(<PlatformWebApp />);
   } catch {
     root.render(

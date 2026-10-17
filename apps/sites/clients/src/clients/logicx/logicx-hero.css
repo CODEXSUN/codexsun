@@ -67,7 +67,8 @@
   transform: rotate(34deg);
   background: #bbcfb8;
 }
-.lx-hero-sculpture > img {
+.lx-hero-sculpture > picture { display: contents; }
+.lx-hero-sculpture > picture > img {
   display: block;
   width: 100%;
   height: 100%;
@@ -786,7 +787,7 @@
   .lx-ring-progress { animation: lx-ring-fill 2s .45s both; }
 }
 .lx-demo-stats strong { font-variant-numeric: tabular-nums; }
-@keyframes lx-copy-enter { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes lx-copy-enter { from { opacity: .85; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes lx-dashboard-reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes lx-chart-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes lx-area-reveal { from { opacity: 0; } to { opacity: 1; } }

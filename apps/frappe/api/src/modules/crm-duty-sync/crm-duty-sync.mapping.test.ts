@@ -6,7 +6,8 @@ import {
   frappeDutyFrequency,
   resolveDutyDepartment,
   dutyReportActions,
-  dutyReportDate
+  dutyReportDate,
+  dutyItemName
 } from "./crm-duty-sync.mapping.js";
 
 const contract = JSON.parse(
@@ -95,4 +96,9 @@ test("blocked reports preserve outcome and issue details without injecting HTML"
 test("report date binding handles database dates and API strings", () => {
   assert.equal(dutyReportDate(new Date("2026-10-17T00:00:00Z")), "2026-10-17");
   assert.equal(dutyReportDate("2026-10-17"), "2026-10-17");
+});
+
+test("flat SOP names are not duplicated and legacy grouped names remain distinct", () => {
+  assert.equal(dutyItemName("Office checks", "Office checks"), "Office checks");
+  assert.equal(dutyItemName("Office checks", "Lock doors"), "Office checks: Lock doors");
 });

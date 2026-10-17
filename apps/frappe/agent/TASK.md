@@ -60,3 +60,13 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 Use `npm run check:component-docs` for this documentation contract.
 Run applicable tests before marking implementation work complete.
 Do not treat documentation, a build, or a model response as proof of live persistence or deployment.
+
+## Live CRM create and edit regression - 17-10-2026
+
+- [x] Verify all four SOP frequencies against logicx.tmnext.in using the saved connection.
+- [x] Verify assignment Index edits and report Date/Actions edits update existing remote documents.
+- [x] Verify mapped and fetched fields, outcome/issue preservation, revision evidence, and local edit history.
+- [x] Check one remote report per SOP and stable identity on retry.
+- [x] Delete twelve test documents and confirm no labelled remote documents or disposable databases remain.
+      Evidence: `npm run test:e2e:crm-duties-live`; eight mapping tests and isolated Duty E2E also passed.
+      Direct worker dispatch was used. Background relay scheduling was not tested.

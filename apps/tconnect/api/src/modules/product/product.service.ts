@@ -8,6 +8,9 @@ import { ProductRepository } from "./product.repository.js";
 import { productInput } from "./product.types.js";
 export class ProductService {
   constructor(private context: TconnectContext) {}
+  async publicSearch(q: string) {
+    return new ProductRepository(this.context.database).search(q);
+  }
   async search(q: string) {
     await this.context.authorize("tconnect.catalog.self");
     if (!this.context.buyer || this.context.member)

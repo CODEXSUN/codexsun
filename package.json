@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "private": true,
   "packageManager": "npm@12.2.0",
   "description": "CODEXSUN",
@@ -152,6 +152,7 @@
     "dev:tconnect": "node tools/preflight.mjs tconnect-web",
     "build:tconnect": "npm run build -w @codexsun/tconnect-web",
     "test:tconnect": "node --import tsx --test apps/tconnect/api/src/tconnect.test.ts apps/tconnect/api/src/tconnect.members.test.ts apps/tconnect/api/src/tconnect.buyers.test.ts apps/tconnect/api/src/tconnect.negotiation.test.ts",
+    "test:e2e:tconnect-journey": "node --import tsx tools/e2e/tconnect-account-browser.e2e.mjs",
     "test:e2e:tconnect-negotiation": "node --import tsx tools/e2e/tconnect-negotiation.e2e.ts",
     "test:e2e:tconnect-buyers": "node --import tsx tools/e2e/tconnect-buyer-access.e2e.ts",
     "test:e2e:tconnect": "node --import tsx tools/e2e/tconnect-member-access.e2e.ts"

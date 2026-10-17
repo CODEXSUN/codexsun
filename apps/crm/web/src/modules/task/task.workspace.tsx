@@ -1,3 +1,4 @@
+import { countTaskStatuses } from "./task.filters";
 import { enquiryContactsQueryKey } from "../enquiry";
 import { contactsQueryKey } from "../contact";
 import { useCallback, useDeferredValue, useEffect, useState } from "react";
@@ -43,7 +44,7 @@ export function TaskWorkspace({
 }) {
   const client = useQueryClient();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("active");
   const [columnFilters, setColumnFilters] = useState<TaskColumnFilters>({
     title: "",
     listIn: "",
@@ -154,6 +155,10 @@ export function TaskWorkspace({
   const activeFilters = Object.values(columnFilters).filter(Boolean).length;
   const filterOptions = [
     { id: "all", label: "All tasks" },
+    { id: "active", label: "Active (except won and lost)" },
+    { id: "hold", label: "Hold" },
+    { id: "pending-group", label: "Pending" },
+    { id: "other", label: "Other" },
     ...(options.data?.statuses ?? []).map((status) => ({
       id: status.code ?? String(status.id),
       label: status.name
@@ -200,7 +205,10 @@ export function TaskWorkspace({
           setSearch(value);
           setPage(1);
         }}
-        filterOptions={filterOptions}
+        filterOptions={filterOptions.map((option) => ({
+          ...option,
+          count: countTaskStatuses(query.data?.statusCounts ?? [], option.id)
+        }))}
         filterValue={filter}
         showSelectedFilterChip
         onFilterValueChange={(value) => {

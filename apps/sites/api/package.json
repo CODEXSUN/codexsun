@@ -1,9 +1,10 @@
 {
   "name": "@codexsun/sites-api",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "private": true,
   "type": "module",
   "exports": {
+    "./enquiry-d1": "./src/modules/site/enquiry/enquiry.d1.mjs",
     "./delivery-contract": "./src/modules/site/publication/publication.schema.ts",
     "./delivery-integrity": "./src/modules/site/publication/publication.integrity.ts",
     "./page-defaults": "./src/modules/site/page/page.defaults.ts",
@@ -18,6 +19,7 @@
     "./marketing-defaults": "./src/modules/site/page/page.marketing-defaults.ts"
   },
   "scripts": {
+    "test:d1": "node --import tsx --test src/modules/site/enquiry/enquiry.d1.test.mjs",
     "test:cms": "node --env-file-if-exists=../../../.env --import tsx --test src/modules/site/site.cms.test.ts src/modules/site/site.cms-mariadb.test.ts src/modules/overview/overview.identity.test.ts src/modules/site/enquiry/enquiry.test.ts src/modules/site/publication/publication.test.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -27,7 +29,7 @@
     "mysql2": "^3.24.5"
   },
   "dependencies": {
-    "@codexsun/framework": "^1.1.4",
+    "@codexsun/framework": "^1.1.5",
     "fastify": "^5.12.5",
     "kysely": "^0.29.6",
     "zod": "^4.6.5"

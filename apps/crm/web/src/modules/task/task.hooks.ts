@@ -12,7 +12,8 @@ export function useTasks(
 ) {
   return useQuery({
     queryKey: [...taskQueryKey, search, filter, columnFilters, page, pageSize],
-    queryFn: () => listTasks(search, page, pageSize, filter, columnFilters)
+    queryFn: () => listTasks(search, page, pageSize, filter, columnFilters),
+    refetchInterval: 15000
   });
 }
 
@@ -36,4 +37,3 @@ export function useTaskNavigationCount(enabled: boolean) {
 
   return query.data ?? 0;
 }
-

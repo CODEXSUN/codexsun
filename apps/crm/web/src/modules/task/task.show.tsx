@@ -1,3 +1,4 @@
+import { WorkReportWorkspace } from "../work-report/index";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, BellRing, MessageSquare, Settings2, Timer } from "lucide-react";
@@ -7,7 +8,7 @@ import { Textarea } from "@codexsun/ui/components/textarea";
 import { WorkspaceAnimatedTabs } from "@codexsun/ui/workspace/animated-tabs";
 import { WorkspaceLookup } from "@codexsun/ui/workspace/lookup";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
-import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
+import { CrmStatusBadge } from "../../crm-colors";
 import { formatDateTime } from "@codexsun/ui/workspace/utils";
 import { useTaskOptions, taskQueryKey } from "./task.hooks";
 import {
@@ -25,7 +26,7 @@ import {
 } from "./task.services";
 import type { TaskRecord } from "./task.types";
 
-type Tab = "comments" | "jobs" | "activity" | "details" | "closure";
+type Tab = "actions" | "comments" | "jobs" | "activity" | "details" | "closure";
 
 export function TaskShow({
   id,
@@ -139,7 +140,7 @@ export function TaskShow({
   if (!row && !task.error)
     return (
       <WorkspacePage title="Task" className="!pt-0 lg:!pt-0">
-        <p className="text-sm text-muted-foreground">Loading task…</p>
+        <p className="text-sm text-muted-foreground">Loading taskâ€¦</p>
       </WorkspacePage>
     );
   if (!row)
@@ -152,6 +153,7 @@ export function TaskShow({
     );
   const canRespond = Boolean(options.data?.capabilities.respond);
   const tabs = [
+    {value:"actions",label:"Actions",content:<WorkReportWorkspace taskId={key}/>},
     {
       value: "comments",
       label: (
@@ -166,12 +168,12 @@ export function TaskShow({
           {comments.data?.map((item) => (
             <div key={item.uuid} className="border-b py-2 text-sm">
               <span className="font-medium">{item.createdBy}</span>
-              <span className="text-muted-foreground"> · {formatDateTime(item.createdAt)}</span>
+              <span className="text-muted-foreground"> Â· {formatDateTime(item.createdAt)}</span>
               <p className="mt-1 whitespace-pre-wrap">{item.body}</p>
             </div>
           ))}
           {comments.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading comments…</p>
+            <p className="text-sm text-muted-foreground">Loading commentsâ€¦</p>
           ) : null}
           {comments.error ? (
             <p role="alert" className="text-sm text-destructive">
@@ -206,8 +208,8 @@ export function TaskShow({
         <section className="space-y-3 rounded-md border bg-background p-4 shadow-sm">
           {jobs.data?.map((item) => (
             <div key={item.uuid} className="border-b py-2 text-sm">
-              {item.startedBy} · {formatDateTime(item.startedAt)}{" "}
-              {item.stoppedAt ? `– ${formatDateTime(item.stoppedAt)}` : "· Running"}
+              {item.startedBy} Â· {formatDateTime(item.startedAt)}{" "}
+              {item.stoppedAt ? `â€“ ${formatDateTime(item.stoppedAt)}` : "Â· Running"}
             </div>
           ))}
           {options.data?.capabilities.work ? (
@@ -242,12 +244,12 @@ export function TaskShow({
               <span className="font-medium">{item.actor}</span>
               <span className="text-muted-foreground">
                 {" "}
-                · {item.description} · {formatDateTime(item.createdAt)}
+                Â· {item.description} Â· {formatDateTime(item.createdAt)}
               </span>
             </div>
           ))}
           {activity.isLoading ? (
-            <p className="py-3 text-sm text-muted-foreground">Loading activity…</p>
+            <p className="py-3 text-sm text-muted-foreground">Loading activityâ€¦</p>
           ) : null}
         </section>
       )
@@ -281,7 +283,7 @@ export function TaskShow({
           />
           <Info
             label="Created by"
-            value={`${row.creatorName} · ${formatDateTime(row.createdAt)}`}
+            value={`${row.creatorName} Â· ${formatDateTime(row.createdAt)}`}
           />
           <Info label="Assigned to" value={row.assignedTo ?? "Unassigned"} />
           <Info label="Due date" value={formatDate(row.dueDate)} />
@@ -303,7 +305,7 @@ export function TaskShow({
             <div key={item.uuid} className="border-b py-3 text-sm">
               <p>{item.reason}</p>
               <p className="text-muted-foreground">
-                {item.status} · {item.requestedBy} · {formatDateTime(item.createdAt)}
+                {item.status} Â· {item.requestedBy} Â· {formatDateTime(item.createdAt)}
               </p>
               {item.status === "pending" && options.data?.capabilities.reviewClosure ? (
                 <div className="mt-2 flex gap-2">
@@ -329,7 +331,7 @@ export function TaskShow({
             </div>
           ))}
           {closures.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading closure requests…</p>
+            <p className="text-sm text-muted-foreground">Loading closure requestsâ€¦</p>
           ) : null}
           {canRespond ? (
             <>
@@ -358,15 +360,15 @@ export function TaskShow({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs text-muted-foreground">
-              Task #{row.id} · {row.listIn ?? "No list"}
+              Task #{row.id} Â· {row.listIn ?? "No list"}
             </p>
             <h1 className="mt-1 text-xl font-semibold">{row.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Created by {row.creatorName} · Assigned to {row.assignedTo ?? "Unassigned"} ·{" "}
-              {row.statusName} · {row.priorityName}
+              Created by {row.creatorName} Â· Assigned to {row.assignedTo ?? "Unassigned"} Â·{" "}
+              {row.statusName} Â· {row.priorityName}
             </p>
           </div>
-          <WorkspaceStatusBadge status={row.status} label={row.statusName} />
+          <CrmStatusBadge code={row.status} label={row.statusName} />
         </div>
         {row.contactId ? (
           <p className="mt-3 text-sm">
@@ -405,7 +407,7 @@ function Label({ icon, text, count }: { icon: ReactNode; text: string; count?: n
   );
 }
 function formatDate(value: string | null) {
-  if (!value) return "—";
+  if (!value) return "â€”";
   const [year, month, day] = value.slice(0, 10).split("-");
   return `${day}-${month}-${year}`;
 }

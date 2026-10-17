@@ -15,11 +15,20 @@ export function InquiryForm({ company, onClose }: { company: Company; onClose: (
     function keydown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
       if (event.key !== "Tab") return;
-      const controls = [...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not([type="hidden"]), textarea, a[href]') ?? [])].filter(item => item.offsetParent !== null);
+      const controls = [
+        ...(dialog.current?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), input:not([type="hidden"]), textarea, a[href]'
+        ) ?? [])
+      ].filter((item) => item.offsetParent !== null);
       const first = controls[0];
       const last = controls.at(-1);
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
     }
     document.addEventListener("keydown", keydown);
     return () => {
@@ -81,6 +90,7 @@ export function InquiryForm({ company, onClose }: { company: Company; onClose: (
           </div>
         ) : (
           <form onSubmit={submit}>
+            <p className="tc-enquiry-account-note">Want to track replies and compare quotations? <a href="/login">Sign in as a buyer</a>. You can also send this enquiry as a guest.</p>
             {error ? (
               <p role="alert" className="tc-error">
                 {error}

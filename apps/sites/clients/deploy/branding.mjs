@@ -11,8 +11,8 @@ export async function writeBranding(directory, brand, slug) {
   await mkdir(directory, { recursive: true });
   const custom = slug === "logicx" ? await logicxBrandAssets(brand) : null;
   const earth = slug === "ramutex";
-  const ink = earth ? "#294e40" : slug === "logicx" ? "#004632" : "#173e78";
-  const pale = earth ? "#f5f3eb" : slug === "logicx" ? "#F1F7EF" : "#edf3fc";
+  const ink = earth ? "#182b49" : slug === "logicx" ? "#004632" : "#173e78";
+  const pale = earth ? "#faf8f5" : slug === "logicx" ? "#F1F7EF" : "#edf3fc";
   const initials =
     slug === "ramutex"
       ? "rt"
@@ -80,4 +80,3 @@ export async function writeBranding(directory, brand, slug) {
     )
   );
 }
-

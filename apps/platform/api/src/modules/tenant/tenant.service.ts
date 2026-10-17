@@ -80,6 +80,22 @@ export class TenantService {
     return { company, domain, tenant };
   }
 
+  async getPublicBlogTenant(value: string) {
+    const { tenant: domainTenant } = await this.getPublicApplicationCompany(value);
+    const host = normalizeTenantDomain(value);
+    const local = env.NODE_ENV === "development" && (host === "localhost" || host === "127.0.0.1");
+    const corporateId = isSingleTenantMode()
+      ? env.CODEXSUN_SINGLE_TENANT_CORPORATE_ID
+      : env.DEFAULT_TENANT_CORPORATE_ID;
+    const tenant =
+      domainTenant ??
+      (local && corporateId ? await this.repository.findByCorporateId(corporateId) : null);
+    if (!tenant || tenant.status !== "active" || !tenant.enabledModuleKeys.includes("blog")) {
+      throw AppError.notFound("A public Blog tenant was not found for this domain.");
+    }
+    return tenant;
+  }
+
   async createTenant(input: TenantSavePayload) {
     if (isSingleTenantMode()) {
       throw AppError.forbidden("Creating another tenant is disabled in single mode.");
@@ -279,6 +295,7 @@ export function publicPortalForTenant(
 
   return {
     brandName,
+    blogEnabled: tenant?.status === "active" && tenant.enabledModuleKeys.includes("blog"),
     blogMediaPath:
       typeof settings.blogMediaPath === "string" && settings.blogMediaPath.trim()
         ? settings.blogMediaPath.trim().replace(/\/$/u, "")

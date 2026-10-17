@@ -17,6 +17,13 @@ export async function registerProductRoutes(app: FastifyInstance, resolve: Resol
     handler: async ({ request, query }) =>
       new ProductService(await resolve(request, false)).search(query.q)
   });
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/public/tconnect/product/search",
+    schemas: { querystring: productSearchQuery, response: z.array(catalogProduct) },
+    handler: async ({ request, query }) =>
+      new ProductService(await resolve(request, true)).publicSearch(query.q)
+  });
   const id = z.string().regex(/^[0-9a-f]{8}$/);
   const publicQuery = z.object({ companyUuid: id }).strict();
   registerContractRoute(app, {

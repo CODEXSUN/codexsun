@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
-import "@codexsun/ui/styles.css";
+import "./shared/public-base.css";
 import ClientSurface from "@sites-client-entry";
 
 const root = document.getElementById("root")!;

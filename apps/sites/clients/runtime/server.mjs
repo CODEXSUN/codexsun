@@ -1,3 +1,5 @@
+import { gzipSync } from "node:zlib";
+const compressedBodies = new WeakMap();
 import { createServer } from "node:http";
 import { readFileSync, existsSync, mkdirSync, chmodSync } from "node:fs";
 import { resolve, dirname, extname, relative, isAbsolute } from "node:path";
@@ -63,6 +65,7 @@ export function createSiteServer({ releaseDirectory, databasePath, origin, trust
   const enquiries = new EnquiryRepository(store.database);
   const cleanup = setInterval(() => enquiries.expire(), 3600000);
   cleanup.unref();
+  const staticFiles = new Map();
   const server = createServer(async (request, response) => {
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -157,7 +160,11 @@ export function createSiteServer({ releaseDirectory, databasePath, origin, trust
           "Cache-Control",
           path.startsWith("/assets/") ? "public,max-age=31536000,immutable" : "public,max-age=3600"
         );
-        return send(response, 200, mime, readFileSync(file), request);
+        if (!staticFiles.has(file)) {
+          if (staticFiles.size >= 128) staticFiles.clear();
+          staticFiles.set(file, readFileSync(file));
+        }
+        return send(response, 200, mime, staticFiles.get(file), request);
       }
       return send(
         response,
@@ -196,8 +203,20 @@ export function createSiteServer({ releaseDirectory, databasePath, origin, trust
 }
 function send(response, status, type, body, request) {
   if (!response.hasHeader("Cache-Control")) response.setHeader("Cache-Control", "no-store");
+  let payload = Buffer.isBuffer(body) ? body : Buffer.from(body);
+  if (/text\/|application\/(json|xml)|image\/svg/.test(type) && payload.length >= 1024) {
+    response.setHeader("Vary", "Accept-Encoding");
+    const encodings = String(request.headers["accept-encoding"] || "").split(",");
+    const gzip = encodings.find((entry) => entry.trim().split(";")[0] === "gzip");
+    if (gzip && !/;\s*q=0(?:\.0*)?(?:\s|$)/.test(gzip)) {
+      if (!compressedBodies.has(payload)) compressedBodies.set(payload, gzipSync(payload, { level: 4 }));
+      payload = compressedBodies.get(payload);
+      response.setHeader("Content-Encoding", "gzip");
+    }
+  }
+  response.setHeader("Content-Length", payload.length);
   response.writeHead(status, { "Content-Type": type });
-  response.end(request.method === "HEAD" ? undefined : body);
+  response.end(request.method === "HEAD" ? undefined : payload);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

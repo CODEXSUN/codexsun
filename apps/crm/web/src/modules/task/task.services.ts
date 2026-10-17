@@ -31,7 +31,11 @@ export const listTasks = (
   filter: string,
   columnFilters: TaskColumnFilters
 ) =>
-  crmRequest<{ items: TaskRecord[]; total: number }>(
+  crmRequest<{
+    items: TaskRecord[];
+    total: number;
+    statusCounts: Array<{ code: string; count: number }>;
+  }>(
     `/crm/tasks?${new URLSearchParams({
       search,
       page: String(page),

@@ -1,3 +1,4 @@
+import { AppError } from "@codexsun/framework/errors";
 import { randomUUID } from "node:crypto";
 import { sql, type Kysely } from "kysely";
 import type {
@@ -96,6 +97,13 @@ export class DutyAssignmentRepository {
         !user
       )
         return null;
+      const duplicate = await trx
+        .selectFrom("crm_duty_assignments")
+        .select("id")
+        .where("sop_item_id", "=", input.sopItemId)
+        .where("assignee_user_id", "=", input.assigneeUserId)
+        .executeTakeFirst();
+      if (duplicate) throw AppError.conflict("This SOP is already assigned to the selected user.");
       const result = await trx
         .insertInto("crm_duty_assignments")
         .values({
@@ -122,6 +130,95 @@ export class DutyAssignmentRepository {
       ? ((await this.listBase().where("assignment.id", "=", id).execute()).map(map)[0] ?? null)
       : null;
   }
+  async update(id: number, input: DutyAssignmentInput, actor: string) {
+    await this.db.transaction().execute(async (trx) => {
+      const current = await trx
+        .selectFrom("crm_duty_assignments")
+        .selectAll()
+        .where("id", "=", id)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!current) throw AppError.notFound("Duty was not found.");
+      await trx
+        .selectFrom("crm_sop_items")
+        .select("id")
+        .where("id", "=", input.sopItemId)
+        .forUpdate()
+        .executeTakeFirst();
+      const changed =
+        current.sop_item_id !== input.sopItemId ||
+        current.assignee_user_id !== input.assigneeUserId ||
+        current.revision_id !== input.revisionId;
+      const history = await sql<{
+        id: number;
+      }>`SELECT id FROM crm_duty_reports WHERE assignment_id = ${id} LIMIT 1`.execute(trx);
+      if (changed && history.rows.length)
+        throw AppError.conflict(
+          "This duty has reports. Its SOP, user, and instruction revision cannot change."
+        );
+      const revision = await trx
+        .selectFrom("crm_sop_item_revisions as revision")
+        .innerJoin("crm_sop_items as item", "item.id", "revision.sop_item_id")
+        .innerJoin("crm_sops as sop", "sop.id", "item.sop_id")
+        .select(["revision.status", "item.status as itemStatus", "sop.status as sopStatus"])
+        .where("revision.id", "=", input.revisionId)
+        .where("item.id", "=", input.sopItemId)
+        .executeTakeFirst();
+      const user = await trx
+        .selectFrom("app_users")
+        .select("id")
+        .where("id", "=", input.assigneeUserId)
+        .where("status", "=", "active")
+        .executeTakeFirst();
+      if (
+        !revision ||
+        !user ||
+        (changed && revision.status !== "published") ||
+        revision.itemStatus !== "active" ||
+        revision.sopStatus !== "active"
+      )
+        throw AppError.validation("Choose an active user and a published SOP.");
+      const duplicate = await trx
+        .selectFrom("crm_duty_assignments")
+        .select("id")
+        .where("id", "!=", id)
+        .where("sop_item_id", "=", input.sopItemId)
+        .where("assignee_user_id", "=", input.assigneeUserId)
+        .executeTakeFirst();
+      if (duplicate) throw AppError.conflict("This SOP is already assigned to the selected user.");
+      const invalidDates = await sql<{
+        id: number;
+      }>`SELECT id FROM crm_duty_reports WHERE assignment_id = ${id} AND (performed_date < ${input.startDate} OR (${input.endDate} IS NOT NULL AND performed_date > ${input.endDate})) LIMIT 1`.execute(
+        trx
+      );
+      if (invalidDates.rows.length)
+        throw AppError.conflict("Duty dates cannot exclude existing reports.");
+      await trx
+        .insertInto("crm_duty_assignment_edits")
+        .values({ assignment_id: id, before_data: JSON.stringify(current), changed_by: actor })
+        .execute();
+      await trx
+        .updateTable("crm_duty_assignments")
+        .set({
+          sop_item_id: input.sopItemId,
+          revision_id: input.revisionId,
+          assignee_user_id: input.assigneeUserId,
+          display_order: input.displayOrder,
+          start_date: input.startDate,
+          end_date: input.endDate,
+          updated_at: sql`UTC_TIMESTAMP()`
+        })
+        .where("id", "=", id)
+        .execute();
+      await enqueueCrmFrappeSync(
+        trx as unknown as Kysely<CrmFrappeSyncDatabase>,
+        "duty-assignment",
+        id,
+        actor
+      );
+    });
+    return (await this.listBase().where("assignment.id", "=", id).execute()).map(map)[0]!;
+  }
   async deactivate(id: number) {
     await this.db
       .updateTable("crm_duty_assignments")
@@ -141,8 +238,8 @@ function map(row: SelectedAssignment): DutyAssignment {
     revisionId: row.revision_id,
     assigneeUserId: row.assignee_user_id,
     displayOrder: row.display_order,
-    startDate: String(row.start_date).slice(0, 10),
-    endDate: row.end_date ? String(row.end_date).slice(0, 10) : null,
+    startDate: dateOnly(row.start_date),
+    endDate: row.end_date ? dateOnly(row.end_date) : null,
     status: row.status,
     assignedBy: row.assigned_by,
     sopCode: row.sop_code,
@@ -157,4 +254,8 @@ function map(row: SelectedAssignment): DutyAssignment {
     assigneeEmail: row.assignee_email,
     createdAt: new Date(row.created_at).toISOString()
   };
+}
+
+function dateOnly(value: unknown) {
+  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
 }

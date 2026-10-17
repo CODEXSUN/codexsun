@@ -84,3 +84,7 @@ export {
   seedTaskPermissions
 } from "./modules/task/index.js";
 export type { TaskDatabase, TaskContext, TaskRecord, TaskInput } from "./modules/task/index.js";
+
+export { workReportModule } from "./modules/work-report/index.js";
+export type { WorkReportContext, WorkReportDatabase } from "./modules/work-report/index.js";
+export { recordWorkEvent } from "./modules/work-report/index.js";

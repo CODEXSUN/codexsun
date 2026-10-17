@@ -1,4 +1,5 @@
-import { ArrowUpRight, Users } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpRight, Users, Search, ArrowLeft } from "lucide-react";
 import type { Association } from "./association.types";
 import type { Company } from "../company/company.types";
 import { CompanyCard } from "../company/company.card";
@@ -11,56 +12,94 @@ export function AssociationsPage({
   companies: Company[];
   slug: string | undefined;
 }) {
-  const selected = slug ? associations.find((item) => item.slug === slug) : undefined;
+  const [search, setSearch] = useState("");
+  const selected = associations.find((item) => item.slug === slug);
   if (slug && !selected)
     return (
       <main className="tc-container tc-empty">
-        <p className="tc-sample-note">
-          Example association profiles and memberships are demonstration content until verified and
-          approved.
-        </p>
         <h1>Association not found</h1>
         <a href="/associations">Explore associations</a>
       </main>
     );
-  const members = companies.filter((company) => company.associationUuid === selected?.uuid);
+  const members = companies.filter(
+    (company) =>
+      company.associationUuid === selected?.uuid &&
+      `${company.name} ${company.products} ${company.city}`
+        .toLowerCase()
+        .includes(search.toLowerCase())
+  );
+  const filtered = associations.filter((item) =>
+    `${item.name} ${item.city} ${item.industry}`.toLowerCase().includes(search.toLowerCase())
+  );
   return (
-    <main className="tc-container">
-      <section className="tc-page-intro">
-        <span className="tc-eyebrow">GROW TOGETHER</span>
-        <h1>
-          {selected?.name ?? (
-            <>
-              A stronger network.
-              <br />A shared future.
-            </>
-          )}
-        </h1>
-        <p>
-          {selected?.description ??
-            "Discover industry communities, connect with their members and turn shared knowledge into new possibilities."}
-        </p>
-      </section>
+    <main className="tc-container tc-associations-page">
       {selected ? (
         <>
+          <a href="/associations" className="tc-back">
+            <ArrowLeft size={16} />
+            All associations
+          </a>
+          <section className="tc-association-profile" style={{ borderColor: selected.color }}>
+            <span className="tc-association-logo" style={{ background: selected.color }}>
+              {selected.initials}
+            </span>
+            <span className="tc-eyebrow">
+              {selected.city} · {selected.industry}
+            </span>
+            <h1>{selected.name}</h1>
+            <p>{selected.description}</p>
+            <a className="tc-button" href={`/register?association=${selected.uuid}`}>
+              Request membership <ArrowUpRight size={17} />
+            </a>
+            <small>
+              Membership requests require staff approval. Example organizations are sample profiles.
+            </small>
+          </section>
           <div className="tc-section-heading">
             <h2>Meet the members</h2>
-            <span>{members.length} sample businesses</span>
+            <span>{members.length} published businesses</span>
           </div>
-          <div className="tc-company-grid">
-            {members.map((company) => (
-              <CompanyCard key={company.uuid} company={company} association={selected.name} />
-            ))}
-          </div>
-          {!members.length ? <p className="tc-empty">No published members yet.</p> : null}
         </>
       ) : (
+        <section className="tc-page-intro">
+          <span className="tc-eyebrow">LOCAL ROOTS. SHARED AMBITION.</span>
+          <h1>
+            Stronger connections.
+            <br />
+            <em>Shared opportunities.</em>
+          </h1>
+          <p>
+            Explore industry associations, discover their published member businesses and find your
+            place in the network.
+          </p>
+        </section>
+      )}
+      <label className="tc-search tc-association-search">
+        <Search size={18} />
+        <input
+          aria-label={selected ? "Search association members" : "Search associations"}
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={
+            selected
+              ? "Search members by name, product or location"
+              : "Association, industry or location"
+          }
+        />
+      </label>
+      {selected ? (
+        <div className="tc-company-grid">
+          {members.map((company) => (
+            <CompanyCard key={company.uuid} company={company} association={selected.name} />
+          ))}
+        </div>
+      ) : (
         <div className="tc-association-grid">
-          {associations.map((item) => (
+          {filtered.map((item) => (
             <a className="tc-association-card" key={item.uuid} href={`/associations/${item.slug}`}>
-              <div className="tc-association-logo" style={{ background: item.color }}>
+              <span className="tc-association-logo" style={{ background: item.color }}>
                 {item.initials}
-              </div>
+              </span>
               <span className="tc-eyebrow">
                 {item.city} · {item.industry}
               </span>
@@ -71,14 +110,26 @@ export function AssociationsPage({
                 <span>
                   <Users size={16} />
                   {companies.filter((company) => company.associationUuid === item.uuid).length}{" "}
-                  members
+                  published members
                 </span>
-                <ArrowUpRight size={20} />
+                <ArrowUpRight size={19} />
               </div>
             </a>
           ))}
         </div>
       )}
+      {(selected ? !members.length : !filtered.length) ? (
+        <div className="tc-empty">
+          <h3>No matching {selected ? "members" : "associations"} yet.</h3>
+          <button className="tc-button" onClick={() => setSearch("")}>
+            Clear search
+          </button>
+        </div>
+      ) : null}
+      <p className="tc-art-credit">
+        Example organizations and affiliations are demonstration content. Membership does not imply
+        certification.
+      </p>
     </main>
   );
 }

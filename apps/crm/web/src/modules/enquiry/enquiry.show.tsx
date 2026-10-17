@@ -1,3 +1,4 @@
+import { WorkReportWorkspace } from "../work-report/index";
 import { useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -49,6 +50,7 @@ type EnquiryTab =
   | "jobs"
   | "estimate"
   | "activity"
+  | "actions"
   | "locations"
   | "properties"
   | "closure"
@@ -97,6 +99,7 @@ export function EnquiryShow({
     onError: (failure) => toast.error("Unable to update job", { description: failure.message })
   });
   const tabs = [
+    {value:"actions",label:"Actions",content:<WorkReportWorkspace enquiryId={Number(id)}/>},
     {
       value: "comments",
       label: (
@@ -301,7 +304,7 @@ function EnquirySummary({ record, users }: { record: EnquiryRecord; users: Enqui
         <div className="flex flex-col items-start gap-2 sm:items-end">
           <div className="flex flex-wrap gap-2">
             <WorkspaceStatusBadge
-              label={`List in · ${record.listIn || "Unlisted"}`}
+              label={`List in Â· ${record.listIn || "Unlisted"}`}
               tone="info"
               showIcon={false}
             />
@@ -311,7 +314,7 @@ function EnquirySummary({ record, users }: { record: EnquiryRecord; users: Enqui
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Created by {creatorName} · {formatCreatedAt(record.createdAt)}
+            Created by {creatorName} Â· {formatCreatedAt(record.createdAt)}
           </p>
         </div>
       </div>
@@ -335,7 +338,7 @@ function enquiryHeading(record: EnquiryRecord, mobile: string | null) {
   const customer = record.contactName ?? record.capturedName;
   return [`#${record.enquiryNo}`, mobile, customer !== mobile ? customer : null]
     .filter(Boolean)
-    .join(" · ");
+    .join(" Â· ");
 }
 
 function formatCreatedAt(value: string) {

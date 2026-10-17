@@ -226,7 +226,7 @@ test(
     for (const [frequency, remoteFrequency] of frequencies) {
       const created: Array<{ doctype: string; name: string }> = [];
       try {
-        const title = `${frequency} inspection`;
+        const title = frequency === "daily" ? marker : `${frequency} inspection`;
         const item = await post(app, "/crm/sop-items", {
           sopId: sop.id,
           code: frequency,
@@ -238,7 +238,7 @@ test(
         });
         await post(app, `/crm/sop-items/${item.id}/revisions/${item.currentRevision.id}/publish`);
         const remoteItem = await deliver("sop-item", item.id, "SOP Item");
-        assert.equal(remoteItem.sop_name, `${marker}: ${title}`);
+        assert.equal(remoteItem.sop_name, frequency === "daily" ? marker : `${marker}: ${title}`);
         assert.equal(remoteItem.department, department);
         assert.equal(remoteItem.frequency, remoteFrequency);
         assert.match(remoteItem.steps, /Inspect the counter\./);
@@ -258,6 +258,25 @@ test(
         assert.equal(Number(remoteAssignment.index), 7);
         for (const key of ["sop_name", "department", "frequency", "steps"])
           assert.equal(remoteAssignment[key], remoteItem[key], `Assigned.${key}`);
+        const editedAssignment = await put(app, `/crm/duty-assignments/${assignment.id}`, {
+          sopItemId: item.id,
+          revisionId: item.currentRevision.id,
+          assigneeUserId: localUser.id,
+          displayOrder: 8,
+          startDate: date,
+          endDate: null
+        });
+        assert.equal(editedAssignment.id, assignment.id);
+        const updatedAssignment = await deliver(
+          "duty-assignment",
+          assignment.id,
+          "SOP Assigned",
+          false
+        );
+        assert.equal(updatedAssignment.name, remoteAssignment.name);
+        assert.equal(Number(updatedAssignment.index), 8);
+        for (const key of ["sop_item", "user", "sop_name", "department", "frequency", "steps"])
+          assert.equal(updatedAssignment[key], remoteAssignment[key], `Edited Assigned.${key}`);
         const blocked = frequency === "weekly";
         const report = await post(app, "/crm/duty-reports", {
           assignmentId: assignment.id,
@@ -281,11 +300,67 @@ test(
         if (blocked) assert.match(remoteReport.actions, /no &lt;parts&gt;/);
         for (const key of ["sop_name", "department", "frequency", "steps"])
           assert.equal(remoteReport[key], remoteItem[key], `Reporting.${key}`);
+        const editedDate = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+        const edited = await put(app, `/crm/duty-reports/${report.id}`, {
+          performedDate: editedDate,
+          actions: "Live verification corrected: delivery acknowledged."
+        });
+        assert.equal(edited.id, report.id);
+        assert.equal(edited.assignmentId, assignment.id);
+        assert.equal(edited.revisionId, report.revisionId);
+        assert.equal(edited.result, report.result);
+        assert.equal(edited.issueDetails, report.issueDetails);
+        const updatedReport = await deliver("duty-report", report.id, "SOP Reporting", false);
+        assert.equal(
+          updatedReport.name,
+          remoteReport.name,
+          "Edit must PUT the existing remote report"
+        );
+        assert.equal(updatedReport.date, editedDate);
+        assert.match(updatedReport.actions, /Live verification corrected: delivery acknowledged\./);
+        assert.doesNotMatch(updatedReport.actions, /Live verification completed\./);
+        assert.match(
+          updatedReport.actions,
+          new RegExp(`Result: ${blocked ? "blocked" : "completed"}`)
+        );
+        assert.match(updatedReport.actions, /Inspect the counter\./);
+        assert.match(updatedReport.actions, /Record shortages\./);
+        assert.match(updatedReport.actions, new RegExp(`CRM revision: ${report.revisionId}`));
+        if (blocked) assert.match(updatedReport.actions, /no &lt;parts&gt;/);
+        for (const key of ["sop_item", "user", "sop_name", "department", "frequency", "steps"])
+          assert.equal(updatedReport[key], remoteReport[key], `Edited Reporting.${key}`);
+        const history = await database
+          .selectFrom("crm_duty_report_edits")
+          .select(["changed_by", "before_data"])
+          .where("report_id", "=", report.id)
+          .execute();
+        assert.equal(history.length, 1);
+        assert.equal(history[0]!.changed_by, activeActor.email);
+        const prior =
+          typeof history[0]!.before_data === "string"
+            ? JSON.parse(history[0]!.before_data)
+            : history[0]!.before_data;
+        assert.equal(prior.actions, "Live verification completed.");
+        const reportListQuery = new URLSearchParams({
+          fields: JSON.stringify(["name"]),
+          filters: JSON.stringify([["sop_item", "=", remoteItem.name]]),
+          limit_page_length: "10"
+        });
+        const remoteReports = await requestFrappe<{ data: Array<{ name: string }> }>(
+          `/api/resource/SOP%20Reporting?${reportListQuery}`,
+          "GET",
+          settings
+        );
+        assert.equal(
+          remoteReports.data.length,
+          1,
+          "Edits must not create duplicate remote reports"
+        );
         await enqueueCrmFrappeSync(database as never, "duty-report", report.id, activeActor.email);
         const retry = await deliver("duty-report", report.id, "SOP Reporting", false);
         assert.equal(retry.name, remoteReport.name, "Retry must preserve remote report identity");
         console.log(
-          `Verified live ${remoteFrequency}: SOP Item, Assigned and Reporting; all mapped and fetched fields.`
+          `Verified live ${remoteFrequency}: SOP Item, duty create/edit and report create/edit; all mapped/fetched fields and stable remote identities.`
         );
       } finally {
         await cleanupLiveRecords(created, settings);
@@ -329,6 +404,12 @@ test(
 
 async function post(app: ReturnType<typeof Fastify>, url: string, payload = {}) {
   const response = await app.inject({ method: "POST", url, payload });
+  assert.equal(response.statusCode, 200, `${url}: ${response.body}`);
+  return response.json().data;
+}
+
+async function put(app: ReturnType<typeof Fastify>, url: string, payload: Record<string, unknown>) {
+  const response = await app.inject({ method: "PUT", url, payload });
   assert.equal(response.statusCode, 200, `${url}: ${response.body}`);
   return response.json().data;
 }
