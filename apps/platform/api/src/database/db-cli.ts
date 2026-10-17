@@ -1,3 +1,4 @@
+import { tenantMigrationTargets } from "./migration-targets.js";
 import { createConnection } from "mysql2/promise";
 import { closeAllBillingDatabases } from "@codexsun/billing-api";
 import { closeAllAccountsDatabases } from "@codexsun/accounts-api";
@@ -144,7 +145,7 @@ async function rollbackAll() {
       "production rollback refused. Set CODEXSUN_MIGRATION_ROLLBACK_CONFIRM=ROLLBACK after verifying the backup and rollback plan."
     );
   }
-  const tenants = await new TenantRepository().list();
+  const tenants = tenantMigrationTargets(await new TenantRepository().list());
   for (const tenant of [...tenants].reverse()) await rollbackTenantDatabase(tenant);
   await rollbackPlatformDatabase();
 }
@@ -159,7 +160,7 @@ async function seedAll() {
 }
 
 async function migrateTenantAppDatabases() {
-  const tenants = await new TenantRepository().list();
+  const tenants = tenantMigrationTargets(await new TenantRepository().list());
   console.info(`[database] tenant app migration targets: ${tenants.length}`);
   for (const tenant of tenants) {
     console.info(
@@ -170,7 +171,7 @@ async function migrateTenantAppDatabases() {
 }
 
 async function seedTenantAppDatabases() {
-  const tenants = await new TenantRepository().list();
+  const tenants = tenantMigrationTargets(await new TenantRepository().list());
   console.info(`[seeder] tenant app seed targets: ${tenants.length}`);
   for (const tenant of tenants) {
     console.info(
@@ -203,7 +204,7 @@ async function listMigrationState() {
     await connection.end();
   }
 
-  const tenants = await new TenantRepository().list().catch(() => []);
+  const tenants = tenantMigrationTargets(await new TenantRepository().list());
   console.info(`[database] tenant migration targets: ${tenants.length}`);
   for (const tenant of tenants) {
     const tenantConnection = await createConnection({
@@ -243,7 +244,7 @@ async function runMigrationPreflight() {
     );
   }
 
-  const tenants = await new TenantRepository().list().catch(() => []);
+  const tenants = tenantMigrationTargets(await new TenantRepository().list());
   for (const tenant of tenants) {
     assertDatabaseName(tenant.dbName, `tenant database name for ${tenant.tenantCode}`);
   }

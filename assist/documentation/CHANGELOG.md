@@ -31,6 +31,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Include pending CRM and Core permission seed corrections. Apply only forward migrations and preserve current databases and uploads.
 - Verify the existing CODEXSUN shop domain through its public DNS TXT token. Keep the existing Ecommerce entitlement unchanged.
 - Require a verified database backup and retain the previous API, web, and shop images before rollout.
+- Migration CLI skips only unprovisioned non-active tenants. Invalid active or configured targets still block release. Registry read failures no longer become an empty migration target list. Two target-selection tests pass.
+
 
 #### App Codebase Changes
 

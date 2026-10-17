@@ -28,6 +28,8 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ### Loading release preparation, 17-10-2026
 
+- Migration CLI skips only unprovisioned non-active tenants. Invalid active or configured targets still block release. Registry read failures no longer become an empty migration target list. Two target-selection tests pass.
+
 - Startup reads now have a 15-second deadline without automatic write cancellation or write retries. Tenant desk code downloads alongside session verification. Authentication still gates protected rendering.
 - Login and recovery pages use narrow shared UI imports. Pure app workspaces load lazily, and the host consumes the small Chat navigation contract.
 - The CODEXSUN shop mapping now passed public DNS token verification. Its existing Ecommerce entitlement remains unchanged.
