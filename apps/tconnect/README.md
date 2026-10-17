@@ -222,3 +222,19 @@ The default port policy is `abort`. A second start reports the active listener a
 Stop the previous run before starting again. For an intentional replacement, set
 `CODEXSUN_DEV_PORT_POLICY=takeover`. Takeover replaces only a recognized TConnect preflight process.
 It refuses an unrelated listener. Keep the same policy rules as Platform. Do not use `force` for routine starts.
+
+## Tirupur Connect public website
+
+The public brand is Tirupur Connect. Internal package names and Platform account contracts remain `tconnect`.
+The editorial theme uses ivory, forest green, woven artwork, and locally served illustrative apparel photography.
+Twelve textile discovery categories match published company capabilities. Categories do not certify a business.
+Directory search covers company names, descriptions, products, industry, and city. Location and role filters combine with category filters.
+The current role contract supports manufacturer, supplier, buyer, and service provider. Exporter is not a separate registered role.
+Export services appear through the Logistics & Export Services capability category.
+
+Public routes include `/categories`, `/login`, `/contact`, `/privacy`, and `/terms`.
+The login choice page links to existing Platform buyer and member authentication.
+The footer publishes the supplied brand website, email, and telephone. These are not listing contact details.
+Policy pages identify production operator and retention details that require approval.
+Production email delivery, recovery delivery configuration, approved business information, image attribution review, and domain deployment remain external setup.
+Image source notes are in `web/public/textiles/ASSETS.md`. Photography does not identify listed businesses.

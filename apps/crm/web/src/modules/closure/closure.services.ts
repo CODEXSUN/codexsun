@@ -5,11 +5,14 @@ export async function listClosureRequests(status: ClosureStatus) {
   return crmRequest<{ items: ClosureRequest[] }>(`/crm/closure-requests?status=${status}`);
 }
 
-export async function getLatestEnquiryClosureRequest(enquiryId: string) {
-  const result = await crmRequest<{ item: ClosureRequest | null }>(
+export function getEnquiryClosureState(enquiryId: string) {
+  return crmRequest<{ item: ClosureRequest | null; canReview: boolean }>(
     `/crm/enquiries/${encodeURIComponent(enquiryId)}/closure-requests/latest`
   );
-  return result.item;
+}
+
+export async function getLatestEnquiryClosureRequest(enquiryId: string) {
+  return (await getEnquiryClosureState(enquiryId)).item;
 }
 
 export function requestEnquiryClosure(enquiryId: string, note: string) {

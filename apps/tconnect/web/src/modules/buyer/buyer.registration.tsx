@@ -72,19 +72,19 @@ export function BuyerRegistration({ corporateId }: { corporateId: string }) {
             <form onSubmit={submit} className="tc-register-form">
               <div className="tc-form-grid">
                 <label>
-                  Your name
+                  Your name *
                   <input name="name" required minLength={2} maxLength={120} autoComplete="name" />
                 </label>
                 <label>
-                  Business email
+                  Business email *
                   <input name="email" type="email" required maxLength={180} autoComplete="email" />
                 </label>
                 <label>
-                  Business name
+                  Business name *
                   <input name="businessName" required minLength={2} maxLength={180} />
                 </label>
                 <label>
-                  City
+                  City *
                   <input
                     name="city"
                     required
@@ -94,7 +94,7 @@ export function BuyerRegistration({ corporateId }: { corporateId: string }) {
                   />
                 </label>
                 <label>
-                  Phone
+                  Phone *
                   <input
                     name="phone"
                     type="tel"
@@ -105,7 +105,7 @@ export function BuyerRegistration({ corporateId }: { corporateId: string }) {
                   />
                 </label>
                 <label>
-                  Password
+                  Password *
                   <input
                     name="password"
                     type="password"
@@ -129,7 +129,7 @@ export function BuyerRegistration({ corporateId }: { corporateId: string }) {
                 <input name="consent" type="checkbox" required />I agree to share my enquiry contact
                 details with the sellers I contact.
               </label>
-              {error ? <p role="alert">{error}</p> : null}
+              {error ? <p role="alert" className="tc-error">{error}</p> : null}
               <button className="tc-button" disabled={busy || !corporateId}>
                 {busy ? "Creating account…" : "Create buyer account →"}
               </button>

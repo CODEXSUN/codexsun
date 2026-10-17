@@ -34,6 +34,9 @@ export function CompanyProfile({
           <span>
             {company.industry} / {company.city}
           </span>
+          {company.description.toLowerCase().includes("fictional") ? (
+            <span>Sample business · demonstration content</span>
+          ) : null}
           <h1>{company.name}</h1>
           <p>{company.tagline}</p>
         </div>

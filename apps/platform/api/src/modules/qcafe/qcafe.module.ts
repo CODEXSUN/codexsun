@@ -27,7 +27,8 @@ export const qCafeModule = defineModule<PlatformModuleDependencies>({
             canPay: z.boolean(),
             canManageMenu: z.boolean(),
             canKitchen: z.boolean(),
-            canManageTables: z.boolean()
+            canManageTables: z.boolean(),
+            canManageWaiters: z.boolean()
           })
           .strict()
       },
@@ -52,7 +53,8 @@ export const qCafeModule = defineModule<PlatformModuleDependencies>({
           canPay: await permitted("qcafe.pos.pay"),
           canManageMenu: await permitted("qcafe.menu.manage"),
           canKitchen: await permitted("qcafe.kitchen.send"),
-          canManageTables: await permitted("qcafe.table.manage")
+          canManageTables: await permitted("qcafe.table.manage"),
+          canManageWaiters: await permitted("qcafe.waiter.manage")
         };
       }
     });

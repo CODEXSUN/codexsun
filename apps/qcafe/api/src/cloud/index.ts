@@ -1,4 +1,10 @@
 import {
+  registerWaiterModule,
+  seedWaiterPermissions,
+  migrateWaiters,
+  activeQCafeWaiter
+} from "../modules/waiter/index.js";
+import {
   registerSettingsModule,
   migrateSettings,
   seedSettings,
@@ -20,6 +26,8 @@ import {
   registerOrderModule,
   migrateOrders,
   migrateOrderBookings,
+  migrateKitchenFlow,
+  migrateKitchenPrinting,
   seedOrderPermissions,
   releaseQCafeOrderSeats
 } from "../modules/order/index.js";
@@ -49,6 +57,13 @@ export const qcafeMigrationBatch: MigrationBatch<QCafeDatabase> = {
   version: "1.1.1",
   description: "QCafe web menu and POS foundation",
   steps: [
+    {
+      name: "qcafe.waiter.001",
+      checksum: "qcafe.waiter.001:v1",
+      description: "Restaurant waiter register",
+      version: 1,
+      up: migrateWaiters
+    },
     {
       name: "qcafe.settings.001",
       checksum: "qcafe.settings.001:v1",
@@ -125,6 +140,20 @@ export const qcafeMigrationBatch: MigrationBatch<QCafeDatabase> = {
       description: "Scheduled pickup booking details",
       version: 2,
       up: migrateOrderBookings
+    },
+    {
+      name: "qcafe.order.003",
+      checksum: "qcafe.order.003:v1",
+      description: "Serial kitchen preparation and waiter delivery",
+      version: 3,
+      up: migrateKitchenFlow
+    },
+    {
+      name: "qcafe.order.004",
+      checksum: "qcafe.order.004:v1",
+      description: "Durable kitchen print dispatch",
+      version: 4,
+      up: migrateKitchenPrinting
     }
   ]
 };
@@ -134,6 +163,7 @@ export async function migrateQCafeWeb(database: Kysely<QCafeDatabase>) {
 }
 
 export async function seedQCafeWeb(database: Kysely<QCafeDatabase>) {
+  await seedWaiterPermissions(database);
   await seedSettings(database);
   await seedMenuPermissions(database);
   await seedSpecialSettings(database);
@@ -143,6 +173,7 @@ export async function seedQCafeWeb(database: Kysely<QCafeDatabase>) {
 }
 
 export function registerQCafeWeb(app: FastifyInstance, dependencies: QCafeDependencies) {
+  registerWaiterModule(app, dependencies);
   registerSettingsModule(app, dependencies);
   registerSpecialModule(app, dependencies);
   registerMenuModule(app, {
@@ -157,6 +188,8 @@ export function registerQCafeWeb(app: FastifyInstance, dependencies: QCafeDepend
     ...dependencies,
     lookupMenu,
     lockTable: lockQCafeTable,
+    activeWaiter: activeQCafeWaiter,
+    kitchenPrinter: async (database) => (await readQCafeSettings(database)).kotPrinterTarget,
     createBill: createQCafeOrderBill
   });
   registerPosModule(app, {

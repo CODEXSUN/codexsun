@@ -5,6 +5,8 @@ const text = z.string().trim().min(1).max(4000);
 const slug = z.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/);
 export const logicxMarketingImages = [
   { path: "/design/logicx-architecture.webp", label: "Architectural courtyard" },
+  { path: "/design/logicx-connected-workspace.webp", label: "Connected software workspace" },
+  { path: "/design/logicx-textile-workshop.webp", label: "Textile knitting workshop" },
   { path: "/service-previews/custom-software.svg", label: "Custom software illustration" },
   { path: "/service-previews/frappe-erp.svg", label: "ERP modules illustration" },
   { path: "/service-previews/react-web.svg", label: "React application illustration" },
@@ -25,6 +27,9 @@ const heading = z.strictObject({ label: short, title: short, intro: text, button
 export const logicxMarketingSchema = z.strictObject({
   heroImage: image,
   approachImage: image,
+  practiceBackdrop: image.or(z.literal("")).optional(),
+  industryBackdrop: image.or(z.literal("")).optional(),
+  deliveryBackdrop: image.or(z.literal("")).optional(),
   primaryLabel: short,
   secondaryLabel: short,
   navigationLabel: short,

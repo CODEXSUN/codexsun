@@ -1,5 +1,6 @@
 import { Button } from "@codexsun/ui/components/button";
 import { kitchenProgress } from "./order.kitchen";
+import { OrderBadge } from "./order.badge";
 import type { CafeOrder, KitchenTicket } from "./order.types";
 
 export function OrderRunning({
@@ -44,7 +45,7 @@ export function OrderRunning({
               onClick={() => onSelect(order)}
             >
               <strong>
-                {order.tableName} · {order.name}
+                {order.tableName} · <OrderBadge order={order} />
               </strong>
               <small>Chairs {order.seats.join(", ")}</small>
               <span>

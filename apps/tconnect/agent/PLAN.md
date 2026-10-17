@@ -49,3 +49,10 @@ The new migration adds tables. It does not replace existing requirements, enquir
 Use the shared TConnect preflight from both development commands. Keep the configured port authoritative.
 Preserve Platform port ownership policy, graceful shutdown, API readiness, and development header-size handling.
 Do not add a parallel launcher or silently move the public portal to a different port.
+
+## Public editorial presentation
+
+Use the Tirupur Connect name in the public site. Preserve internal TConnect contracts.
+Keep category discovery in public presentation. Match existing published capabilities without inventing verification or exporter roles.
+Use locally served illustrative images and identify sample organizations, events, and company profiles.
+Approve policy details, business data, and production image rights before public deployment.

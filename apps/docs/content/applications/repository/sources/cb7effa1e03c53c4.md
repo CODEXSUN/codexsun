@@ -2,7 +2,7 @@
 
 Repository source: `apps/tconnect/agent/SKILLS.md`
 
-Source SHA-256 (LF line endings): `1f047c05eeca7acd6103e2d881c8cd1c38acd4742b48062f07e1ccebea244374`
+Source SHA-256 (LF line endings): `986682390b7cffb486339701b5e0111f962cbc3033ce7fe901c415b74a13841c`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -56,4 +56,9 @@ Run the negotiation E2E suite with separate buyers and sellers, then run the exi
 TConnect development starts through the shared preflight. Respect `CODEXSUN_DEV_PORT_POLICY`.
 Do not stop an unrelated port owner. Include TConnect in Platform-style development header handling.
 Verify both normal requests and a synthetic large cookie request when changing the launcher.
+
+Public branding uses Tirupur Connect, while internal identifiers remain `tconnect`.
+Do not infer exporter registration, certification, or independent verification from textile category matches.
+Keep buyer and seller login links connected to the fixed Platform authentication entry points.
+Illustrative photographs must not imply a pictured facility belongs to a listed company.
 ```

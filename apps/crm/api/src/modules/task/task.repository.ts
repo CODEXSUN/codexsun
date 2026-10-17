@@ -4,7 +4,13 @@ import { AppError } from "@codexsun/framework/errors";
 import { listActiveListInsForDatabase, type ListInDatabase } from "../list-in/index.js";
 import { listActivePrioritiesForDatabase, type PriorityDatabase } from "../priority/index.js";
 import { listActiveStatusesForDatabase, type StatusDatabase } from "../status/index.js";
-import type { TaskColumnFilters, TaskDatabase, TaskInput, TaskRecord } from "./task.types.js";
+import type {
+  TaskColumnFilters,
+  TaskDatabase,
+  TaskInput,
+  TaskRecord,
+  TaskContext
+} from "./task.types.js";
 
 type TaskExecutor = Kysely<TaskDatabase> | Transaction<TaskDatabase>;
 
@@ -13,6 +19,7 @@ export class TaskRepository {
   private query() {
     return this.db
       .selectFrom("crm_tasks as t")
+      .leftJoin("core_contacts as contact", "contact.id", "t.contact_id")
       .leftJoin("crm_enquiry_lists as l", "l.id", "t.list_in_id")
       .innerJoin("crm_enquiry_priorities as p", "p.id", "t.priority_id")
       .innerJoin("crm_enquiry_statuses as s", "s.id", "t.status_id")
@@ -23,6 +30,9 @@ export class TaskRepository {
         "t.uuid",
         "t.title",
         "t.description",
+        "t.contact_id",
+        "contact.name as contact_name",
+        "contact.primary_phone as contact_phone",
         "t.list_in_id",
         "l.name as list_in",
         "t.priority_id",
@@ -130,13 +140,20 @@ export class TaskRepository {
       .executeTakeFirst();
     return this.map(row, Boolean(pending));
   }
-  async save(input: TaskInput, actor: string, id?: number) {
+  async save(
+    input: TaskInput,
+    actor: string,
+    id?: number,
+    resolveContact?: TaskContext["resolveContact"]
+  ) {
     const creating = id === undefined;
     return this.db.transaction().execute(async (trx) => {
+      const contactId = resolveContact ? await resolveContact(input, trx) : input.contactId;
       if (id !== undefined) {
         await trx
           .updateTable("crm_tasks")
           .set({
+            contact_id: contactId,
             title: input.title,
             description: input.description,
             list_in_id: input.listInId,
@@ -152,6 +169,7 @@ export class TaskRepository {
           .insertInto("crm_tasks")
           .values({
             uuid: publicUuid(),
+            contact_id: contactId ?? null,
             title: input.title,
             description: input.description,
             list_in_id: input.listInId,
@@ -515,6 +533,9 @@ export class TaskRepository {
       uuid: string;
       title: string;
       description: string;
+      contact_id: number | null;
+      contact_name: string | null;
+      contact_phone: string | null;
       list_in_id: number | null;
       list_in: string | null;
       priority_id: number;
@@ -538,6 +559,9 @@ export class TaskRepository {
       uuid: row.uuid,
       title: row.title,
       description: row.description,
+      contactId: row.contact_id === null ? null : Number(row.contact_id),
+      contactName: row.contact_name,
+      contactPhone: row.contact_phone,
       listInId: row.list_in_id === null ? null : Number(row.list_in_id),
       listIn: row.list_in,
       priorityId: Number(row.priority_id),

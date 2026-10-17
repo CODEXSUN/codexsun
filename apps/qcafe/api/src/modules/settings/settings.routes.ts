@@ -6,6 +6,7 @@ import { SettingsService } from "./settings.service.js";
 const text = z.string().trim().max(200);
 const settings = z
   .object({
+    kotPrinterTarget: z.string().trim().min(1).max(200).default("system-default"),
     revision: z.number().int().nonnegative(),
     restaurantName: text,
     branchName: text,

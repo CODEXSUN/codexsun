@@ -57,6 +57,21 @@ export function PageMarketingForm({
             value={marketing.approachImage}
             onChange={(approachImage) => update({ approachImage })}
           />
+          <fieldset className="grid gap-4 rounded-md border p-4">
+            <legend className="text-sm font-medium">Section backdrops</legend>
+            {(["practiceBackdrop", "industryBackdrop", "deliveryBackdrop"] as const).map((field, index) => (
+              <div key={field} className="grid gap-2">
+                <MarketingImageField
+                  label={["Software in practice backdrop", "Real operations backdrop", "Practical way forward backdrop"][index]!}
+                  value={marketing[field] || initialLogicxMarketing[field] || marketing.heroImage}
+                  onChange={(image) => update({ [field]: image })}
+                />
+                <Button type="button" variant="outline" onClick={() => update({ [field]: marketing[field] === "" ? initialLogicxMarketing[field]! : "" })}>
+                  {marketing[field] === "" ? "Show backdrop" : "Hide backdrop"}
+                </Button>
+              </div>
+            ))}
+          </fieldset>
           <p className="text-sm text-muted-foreground">
             Choose an image from this client's collection. Save and publish when the changes are
             ready.

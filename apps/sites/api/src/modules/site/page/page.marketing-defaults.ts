@@ -1,157 +1,311 @@
 import type { LogicxMarketing } from "./page.marketing-schema.js";
 
+
+
 const engagementItems = [
+
   {
-    number: "01",
-    title: "Build something new",
-    label: "CUSTOM SOFTWARE",
-    detail:
-      "Turn a business requirement into a focused web app, mobile experience, or internal tool.",
-    items: ["Discovery and scope", "Design and development", "Testing and launch"],
-    topic: "Custom software project"
+
+    title: "Find the right first move.", label: "01 / DISCOVER",
+
+    detail: "Map your process, review current tools and agree the first improvement.",
+
+    items: ["Workflow and bottleneck review", "Existing software and data assessment", "A scoped roadmap with clear priorities"],
+
+    topic: "Workflow discovery consultation"
+
   },
+
   {
-    number: "02",
-    title: "Make your systems work together",
-    label: "ERP & AUTOMATION",
-    detail: "Adapt Frappe and ERPNext, connect existing tools, and simplify the work between them.",
-    items: ["Workflow and ERP configuration", "Data migration and integrations", "Team onboarding"],
-    topic: "ERP and automation consultation"
+
+    title: "Build. Connect. Make it useful.", label: "02 / DELIVER",
+
+    detail: "Configure the right apps, develop what is missing and validate each release with your team.",
+
+    items: ["Custom web, mobile and ERP development", "Data migration and approved integrations", "Pilot, acceptance checks and team training"],
+
+    topic: "Software delivery and integration"
+
   },
+
   {
-    number: "03",
-    title: "Keep moving after launch",
-    label: "ONGOING SUPPORT",
-    detail:
-      "Plan maintenance, improvements, and practical support around the software your team uses.",
-    items: ["Maintenance planning", "Monitoring and issue review", "Agreed improvement milestones"],
-    topic: "Software support plan"
+
+    title: "A better system, over time.", label: "03 / EVOLVE",
+
+    detail: "Train your team, maintain the system and plan improvements as your needs grow.",
+
+    items: ["Handover and operating documentation", "Agreed maintenance and monitoring", "Regular reviews and phased improvements"],
+
+    topic: "Ongoing software improvement"
+
   }
+
 ];
+
+
 
 const industries = [
-  ["Manufacturing & textiles", "Connect enquiries, production planning, stock, and dispatch."],
-  ["Retail & ecommerce", "Bring products, orders, customers, and inventory into one workflow."],
-  ["Professional services", "Organise leads, projects, approvals, time, and billing."],
-  ["Growing businesses", "Replace scattered spreadsheets with shared tools and clear ownership."]
+
+  ["Textiles, from yarn to dispatch", "Connect lot tracking, processing plans, quality checks, job work and dispatch."],
+
+  ["Handloom & knitting workflows", "Manage yarn issue, job allocation, output and finishing. Machine connections are assessed against compatible interfaces."],
+
+  ["Sales that stay connected", "Bring enquiries, follow-ups, quotations and billing into a connected CRM workflow."],
+
+  ["A stronger digital presence", "Build your website, catalogue and social presence. Connect enquiry sources and approved channel integrations."]
+
 ];
+
+
 
 const questions = [
+
   [
+
     "Should we choose an existing application or custom software?",
-    "We begin with the workflow. An existing application may cover the core requirement; configuration, integration, or custom development can address the gaps. Explore the application catalogue, then discuss the fit with us."
+
+    "We review your workflow first. Use an existing app where it fits, then configure, integrate or build the missing parts."
+
   ],
+
   [
+
     "Can you work with our current ERP or accounting software?",
-    "We can assess Frappe, ERPNext, Tally, and other systems for integration. The approach depends on available APIs, data access, permissions, and the version you use. We agree those boundaries before implementation."
+
+    "We assess your software, APIs and data access, then agree a safe integration approach before development."
+
   ],
+
   [
+
     "How are price and delivery dates agreed?",
-    "Share your goals, users, integrations, and preferred timeline. We review the scope and propose milestones, deliverables, assumptions, and pricing for your approval. Changes are reviewed before additional work begins."
+
+    "We review your scope and agree deliverables, milestones and pricing. Changes are discussed before extra work begins."
+
   ],
+
   [
+
     "Can we start small and add more later?",
-    "Yes. A focused first release helps validate the workflow with your team. Further modules and integrations can be planned as separate milestones once the first release is in use."
+
+    "Yes. Start with one useful workflow, validate it with your team and add further modules in planned stages."
+
   ],
+
   [
+
     "What happens after the software launches?",
-    "We agree the handover, documentation, training, hosting responsibilities, and support scope for the project. Maintenance and ongoing improvements can be arranged separately around your needs."
+
+    "We agree training, documentation, hosting and support responsibilities. Maintenance and improvements can follow under a separate plan."
+
   ]
+
 ];
 
+
+
 export const initialLogicxMarketing: LogicxMarketing = {
+
   heroImage: "/design/logicx-architecture.webp",
+
   approachImage: "/design/logicx-architecture.webp",
+  practiceBackdrop: "/design/logicx-connected-workspace.webp",
+  industryBackdrop: "/design/logicx-textile-workshop.webp",
+  deliveryBackdrop: "/design/logicx-architecture.webp",
+
   primaryLabel: "Let's talk about your project",
+
   secondaryLabel: "See how it works",
+
   navigationLabel: "Let's build",
+
   proofLabels: ["Custom development", "ERP integration", "Ongoing support"],
+
   technologies: ["Frappe", "ERPNext", "React", "Tailwind CSS", "Python", "Node.js"],
+
   featuredServices: [
+
     "custom-business-software",
+
     "frappe-erpnext",
+
     "react-web-applications",
+
     "mobile-applications",
+
     "business-automation",
+
     "tally-system-integrations"
+
   ],
+
   serviceImages: [
+
     "custom-business-software",
+
     "frappe-erpnext",
+
     "react-web-applications",
+
     "mobile-applications",
+
     "business-automation",
+
     "tally-system-integrations",
+
     "websites-ecommerce",
+
     "hosting-maintenance-support"
+
   ].map((slug, i) => ({
+
     slug,
+
     image: `/service-previews/${["custom-software", "frappe-erp", "react-web", "mobile-apps", "automation", "integrations", "ecommerce", "support"][i]}.svg`
+
   })),
+
   services: {
+
     label: "Our services",
+
     title: "Software for every part of your business.",
-    intro: "We connect business workflows through software, ERP and integrations.",
+
+    intro: "Custom software, ERP, web and mobile apps - built to work together.",
+
     button: "Explore all services"
+
   },
+
   applications: {
+
     label: "The application collection",
-    title: "A workspace for the way you work.",
+
+    title: "Business apps. Connected to your work.",
+
     intro:
-      "Find a starting point for customer relationships, finance, commerce, and daily operations. We help you plan configuration, integration, and rollout.",
+
+      "Explore LogicX applications for sales, finance, commerce and team operations.",
+
     button: "Explore applications"
+
   },
+
   examples: {
+
     label: "Software in practice",
-    title: "Less friction. A clearer way to work.",
+
+    title: "Your workflow. Connected by LogicX.",
+
     intro:
-      "Illustrative workflows show how connected software can support everyday operations. These are examples, not customer case studies.",
+
+      "See how software can connect textile production, sales and digital enquiries.",
+
     button: "Discuss your workflow"
+
   },
+
   industries: {
+
     label: "Built around real operations",
-    title: "Different businesses. Better flow.",
+
+    title: "Your industry. Every detail matters.",
+
     intro:
-      "From the first customer enquiry to the final invoice, connect the steps that matter to your team.",
+
+      "We build around how your team sells, produces and delivers.",
+
     button: "Find your applications"
+
   },
+
   engagements: {
+
     label: "A practical way forward",
-    title: "Software that fits your business.",
+
+    title: "A clear start. A lasting partnership.",
+
     intro:
-      "Start with a clear requirement. Build in useful stages. Keep improving as your business grows.",
+
+      "A clear scope. Useful releases. Support that continues after launch.",
+
     button: "Discuss this option"
+
   },
+
   faq: {
+
     label: "Before we build",
+
     title: "A few things you might be wondering.",
+
     intro: "A good project starts with clear expectations.",
+
     button: "Ask us a question"
+
   },
+
   closing: {
+
     label: "Your next step",
-    title: "Have an idea, a workflow, or a system to improve?",
-    intro: "Let's find the right software solution for your business.",
+
+    title: "What would you like to build next?",
+
+    intro: "Talk to LogicX about custom software, ERP or your next business app.",
+
     button: "Start a conversation"
+
   },
+
   exampleItems: [
+
     {
-      title: "From enquiry to order",
-      detail: "Give sales and operations a shared view of the customer journey.",
-      steps: ["Capture the enquiry", "Prepare a quotation", "Confirm the order", "Track delivery"]
+
+      title: "Textile production, in sync.",
+
+      detail: "Track yarn and fabric lots through processing, quality checks and dispatch in one shared workflow.",
+
+      steps: ["Receive & identify lots", "Plan processing", "Record quality", "Prepare dispatch"]
+
     },
+
     {
-      title: "From stock to dispatch",
-      detail: "Make the movement of materials and finished goods easier to follow.",
-      steps: ["Receive materials", "Plan production", "Review availability", "Record dispatch"]
+
+      title: "Every stitch. A clearer picture.",
+
+      detail: "Plan yarn allocation, record loom and knitting output, and follow job work through finishing.",
+
+      steps: ["Allocate yarn", "Assign loom or knitting jobs", "Record output", "Review finishing"]
+
     },
+
     {
-      title: "From task to invoice",
-      detail: "Connect project progress with approvals and billing.",
-      steps: ["Assign the work", "Track progress", "Approve delivery", "Prepare billing"]
+
+      title: "Turn conversations into customers.",
+
+      detail: "Capture enquiries, assign follow-ups and connect quotations with orders and billing.",
+
+      steps: ["Capture the enquiry", "Assign & follow up", "Send a quotation", "Confirm the order"]
+
+    },
+
+    {
+
+      title: "Be found. Stay connected.",
+
+      detail: "Connect your website, catalogue and social profiles with a clear enquiry process.",
+
+      steps: ["Publish your story", "Connect social profiles", "Capture enquiries", "Review & improve"]
+
     }
+
   ],
+
   industryItems: industries.map(([title, detail]) => ({ title: title!, detail: detail! })),
-  engagementItems: engagementItems.map(({ number: _number, ...item }) => item),
+
+  engagementItems: engagementItems,
+
   questions: questions.map(([title, answer]) => ({ title: title!, answer: answer! }))
+
 };
+

@@ -1,3 +1,4 @@
+import { OrderKitchenWorkspace } from "../modules/order/order.kitchen-workspace";
 import { useEffect, useState, type ReactNode } from "react";
 import { Coffee, LayoutGrid, UtensilsCrossed, ShoppingBag, CalendarDays } from "lucide-react";
 import { MainLayout } from "@codexsun/ui/layouts/main-layouts";
@@ -18,6 +19,7 @@ type Context = {
   canManageMenu: boolean;
   canKitchen: boolean;
   canManageTables: boolean;
+  canManageWaiters: boolean;
 };
 type SalePage = "pos" | "kot" | "take-away" | "booking";
 export function WebApp({
@@ -26,15 +28,16 @@ export function WebApp({
   appearanceSettings
 }: {
   appearanceSettings?: ReactNode;
-  workspace?: SalePage | "menu" | "settings";
+  workspace?: SalePage | "menu" | "settings" | "kitchen";
   onWorkspaceChange?: (page: SalePage) => void;
 } = {}) {
+  const [openBillUuid, setOpenBillUuid] = useState<string | undefined>();
   const [context, setContext] = useState<Context | null>(null);
   const [error, setError] = useState("");
-  const [page, setPage] = useState<SalePage | "menu" | "settings">("pos");
+  const [page, setPage] = useState<SalePage | "menu" | "settings" | "kitchen">("pos");
   const current = workspace ?? page;
   useEffect(() => {
-    if (current === "menu" || current === "settings") return;
+    if (current === "menu" || current === "settings" || current === "kitchen") return;
     const switchPage = (event: KeyboardEvent) => {
       if (event.key !== "F1" || event.repeat || document.querySelector('[role="dialog"]')) return;
       event.preventDefault();
@@ -82,9 +85,14 @@ export function WebApp({
     );
   const content = (
     <>
-      <div className={current === "menu" || current === "settings" ? "hidden" : ""}>
+      <div
+        className={
+          current === "menu" || current === "settings" || current === "kitchen" ? "hidden" : ""
+        }
+      >
         <PosWorkspace
-          active={current !== "menu" && current !== "settings"}
+          openBillUuid={openBillUuid}
+          active={current !== "menu" && current !== "settings" && current !== "kitchen"}
           serviceMode={
             current === "booking"
               ? "BOOKING"
@@ -101,10 +109,22 @@ export function WebApp({
           restaurantName={context.tenantName}
         />
       </div>
+      {current === "kitchen" && (
+        <OrderKitchenWorkspace
+          canKitchen={context.canKitchen}
+          canDeliver={context.canCreate}
+          onBill={(uuid) => {
+            setOpenBillUuid(uuid);
+            if (onWorkspaceChange) onWorkspaceChange("pos");
+            else setPage("pos");
+          }}
+        />
+      )}
       {current === "settings" && (
         <SettingsWorkspace
           appearanceSettings={appearanceSettings}
           canManage={context.canManageMenu}
+          canManageWaiters={context.canManageWaiters}
           tenantId={context.tenantId}
           tenantName={context.tenantName}
           email={context.email}
@@ -140,6 +160,7 @@ export function WebApp({
           items: [
             { label: "POS", icon: LayoutGrid, onSelect: () => setPage("pos") },
             { label: "KOT", icon: UtensilsCrossed, onSelect: () => setPage("kot") },
+            { label: "Kitchen", icon: UtensilsCrossed, onSelect: () => setPage("kitchen") },
             {
               label: "Parcel - Take away",
               icon: ShoppingBag,

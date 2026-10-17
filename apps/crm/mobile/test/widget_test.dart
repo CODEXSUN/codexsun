@@ -712,6 +712,97 @@ void main() {
     expect(find.text('Status updated to In Progress.'), findsOneWidget);
     expect(find.text('#762  In Progress'), findsOneWidget);
   });
+  for (final decision in ['approved', 'rejected']) {
+    testWidgets('refreshes mobile after web closure $decision', (tester) async {
+      final api = _FakeCrmMobileApi();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: JobDetailPage(
+            api: api,
+            session: const UserSession(
+              accessToken: 'test-token',
+              profile: UserProfile(
+                email: 'vijay@example.com',
+                name: 'Vijay',
+                role: 'user',
+              ),
+            ),
+            initialJob: _testCrmJob,
+            enquiry: const DashboardListItem(
+              enquiryNumber: '762',
+              title: 'Closure refresh test',
+              customer: 'Customer',
+              list: '',
+              assignedTo: '',
+              dueDate: '',
+              createdBy: 'Vijay',
+              createdAgo: '',
+              lastAction: '',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Add action'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Mark completed'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Completion sent. Waiting for web approval.'),
+        findsOneWidget,
+      );
+      api._closureRequest = ClosureRequest(
+        id: 91,
+        status: decision,
+        requestedAt: DateTime.now().toIso8601String(),
+        reviewNote: decision == 'rejected' ? 'More work required' : null,
+      );
+      if (decision == 'approved') {
+        final old = api._job;
+        api._job = CrmJob(
+          id: old.id,
+          sourceId: old.sourceId,
+          number: old.number,
+          title: old.title,
+          customer: old.customer,
+          list: old.list,
+          dueDate: old.dueDate,
+          createdBy: old.createdBy,
+          createdAt: old.createdAt,
+          lastAction: old.lastAction,
+          status: 'Closed',
+          priority: old.priority,
+          comments: old.comments,
+          jobs: old.jobs,
+          activities: old.activities,
+        );
+      }
+      await tester.pump(const Duration(seconds: 16));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Completion sent. Waiting for web approval.'),
+        findsNothing,
+      );
+      if (decision == 'approved') {
+        expect(find.text('#762  Closed'), findsOneWidget);
+      } else {
+        expect(
+          find.text('Closure request rejected: More work required'),
+          findsOneWidget,
+        );
+      }
+      await tester.tap(find.byTooltip('Add action'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          decision == 'approved' ? 'Completion approved' : 'Mark completed',
+        ),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    });
+  }
 }
 
 final _testCrmJob = CrmJob(

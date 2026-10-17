@@ -45,3 +45,8 @@ Run the negotiation E2E suite with separate buyers and sellers, then run the exi
 TConnect development starts through the shared preflight. Respect `CODEXSUN_DEV_PORT_POLICY`.
 Do not stop an unrelated port owner. Include TConnect in Platform-style development header handling.
 Verify both normal requests and a synthetic large cookie request when changing the launcher.
+
+Public branding uses Tirupur Connect, while internal identifiers remain `tconnect`.
+Do not infer exporter registration, certification, or independent verification from textile category matches.
+Keep buyer and seller login links connected to the fixed Platform authentication entry points.
+Illustrative photographs must not imply a pictured facility belongs to a listed company.

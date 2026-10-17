@@ -27,7 +27,7 @@ export const initialLogicxPage: PageContent = {
     secondLine: "Connected by",
     emphasis: "better software.",
     intro:
-      "Custom software, Frappe and ERPNext, React web apps and mobile experiences. We connect the tools, teams and decisions that keep your business moving.",
+      "Custom software, Frappe ERP and connected apps for sales, finance and operations.",
     button: "Explore services",
     caption: "Custom software · ERP · Integration",
     artLabel: "Connected systems",
@@ -49,11 +49,11 @@ export const initialLogicxPage: PageContent = {
     label: "About LogicX",
     title: "Clear from discovery",
     emphasis: "to support.",
-    intro: "Practical systems shaped around real operations.",
-    lead: "We connect business workflows through software, ERP and integrations.",
+    intro: "From the first requirement to everyday use.",
+    lead: "LogicX builds custom software, ERP solutions and business applications.",
     paragraphs: [
-      "Each engagement starts with the real workflow, then chooses the smallest reliable combination of product, integration and infrastructure needed to improve it.",
-      "We map the process, establish the data and integration boundaries, release in useful stages, and remain accountable after the system reaches production."
+      "We build web and mobile applications, configure Frappe and ERPNext, and connect sales, finance and production workflows.",
+      "Our work starts with your process. We agree the scope, deliver in stages and plan training, handover and support."
     ],
     profileLink: "Discuss your workflow"
   },
@@ -85,42 +85,42 @@ export const initialLogicxPage: PageContent = {
       {
         name: "Custom business software",
         detail:
-          "Purpose-built portals, internal tools, operational systems and APIs, designed around your processes and permissions."
+          "Portals, internal tools and APIs built around your team and processes."
       },
       {
         name: "Frappe & ERPNext",
         detail:
-          "Frappe applications, DocTypes, ERPNext setup, workflow extensions, reports, migrations and integrations."
+          "ERPNext setup, Frappe applications, reports, data migration and integrations."
       },
       {
         name: "React web applications",
         detail:
-          "Responsive customer portals, dashboards and business applications with React, typed APIs and accessible interfaces."
+          "Fast, accessible React portals, dashboards and business applications."
       },
       {
         name: "Mobile applications",
         detail:
-          "Mobile workflows for customers and field teams, connected to business APIs with offline needs assessed during discovery."
+          "Connected apps for customers, field teams and daily operations."
       },
       {
         name: "Business automation",
         detail:
-          "Approvals, scheduled jobs, document flows and integrations that reduce repeated work while preserving traceability."
+          "Automate follow-ups, approvals, scheduled tasks and document handovers."
       },
       {
         name: "Tally & system integrations",
         detail:
-          "Connect accounting, commerce, ERP and external services through validated data exchange and explicit ownership."
+          "Connect Tally, ERP and commerce through validated data exchange."
       },
       {
         name: "Websites & ecommerce",
         detail:
-          "Portfolio sites, content workspaces and storefront experiences connected to your business processes."
+          "Editable websites, product catalogues and online stores connected to your business."
       },
       {
         name: "Hosting, maintenance & support",
         detail:
-          "Deployment, monitoring, backups, upgrades, issue resolution and ongoing improvements under an agreed support scope."
+          "Hosting, backups, updates and ongoing improvements under an agreed support plan."
       }
     ]
   },
@@ -132,9 +132,9 @@ export const initialLogicxPage: PageContent = {
     linkLabel: "Start a conversation",
     note: "Discuss scope and support requirements with our team.",
     items: [
-      { title: "Understand the work", body: "Start with people, processes and exceptions." },
-      { title: "Deliver useful stages", body: "Agree milestones and review progress." },
-      { title: "Support the system", body: "Document and maintain the solution after launch." }
+      { title: "Understand the work", body: "Map your process, users and priorities." },
+      { title: "Deliver useful stages", body: "Build, test and review with your team." },
+      { title: "Support the system", body: "Train your team and plan ongoing care." }
     ]
   },
   equipment: {
@@ -156,14 +156,14 @@ export const initialLogicxPage: PageContent = {
     title: "Make the next system",
     emphasis: "easier to run.",
     intro:
-      "Share the process that is slowing your team down. We will help shape a practical path to a dependable software system.",
+      "Tell us what you want to build, connect or improve. We will help define the next step.",
     officeLabel: "Get in touch",
     mapLabel: "Business location",
     formTitle: "Discuss your workflow",
-    formIntro: "Tell us about your current process and the improvement you need."
+    formIntro: "Share your goals, current tools and project needs."
   },
   footer: {
-    lineOne: "Software that connects the work.",
+    lineOne: "Software built around your business.",
     lineTwo: "Custom software · Frappe · React · Mobile · Automation · Support"
   }
 };

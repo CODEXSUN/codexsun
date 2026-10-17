@@ -10,5 +10,6 @@ export type QCafeContext = {
 };
 export type QCafeDependencies = {
   resolveContext: (request: FastifyRequest) => Promise<QCafeContext>;
+  printKitchenToken?: (target: string, text: string) => Promise<string>;
   masterImageDirectory?: (tenantId: string) => string;
 };

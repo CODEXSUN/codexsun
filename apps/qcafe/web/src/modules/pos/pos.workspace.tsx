@@ -26,8 +26,10 @@ export function PosWorkspace({
   canManageTables,
   restaurantName,
   active = true,
-  serviceMode
+  serviceMode,
+  openBillUuid
 }: {
+  openBillUuid?: string | undefined;
   canCreate: boolean;
   canPay: boolean;
   canKitchen: boolean;
@@ -36,6 +38,12 @@ export function PosWorkspace({
   active?: boolean;
   serviceMode: "POS" | "KOT" | "TAKE AWAY" | "BOOKING";
 }) {
+  useEffect(() => {
+    if (openBillUuid)
+      void saved(openBillUuid, false).catch((error) =>
+        setError(error instanceof Error ? error.message : "Cannot load customer bill.")
+      );
+  }, [openBillUuid]);
   const menu = useMenu();
   const preferences = useCafeSettings();
   const history = usePosBills();

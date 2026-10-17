@@ -1,3 +1,4 @@
+import { WaiterWorkspace } from "../waiter";
 import { useEffect, useState, type ReactNode } from "react";
 import { Save } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
@@ -12,6 +13,7 @@ import type { CafeSettings } from "./settings.types";
 import "./settings.css";
 export function SettingsWorkspace({
   canManage,
+  canManageWaiters,
   tenantId,
   tenantName,
   email,
@@ -19,6 +21,7 @@ export function SettingsWorkspace({
 }: {
   appearanceSettings?: ReactNode;
   canManage: boolean;
+  canManageWaiters: boolean;
   tenantId: string;
   tenantName: string;
   email: string;
@@ -95,6 +98,7 @@ export function SettingsWorkspace({
               setNotice("");
             }}
           />
+          {section === "waiters" && <WaiterWorkspace canManage={canManageWaiters} />}
           {section === "pos" && <MenuDemo canManage={canManage} />}
           {section === "specials" && <SpecialWorkspace canManage={canManage} />}
           {section === "license" && (

@@ -1,5 +1,7 @@
+import { PortalBrand, PortalFooter } from "./portal.brand";
+import { CategoryDiscovery, matchesCategory, textileCategories } from "./portal.categories";
+import { PortalInformation } from "./portal.information";
 import { BuyerRegistration } from "./modules/buyer/buyer.registration";
-import { buyerLoginUrl } from "./modules/buyer/buyer.services";
 import { MemberRegistration } from "./modules/member/member.registration";
 import { memberLoginUrl, registrationContext } from "./modules/member/member.services";
 import { PortalHero } from "./portal.hero";
@@ -16,6 +18,7 @@ import { CompanyProfile } from "./modules/company/company.profile";
 import { AssociationsPage } from "./modules/association/association.page";
 import { CommunityPage } from "./modules/community/community.page";
 import "./portal.css";
+import "./portal.editorial.css";
 export function TconnectPortal() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [associations, setAssociations] = useState<Association[]>([]);
@@ -28,6 +31,8 @@ export function TconnectPortal() {
   const params = new URLSearchParams(location.search);
   const [query, setQuery] = useState(params.get("q") ?? "");
   const [industry, setIndustry] = useState(params.get("industry") ?? "All industries");
+  const [category, setCategory] = useState(params.get("category") ?? "");
+  const [city, setCity] = useState(params.get("city") ?? "");
   const [role, setRole] = useState(params.get("role") ?? "all");
   const path = location.pathname.split("/").filter(Boolean);
   const directory = path[0] === "companies" && !path[1];
@@ -43,15 +48,32 @@ export function TconnectPortal() {
       .catch((error) => setError(error.message))
       .finally(() => setLoading(false));
   }, []);
+  useEffect(() => {
+    const title = path[0]
+      ? path[0].charAt(0).toUpperCase() + path[0].slice(1)
+      : "Textile Business Network";
+    document.title = `${title} | Tirupur Connect`;
+  }, [path[0]]);
   const industries = [...new Set(companies.map((company) => company.industry))];
   const filtered = companies.filter(
     (company) =>
       (industry === "All industries" || company.industry === industry) &&
       (role === "all" || company.role === role) &&
-      `${company.name} ${company.products} ${company.city} ${company.industry}`
+      (!city || company.city === city) &&
+      matchesCategory(company, category) &&
+      `${company.name} ${company.products} ${company.city} ${company.industry} ${company.description} ${company.tagline}`
         .toLowerCase()
         .includes(query.toLowerCase())
   );
+  const displayedCompanies = home
+    ? [...filtered]
+        .sort(
+          (a, b) =>
+            Number(matchesCategory(b, "Knitted Fabrics") || matchesCategory(b, "Yarn & Fibre")) -
+            Number(matchesCategory(a, "Knitted Fabrics") || matchesCategory(a, "Yarn & Fibre"))
+        )
+        .slice(0, 4)
+    : filtered;
   function filterIndustry(value: string) {
     setIndustry(value);
     const url = new URL(location.href);
@@ -61,22 +83,16 @@ export function TconnectPortal() {
   const selectedCompany = companies.find((company) => company.slug === path[1]);
   return (
     <div className={`tc-root ${dense ? "tc-compact" : ""}`}>
-      <div className="tc-topline">
-        <span>Rooted in Tirupur. Connected to possibilities.</span>
-        <span>
-          Multi-industry business network <Globe2 size={13} />
-        </span>
-      </div>
+      <a className="tc-skip" href="#tc-content">
+        Skip to content
+      </a>
       <header className="tc-nav">
-        <a className="tc-brand" href="/">
-          <span className="tc-brand-symbol">
-            t<span>↗</span>
-          </span>
-          tconnect<span className="tc-brand-dot">.</span>
-        </a>
+        <PortalBrand />
         <button
           className="tc-mobile-toggle"
           aria-label="Toggle navigation"
+          aria-expanded={menu}
+          aria-controls="tc-navigation"
           onClick={() => setMenu(!menu)}
         >
           {menu ? <X /> : <Menu />}
@@ -84,17 +100,19 @@ export function TconnectPortal() {
         <nav
           className={menu ? "tc-nav-links tc-open" : "tc-nav-links"}
           aria-label="Main navigation"
+          id="tc-navigation"
         >
           <a className={directory ? "active" : ""} href="/companies">
             Find businesses
           </a>
+          <a href="/categories">Categories</a>
           <a className={path[0] === "associations" ? "active" : ""} href="/associations">
             Associations
           </a>
           <a className={path[0] === "community" ? "active" : ""} href="/community">
             Community
           </a>
-          <a href={buyerLoginUrl(corporateId)}>Buyer login</a>
+          <a href="/login">Login</a>
           <a className="tc-login-mobile" href={memberLoginUrl(corporateId)}>
             Seller / Member login
           </a>
@@ -103,10 +121,17 @@ export function TconnectPortal() {
           Seller / Member login
         </a>
         <a className="tc-nav-cta" href="/register">
-          Join TConnect <ArrowUpRight size={17} />
+          Join Tirupur Connect <ArrowUpRight size={17} />
         </a>
       </header>
-      {error ? (
+      <div id="tc-content" tabIndex={-1} />
+      {path[0] === "categories" ? (
+        <main>
+          <CategoryDiscovery full />
+        </main>
+      ) : ["contact", "privacy", "terms", "login"].includes(path[0] ?? "") ? (
+        <PortalInformation page={path[0] ?? "contact"} corporateId={corporateId} />
+      ) : error ? (
         <main className="tc-container tc-empty" role="alert">
           <h1>We couldn’t load the network.</h1>
           <p>{error}</p>
@@ -116,7 +141,7 @@ export function TconnectPortal() {
         </main>
       ) : loading ? (
         <main className="tc-container tc-empty" role="status">
-          <span className="tc-eyebrow">TCONNECT</span>
+          <span className="tc-eyebrow">TIRUPUR CONNECT</span>
           <h1>Opening your next connection…</h1>
           <p>Loading companies and communities.</p>
         </main>
@@ -138,18 +163,21 @@ export function TconnectPortal() {
                 <br />
                 Closer than you think.
               </h1>
-              <p>Discover manufacturers, suppliers, buyers and services across industries.</p>
+              <p>
+                Find textile manufacturers, suppliers, buyers and specialist services. Search
+                published capabilities and explore Tirupur’s wider business network.
+              </p>
             </section>
           )}
           {home ? (
             <div className="tc-proof">
               <span>
                 <Layers3 size={20} />
-                <strong>{industries.length} industries.</strong> One connected network.
+                <strong>From yarn to garment.</strong> A connected textile ecosystem.
               </span>
               <span>
                 <Users size={20} />
-                <strong>{associations.length} communities.</strong> Shared opportunities.
+                <strong>Shared knowledge.</strong> A stronger business community.
               </span>
               <span>
                 <Globe2 size={20} />
@@ -157,12 +185,13 @@ export function TconnectPortal() {
               </span>
             </div>
           ) : null}
+          {home ? <CategoryDiscovery /> : null}
           <main className="tc-container">
             <section className="tc-directory">
               <div className="tc-section-heading">
                 <div>
                   <span className="tc-eyebrow">DISCOVER YOUR NEXT PARTNER</span>
-                  <h2>{home ? "Different expertise. Same ambition." : "Find the right fit."}</h2>
+                  <h2>{home ? "People who make possibilities." : "Find the right fit."}</h2>
                 </div>
                 {home ? (
                   <a className="tc-text-link" href="/companies">
@@ -172,6 +201,11 @@ export function TconnectPortal() {
                   <span>{filtered.length} businesses</span>
                 )}
               </div>
+              <p className="tc-sample-note">
+                Demonstration profiles are fictional and marked as sample content. Published
+                capabilities and memberships are supplied by profile owners; no independent
+                verification is implied.
+              </p>
               <div className="tc-industry-tabs" aria-label="Filter by industry">
                 {["All industries", ...industries].map((item) => (
                   <button
@@ -185,6 +219,42 @@ export function TconnectPortal() {
               </div>
               {directory ? (
                 <div className="tc-directory-controls">
+                  <div className="tc-select-filters">
+                    <label>
+                      Textile category
+                      <select
+                        value={category}
+                        onChange={(event) => {
+                          setCategory(event.target.value);
+                          const url = new URL(location.href);
+                          url.searchParams.set("category", event.target.value);
+                          history.replaceState(null, "", url);
+                        }}
+                      >
+                        <option value="">All textile categories</option>
+                        {textileCategories.map((item) => (
+                          <option key={item.name}>{item.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Location
+                      <select
+                        value={city}
+                        onChange={(event) => {
+                          setCity(event.target.value);
+                          const url = new URL(location.href);
+                          url.searchParams.set("city", event.target.value);
+                          history.replaceState(null, "", url);
+                        }}
+                      >
+                        <option value="">All locations</option>
+                        {[...new Set(companies.map((item) => item.city))].sort().map((item) => (
+                          <option key={item}>{item}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
                   <div className="tc-search tc-filter-search">
                     <Search size={18} />
                     <input
@@ -218,7 +288,7 @@ export function TconnectPortal() {
                 </div>
               ) : null}
               <div className="tc-company-grid">
-                {filtered.slice(0, home ? 4 : 500).map((company) => (
+                {displayedCompanies.map((company) => (
                   <CompanyCard
                     key={company.uuid}
                     company={company}
@@ -238,6 +308,8 @@ export function TconnectPortal() {
                       setQuery("");
                       setIndustry("All industries");
                       setRole("all");
+                      setCategory("");
+                      setCity("");
                       history.replaceState(null, "", location.pathname);
                     }}
                   >
@@ -252,11 +324,11 @@ export function TconnectPortal() {
                   <div>
                     <span className="tc-eyebrow">BUSINESS IS BETTER TOGETHER</span>
                     <h2>
-                      Your association.
+                      Associations.
                       <br />
-                      Your identity.
+                      Community.
                       <br />
-                      <em>A wider reach.</em>
+                      <em>Greater opportunities.</em>
                     </h2>
                     <p>
                       A home for your community. A spotlight for every member. Discover the people
@@ -304,10 +376,10 @@ export function TconnectPortal() {
                   <h2>
                     One connection can
                     <br />
-                    change what comes next.
+                    <em>change what comes next.</em>
                   </h2>
-                  <a className="tc-button tc-button-light" href="/companies">
-                    Find your next partner <ArrowUpRight size={18} />
+                  <a className="tc-button tc-button-light" href="/register">
+                    Join Tirupur Connect <ArrowUpRight size={18} />
                   </a>
                 </section>
               </>
@@ -333,29 +405,10 @@ export function TconnectPortal() {
       ) : (
         <main className="tc-container tc-empty">
           <h1>Page not found</h1>
-          <a href="/">Back to TConnect</a>
+          <a href="/">Back to Tirupur Connect</a>
         </main>
       )}
-      <footer className="tc-footer">
-        <div>
-          <a className="tc-brand" href="/">
-            tconnect.
-          </a>
-          <p>Good people. Great possibilities.</p>
-        </div>
-        <div>
-          <a href="/companies">Businesses</a>
-          <a href="/associations">Associations</a>
-          <a href="/community">Community</a>
-        </div>
-        <p>
-          Built around Tirupur. Open to every industry.
-          <br />
-          <small>
-            Sample listings are illustrative. Registered businesses manage their own information.
-          </small>
-        </p>
-      </footer>
+      <PortalFooter />
       <details className="tc-tweaks">
         <summary>Display</summary>
         <label>

@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { EnquiryCustomerFields, useEnquiryContacts, enquiryContactsQueryKey } from "../enquiry";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
 import { Textarea } from "@codexsun/ui/components/textarea";
@@ -21,10 +23,10 @@ export const newTaskFormId = "crm-new-task-form";
 export function TaskForm({
   record,
   options,
-  recentTasks = [],
   saving,
   error,
   onCancel,
+  onSeeAll,
   onOpenTask,
   onSave
 }: {
@@ -35,16 +37,19 @@ export function TaskForm({
     priorities: TaskLookup[];
     users: TaskLookup[];
   };
-  recentTasks?: TaskRecord[];
   saving: boolean;
   error: string;
   onCancel: () => void;
+  onSeeAll: () => void;
   onOpenTask: (id: string) => void;
   onSave: (value: TaskPayload) => void;
 }) {
   const [value, setValue] = useState<TaskPayload>(
     record
       ? {
+          contactId: record.contactId,
+          capturedName: null,
+          capturedPhone: record.contactPhone,
           title: record.title,
           description: record.description,
           listInId: record.listInId,
@@ -54,6 +59,9 @@ export function TaskForm({
           dueDate: record.dueDate
         }
       : {
+          contactId: null,
+          capturedName: null,
+          capturedPhone: null,
           title: "",
           description: "",
           listInId: null,
@@ -62,6 +70,13 @@ export function TaskForm({
           assignedUserId: null,
           dueDate: null
         }
+  );
+  const contacts = useEnquiryContacts();
+  const client = useQueryClient();
+  const setCustomer = useCallback(
+    (next: Partial<Pick<TaskPayload, "contactId" | "capturedName" | "capturedPhone">>) =>
+      setValue((current) => ({ ...current, ...next })),
+    []
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const isNew = record === null;
@@ -151,6 +166,34 @@ export function TaskForm({
                       onChange={(e) => set("description", e.target.value)}
                     />
                   </WorkspaceFormField>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Contact (optional)</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setCustomer({ contactId: null, capturedName: null, capturedPhone: null })
+                        }
+                      >
+                        Clear contact
+                      </Button>
+                    </div>
+                    <EnquiryCustomerFields
+                      customerRequired={false}
+                      strictMobile
+                      contacts={contacts.data ?? []}
+                      loading={contacts.isLoading}
+                      value={value}
+                      error={errors.contactId ?? errors.capturedName ?? ""}
+                      mobileError={errors.capturedPhone ?? ""}
+                      onChange={setCustomer}
+                      onContactSaved={async () => {
+                        await client.invalidateQueries({ queryKey: enquiryContactsQueryKey });
+                      }}
+                    />
+                  </div>
                 </div>
               </section>
               <section
@@ -215,11 +258,11 @@ export function TaskForm({
       </form>
       {isNew ? (
         <TaskCreationContext
-          tasks={recentTasks}
           users={options.users}
           selectedUserId={value.assignedUserId}
           onSelectAssignee={(id) => set("assignedUserId", id)}
           onOpenTask={onOpenTask}
+          onSeeAll={onSeeAll}
           onCancel={onCancel}
         />
       ) : null}

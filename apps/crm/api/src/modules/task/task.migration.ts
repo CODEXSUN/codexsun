@@ -214,6 +214,24 @@ export const taskMigrationBatch: MigrationBatch<TaskDatabase> = {
           "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
         );
       }
+    },
+    {
+      name: "crm.task.optional-contact-v4",
+      description: "Add an optional Core contact to tasks.",
+      checksum: "crm.task.optional-contact-v4:v1",
+      version: 4,
+      up: async (db) => {
+        await ensureColumn(db, "crm_tasks", "contact_id", "contact_id INT NULL");
+        const constraint = await sql<{
+          total: number;
+        }>`SELECT COUNT(*) AS total FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='crm_tasks' AND CONSTRAINT_NAME='crm_tasks_contact_fk'`.execute(
+          db
+        );
+        if (!Number(constraint.rows[0]?.total ?? 0))
+          await sql`ALTER TABLE crm_tasks ADD CONSTRAINT crm_tasks_contact_fk FOREIGN KEY (contact_id) REFERENCES core_contacts(id) ON DELETE RESTRICT`.execute(
+            db
+          );
+      }
     }
   ]
 };

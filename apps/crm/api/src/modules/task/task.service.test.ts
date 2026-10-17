@@ -5,6 +5,9 @@ import type { TaskRepository } from "./task.repository.js";
 import type { TaskContext, TaskRecord } from "./task.types.js";
 
 const task: TaskRecord = {
+  contactId: null,
+  contactName: null,
+  contactPhone: null,
   id: 7,
   uuid: "12345678",
   title: "Prepare customer visit",

@@ -10,6 +10,7 @@ export function OrderForm({
   busy,
   disabled,
   onChange,
+  onAdd,
   onBill,
   onAssign,
   onHistory,
@@ -27,6 +28,7 @@ export function OrderForm({
   busy: boolean;
   disabled: boolean;
   onChange: (lines: { menuUuid: string; quantity: number }[]) => void;
+  onAdd: (menuUuid: string, quantity: number) => void;
   onBill: () => void;
   onAssign: () => void;
   onHistory: () => void;
@@ -60,21 +62,9 @@ export function OrderForm({
     onChange(next.map(({ menuUuid, quantity }) => ({ menuUuid, quantity })));
   }
   function add(uuid: string, amount = 1) {
-    if (locked) return;
+    if (disabled) return;
     setSelected(uuid);
-    const existing = lines.find((line) => line.menuUuid === uuid);
-    change(
-      existing
-        ? lines.map((line) =>
-            line.menuUuid === uuid
-              ? {
-                  ...line,
-                  quantity: Math.min(999, Math.round((line.quantity + amount) * 1000) / 1000)
-                }
-              : line
-          )
-        : [...lines, { menuUuid: uuid, quantity: amount }]
-    );
+    onAdd(uuid, amount);
   }
   function adjust(uuid: string, amount: number) {
     change(
@@ -128,7 +118,7 @@ export function OrderForm({
               <button
                 key={item.uuid}
                 className={`qcafe-product ${selected === item.uuid ? "is-selected" : ""}`}
-                disabled={locked}
+                disabled={disabled}
                 onClick={() => {
                   setCode(item.code);
                   add(item.uuid);

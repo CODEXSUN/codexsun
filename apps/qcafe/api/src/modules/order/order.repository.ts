@@ -25,6 +25,18 @@ type Row = {
 };
 export class OrderRepository {
   constructor(private readonly database: Kysely<QCafeDatabase>) {}
+  async floorBills() {
+    return (
+      await sql<{
+        uuid: string;
+        name: string;
+        tableUuid: string;
+        billUuid: string;
+      }>`SELECT DISTINCT o.uuid,o.name,o.table_uuid AS tableUuid,o.bill_uuid AS billUuid FROM qcafe_order o JOIN qcafe_order_seats s ON s.order_uuid=o.uuid WHERE o.status='billed' AND o.bill_uuid IS NOT NULL ORDER BY o.name`.execute(
+        this.database
+      )
+    ).rows;
+  }
   async list() {
     const rows = (
       await sql<Row>`SELECT * FROM qcafe_order WHERE status='draft' ORDER BY id LIMIT 100`.execute(
@@ -169,6 +181,18 @@ export class OrderRepository {
           }
           if (input.action === "bill") {
             if (!lines.length) throw AppError.validation("Add an item before saving the bill.");
+            if (input.mode === "KOT") {
+              if (lines.some((line) => line.quantity > (sent.get(line.menuUuid) ?? 0)))
+                throw AppError.conflict("Send all items to the kitchen before billing.");
+              const waiting =
+                await sql`SELECT uuid FROM qcafe_order_tickets WHERE order_uuid=${uuid} AND kind='send' AND preparation_status<>'delivered' LIMIT 1`.execute(
+                  db
+                );
+              if (waiting.rows.length)
+                throw AppError.conflict(
+                  "The waiter must confirm delivery of every kitchen token before billing."
+                );
+            }
             const bill = await deps.createBill(
               db,
               {

@@ -15,6 +15,10 @@ export function AssociationsPage({
   if (slug && !selected)
     return (
       <main className="tc-container tc-empty">
+        <p className="tc-sample-note">
+          Example association profiles and memberships are demonstration content until verified and
+          approved.
+        </p>
         <h1>Association not found</h1>
         <a href="/associations">Explore associations</a>
       </main>

@@ -34,7 +34,8 @@ class JobDetailPage extends StatefulWidget {
   State<JobDetailPage> createState() => _JobDetailPageState();
 }
 
-class _JobDetailPageState extends State<JobDetailPage> {
+class _JobDetailPageState extends State<JobDetailPage>
+    with WidgetsBindingObserver {
   final _replyController = TextEditingController();
   late CrmJob _job;
   ClosureRequest? _closureRequest;
@@ -42,10 +43,17 @@ class _JobDetailPageState extends State<JobDetailPage> {
   var _isLoading = false;
   var _isSending = false;
   Timer? _runningTimer;
+  Timer? _closureTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _closureTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted && !_isLoading && _closureRequest?.status == 'pending') {
+        _refresh();
+      }
+    });
     _job = widget.initialJob;
     _syncRunningTimer();
     _refresh();
@@ -53,9 +61,16 @@ class _JobDetailPageState extends State<JobDetailPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _closureTimer?.cancel();
     _runningTimer?.cancel();
     _replyController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_isLoading) _refresh();
   }
 
   void _syncRunningTimer() {

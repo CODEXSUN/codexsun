@@ -615,6 +615,7 @@ type AppPage =
   | "qcafe.kot"
   | "qcafe.take-away"
   | "qcafe.booking"
+  | "qcafe.kitchen"
   | "hrms.overview"
   | "hrms.employees"
   | "hrms.attendance"
@@ -1052,6 +1053,10 @@ export function AppDesk() {
   }
 
   function openTaskRecord(key: string) {
+    if (location.pathname === "/app/crm/tasks/new") {
+      requestListNavigation("crm.tasks", { record: key });
+      return;
+    }
     void navigate({ params: { _splat: `crm/tasks/${encodeURIComponent(key)}` }, to: "/app/$" });
   }
 
@@ -1632,17 +1637,19 @@ export function AppDesk() {
               <QCafeWebApp
                 appearanceSettings={<QCafeAppearance />}
                 workspace={
-                  safePage === "qcafe.settings"
-                    ? "settings"
-                    : safePage === "qcafe.menu"
-                      ? "menu"
-                      : safePage === "qcafe.kot"
-                        ? "kot"
-                        : safePage === "qcafe.take-away"
-                          ? "take-away"
-                          : safePage === "qcafe.booking"
-                            ? "booking"
-                            : "pos"
+                  safePage === "qcafe.kitchen"
+                    ? "kitchen"
+                    : safePage === "qcafe.settings"
+                      ? "settings"
+                      : safePage === "qcafe.menu"
+                        ? "menu"
+                        : safePage === "qcafe.kot"
+                          ? "kot"
+                          : safePage === "qcafe.take-away"
+                            ? "take-away"
+                            : safePage === "qcafe.booking"
+                              ? "booking"
+                              : "pos"
                 }
                 onWorkspaceChange={(workspace) =>
                   requestListNavigation(
@@ -2104,6 +2111,7 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     key === "qcafe.settings" ||
     key === "qcafe.kot" ||
     key === "qcafe.take-away" ||
+    key === "qcafe.kitchen" ||
     key === "qcafe.booking" ||
     ecommerceModulePages.includes(key as EcommerceModulePage) ||
     key === "ecommerce.categories" ||
@@ -2441,6 +2449,8 @@ function enquiryRecordKeyFromLocation(href: string) {
 }
 
 function taskRecordKeyFromLocation(href: string) {
+  const record = new URL(href, window.location.origin).searchParams.get("record");
+  if (record) return record;
   const match = /^\/app\/crm\/tasks\/([^/]+)$/.exec(new URL(href, window.location.origin).pathname);
   if (!match || match[1] === "new") return undefined;
   try {
@@ -2565,6 +2575,7 @@ function titleForPage(page: AppPage) {
     "qcafe.kot": "KOT",
     "qcafe.take-away": "Parcel - Take away",
     "qcafe.booking": "Booking",
+    "qcafe.kitchen": "Kitchen",
     "frappe.overview": "Frappe",
     "frappe.contacts": "Import mobile customers",
     "frappe.enquiries": "Import enquiries",

@@ -22,6 +22,10 @@ export function CommunityPage({
           <p>Ideas, conversations and opportunities from the people who make things happen.</p>
         </div>
       ) : null}
+      <p className="tc-sample-note">
+        Example knowledge posts, discussions and events are sample content, not confirmed
+        announcements.
+      </p>
       <div className="tc-community-grid">
         {posts.slice(0, compact ? 3 : 500).map((post) => {
           const association = associations.find((item) => item.uuid === post.associationUuid);

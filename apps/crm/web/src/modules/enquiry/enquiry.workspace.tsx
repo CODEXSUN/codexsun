@@ -86,7 +86,7 @@ function EnquiryPage({
   const [search, setSearch] = useState("");
   const [showInlineFilters, setShowInlineFilters] = useState(false);
   const [columnFilters, setColumnFilters] = useState<EnquiryColumnFilters>({});
-  const [status, setStatus] = useState(reportFilters?.filter ?? "active");
+  const [status, setStatus] = useState(reportFilters?.filter ?? (mobileFilter ? "all" : "active"));
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(100);
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
@@ -224,7 +224,8 @@ function EnquiryPage({
     );
   }
   return (
-    <WorkspacePage variant="list"
+    <WorkspacePage
+      variant="list"
       title=""
       className="pt-0 lg:pt-0"
       technicalName={`page.crm.${scope}.enquiries.list`}

@@ -1,27 +1,246 @@
 import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Plus, RefreshCw, SlidersHorizontal } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction
+} from "@codexsun/ui/components/alert-dialog";
+import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
-import { Input } from "@codexsun/ui/components/input";
-import { Label } from "@codexsun/ui/components/label";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
-import { assignDuty, createSop, createSopItem, createSopRevision, deactivateDuty, listAssignments, listCrmUsers, listSopItems, listSopRevisions, listSops, publishSopItem, setSopActive, updateSop, updateSopItem, updateSopRevision, type DutyAssignment, type Sop, type SopItem, type SopRevision } from "./sop.services";
+import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
+import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
+import { SopStatusBadge } from "./sop.status";
+import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
+import { createSop, updateSop, setSopActive, listSops, type Sop } from "./sop.services";
+import { SopForm } from "./sop.form";
+import { SopList, sopColumns } from "./sop.list";
+import { SopDetails } from "./sop.details";
 
+const queryKey = ["crm", "sops"] as const;
 export function SopWorkspace() {
-  const [sops,setSops]=useState<Sop[]>([]); const [items,setItems]=useState<SopItem[]>([]); const [assignments,setAssignments]=useState<DutyAssignment[]>([]); const [users,setUsers]=useState<Array<{id:number;name:string;email:string}>>([]); const [error,setError]=useState(""); const [busy,setBusy]=useState(false); const [histories,setHistories]=useState<Record<number,SopRevision[]>>({});
-  async function refresh(){try{const [a,b,c,d]=await Promise.all([listSops(),listSopItems(),listAssignments(),listCrmUsers()]);setSops(a);setItems(b);setAssignments(c);setUsers(d);}catch(e){setError(e instanceof Error?e.message:"CRM SOP data could not load.");}}
-  useEffect(()=>{void refresh();},[]);
-  async function submit(event:React.FormEvent<HTMLFormElement>,save:(data:FormData)=>Promise<unknown>){event.preventDefault();setBusy(true);setError("");try{await save(new FormData(event.currentTarget));event.currentTarget.reset();await refresh();}catch(e){setError(e instanceof Error?e.message:"Could not save the SOP change.");}finally{setBusy(false);}}
-  async function action(run:()=>Promise<unknown>){setError("");try{await run();await refresh();}catch(e){setError(e instanceof Error?e.message:"Could not save the change.");}}
-  return <WorkspacePage title="SOPs and Duties" technicalName="page.crm.sops"><div className="space-y-6">
-    {error?<p role="alert" className="text-sm text-destructive">{error}</p>:null}
-    <section className="rounded-lg border bg-background p-4"><h2 className="mb-3 text-lg font-semibold">Create SOP</h2><form className="grid gap-3 md:grid-cols-4" onSubmit={e=>void submit(e,async f=>createSop({code:String(f.get("code")),title:String(f.get("title")),purpose:String(f.get("purpose"))}))}><Field name="code" label="Code"/><Field name="title" label="Title"/><Field name="purpose" label="Purpose"/><Button className="self-end" disabled={busy}>Create SOP</Button></form></section>
-    <section className="rounded-lg border bg-background p-4"><h2 className="mb-3 text-lg font-semibold">Create SOP item</h2><form className="grid gap-3 md:grid-cols-4" onSubmit={e=>void submit(e,async f=>createSopItem({sopId:Number(f.get("sopId")),code:String(f.get("code")),title:String(f.get("title")),department:String(f.get("department")),frequency:f.get("frequency") as "daily",sortOrder:Number(f.get("sortOrder")||0),revision:{instructions:String(f.get("instructions")),evidenceGuidance:String(f.get("evidenceGuidance"))}}))}><label className="grid gap-1 text-sm">SOP<select name="sopId" required className="h-9 rounded-md border bg-background px-3">{sops.filter(x=>x.status==="active").map(x=><option key={x.id} value={x.id}>{x.code} · {x.title}</option>)}</select></label><Field name="code" label="Item code"/><Field name="title" label="Title"/><Field name="department" label="Department"/><label className="grid gap-1 text-sm">Frequency<select name="frequency" className="h-9 rounded-md border bg-background px-3">{["daily","weekly","monthly","quarterly","annually","once"].map(v=><option key={v}>{v}</option>)}</select></label><Field name="sortOrder" label="Order"/><Field name="instructions" label="Instructions"/><Field name="evidenceGuidance" label="Evidence guidance"/><Button className="self-end" disabled={busy||!sops.some(x=>x.status==="active")}>Create draft item</Button></form></section>
-    <section className="space-y-3 rounded-lg border bg-background p-4"><h2 className="text-lg font-semibold">SOPs</h2>{sops.map(sop=><details key={sop.id} className="rounded-md border p-3"><summary className="cursor-pointer font-medium">{sop.code} · {sop.title} <span className="text-sm text-muted-foreground">({sop.status})</span></summary><form className="mt-3 grid gap-3 md:grid-cols-4" onSubmit={e=>void submit(e,async f=>updateSop(sop.id,{code:String(f.get("code")),title:String(f.get("title")),purpose:String(f.get("purpose"))}))}><Field name={`code-${sop.id}`} label="Code" defaultValue={sop.code}/><Field name={`title-${sop.id}`} label="Title" defaultValue={sop.title}/><Field name={`purpose-${sop.id}`} label="Purpose" defaultValue={sop.purpose}/><Button variant="outline" className="self-end" disabled={busy}>Save SOP</Button><Button type="button" variant="outline" onClick={()=>void action(()=>setSopActive(sop.id,sop.status!=="active"))}>{sop.status==="active"?"Deactivate":"Activate"}</Button></form></details>)}</section>
-    <section className="rounded-lg border bg-background p-4"><h2 className="mb-3 text-lg font-semibold">SOP items and revisions</h2><div className="divide-y">{items.map(item=><details key={item.id} className="py-3"><summary className="cursor-pointer font-medium">{item.code} · {item.title} <span className="text-sm text-muted-foreground">· {item.currentRevision?`Revision ${item.currentRevision.revision} (${item.currentRevision.status})`:"Draft"}</span></summary><div className="space-y-4 pt-3"><form className="grid gap-3 md:grid-cols-4" onSubmit={e=>void submit(e,async f=>updateSopItem(item.id,{sopId:item.sopId,code:String(f.get("code")),title:String(f.get("title")),department:String(f.get("department")),frequency:String(f.get("frequency")),sortOrder:Number(f.get("sortOrder"))}))}><Field name={`item-code-${item.id}`} label="Code" defaultValue={item.code}/><Field name={`item-title-${item.id}`} label="Title" defaultValue={item.title}/><Field name={`item-dept-${item.id}`} label="Department" defaultValue={item.department}/><Field name={`item-order-${item.id}`} label="Order" type="number" defaultValue={String(item.sortOrder)}/><label className="grid gap-1 text-sm">Frequency<select name="frequency" defaultValue={item.frequency} className="h-9 rounded-md border bg-background px-3">{["daily","weekly","monthly","quarterly","annually","once"].map(v=><option key={v}>{v}</option>)}</select></label><Button variant="outline" className="self-end" disabled={busy}>Save item</Button></form>
-      {item.currentRevision?.status==="draft"?<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={()=>void action(()=>publishSopItem(item.id,item.currentRevision!.id))}>Publish draft</Button></div>:null}
-      <form className="grid gap-3 md:grid-cols-2" onSubmit={e=>void submit(e,async f=>createSopRevision(item.id,{instructions:String(f.get("instructions")),evidenceGuidance:String(f.get("evidenceGuidance"))}))}><Field name={`instructions-${item.id}`} label="New revision instructions"/><Field name={`evidence-${item.id}`} label="Evidence guidance"/><Button variant="outline" className="self-end" disabled={busy}>Create draft revision</Button></form>
-      <div className="flex gap-2"><Button variant="outline" onClick={async()=>{try{setHistories({...histories,[item.id]:await listSopRevisions(item.id)});}catch(e){setError(e instanceof Error?e.message:"Revision history could not load.");}}}>Load revision history</Button></div>{histories[item.id]?.map(revision=><div key={revision.id} className="rounded-md bg-muted/40 p-3 text-sm"><strong>Revision {revision.revision} · {revision.status}</strong>{revision.status==="draft"?<form className="mt-2 grid gap-3" onSubmit={e=>void submit(e,async f=>updateSopRevision(item.id,revision.id,{instructions:String(f.get("instructions")),evidenceGuidance:String(f.get("evidenceGuidance"))}))}><label className="grid gap-1">Instructions<textarea name="instructions" required defaultValue={revision.instructions} className="min-h-24 rounded-md border bg-background p-2"/></label><label className="grid gap-1">Evidence guidance<textarea name="evidenceGuidance" defaultValue={revision.evidenceGuidance} className="min-h-16 rounded-md border bg-background p-2"/></label><Button variant="outline" disabled={busy}>Save draft</Button><Button type="button" variant="outline" onClick={()=>void action(()=>publishSopItem(item.id,revision.id))}>Publish revision</Button></form>:<><p className="mt-1 whitespace-pre-wrap">{revision.instructions}</p>{revision.evidenceGuidance?<p className="mt-1 text-muted-foreground">Evidence: {revision.evidenceGuidance}</p>:null}</>}</div>)}</div></details>)}</div></section>
-    <section className="rounded-lg border bg-background p-4"><h2 className="mb-3 text-lg font-semibold">Assign published duty</h2><form className="grid gap-3 md:grid-cols-4" onSubmit={e=>void submit(e,async f=>{const item=items.find(x=>x.id===Number(f.get("itemId")));if(!item?.currentRevision||item.currentRevision.status!=="published")throw new Error("Select an item with a published revision.");return assignDuty({sopItemId:item.id,revisionId:item.currentRevision.id,assigneeUserId:Number(f.get("userId")),displayOrder:Number(f.get("displayOrder")||0),startDate:String(f.get("startDate")),endDate:null});})}><label className="grid gap-1 text-sm">Published item<select name="itemId" required className="h-9 rounded-md border bg-background px-3">{items.filter(x=>x.currentRevision?.status==="published").map(x=><option key={x.id} value={x.id}>{x.code} · {x.title}</option>)}</select></label><label className="grid gap-1 text-sm">Assign to<select name="userId" required className="h-9 rounded-md border bg-background px-3">{users.map(x=><option key={x.id} value={x.id}>{x.name} · {x.email}</option>)}</select></label><Field name="startDate" label="Start date" type="date"/><Field name="displayOrder" label="Display order"/><Button className="self-end" disabled={busy||!users.length}>Assign duty</Button></form></section>
-    <section className="rounded-lg border bg-background p-4"><h2 className="mb-3 text-lg font-semibold">Assignments</h2>{assignments.length?assignments.map(x=><div key={x.id} className="flex items-center justify-between gap-3 border-t py-3"><div><strong>{x.itemTitle}</strong><span className="text-sm text-muted-foreground"> · {x.assigneeName} · {x.startDate} · {x.status}</span></div>{x.status==="active"?<Button variant="outline" onClick={()=>void action(()=>deactivateDuty(x.id))}>Deactivate</Button>:null}</div>):<p className="text-sm text-muted-foreground">No assignments yet.</p>}</section>
-  </div></WorkspacePage>;
+  const client = useQueryClient();
+  const query = useQuery({ queryKey, queryFn: listSops, refetchInterval: 15000 });
+  const [editing, setEditing] = useState<Sop | null | undefined>();
+  const [selected, setSelected] = useState<Sop | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(20);
+  const [visible, setVisible] = useState<Record<string, boolean>>({});
+  const [inlineFilters, setInlineFilters] = useState(false);
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const save = useMutation({
+    mutationFn: (input: { code: string; title: string; purpose: string }) =>
+      editing ? updateSop(editing.id, input) : createSop(input),
+    onSuccess: async (record) => {
+      await client.invalidateQueries({ queryKey });
+      setEditing(undefined);
+      setSelected(record);
+      toast.success("SOP saved");
+    }
+  });
+  const toggle = useMutation({
+    mutationFn: (sop: Sop) => setSopActive(sop.id, sop.status !== "active"),
+    onSuccess: () => client.invalidateQueries({ queryKey }),
+    onError: (error) => toast.error(error.message)
+  });
+  const all = query.data ?? [];
+  const filtered = all.filter(
+    (sop) =>
+      (status === "all" || sop.status === status) &&
+      [sop.code, sop.title, sop.purpose].some((value) =>
+        value.toLowerCase().includes(search.trim().toLowerCase())
+      ) &&
+      Object.entries(columnFilters).every(([key, value]) =>
+        String(sop[key as keyof Sop] ?? "")
+          .toLowerCase()
+          .includes(value.trim().toLowerCase())
+      )
+  );
+  const pages = Math.max(1, Math.ceil(filtered.length / size));
+  useEffect(() => {
+    if (page > pages) setPage(pages);
+  }, [page, pages]);
+  const current = selected ? (all.find((sop) => sop.id === selected.id) ?? selected) : null;
+  if (editing !== undefined)
+    return (
+      <>
+        <SopForm
+          key={editing?.id ?? "new"}
+          record={editing}
+          saving={save.isPending}
+          error={save.error?.message ?? ""}
+          onSave={(input) => save.mutate(input)}
+          onCancel={() => setConfirmLeave(true)}
+        />
+        <AlertDialog open={confirmLeave} onOpenChange={setConfirmLeave}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Keep or discard changes?</AlertDialogTitle>
+              <AlertDialogDescription>Your changes have not been saved.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep editing</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setEditing(undefined);
+                  save.reset();
+                }}
+              >
+                Discard changes
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  if (current)
+    return (
+      <WorkspacePage title="" technicalName="page.crm.sops.show">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button variant="outline" onClick={() => setSelected(null)}>
+            <ArrowLeft className="size-4" />
+            All SOPs
+          </Button>
+          <Button
+            onClick={() => {
+              save.reset();
+              setEditing(current);
+            }}
+          >
+            Edit SOP
+          </Button>
+        </div>
+        <div className="space-y-2 py-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-semibold">{current.title}</h1>
+            <SopStatusBadge status={current.status} />
+          </div>
+          <p className="text-sm text-muted-foreground">{current.code}</p>
+          <p className="whitespace-pre-wrap text-sm">{current.purpose}</p>
+        </div>
+        <SopDetails key={current.id} sop={current} />
+      </WorkspacePage>
+    );
+  return (
+    <WorkspacePage
+      title="SOPs"
+      variant="list"
+      technicalName="page.crm.sops"
+      actions={
+        <Button
+          onClick={() => {
+            save.reset();
+            setEditing(null);
+          }}
+        >
+          <Plus className="size-4" />
+          New SOP
+        </Button>
+      }
+    >
+      <WorkspaceFilters
+        searchValue={search}
+        searchPlaceholder="Search code, SOP name, or purpose"
+        onSearchValueChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        filterValue={status}
+        onFilterValueChange={(value) => {
+          setStatus(value);
+          setPage(1);
+        }}
+        filterOptions={[
+          { id: "all", label: "All SOPs", count: all.length },
+          {
+            id: "active",
+            label: "Active",
+            count: all.filter((sop) => sop.status === "active").length
+          },
+          {
+            id: "inactive",
+            label: "Inactive",
+            count: all.filter((sop) => sop.status === "inactive").length
+          }
+        ]}
+        columnOptions={sopColumns.map((column) => ({
+          ...column,
+          checked: visible[column.id] !== false,
+          onCheckedChange: (checked: boolean) => {
+            setVisible({ ...visible, [column.id]: checked });
+            if (!checked) setColumnFilters((current) => ({ ...current, [column.id]: "" }));
+          }
+        }))}
+        onShowAllColumns={() => setVisible({})}
+        toolbarAction={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Refresh SOPs"
+              disabled={query.isFetching}
+              onClick={() => void query.refetch()}
+            >
+              <RefreshCw className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Toggle column search filters"
+              aria-pressed={inlineFilters}
+              onClick={() => setInlineFilters(!inlineFilters)}
+            >
+              <SlidersHorizontal className="size-4" />
+            </Button>
+          </>
+        }
+      />
+      {query.error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {query.error.message}
+        </p>
+      ) : null}
+      <SopList
+        items={filtered.slice((page - 1) * size, page * size)}
+        loading={query.isLoading}
+        visible={visible}
+        inlineFilters={inlineFilters}
+        columnFilters={columnFilters}
+        onFilter={(column, value) => {
+          setColumnFilters({ ...columnFilters, [column]: value });
+          setPage(1);
+        }}
+        onOpen={setSelected}
+        onEdit={(sop) => {
+          save.reset();
+          setEditing(sop);
+        }}
+        onToggle={(sop) => toggle.mutate(sop)}
+      />
+      <WorkspacePagination
+        page={page}
+        rowsPerPage={size}
+        totalCount={filtered.length}
+        totalPages={pages}
+        singularLabel="SOP"
+        showingLabel={buildShowingLabel(page, size, filtered.length)}
+        onPageChange={setPage}
+        onNextPage={() => setPage(Math.min(pages, page + 1))}
+        onPreviousPage={() => setPage(Math.max(1, page - 1))}
+        onRowsPerPageChange={(value) => {
+          setSize(value);
+          setPage(1);
+        }}
+      />
+    </WorkspacePage>
+  );
 }
-function Field({name,label,type="text",defaultValue}:{name:string;label:string;type?:string;defaultValue?:string}){return <label className="grid gap-1 text-sm"><Label htmlFor={`sop-${name}`}>{label}</Label><Input id={`sop-${name}`} name={name} type={type} defaultValue={defaultValue} required={!/purpose|department|evidence|sort|order/i.test(name)}/></label>}

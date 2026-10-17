@@ -358,3 +358,70 @@ write requires confirmation and leaves an audit record.
 
 **Exit check:** All release gates in PLAN.md pass with evidence. Report database,
 browser, mobile, and end-to-end results separately.
+
+## Enquiry contact and closure tab, 17-10-2026
+
+- [x] Refresh enquiry contact lookups after CRM contact changes and link the saved customer from enquiry details.
+- [x] Add Verify and close and Reject to Closure approvals using server-provided reviewer capability.
+- [x] Refresh enquiry status, comments, and activity after review.
+- [x] Verify approval, rejection, denied review, and linked contact in a disposable database.
+      Evidence: `npm run test:e2e:crm-closure`. Browser check showed both review actions on a pending enquiry.
+      No existing closure decision was changed during the browser check.
+
+## Closure navigation and badge, 17-10-2026
+
+- [x] Remove the separate Closure Approvals navigation entries.
+- [x] Show orange pending closure badges in enquiry list, details, and closure card.
+- [x] Refresh pending status every 15 seconds for requests sent from mobile or web.
+- [x] Verify pending flags appear for both request origins and clear after approve or reject.
+      Evidence: `test:e2e:crm-closure` uses a disposable database and server-authoritative request status.
+
+## Android-to-web closure verification, 17-10-2026
+
+- [x] Build and install CRM 1.1.3 on Android emulator TechMedia_API_36.
+- [x] On test enquiry #3, tap Android Add action > Mark completed, then verify the orange badge on web.
+- [x] Click web Verify and close and verify Closed on both web and Android without reopening the detail screen.
+- [x] On test enquiry #4, submit from Android and verify the orange badge on web.
+- [x] Reject on web with a note and verify the badge clears, Android shows the note, and both screens retain New.
+- [x] Verify Android offers Mark completed again after rejection.
+- [x] Fix mobile detail refresh while a closure is pending and when the app resumes.
+      Evidence: 24 Flutter widget tests passed, including both automatic refresh outcomes. Flutter analysis reported no issues.
+      The closure API/database E2E passed. Final live reads returned #3 closed/approved and #4 new/rejected.
+      Test records have CODEXSUN E2E titles and remain available for review. Existing enquiries #1 and #2 were not changed.
+      Local screenshots: `dist/.tmp/codexsun-approval-pending.png`, `codexsun-mobile-approved.png`, and `codexsun-mobile-rejected.png`.
+      Verification used the local Platform API and Android emulator, not a physical device or production deployment.
+
+## Optional task contact, 17-10-2026
+
+- [x] Add optional mobile and customer fields below Task details, using the enquiry contact lookup.
+- [x] Persist the Core contact ID and resolve new customers within the task save transaction.
+- [x] Preserve omitted contact fields for older clients and support explicit clearing.
+- [x] Add a versioned nullable foreign key without changing applied migrations or existing task data.
+- [x] Verify API/database create, reload, update, clear, invalid and inactive references, and denied writes.
+      Evidence: `test:e2e:crm-task-contact` and 90 CRM/Frappe unit tests passed.
+      Local migration applied and rerun on the configured tenant. Browser task #1 verified selection, save/reload, clearing, and inline creation.
+      The task links to the newly created test contact #121. No existing tasks were changed.
+
+## Existing record panel verification - 17-10-2026
+
+- [x] Give task creation its own recent-record query, independent of list filters and pagination.
+- [x] Refresh both panels every 15 seconds and allow manual retry.
+- [x] Hide enquiry matches immediately when the mobile changes; include closed matches in See more.
+- [x] Check local API and browser counts against four saved enquiries and the one saved task.
+      Empty mobile history, exact task navigation, and matching all-status enquiry list were checked.
+      CRM web typecheck, lint, two web unit tests, and CRM module boundaries passed.
+      Task record navigation also preserves the draft when Keep editing is selected.
+      Platform web typecheck, lint, and boundaries passed.
+      These checks apply to local development, not deployment.
+
+## SOP workspace refinement - 17-10-2026
+
+- [x] Replace the combined creation page with a shared list, search, status filters,
+      inline column search, column visibility, pagination, and row actions.
+- [x] Add a minimal name/code/purpose upsert with unsaved-change confirmation.
+- [x] Scope item and assignment management to the selected SOP and show lifecycle badges.
+- [x] Fix item editor field names and capture the form before awaiting a save.
+- [x] Local browser: create and edit E2E-SOP-UI-1710, preserve draft on Cancel,
+      create and edit BILL-DELIVERY, verify search empty state and Inactive filter.
+      CRM web typecheck, lint, module boundaries, component docs, and seven Frappe mapping tests passed.
+      Browser publication/assignment and a fresh live Frappe transfer were not tested in this UI pass.

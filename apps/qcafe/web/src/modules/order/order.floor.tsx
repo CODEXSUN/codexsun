@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Armchair, UtensilsCrossed, RotateCcw } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import { OrderRunning } from "./order.running";
+import { OrderBadge } from "./order.badge";
 import { kitchenProgress } from "./order.kitchen";
 import type { CafeOrder, TableOption, OccupiedSeat, KitchenTicket } from "./order.types";
 import "./order.floor.css";
@@ -16,7 +17,9 @@ export function OrderFloor({
   canSend,
   onSelect,
   onSend,
-  onTicket
+  onTicket,
+  floorBills,
+  onBill
 }: {
   tables: TableOption[];
   orders: CafeOrder[];
@@ -28,6 +31,8 @@ export function OrderFloor({
   onSelect: (order: CafeOrder) => void;
   onSend: (order: CafeOrder) => Promise<unknown>;
   onTicket: (order: CafeOrder, ticket: KitchenTicket) => void;
+  floorBills: import("./order.types").FloorBill[];
+  onBill: (uuid: string) => void;
 }) {
   const [filter, setFilter] = useState("all");
   const [selection, setSelection] = useState<{
@@ -201,6 +206,36 @@ export function OrderFloor({
                       {seats.slice(Math.ceil(seats.length / 2)).map(chair)}
                     </div>
                   </div>
+                  {(!!tableOrders.length ||
+                    floorBills.some((bill) => bill.tableUuid === table.uuid)) && (
+                    <div
+                      className="qcafe-floor-order-badges"
+                      aria-label={`${table.name} running orders`}
+                    >
+                      {tableOrders.map((order) => (
+                        <button
+                          key={order.uuid}
+                          disabled={locked}
+                          aria-label={`Open ${order.name} on ${table.name}`}
+                          onClick={() => onSelect(order)}
+                        >
+                          <OrderBadge order={order} />
+                        </button>
+                      ))}
+                      {floorBills
+                        .filter((bill) => bill.tableUuid === table.uuid)
+                        .map((bill) => (
+                          <button
+                            key={bill.uuid}
+                            disabled={locked}
+                            aria-label={`Open bill for ${bill.name} on ${table.name}`}
+                            onClick={() => onBill(bill.billUuid)}
+                          >
+                            <OrderBadge order={bill} />
+                          </button>
+                        ))}
+                    </div>
+                  )}
                 </article>
               );
             })}

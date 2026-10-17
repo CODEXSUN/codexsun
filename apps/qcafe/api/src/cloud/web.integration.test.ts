@@ -1,3 +1,4 @@
+import { verifyKitchenDelivery } from "./kitchen.integration.js";
 import { verifySettingsAndDemo } from "./settings-demo.integration.js";
 import { verifySpecialPricing } from "./special.integration.js";
 import { verifyBookings } from "./booking.integration.js";
@@ -55,6 +56,7 @@ test("MariaDB POS isolates tenants, persists bills, and deduplicates settlement 
       await migrateQCafeWeb(database);
     }
     registerQCafeWeb(app, {
+      printKitchenToken: async () => "test-spooler",
       masterImageDirectory: (tenantId) => join(imagesRoot, tenantId, "apps", "qcafe", "master"),
       async resolveContext(request) {
         const token = request.headers.authorization;
@@ -501,6 +503,7 @@ test("MariaDB POS isolates tenants, persists bills, and deduplicates settlement 
     } finally {
       await reopened.destroy();
     }
+    await verifyKitchenDelivery(send, parcelMenu.body.data.uuid);
   } finally {
     await app.close();
     await Promise.all(databases.map((database) => database.destroy()));

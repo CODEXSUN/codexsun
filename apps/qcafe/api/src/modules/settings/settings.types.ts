@@ -1,4 +1,5 @@
 export type CafePreferences = {
+  kotPrinterTarget: string;
   restaurantName: string;
   branchName: string;
   contactNumber: string;
@@ -23,6 +24,7 @@ export type CafePreferences = {
 export type CafeSettings = CafePreferences & { revision: number };
 export const defaultCafeSettings: CafeSettings = {
   revision: 0,
+  kotPrinterTarget: "system-default",
   restaurantName: "",
   branchName: "",
   contactNumber: "",

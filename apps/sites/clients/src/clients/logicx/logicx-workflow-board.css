@@ -1,0 +1,38 @@
+.lx-flow-board { width: 100%; border: 1px solid #ffffff; border-radius: 20px; background: #ffffff99; overflow: hidden; color: #263744; }
+.lx-flow-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #20384c0a; }
+.lx-flow-toolbar > span { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #65717a; }
+.lx-flow-toolbar button { width: 32px; height: 32px; border: 1px solid #20384c16; border-radius: 50%; display: grid; place-items: center; background: #fff; color: var(--story-accent); cursor: pointer; }
+.lx-flow-canvas { position: relative; background-image: radial-gradient(#253d5914 .75px, transparent .75px); background-size: 16px 16px; }
+.lx-flow-canvas > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.lx-flow-canvas path { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.lx-flow-track { stroke: #8397a54a; stroke-width: 1.5; }
+.lx-flow-beam { stroke-width: 3; stroke-dasharray: .16 .84; stroke-dashoffset: 1; filter: drop-shadow(0 0 5px #9d91ff); animation: lx-flow-travel var(--beam-duration, 3.6s) linear infinite; animation-delay: var(--beam-delay); animation-play-state: paused; }
+.lx-flow-running .lx-flow-beam { animation-play-state: running; }
+.lx-flow-canvas ol { padding: 0; margin: 0; list-style: none; }
+.lx-flow-canvas li { position: absolute; transform: translate(-50%, -27px); width: 43%; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.lx-flow-node { width: 54px; height: 54px; border: 1px solid color-mix(in srgb, var(--story-accent) 25%, white); border-radius: 16px; background: white; color: var(--story-accent); display: grid; place-items: center; box-shadow: 0 6px 18px #243d5308; position: relative; transition: box-shadow .3s, transform .3s; }
+.lx-flow-node > span { position: absolute; top: -7px; right: -8px; font-size: 9px; line-height: 20px; min-width: 20px; border-radius: 50%; background: var(--story-accent); color: white; }
+.lx-flow-label { font-size: 13px; line-height: 1.4; max-width: 180px; color: #37434b; }
+.logicx-studio .lx-flow-caption { text-align: center; font-size: 11px; color: #727f87; padding: 0 16px 14px; }
+@keyframes lx-flow-travel { to { stroke-dashoffset: -1; } }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) { .lx-flow-canvas li:hover .lx-flow-node { transform: translateY(-3px); box-shadow: 0 8px 22px #243d5318; } }
+@media (prefers-reduced-motion: reduce) { .lx-flow-beam { animation: none; stroke-dasharray: none; stroke-width: 1.5; opacity: .4; filter: none; } .lx-flow-toolbar button { display: none; } .lx-flow-node { transition: none; } }
+@media (max-width: 500px) { .lx-flow-toolbar { padding: 12px; } .lx-flow-label { font-size: 12px; } }
+
+.lx-flow-neon { border-color: #28364a; background: #0e1827; box-shadow: inset 0 1px #ffffff0b; }
+.lx-flow-neon .lx-flow-toolbar { border-color: #ffffff0d; }
+.lx-flow-neon .lx-flow-toolbar > span { color: #aabbd0; }
+.lx-flow-neon .lx-flow-toolbar button { border-color: #40516b; background: #192638; color: #c8d9f1; }
+.lx-flow-neon .lx-flow-canvas { background-image: radial-gradient(#829fc92b .75px, transparent .75px); }
+.lx-flow-neon .lx-flow-track { stroke: #59708a65; }
+.lx-flow-neon .lx-flow-node { background: #142238; border-color: color-mix(in srgb, var(--node-neon) 55%, #142238); color: var(--node-neon); box-shadow: 0 0 18px color-mix(in srgb, var(--node-neon) 18%, transparent), inset 0 0 12px color-mix(in srgb, var(--node-neon) 6%, transparent); }
+.lx-flow-neon .lx-flow-node > span { background: #17283e; border: 1px solid var(--node-neon); color: var(--node-neon); }
+.lx-flow-neon .lx-flow-label { color: #c8d4e4; }
+.logicx-studio .lx-flow-neon .lx-flow-caption { color: #8ea3bc; }
+.lx-flow-pattern-1 .lx-flow-node { border-radius: 50%; }
+.lx-flow-pattern-2 .lx-flow-node { border-radius: 12px 24px; }
+.lx-flow-pattern-3 .lx-flow-node { border-radius: 20px 8px; }
+@media (prefers-reduced-motion: reduce) { .lx-flow-neon .lx-flow-beam { filter: none; opacity: .65; } }
+
+.lx-flow-board { position: relative; }
+.lx-flow-board .lx-flow-toolbar { position: absolute; top: 10px; right: 10px; z-index: 2; padding: 0; border: 0; }

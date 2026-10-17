@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Clock3, HardHat, PenLine, Phone } from "lucide-react";
+import { ArrowRight, Clock3, HardHat, PenLine, Phone, RefreshCw } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import { Card } from "@codexsun/ui/components/card";
 import { formatDate } from "@codexsun/ui/workspace";
@@ -37,7 +37,7 @@ export function EnquiryMobileContext({
       350
     );
     return () => window.clearTimeout(timer);
-  }, [key]);
+  }, [key, mobile]);
 
   useEffect(() => {
     if (key.length !== 10 || mobile !== key) return;
@@ -66,8 +66,11 @@ export function EnquiryMobileContext({
         ...(contactId ? { contactId } : {}),
         filter: "all"
       }),
-    enabled: search.length === 10
+    enabled: mobile === key && key.length === 10 && search === key,
+    refetchInterval: 15000
   });
+  const validMobile = mobile === key && key.length === 10;
+  const currentSearch = validMobile && search === key;
   const matches = enquiries.data?.items ?? [];
 
   return (
@@ -75,21 +78,34 @@ export function EnquiryMobileContext({
       <Card className="rounded-md shadow-sm">
         <div className="flex items-center justify-between border-b px-4 py-3 text-sm font-semibold">
           <span>Existing enquiries</span>
-          {enquiries.data && search === key && enquiries.data.total > 0 ? (
+          {enquiries.data && currentSearch && enquiries.data.total > 0 ? (
             <span className="text-xs font-normal text-muted-foreground">
               {enquiries.data.total} found
             </span>
           ) : null}
         </div>
+        {currentSearch ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="mx-3 mt-2"
+            disabled={enquiries.isFetching}
+            onClick={() => void enquiries.refetch()}
+            aria-label="Refresh existing enquiries"
+          >
+            <RefreshCw className="mr-2 size-3.5" /> Refresh
+          </Button>
+        ) : null}
         <div className="space-y-2 px-4 py-2">
-          {search.length !== 10 ? (
+          {!validMobile ? (
             <ContextMessage>
               Enter a 10-digit mobile number to see matching enquiries.
             </ContextMessage>
-          ) : enquiries.isPending || search !== key ? (
+          ) : enquiries.isPending || !currentSearch ? (
             <ContextMessage>Searching enquiries...</ContextMessage>
           ) : enquiries.isError ? (
-            <ContextMessage>Unable to load matching enquiries.</ContextMessage>
+            <ContextMessage>Unable to load matching enquiries. Try Refresh.</ContextMessage>
           ) : matches.length === 0 ? (
             <ContextMessage>No existing enquiries for this mobile number.</ContextMessage>
           ) : (
@@ -103,7 +119,7 @@ export function EnquiryMobileContext({
             ))
           )}
         </div>
-        {onSeeMoreEnquiries && enquiries.data && search === key && enquiries.data.total > 0 ? (
+        {onSeeMoreEnquiries && enquiries.data && currentSearch && enquiries.data.total > 0 ? (
           <div className="border-t px-4 py-2">
             <Button
               type="button"
@@ -170,7 +186,7 @@ function EnquiryContextRow({
   users: EnquiryLookup[];
   onOpen?: (() => void) | undefined;
 }) {
-  const assignedTo = users.find((user) => user.id === item.assignedUserId)?.name;
+  const assignedTo = users.find((user) => String(user.id) === String(item.assignedUserId))?.name;
   const creator =
     users.find((user) => user.email?.toLowerCase() === item.createdBy.toLowerCase())?.name ??
     item.createdBy;
@@ -207,7 +223,13 @@ function EnquiryContextRow({
           <HardHat className="size-3.5" aria-hidden="true" />
           {assignedTo ?? "—"}
         </span>
-        <CrmStatusBadge code={item.status} label={item.statusName} />
+        {item.closurePending ? (
+          <span className="rounded-full border border-orange-300 bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-900">
+            Closure pending
+          </span>
+        ) : (
+          <CrmStatusBadge code={item.status} label={item.statusName} />
+        )}
       </div>
     </button>
   );

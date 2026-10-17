@@ -46,7 +46,7 @@ export function LogicxHero({ content }: { content: PageContent }) {
   const design = content.marketing ?? initialLogicxMarketing;
   const slides = [
     { eyebrow: content.hero.eyebrow, title: content.hero.title, secondLine: content.hero.secondLine, emphasis: content.hero.emphasis, intro: content.hero.intro },
-    ...content.finishes.items.slice(0, 2).map((service) => ({ eyebrow: design.services.label, title: service.name, secondLine: "", emphasis: "Built around your business.", intro: service.detail }))
+    ...content.finishes.items.slice(0, 2).map((service) => ({ eyebrow: design.services.label, title: service.name, secondLine: "", emphasis: "Built to fit.", intro: service.detail }))
   ];
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -127,7 +127,7 @@ export function LogicxHero({ content }: { content: PageContent }) {
                 const logo = technologyLogos[name];
                 return <div className="lx-tech-item" key={name}>
                   {logo ? <img src={`/technologies/${logo}`} alt="" width="72" height="36" /> : null}
-                  <span>{name}</span>
+                  <span className={name === "Frappe" || name === "Python" ? "lx-sr" : undefined}>{name}</span>
                 </div>;
               })}
             </div>)}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CloudApiError } from "../../web/transport";
 import {
   listOrders,
+  orderFloorBills,
   updateOrder,
   orderMenuLookup,
   orderTableLookup,
@@ -25,6 +26,7 @@ export function useOrders(
   const [menu, setMenu] = useState<MenuOption[]>([]);
   const [tables, setTables] = useState<TableOption[]>([]);
   const [occupied, setOccupied] = useState<OccupiedSeat[]>([]);
+  const [floorBills, setFloorBills] = useState<import("./order.types").FloorBill[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -44,20 +46,27 @@ export function useOrders(
     }
   });
   const sending = useRef(false);
+  const additions = useRef<{ uuid: string; menuUuid: string; quantity: number }[]>([]);
+  const adding = useRef(false);
+  const [queued, setQueued] = useState(false);
+  const currentOrders = useRef(orders);
+  currentOrders.current = orders;
   const completed = useRef(onCompleted);
   completed.current = onCompleted;
   async function refresh() {
     try {
-      const [o, m, t, s] = await Promise.all([
+      const [o, m, t, s, b] = await Promise.all([
         listOrders(),
         orderMenuLookup(),
         orderTableLookup(),
-        orderSeatLookup()
+        orderSeatLookup(),
+        orderFloorBills()
       ]);
       setOrders(o);
       setMenu(m);
       setTables(t);
       setOccupied(s);
+      setFloorBills(b);
       setActiveId((current) =>
         o.some((item) => item.uuid === current) ? current : (o[0]?.uuid ?? "")
       );
@@ -115,7 +124,7 @@ export function useOrders(
     patch: Partial<OrderPatch> = {},
     print = false
   ) {
-    if (pending) return null;
+    if (pending && !adding.current) return null;
     const parsed = orderInputSchema.safeParse({
       name: order.name,
       booking: order.booking ?? null,
@@ -158,13 +167,54 @@ export function useOrders(
       }
     });
   }
+  async function drainAdditions(initial: CafeOrder | null = null) {
+    if (adding.current || sending.current || (pending && !initial)) return;
+    adding.current = true;
+    setQueued(true);
+    let saved: CafeOrder | null = initial;
+    try {
+      while (additions.current.length) {
+        const next = additions.current[0]!;
+        const target =
+          saved?.uuid === next.uuid
+            ? saved
+            : currentOrders.current.find((row) => row.uuid === next.uuid);
+        if (!target) {
+          setError("The order is no longer editable. Reload saved orders before adding items.");
+          return;
+        }
+        const lines = target.lines.map((line) => ({
+          menuUuid: line.menuUuid,
+          quantity: line.quantity
+        }));
+        const line = lines.find((row) => row.menuUuid === next.menuUuid);
+        if (line)
+          line.quantity = Math.min(999, Math.round((line.quantity + next.quantity) * 1000) / 1000);
+        else lines.push({ menuUuid: next.menuUuid, quantity: next.quantity });
+        saved = await mutate(target, "save", { lines });
+        if (!saved) return;
+        additions.current.shift();
+      }
+    } finally {
+      adding.current = false;
+      setQueued(additions.current.length > 0);
+    }
+  }
+  function addItem(order: CafeOrder, menuUuid: string, quantity: number) {
+    additions.current.push({ uuid: order.uuid, menuUuid, quantity });
+    void drainAdditions();
+  }
   return {
     orders,
     menu,
     tables,
     occupied,
+    floorBills,
     loaded,
     busy,
+    queued,
+    addItem,
+    retryAdditions: () => drainAdditions(),
     error,
     pending,
     activeId,
@@ -172,6 +222,14 @@ export function useOrders(
     refresh,
     mutate,
     create,
-    retry: () => (pending ? send(pending) : Promise.resolve(null))
+    retry: async () => {
+      if (!pending) return null;
+      const result = await send(pending);
+      if (result && additions.current[0]?.uuid === result.uuid && pending.input.action === "save") {
+        additions.current.shift();
+        await drainAdditions(result);
+      }
+      return result;
+    }
   };
 }

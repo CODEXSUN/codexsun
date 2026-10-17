@@ -258,3 +258,6 @@ The saved visual reference and the full design plan are in `agent`.
 
 LogicX branding uses the supplied vector geometry stored in clients/deploy/logicx-mark.svg. The branding generator creates public light/dark lockups, standalone marks, favicons, app icons, and the social image. The original master is preserved; generated assets use the approved forest green and mint palette.
 
+
+The growth sections use an original generated textile-workshop WebP and the existing generated architectural image as decorative backdrops. Manage their images or hide them through Pages > Design and marketing > Section backdrops. Images stay within the client asset allowlist.
+

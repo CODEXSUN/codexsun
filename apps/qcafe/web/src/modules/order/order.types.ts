@@ -57,4 +57,5 @@ export type TableOption = {
   status: "active" | "inactive";
 };
 export type OccupiedSeat = { tableUuid: string; seat: number; orderUuid: string };
+export type FloorBill = { uuid: string; name: string; tableUuid: string; billUuid: string };
 export type LastBill = { number: string; total: number; status: string };

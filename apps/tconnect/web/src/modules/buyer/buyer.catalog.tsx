@@ -97,7 +97,7 @@ export function BuyerCatalog({ gateway, buyer }: { gateway: TconnectGateway; buy
                     className="h-40 w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-28 items-center justify-center bg-muted/40">
+                  <div className="flex h-40 items-center justify-center bg-muted/40">
                     <Package className="size-10 text-muted-foreground" />
                   </div>
                 )}

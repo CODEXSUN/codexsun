@@ -501,3 +501,30 @@
     padding-left: 51px;
   }
 }
+
+.lx-app-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; }
+.lx-app-card-heading > span { font-size: 12px; color: var(--lx-muted); }
+.lx-app-card-heading > img { object-fit: contain; border-radius: 6px; }
+.logicx-studio .lx-app-summary { font-size: 14px; line-height: 1.6; }
+.lx-app-preview > a > svg { margin-top: auto; }
+
+.logicx-studio :is(.lx-app-preview, .lx-catalog) { gap: 24px; padding-top: 10px; }
+.logicx-studio :is(.lx-app-preview, .lx-catalog) > .lx-application-card {
+  padding: 30px 26px; gap: 20px; min-height: 285px; border: 1px solid #dbe6d8;
+  border-radius: 20px; background: #fafbf8;
+  transition: background .3s, border-color .3s, box-shadow .3s;
+}
+.logicx-studio .lx-application-card:is(:hover, :focus-visible) {
+  background: #edf5e9; border-color: #b6cdb9; box-shadow: 0 12px 26px #103e2510;
+}
+.logicx-studio .lx-application-card :is(h2, h3) { font-size: 24px; line-height: 1.2; letter-spacing: -.035em; }
+.logicx-studio .lx-application-card .lx-app-summary { font-size: 14px; line-height: 1.65; }
+.logicx-studio .lx-application-card .lx-app-card-heading { min-height: 36px; }
+.logicx-studio .lx-application-card .lx-app-card-link { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; margin-top: auto; padding-top: 10px; font-size: 14px; color: var(--lx-green-dark); }
+.lx-app-card-link svg { transition: transform .25s; }
+.lx-application-card:is(:hover, :focus-visible) .lx-app-card-link svg { transform: translate(3px, -3px); }
+@media (max-width: 700px) {
+  .logicx-studio :is(.lx-app-preview, .lx-catalog) { grid-template-columns: 1fr; gap: 18px; }
+  .logicx-studio :is(.lx-app-preview, .lx-catalog) > .lx-application-card { padding: 26px; min-height: 260px; }
+}
+@media (prefers-reduced-motion: reduce) { .lx-application-card, .lx-app-card-link svg { transition: none; } }

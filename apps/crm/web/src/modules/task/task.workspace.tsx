@@ -1,3 +1,5 @@
+import { enquiryContactsQueryKey } from "../enquiry";
+import { contactsQueryKey } from "../contact";
 import { useCallback, useDeferredValue, useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SlidersHorizontal } from "lucide-react";
@@ -68,6 +70,10 @@ export function TaskWorkspace({
     onOpenRecord?.(String(record.id));
   };
   const openTaskFromCreate = (id: string) => {
+    if (initialCreate && onOpenRecord) {
+      onOpenRecord(id);
+      return;
+    }
     setEditing(undefined);
     setShowing(id);
     onOpenRecord?.(id);
@@ -79,7 +85,9 @@ export function TaskWorkspace({
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: taskQueryKey }),
-        client.invalidateQueries({ queryKey: taskOptionsQueryKey })
+        client.invalidateQueries({ queryKey: taskOptionsQueryKey }),
+        client.invalidateQueries({ queryKey: enquiryContactsQueryKey }),
+        client.invalidateQueries({ queryKey: contactsQueryKey })
       ]);
       toast.success(editing ? "Task updated" : "Task created");
       setEditing(undefined);
@@ -115,10 +123,17 @@ export function TaskWorkspace({
       <TaskForm
         record={editing}
         options={options.data}
-        recentTasks={query.data?.items ?? []}
         saving={save.isPending}
         error={save.error?.message ?? ""}
         onOpenTask={openTaskFromCreate}
+        onSeeAll={() => {
+          setSearch("");
+          setFilter("all");
+          setColumnFilters({});
+          setPage(1);
+          if (initialCreate) (onCancelCreate ?? onCloseCreate)?.();
+          else setEditing(undefined);
+        }}
         onCancel={() => {
           setEditing(undefined);
           if (initialCreate) (onCancelCreate ?? onCloseCreate)?.();
@@ -145,7 +160,12 @@ export function TaskWorkspace({
     }))
   ];
   return (
-    <WorkspacePage variant="list" title="" className="pt-0 lg:pt-0" technicalName="page.crm.tasks.list">
+    <WorkspacePage
+      variant="list"
+      title=""
+      className="pt-0 lg:pt-0"
+      technicalName="page.crm.tasks.list"
+    >
       <WorkspaceFilters
         toolbarAction={
           <Button

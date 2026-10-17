@@ -5,9 +5,11 @@ import { LogicxHero, LogicxApproach } from "./LogicxHero";
 import { LogicxServiceCarousel, LogicxServiceRows } from "./LogicxServices";
 import { LogicxGrowth } from "./LogicxGrowth";
 
+import { logicxCollection, LogicxAppCard } from "./logicx-collection";
+
 export function LogicxHome({ content }: { content: PageContent }) {
   const design = content.marketing ?? initialLogicxMarketing;
-  const apps = content.applications ?? [];
+  const apps = logicxCollection(content);
   return (
     <main id="logicx-main">
       <LogicxHero content={content} />
@@ -21,13 +23,7 @@ export function LogicxHome({ content }: { content: PageContent }) {
             <p>{design.applications.intro}</p>
           </div>
           <div className="lx-app-preview">
-            {apps.slice(0, 8).map((app) => (
-              <a href={`/apps/${app.slug}`} key={app.slug}>
-                <span>{app.category}</span>
-                <h3>{app.name}</h3>
-                <ArrowUpRight size={18} />
-              </a>
-            ))}
+            {apps.map((app, index) => <LogicxAppCard app={app} index={index} key={app.slug} />)}
           </div>
           <a className="lx-button" href="/apps">
             {design.applications.button}

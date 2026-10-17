@@ -2,7 +2,7 @@
 
 Repository source: `apps/sites/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `f08febeae17acb6bb8b44d190017024e75ec3da0cda51b1cad46169521fed933`
+Source SHA-256 (LF line endings): `af48b53cfdef4a843b022a5c9a02d6eead8642091a1658e1fdeb30049a68a160`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -251,4 +251,19 @@ Final Studio polish: image and service controls show friendly choices. Browser s
 
 
 2026-10-17: Added 20px desktop service-card gaps, more heading/card padding and section breathing room. Preserved four full cards plus 20 percent preview and boundary controls. Added once-only scroll reveals, hover lift, border/shadow and link-arrow motion with reduced-motion support. Packaged geometry, hover/reveal, responsive and browser-error checks passed; client typecheck and lint passed.
+
+
+2026-10-17: Homepage application collection now shows only CRM, Billing, Accounts, Ecommerce, Q Cafe, HRMS, Chat and Zetro in that order. Cards render saved publication summaries and matching app-registry icons, with the CRM brand asset copied into Sites public assets. Full catalogue remains available through existing links. Client typecheck, lint, deployment build and packaged browser assertions passed for exact list, descriptions, icons, eight detail routes and mobile overflow. Temporary browser-test database cleanup encountered Windows EPERM after assertions completed.
+
+
+2026-10-17: Applications catalogue now shares the exact eight-app collection, ordering, labels and app icons with the homepage. Categories and result counts derive only from those eight apps. Saved CMS descriptions remain the source. Typecheck, lint, deployment build and browser assertions passed for homepage/catalogue parity, count, search, Finance filter, all selected detail links and mobile overflow.
+
+
+2026-10-17: Homepage and Applications now render one shared application-card component with consistent icons, saved descriptions, title sizing and enquiry/detail links. Refined padding, card gaps, equal row heights and mobile layout. Added once-only staggered scroll reveals, hover lift, soft border/shadow and arrow movement with reduced-motion support. Typecheck, lint, deployment build and packaged browser assertions passed for catalogue/home description parity, eight-app order, search/filter, detail routes, reveal/hover and mobile overflow.
+
+
+2026-10-17: Redesigned Software in practice, Built around real operations and A practical way forward. Added four editable workflow stories (textiles, handloom/knitting, CRM and digital/social presence), a navy/copper industry section, and an indigo-accented discovery/delivery/evolution sequence. Spacious responsive typography, pastel diagrams, once-only scroll reveals, hover details and reduced-motion support are implemented. Updated only the six corresponding marketing fields through PageService in the verified local LogicX workspace; saved/published revision 17 and exported publication sequence 12. Other client/profile/application data was preserved. Client/API typecheck and lint, deployment packaging and browser checks passed; CMS tests: 13 passed, one optional MariaDB integration test skipped. Verified desktop/tablet/mobile, 11 panels, enquiry URLs, reveal/hover and no browser errors. Existing manually launched 7131 preview has an unbound Studio public-content route (404); packaged SQLite delivery is verified. No external deployment performed.
+
+
+2026-10-17: Used the supplied images as inspiration only. Added an original generated textile-workshop photo, optimized to a 92 KB WebP, plus soft architectural backdrops on the existing three growth sections. Text remains HTML over masked decorative imagery; existing layouts and animations are preserved. Added allowlisted optional backdrop fields and Studio image/hide controls. Saved/published only these three fields in local LogicX revision 18,
 ```

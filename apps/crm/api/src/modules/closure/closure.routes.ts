@@ -137,7 +137,7 @@ export function registerClosureRoutes(
     url: "/crm/enquiries/:id/closure-requests/latest",
     schemas: {
       params: z.object({ id: reference }),
-      response: z.object({ item: rowSchema.nullable() })
+      response: z.object({ item: rowSchema.nullable(), canReview: z.boolean() })
     },
     handler: async ({ params, request }) => {
       const scope = await context(request);
@@ -161,7 +161,10 @@ export function registerClosureRoutes(
         .orderBy("requested_at", "desc")
         .limit(1)
         .executeTakeFirst();
-      return { item: latest ? await loadRequest(scope.database, latest.id) : null };
+      return {
+        item: latest ? await loadRequest(scope.database, latest.id) : null,
+        canReview: scope.canReview
+      };
     }
   });
 

@@ -1,4 +1,4 @@
-import type { ColumnType, Generated, Kysely } from "kysely";
+import type { ColumnType, Generated, Kysely, Transaction } from "kysely";
 
 export type TaskColumnFilters = {
   title: string;
@@ -15,6 +15,7 @@ export type CrmTaskRow = {
   uuid: Generated<string>;
   title: string;
   description: string;
+  contact_id: number | null;
   list_in_id: number | null;
   priority_id: number;
   status_id: number;
@@ -73,6 +74,7 @@ export type CrmTaskActivityRow = {
   updated_at: ColumnType<string, string | undefined, string>;
 };
 export type TaskDatabase = {
+  core_contacts: { id: number; name: string; primary_phone: string | null };
   crm_tasks: CrmTaskRow;
   crm_task_comments: CrmTaskCommentRow;
   crm_task_jobs: CrmTaskJobRow;
@@ -101,8 +103,15 @@ export type TaskContext = {
   actorUserId: number | null;
   canViewAll: boolean;
   authorize: (permission: string) => Promise<void>;
+  resolveContact?: (
+    input: Pick<TaskInput, "contactId" | "capturedName" | "capturedPhone">,
+    transaction: Transaction<TaskDatabase>
+  ) => Promise<number | null | undefined>;
 };
 export type TaskRecord = {
+  contactId: number | null;
+  contactName: string | null;
+  contactPhone: string | null;
   id: number;
   uuid: string;
   title: string;
@@ -125,6 +134,9 @@ export type TaskRecord = {
   closurePending: boolean;
 };
 export type TaskInput = {
+  contactId?: number | null | undefined;
+  capturedName?: string | null | undefined;
+  capturedPhone?: string | null | undefined;
   title: string;
   description: string;
   listInId: number | null;

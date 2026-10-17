@@ -1,4 +1,6 @@
 import { cloudRequest } from "../../web/transport";
+import type { FloorBill } from "./order.types";
+export const orderFloorBills = () => cloudRequest<FloorBill[]>("/api/app/qcafe/orders/floor-bills");
 import type { CafeOrder, OrderInput, MenuOption, TableOption, OccupiedSeat } from "./order.types";
 export const listOrders = () => cloudRequest<CafeOrder[]>("/api/app/qcafe/orders");
 export const updateOrder = (uuid: string, input: OrderInput) =>

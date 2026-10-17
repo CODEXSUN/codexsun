@@ -47,3 +47,34 @@ export async function migrateOrderBookings(database: Kysely<QCafeDatabase>) {
     )
     .execute(database);
 }
+
+export async function migrateKitchenFlow(db: Kysely<QCafeDatabase>) {
+  await sql
+    .raw(
+      "ALTER TABLE qcafe_order_tickets ADD COLUMN IF NOT EXISTS preparation_status VARCHAR(16) NOT NULL DEFAULT 'delivered', ADD COLUMN IF NOT EXISTS waiter_uuid CHAR(8) NULL, ADD COLUMN IF NOT EXISTS confirmed_by VARCHAR(191) NULL, ADD COLUMN IF NOT EXISTS confirmed_at DATETIME NULL"
+    )
+    .execute(db);
+  await sql
+    .raw("ALTER TABLE qcafe_order_tickets ALTER COLUMN preparation_status SET DEFAULT 'queued'")
+    .execute(db);
+  await sql
+    .raw(
+      `CREATE TABLE IF NOT EXISTS qcafe_order_delivery_activity (
+ id INT AUTO_INCREMENT PRIMARY KEY, ticket_uuid CHAR(8) NOT NULL, action VARCHAR(16) NOT NULL,
+ actor VARCHAR(191) NOT NULL, waiter_uuid CHAR(8) NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(ticket_uuid) REFERENCES qcafe_order_tickets(uuid), FOREIGN KEY(waiter_uuid) REFERENCES qcafe_waiter(uuid)
+ ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+    )
+    .execute(db);
+}
+
+export async function migrateKitchenPrinting(db: Kysely<QCafeDatabase>) {
+  await sql
+    .raw(
+      "ALTER TABLE qcafe_order_tickets ADD COLUMN IF NOT EXISTS print_status VARCHAR(16) NOT NULL DEFAULT 'legacy', ADD COLUMN IF NOT EXISTS print_target VARCHAR(200) NOT NULL DEFAULT '', ADD COLUMN IF NOT EXISTS print_error VARCHAR(500) NOT NULL DEFAULT ''"
+    )
+    .execute(db);
+  await sql
+    .raw("ALTER TABLE qcafe_order_tickets ALTER COLUMN print_status SET DEFAULT 'pending'")
+    .execute(db);
+}

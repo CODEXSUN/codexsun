@@ -1,5 +1,6 @@
 import {
   Store,
+  Users,
   Sliders,
   Receipt,
   Printer,
@@ -10,6 +11,7 @@ import {
   Server
 } from "lucide-react";
 const sections = [
+  { id: "waiters", label: "Waiter registration", icon: Users },
   { id: "general", label: "General & Profile", icon: Store },
   { id: "features", label: "Features & Toggles", icon: Sliders },
   { id: "pos", label: "POS & Billing", icon: Receipt },

@@ -199,7 +199,7 @@ export function MemberRegistration({
               />
               <label className="tc-consent">
                 <input name="consent" type="checkbox" required />I agree to create a business
-                account and share my published company information on TConnect.
+                account and share my published company information on Tirupur Connect.
               </label>
               <button className="tc-button" disabled={busy || !corporateId}>
                 {busy ? "Creating your account…" : "Create your workspace"}

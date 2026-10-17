@@ -16,6 +16,7 @@ import { OrderAssignment } from "./order.assignment";
 import { OrderKitchenFlow } from "./order.kitchen";
 import { OrderParcelFlow } from "./order.parcel";
 import { OrderFloor } from "./order.floor";
+import { OrderFloorEntry } from "./order.floor-entry";
 import { BookingDetailsForm } from "./order.booking-form";
 import { OrderBookingFlow } from "./order.booking-flow";
 import { KitchenPrint } from "./order.print";
@@ -74,7 +75,8 @@ export function OrderWorkspace({
     }
     if (action === "kitchen" || action === "cancel") {
       const ticket = order.tickets.at(-1);
-      if (ticket) setPrintTicket({ order, ticket });
+      if (ticket && (action === "cancel" || order.mode !== "KOT"))
+        setPrintTicket({ order, ticket });
       setNotice(action === "cancel" ? "Order cancelled. Seats released." : "Kitchen ticket saved.");
     }
   });
@@ -137,7 +139,7 @@ export function OrderWorkspace({
     });
   }
 
-  const locked = preferencesLoading || data.busy || !!data.pending || !canCreate;
+  const locked = preferencesLoading || data.busy || data.queued || !!data.pending || !canCreate;
   async function saveBooking(details: BookingDetails) {
     if (locked || !bookingEditor) return;
     const result = bookingEditor.order
@@ -170,6 +172,30 @@ export function OrderWorkspace({
       return null;
     }
     return data.mutate(target, "kitchen", {}, true);
+  }
+  async function addFloorItem(tableUuid: string, seat: number, menuUuid: string, quantity: number) {
+    if (locked) return false;
+    const claim = data.occupied.find((row) => row.tableUuid === tableUuid && row.seat === seat);
+    const existing = claim && data.orders.find((row) => row.uuid === claim.orderUuid);
+    if (claim && !existing) {
+      setNotice("This chair awaits payment. Open its bill from Recent bills.");
+      return false;
+    }
+    if (!existing)
+      return !!(await data.create({
+        mode: "KOT",
+        tableUuid,
+        seats: [seat],
+        lines: [{ menuUuid, quantity }]
+      }));
+    const lines = existing.lines.map((line) => ({
+      menuUuid: line.menuUuid,
+      quantity: line.quantity
+    }));
+    const line = lines.find((row) => row.menuUuid === menuUuid);
+    if (line) line.quantity += quantity;
+    else lines.push({ menuUuid, quantity });
+    return !!(await data.mutate(existing, "save", { lines }));
   }
   async function bill(print: boolean) {
     if (preparationFlow && print) return kitchen();
@@ -210,7 +236,12 @@ export function OrderWorkspace({
   });
 
   return (
-    <div ref={root} className="qcafe-orders-workspace" data-page-theme={serviceMode}>
+    <div
+      ref={root}
+      className="qcafe-orders-workspace"
+      data-page-theme={serviceMode}
+      data-saving={data.busy || data.queued}
+    >
       <header className="qcafe-pos-toolbar">
         <span className="qcafe-page-mode">
           {serviceMode === "BOOKING"
@@ -236,7 +267,7 @@ export function OrderWorkspace({
             <OrderTabs
               orders={visibleOrders}
               activeId={order?.uuid ?? ""}
-              disabled={data.busy || !!data.pending}
+              disabled={data.busy || data.queued || !!data.pending}
               onSelect={selectOrder}
               onClose={setClosing}
             />
@@ -253,7 +284,7 @@ export function OrderWorkspace({
             onClick={() => void bill(true)}
           >
             <Printer size={13} />
-            Save & print <kbd>F8</kbd>
+            {serviceMode === "KOT" ? "Send to kitchen" : "Save & print"} <kbd>F8</kbd>
           </button>
         </div>
       </header>
@@ -270,11 +301,19 @@ export function OrderWorkspace({
           </Button>
         </div>
       )}
+      {data.queued && !data.busy && !data.pending && (
+        <div className="qcafe-order-message" role="status">
+          Item additions are waiting to save.
+          <Button onClick={() => void data.retryAdditions()}>Retry item additions</Button>
+        </div>
+      )}
       {!data.loaded ? (
         <p className="p-6">Loading saved orders…</p>
       ) : serviceMode === "KOT" && !kotItems ? (
         <OrderFloor
           tables={data.tables}
+          floorBills={data.floorBills}
+          onBill={(uuid) => void onBillSaved(uuid, false)}
           orders={data.orders}
           occupied={data.occupied}
           locked={locked}
@@ -292,8 +331,9 @@ export function OrderWorkspace({
           menu={data.menu}
           search={search}
           preferences={preferences}
-          busy={data.busy}
-          disabled={!!data.pending || !canCreate}
+          busy={data.busy || data.queued}
+          disabled={(!!data.pending && !data.busy) || (data.busy && !data.queued) || !canCreate}
+          onAdd={(menuUuid, quantity) => data.addItem(order, menuUuid, quantity)}
           onChange={(lines) => void data.mutate(order, "save", { lines })}
           onAssign={() => {
             if (serviceMode === "KOT") {
@@ -370,6 +410,23 @@ export function OrderWorkspace({
             Recent bills
           </Button>
         </div>
+      )}
+      {serviceMode === "KOT" && !kotItems && data.loaded && (
+        <>
+          {notice && (
+            <p role="status" className="qcafe-order-message">
+              {notice}
+            </p>
+          )}
+          <OrderFloorEntry
+            tables={data.tables}
+            menu={data.menu}
+            locked={locked}
+            lastBill={lastBill}
+            onHistory={onHistory}
+            onAdd={addFloorItem}
+          />
+        </>
       )}
       <Dialog
         open={serviceMode === "BOOKING" && !!bookingEditor}

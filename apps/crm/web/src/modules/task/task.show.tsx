@@ -368,6 +368,18 @@ export function TaskShow({
           </div>
           <WorkspaceStatusBadge status={row.status} label={row.statusName} />
         </div>
+        {row.contactId ? (
+          <p className="mt-3 text-sm">
+            Contact:{" "}
+            <a
+              className="font-medium text-primary hover:underline"
+              href={`/app/crm/contacts/${row.contactId}/show`}
+            >
+              {row.contactName ?? "Open contact"}
+            </a>
+            {row.contactPhone ? ` - ${row.contactPhone}` : ""}
+          </p>
+        ) : null}
         {row.description ? (
           <p className="mt-4 whitespace-pre-wrap text-sm">{row.description}</p>
         ) : null}

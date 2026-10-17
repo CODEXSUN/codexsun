@@ -63,6 +63,7 @@ export const useEnquiryPage = (options: {
       options.filter,
       options.reportFilters
     ],
+    refetchInterval: 15000,
     queryFn: () => listEnquiryPage(options)
   });
 export const useEnquiryReport = (

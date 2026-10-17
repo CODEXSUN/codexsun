@@ -22,3 +22,8 @@ export type { EnquiryRecord, EnquiryMasterLookup } from "./enquiry.types";
 export type { EnquiryColumnFilters } from "./enquiry.types";
 export type { EnquiryActivity } from "./enquiry.types";
 export { listEnquiryActivity, listEnquiryPage } from "./enquiry.services";
+
+export { enquiryContactsQueryKey } from "./enquiry.hooks";
+
+export { EnquiryCustomerFields } from "./enquiry.customer-fields";
+export { useEnquiryContacts } from "./enquiry.hooks";

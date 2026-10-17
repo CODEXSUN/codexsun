@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Company } from "../company/company.types";
 import { publicRequest } from "../../transport";
 import { inquirySchema } from "./inquiry.schema";
@@ -6,6 +6,28 @@ export function InquiryForm({ company, onClose }: { company: Company; onClose: (
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [reference, setReference] = useState("");
+  const dialog = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    dialog.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    function keydown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+      if (event.key !== "Tab") return;
+      const controls = [...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not([type="hidden"]), textarea, a[href]') ?? [])].filter(item => item.offsetParent !== null);
+      const first = controls[0];
+      const last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+    document.addEventListener("keydown", keydown);
+    return () => {
+      document.removeEventListener("keydown", keydown);
+      document.body.style.overflow = overflow;
+      previous?.focus();
+    };
+  }, [onClose]);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -32,6 +54,7 @@ export function InquiryForm({ company, onClose }: { company: Company; onClose: (
   return (
     <div className="tc-modal" onClick={onClose}>
       <section
+        ref={dialog}
         role="dialog"
         aria-modal="true"
         aria-labelledby="enquiry-title"

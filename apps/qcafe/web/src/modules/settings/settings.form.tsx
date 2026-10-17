@@ -1,3 +1,4 @@
+import { KotPrinterSetting } from "./settings.printer";
 import { Input } from "@codexsun/ui/components/input";
 import type { CafeSettings } from "./settings.types";
 import type { SettingsSection } from "./settings.list";
@@ -14,6 +15,7 @@ export function SettingsForm({
 }) {
   const field = (
     key:
+      | "kotPrinterTarget"
       | "restaurantName"
       | "branchName"
       | "contactNumber"
@@ -163,7 +165,15 @@ export function SettingsForm({
     return (
       <>
         <h2>Printer & Receipt Output</h2>
-        <p>Web uses the browser print dialog. Select billing and KOT printers in that dialog.</p>
+        <p>
+          KOT submissions save directly to the kitchen queue. Select the kitchen printer target
+          below.
+        </p>
+        <KotPrinterSetting
+          value={value.kotPrinterTarget}
+          disabled={disabled}
+          onChange={(kotPrinterTarget) => onChange({ ...value, kotPrinterTarget })}
+        />
         <div className="qcafe-settings-fields">
           <label>
             Receipt paper width
@@ -193,9 +203,8 @@ export function SettingsForm({
           "Include restaurant address and contact on new receipts."
         )}
         <p>
-          Save & print always opens the receipt print dialog. Direct billing/KOT printers, spooler
-          repair and Windows Print Service installation belong to desktop and are unavailable in the
-          browser.
+          Customer receipts use browser printing. KOT tokens use the saved kitchen printer on the
+          Windows API host; desktop printer settings remain separate.
         </p>
       </>
     );

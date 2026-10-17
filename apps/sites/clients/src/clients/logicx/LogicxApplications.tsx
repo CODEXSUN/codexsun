@@ -4,11 +4,13 @@ import type { PageContent } from "@codexsun/sites-api/page-contract";
 import { initialLogicxMarketing } from "@codexsun/sites-api/marketing-defaults";
 import { serviceSlug } from "@codexsun/sites-api/page-routes";
 
+import { logicxCollection, LogicxAppCard } from "./logicx-collection";
+
 export function LogicxApplications({ content, path }: { content: PageContent; path: string }) {
   const design = content.marketing ?? initialLogicxMarketing;
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
-  const apps = content.applications ?? [];
+  const apps = logicxCollection(content);
   const app = apps.find((item) => path === `/apps/${item.slug}`);
   if (app)
     return (
@@ -91,20 +93,7 @@ export function LogicxApplications({ content, path }: { content: PageContent; pa
         {visible.length} applications
       </p>
       <div className="lx-catalog">
-        {visible.map((item, i) => (
-          <a href={`/apps/${item.slug}`} key={item.slug}>
-            <div className="lx-app-card-top">
-              <span className="lx-number">{String(i + 1).padStart(2, "0")}</span>
-              <span>{item.category}</span>
-              <ArrowUpRight size={20} />
-            </div>
-            <h2>{item.name}</h2>
-            <p>{item.summary}</p>
-            <span className="lx-text-link">
-              Explore application <ArrowUpRight size={16} />
-            </span>
-          </a>
-        ))}
+        {visible.map((app, index) => <LogicxAppCard app={app} index={index} catalogue key={app.slug} />)}
       </div>
       {!visible.length ? <p>No applications match. Try another search or category.</p> : null}
     </main>

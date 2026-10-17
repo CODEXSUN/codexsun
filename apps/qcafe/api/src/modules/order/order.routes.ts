@@ -86,6 +86,73 @@ export function registerOrderRoutes(app: FastifyInstance, deps: OrderDependencie
   const service = new OrderService(deps);
   registerContractRoute(app, {
     method: "GET",
+    url: "/qcafe/orders/floor-bills",
+    schemas: {
+      response: z.array(
+        z.object({ uuid, name: z.string(), tableUuid: uuid, billUuid: uuid }).strict()
+      )
+    },
+    handler: ({ request }) => service.floorBills(request)
+  });
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/qcafe/kitchen/printers",
+    schemas: {
+      response: z.array(
+        z.object({ name: z.string(), isDefault: z.boolean(), interactive: z.boolean() }).strict()
+      )
+    },
+    handler: ({ request }) => service.printers(request)
+  });
+  registerContractRoute(app, {
+    method: "POST",
+    url: "/qcafe/kitchen/dispatch",
+    schemas: {
+      body: z.object({}).strict(),
+      response: z.object({ accepted: z.boolean() }).strict()
+    },
+    handler: ({ request }) => service.dispatch(request)
+  });
+
+  const job = z
+    .object({
+      uuid,
+      number: z.string(),
+      orderUuid: uuid,
+      orderName: z.string(),
+      tableName: z.string(),
+      seats: z.array(z.number()),
+      status: z.enum(["queued", "ready", "delivered"]),
+      waiterUuid: uuid.nullable(),
+      printStatus: z.string(),
+      printError: z.string(),
+      lines: z.array(line)
+    })
+    .strict();
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/qcafe/kitchen",
+    schemas: { response: z.array(job) },
+    handler: ({ request }) => service.kitchenQueue(request)
+  });
+  registerContractRoute(app, {
+    method: "POST",
+    url: "/qcafe/kitchen/confirm",
+    schemas: {
+      body: z
+        .object({
+          token: z.string().trim().min(1).max(32),
+          action: z.enum(["ready", "delivered"]),
+          waiterUuid: uuid.nullable()
+        })
+        .strict(),
+      response: z.array(job)
+    },
+    handler: ({ request, body }) =>
+      service.confirmKitchen(request, body.token, body.action, body.waiterUuid)
+  });
+  registerContractRoute(app, {
+    method: "GET",
     url: "/qcafe/orders",
     schemas: { response: z.array(order) },
     handler: ({ request }) => service.list(request)

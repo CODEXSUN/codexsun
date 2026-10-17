@@ -130,3 +130,17 @@ and suspension of an existing session. Test companies and accounts remain inacti
 - The new takeover safety check confirms that an unrelated HTTP listener remains running.
 - Moved the workspace-local generated npm cache into root dist without deleting its contents.
 - Dependency layout and version checks passed. No application data or user cookies were removed.
+
+## Tirupur Connect redesign verification
+
+- Public header, hero, woven identity, category discovery, directory controls, association feature, and closing CTA use the new brand.
+- Contact, privacy, terms, category discovery, and separate login choices have public routes.
+- Browser checks opened public pages at 320 pixels and reviewed homepage layouts at 1440, 390, and 320 pixels without horizontal overflow.
+- Browser checks confirmed category query selection and the no-results state.
+- Authentication, tenant ownership, enquiries, quotations, and messages retain their existing backend contracts.
+- This work does not confirm public domain deployment or production email recovery delivery.
+
+- Web typecheck, lint, and production build passed after the redesign. The existing large-bundle warning remains.
+- All 19 focused TConnect tests passed. Module boundaries, component documentation, and dependency layout passed.
+- Browser interactions confirmed category and location changes, query persistence, mobile menu expansion, and company profile navigation.
+- The shared API restarted during checks. The final browser pass ran after readiness returned.

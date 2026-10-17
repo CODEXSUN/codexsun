@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.3
+Current version: 1.1.4
 
-Release tag: v-1.1.3
+Release tag: v-1.1.4
 
-Changelog label: v 1.1.3
+Changelog label: v 1.1.4
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,33 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.4
+
+### [v 1.1.4] 2026-10-17 5:14 pm - Q Cafe kitchen workflows and CRM task improvements
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Adds CRM task contact migration `crm.task.optional-contact-v4` and Q Cafe waiter, kitchen delivery, audit, and durable print-state migrations.
+- Existing databases require reviewed migration preflight, backups, migration execution, and applicable permission seeds.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.4.
+- Added Q Cafe kitchen preparation tokens, waiter registration and delivery confirmation, KOT billing guards, and durable host-printer dispatch state.
+- Updated Q Cafe item-addition queuing, running-order and floor controls, kitchen workspaces, and printer settings.
+- Updated CRM task contact handling, closure queries and pending badges, enquiry navigation, SOP forms/lists/details, and mobile job details.
+- Updated LogicX application and workflow content, marketing settings, page layouts, and local brand images and icons.
+- Updated the TConnect public brand, category discovery, directory pages, registration presentation, and public information routes.
+- Updated Platform composition and module-boundary checks for the new Q Cafe waiter and kitchen flows.
+- Component task files retain earlier browser and database evidence. Live migrations, physical printers, mobile builds, and deployment were not rerun during this release preparation.
+- Added the missing Q Cafe Waiter developer guide and refreshed repository reference documents and catalog hashes.
+- Passed two focused CRM task tests, all 19 TConnect tests, and all nine Q Cafe desktop/SQLite regression tests.
+- Passed the full repository check, including component documents, cleanup tests, module boundaries, add-on validation, documentation coverage, TypeScript, and lint.
+- Passed all seven Docs tests and the version-bump regression test.
+- The first production build stopped on a Windows `EPERM` cleanup lock. The retry passed cleanup, all 50 forced build tasks, artifact collection, and workspace cleanup.
+- Frontend bundle-size and ineffective dynamic-import warnings remain. No physical printing or production rollout is certified by these builds.
 
 ## v-1.1.3
 

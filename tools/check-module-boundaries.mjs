@@ -124,6 +124,7 @@ const capabilityBackendRoles = new Map([
   ["qcafe-api/menu", reducedBackendRoles],
   ["qcafe-api/pos", reducedBackendRoles],
   ["qcafe-api/order", reducedBackendRoles],
+  ["qcafe-api/waiter", reducedBackendRoles],
   ["qcafe-api/table", reducedBackendRoles],
   ["qcafe-api/special", reducedBackendRoles],
   ["qcafe-api/settings", reducedBackendRoles],

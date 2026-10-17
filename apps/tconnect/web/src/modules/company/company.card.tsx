@@ -27,6 +27,9 @@ export function CompanyCard({
             {company.city}
           </span>
         </div>
+        {company.description.toLowerCase().includes("fictional") ? (
+          <span className="tc-sample-label">Sample business</span>
+        ) : null}
         <h3>{company.name}</h3>
         <p>{company.tagline}</p>
         <div className="tc-product-tags">

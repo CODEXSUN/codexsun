@@ -9,6 +9,28 @@ CRM remains locally authoritative. Reference parity does not authorize additiona
 See the [implemented Duty bindings](../frappe/agent/CRM-DUTY-FIELD-MAPPING.md) for frequency, Department, Employee, and report fields.
 Run `npm run test:crm-frappe` for CRM/Frappe unit tests and isolated Duty API/database E2E.
 
+## Optional task contacts
+
+Tasks can save without a contact. Below Task details, select a saved contact or enter a mobile number and customer name.
+New customers resolve through Core during the task transaction. Select a customer when several share a mobile number.
+Clear contact removes the task link without deleting the contact.
+The task detail page links to the saved contact and shows its mobile number.
+The additive `crm.task.optional-contact-v4` migration adds a nullable contact ID and a restrictive foreign key.
+Existing tasks remain unlinked. Older clients that omit contact fields preserve saved links on update.
+Run `npm run test:e2e:crm-task-contact` for optional, selected, inline-created, cleared, invalid, and unauthorized cases.
+
+## Enquiry contacts and closure approvals
+
+Enquiries use the same Core contact IDs as the CRM contact form.
+Contact changes refresh the enquiry customer lookup. The enquiry Customer tab links to its saved contact.
+The Closure approvals tab shows the closure request and its review actions.
+Only users with server-provided review permission see Verify and close and Reject.
+Approval closes the enquiry. Rejection leaves it open. Both refresh enquiry details, comments, and activity.
+Closure Approvals is removed from the sidebar. Review closures inside each enquiry.
+Pending closure requests show an orange badge in the enquiry list, details, and approval card.
+Web enquiries refresh pending status every 15 seconds while open, including requests sent from mobile.
+Run `npm run test:e2e:crm-closure` for isolated database approval, rejection, contact binding, and permission checks.
+
 ## Component documentation
 
 ### Mobile customer form
@@ -77,3 +99,23 @@ Report database, browser, native, and deployment checks separately.
 
 - `@codexsun/crm-api`: `.`, `./enquiry-sync`.
 - `@codexsun/crm-web`: `.`, `./modules/overview`, `./modules/reports`, `./modules/enquiry`, `./modules/enquiry/services`, `./modules/activities`, `./modules/closure`, `./modules/call-log`, `./modules/enquiry/hooks`, `./modules/list-in`, `./modules/status`, `./modules/priority`, `./modules/contact-360`, `./modules/contact`, `./modules/task`, `./modules/sop`, `./modules/duties`.
+
+## Existing record panels
+
+New enquiries show up to five matches for a valid mobile number and selected contact.
+Changing or clearing the mobile hides the previous matches immediately.
+See more opens the same mobile and contact filter across all statuses, including closed enquiries.
+New tasks show the five newest accessible tasks, independent of the main list search and page.
+See all tasks opens the unfiltered task list. Record rows open their exact saved records.
+Both panels refresh every 15 seconds while visible and provide a Refresh button and loading/error states.
+Closure requests show an orange Closure pending badge.
+
+## SOP workspace
+
+SOPs use the shared enquiry-style list toolbar, search, status filters, column search,
+column visibility, pagination, and row actions. Active and published badges are green;
+drafts are amber, and inactive or superseded records use neutral badges.
+New SOP and Edit SOP show only name, code, and purpose. Cancel protects unsaved input.
+Open an SOP to manage its own items, revision history, publication, and duty assignments.
+Item creation and duty assignment forms stay collapsed until needed. Instructions and
+evidence guidance use multiline fields. The existing API, revision rules, and Frappe mapping remain unchanged.

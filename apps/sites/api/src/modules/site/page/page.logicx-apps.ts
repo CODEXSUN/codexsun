@@ -77,7 +77,7 @@ export const logicxApplications: NonNullable<PageContent["applications"]> = [
     name: "HRMS",
     category: "People",
     summary:
-      "A foundation workspace for people and workforce administration, with further modules scoped per project.",
+      "A people and workforce workspace, with further modules scoped to your needs.",
     features: ["App workspace foundation", "Tenant access", "Workforce modules by agreement"]
   },
   {

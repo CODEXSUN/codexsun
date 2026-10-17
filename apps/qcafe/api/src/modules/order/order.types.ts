@@ -44,6 +44,11 @@ export type CafeOrder = {
   billUuid: string | null;
 };
 export type OrderDependencies = QCafeDependencies & {
+  kitchenPrinter?: (db: Kysely<QCafeDatabase>) => Promise<string>;
+  activeWaiter?: (
+    db: Kysely<QCafeDatabase>,
+    uuid: string
+  ) => Promise<{ uuid: string; name: string } | null>;
   lookupMenu: (
     database: Kysely<QCafeDatabase>,
     uuids: string[]

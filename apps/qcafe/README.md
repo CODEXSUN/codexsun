@@ -201,3 +201,9 @@ Top menu, application header, and toolbar layout remain unchanged. Desktop PIN, 
 ### Visual KOT floor
 
 KOT opens a compact table and chair floor with a running-orders panel on the right. Select chairs and press the table to enter items. The panel can send pending quantities to the kitchen or reopen the latest ticket. Table cards display pending, sent, seated, or payment-due status from saved tenant orders and seat claims. Table setup remains in Master; table counts are not hard-coded.
+
+### Kitchen and waiters
+
+Use Settings > Waiter registration to register staff and Settings > Printer & Receipts to select the KOT printer. KOT Send to kitchen saves and queues preparation without a browser print dialog. Kitchen lists serial tokens; mark ready, then confirm delivery with a registered waiter using the screen or token scan entry. Get customer bill becomes available after delivery. Tenant MariaDB enforces the sequence and preserves confirmation history.
+
+Direct KOT dispatch uses installed physical printers on the Windows API host. The saved target is independent of desktop settings. Spool acknowledgement does not prove paper output. File printers are excluded, uncertain output stays in review, and physical scanner/hardware checks remain operator checks. Existing desktop PIN, SQLite and print-service behavior is unchanged.

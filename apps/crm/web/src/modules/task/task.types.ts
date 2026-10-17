@@ -6,6 +6,9 @@ export type TaskLookup = {
   status?: string;
 };
 export type TaskRecord = {
+  contactId: number | null;
+  contactName: string | null;
+  contactPhone: string | null;
   id: number;
   uuid: string;
   title: string;
@@ -28,6 +31,9 @@ export type TaskRecord = {
   closurePending: boolean;
 };
 export type TaskPayload = {
+  contactId: number | null;
+  capturedName: string | null;
+  capturedPhone: string | null;
   title: string;
   description: string;
   listInId: number | null;

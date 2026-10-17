@@ -281,7 +281,9 @@ export default defineConfig(({ command, mode }) => {
           configDir,
           "../../chat/web/src/modules/chat/index.ts"
         ),
-        "@codexsun/chat-web": resolve(configDir, "../../chat/web/src/index.ts")
+        "@codexsun/chat-web": resolve(configDir, "../../chat/web/src/index.ts"),
+        // Watch CRM source instead of its ignored node_modules junction.
+        "@codexsun/crm-web": resolve(configDir, "../../crm/web/src")
       },
       preserveSymlinks: true
     },

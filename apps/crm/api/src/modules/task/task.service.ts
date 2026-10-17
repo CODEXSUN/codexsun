@@ -76,7 +76,12 @@ export class TaskService {
         .executeTakeFirst())
     )
       throw AppError.validation("Select an active assignee.");
-    const savedId = await this.repo.save(input, this.ctx.actorEmail, id);
+    if (
+      (input.contactId || input.capturedName?.trim() || input.capturedPhone?.trim()) &&
+      !this.ctx.resolveContact
+    )
+      throw AppError.validation("Contact selection is unavailable.");
+    const savedId = await this.repo.save(input, this.ctx.actorEmail, id, this.ctx.resolveContact);
     return this.get(savedId);
   }
   async updateProperties(

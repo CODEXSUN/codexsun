@@ -8,6 +8,7 @@ import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
+import { enquiryContactsQueryKey } from "../enquiry";
 import { CrmContactForm } from "./contact.form";
 import { CrmContactShow } from "./contact.show";
 import {
@@ -176,7 +177,10 @@ export function CrmContactWorkspace({
     mutationFn: (payload: ContactSavePayload) =>
       editing ? updateContact(editing.id, payload) : createContact(payload),
     onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: contactsQueryKey });
+      await Promise.all([
+        client.invalidateQueries({ queryKey: contactsQueryKey }),
+        client.invalidateQueries({ queryKey: enquiryContactsQueryKey })
+      ]);
       toast.success("Contact saved");
       setEditing(undefined);
     },
@@ -188,7 +192,10 @@ export function CrmContactWorkspace({
         ? forceDeleteContact(record.id)
         : setContactActive(record.id, !record.isActive),
     onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: contactsQueryKey });
+      await Promise.all([
+        client.invalidateQueries({ queryKey: contactsQueryKey }),
+        client.invalidateQueries({ queryKey: enquiryContactsQueryKey })
+      ]);
     },
     onError: (error) => toast.error("Unable to update contact", { description: error.message })
   });
@@ -228,7 +235,8 @@ export function CrmContactWorkspace({
       />
     );
   return (
-    <WorkspacePage variant="list"
+    <WorkspacePage
+      variant="list"
       title={showListHeader ? "Contacts" : ""}
       {...(showListHeader
         ? {

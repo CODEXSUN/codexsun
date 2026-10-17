@@ -1,6 +1,15 @@
 import { useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, BellRing, MapPin, MessageSquare, ReceiptText, Settings2, Timer, UserRound } from "lucide-react";
+import {
+  Activity,
+  BellRing,
+  MapPin,
+  MessageSquare,
+  ReceiptText,
+  Settings2,
+  Timer,
+  UserRound
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { GlobalLoader } from "@codexsun/ui/components/global-loader";
@@ -9,12 +18,13 @@ import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { formatDateTime as formatWorkspaceDateTime } from "@codexsun/ui/workspace";
 import { CrmColorLabel, CrmStatusBadge } from "../../crm-colors";
-import { EnquiryClosureCard } from "../closure";
+import { ClosurePendingBadge, useEnquiryClosureState, EnquiryClosureCard } from "../closure";
 import { EnquiryActivityPanel } from "./enquiry.activity";
 import { EnquiryComments } from "./enquiry.comments";
 import { EnquiryEstimates } from "./enquiry.estimates";
 import {
   enquiryActivityQueryKey,
+  enquiryCommentsQueryKey,
   enquiryDetailQueryKey,
   enquiriesQueryKey,
   enquiryJobsQueryKey,
@@ -34,7 +44,15 @@ import { enquiryTableText } from "./enquiry.table-text";
 import { whatsappUrl } from "./enquiry.view-utils";
 import type { EnquiryLookup, EnquiryMasterLookup, EnquiryRecord } from "./enquiry.types";
 
-type EnquiryTab = "comments" | "jobs" | "estimate" | "activity" | "locations" | "properties" | "closure" | "customer";
+type EnquiryTab =
+  | "comments"
+  | "jobs"
+  | "estimate"
+  | "activity"
+  | "locations"
+  | "properties"
+  | "closure"
+  | "customer";
 
 export function EnquiryShow({
   id,
@@ -56,6 +74,7 @@ export function EnquiryShow({
   const client = useQueryClient();
   const [activeTab, setActiveTab] = useState<EnquiryTab>("comments");
   const enquiry = useEnquiryDetail(id);
+  const closure = useEnquiryClosureState(id);
   const comments = useEnquiryComments(id);
   const jobs = useEnquiryJobs(id);
   const estimates = useEnquiryEstimates(id);
@@ -150,12 +169,34 @@ export function EnquiryShow({
     {
       value: "properties",
       label: <TabLabel icon={<Settings2 className="size-4" />} label="Properties" />,
-      content: record ? <EnquiryProperties record={record} mobile={mobile} users={users} listOptions={listOptions} statuses={statuses} priorities={priorities} /> : null
+      content: record ? (
+        <EnquiryProperties
+          record={record}
+          mobile={mobile}
+          users={users}
+          listOptions={listOptions}
+          statuses={statuses}
+          priorities={priorities}
+        />
+      ) : null
     },
     {
       value: "closure",
-      label: <TabLabel icon={<BellRing className="size-4" />} label="Closure" />,
-      content: record ? <EnquiryClosureCard enquiryId={id} enquiryStatus={record.status} onChanged={() => Promise.all([client.invalidateQueries({ queryKey: enquiryDetailQueryKey(id) }), client.invalidateQueries({ queryKey: enquiryActivityQueryKey(id) }), client.invalidateQueries({ queryKey: enquiriesQueryKey })])} /> : null
+      label: <TabLabel icon={<BellRing className="size-4" />} label="Closure approvals" />,
+      content: record ? (
+        <EnquiryClosureCard
+          enquiryId={id}
+          enquiryStatus={record.status}
+          onChanged={() =>
+            Promise.all([
+              client.invalidateQueries({ queryKey: enquiryDetailQueryKey(id) }),
+              client.invalidateQueries({ queryKey: enquiryActivityQueryKey(id) }),
+              client.invalidateQueries({ queryKey: enquiryCommentsQueryKey(id) }),
+              client.invalidateQueries({ queryKey: enquiriesQueryKey })
+            ])
+          }
+        />
+      ) : null
     },
     {
       value: "customer",
@@ -221,15 +262,20 @@ export function EnquiryShow({
       ) : null}
       {record ? (
         <>
+          {closure.data?.item?.status === "pending" ? (
+            <div>
+              <ClosurePendingBadge />
+            </div>
+          ) : null}
           <EnquirySummary record={record} users={users} />
           <div className="min-w-0 overflow-hidden rounded-md border border-border/70 bg-card/95 shadow-sm">
-              <WorkspaceAnimatedTabs
-                tabs={tabs}
-                value={activeTab}
-                onValueChange={(value) => setActiveTab(value as EnquiryTab)}
-                listClassName="px-3"
-                contentClassName="mt-0 pb-0"
-              />
+            <WorkspaceAnimatedTabs
+              tabs={tabs}
+              value={activeTab}
+              onValueChange={(value) => setActiveTab(value as EnquiryTab)}
+              listClassName="px-3"
+              contentClassName="mt-0 pb-0"
+            />
           </div>
         </>
       ) : null}

@@ -1229,6 +1229,29 @@ export async function createApp() {
       actorEmail: context.actorEmail,
       actorUserId: actor?.id ?? null,
       canViewAll,
+      resolveContact: async (
+        input: {
+          contactId?: number | null | undefined;
+          capturedName?: string | null | undefined;
+          capturedPhone?: string | null | undefined;
+        },
+        transaction: import("kysely").Transaction<import("@codexsun/crm-api").TaskDatabase>
+      ) => {
+        if (input.contactId) {
+          if (!(await getActiveContactForDatabase(context.tenantDatabase, input.contactId)))
+            throw AppError.validation("Select an active Core contact.");
+          return input.contactId;
+        }
+        if (input.capturedName?.trim() || input.capturedPhone?.trim()) {
+          const contact = await resolveOrCreateCustomerForDatabase(
+            context.tenantDatabase,
+            { name: input.capturedName ?? null, mobile: input.capturedPhone ?? null },
+            transaction as unknown as Parameters<typeof resolveOrCreateCustomerForDatabase>[2]
+          );
+          return contact.id;
+        }
+        return input.contactId;
+      },
       authorize: context.authorize
     };
   });

@@ -237,3 +237,10 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - Added desk navigation and fixed transport adapters for the app-owned workspaces.
 - TConnect retains all source relationships, sender identity checks, pricing calculations, and participant privacy.
 - API/web builds, typechecks, and lint passed. Live and browser negotiation E2E passed with separate signed buyer and seller sessions.
+
+### CRM development imports, 17-10-2026
+
+- Resolve CRM web imports directly to the owning source folder after specific subpath aliases.
+- This avoids stale Vite modules under the ignored workspace junction in node_modules.
+- Browser verification: enquiry #4 and its Closure approvals tab loaded without the missing-export error.
+- Platform typecheck, lint, and module boundaries passed.

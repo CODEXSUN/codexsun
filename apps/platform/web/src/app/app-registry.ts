@@ -97,6 +97,7 @@ export type PlatformAppRootPage =
   | "qcafe.kot"
   | "qcafe.take-away"
   | "qcafe.booking"
+  | "qcafe.kitchen"
   | "hrms.overview"
   | "hrms.employees"
   | "docs.overview"
@@ -680,6 +681,12 @@ export function appMenuFor(
         },
         {
           icon: UtensilsCrossedIcon,
+          title: "Kitchen",
+          isActive: activePage === "qcafe.kitchen",
+          onSelect: () => onSelect("qcafe.kitchen")
+        },
+        {
+          icon: UtensilsCrossedIcon,
           title: "Master",
           isActive: activePage === "qcafe.menu",
           onSelect: () => onSelect("qcafe.menu")
@@ -801,11 +808,6 @@ export function appMenuFor(
           title: "Duty Reporting",
           isActive: activePage === "crm.duty-reporting",
           onSelect: () => onSelect("crm.duty-reporting")
-        },
-        {
-          title: "Closure Approvals",
-          isActive: activePage === "crm.closures",
-          onSelect: () => onSelect("crm.closures")
         },
         {
           title: "Call Logs",
@@ -1284,6 +1286,12 @@ export function appMenuItemsFor(
       },
       {
         icon: UtensilsCrossedIcon,
+        title: "Kitchen",
+        isActive: activePage === "qcafe.kitchen",
+        onSelect: () => onSelect("qcafe.kitchen")
+      },
+      {
+        icon: UtensilsCrossedIcon,
         title: "Master",
         isActive: activePage === "qcafe.menu",
         onSelect: () => onSelect("qcafe.menu")
@@ -1515,12 +1523,6 @@ export function appMenuItemsFor(
         isActive: activePage === "crm.duty-reporting",
         onSelect: () => onSelect("crm.duty-reporting"),
         title: "Duty Reporting"
-      },
-      {
-        icon: NotebookPenIcon,
-        isActive: activePage === "crm.closures",
-        onSelect: () => onSelect("crm.closures"),
-        title: "Closure Approvals"
       },
       {
         icon: PhoneCallIcon,

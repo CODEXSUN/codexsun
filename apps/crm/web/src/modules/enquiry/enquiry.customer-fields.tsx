@@ -10,6 +10,7 @@ import { enquiryPhoneKey } from "./enquiry.phone";
 type CustomerValue = Pick<EnquirySavePayload, "contactId" | "capturedName" | "capturedPhone">;
 
 export function EnquiryCustomerFields({
+  customerRequired = true,
   autoFocusMobile = false,
   strictMobile = false,
   contacts,
@@ -20,6 +21,7 @@ export function EnquiryCustomerFields({
   onChange,
   onContactSaved
 }: {
+  customerRequired?: boolean;
   autoFocusMobile?: boolean;
   strictMobile?: boolean;
   contacts: EnquiryLookup[];
@@ -83,7 +85,11 @@ export function EnquiryCustomerFields({
             const found = matchingContacts(contacts, mobile, strictMobile);
             if (found.length === 1) {
               setManualName(false);
-              onChange({ capturedPhone: mobile, contactId: Number(found[0]!.id), capturedName: null });
+              onChange({
+                capturedPhone: mobile,
+                contactId: Number(found[0]!.id),
+                capturedName: null
+              });
             } else {
               onChange({
                 capturedPhone: mobile,
@@ -110,7 +116,11 @@ export function EnquiryCustomerFields({
           </p>
         ) : null}
       </WorkspaceFormField>
-      <WorkspaceFormField label="Customer" required className="enquiry-nav-field">
+      <WorkspaceFormField
+        label="Customer"
+        required={customerRequired}
+        className="enquiry-nav-field"
+      >
         <WorkspaceLookup
           allowTextValue
           options={options}
@@ -143,7 +153,7 @@ export function EnquiryCustomerFields({
             );
             onChange({
               contactId: contact ? Number(contact.id) : null,
-              capturedName: contact ? null : selected || value.capturedPhone || null,
+              capturedName: contact ? null : selected || null,
               capturedPhone: value.capturedPhone || contact?.primaryPhone || null
             });
           }}

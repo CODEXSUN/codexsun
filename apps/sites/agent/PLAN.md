@@ -689,3 +689,7 @@ Final prompt: "Portrait 2:3 premium editorial architectural photograph. Minimal 
 Final asset: `apps/sites/clients/public/logicx/design/logicx-architecture.webp`.
 The earlier monitor-and-desk generated images were not used in this design.
 Studio media and service selectors use friendly labels. File paths and service slugs remain internal publication values.
+
+### 2026-10-17 growth-section refinement
+Implemented editorial workflow stories, navy/copper industry expertise, and an indigo delivery sequence. Content is editable through the existing marketing collections in Studio and published locally at revision 17. Responsive packaged-browser and content checks passed. The manually launched preview still needs Studio Start binding for live public-content reads; external deployment is not verified.
+

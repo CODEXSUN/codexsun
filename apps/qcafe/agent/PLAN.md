@@ -80,3 +80,5 @@ Order owns booking customer details and pickup schedules as part of its saved-or
 Booking remains distinct from table reservations. Its fixed API validates schedule changes and snapshots details into issued bills.
 Parcel excludes orders with booking metadata. Booking displays only orders with that metadata.
 Keep immutable preparation metadata, live order permissions, tenant isolation, idempotent retries, and audited cancellation.
+
+Kitchen and waiter workflow: keep ticket sequence, staff validation, delivery checks and print dispatch inside QCafe. Platform only composes the Kitchen route and exposes its permission capabilities. Windows API-host printer dispatch is a local runtime capability; do not treat the browser as a native printer bridge.

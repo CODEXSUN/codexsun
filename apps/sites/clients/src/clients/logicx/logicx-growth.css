@@ -252,3 +252,84 @@
     max-width: 600px;
   }
 }
+/* Editorial workflow stories, industry expertise and delivery stages. */
+.lx-practice-section, .lx-delivery-section { padding-block: clamp(80px, 9vw, 140px); }
+.logicx-studio :is(.lx-practice-section, .lx-delivery-section) .lx-growth-heading { max-width: 900px; gap: 24px; padding-bottom: 64px; }
+.logicx-studio :is(.lx-practice-section, .lx-delivery-section) h2,
+.logicx-studio .lx-industry-layout h2 { font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; font-size: clamp(38px, 4.5vw, 64px); font-weight: 600; letter-spacing: -.055em; line-height: 1.06; text-wrap: balance; }
+.lx-practice-section .lx-workflows { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+.lx-practice-section .lx-workflows article { --story-accent: #2167ad; padding: 36px; gap: 22px; border-radius: 30px; background: #f0f5fa; border: 1px solid #e4ecf5; overflow: hidden; transition: box-shadow .35s, border-color .35s; }
+.lx-practice-section .lx-workflows article:nth-child(2) { --story-accent: #996238; background: #f7f3ed; border-color: #eee5da; }
+.lx-practice-section .lx-workflows article:nth-child(3) { --story-accent: #6957af; background: #f3f1f9; border-color: #e9e3f5; }
+.lx-practice-section .lx-workflows article:nth-child(4) { --story-accent: #246d70; background: #eef6f4; border-color: #deeeea; }
+.logicx-studio .lx-practice-section .lx-workflows h3 { font-size: clamp(27px, 2.8vw, 38px); font-weight: 500; line-height: 1.12; letter-spacing: -.045em; max-width: 400px; }
+.lx-practice-section .lx-workflows article > p:not(.lx-kicker) { font-size: 16px; line-height: 1.75; }
+.lx-practice-section .lx-workflows .lx-kicker, .lx-practice-section .lx-workflows .lx-text-link { color: var(--story-accent); }
+.lx-practice-section .lx-workflow-art { min-height: 260px; max-width: none; padding: 26px; border-radius: 20px; background: #ffffff80; gap: 12px; margin-bottom: 6px; }
+.lx-practice-section .lx-workflow-art span { position: relative; padding: 13px 16px; font-size: 14px; border-radius: 10px; border-color: #ffffff; background: #ffffffed; color: #253943; box-shadow: 0 4px 14px #20354705; transition: transform .35s; }
+.lx-practice-section .lx-workflow-art b { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; background: #eff3f6; color: var(--story-accent); opacity: 1; font-size: 11px; flex-shrink: 0; }
+.lx-practice-section .lx-workflow-art svg { color: var(--story-accent); flex-shrink: 0; }
+.lx-practice-section article:focus-within { outline: 2px solid var(--story-accent); outline-offset: 4px; }
+.lx-industry-section { background: #141e2b; padding-block: clamp(80px, 9vw, 140px); position: relative; }
+.lx-industry-layout { grid-template-columns: .85fr 1.15fr; gap: clamp(48px, 7vw, 110px); align-items: start; }
+.lx-industry-layout > div:first-child { position: sticky; top: 130px; gap: 28px; }
+.logicx-studio .lx-industry-section :is(h2, h3) { color: #f8f9fc; }
+.logicx-studio .lx-industry-section p { color: #b4bfcc; line-height: 1.8; }
+.logicx-studio .lx-industry-section .lx-kicker { color: #e8b990; }
+.logicx-studio .lx-industry-section .lx-text-link { color: #f1c5a0; }
+.lx-industry-section .lx-industries { grid-template-columns: 1fr; gap: 0; }
+.lx-industry-section .lx-industries article { display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 20px; padding: 32px 0; border-top: 1px solid #ffffff20; }
+.lx-industry-section .lx-industries article:first-child { padding-top: 0; border-top: 0; }
+.lx-industry-section .lx-industries h3 { grid-column: 2; font-size: 26px; letter-spacing: -.035em; margin-bottom: 14px; }
+.lx-industry-section .lx-industries article p { grid-column: 2; font-size: 15px; }
+.lx-industry-number { grid-column: 1; grid-row: 1 / 3; color: #dfb38f; font-size: 13px; padding-top: 7px; }
+.lx-delivery-section .lx-engagements { gap: 32px; }
+.lx-delivery-section .lx-engagements article { padding: 32px 8px 0 0; gap: 24px; border-color: #d9dfea; }
+.lx-delivery-section .lx-engagement-number { color: #7873a5; font-size: 52px; font-weight: 500; letter-spacing: -.06em; }
+.lx-delivery-section .lx-engagements .lx-kicker { color: #61548e; }
+.logicx-studio .lx-delivery-section .lx-engagements h3 { font-size: 31px; font-weight: 500; line-height: 1.2; min-height: 76px; text-wrap: balance; }
+.lx-delivery-section .lx-engagements article > p:not(.lx-kicker) { font-size: 15px; line-height: 1.8; }
+.lx-delivery-section .lx-engagements li { font-size: 14px; align-items: flex-start; gap: 12px; line-height: 1.6; }
+.lx-delivery-section .lx-engagements li svg { color: #7460a4; margin-top: 3px; }
+.lx-delivery-section .lx-engagements .lx-text-link { color: #61548e; padding-top: 8px; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .lx-practice-section .lx-workflows article:hover { box-shadow: 0 18px 44px #24354a0c; border-color: #c3d3df; }
+  .lx-practice-section article:hover .lx-workflow-art span:nth-child(even) { transform: translateX(5px); }
+  :is(.lx-practice-section, .lx-industry-section, .lx-delivery-section) .lx-text-link svg { transition: transform .25s; }
+  :is(.lx-practice-section, .lx-industry-section, .lx-delivery-section) .lx-text-link:hover svg { transform: translate(3px, -3px); }
+}
+@media (max-width: 1000px) {
+  .lx-industry-layout { grid-template-columns: 1fr; }
+  .lx-industry-layout > div:first-child { position: static; max-width: 760px; }
+  .lx-delivery-section .lx-engagements { grid-template-columns: 1fr; gap: 44px; }
+  .lx-delivery-section .lx-engagements h3 { min-height: 0; }
+}
+@media (max-width: 700px) {
+  .lx-practice-section .lx-workflows { grid-template-columns: 1fr; gap: 24px; }
+  .lx-practice-section .lx-workflows article { padding: 24px; border-radius: 24px; }
+  .lx-practice-section .lx-workflow-art { padding: 16px; min-height: 260px; }
+  .lx-practice-section .lx-workflow-art span { font-size: 12px; gap: 10px; padding: 12px; }
+  .lx-industry-section .lx-industries article { column-gap: 12px; grid-template-columns: 24px minmax(0, 1fr); }
+  .lx-industry-section .lx-industries h3 { font-size: 24px; }
+}
+.lx-industry-section { --lx-muted: #e8b990; --lx-green-dark: #f1c5a0; }
+.lx-practice-section .lx-workflows article { --lx-muted: var(--story-accent); --lx-green-dark: var(--story-accent); }
+.lx-delivery-section { --lx-muted: #61548e; --lx-green-dark: #61548e; }
+/* Reference-inspired photographic atmosphere stays behind the existing content. */
+.lx-practice-section, .lx-delivery-section { position: relative; isolation: isolate; }
+.lx-practice-backdrop, .lx-delivery-backdrop, .lx-industry-backdrop { position: absolute; pointer-events: none; object-fit: cover; z-index: -1; }
+.lx-practice-backdrop { width: 72%; height: 540px; top: 18px; right: -5%; opacity: .5; border-radius: 160px 24px 200px 80px; object-position: 25% 50%; mask-image: linear-gradient(90deg, transparent, #000 45%, #000 80%, transparent), linear-gradient(transparent, #000 25%, #000 65%, transparent); mask-composite: intersect; }
+.lx-industry-section { isolation: isolate; overflow: clip; }
+.lx-industry-backdrop { inset: 0; width: 100%; height: 100%; object-position: 25% center; opacity: .34; mask-image: linear-gradient(90deg, #000 0%, #000 25%, transparent 75%); }
+.lx-industry-section::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(90deg, #141e2b44 0%, #141e2ba6 38%, #141e2b 78%); }
+.lx-delivery-backdrop { width: 65%; height: 520px; right: -4%; bottom: 6%; border-radius: 180px 48px 100px 200px; opacity: .3; object-position: 70% center; mask-image: radial-gradient(ellipse, #000 20%, transparent 82%); }
+@media (max-width: 700px) {
+  .lx-practice-backdrop { width: 100%; right: 0; top: 0; height: 440px; opacity: .36; }
+  .lx-industry-backdrop { width: 100%; height: 620px; opacity: .24; mask-image: linear-gradient(#000, transparent); }
+  .lx-industry-section::before { background: linear-gradient(#141e2b88, #141e2b 620px); }
+  .lx-delivery-backdrop { width: 100%; right: 0; height: 440px; bottom: 0; }
+}
+.logicx-studio .lx-practice-section .lx-workflows article > p:not(.lx-kicker) { color: #626e68; }
+
+
+

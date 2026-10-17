@@ -1,72 +1,82 @@
-import { ArrowRight, Search, MoveUpRight, Layers3 } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 export function PortalHero() {
+  const quick = [
+    ["Knitted Fabrics", "Knitted Fabrics"],
+    ["Garments", "Garment Manufacturing"],
+    ["Yarn", "Yarn & Fibre"],
+    ["Dyeing", "Dyeing & Processing"],
+    ["Printing", "Printing & Embroidery"],
+    ["Accessories", "Accessories & Packaging"]
+  ];
   return (
     <section className="tc-hero">
       <div className="tc-hero-copy">
         <span className="tc-eyebrow">
           <span className="tc-small-line" />
-          THE BUSINESS OF CONNECTING
+          TIRUPUR’S TEXTILE BUSINESS NETWORK
         </span>
         <h1>
-          Good business
+          Good Textile
           <br />
-          starts with a<br />
-          <em>great connection.</em>
+          Business
+          <br />
+          Starts with a<br />
+          <em>Great Connection.</em>
         </h1>
         <p>
-          Find the right suppliers. Meet your next buyer.
+          Find trusted suppliers. Meet global buyers.
           <br />
-          Grow with a community that gets your industry.
+          Grow with Tirupur’s textile community.
         </p>
         <form className="tc-search" action="/companies">
           <Search size={22} />
           <input
             aria-label="Search businesses, products or services"
             name="q"
-            placeholder="What are you looking for?"
+            placeholder="Knitted fabric, garment manufacturer…"
           />
           <button type="submit" aria-label="Search businesses">
             <ArrowRight size={22} />
           </button>
         </form>
         <div className="tc-popular">
-          Try <a href="/companies?q=cotton">Cotton knits</a>
-          <a href="/companies?industry=Packaging">Packaging</a>
-          <a href="/companies?industry=Engineering">Engineering</a>
+          <span>Explore</span>
+          {quick.map(([label, category]) => (
+            <a key={label} href={`/companies?category=${encodeURIComponent(category ?? "")}`}>
+              {label}
+            </a>
+          ))}
         </div>
       </div>
-      <div className="tc-hero-art" aria-hidden="true">
-        <div className="tc-orbit tc-orbit-one" />
-        <div className="tc-orbit tc-orbit-two" />
-        <div className="tc-art-title">
-          Made here.
-          <br />
-          <em>Goes everywhere.</em>
-        </div>
-        <div className="tc-textile-stack">
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="tc-float-note">
-          <span className="tc-note-mark">
-            <Layers3 size={22} />
+      <div className="tc-editorial-art">
+        <div className="tc-art-arch" />
+        <div className="tc-art-thread" />
+        <img
+          className="tc-hero-photo"
+          src="/textiles/textile-hero.webp"
+          alt="Illustrative studio still life of cotton knits and yarn in forest green, ivory and terracotta"
+          width="1024"
+          height="1536"
+          fetchPriority="high"
+        />
+        <div className="tc-made-note">
+          <span>
+            MADE IN
+            <br />
+            TIRUPUR.
           </span>
-          <div>
-            <strong>Local roots. Shared ambition.</strong>
-            <span>Tirupur & beyond</span>
-          </div>
-          <MoveUpRight size={19} />
+          <em>
+            Worn
+            <br />
+            Everywhere.
+          </em>
         </div>
-        <span className="tc-art-coordinate">11.1085° N &nbsp; 77.3411° E</span>
-        <div className="tc-art-seal">
-          THE
-          <br />
-          TIRUPUR
-          <br />
-          CONNECTION
+        <div className="tc-connection-seal">
+          <span>LOCAL ROOTS · GLOBAL REACH</span>
+          <strong>TIRUPUR</strong>
+          <small>CONNECTED TO POSSIBILITIES</small>
         </div>
+        <span className="tc-art-caption">TEXTURE. CRAFT. CONNECTION. · ILLUSTRATIVE ARTWORK</span>
       </div>
     </section>
   );

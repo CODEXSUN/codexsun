@@ -2,6 +2,7 @@ import { z } from "zod";
 const text = z.string().trim().max(200);
 export const cafeSettingsSchema = z
   .object({
+    kotPrinterTarget: z.string().trim().min(1).max(200).default("system-default"),
     revision: z.number().int().nonnegative(),
     restaurantName: text,
     branchName: text,

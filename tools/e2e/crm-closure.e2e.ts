@@ -1,4 +1,15 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { createConnection } from "mysql2/promise";
+import {
+  migrateCoreTenantDatabase,
+  seedCoreTenantDatabase,
+  runWithCoreDatabase,
+  closeCoreDatabase
+} from "../../apps/core/api/src/database/core-database.js";
+import { migrateTenantRuntimeModule } from "../../apps/platform/api/src/modules/tenant/tenant.migration.js";
+import { seedStatusMaster } from "../../apps/crm/api/src/modules/status/index.js";
+import { seedPriorityMaster } from "../../apps/crm/api/src/modules/priority/index.js";
 import { test } from "node:test";
 import Fastify from "fastify";
 import { Kysely, MysqlDialect, sql } from "kysely";
@@ -15,11 +26,12 @@ import { seedClosurePermissions } from "../../apps/crm/api/src/modules/closure/c
 assert.equal(env.NODE_ENV, "development", "This suite uses only the local development database.");
 assert.notEqual(env.DEFAULT_TENANT_DB_NAME, env.DB_MASTER_NAME);
 
+const databaseName = `codexsun_crm_closure_e2e_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
 function openDatabase() {
   return new Kysely<ClosureDatabase>({
     dialect: new MysqlDialect({
       pool: createPool({
-        database: env.DEFAULT_TENANT_DB_NAME,
+        database: databaseName,
         host: env.DB_HOST,
         port: env.DB_PORT,
         user: env.DB_USER,
@@ -32,21 +44,38 @@ function openDatabase() {
 }
 
 test("closure requests await web approval before changing enquiry status", async (suite) => {
+  const admin = await createConnection({
+    host: env.DB_HOST,
+    port: env.DB_PORT,
+    user: env.DB_USER,
+    password: env.DB_PASSWORD
+  });
   const database = openDatabase();
   const app = Fastify({ logger: false });
   const enquiryIds: number[] = [];
   suite.after(async () => {
-    for (const enquiryId of enquiryIds) {
-      await sql`DELETE FROM crm_closure_requests WHERE enquiry_id=${enquiryId}`.execute(database);
-      await sql`DELETE FROM crm_enquiry_comments WHERE enquiry_id=${enquiryId}`.execute(database);
-      await sql`DELETE FROM crm_enquiry_activity WHERE enquiry_id=${enquiryId}`.execute(database);
-      await sql`DELETE FROM crm_enquiries WHERE id=${enquiryId}`.execute(database);
-    }
     await app.close();
     await database.destroy();
+    await closeCoreDatabase();
+    assert.match(databaseName, /^codexsun_crm_closure_e2e_[a-f0-9]{16}$/);
+    try {
+      await admin.query(`DROP DATABASE IF EXISTS \`${databaseName}\``);
+    } finally {
+      await admin.end();
+    }
   });
-
+  await migrateCoreTenantDatabase(databaseName);
+  await seedCoreTenantDatabase(databaseName);
+  await migrateTenantRuntimeModule(database as never);
   await migrateCrmTenantDatabase(database);
+  await seedStatusMaster(database as never);
+  await seedPriorityMaster(database as never);
+  await sql`INSERT INTO app_users (uuid,name,email,password_hash,status) VALUES ('testuser','Closure reviewer','closure@example.test','test-only','active')`.execute(
+    database
+  );
+  await sql`INSERT INTO app_roles (uuid,\`key\`,label) VALUES ('testrole','admin','Admin')`.execute(
+    database
+  );
   await seedClosurePermissions(database);
   const permission = await sql<{ count: number }>`SELECT COUNT(*) AS count
     FROM app_role_permissions grant_row
@@ -83,7 +112,8 @@ test("closure requests await web approval before changing enquiry status", async
 
   await closureModule.register(app, async (request) => ({
     database,
-    actorEmail: actor.email,
+    actorEmail:
+      request.headers["x-test-unassigned"] === "true" ? "other@example.test" : actor.email,
     actorUserId: request.headers["x-test-unassigned"] === "true" ? null : actor.id,
     canViewAll: false,
     canReview: request.headers["x-test-reviewer"] === "true"
@@ -93,9 +123,24 @@ test("closure requests await web approval before changing enquiry status", async
     actorEmail: actor.email,
     actorUserId: actor.id,
     canViewAll: true,
+    pendingClosureLookup: async (ids: number[]) => {
+      if (!ids.length) return new Set<number>();
+      const rows = await database
+        .selectFrom("crm_closure_requests")
+        .select("enquiry_id")
+        .where("status", "=", "pending")
+        .where("enquiry_id", "in", ids)
+        .execute();
+      return new Set(rows.map((row) => row.enquiry_id));
+    },
     listUsers: async () => [],
     relations: {
-      contact: async () => null,
+      contact: async (id: number) =>
+        (await database
+          .selectFrom("core_contacts")
+          .select(["id", "name"])
+          .where("id", "=", id)
+          .executeTakeFirst()) ?? null,
       resolveOrCreateCustomer: async () => ({ id: 1, name: "Closure test" }),
       user: async () => ({ name: "Test user" }),
       listIn: async () => ({ name: "Test list" }),
@@ -113,6 +158,11 @@ test("closure requests await web approval before changing enquiry status", async
   }));
   await app.ready();
 
+  const customer = await runWithCoreDatabase(databaseName, async () => {
+    const { ContactService } =
+      await import("../../apps/core/api/src/modules/master/contact/contact.service.js");
+    return new ContactService().resolveOrCreateCustomer("Closure linked customer", "9876543210");
+  });
   async function makeEnquiry(title: string, statusId = newStatus.id) {
     const sourceReference = `closure-e2e-${Date.now()}-${Math.random()}`;
     const enquiryNo = Math.floor(1_000_000_000 + Math.random() * 1_000_000_000);
@@ -122,7 +172,7 @@ test("closure requests await web approval before changing enquiry status", async
         enquiry_no: enquiryNo,
         title,
         description: title,
-        contact_id: null,
+        contact_id: customer.id,
         captured_name: "Closure test",
         captured_email: null,
         captured_phone: null,
@@ -145,11 +195,20 @@ test("closure requests await web approval before changing enquiry status", async
     return id;
   }
 
-  async function requestClosure(id: number) {
+  async function assertPendingBadge(enquiryId: number, pending: boolean) {
+    const page = await app.inject({ method: "GET", url: "/crm/enquiries?filter=all" });
+    assert.equal(page.statusCode, 200, page.body);
+    const row = page
+      .json()
+      .data.items.find((item: { id: string }) => Number(item.id) === enquiryId);
+    assert.ok(row);
+    assert.equal(row.closurePending, pending);
+  }
+  async function requestClosure(id: number, source = "mobile") {
     return app.inject({
       method: "POST",
       url: `/crm/enquiries/${id}/closure-requests`,
-      payload: { note: "Work completed on mobile." }
+      payload: { note: `Work completed on ${source}.` }
     });
   }
 
@@ -165,13 +224,31 @@ test("closure requests await web approval before changing enquiry status", async
   assert.equal(requested.statusCode, 200, requested.body);
   const requestEnvelope = requested.json() as { data: { id: number; status: string } };
   assert.equal(requestEnvelope.data.status, "pending");
+  await assertPendingBadge(approvalEnquiryId, true);
+  assert.equal(requested.json().data.contact, "Closure linked customer");
   const requestComment = await database
     .selectFrom("crm_enquiry_comments")
     .select("body")
     .where("enquiry_id", "=", approvalEnquiryId)
     .executeTakeFirstOrThrow();
-  assert.match(requestComment.body, /Closure requested from mobile/);
+  assert.match(requestComment.body, /Closure requested/);
 
+  for (const canReview of [false, true]) {
+    const latest = await app.inject({
+      method: "GET",
+      url: `/crm/enquiries/${approvalEnquiryId}/closure-requests/latest`,
+      headers: { "x-test-reviewer": String(canReview) }
+    });
+    assert.equal(latest.statusCode, 200, latest.body);
+    assert.equal(latest.json().data.canReview, canReview);
+    assert.equal(latest.json().data.item.id, requestEnvelope.data.id);
+  }
+  const deniedReview = await app.inject({
+    method: "PATCH",
+    url: `/crm/closure-requests/${requestEnvelope.data.id}/review`,
+    payload: { decision: "approve" }
+  });
+  assert.equal(deniedReview.statusCode, 403, deniedReview.body);
   const deniedQueue = await app.inject({ method: "GET", url: "/crm/closure-requests" });
   assert.equal(deniedQueue.statusCode, 403, deniedQueue.body);
 
@@ -212,6 +289,7 @@ test("closure requests await web approval before changing enquiry status", async
     .where("crm_enquiries.id", "=", approvalEnquiryId)
     .executeTakeFirstOrThrow();
   assert.equal(closed.code, "closed");
+  await assertPendingBadge(approvalEnquiryId, false);
   const reviewComment = await database
     .selectFrom("crm_enquiry_comments")
     .select("body")
@@ -221,7 +299,8 @@ test("closure requests await web approval before changing enquiry status", async
   assert.match(reviewComment.body, /Closure verified and enquiry closed/);
 
   const rejectionEnquiryId = await makeEnquiry("Closure rejection e2e");
-  const rejectedRequest = await requestClosure(rejectionEnquiryId);
+  const rejectedRequest = await requestClosure(rejectionEnquiryId, "web");
+  await assertPendingBadge(rejectionEnquiryId, true);
   const rejectionId = (rejectedRequest.json() as { data: { id: number } }).data.id;
   const rejected = await app.inject({
     method: "PATCH",
@@ -237,6 +316,7 @@ test("closure requests await web approval before changing enquiry status", async
     .where("crm_enquiries.id", "=", rejectionEnquiryId)
     .executeTakeFirstOrThrow();
   assert.equal(remainsOpen.code, "new");
+  await assertPendingBadge(rejectionEnquiryId, false);
 
   const wonEnquiryId = await makeEnquiry("Status change comment e2e", openStatus.id);
   const won = await app.inject({

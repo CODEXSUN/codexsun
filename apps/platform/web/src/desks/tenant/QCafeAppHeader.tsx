@@ -19,6 +19,7 @@ import { cn } from "@codexsun/ui/lib/utils";
 
 const pages = {
   "qcafe.overview": { label: "POS", icon: Coffee, color: "bg-blue-600 text-white" },
+  "qcafe.kitchen": { label: "Kitchen", icon: UtensilsCrossed, color: "bg-teal-700 text-white" },
   "qcafe.kot": { label: "KOT", icon: ReceiptText, color: "bg-green-700 text-white" },
   "qcafe.take-away": {
     label: "Parcel - Take away",

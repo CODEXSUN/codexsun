@@ -8,6 +8,8 @@ export function PublicProducts({ companyUuid }: { companyUuid: string }) {
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setError("");
+    setProducts([]);
     publicProducts(companyUuid)
       .then((value) => {
         if (active) setProducts(value);
@@ -28,6 +30,8 @@ export function PublicProducts({ companyUuid }: { companyUuid: string }) {
         <p role="status">Loading products…</p>
       ) : error ? (
         <p role="alert">{error}</p>
+      ) : !products.length ? (
+        <p className="tc-product-empty">No products published yet. Ask this business about its current capabilities.</p>
       ) : (
         products.map((product) => (
           <article className="tc-public-product" key={product.uuid}>

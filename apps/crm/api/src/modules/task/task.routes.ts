@@ -9,6 +9,15 @@ import type { TaskContext } from "./task.types.js";
 const id = z.object({ id: z.coerce.number().int().positive() });
 const input = z
   .object({
+    contactId: z.number().int().positive().nullable().optional(),
+    capturedName: z.string().trim().max(191).nullable().optional(),
+    capturedPhone: z
+      .string()
+      .trim()
+      .regex(/^\d{10}$/, "Enter a 10-digit mobile number.")
+      .or(z.literal(""))
+      .nullable()
+      .optional(),
     title: z.string().trim().min(1).max(255),
     description: z.string().trim().max(10000).default(""),
     listInId: z.number().int().positive().nullable().default(null),
@@ -19,6 +28,9 @@ const input = z
   })
   .strict();
 const record = z.object({
+  contactId: z.number().nullable(),
+  contactName: z.string().nullable(),
+  contactPhone: z.string().nullable(),
   id: z.number(),
   uuid: z.string(),
   title: z.string(),

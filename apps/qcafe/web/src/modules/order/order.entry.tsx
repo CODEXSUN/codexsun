@@ -13,7 +13,8 @@ export function OrderEntry({
   enterCode,
   lastBill,
   onHistory,
-  leadingContent
+  leadingContent,
+  assignmentContent
 }: {
   available: MenuOption[];
   code: string;
@@ -26,6 +27,7 @@ export function OrderEntry({
   lastBill: LastBill | undefined;
   onHistory: () => void;
   leadingContent?: ReactNode;
+  assignmentContent?: ReactNode;
 }) {
   return (
     <footer className="qcafe-pos-entry">
@@ -50,6 +52,7 @@ export function OrderEntry({
         </section>
       )}
       <section className="qcafe-fast-entry" aria-label="Fast item entry">
+        {assignmentContent}
         <label>
           <span>
             {available.find((item) => item.code.toLowerCase() === code.toLowerCase())?.name ||
