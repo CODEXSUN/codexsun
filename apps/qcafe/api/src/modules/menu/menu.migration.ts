@@ -42,3 +42,11 @@ export async function migrateMenuImages(database: Kysely<QCafeDatabase>) {
     )
     .execute(database);
 }
+
+export async function migrateMenuSpecialPrices(database: Kysely<QCafeDatabase>) {
+  await sql
+    .raw(
+      "ALTER TABLE qcafe_menu ADD COLUMN IF NOT EXISTS special_prices LONGTEXT NOT NULL DEFAULT '[]' CHECK (JSON_VALID(special_prices))"
+    )
+    .execute(database);
+}

@@ -55,6 +55,17 @@ type OutstandingRow = {
 };
 
 export class DashboardRepository {
+  async currencies(databaseName: string) {
+    return (
+      await sql<{
+        id: number;
+        name: string;
+      }>`SELECT id,UPPER(name) AS name FROM core_currencies WHERE CHAR_LENGTH(name)=3 ORDER BY name,id`.execute(
+        await getBillingDatabase(databaseName)
+      )
+    ).rows;
+  }
+
   async context(databaseName: string, companyId?: number) {
     const database = await getBillingDatabase(databaseName);
     const scope = currentBillingScope();
@@ -97,14 +108,17 @@ export class DashboardRepository {
     `.execute(database);
     const value = result.rows[0]?.snapshot_json;
     if (!value) return null;
-    return typeof value === "string" ? (JSON.parse(value) as BillingDashboardSnapshot) : value;
+    const snapshot =
+      typeof value === "string" ? (JSON.parse(value) as BillingDashboardSnapshot) : value;
+    return snapshot.projectionVersion === 2 && snapshot.currencyCode === "INR" ? snapshot : null;
   }
 
   async rebuild(
     databaseName: string,
     companyId: number,
     financialYearId: number,
-    lastEventName = "billing.dashboard.bootstrap"
+    lastEventName = "billing.dashboard.bootstrap",
+    currencyCode = "INR"
   ) {
     const database = await getBillingDatabase(databaseName);
     const contextResult = await sql<ContextRow>`
@@ -119,13 +133,14 @@ export class DashboardRepository {
     if (!context) throw AppError.validation("Dashboard Company or Financial Year is inactive.");
 
     const [metricResult, monthlyResult, recentResult, outstandingResult] = await Promise.all([
-      metricQuery(database, companyId, financialYearId),
-      monthlyQuery(database, companyId, financialYearId),
-      recentQuery(database, companyId, financialYearId),
-      outstandingQuery(database, companyId, financialYearId)
+      metricQuery(database, companyId, financialYearId, currencyCode),
+      monthlyQuery(database, companyId, financialYearId, currencyCode),
+      recentQuery(database, companyId, financialYearId, currencyCode),
+      outstandingQuery(database, companyId, financialYearId, currencyCode)
     ]);
     const projectedAt = new Date().toISOString();
     const snapshot: BillingDashboardSnapshot = {
+      currencyCode,
       companyId,
       companyName: context.company_name,
       financialYearEnd: context.financial_year_end,
@@ -141,16 +156,18 @@ export class DashboardRepository {
       outstanding: outstandingResult.rows.map((row) => ({
         contactId: Number(row.contact_id),
         contactName: row.contact_name,
-        creditLimit: money(row.credit_limit),
+        creditLimit: currencyCode === "INR" ? money(row.credit_limit) : 0,
         direction: row.direction,
         grossAmount: money(row.gross_amount),
         outstandingAmount: money(row.outstanding_amount),
         overLimit:
-          money(row.credit_limit) > 0 && money(row.outstanding_amount) > money(row.credit_limit),
+          currencyCode === "INR" &&
+          money(row.credit_limit) > 0 &&
+          money(row.outstanding_amount) > money(row.credit_limit),
         settledAmount: money(row.settled_amount)
       })),
       projectedAt,
-      projectionVersion: 1,
+      projectionVersion: 2,
       recent: recentResult.rows.map((row) => ({
         amount: money(row.amount),
         contactName: row.contact_name,
@@ -161,10 +178,11 @@ export class DashboardRepository {
         status: row.status
       }))
     };
+    if (currencyCode !== "INR") return snapshot;
     await sql`
       INSERT INTO billing_dashboard_snapshots
         (company_id, financial_year_id, projection_version, snapshot_json, last_event_name, projected_at)
-      VALUES (${companyId}, ${financialYearId}, 1, ${JSON.stringify(snapshot)}, ${lastEventName}, ${projectedAt.slice(0, 23).replace("T", " ")})
+      VALUES (${companyId}, ${financialYearId}, 2, ${JSON.stringify(snapshot)}, ${lastEventName}, ${projectedAt.slice(0, 23).replace("T", " ")})
       ON DUPLICATE KEY UPDATE projection_version=VALUES(projection_version), snapshot_json=VALUES(snapshot_json),
         last_event_name=VALUES(last_event_name), projected_at=VALUES(projected_at)
     `.execute(database);
@@ -175,7 +193,8 @@ export class DashboardRepository {
 function metricQuery(
   database: Awaited<ReturnType<typeof getBillingDatabase>>,
   companyId: number,
-  financialYearId: number
+  financialYearId: number,
+  currencyCode: string
 ) {
   return sql<MetricRow>`
     SELECT kind, SUM(amount) AS total_value,
@@ -183,11 +202,11 @@ function metricQuery(
       SUM(CASE WHEN YEAR(tx_date)=YEAR(CURRENT_DATE()) AND MONTH(tx_date)=MONTH(CURRENT_DATE()) THEN amount ELSE 0 END) AS month_value,
       COUNT(*) AS count_value
     FROM (
-      SELECT 'sales' kind, company_id, financial_year_id, issued_on tx_date, amount FROM billing_sales WHERE status='confirmed' AND deleted_at IS NULL
-      UNION ALL SELECT 'sales', company_id, financial_year_id, issued_on, amount FROM billing_export_sales WHERE status='confirmed' AND deleted_at IS NULL
-      UNION ALL SELECT 'purchase', company_id, financial_year_id, purchase_date, amount FROM billing_purchases WHERE status='confirmed' AND deleted_at IS NULL
-      UNION ALL SELECT 'receipt', company_id, financial_year_id, receipt_date, total_amount FROM billing_receipts WHERE status='posted' AND deleted_at IS NULL
-      UNION ALL SELECT 'payment', company_id, financial_year_id, payment_date, total_amount FROM billing_payments WHERE status='posted' AND deleted_at IS NULL
+      SELECT 'sales' kind, company_id, financial_year_id, issued_on tx_date, amount FROM billing_sales WHERE currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND status='confirmed' AND deleted_at IS NULL
+      UNION ALL SELECT 'sales', company_id, financial_year_id, issued_on, amount FROM billing_export_sales WHERE currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND status='confirmed' AND deleted_at IS NULL
+      UNION ALL SELECT 'purchase', company_id, financial_year_id, purchase_date, amount FROM billing_purchases WHERE currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND status='confirmed' AND deleted_at IS NULL
+      UNION ALL SELECT 'receipt', company_id, financial_year_id, receipt_date, total_amount FROM billing_receipts WHERE currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND status='posted' AND deleted_at IS NULL
+      UNION ALL SELECT 'payment', company_id, financial_year_id, payment_date, total_amount FROM billing_payments WHERE currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND status='posted' AND deleted_at IS NULL
     ) transaction_values WHERE company_id=${companyId} AND financial_year_id=${financialYearId} GROUP BY kind
   `.execute(database);
 }
@@ -195,15 +214,16 @@ function metricQuery(
 function monthlyQuery(
   database: Awaited<ReturnType<typeof getBillingDatabase>>,
   companyId: number,
-  financialYearId: number
+  financialYearId: number,
+  currencyCode: string
 ) {
   return sql<MonthlyRow>`
     SELECT kind, DATE_FORMAT(tx_date, '%Y-%m-01') month_start, SUM(amount) amount FROM (
-      SELECT 'sales' kind, issued_on tx_date, amount FROM billing_sales WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND status='confirmed' AND deleted_at IS NULL
-      UNION ALL SELECT 'sales', issued_on, amount FROM billing_export_sales WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND status='confirmed' AND deleted_at IS NULL
-      UNION ALL SELECT 'purchase', purchase_date, amount FROM billing_purchases WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND status='confirmed' AND deleted_at IS NULL
-      UNION ALL SELECT 'receipt', receipt_date, total_amount FROM billing_receipts WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND status='posted' AND deleted_at IS NULL
-      UNION ALL SELECT 'payment', payment_date, total_amount FROM billing_payments WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND status='posted' AND deleted_at IS NULL
+      SELECT 'sales' kind, issued_on tx_date, amount FROM billing_sales WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND status='confirmed' AND deleted_at IS NULL
+      UNION ALL SELECT 'sales', issued_on, amount FROM billing_export_sales WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND status='confirmed' AND deleted_at IS NULL
+      UNION ALL SELECT 'purchase', purchase_date, amount FROM billing_purchases WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND status='confirmed' AND deleted_at IS NULL
+      UNION ALL SELECT 'receipt', receipt_date, total_amount FROM billing_receipts WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND status='posted' AND deleted_at IS NULL
+      UNION ALL SELECT 'payment', payment_date, total_amount FROM billing_payments WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND status='posted' AND deleted_at IS NULL
     ) transaction_values GROUP BY kind, DATE_FORMAT(tx_date, '%Y-%m-01')
   `.execute(database);
 }
@@ -211,20 +231,21 @@ function monthlyQuery(
 function recentQuery(
   database: Awaited<ReturnType<typeof getBillingDatabase>>,
   companyId: number,
-  financialYearId: number
+  financialYearId: number,
+  currencyCode: string
 ) {
   return sql<RecentRow>`
     SELECT kind, document_id, document_number, contact_name, document_date, amount, status FROM (
       SELECT 'sales' kind, s.uuid document_id, s.invoice_number document_number, c.name contact_name, DATE_FORMAT(s.issued_on, '%Y-%m-%d') document_date, s.amount, s.status, s.updated_at
-        FROM billing_sales s INNER JOIN core_contacts c ON c.id=s.customer_id WHERE s.company_id=${companyId} AND s.financial_year_id=${financialYearId} AND s.deleted_at IS NULL
+        FROM billing_sales s INNER JOIN core_contacts c ON c.id=s.customer_id WHERE s.company_id=${companyId} AND s.financial_year_id=${financialYearId} AND s.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND s.deleted_at IS NULL
       UNION ALL SELECT 'export-sales', s.uuid, s.invoice_number, c.name, DATE_FORMAT(s.issued_on, '%Y-%m-%d'), s.amount, s.status, s.updated_at
-        FROM billing_export_sales s INNER JOIN core_contacts c ON c.id=s.customer_id WHERE s.company_id=${companyId} AND s.financial_year_id=${financialYearId} AND s.deleted_at IS NULL
+        FROM billing_export_sales s INNER JOIN core_contacts c ON c.id=s.customer_id WHERE s.company_id=${companyId} AND s.financial_year_id=${financialYearId} AND s.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND s.deleted_at IS NULL
       UNION ALL SELECT 'purchase', p.uuid, p.purchase_number, c.name, DATE_FORMAT(p.purchase_date, '%Y-%m-%d'), p.amount, p.status, p.updated_at
-        FROM billing_purchases p INNER JOIN core_contacts c ON c.id=p.supplier_id WHERE p.company_id=${companyId} AND p.financial_year_id=${financialYearId} AND p.deleted_at IS NULL
+        FROM billing_purchases p INNER JOIN core_contacts c ON c.id=p.supplier_id WHERE p.company_id=${companyId} AND p.financial_year_id=${financialYearId} AND p.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND p.deleted_at IS NULL
       UNION ALL SELECT 'receipt', r.uuid, r.receipt_number, c.name, DATE_FORMAT(r.receipt_date, '%Y-%m-%d'), r.total_amount, r.status, r.updated_at
-        FROM billing_receipts r INNER JOIN core_contacts c ON c.id=r.customer_id WHERE r.company_id=${companyId} AND r.financial_year_id=${financialYearId} AND r.deleted_at IS NULL
+        FROM billing_receipts r INNER JOIN core_contacts c ON c.id=r.customer_id WHERE r.company_id=${companyId} AND r.financial_year_id=${financialYearId} AND r.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND r.deleted_at IS NULL
       UNION ALL SELECT 'payment', p.uuid, p.payment_number, c.name, DATE_FORMAT(p.payment_date, '%Y-%m-%d'), p.total_amount, p.status, p.updated_at
-        FROM billing_payments p INNER JOIN core_contacts c ON c.id=p.supplier_id WHERE p.company_id=${companyId} AND p.financial_year_id=${financialYearId} AND p.deleted_at IS NULL
+        FROM billing_payments p INNER JOIN core_contacts c ON c.id=p.supplier_id WHERE p.company_id=${companyId} AND p.financial_year_id=${financialYearId} AND p.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND p.deleted_at IS NULL
     ) recent_values ORDER BY updated_at DESC LIMIT 12
   `.execute(database);
 }
@@ -232,7 +253,8 @@ function recentQuery(
 function outstandingQuery(
   database: Awaited<ReturnType<typeof getBillingDatabase>>,
   companyId: number,
-  financialYearId: number
+  financialYearId: number,
+  currencyCode: string
 ) {
   return sql<OutstandingRow>`
     SELECT direction, contact_id, contact_name, credit_limit, SUM(gross_amount) gross_amount,
@@ -244,15 +266,22 @@ function outstandingQuery(
       LEFT JOIN (
         SELECT a.sales_id, SUM(a.allocated_amount) allocated_amount FROM billing_receipt_allocations a
         INNER JOIN billing_receipts r ON r.id=a.receipt_id
-          AND r.company_id=${companyId} AND r.financial_year_id=${financialYearId}
+          AND r.company_id=${companyId} AND r.financial_year_id=${financialYearId} AND r.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode})
           AND r.status='posted' AND r.deleted_at IS NULL GROUP BY a.sales_id
       ) a ON a.sales_id=s.id
-      WHERE s.company_id=${companyId} AND s.financial_year_id=${financialYearId} AND s.status='confirmed' AND s.deleted_at IS NULL
+      WHERE s.company_id=${companyId} AND s.financial_year_id=${financialYearId} AND s.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND s.status='confirmed' AND s.deleted_at IS NULL
       GROUP BY c.id, c.name, c.credit_limit
       UNION ALL
-      SELECT 'receivable', c.id, c.name, c.credit_limit, SUM(s.amount), 0
+      SELECT 'receivable', c.id, c.name, c.credit_limit, SUM(s.amount), SUM(COALESCE(a.allocated_amount,0))
       FROM billing_export_sales s INNER JOIN core_contacts c ON c.id=s.customer_id
-      WHERE s.company_id=${companyId} AND s.financial_year_id=${financialYearId} AND s.status='confirmed' AND s.deleted_at IS NULL
+      LEFT JOIN (
+        SELECT a.export_sales_id, SUM(a.allocated_amount) allocated_amount FROM billing_receipt_export_allocations a
+        INNER JOIN billing_receipts r ON r.id=a.receipt_id
+        WHERE r.company_id=${companyId} AND r.financial_year_id=${financialYearId}
+          AND r.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode})
+          AND r.status='posted' AND r.deleted_at IS NULL GROUP BY a.export_sales_id
+      ) a ON a.export_sales_id=s.id
+      WHERE s.company_id=${companyId} AND s.financial_year_id=${financialYearId} AND s.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND s.status='confirmed' AND s.deleted_at IS NULL
       GROUP BY c.id, c.name, c.credit_limit
       UNION ALL
       SELECT 'payable', c.id, c.name, c.credit_limit, SUM(p.amount), SUM(COALESCE(a.allocated_amount,0))
@@ -260,10 +289,10 @@ function outstandingQuery(
       LEFT JOIN (
         SELECT a.purchase_id, SUM(a.allocated_amount) allocated_amount FROM billing_payment_allocations a
         INNER JOIN billing_payments p ON p.id=a.payment_id
-          AND p.company_id=${companyId} AND p.financial_year_id=${financialYearId}
+          AND p.company_id=${companyId} AND p.financial_year_id=${financialYearId} AND p.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode})
           AND p.status='posted' AND p.deleted_at IS NULL GROUP BY a.purchase_id
       ) a ON a.purchase_id=p.id
-      WHERE p.company_id=${companyId} AND p.financial_year_id=${financialYearId} AND p.status='confirmed' AND p.deleted_at IS NULL
+      WHERE p.company_id=${companyId} AND p.financial_year_id=${financialYearId} AND p.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${currencyCode}) AND p.status='confirmed' AND p.deleted_at IS NULL
       GROUP BY c.id, c.name, c.credit_limit
     ) balances GROUP BY direction, contact_id, contact_name, credit_limit
     HAVING outstanding_amount > 0 ORDER BY outstanding_amount DESC LIMIT 12

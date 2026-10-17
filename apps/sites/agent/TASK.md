@@ -117,3 +117,127 @@ Verification evidence:
 - Original LogicX wording was restored and republished after the verification edit.
 
 Local development behavior is verified. Production hosting and durable content delivery remain planned.
+
+## Deployment preparation — 2026-10-17
+
+Implemented:
+
+- An authenticated export action with immutable MariaDB publication sequences and tenant/site-bound delivery identity.
+- Node/SQLite client packages with independent persistent content and enquiry storage.
+- Server-rendered and prerendered Home, About, Services, Contact, Blog, Privacy, and published article pages.
+- Sitemap and robots files, requested aliases, canonical and social metadata, favicons, manifests, and public light/dark logos.
+- Actual contact submission, validation, origin/body checks, consent, safe retry, rate limits, and 90-day retention.
+- Private enquiry listing/deletion and online SQLite backup commands.
+- Map loading on visitor request, directions links, and client-specific floating WhatsApp enquiries.
+- Core company phone import into the selected site's draft, without automatic tenant-company assignment.
+- LogicX phone and WhatsApp set to the user-approved +91 96552 27738. Its map uses company search, pending a precise address.
+- Ramu Tex retains its published brochure facts and company contact details.
+- Docker, nginx, systemd, environment examples, readiness output, and file checksum manifests.
+- Production build wrappers that prevent the development NODE_ENV from leaking development controls into release output.
+
+Verification includes isolated SQLite enquiry persistence, wrong-site/tenant checks, snapshot integrity, stale/conflicting imports, idempotency, rate limits, retention, and HTTP serving.
+Packaged server tests verify rendered HTML, metadata, assets, private-file denial, origin checks, restart persistence, and blog withdrawal.
+Browser checks verify contact validation and saving, map consent controls, WhatsApp links, canonical metadata, hydration, and responsive page widths.
+All browser test enquiries use temporary databases and are removed after verification.
+
+The prepared artifacts are local. No domain, certificate, external server, Docker engine, or systemd host was changed.
+Mail notification and automatic enquiry transfer back to Studio are not implemented.
+
+Final verification for this preparation:
+
+- 14 CMS, authorization, runtime, and live isolated MariaDB tests passed without skips.
+- Five SQLite unit tests and the packaged HTTP integration test passed.
+- Both packaged sites passed six-page mobile browser checks, hydration, contact saving, and WhatsApp link checks. Production pages exclude development controls.
+- Private status, enquiry listing, and SQLite backup commands passed against temporary databases.
+- Sites type checks and lint, Sites module boundaries, root dependency layout, generic template build with an explicit client slug, and Platform Web build passed.
+- The repository-wide component documentation check is blocked by missing documentation in unrelated apps/tconnect. Sites retains exactly its four required Markdown files.
+- Docker, nginx, systemd, public DNS/TLS, and external hosting remain unverified.
+
+## Client enquiries and LogicX software site — 2026-10-17
+
+Implemented inside Sites:
+
+- A private Enquiries tab for each saved client, connected to its tenant/site-specific SQLite store.
+- Search, status filters, pagination, detailed view, status editing, trash, restore, and actor activity.
+- Live per-action permission checks, exact storage namespace checks, revision conflicts, and private responses.
+- One shared enquiry persistence owner, a transactional SQLite v2 upgrade, and retention of existing visitor messages.
+- A new LogicX theme with software, Frappe/ERPNext, React, mobile, automation, integration, website, and support services.
+- Eight service detail pages, a support page, and 23 editable application descriptions and detail pages.
+- Application search and category filters, prefilled enquiries, Platform sign-in links, and shared route/sitemap coverage.
+- The local LogicX page is saved and published with 39 routes. Ramu Tex retains its six standard routes.
+- Repeated Start handles a busy dependency build. Source previews load the shared TypeScript enquiry runtime.
+
+Verification evidence:
+
+- Seventeen API CMS, identity, publication, enquiry, startup, and isolated MariaDB tests passed without skips.
+- Five SQLite submission and delivery tests passed. The packaged HTTP integration test passed.
+- Browser verification submitted an enquiry to each live client and checked its own Studio inbox, view, status, trash, and restore.
+- Cross-client detail access returned 404. Saved status and activity were checked through the protected API.
+- Only verification enquiries were removed after the live checks. Existing client enquiries were preserved.
+- All 39 LogicX and six Ramu Tex routes passed rendered HTML, canonical metadata, sitemap, hydration, and mobile-width checks.
+- Application search and Finance filtering passed. An unknown production application path returned 404.
+- Sites builds, type checks, lint, module boundaries, dependency layout, component documentation checks, and documentation tests passed.
+
+The Studio inbox supports local or attached SQLite data directories. Remote-host transport and Cloudflare D1 are not implemented.
+No app entitlements, production DNS, certificates, or external deployment were changed.
+
+Final presentation checks: Platform Web production build passed. LogicX registry details now use LogicX Software.
+The Enquiries controls use Sites-scoped theme colors for readable search, filters, and pagination.
+The workspace test command loads the root environment so opt-in MariaDB tests also run through npm workspaces.
+Both local previews remain on 7131 and 7132. Updated release archives are under root dist.
+
+2026-10-17: Restyled all LogicX pages with white and green sections, outlined service cards, original laptop artwork, a company approach band, and a charcoal footer. Verified 39 routes on desktop and mobile, successful contact submission, and no browser errors. Client typecheck, lint, production packaging, and both-client packaged HTTP/SQLite checks passed.
+
+2026-10-17: Replaced LogicX service cards with spacious minimal portfolio rows on Home and Services. Original local software previews appear on hover and keyboard focus, remain visible on touch screens, and respect reduced motion. Service content and detail links remain connected to the published page data.
+Verification: client typecheck, lint, production build, and packaging passed. Browser checks passed for all eight service links, hidden/revealed previews, keyboard focus, loaded images, mobile preview visibility, overflow, and browser errors.
+
+2026-10-17: Added eight distinct local SVG service illustrations and smoother eased fade/slide previews. Expanded the LogicX homepage with a workflow consultation banner, three engagement options, four industry use cases, an application discovery banner, and five native expandable FAQs. Enquiry calls to action prefill the existing contact form. These new marketing sections are template content; existing service and application data still comes from the published Studio projection. Verified loaded images, hover/focus, responsive widths, reduced motion, FAQ expansion, CTA prefilling, typecheck, lint, and production packaging.
+
+2026-10-17: Fixed local client preview HTTP 431 errors by setting a bounded 256 KiB Node header limit in the LogicX, Ramu Tex, and standard portfolio dev scripts and Studio runtime launch. All five runtime tests passed, including a real request with a 32 KiB cookie header.
+
+
+2026-10-17: Completed the corrected abstract green LogicX design and replaced the masterplan reference image.
+All implementation remains inside Sites. The design includes a tilted software panel, curved service carousel, dark approach section, catalogue, workflow examples, industries, engagement options, FAQ, CTA, and footer.
+All new marketing sections now use an optional typed Page content field and a matching Studio editor.
+Existing service descriptions, applications, profile, hero, approach, blogs, and contact data retain their Page and Blog owners.
+No SQL alteration is required. Legacy content without marketing fields remains valid.
+
+Verification:
+
+- Sites API, Web, and Clients type checks and lint passed. API and Web builds passed.
+- The composed Platform Web production build passed without Platform source changes.
+- Fourteen CMS, identity, publication, enquiry, schema, and isolated MariaDB tests passed without skips.
+- Five client startup tests and five client SQLite tests passed. Both-client packaged HTTP integration passed.
+- All 39 LogicX routes passed rendered browser checks. Homepage overflow checks passed at 360, 390, 768, 1024, and 1440 px.
+- Carousel controls, mobile navigation Escape behavior, public form submission, and prefilled enquiry passed.
+- Live Studio editing, save, publish, public client delivery, original heading restoration, and reload persistence passed.
+- A live form enquiry reached its own SQLite inbox. Status update, trash, and wrong-client 404 passed.
+- Only the verification enquiry was trashed. Ramu Tex page data remained unchanged.
+- Module boundaries and component documentation passed.
+
+The dependency-layout check remains blocked by pre-existing `apps/sites/clients/dist`, `apps/sites/web/dist`, and `apps/tconnect/web/dist` folders.
+Formal field performance and external deployment checks were not run.
+The prior LogicX release archive was preserved under root dist for rollback.
+Final Studio polish: image and service controls show friendly choices. Browser selection and restoration passed. The composed production build passed again after this editor change. The package uses the latest exported publication, and the live 7131 reader returned its published marketing content.
+
+2026-10-17: Integrated the user-supplied LogicX SVG mark from logo 2.svg. Preserved its three paths and navy/blue colors. Added branded header and footer lockups, a light footer variant, dashboard mark, favicons, app icons, and sharing image. The deploy asset generator reads the Sites-owned vector source so builds retain it. Client typecheck, lint, packaging, and desktop/mobile browser branding checks passed. No page content or enquiry data changed.
+
+### 2026-10-17 — LogicX logo palette
+- Applied approved forest green (#004632) and mint (#60DFA0) to generated logos, marks, favicons, app icons and sharing image. Original SVG geometry and master remain preserved.
+- Verified deployment build, all branding assets, desktop/mobile rendering and browser errors with the packaged runtime.
+
+
+2026-10-17: Matched Platform public-page interaction tone in LogicX. Hero text cycles through the saved hero and first two service descriptions while visual and CTAs stay fixed. Trusted technologies now uses a full-width labelled marquee from saved marketing data. Added slide selection, pause, focus/hover pause and reduced-motion support. Client typecheck/lint and packaged desktop/mobile checks passed, including slide selection and reduced-motion marquee behaviour. All source changes remain in apps/sites.
+
+
+2026-10-17: Removed shared title-row spacing from hero slides. Each description follows its own heading with a consistent 20px gap; overlaid slides retain stable overall height. Updated hero headings to Segoe UI Display with medium weight and balanced wrapping. Packaged browser checks verified all three slides at 1280, 768 and 390px: stable CTA position, consistent heading/description gaps, two-line descriptions and no horizontal overflow. Screenshots reviewed locally.
+
+
+2026-10-17: Replaced positional technology symbols with explicit name-to-logo mapping for Frappe, ERPNext, React, Tailwind CSS, Python and Node.js. Vendor SVGs are stored locally in public/logicx/technologies; sources.json records official upstream URLs. Unmapped technology names display text only. Typecheck, lint, deployment build and packaged browser checks passed for all six loaded logos and mobile overflow.
+
+
+2026-10-17: Services carousel shows four full cards and 20 percent of the fifth on desktop. At the end it shows the previous card peek on the left, with boundary arrows disabled correctly. Replaced positional service icons with name-based mappings and official Frappe, ERPNext and React assets. Packaged browser geometry checks, logo loading, desktop screenshot and mobile overflow checks passed; typecheck and lint passed.
+
+
+2026-10-17: Added 20px desktop service-card gaps, more heading/card padding and section breathing room. Preserved four full cards plus 20 percent preview and boundary controls. Added once-only scroll reveals, hover lift, border/shadow and link-arrow motion with reduced-motion support. Packaged geometry, hover/reveal, responsive and browser-error checks passed; client typecheck and lint passed.
+

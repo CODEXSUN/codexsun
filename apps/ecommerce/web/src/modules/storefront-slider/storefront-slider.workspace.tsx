@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { useWorkspaceQueryValue, useWorkspaceRecordSelection } from "@codexsun/ui/workspace/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, Plus, RefreshCw } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { StorefrontSliderForm } from "./storefront-slider.form";
 import { storefrontSliderQueryKey, useStorefrontSliders } from "./storefront-slider.hooks";
-import { StorefrontSliderList } from "./storefront-slider.list";
+import { StorefrontSliderList, storefrontsliderListColumns, storefrontsliderListValues } from "./storefront-slider.list";
 import {
   changeStorefrontSliderStatus,
   createStorefrontSlider,
@@ -18,16 +19,19 @@ import { invalidateStorefrontClientCache } from "../storefront";
 import { StorefrontSectionSwitch } from "../catalog-data-source";
 import type {
   StorefrontSliderPayload,
-  StorefrontSliderRecord,
-  StorefrontSliderStatus
+  StorefrontSliderRecord
 } from "./storefront-slider.types";
 
 export function StorefrontSliderWorkspace() {
+  const listTools = useWorkspaceListTools(storefrontsliderListColumns);
+  const [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all");
   const client = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [status] = useState<StorefrontSliderStatus | undefined>();
-  const [editing, setEditing] = useState<StorefrontSliderRecord | null | undefined>();
-  const query = useStorefrontSliders(search, status);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+
+
+  const query = useStorefrontSliders(search);
+  const records = (query.data ?? []).filter((record) => (statusFilter === "all" || record.status === statusFilter) && listTools.matches(storefrontsliderListValues(record)));
+  const [editing, setEditing] = useWorkspaceRecordSelection<StorefrontSliderRecord>(query.data ?? [], (record) => String(record.id));
   const refresh = () => {
     invalidateStorefrontClientCache();
     return client.invalidateQueries({ queryKey: storefrontSliderQueryKey });
@@ -66,7 +70,7 @@ export function StorefrontSliderWorkspace() {
       />
     );
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Home Slider"
       description="Manage locally stored storefront slides and refresh their linked items and source documents from Frappe."
       actions={
@@ -76,10 +80,7 @@ export function StorefrontSliderWorkspace() {
             <Download className="size-4" />
             {pull.isPending ? "Pulling..." : "Pull from Frappe"}
           </Button>
-          <Button variant="outline" onClick={() => void query.refetch()}>
-            <RefreshCw className="size-4" />
-            Refresh
-          </Button>
+          
           <Button onClick={() => setEditing(null)}>
             <Plus className="size-4" />
             New
@@ -88,13 +89,20 @@ export function StorefrontSliderWorkspace() {
       }
     >
       <WorkspaceFilters
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
+        filterValue={statusFilter}
+        onFilterValueChange={setStatusFilter}
+        filterOptions={[{ id: "all", label: "All statuses" },{ id: "active", label: "Active", count: (query.data ?? []).filter((record) => record.status === "active").length },{ id: "inactive", label: "Inactive", count: (query.data ?? []).filter((record) => record.status === "inactive").length }]} 
         searchPlaceholder="Search slider code, title, or Frappe item"
         searchValue={search}
         onSearchValueChange={setSearch}
       />
       <StorefrontSliderList
+        listTools={listTools}
         loading={query.isLoading}
-        records={query.data ?? []}
+        records={records}
         onEdit={setEditing}
         onStatus={(record) => changeStatus.mutate(record)}
       />

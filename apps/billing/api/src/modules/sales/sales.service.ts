@@ -1,4 +1,3 @@
-import { loadComplianceParties } from "./sales.compliance-parties.js";
 import { AppError } from "@codexsun/framework/errors";
 import { assertBillingEntryEditable } from "../../auth/billing-scope.js";
 import { billingDashboardProjection } from "../dashboard/index.js";
@@ -16,7 +15,6 @@ import type {
   SaleLineItemInput,
   SaleSavePayload
 } from "./sales.types.js";
-import { generateSaleEinvoice, generateSaleEway } from "./whitebooks.client.js";
 
 export class SalesService {
   quotationLinkCandidates(
@@ -49,6 +47,14 @@ export class SalesService {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      quantitySearch?: string;
+      taxableSearch?: string;
+      taxSearch?: string;
     }
   ) {
     return this.repository.listPage(databaseName, query);
@@ -198,6 +204,10 @@ export class SalesService {
     const current = await this.repository.get(databaseName, id);
     if (!current) return null;
     if (current.status !== "draft") throw AppError.conflict("Only draft sales can be confirmed.");
+    if (current.currencyCode.toUpperCase() !== "INR")
+      throw AppError.validation(
+        "Normal sales use INR only. Use Export Sales for other currencies."
+      );
     if (!current.items.length)
       throw AppError.conflict("Add at least one sale item before confirming.");
     const sale = await this.repository.setStatus(databaseName, id, "confirmed");
@@ -243,44 +253,6 @@ export class SalesService {
     return current;
   }
 
-  async generateEinvoice(databaseName: string, id: string, _details?: SaleEinvoiceDetails) {
-    let sale = await this.repository.get(databaseName, id);
-    if (!sale) return null;
-    const settings = await this.settings.getBillingSettings(databaseName, sale.companyId);
-    if (!settings.layout.useEinvoice)
-      throw AppError.conflict("E-invoice is disabled for this company.");
-    if (sale.status !== "confirmed")
-      throw AppError.conflict("Confirm the sale before generating an E-invoice.");
-    if (sale.einvoice.irn) return sale;
-    const result = await generateSaleEinvoice(
-      sale,
-      await loadComplianceParties(databaseName, sale)
-    );
-    return this.repository.updateCompliance(databaseName, id, {
-      einvoice: { ...sale.einvoice, ...result.einvoice, status: "generated" }
-    });
-  }
-
-  async generateEway(databaseName: string, id: string, details?: SaleEwayDetails, distanceKm = 0) {
-    let sale = await this.repository.get(databaseName, id);
-    if (!sale) return null;
-    const settings = await this.settings.getBillingSettings(databaseName, sale.companyId);
-    if (!settings.layout.useEway) throw AppError.conflict("E-way is disabled for this company.");
-    if (sale.status !== "confirmed")
-      throw AppError.conflict("Confirm the sale before generating an E-way bill.");
-    if (sale.eway.billNo && sale.eway.status === "generated") return sale;
-    if (details)
-      sale = { ...sale, eway: { ...details, billNo: "", billDate: "", status: "not-generated" } };
-    const result = await generateSaleEway(
-      sale,
-      await loadComplianceParties(databaseName, sale),
-      distanceKm
-    );
-    return this.repository.updateCompliance(databaseName, id, {
-      eway: { ...sale.eway, ...result.eway, status: "generated" }
-    });
-  }
-
   async clearEinvoice(databaseName: string, id: string) {
     const sale = await this.repository.get(databaseName, id);
     if (!sale) return null;
@@ -313,7 +285,8 @@ export class SalesService {
       !references.shippingAddress && "Shipping address must belong to an active contact.",
       !references.workOrder && "Work order is inactive or missing.",
       !references.ledger && "Sales ledger is inactive or missing.",
-      !references.currency && "Currency is inactive or missing."
+      !references.currency &&
+        "Normal sales require an active INR currency. Use Export Sales for other currencies."
     ].filter((message): message is string => Boolean(message));
     if (failures.length) throw AppError.validation(failures[0]!);
 
@@ -349,6 +322,8 @@ export function normalizeSaleInput(
   input: SaleSavePayload,
   options: { allowAutomaticNumber?: boolean } = {}
 ): SaleSavePayload {
+  if (input.currencyCode.trim().toUpperCase() !== "INR")
+    throw AppError.validation("Normal sales use INR only. Use Export Sales for other currencies.");
   const items = input.items
     .map(normalizeSaleLineItem)
     .filter((item) => (item.productId || (item.productName?.length ?? 0) > 0) && item.quantity > 0);
@@ -377,7 +352,7 @@ export function normalizeSaleInput(
     billingAddress: input.billingAddress.trim(),
     billingAddressId: input.billingAddressId,
     companyId: input.companyId,
-    currencyCode: input.currencyCode.trim().toUpperCase() || "INR",
+    currencyCode: "INR",
     currencyId: input.currencyId,
     customerEmail: input.customerEmail.trim().toLowerCase(),
     customerId: input.customerId,

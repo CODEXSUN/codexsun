@@ -4,7 +4,7 @@ import type { ContactAddress, ContactSavePayload } from "./contact.types";
 const nullableText = z.string().trim().nullable();
 const nullableId = z.number().int().positive().nullable();
 
-export const contactSchema = z.object({
+const contactBaseSchema = z.object({
   code: z
     .string()
     .trim()
@@ -95,9 +95,44 @@ export const contactSchema = z.object({
   )
 });
 
-export const contactCreateSchema = contactSchema.extend({
-  code: contactSchema.shape.code.or(z.literal(""))
-});
+export const contactSchema = contactBaseSchema.superRefine(validateMobileNumbers);
+export const contactCreateSchema = contactBaseSchema
+  .extend({
+    code: contactBaseSchema.shape.code.or(z.literal(""))
+  })
+  .superRefine(validateMobileNumbers);
+
+function validateMobileNumbers(value: ContactSavePayload, context: z.RefinementCtx) {
+  const mobiles = value.phones.filter((phone) => ["Mobile", "WhatsApp"].includes(phone.phoneType));
+  if (!mobiles.length)
+    context.addIssue({
+      code: "custom",
+      path: ["phones"],
+      message: "Add at least one mobile number."
+    });
+  const seen = new Set<string>();
+  value.phones.forEach((phone, index) => {
+    if (["Mobile", "WhatsApp"].includes(phone.phoneType) && !/^\d{10}$/.test(phone.phone))
+      context.addIssue({
+        code: "custom",
+        path: ["phones", index, "phone"],
+        message: "Enter a 10-digit mobile number."
+      });
+    if (seen.has(phone.phone))
+      context.addIssue({
+        code: "custom",
+        path: ["phones", index, "phone"],
+        message: "This number is already added to this customer."
+      });
+    seen.add(phone.phone);
+  });
+  if (value.phones.filter((phone) => phone.isPrimary).length !== 1)
+    context.addIssue({
+      code: "custom",
+      path: ["phones"],
+      message: "Choose one primary phone number."
+    });
+}
 
 export function preserveOptionalTextInput(value: string) {
   return value === "" ? null : value;

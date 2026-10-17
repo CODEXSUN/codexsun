@@ -9,3 +9,5 @@ export type {
   TenantRolePermissionSavePayload,
   TenantRolePermissionStatus
 } from "./tenant-role-permission.types.js";
+
+export { grantPortalRolePermissions } from "./tenant-role-permission.portal.js";

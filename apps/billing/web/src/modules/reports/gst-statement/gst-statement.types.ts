@@ -50,6 +50,7 @@ export type GstStatementFilingPayload = Omit<GstStatementFiling, "updatedAt"> & 
 };
 
 export type GstStatement = {
+  currencyCode: string;
   availableYears: number[];
   companyGstin: string;
   companyId: number;

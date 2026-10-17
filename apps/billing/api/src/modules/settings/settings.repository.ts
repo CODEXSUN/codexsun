@@ -33,7 +33,7 @@ type BillingSettingsDatabase = {
 };
 
 export class BillingSettingsRepository {
-  async getBillingSettings(databaseName: string, companyId: number) {
+  async getBillingSettings(databaseName: string, companyId: number): Promise<BillingSettings> {
     await this.assertCompany(databaseName, companyId);
     const companyRow = await (
       await database(databaseName)
@@ -53,7 +53,19 @@ export class BillingSettingsRepository {
       .where("settings_key", "=", "billing")
       .executeTakeFirst();
     const settings = row ? normalizeSettings(row.settings_json) : defaultBillingSettings;
-    return this.saveBillingSettings(databaseName, companyId, settings);
+    await (
+      await database(databaseName)
+    )
+      .insertInto("billing_company_settings")
+      .values({
+        company_id: companyId,
+        settings_key: "billing",
+        settings_json: JSON.stringify(settings),
+        uuid: publicUuid()
+      })
+      .onDuplicateKeyUpdate({ company_id: companyId })
+      .execute();
+    return this.getBillingSettings(databaseName, companyId);
   }
 
   async saveBillingSettings(databaseName: string, companyId: number, input: BillingSettings) {

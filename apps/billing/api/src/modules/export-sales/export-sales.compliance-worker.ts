@@ -49,6 +49,7 @@ export async function processExportSalesComplianceJob(
       complianceLease: lease
     },
     async () => {
+      let providerOutcomeKnown = Boolean(claim.result);
       try {
         await authorize(databaseName, job.actorEmail);
         const current = await new ExportSalesRepository().get(databaseName, job.invoiceUuid);
@@ -57,6 +58,7 @@ export async function processExportSalesComplianceJob(
         // Recorded outcomes are replayed locally after a process restart; no second provider write.
         const result =
           claim.result ?? (await runExportSalesComplianceProvider(snapshot, job.action));
+        providerOutcomeKnown = true;
         await jobs.saveResult(databaseName, uuid, lease, result);
         const patch = resultSchema.parse({
           ...result,
@@ -77,6 +79,7 @@ export async function processExportSalesComplianceJob(
         const message = error instanceof Error ? error.message : "Compliance processing failed.";
         // Definitive validation/rejection is safe to fix. Unknown submission outcomes stay locked.
         const definitive =
+          !providerOutcomeKnown &&
           (!snapshot.reconcileOnly ||
             (job.action.endsWith(".cancel") &&
               /Provider (IRN|E-way bill) is still active/.test(message))) &&

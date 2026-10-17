@@ -1,6 +1,34 @@
 # CRM
 
+## Frappe reference and comparison
+
+Use [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git) for custom Frappe schemas and functions.
+Read the [CRM comparison](agent/FRAPPE-COMPARISON.md) and
+[complete DocType catalogue](../frappe/agent/LOGICX-CRM-REFERENCE.md) for the reviewed source snapshot.
+CRM remains locally authoritative. Reference parity does not authorize additional outbound integration.
+See the [implemented Duty bindings](../frappe/agent/CRM-DUTY-FIELD-MAPPING.md) for frequency, Department, Employee, and report fields.
+Run `npm run test:crm-frappe` for CRM/Frappe unit tests and isolated Duty API/database E2E.
+
 ## Component documentation
+
+### Mobile customer form
+
+The first tab shows mobile number and customer name on the left, with code and contact type on the right.
+Active status appears below.
+New numbers default to Mobile and primary. Only Details is currently visible. Additional details, Tax Details, Communication, Addresses, Finance, and More are hidden.
+Hidden fields remain in the save payload so edits preserve their data.
+New contacts default to the saved Customer type. Users can add numbers and select one primary phone.
+Create and edit require a 10-digit Mobile or WhatsApp number.
+The form and CRM API reject duplicate numbers within one customer and invalid primary selections.
+Different customer names or groups can share a mobile number.
+Core rejects the same name and phone combination within one group, including simultaneous saves.
+Core saves identity and phone rows. Existing email, tax, address, and finance fields remain available.
+Imported customer codes are read-only to preserve the Frappe customer link.
+These saves change local data. They do not write to Frappe.
+
+Run `npm run test:e2e:crm-contact-upsert` for the isolated create, reload, edit, validation, and authorization checks.
+The test uses the form schemas, CRM routes, Core routes, and a disposable database.
+It does not certify browser interaction or deployment.
 
 Local enquiries, contact activity, follow-up tasks, SOPs, duty assignments, and duty reporting across web and mobile.
 

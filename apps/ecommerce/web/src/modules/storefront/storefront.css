@@ -511,9 +511,16 @@
   max-width: 1440px;
   padding: 0 clamp(20px, 5vw, 72px);
 }
+.cx-store .public-article-cover {
+  background: #fff;
+  object-fit: contain;
+}
 .cx-store__section-boundary {
   min-width: 0;
   position: relative;
+}
+.cx-store__section-boundary:empty {
+  display: none;
 }
 .cx-store__section-boundary + .cx-store__section-boundary {
   padding-top: 36px;
@@ -551,7 +558,7 @@
   display: grid;
   gap: 60px;
   grid-template-columns: 1fr 1fr;
-  height: 590px;
+  min-height: 590px;
   margin-left: calc(50% - 50vw);
   overflow: hidden;
   padding: 56px max(clamp(20px, 5vw, 72px), calc((100vw - 1440px) / 2 + 72px));
@@ -572,14 +579,6 @@
   z-index: 2;
   pointer-events: none;
 }
-.cx-store__hero-aurora::after {
-  content: "";
-  position: absolute;
-  inset: clamp(40px, 10vw, 144px);
-  border-radius: 48px;
-  background: rgb(255 255 255 / 50%);
-  filter: blur(36px);
-}
 .cx-store__hero span,
 .cx-store__section-title span {
   color: #475467;
@@ -589,26 +588,20 @@
   text-transform: uppercase;
 }
 .cx-store__hero h1 {
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  display: -webkit-box;
+  min-height: 2em;
+  overflow-wrap: anywhere;
   font-size: clamp(42px, 5vw, 76px);
   letter-spacing: -0.055em;
   line-height: 0.98;
   margin: 16px 0 24px;
   max-width: 720px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .cx-store__hero p {
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
+  min-height: 3.3em;
   color: var(--muted);
-  display: -webkit-box;
   font-size: 18px;
   line-height: 1.65;
   max-width: 620px;
-  overflow: hidden;
 }
 .cx-store__hero a,
 .cx-detail button,
@@ -630,8 +623,23 @@
   box-sizing: border-box;
   height: 464px;
   overflow: visible;
-  padding: clamp(16px, 2vw, 26px) clamp(16px, 2vw, 26px) 42px;
+  padding: 4px clamp(16px, 2vw, 26px) 40px;
   position: relative;
+}
+.cx-store__hero-image-base {
+  position: relative;
+  z-index: 3;
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+  box-sizing: border-box;
+  padding: clamp(16px, 2vw, 28px);
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(16 24 40 / 8%);
+  border: 1px solid rgb(16 24 40 / 6%);
+  overflow: hidden;
 }
 .cx-store__hero img {
   position: relative;
@@ -642,20 +650,21 @@
   height: 100%;
   object-fit: contain;
   object-position: center;
-  width: auto;
-  max-width: 82%;
+  width: 100%;
+  max-width: 100%;
   margin-inline: auto;
 }
 .cx-store__hero-bullets {
   z-index: 3;
   align-items: center;
   background: transparent;
-  bottom: 20px;
+  bottom: 8px;
   display: flex;
   gap: 9px;
   justify-content: center;
   position: absolute;
-  right: 22px;
+  left: 0;
+  right: 0;
 }
 .cx-store__hero-bullets button {
   background: #c4cbd4;
@@ -1112,7 +1121,7 @@
 .cx-store__promotion-grid {
   display: grid;
   gap: 18px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 .cx-store__promotion-card {
   background: #fff;
@@ -1139,7 +1148,7 @@
   background: #fff;
   display: block;
   overflow: hidden;
-  padding: 10px;
+  padding: 44px 16px;
   position: relative;
 }
 .cx-store__promotion-media img {
@@ -1147,7 +1156,7 @@
   border-radius: 8px;
   box-sizing: border-box;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
   transition: transform 0.35s ease;
   width: 100%;
 }
@@ -1156,11 +1165,11 @@
 }
 .cx-store__promotion-saving {
   background: #fff;
-  bottom: 12px;
+  top: 14px;
+  right: 14px;
   color: #067647;
   font-size: 13px;
   font-weight: 700;
-  left: 12px;
   padding: 7px 9px;
   position: absolute;
 }
@@ -1256,54 +1265,51 @@
   transform: translateY(1px);
 }
 .cx-store__campaign-banner {
-  background: #741f32;
-  color: #fff;
-  height: 520px;
-  margin-left: calc(50% - 40vw);
-  margin-top: 68px;
-  overflow: hidden;
-  width: 80vw;
+  color: var(--ink);
+  width: 100%;
 }
 .cx-store__campaign-panels {
   display: grid;
+  gap: 24px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  height: 412px;
 }
 .cx-store__campaign-panels.is-1 {
   grid-template-columns: 1fr;
 }
 .cx-store__campaign-panels > a {
-  background: #f1ede5;
-  color: #111827;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   overflow: hidden;
   position: relative;
   text-decoration: none;
 }
 .cx-store__campaign-panels > a + a {
-  background: #87293b;
-  color: #fff;
+  background: #f5f4f8;
+}
+.cx-store__campaign-image {
+  background: #fff;
+  height: clamp(240px, 22vw, 300px);
+  min-width: 0;
+  padding: 4px;
 }
 .cx-store__campaign-panels img {
   display: block;
   height: 100%;
   object-fit: contain;
-  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
   width: 100%;
 }
-.cx-store__campaign-panels > a:hover img {
-  transform: scale(1.025);
-}
 .cx-store__campaign-copy {
-  background: linear-gradient(180deg, transparent, rgba(15, 23, 42, 0.88));
-  bottom: 0;
-  color: #fff;
-  display: grid;
-  gap: 8px;
-  left: 0;
-  padding: clamp(70px, 8vw, 130px) clamp(24px, 4vw, 62px) clamp(26px, 4vw, 54px);
-  position: absolute;
-  right: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(22px, 2.5vw, 32px);
+  overflow-wrap: anywhere;
 }
 .cx-store__campaign-copy small {
   font-size: 12px;
@@ -1311,10 +1317,17 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.cx-store__campaign-copy strong {
-  font-size: clamp(25px, 3vw, 46px);
+.cx-store__campaign-copy h2 {
+  font-size: clamp(26px, 2.4vw, 36px);
   letter-spacing: -0.04em;
-  line-height: 1.02;
+  line-height: 1.12;
+  margin: 0;
+}
+.cx-store__campaign-copy p {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0;
 }
 .cx-store__campaign-copy > span {
   align-items: center;
@@ -1322,7 +1335,8 @@
   font-size: 14px;
   font-weight: 700;
   gap: 8px;
-  margin-top: 5px;
+  margin-top: auto;
+  padding-top: 8px;
 }
 .cx-store__campaign-copy svg {
   height: 16px;
@@ -1331,21 +1345,31 @@
 .cx-store__campaign-benefits {
   align-items: center;
   display: grid;
-  gap: 22px;
+  background: #f8fafc;
+  border-radius: 16px;
+  gap: 20px;
   grid-template-columns: 1.35fr repeat(3, 1fr);
-  margin: auto;
+  margin-top: 24px;
   max-width: 1440px;
-  height: 108px;
-  padding: 24px clamp(20px, 5vw, 72px);
+  padding: 24px;
 }
 .cx-store__campaign-benefits strong {
-  font-size: 20px;
+  font-size: 18px;
 }
 .cx-store__campaign-benefits span {
-  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  align-items: center;
+  display: flex;
+  gap: 10px;
   font-size: 14px;
   font-weight: 650;
-  padding-left: 22px;
+  line-height: 1.5;
+  min-width: 0;
+}
+.cx-store__campaign-benefits svg {
+  color: #0f766e;
+  flex-shrink: 0;
+  height: 18px;
+  width: 18px;
 }
 .cx-store__campaigns-events {
   padding: 82px 0 48px;
@@ -1440,9 +1464,12 @@
   position: relative;
 }
 .cx-store__campaign-card img {
+  position: absolute;
+  inset: 0;
   display: block;
   height: 100%;
   object-fit: contain;
+  padding: 16px;
   transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
   width: 100%;
 }
@@ -1616,7 +1643,7 @@
 }
 .cx-store__blog-solution-media {
   aspect-ratio: 16/8;
-  background: #e8e0d2;
+  background: #fff;
   display: grid;
   border-radius: 10px;
   overflow: hidden;
@@ -1624,8 +1651,12 @@
   position: relative;
 }
 .cx-store__blog-solution-media img {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 12px;
   transition: transform 0.45s ease;
   width: 100%;
 }
@@ -1904,7 +1935,7 @@
 .cx-product-card__image {
   background: #fff;
   overflow: hidden;
-  padding: 10px;
+  padding: 40px 16px 16px;
   position: relative;
 }
 .cx-product-card__image img {
@@ -1912,7 +1943,7 @@
   border-radius: 8px;
   box-sizing: border-box;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
   transition: transform 0.35s;
   width: 100%;
 }
@@ -1933,6 +1964,7 @@
   display: grid;
   gap: 8px;
   padding: 16px;
+  overflow-wrap: anywhere;
 }
 .cx-product-card small,
 .cx-product-card p {
@@ -2170,7 +2202,7 @@
   align-items: center;
   background: #111827;
   border: 0;
-  bottom: 22px;
+  bottom: 110px;
   color: #fff;
   display: flex;
   height: 44px;
@@ -2922,7 +2954,7 @@
   }
   .cx-store__hero {
     gap: 30px;
-    height: 820px;
+    min-height: 0;
     padding-bottom: 44px;
     padding-top: 44px;
   }
@@ -2989,14 +3021,14 @@
   .cx-store__section-boundary + .cx-store__section-boundary {
     padding-top: 20px;
   }
-  [data-storefront-section="storefront.home.trust"],
-  [data-storefront-section="storefront.home.season"],
-  [data-storefront-section="storefront.home.service-banner"],
-  [data-storefront-section="storefront.home.closing-cta"] {
-    display: none;
-  }
   [data-storefront-section="storefront.home.catalog"] .cx-store__collection-filter {
     display: none;
+  }
+  [data-storefront-section="storefront.home.catalog"] .cx-store__catalog {
+    padding-top: 12px;
+  }
+  .cx-store__section-boundary[data-storefront-section="storefront.home.catalog"] {
+    padding-top: 8px;
   }
   .cx-store__campaigns-events {
     padding: 60px 0 34px;
@@ -3232,10 +3264,11 @@
     width: 100%;
   }
   .cx-store__hero {
-    gap: 20px;
-    height: clamp(600px, calc(100svh - 96px), 690px);
+    gap: 12px;
+    height: auto;
+    grid-template-rows: auto auto;
     margin-left: -16px;
-    padding: 28px 16px;
+    padding: 24px 16px 4px;
     width: calc(100% + 32px);
   }
   .cx-store__hero h1 {
@@ -3245,7 +3278,7 @@
     margin-top: 12px;
   }
   .cx-store__hero p {
-    -webkit-line-clamp: 3;
+    min-height: 3em;
     font-size: 16px;
     line-height: 1.5;
     margin-bottom: 0;
@@ -3256,13 +3289,13 @@
     padding: 12px 16px;
   }
   .cx-store__hero-media {
-    height: clamp(230px, 38svh, 270px);
-    padding: 12px 12px 36px;
+    height: 300px;
+    padding: 4px 12px 32px;
     width: 100%;
   }
   .cx-store__hero-bullets {
-    bottom: 16px;
-    right: 16px;
+    bottom: 8px;
+    right: 0;
   }
   .cx-store__tech-media {
     padding: 68px 0 28px;
@@ -3290,15 +3323,16 @@
   .cx-store__campaign-banner {
     height: auto;
     margin-left: 0;
-    margin-top: 48px;
+    margin-top: 0;
     width: 100%;
   }
   .cx-store__campaign-panels {
     grid-template-columns: 1fr;
     height: auto;
   }
-  .cx-store__campaign-panels > a {
-    min-height: 340px;
+  .cx-store__campaign-image {
+    height: clamp(220px, 60vw, 280px);
+    padding: 4px;
   }
   .cx-store__campaign-benefits {
     gap: 15px;
@@ -3309,10 +3343,7 @@
   }
   .cx-store__campaign-benefits span,
   .cx-store__campaign-benefits span:nth-of-type(2) {
-    border-left: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.25);
-    padding-left: 0;
-    padding-top: 15px;
+    padding: 0;
   }
   .cx-store__tech-media-intro {
     min-height: 0;
@@ -3367,6 +3398,28 @@
   .cx-store__filters {
     grid-template-columns: 1fr;
   }
+  .cx-store__catalog-full .cx-store__grid {
+    gap: 18px 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cx-store__catalog-full .cx-product-card__image {
+    padding: 40px 10px 10px;
+  }
+  .cx-store__catalog-full .cx-product-card__copy {
+    gap: 6px;
+    padding: 12px;
+  }
+  .cx-store__catalog-full .cx-product-card h3 {
+    font-size: 16px;
+    line-height: 1.35;
+  }
+  .cx-store__catalog-full .cx-product-card__actions {
+    flex-wrap: wrap;
+    padding: 10px;
+  }
+  .cx-store__catalog-full .cx-product-card__price {
+    flex-wrap: wrap;
+  }
   .cx-store__promotion-card {
     display: flex;
     flex-direction: column;
@@ -3392,7 +3445,7 @@
     width: 100%;
   }
   .cx-store__back-to-top {
-    bottom: 16px;
+    bottom: 76px;
     right: 16px;
   }
   .cx-store__footer,
@@ -3554,11 +3607,13 @@
   }
 }
 @media (max-width: 380px) {
-  .cx-store__hero {
-    height: 600px;
-  }
   .cx-store__hero-media {
-    height: 225px;
+    height: 280px;
+  }
+}
+@media (max-width: 359px) {
+  .cx-store__catalog-full .cx-store__grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3593,13 +3648,13 @@
 }
 .cx-piko__mascot {
   display: block;
-  width: 96px;
-  height: 104px;
+  width: 64px;
+  height: 72px;
   margin: 0 0 0 auto;
   border: 0;
   background: transparent;
   padding: 0;
-  font-size: 4rem;
+  font-size: 3rem;
 }
 .cx-piko__mascot:focus-visible {
   border-radius: 1rem;
@@ -3723,6 +3778,11 @@
   .cx-piko {
     right: 0.75rem;
     bottom: 0.75rem;
+  }
+  .cx-piko__mascot {
+    width: 44px;
+    height: 48px;
+    font-size: 2.25rem;
   }
   .cx-piko__panel {
     right: 0.75rem;

@@ -90,3 +90,57 @@ Report database, browser, native, and deployment checks separately.
 - `@codexsun/zetro-web`
 - `@codexsun/zuno-api`
 - `@codexsun/zuno-web`
+
+### Tenant role access controls
+
+Application > Access Control includes an Access Control page after Role Permissions.
+Select a role to edit grouped permission checkboxes. Each change saves immediately through the existing role-permission APIs.
+Searchable App and Module lookups filter the permission list. Changing App clears the Module selection.
+The App and Module lookups sit at the top of the permission panel. Module checkboxes control each card and preserve protected assignments.
+Bulk changes save individually and report partial completion on error.
+This page belongs to the tenant-role-permission web module. It does not change backend authorization or database schemas.
+
+Permissions appear in responsive module cards, with each available action shown as a checkbox. Update actions display as Edit.
+
+Each module card includes a Select all checkbox for its editable permissions. Partial selection shows a mixed state.
+The Access Control page omits its page title, description, and Refresh action.
+
+The module-wide checkbox sits at the right edge of each card header without visible action text. Its accessible label and tooltip remain available.
+
+### Compact Application lists
+
+Users, Roles, Permissions, User Roles, and Role Permissions use the CRM list tone. New actions appear in the application header. Breadcrumbs show the module directly.
+List search, status, pagination, column visibility, and column searches use the browser query string. New and Edit forms have direct URLs. Refresh restores the route and saved list controls.
+Sidebar navigation resets the selected list. New/Edit routes and changed forms require Keep editing or Discard changes before sidebar navigation.
+
+### Development login cookies
+
+With `DEV_AUTO_TENANT_LOGIN=1`, default-user login reuses one encrypted cookie per user, tenant, and host.
+It removes obsolete cookies for that same identity and invalid session cookies. Valid sessions for other identities remain available.
+Normal login still issues separate cookie slots. Development login remains disabled outside development mode.
+Development startup allows 256 KiB request headers so accumulated local cookies can reach the cleanup code instead of causing HTTP 431.
+
+### TConnect composition
+
+Platform registers TConnect API routes and a tenant workspace at `/app/tconnect/overview`.
+TConnect owns company, association, community, and enquiry behavior. Public portal development uses port 7040.
+Tenant migrations install TConnect tables. App activation and permissions remain separate gates.
+
+### TConnect portal accounts
+
+TConnect registration provisions a new tenant user through the public tenant-user portal contract.
+Platform owns password hashing, the fixed restricted portal role, role assignments, cookie sessions, and login.
+The member entry at `/login?app=tconnect` skips development admin auto-login and opens `/app/tconnect/member`.
+TConnect owns member-to-company mappings, profile and product rules, association approval, and enquiry isolation.
+The dedicated member route composes the existing Platform shell without loading unrelated business workspaces.
+
+### TConnect buyer composition
+
+The public TConnect buyer registration uses a server-selected `portal.tconnect-buyer` role.
+Platform owns credentials and tenant sessions. The fixed buyer login destination is `/app/tconnect/buyer`;
+`account=buyer` with `app=tconnect` selects that entry from the shared login page.
+TConnect owns requirements, catalog search, and sender/recipient enquiry access through its public app contracts.
+
+The TConnect buyer and seller desks compose app-owned Quotations and Messages workspaces.
+Both fixed portal roles receive conversation, message, and quotation self-access permissions.
+TConnect verifies participant ownership. These grants do not provide tenant-wide negotiation access.

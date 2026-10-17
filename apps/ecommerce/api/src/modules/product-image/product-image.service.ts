@@ -28,16 +28,27 @@ export class ProductImageService {
     return this.repository.setActive(id, active);
   }
   private async validate(input: ProductImageSaveInput) {
-    let url: URL;
-    try {
-      url = new URL(input.url);
-    } catch {
-      throw AppError.validation("Image URL must be valid.");
-    }
-    if (!["http:", "https:"].includes(url.protocol))
-      throw AppError.validation("Image URL must use HTTP or HTTPS.");
+    const imageUrl = normalizeProductImageUrl(input.url);
     if (!(await this.repository.parentsValid(input.productInformationId, input.variantId)))
       throw AppError.validation("The selected Product Details or Variant is invalid.");
-    return { ...input, url: url.toString(), altText: input.altText.trim() };
+    return { ...input, url: imageUrl, altText: input.altText.trim() };
   }
+}
+
+export function normalizeProductImageUrl(value: string) {
+  if (
+    /^\/api\/platform\/storefront\/product-images\/[a-z0-9][a-z0-9-]*\.(?:jpe?g|png|webp)$/u.test(
+      value
+    )
+  )
+    return value;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw AppError.validation("Image URL must be valid.");
+  }
+  if (!["http:", "https:"].includes(url.protocol))
+    throw AppError.validation("Image URL must use HTTP or HTTPS.");
+  return url.toString();
 }

@@ -11,6 +11,13 @@ source of truth for invoices, receipts, payments, and balances.
 
 ## Current Implementation Baseline
 
+SOP/Duty adapter bindings were updated on 17-10-2026.
+See [the field contract](../../frappe/agent/CRM-DUTY-FIELD-MAPPING.md) for frequency and Department resolution,
+assignment reuse, preserved report evidence, local-only fields, and remaining remote schema limits.
+The isolated Duty API/database E2E passes with mocked remote responses.
+Live delivery and readback passed against logicx.tmnext.in on 17-10-2026 for all four supported frequencies.
+The live test invokes the worker directly. Platform authentication, queue relay scheduling, and browser/mobile acceptance remain separate gates.
+
 Repository source rechecked on 2026-10-16 for local Enquiry and Call Log
 persistence, legacy Frappe integration, and existing Task and Duty modules.
 This source review does not verify live database or mobile behavior.

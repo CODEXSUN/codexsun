@@ -1,16 +1,21 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import type { AuditorClientRecord } from "./client.types";
 
+export const clientListColumns = {"name": "Client", "companyName": "Company name", "ownerName": "Owner name", "mobile": "Mobile", "email": "Email", "gstin": "GSTIN", "status": "Status"};
+
 export function AuditorClientList({
+  listTools,
   records,
   loading,
   onEdit,
   onView,
   startNumber
 }: {
+  listTools?: WorkspaceListTools;
   records: AuditorClientRecord[];
   loading: boolean;
   onEdit: (record: AuditorClientRecord) => void;
@@ -97,7 +102,8 @@ export function AuditorClientList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))))}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No clients found."
       isLoading={loading}

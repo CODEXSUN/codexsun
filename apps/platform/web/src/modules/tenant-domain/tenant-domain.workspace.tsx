@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Globe2, Pencil, Plus, RefreshCw, Save } from "lucide-react";
+import { ArrowLeft, Globe2, Pencil, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
-import { cn } from "@codexsun/ui/lib/utils";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
@@ -182,22 +181,13 @@ export function TenantDomainList() {
   }
 
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Domains"
       description="Create and review tenant domains, ownership, primary routing, and tenant status."
       technicalName="page.tenant-domain.list"
       actions={
         <div className="flex items-center gap-2">
-          <Button
-            className="h-9 rounded-md"
-            disabled={domainsQuery.isFetching}
-            onClick={() => void domainsQuery.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", domainsQuery.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
+          
           <Button
             className="h-9 rounded-md"
             onClick={() => setView({ domain: null, mode: "upsert", returnTo: "list" })}

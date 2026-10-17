@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Trash2 } from "lucide-react";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { WorkspaceProtectedIndicator } from "@codexsun/ui/workspace/protected-indicator";
@@ -5,7 +6,15 @@ import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { TenantRolePermission } from "./tenant-role-permission.types";
+export const tenantRolePermissionListColumns = {
+  roleLabel: "Role",
+  permissionLabel: "Permission",
+  permissionKey: "Permission key",
+  status: "Status"
+};
+
 export function TenantRolePermissionList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -13,6 +22,7 @@ export function TenantRolePermissionList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: TenantRolePermission) => void;
   onForceDelete: (record: TenantRolePermission) => void;
@@ -73,7 +83,13 @@ export function TenantRolePermissionList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No role permissions found."
       isLoading={loading}

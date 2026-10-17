@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { Trash2 } from "lucide-react";
 import { WorkspaceProtectedIndicator } from "@codexsun/ui/workspace/protected-indicator";
@@ -6,7 +7,15 @@ import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { StateRecord } from "./state.types";
 
+export const stateListColumns = {
+  name: "State",
+  code: "State code",
+  countryName: "Country",
+  status: "Status"
+};
+
 export function StateList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -14,6 +23,7 @@ export function StateList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: StateRecord) => void;
   onForceDelete: (record: StateRecord) => void;
@@ -97,7 +107,13 @@ export function StateList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No states found."
       isLoading={loading}

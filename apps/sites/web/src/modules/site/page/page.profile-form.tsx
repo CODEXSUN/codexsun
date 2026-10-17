@@ -71,6 +71,25 @@ export function PageProfileForm({
           onChange({ ...value, address: text.split("\n").filter((line) => line.trim()) })
         }
       />
+      <PageField
+        label="WhatsApp number (country code and digits)"
+        required={false}
+        value={value.whatsappNumber ?? value.phones[0]?.href.replace(/\D/g, "") ?? ""}
+        onChange={(whatsappNumber) => onChange({ ...value, whatsappNumber })}
+        invalidMessage={
+          /^[1-9][0-9]{6,14}$/.test(
+            value.whatsappNumber ?? value.phones[0]?.href.replace(/\D/g, "") ?? ""
+          ) || !(value.whatsappNumber ?? value.phones[0]?.href)
+            ? undefined
+            : "Use international digits without + or spaces."
+        }
+      />
+      <PageField
+        label="Map address override"
+        required={false}
+        value={value.mapQuery ?? ""}
+        onChange={(mapQuery) => onChange({ ...value, mapQuery })}
+      />
       {value.phones.map((phone, index) => (
         <div key={index} className="grid gap-3 rounded-md border p-4">
           <PageField

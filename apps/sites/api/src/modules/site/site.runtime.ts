@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -8,36 +9,55 @@ export type SiteRuntime = { port: number; state: "running"; url: string };
 const supported = new Set(["logicx", "ramutex"]);
 
 export class SiteRuntimeService {
-  private readonly processes = new Map<string, ChildProcess>();
+  constructor(private readonly options: { dataRoot?: string } = {}) {}
+  private readonly processes = new Map<
+    string,
+    { child: ChildProcess; port: number; runtimeKey: string }
+  >();
   private readonly pending = new Map<string, Promise<SiteRuntime>>();
 
-  start(site: CmsSite): Promise<SiteRuntime> {
+  start(site: CmsSite, tenantId = "local"): Promise<SiteRuntime> {
     validateRuntimeSite(site);
-    const key = `${site.slug}:${site.port}`;
+    const key = `${tenantId}:${site.slug}:${site.port}`;
     const pending = this.pending.get(key);
     if (pending) return pending;
-    const task = this.launch(site).finally(() => this.pending.delete(key));
+    const task = this.launch(site, tenantId).finally(() => this.pending.delete(key));
     this.pending.set(key, task);
     return task;
   }
 
   close() {
-    for (const child of this.processes.values()) child.kill();
+    for (const { child } of this.processes.values()) child.kill();
     this.processes.clear();
   }
 
-  private async launch(site: CmsSite): Promise<SiteRuntime> {
+  private async launch(site: CmsSite, tenantId: string): Promise<SiteRuntime> {
+    const runtimeKey = createHash("sha256").update(`${tenantId}:${site.uuid}`).digest("hex");
     const url = `http://127.0.0.1:${site.port}`;
-    if (await isSiteReady(url, site.slug)) return { port: site.port, state: "running", url };
+    if (await isSiteReady(url, site.slug, runtimeKey))
+      return { port: site.port, state: "running", url };
     const root = findSitesCheckout([realpathSync(import.meta.dirname), process.cwd()]);
     const vite = resolve(root, "node_modules/vite/bin/vite.js");
     const config = resolve(root, "apps/sites/clients/vite.config.ts");
-    if (this.processes.has(site.slug)) {
-      throw AppError.conflict("This client is already starting or running on another port.");
+    const existing = this.processes.get(site.slug);
+    if (existing) {
+      if (existing.port !== site.port || existing.runtimeKey !== runtimeKey)
+        throw AppError.conflict("This client is already starting or running on another port.");
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (await isSiteReady(url, site.slug, runtimeKey))
+          return { port: site.port, state: "running", url };
+        await new Promise((done) => setTimeout(done, 250));
+      }
+      throw AppError.conflict(
+        "This client is running but not responding. Try Start again shortly."
+      );
     }
     const child = spawn(
       process.execPath,
       [
+        "--max-http-header-size=262144",
+        "--import",
+        "tsx",
         vite,
         "--config",
         config,
@@ -51,13 +71,24 @@ export class SiteRuntimeService {
       ],
       {
         cwd: root,
-        env: { ...process.env, CODEXSUN_SITES_CLIENT_SLUG: site.slug },
+        env: {
+          ...process.env,
+          CODEXSUN_SITES_CLIENT_SLUG: site.slug,
+          CODEXSUN_SITES_CLIENT_UUID: site.uuid,
+          CODEXSUN_SITES_RUNTIME_KEY: runtimeKey,
+          CODEXSUN_SITES_DATA_DIRECTORY: resolve(
+            this.options.dataRoot ||
+              process.env.CODEXSUN_SITES_DATA_ROOT ||
+              resolve(root, "storage/sites-data"),
+            runtimeKey
+          )
+        },
         shell: false,
         stdio: ["ignore", "pipe", "pipe"],
         windowsHide: true
       }
     );
-    this.processes.set(site.slug, child);
+    this.processes.set(site.slug, { child, port: site.port, runtimeKey });
     let failure = "";
     child.stdout?.resume();
     child.stderr?.on("data", () => {});
@@ -65,11 +96,12 @@ export class SiteRuntimeService {
       failure = error.message;
     });
     child.on("exit", () => {
-      if (this.processes.get(site.slug) === child) this.processes.delete(site.slug);
+      if (this.processes.get(site.slug)?.child === child) this.processes.delete(site.slug);
     });
     for (let attempt = 0; attempt < 60; attempt++) {
       if (failure || child.exitCode !== null) break;
-      if (await isSiteReady(url, site.slug)) return { port: site.port, state: "running", url };
+      if (await isSiteReady(url, site.slug, runtimeKey))
+        return { port: site.port, state: "running", url };
       await new Promise((resolveDelay) => setTimeout(resolveDelay, 250));
     }
     child.kill();
@@ -116,15 +148,15 @@ export function validateRuntimeSite(site: Pick<CmsSite, "slug" | "port" | "statu
   }
 }
 
-async function isSiteReady(url: string, slug: string) {
+async function isSiteReady(url: string, slug: string, runtimeKey: string) {
   try {
     const response = await fetch(`${url}/__codexsun_sites_identity`, {
       redirect: "error",
-      signal: AbortSignal.timeout(300)
+      signal: AbortSignal.timeout(1500)
     });
     if (!response.ok) return false;
-    const identity = (await response.json()) as { client?: string };
-    return identity.client === slug;
+    const identity = (await response.json()) as { client?: string; runtimeKey?: string };
+    return identity.client === slug && identity.runtimeKey === runtimeKey;
   } catch {
     return false;
   }

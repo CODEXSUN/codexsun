@@ -1,3 +1,4 @@
+import { getReportCurrencyCode } from "../../../shared/api/tenant-context";
 import { billingApiGet } from "../../../shared/api/billing-api";
 import type { StockStatement, StockStatementFilters } from "./stock-statement.types";
 
@@ -27,7 +28,7 @@ export async function getStockStatementForPrint(
 
 export function formatStockStatementMoney(value: number) {
   return new Intl.NumberFormat("en-IN", {
-    currency: "INR",
+    currency: getReportCurrencyCode(),
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
     style: "currency"

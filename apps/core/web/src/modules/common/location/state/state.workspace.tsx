@@ -1,7 +1,9 @@
+import { WorkspaceHeaderActions, useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -18,10 +20,9 @@ import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
-import { cn } from "@codexsun/ui/lib/utils";
 import { StateForm } from "./state.form";
 import { stateQueryKey, useStateCountryOptions, useStates } from "./state.hooks";
-import { StateList } from "./state.list";
+import { StateList, stateListColumns } from "./state.list";
 import {
   activateState,
   createState,
@@ -34,11 +35,13 @@ import type { StateRecord, StateSavePayload } from "./state.types";
 type PendingAction = { record: StateRecord; type: "force-delete" | "restore" | "suspend" };
 
 export function StateWorkspace() {
+  const listTools = useWorkspaceListTools(stateListColumns);
+
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+  const [status, setStatus] = useWorkspaceQueryValue("status", "all");
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100);
   const [editing, setLocalEditing] = useState<StateRecord | null | undefined>(undefined);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const statesQuery = useStates();
@@ -55,7 +58,7 @@ export function StateWorkspace() {
         : record === null
           ? `${basePath}/new`
           : `${basePath}/${encodeURIComponent(record.id)}/edit`;
-    if (location.pathname !== path) void navigate({ to: path });
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
   }
   useEffect(() => {
     const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
@@ -108,15 +111,17 @@ export function StateWorkspace() {
 
   const filteredStates = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (statesQuery.data ?? []).filter((record) => {
-      const matchesStatus = status === "all" || record.status === status;
-      const matchesSearch =
-        !term ||
-        record.name.toLowerCase().includes(term) ||
-        record.code.toLowerCase().includes(term) ||
-        record.countryName.toLowerCase().includes(term);
-      return matchesStatus && matchesSearch;
-    });
+    return (statesQuery.data ?? [])
+      .filter((record) => listTools.matches({ ...record, status: record.status }))
+      .filter((record) => {
+        const matchesStatus = status === "all" || record.status === status;
+        const matchesSearch =
+          !term ||
+          record.name.toLowerCase().includes(term) ||
+          record.code.toLowerCase().includes(term) ||
+          record.countryName.toLowerCase().includes(term);
+        return matchesStatus && matchesSearch;
+      });
   }, [search, statesQuery.data, status]);
   const totalPages = Math.max(1, Math.ceil(filteredStates.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
@@ -125,74 +130,80 @@ export function StateWorkspace() {
     currentPage * rowsPerPage
   );
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
+    if (statesQuery.data && page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
   return (
     <WorkspacePage
-      actions={
-        <div className="flex items-center gap-2">
-          <Button
-            className="h-9 rounded-md"
-            disabled={statesQuery.isFetching}
-            onClick={() => void statesQuery.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", statesQuery.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
+      title=""
+      className="w-full max-w-none py-0 lg:w-full lg:py-0"
+      technicalName="page.common.location.state.list"
+    >
+      <WorkspaceHeaderActions>
+        {editing === undefined ? (
           <Button className="h-9 rounded-md" onClick={() => setEditing(null)} type="button">
             <Plus className="size-4" />
             New state
           </Button>
-        </div>
-      }
-      description="Manage states and their owning countries in the current tenant database."
-      technicalName="page.common.location.state.list"
-      title="States"
-    >
-      <WorkspaceFilters
-        filterOptions={[
-          { id: "all", label: "All states" },
-          { id: "active", label: "Active" },
-          { id: "inactive", label: "Inactive" }
-        ]}
-        filterValue={status}
-        onFilterValueChange={(value) => {
-          setStatus(value);
-          setPage(1);
-        }}
-        onSearchValueChange={(value) => {
-          setSearch(value);
-          setPage(1);
-        }}
-        searchPlaceholder="Search states"
-        searchValue={search}
-      />
-      <StateList
-        loading={statesQuery.isFetching && !statesQuery.data}
-        onEdit={setEditing}
-        onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
-        onRestore={(record) => setPendingAction({ record, type: "restore" })}
-        onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
-        records={pageStates}
-      />
-      <WorkspacePagination
-        page={currentPage}
-        rowsPerPage={rowsPerPage}
-        showingLabel={buildShowingLabel(currentPage, rowsPerPage, filteredStates.length)}
-        singularLabel="state"
-        totalCount={filteredStates.length}
-        totalPages={totalPages}
-        onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
-        onPageChange={setPage}
-        onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
-        onRowsPerPageChange={(value) => {
-          setRowsPerPage(value);
-          setPage(1);
-        }}
-      />
+        ) : null}
+      </WorkspaceHeaderActions>
+      <div className="space-y-4" hidden={editing !== undefined}>
+        <WorkspaceFilters
+          toolbarAction={listTools.toolbarAction}
+          columnOptions={listTools.columnOptions}
+          onShowAllColumns={listTools.onShowAllColumns}
+          showSelectedFilterChip
+          filterOptions={[
+            { id: "all", label: "All states" },
+            {
+              id: "active",
+              label: "Active",
+              count: (statesQuery.data ?? []).filter((record) => record.status === "active").length
+            },
+            {
+              id: "inactive",
+              label: "Inactive",
+              count: (statesQuery.data ?? []).filter((record) => record.status === "inactive")
+                .length
+            }
+          ]}
+          filterValue={status}
+          onFilterValueChange={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+          onSearchValueChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          searchPlaceholder="Search states"
+          searchValue={search}
+        />
+        <StateList
+          listTools={listTools}
+          loading={statesQuery.isFetching && !statesQuery.data}
+          onEdit={setEditing}
+          onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
+          onRestore={(record) => setPendingAction({ record, type: "restore" })}
+          onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
+          records={pageStates}
+        />
+        <WorkspacePagination
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          showingLabel={buildShowingLabel(currentPage, rowsPerPage, filteredStates.length)}
+          singularLabel="state"
+          totalCount={filteredStates.length}
+          totalPages={totalPages}
+          onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
+          onPageChange={setPage}
+          onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
+          onRowsPerPageChange={(value) => {
+            setRowsPerPage(value);
+            setPage(1);
+          }}
+        />
+      </div>
       <StateForm
         countries={countriesQuery.data ?? []}
         {...(saveMutation.error instanceof Error ? { error: saveMutation.error.message } : {})}

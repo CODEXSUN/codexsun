@@ -1,0 +1,9 @@
+.sites-enquiries .bg-white {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.sites-enquiries input::placeholder {
+  color: var(--muted-foreground);
+  opacity: 1;
+}

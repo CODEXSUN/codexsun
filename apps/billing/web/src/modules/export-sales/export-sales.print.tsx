@@ -1,3 +1,5 @@
+import "../../shared/document/invoice-print.css";
+import { ExportSaleEinvoicePrint } from "./export-sales.einvoice-print";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { WorkspacePrintSheet } from "@codexsun/ui/workspace/print";
@@ -165,7 +167,10 @@ export function ExportSalePrintDocument({
     exportSale.shippingAddress || exportSale.billingAddress,
     statesQuery.data ?? []
   );
-  const pages = paginateBillingPrintItems(exportSale.items);
+  const pages = paginateBillingPrintItems(
+    exportSale.items,
+    exportSale.einvoice.irn.trim() ? 6 : undefined
+  );
   const terms = resolveBillingPrintTerms(billingSettings, "exportSales", exportSale.terms);
 
   return (
@@ -229,7 +234,8 @@ function ExportSalePrintPage({
 }) {
   const splitTax = exportSale.taxType === "cgst-sgst";
   const blankLines = getBillingPrintDummyLineCount(
-    items.map(({ item }) => exportSalePrintParticulars(item, showColour, showSize))
+    items.map(({ item }) => exportSalePrintParticulars(item, showColour, showSize)),
+    exportSale.einvoice.irn.trim() ? 6 : undefined
   );
   const headings = [
     "S.no",
@@ -267,6 +273,7 @@ function ExportSalePrintPage({
         </header>
 
         <BillingDocumentHeader />
+        <ExportSaleEinvoicePrint einvoice={exportSale.einvoice} />
 
         {addressMode === "billing_and_shipping" ? (
           <section className="space-y-1 border-b border-slate-300 px-2 py-2 text-[10px]">
@@ -682,7 +689,7 @@ function printCopyLabel(copy: ExportSalePrintCopy) {
 }
 
 function money(value: number) {
-  return formatMoney(value).replace("₹", "").trim();
+  return formatMoney(value).replace("Ã¢â€šÂ¹", "").trim();
 }
 
 function amountInWords(value: number) {

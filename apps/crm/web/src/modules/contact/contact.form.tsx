@@ -38,7 +38,8 @@ import type {
   ContactSocialLink
 } from "./contact.types";
 
-type ContactTab = "details" | "tax" | "communication" | "addresses" | "finance" | "more";
+type ContactTab =
+  "details" | "additional" | "tax" | "communication" | "addresses" | "finance" | "more";
 
 export function CrmContactForm({
   createLookup,
@@ -62,7 +63,15 @@ export function CrmContactForm({
   const [activeTab, setActiveTab] = useState<ContactTab>("details");
   const [validationError, setValidationError] = useState("");
   const [invalidPaths, setInvalidPaths] = useState<string[]>([]);
-  const [form, setForm] = useState<ContactSavePayload>(() => initialPayload(record));
+  const [draft, setForm] = useState<ContactSavePayload>(() => initialPayload(record));
+  const form = {
+    ...draft,
+    typeId:
+      draft.typeId ||
+      (!record
+        ? (lookups.contactTypes.find((item) => item.name.toLowerCase() === "customer")?.id ?? 0)
+        : 0)
+  };
 
   const set = <Key extends keyof ContactSavePayload>(key: Key, value: ContactSavePayload[Key]) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -75,7 +84,7 @@ export function CrmContactForm({
       const paths = parsed.error.issues.map((issue) => issue.path.join("."));
       setInvalidPaths(paths);
       setValidationError(parsed.error.issues[0]?.message ?? "Check the contact details.");
-      setActiveTab(tabForPath(paths[0] ?? "details"));
+      setActiveTab("details");
       return;
     }
     setInvalidPaths([]);
@@ -97,6 +106,22 @@ export function CrmContactForm({
           lookups={lookups}
           set={set}
         />
+      )
+    },
+    {
+      value: "additional",
+      label: "Additional details",
+      content: (
+        <div className="space-y-5">
+          <AdditionalDetailsTab
+            createLookup={createLookup}
+            form={form}
+            loading={lookupsLoading}
+            lookups={lookups}
+            set={set}
+          />
+          <ContactPhones form={form} setForm={setForm} invalid={invalid} />
+        </div>
       )
     },
     {
@@ -143,11 +168,7 @@ export function CrmContactForm({
   ];
 
   return (
-    <WorkspaceUpsertPage
-      description="Update contact identity, tax, communication, address, and finance details."
-      onBack={onBack}
-      title={record ? "Edit contact" : "New contact"}
-    >
+    <WorkspaceUpsertPage title="" className="py-0 lg:py-0">
       <form
         noValidate
         onSubmit={(event) => {
@@ -166,7 +187,7 @@ export function CrmContactForm({
               keepMounted
               contentClassName="mt-5"
               onValueChange={(value) => setActiveTab(value as ContactTab)}
-              tabs={tabs}
+              tabs={tabs.filter((tab) => tab.value === "details")}
               value={activeTab}
             />
           </WorkspaceFormTabbedBody>
@@ -203,30 +224,37 @@ function DetailsTab({
   lookups: ContactLookups;
   set: <Key extends keyof ContactSavePayload>(key: Key, value: ContactSavePayload[Key]) => void;
 }) {
-  const [legalNameManual, setLegalNameManual] = useState(
-    Boolean(form.legalName && form.legalName !== form.name.trim().toUpperCase())
+  const mobileIndex = form.phones.findIndex(
+    (phone) => phone.phoneType === "Mobile" || phone.phoneType === "WhatsApp"
   );
-
+  const mobile = form.phones[mobileIndex];
   return (
-    <WorkspaceFormGrid columns={2}>
-      <WorkspaceFormField label="Name" required>
+    <WorkspaceFormGrid columns={2} className="items-start [&>div]:content-start">
+      <WorkspaceFormField label="Mobile number" required>
         <Input
-          aria-invalid={invalid("name")}
-          className={invalid("name") ? "border-destructive" : undefined}
-          value={form.name}
-          onChange={(event) => set("name", event.target.value)}
-          onBlur={() => {
-            if (!legalNameManual) {
-              set("legalName", preserveOptionalTextInput(form.name.toUpperCase()));
-            }
+          aria-label="Mobile number"
+          inputMode="tel"
+          autoComplete="tel-national"
+          aria-invalid={invalid("phones") || invalid(`phones.${mobileIndex}.phone`)}
+          value={mobile?.phone ?? ""}
+          onChange={(event) => {
+            const phones = [...form.phones];
+            if (mobileIndex < 0)
+              phones.push({
+                ...blankPhone(),
+                phone: event.target.value,
+                isPrimary: !phones.some((phone) => phone.isPrimary)
+              });
+            else phones[mobileIndex] = { ...mobile!, phone: event.target.value };
+            set("phones", phones);
           }}
         />
-        {invalid("name") ? <FieldError>Contact name is required.</FieldError> : null}
       </WorkspaceFormField>
       <WorkspaceFormField label="Code" required={!autoCode}>
         <Input
           aria-invalid={invalid("code")}
           className={invalid("code") ? "border-destructive" : undefined}
+          readOnly={/^EXT-[A-F0-9]{64}$/.test(form.code)}
           maxLength={80}
           placeholder={autoCode ? "Automatic on save" : undefined}
           value={form.code}
@@ -235,43 +263,30 @@ function DetailsTab({
         {autoCode && !form.code.trim() ? (
           <p className="text-xs text-muted-foreground">Leave blank to use the next contact code.</p>
         ) : null}
+        {/^EXT-[A-F0-9]{64}$/.test(form.code) ? (
+          <p className="text-xs text-muted-foreground">
+            This code preserves the Frappe customer link.
+          </p>
+        ) : null}
         {invalid("code") ? (
           <FieldError>
             {form.code.trim() ? "Use letters, numbers, and hyphens only." : "Code is required."}
           </FieldError>
         ) : null}
       </WorkspaceFormField>
-      <WorkspaceFormField
-        label={
-          <span className="flex w-full items-center justify-between gap-2">
-            <span>Legal name</span>
-            <Button
-              aria-label="Refresh legal name from contact name"
-              className="size-7 rounded-md p-0"
-              title="Refresh legal name from contact name"
-              type="button"
-              variant="outline"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                setLegalNameManual(false);
-                set("legalName", preserveOptionalTextInput(form.name.toUpperCase()));
-              }}
-            >
-              <Sparkles className="size-3.5" />
-            </Button>
-          </span>
-        }
-      >
+      <WorkspaceFormField label="Customer name" required>
         <Input
-          autoCapitalize="characters"
-          className="uppercase"
-          value={form.legalName ?? ""}
-          onChange={(event) => {
-            setLegalNameManual(true);
-            set("legalName", preserveOptionalTextInput(event.target.value.toUpperCase()));
+          aria-invalid={invalid("name")}
+          className={invalid("name") ? "border-destructive" : undefined}
+          value={form.name}
+          onChange={(event) => set("name", event.target.value)}
+          onBlur={() => {
+            if (!form.legalName || form.legalName === form.name.trim().toUpperCase()) {
+              set("legalName", preserveOptionalTextInput(form.name.toUpperCase()));
+            }
           }}
         />
+        {invalid("name") ? <FieldError>Contact name is required.</FieldError> : null}
       </WorkspaceFormField>
       <WorkspaceFormField label="Contact type" required>
         <WorkspaceLookup
@@ -288,6 +303,65 @@ function DetailsTab({
         />
         {invalid("typeId") ? <FieldError>Contact type is required.</FieldError> : null}
       </WorkspaceFormField>
+      <WorkspaceFormField className="md:col-span-2" label="Status">
+        <ToggleRow
+          checked={form.isActive}
+          label={form.isActive ? "Active" : "Suspended"}
+          onCheckedChange={(checked) => {
+            set("isActive", checked);
+            set("status", checked ? "active" : "suspend");
+          }}
+        />
+      </WorkspaceFormField>
+    </WorkspaceFormGrid>
+  );
+}
+
+function AdditionalDetailsTab({
+  createLookup,
+  form,
+  loading,
+  lookups,
+  set
+}: {
+  createLookup: ContactLookupCreate;
+  form: ContactSavePayload;
+  loading: boolean;
+  lookups: ContactLookups;
+  set: <Key extends keyof ContactSavePayload>(key: Key, value: ContactSavePayload[Key]) => void;
+}) {
+  return (
+    <WorkspaceFormGrid columns={2}>
+      <WorkspaceFormField
+        label={
+          <span className="flex w-full items-center justify-between gap-2">
+            <span>Legal name</span>
+            <Button
+              aria-label="Refresh legal name from contact name"
+              className="size-7 rounded-md p-0"
+              title="Refresh legal name from contact name"
+              type="button"
+              variant="outline"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                set("legalName", preserveOptionalTextInput(form.name.toUpperCase()));
+              }}
+            >
+              <Sparkles className="size-3.5" />
+            </Button>
+          </span>
+        }
+      >
+        <Input
+          autoCapitalize="characters"
+          className="uppercase"
+          value={form.legalName ?? ""}
+          onChange={(event) => {
+            set("legalName", preserveOptionalTextInput(event.target.value.toUpperCase()));
+          }}
+        />
+      </WorkspaceFormField>
       <WorkspaceFormField label="Contact group">
         <WorkspaceLookup
           allowTextValue={false}
@@ -299,16 +373,6 @@ function DetailsTab({
           value={form.groupId ? String(form.groupId) : ""}
           onCreate={async (name) => toOption(await createLookup.contactGroup(name))}
           onValueChange={(value) => set("groupId", value ? Number(value) : null)}
-        />
-      </WorkspaceFormField>
-      <WorkspaceFormField className="md:col-span-2" label="Status">
-        <ToggleRow
-          checked={form.isActive}
-          label={form.isActive ? "Active" : "Suspended"}
-          onCheckedChange={(checked) => {
-            set("isActive", checked);
-            set("status", checked ? "active" : "suspend");
-          }}
         />
       </WorkspaceFormField>
     </WorkspaceFormGrid>
@@ -432,16 +496,46 @@ function CommunicationTab({
           </WorkspaceFormGrid>
         ))}
       </RepeatPanel>
+    </div>
+  );
+}
+
+function ContactPhones({
+  form,
+  setForm,
+  invalid
+}: {
+  form: ContactSavePayload;
+  setForm: React.Dispatch<React.SetStateAction<ContactSavePayload>>;
+  invalid: (path: string) => boolean;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Enter a 10-digit mobile number and choose one primary phone. Add more numbers for the same
+        customer.
+      </p>
       <RepeatPanel
         onAdd={() =>
-          setForm((current) => ({ ...current, phones: [...current.phones, blankPhone()] }))
+          setForm((current) => ({
+            ...current,
+            phones: [...current.phones, { ...blankPhone(), isPrimary: current.phones.length === 0 }]
+          }))
         }
-        title="Contact phones"
+        title="Mobile numbers"
       >
         {form.phones.map((phone, index) => (
           <WorkspaceFormGrid key={`${phone.id}-${index}`} columns={3}>
-            <WorkspaceFormField label="Phone">
+            <WorkspaceFormField
+              label={
+                phone.phoneType === "Mobile" || phone.phoneType === "WhatsApp"
+                  ? "Mobile number"
+                  : "Phone number"
+              }
+            >
               <Input
+                aria-label={`Phone number ${index + 1}`}
+                aria-invalid={invalid(`phones.${index}.phone`)}
                 inputMode="tel"
                 value={phone.phone}
                 onChange={(event) =>
@@ -1356,15 +1450,6 @@ function lookupOptions(items: Array<{ id: number; name: string }>) {
 }
 function toOption(item: { id: number; name: string }, description?: string): WorkspaceLookupOption {
   return { value: String(item.id), label: item.name, ...(description ? { description } : {}) };
-}
-function tabForPath(path: string): ContactTab {
-  if (path.startsWith("emails") || path.startsWith("phones")) return "communication";
-  if (path.startsWith("addresses")) return "addresses";
-  if (path === "openingBalance" || path === "creditLimit") return "finance";
-  if (path.startsWith("bankAccounts")) return "finance";
-  if (path.startsWith("socialLinks") || path === "website" || path === "description") return "more";
-  if (["gstin", "pan", "msmeNo", "msmeCategory", "tanNo"].includes(path)) return "tax";
-  return "details";
 }
 
 const emailTypeOptions = [

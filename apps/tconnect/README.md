@@ -1,0 +1,224 @@
+# TConnect
+
+TConnect connects buyers, manufacturers, suppliers, service providers, and industry associations.
+The public portal has searchable company profiles, branded association pages, member directories, community articles, and buyer enquiries.
+The sample directory focuses on Tirupur and supports textiles, engineering, packaging, sustainability, logistics, and business services.
+All sample businesses and associations are fictional. Membership does not imply verification or certification.
+
+## Source and ownership
+
+- `api/src/modules/association`: association identity, publication status, member relationship validation, and sample associations.
+- `api/src/modules/company`: company identity, branding, capabilities, association membership, and sample companies.
+- `api/src/modules/community`: association articles, events, announcements, opportunities, and sample posts.
+- `api/src/modules/inquiry`: retained buyer enquiries, status changes, audit records, and app permissions.
+- `api/src/modules/conversation`: private buyer-seller threads linked to a requirement or enquiry.
+- `api/src/modules/message`: immutable messages, sender identity, history pages, and message limits.
+- `api/src/modules/quotation`: seller offers, exact INR totals, validity, withdrawal, and private comparison data.
+- `web/src/modules`: matching public pages and separate staff form, list, and workspace implementations.
+- `web/src/portal.tsx`: public page composition. `web/src/workspace.tsx`: Platform workspace composition.
+
+Platform hosts the API and supplies authoritative tenant context, app activation, sessions, and permissions.
+Public pages resolve a verified tenant domain. Local development uses the configured default tenant.
+Public access requires active TConnect activation in both the registry and tenant module settings.
+Company, association, and community routes expose active records only. Enquiry contact details require staff permission, recipient seller ownership, or sender buyer ownership.
+
+## Run
+
+Run commands from the repository root. Use one root dependency installation and lockfile.
+
+- `npm run dev:api`: start the shared Platform API.
+- `npm run dev:tconnect`: start the public portal at `http://127.0.0.1:7040` through the shared preflight.
+- `npm run dev -w @codexsun/tconnect-web`: use the same launcher from a workspace run configuration.
+- `CODEXSUN_TCONNECT_WEB_PORT`: override the portal port. The default is 7040.
+- `PLATFORM_API_PORT`: shared API port from the root environment.
+- Open `/app/tconnect/overview` in Platform for the staff workspace.
+
+Activate TConnect through Plan Access. Use tenant Entitlements only for an explicit exception.
+Run managed tenant setup to install tables and app permissions after activation.
+`migrateTconnect` uses the tenant `migration_schema` ledger. `seedTconnect` installs permissions without demo records.
+`seedTconnectDemo` explicitly adds repeatable fictional samples. It never replaces edited records.
+The local development tenant has no subscription. Its preview uses an explicit tenant entitlement exception.
+
+## Contracts
+
+Public API routes: `GET /public/tconnect/company`, `/association`, `/community`, and `POST /public/tconnect/inquiry`.
+Staff routes: `GET`, `POST`, and `PUT /tconnect/{company|association|community}`. PUT includes `/:uuid`.
+Enquiries support `GET /tconnect/inquiry` and `PUT /tconnect/inquiry/:uuid` for status changes.
+Every route uses the standard API envelope and executable request and response schemas.
+Public URLs use unique eight-character lowercase hex UUIDs or stable company and association slugs.
+Staff permissions use `tconnect.<resource>.view` and `tconnect.<resource>.manage`.
+Business writes and audit records share a transaction. Suspension retains records. Hard deletion is intentionally unavailable.
+Association suspension blocks while active companies or community posts depend on it.
+Anonymous buyer enquiries require consent, an active company, a same-origin request, and fewer than five submissions per email per hour. Registered buyer enquiries allow 20 submissions per buyer per hour.
+No payment, order commitment, email delivery, private buyer directory, or cross-tenant federation is implemented.
+Seller and association-member registration create restricted Platform accounts and one owned company profile.
+Members manage their own branding, company information, products, and buyer enquiries at `/app/tconnect/member`.
+Staff review association membership requests and manage accounts from the Members tab.
+Company branding uses initials, a brand color, tagline, information, capabilities, and a dedicated public profile.
+Company logos and product images accept PNG, JPEG, or WebP raster data up to 150 KB.
+The database retains these images with their owning records. SVG and external image URLs are rejected.
+
+## Verification
+
+- `npm run typecheck -w @codexsun/tconnect-api`
+- `npm run typecheck -w @codexsun/tconnect-web`
+- `npm run lint -w @codexsun/tconnect-api`
+- `npm run lint -w @codexsun/tconnect-web`
+- `npm run build -w @codexsun/tconnect-api`
+- `npm run build:tconnect`
+- `node tools/check-module-boundaries.mjs tconnect`
+- `npm run check:component-docs`
+- `npm run test:component-docs`
+- `npm run dependencies:check`
+
+New tenant tables require managed migration on each existing database. No existing business table is replaced.
+Public hosting requires deployment routing, verified tenant domains, TLS, and production abuse controls.
+A local running portal does not prove internet deployment, desktop packaging, or native mobile support.
+
+## Member module roles
+
+The Member frontend owns public registration, staff membership review, and the authenticated member workspace.
+It uses `member.registration.tsx`, `member.review.tsx`, and `member.workspace.tsx` as distinct executable UI roles.
+Its services, schema, and types define the member contract. It has no generic staff create/edit/delete form.
+Company and Product retain their own publishing forms and persistence.
+The boundary checker requires these specific Member roles instead of placeholder CRUD files.
+Member and Product backends declare synchronous capabilities. No background event, worker, or sync roles are implemented.
+
+## Seller and member accounts
+
+Open `/register` on the public portal. Choose Seller registration or Association member.
+Registration requires the exact portal Corporate ID, name, business email, password, company name, industry, city, and consent.
+Passwords require 12 to 128 characters. Platform hashes passwords and owns accounts, roles, sessions, logout, and recovery.
+TConnect does not store passwords, browser tokens, or its own login sessions.
+The public portal links to Platform login with `app=tconnect`. This entry disables development administrator auto-login.
+Successful member sign-in opens the dedicated Platform member desk. It uses the existing five-region Platform shell.
+
+Each registration creates a new draft company. It cannot claim an existing company, identity, privileged role, or approval state.
+Members can publish their profile by setting its status Active. Inactive profiles and their products stay off the public portal.
+The fixed seller role receives company, product, enquiry, opportunity, conversation, message, and quotation self-access permissions.
+Company lists, product lists, updates, and enquiry access enforce the server-resolved owner company.
+Writes recheck the active member under a transaction lock. Association changes require current approval.
+Public tenant routing and signed Platform identity determine the database and user. Browser tenant headers never grant access.
+
+Association requests start Pending. Pending and rejected applications do not create public affiliation.
+Staff with `tconnect.member.manage` can approve or reject requests and suspend or restore portal accounts.
+Approval updates the company's association through the company owner contract. A suspended account loses TConnect access, including existing sessions.
+Members cannot edit association identity, review applicants, or see another company's buyer contact details.
+The first version supports one owned company and one association request per registered account.
+Email ownership verification, automatic messages, and association-issued invitations are not implemented.
+
+## Products
+
+Products own name, category, description, optional INR price, unit, minimum order, image, company reference, and publication status.
+Product names may repeat. Public UUIDs uniquely identify products. Hard deletion remains unavailable.
+Public profile pages show active products only when the owning company is active.
+`GET /public/tconnect/product?companyUuid=<uuid>` provides the public catalog.
+Staff and members use `GET /tconnect/product`, `POST /tconnect/product`, and `PUT /tconnect/product/:uuid`.
+Member account routes are `GET /tconnect/member/session`, `GET /tconnect/member`, and `PUT /tconnect/member/:uuid`.
+Registration context and submission use `GET` and `POST /public/tconnect/registration`.
+
+## Member verification commands
+
+- `npm run test:tconnect`: focused request, branding, and ownership tests.
+- `npm run test:e2e:tconnect`: local two-account registration, cookie login, catalog, affiliation, suspension, and enquiry-isolation verification.
+
+The E2E suite requires a running development API and the configured tenant admin account.
+It retains clearly named test companies and accounts as inactive fixtures. It does not send email or external messages.
+Existing databases require the additive `tconnect.members.v2` ledger step and managed setup to seed the restricted role.
+The migration adds `tconnect_members`, `tconnect_products`, and the company logo column. Existing public profile records remain intact.
+
+## Buyer accounts and sourcing
+
+Open `/register/buyer` on the public portal to create a buyer account. The portal links to Platform
+`/login?app=tconnect&account=buyer`. Login uses the same Corporate ID, password policy, and signed
+Platform session as the seller flow. It opens `/app/tconnect/buyer` with Find products, My requirements,
+and Sent enquiries. A buyer does not receive a seller company profile or association membership.
+
+Buyer owns `buyer` registration and account mapping. Requirement owns sourcing requests and visibility.
+Product owns search over published products and active companies. Inquiry owns sender and recipient records.
+Platform provisions the fixed `portal.tconnect-buyer` role. It grants only `tconnect.buyer.self`,
+`tconnect.requirement.self`, `tconnect.catalog.self`, and `tconnect.sent.self`.
+It also grants conversation, message, and quotation self-access for participant records.
+The seller role also receives `tconnect.opportunity.self` for the Buyer requirements board.
+
+- Registration: `POST /public/tconnect/buyer/registration`. The existing registration context supplies Corporate ID.
+- Account: `GET /tconnect/buyer/session`.
+- Catalog: `GET /tconnect/product/search?q=...`. Searches products, category, company, industry and city; up to 100 results.
+- Requirements: `GET`, `POST /tconnect/requirement`; `PUT /tconnect/requirement/:uuid`.
+- Seller board: `GET /tconnect/requirement/board`. Only open requirements from active buyer accounts appear.
+- Enquiries: `POST /tconnect/inquiry/buyer`; `GET /tconnect/inquiry/sent`.
+
+A requirement can be draft, open or closed. Buyers can change only their own requirements.
+Draft and closed requirements stay off the seller board. Contact details are not included on the board.
+A product enquiry can link an owned requirement. The backend derives buyer name and email from the signed identity,
+validates the selected product against the recipient seller, and records buyer ownership independently of email.
+Only the recipient seller or permitted staff can change enquiry status. The buyer can track that status.
+
+The additive `tconnect.buyers.v3` migration installs buyer and requirement tables and nullable enquiry links.
+Existing anonymous enquiries remain available to their recipient and staff; registration does not claim them by email.
+Run `npm run test:tconnect`, `npm run test:e2e:tconnect-buyers` and `npm run test:e2e:tconnect` for access checks.
+Buyer UI uses capability-specific registration, catalog, enquiry and sent-list files; it has no staff buyer CRUD editor.
+Requirement uses the standard form, list, workspace, services, hooks, schema and types roles.
+
+## Seller replies, quotations, and buyer comparison
+
+Sellers use **Reply / Quote** on Buyer requirements or registered Buyer enquiries.
+Buyers use **View replies & quotes** on a requirement, or **Messages / Quotes** on a sent enquiry.
+Both desks also provide Quotations and Messages sections.
+
+Each requirement has one private conversation per seller. An enquiry has one conversation with its recipient seller.
+Opening the same context reuses its thread. Buyers cannot choose an unrelated seller or another buyer.
+Each seller sees only their own quotations and conversations. A buyer sees the offers addressed to their buyer account.
+Staff permissions do not grant implicit participant access.
+
+A seller quotation records quantity, unit, unit price, tax percentage, shipping, delivery days, validity, payment terms, and notes.
+The server calculates INR subtotal, tax, and total with integer minor-unit rounding.
+Tax applies to the goods subtotal. Shipping is added afterwards.
+The total cannot exceed INR 1,000,000,000,000. Validity uses a UTC calendar date.
+Sent financial terms are immutable. Sellers can withdraw an offer and send a new one with revised terms.
+Withdrawn and expired quotes remain readable. They cannot be selected for active comparison.
+New quotations require an open requirement or an enquiry that is not closed.
+Existing conversations remain available after the source closes.
+
+Buyers can compare up to four current quotations side by side.
+Comparison includes source references, quantities, units, specifications, prices, tax, shipping, totals, delivery, and payment terms.
+Different requests or quantities can make totals unsuitable for direct comparison. No lowest-price award or order is automatic.
+Quotations for an enquiry linked to a requirement also appear in that requirement's quotation view.
+
+Messages contain plain text of 1 to 4,000 characters. The backend derives sender identity and buyer/seller side.
+Participants can load older messages in pages of 100. Each sender can send up to 100 messages per hour.
+The open workspace refreshes messages and quotations every 15 seconds and provides manual refresh controls.
+Guest enquiries retain their contact details but have no authenticated buyer identity for private replies.
+Registration does not claim guest enquiries by matching email.
+
+Fixed protected routes:
+
+- `GET`, `POST /tconnect/conversation` and `GET /tconnect/conversation/:uuid`.
+- Message-owned `GET`, `POST /tconnect/conversation/:uuid/messages`. GET accepts an optional `before` message UUID.
+- `GET /tconnect/quotation`, optionally filtered by `conversationUuid`, and `POST /tconnect/quotation`.
+- `PUT /tconnect/quotation/:uuid/withdraw` with an empty strict body.
+
+The additive `tconnect.negotiation.v4` migration creates conversation, message, and quotation tables in dependency order.
+Each table and workflow belongs to its matching leaf. Parent activity updates use the Conversation public contract.
+Conversation creation is contextual; its frontend uses list, workspace, schema, services, hooks, and types roles.
+Message and Quotation use distinct standard form, list, and workspace roles.
+Messages and quotations retain history instead of supporting edit or hard deletion.
+Existing tenant databases require the migration and managed permission seeding before use.
+
+Run `npm run test:e2e:tconnect-negotiation` for two-seller and two-buyer access, quotation, and message checks.
+Set `CODEXSUN_TCONNECT_BROWSER_CHECK=1` for the same suite to verify the browser forms and comparison flow.
+The optional browser check uses a locally installed Windows Chrome and writes screenshots under root `dist`.
+It requires the configured Platform web server and API. It does not contact external sellers or send email.
+Order acceptance, payment, attachments, email notifications, and public internet deployment are outside this feature.
+
+## Development launcher
+
+Both TConnect development commands use `tools/preflight.mjs tconnect-web`.
+Preflight validates the configured port, checks the existing process, and waits for Platform API readiness.
+It launches Vite with the same development header-size limit as Platform: 262,144 bytes.
+This permits accumulated localhost session cookies that otherwise produce HTTP 431 before the page loads.
+
+The default port policy is `abort`. A second start reports the active listener and leaves it running.
+Stop the previous run before starting again. For an intentional replacement, set
+`CODEXSUN_DEV_PORT_POLICY=takeover`. Takeover replaces only a recognized TConnect preflight process.
+It refuses an unrelated listener. Keep the same policy rules as Platform. Do not use `force` for routine starts.

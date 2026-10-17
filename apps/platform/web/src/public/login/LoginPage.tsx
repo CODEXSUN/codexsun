@@ -21,7 +21,12 @@ type LoginPageProps = {
 
 export function LoginPage({ desk, title }: LoginPageProps) {
   const navigate = useNavigate();
-  const [corporateId, setCorporateId] = useState("");
+  const tconnectBuyer = new URLSearchParams(window.location.search).get("account") === "buyer";
+  const tconnectLogin =
+    desk === "tenant" && new URLSearchParams(window.location.search).get("app") === "tconnect";
+  const [corporateId, setCorporateId] = useState(
+    tconnectLogin ? (new URLSearchParams(window.location.search).get("corporateId") ?? "") : ""
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -57,6 +62,8 @@ export function LoginPage({ desk, title }: LoginPageProps) {
   useEffect(() => {
     if (
       desk !== "tenant" ||
+      tconnectLogin ||
+      sessionExpired ||
       requiredClientEnv("VITE_DEV_AUTO_TENANT_LOGIN") !== "1" ||
       autoLoginStarted.current
     ) {
@@ -72,11 +79,13 @@ export function LoginPage({ desk, title }: LoginPageProps) {
           setMessage(result.error.message);
           return;
         }
-        window.location.assign("/app/");
+        window.location.assign(
+          tconnectLogin ? (tconnectBuyer ? "/app/tconnect/buyer" : "/app/tconnect/member") : "/app/"
+        );
       })
       .catch(() => setMessage("Development auto-login failed."))
       .finally(() => setLoading(false));
-  }, [desk, navigate, targetPath]);
+  }, [desk, navigate, targetPath, tconnectLogin, tconnectBuyer, sessionExpired]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -115,7 +124,9 @@ export function LoginPage({ desk, title }: LoginPageProps) {
       if (desk === "tenant") {
         // A tenant switch must start with a fresh query cache so records and
         // runtime metadata from the previous tenant cannot survive navigation.
-        window.location.assign("/app/");
+        window.location.assign(
+          tconnectLogin ? (tconnectBuyer ? "/app/tconnect/buyer" : "/app/tconnect/member") : "/app/"
+        );
         return;
       }
 
@@ -139,7 +150,13 @@ export function LoginPage({ desk, title }: LoginPageProps) {
         ) : null
       }
       surface={desk}
-      title={title}
+      title={
+        tconnectLogin
+          ? tconnectBuyer
+            ? "TConnect Buyer Login"
+            : "TConnect Seller / Member Login"
+          : title
+      }
     >
       <form className="auth-form" onSubmit={submit}>
         {desk === "tenant" && tenantContext?.tenantName ? (

@@ -1,7 +1,9 @@
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { WorkspaceHeaderActions, useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, SlidersHorizontal } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
@@ -67,17 +69,22 @@ export function ContactWorkspace({
   showListHeader?: boolean;
 }) {
   const client = useQueryClient(),
-    [search, setSearch] = useState(""),
-    [page, setPage] = useState(1),
-    [rowsPerPage, setRowsPerPage] = useState(100),
-    [statusFilter, setStatusFilter] = useState("all"),
-    [showInlineFilters, setShowInlineFilters] = useState(false),
-    [columnFilters, setColumnFilters] = useState<ContactColumnFilters>({}),
-    [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({}),
+    [search, setSearch] = useWorkspaceQueryValue("q", ""),
+    [page, setPage] = useWorkspaceQueryValue("page", 1),
+    [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100),
+    [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all"),
     [editing, setLocalEditing] = useState<ContactRecord | null | undefined>(undefined),
     query = useContacts(search),
     lookupsQuery = useContactLookups(),
     records = query.data ?? [];
+  const listTools = useWorkspaceListTools(
+    Object.fromEntries(contactColumns.map((column) => [column.id, column.label]))
+  );
+  const showInlineFilters = listTools.showFilters;
+  const columnFilters: ContactColumnFilters = listTools.filters;
+  const visibleColumns = Object.fromEntries(
+    contactColumns.map((column) => [column.id, !listTools.hidden.includes(column.id)])
+  );
   const location = useLocation();
   const navigate = useNavigate();
   function setEditing(record: ContactRecord | null | undefined) {
@@ -88,7 +95,7 @@ export function ContactWorkspace({
         : record === null
           ? `${basePath}/new`
           : `${basePath}/${encodeURIComponent(record.id)}/edit`;
-    if (location.pathname !== path) void navigate({ to: path });
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
   }
   useEffect(() => {
     const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
@@ -139,7 +146,6 @@ export function ContactWorkspace({
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
-  const activeColumnFilters = Object.values(columnFilters).filter((value) => value?.trim()).length;
   const save = useMutation({
     mutationFn: (payload: ContactSavePayload) =>
       editing ? updateContact(editing.id, payload) : createContact(payload),
@@ -194,53 +200,22 @@ export function ContactWorkspace({
       />
     );
   return (
-    <WorkspacePage
-      title={showListHeader ? "Contacts" : ""}
-      {...(showListHeader
-        ? {
-            description:
-              "Manage contact identity, tax, communication, address, finance, and lifecycle details.",
-            actions: (
-              <div className="flex gap-2">
-                <Button onClick={() => setEditing(null)}>
-                  <Plus className="size-4" />
-                  New
-                </Button>
-              </div>
-            )
-          }
-        : { className: "pt-0 lg:pt-0" })}
-    >
-      <WorkspaceFilters
-        toolbarAction={
-          <Button
-            aria-label="Toggle column search filters"
-            aria-pressed={showInlineFilters}
-            className="h-8 min-w-8 gap-1 px-2"
-            title="Toggle column search filters"
-            type="button"
-            variant={showInlineFilters ? "default" : "outline"}
-            onClick={() => setShowInlineFilters((open) => !open)}
-          >
-            <SlidersHorizontal className="size-4" aria-hidden="true" />
-            {activeColumnFilters > 0 ? (
-              <span className="text-xs">{activeColumnFilters}</span>
-            ) : null}
+    <WorkspacePage title="" className="w-full max-w-none py-0 lg:w-full lg:py-0">
+      {showListHeader ? (
+        <WorkspaceHeaderActions>
+          <Button onClick={() => setEditing(null)}>
+            <Plus className="size-4" />
+            New contact
           </Button>
-        }
-        columnOptions={contactColumns.map((column) => ({
+        </WorkspaceHeaderActions>
+      ) : null}
+      <WorkspaceFilters
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions.map((column) => ({
           ...column,
-          checked: visibleColumns[column.id] !== false,
-          disabled: column.id === "contact",
-          onCheckedChange: (checked) => {
-            setVisibleColumns((current) => ({ ...current, [column.id]: checked }));
-            if (!checked) {
-              setColumnFilters((current) => ({ ...current, [column.id]: "" }));
-              setPage(1);
-            }
-          }
+          disabled: column.id === "contact"
         }))}
-        onShowAllColumns={() => setVisibleColumns({})}
+        onShowAllColumns={listTools.onShowAllColumns}
         searchPlaceholder="Search code, contact, phone, or email"
         searchValue={search}
         onSearchValueChange={(value) => {
@@ -279,10 +254,10 @@ export function ContactWorkspace({
         showInlineFilters={showInlineFilters}
         columnFilters={columnFilters}
         onColumnFilterChange={(column, value) => {
-          setColumnFilters((current) => ({ ...current, [column]: value }));
+          listTools.setColumnFilter(column, value);
           setPage(1);
         }}
-        onHideInlineFilters={() => setShowInlineFilters(false)}
+        onHideInlineFilters={listTools.hideFilters}
         onEdit={setEditing}
         onForceDelete={(record) => {
           if (confirm(`Force delete ${record.name}?`)) action.mutate({ record, type: "delete" });

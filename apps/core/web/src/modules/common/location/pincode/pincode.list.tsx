@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { Trash2 } from "lucide-react";
 import { WorkspaceProtectedIndicator } from "@codexsun/ui/workspace/protected-indicator";
@@ -5,7 +6,18 @@ import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { PincodeRecord } from "./pincode.types";
+export const pincodeListColumns = {
+  name: "Pincode",
+  area: "Area",
+  cityName: "City",
+  districtName: "District",
+  stateName: "State",
+  countryName: "Country",
+  status: "Status"
+};
+
 export function PincodeList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -13,6 +25,7 @@ export function PincodeList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (r: PincodeRecord) => void;
   onForceDelete: (r: PincodeRecord) => void;
@@ -99,7 +112,13 @@ export function PincodeList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No pincodes found."
       isLoading={loading}

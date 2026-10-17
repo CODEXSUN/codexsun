@@ -1,6 +1,8 @@
+import { useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useStockStatementControls } from "./stock-statement.controls";
+import { StockStatementCurrencySelection } from "./stock-statement.currency";
 import { useEffect, useState } from "react";
-import { Printer, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { Printer } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import { cn } from "@codexsun/ui/lib/utils";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
@@ -9,22 +11,16 @@ import { StockStatementForm } from "./stock-statement.form";
 import { useStockStatement } from "./stock-statement.hooks";
 import { StockStatementList } from "./stock-statement.list";
 import { StockStatementPrint } from "./stock-statement.print";
-import {
-  formatStockQuantity,
-  formatStockStatementMoney,
-  getStockStatementForPrint
-} from "./stock-statement.services";
+import { formatStockQuantity, formatStockStatementMoney } from "./stock-statement.services";
 import type { StockStatement } from "./stock-statement.types";
 
 export function StockStatementWorkspace() {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [from, setFrom] = useWorkspaceQueryValue("from", "");
+  const [to, setTo] = useWorkspaceQueryValue("to", "");
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [pageSize, setPageSize] = useWorkspaceQueryValue("pageSize", 50);
   const [printStatement, setPrintStatement] = useState<StockStatement>();
-  const [printing, setPrinting] = useState(false);
-  const query = useStockStatement({ from, page, pageSize, search, to });
+  const query = useStockStatement({ from, page, pageSize, search: "", to });
   const statement = query.data;
 
   useEffect(() => {
@@ -33,46 +29,27 @@ export function StockStatementWorkspace() {
     if (!to) setTo(statement.to);
   }, [from, statement, to]);
 
-  const totalPages = Math.max(1, Math.ceil((statement?.total ?? 0) / pageSize));
+  const { tools, entries, toolbar, search, totals } = useStockStatementControls(
+    statement?.items ?? []
+  );
+  const totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
 
-  async function handlePrint() {
-    setPrinting(true);
-    try {
-      const complete = await getStockStatementForPrint({
-        from: from || statement?.from || "",
-        search,
-        to: to || statement?.to || ""
-      });
-      setPrintStatement(complete);
-      window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Stock Statement could not be printed.");
-    } finally {
-      setPrinting(false);
-    }
+  function handlePrint() {
+    if (!statement) return;
+    setPrintStatement({ ...statement, ...totals, items: entries, total: entries.length, search });
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()));
   }
 
   return (
     <WorkspacePage
+      variant="list"
       className="billing-document-print-page"
       actions={
         <div className="flex gap-2 print:hidden">
-          <Button
-            disabled={!statement || printing}
-            onClick={() => void handlePrint()}
-            type="button"
-          >
+          <StockStatementCurrencySelection />
+          <Button disabled={!statement || query.isFetching} onClick={handlePrint} type="button">
             <Printer className="size-4" />
-            {printing ? "Preparing..." : "Print"}
-          </Button>
-          <Button
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
-            Refresh
+            Print
           </Button>
         </div>
       }
@@ -81,21 +58,17 @@ export function StockStatementWorkspace() {
       title="Stock Statement"
     >
       <main className="space-y-4">
+        {toolbar}
         <StockStatementForm
           from={from || statement?.from || ""}
           onFromChange={(value) => {
             setFrom(value);
             setPage(1);
           }}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
           onToChange={(value) => {
             setTo(value);
             setPage(1);
           }}
-          search={search}
           to={to || statement?.to || ""}
         />
         {query.isError ? (
@@ -108,45 +81,52 @@ export function StockStatementWorkspace() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <StockStatementTotal
             label="Opening qty"
-            value={formatStockQuantity(statement?.openingQuantity ?? 0)}
+            value={formatStockQuantity(totals.openingQuantity)}
           />
           <StockStatementTotal
             label="Inward qty"
-            value={formatStockQuantity(statement?.inwardQuantity ?? 0)}
+            value={formatStockQuantity(totals.inwardQuantity)}
           />
           <StockStatementTotal
             label="Outward qty"
-            value={formatStockQuantity(statement?.outwardQuantity ?? 0)}
+            value={formatStockQuantity(totals.outwardQuantity)}
           />
           <StockStatementTotal
             label="Closing qty"
             strong
-            value={formatStockQuantity(statement?.closingQuantity ?? 0)}
+            value={formatStockQuantity(totals.closingQuantity)}
           />
           <StockStatementTotal
             label="Purchase value"
-            value={formatStockStatementMoney(statement?.purchaseValue ?? 0)}
+            value={formatStockStatementMoney(totals.purchaseValue)}
           />
           <StockStatementTotal
             label="Sales value"
-            value={formatStockStatementMoney(statement?.salesValue ?? 0)}
+            value={formatStockStatementMoney(totals.salesValue)}
           />
         </div>
-        <StockStatementList entries={statement?.items ?? []} loading={query.isLoading} />
+        <StockStatementList
+          tools={tools}
+          entries={entries.slice(
+            (Math.min(page, totalPages) - 1) * pageSize,
+            Math.min(page, totalPages) * pageSize
+          )}
+          loading={query.isLoading}
+        />
         <WorkspacePagination
-          onNextPage={() => setPage((current) => Math.min(totalPages, current + 1))}
+          onNextPage={() => setPage(Math.min(totalPages, Math.min(page, totalPages) + 1))}
           onPageChange={setPage}
-          onPreviousPage={() => setPage((current) => Math.max(1, current - 1))}
+          onPreviousPage={() => setPage(Math.max(1, Math.min(page, totalPages) - 1))}
           onRowsPerPageChange={(value) => {
             setPageSize(value);
             setPage(1);
           }}
-          page={page}
+          page={Math.min(page, totalPages)}
           rowsPerPage={pageSize}
           rowsPerPageOptions={[10, 20, 50, 100, 200, 500]}
-          showingLabel={`${statement?.items.length ?? 0} products on this page`}
+          showingLabel={`${Math.min(pageSize, Math.max(0, entries.length - (Math.min(page, totalPages) - 1) * pageSize))} products on this page`}
           singularLabel="products"
-          totalCount={statement?.total ?? 0}
+          totalCount={entries.length}
           totalPages={totalPages}
         />
         <section className="billing-print-area hidden print:block">

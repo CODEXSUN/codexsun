@@ -3,6 +3,7 @@ import type { FastifyRequest } from "fastify";
 import { AppError } from "@codexsun/framework/errors";
 
 export type BillingScope = {
+  reportCurrencyCode?: string;
   complianceJobUuid?: string;
   complianceLease?: string;
   actorEmail?: string;
@@ -58,6 +59,7 @@ export function assertBillingEntryEditable(status: string, label: string) {
 
 export function readBillingScope(request: FastifyRequest): BillingScope {
   return {
+    reportCurrencyCode: readReportCurrency(request.headers["x-billing-report-currency"]),
     companyId: positiveHeader(request.headers["x-company-id"], "x-company-id"),
     financialYearId: positiveHeader(request.headers["x-financial-year-id"], "x-financial-year-id")
   };
@@ -69,4 +71,14 @@ function positiveHeader(value: string | string[] | undefined, name: string) {
     throw AppError.validation(`${name} is required and must be a positive integer.`);
   }
   return parsed;
+}
+
+export function billingReportCurrency() {
+  return currentBillingScope().reportCurrencyCode ?? "INR";
+}
+function readReportCurrency(value: string | string[] | undefined) {
+  const code = (Array.isArray(value) ? value[0] : value)?.trim().toUpperCase() || "INR";
+  if (!/^[A-Z]{3}$/.test(code))
+    throw AppError.validation("Choose a valid three-letter reporting currency.");
+  return code;
 }

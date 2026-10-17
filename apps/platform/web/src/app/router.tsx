@@ -81,6 +81,16 @@ const TenantTermsPage = lazy(() =>
     default: module.TenantTermsPage
   }))
 );
+const TconnectBuyerDesk = lazy(() =>
+  import("../desks/tenant/TconnectBuyerDesk").then((module) => ({
+    default: module.TconnectBuyerDesk
+  }))
+);
+const TconnectMemberDesk = lazy(() =>
+  import("../desks/tenant/TconnectMemberDesk").then((module) => ({
+    default: module.TconnectMemberDesk
+  }))
+);
 const LoginPage = lazy(() =>
   import("../public/login/LoginPage").then((module) => ({ default: module.LoginPage }))
 );
@@ -171,6 +181,16 @@ const healthRoute = createRoute({
   path: "/status"
 });
 
+const tconnectBuyerRoute = createRoute({
+  component: TconnectBuyerDesk,
+  getParentRoute: () => rootRoute,
+  path: "/app/tconnect/buyer"
+});
+const tconnectMemberRoute = createRoute({
+  component: TconnectMemberDesk,
+  getParentRoute: () => rootRoute,
+  path: "/app/tconnect/member"
+});
 const tenantLoginRoute = createRoute({
   component: () => <LoginPage desk="tenant" title="App Login" />,
   getParentRoute: () => rootRoute,
@@ -344,6 +364,8 @@ const routeTree = rootRoute.addChildren([
   privacyRoute,
   termsRoute,
   healthRoute,
+  tconnectMemberRoute,
+  tconnectBuyerRoute,
   tenantLoginRoute,
   saLoginRoute,
   saRefreshRoute,

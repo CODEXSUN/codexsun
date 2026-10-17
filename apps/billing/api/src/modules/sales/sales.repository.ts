@@ -1,4 +1,9 @@
+import { salesColumnPredicate } from "./sales.list-query.js";
 import { assertSalesComplianceUnlocked } from "./sales.compliance-repository.js";
+import {
+  assertSalesInvoiceEditable,
+  assertSalesInvoiceStatusChange
+} from "./sales.lifecycle-guard.js";
 import { sql, type Kysely } from "kysely";
 import { runBillingTransaction } from "../../database/billing-database.js";
 import { assertSaleHasNoAllocations } from "./sales.allocation-guard.js";
@@ -107,6 +112,14 @@ export class SalesRepository {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      quantitySearch?: string;
+      taxableSearch?: string;
+      taxSearch?: string;
     }
   ) {
     const database = await salesDatabase(databaseName);
@@ -121,7 +134,8 @@ export class SalesRepository {
         options.dateFrom,
         options.dateTo,
         options.pageSize,
-        offset
+        offset,
+        options
       ).execute(database),
       sql<{ total: string | number }>`
         SELECT COUNT(*) AS total
@@ -129,6 +143,7 @@ export class SalesRepository {
         INNER JOIN core_contacts customer ON customer.id = s.customer_id
         LEFT JOIN core_work_orders work_order ON work_order.id = s.work_order_id
         WHERE s.deleted_at IS NULL
+          ${salesColumnPredicate(options)}
       AND s.company_id=${scope.companyId} AND s.financial_year_id=${scope.financialYearId}
       AND (${status} = 'all' OR s.status = ${status})
       AND (${options.dateFrom}='' OR s.issued_on >= ${options.dateFrom})
@@ -200,7 +215,7 @@ export class SalesRepository {
       SELECT
         EXISTS(SELECT 1 FROM core_companies WHERE id = ${input.companyId} AND id=${scope.companyId} AND status = 'active') AS company,
         EXISTS(SELECT 1 FROM core_financial_years WHERE id = ${input.financialYearId} AND id=${scope.financialYearId} AND status = 'active' AND ${input.issuedOn} BETWEEN start_date AND end_date) AS financialYear,
-        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.customerId} AND status = 'active') AS customer,
+        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.customerId} AND status = 'active' AND deleted_at IS NULL) AS customer,
         EXISTS(SELECT 1 FROM core_contacts_addresses WHERE id = ${input.billingAddressId} AND parent_id = ${input.customerId}) AS billingAddress,
         EXISTS(
           SELECT 1 FROM core_contacts_addresses address
@@ -210,7 +225,7 @@ export class SalesRepository {
         ) AS shippingAddress,
         ${input.workOrderId ? sql`EXISTS(SELECT 1 FROM core_work_orders WHERE id = ${input.workOrderId} AND status = 'active')` : sql`1`} AS workOrder,
         ${input.ledgerId ? sql`EXISTS(SELECT 1 FROM core_ledgers WHERE id = ${input.ledgerId} AND status = 'active')` : sql`1`} AS ledger,
-        EXISTS(SELECT 1 FROM core_currencies WHERE id = ${input.currencyId} AND status = 'active') AS currency
+        EXISTS(SELECT 1 FROM core_currencies WHERE id = ${input.currencyId} AND status = 'active' AND UPPER(name)='INR') AS currency
     `.execute(database);
     const row = result.rows[0];
     return {
@@ -457,6 +472,7 @@ export class SalesRepository {
     try {
       await runBillingTransaction(database, async (transaction) => {
         await assertSalesComplianceUnlocked(transaction, existing.id);
+        await assertSalesInvoiceEditable(transaction, existing.id, input.status);
         await assertSaleHasNoAllocations(transaction, existing.id);
         await assertLinkedSaleIdentity(transaction, existing.id, input);
         await sql`
@@ -501,6 +517,7 @@ export class SalesRepository {
     if (!existing) return null;
     await runBillingTransaction(database, async (transaction) => {
       await assertSalesComplianceUnlocked(transaction, existing.id);
+      await assertSalesInvoiceStatusChange(transaction, existing.id, existing.status, status);
       if (status !== "confirmed") await assertSaleHasNoAllocations(transaction, existing.id);
       await sql`
         UPDATE billing_sales SET status = ${status},
@@ -520,6 +537,7 @@ export class SalesRepository {
     if (!existing) return null;
     await runBillingTransaction(database, async (transaction) => {
       await assertSalesComplianceUnlocked(transaction, existing.id);
+      await assertSalesInvoiceEditable(transaction, existing.id, "draft");
       await assertSaleHasNoAllocations(transaction, existing.id);
       await assertLinkedSaleIdentity(transaction, existing.id);
       await insertActivity(

@@ -136,3 +136,17 @@ Report database, browser, native, and deployment checks separately.
 
 - `@codexsun/docs-api`: `.`.
 - `@codexsun/docs-web`: `.`, `./modules/overview`, `./modules/overview/gateway`, `./modules/knowledge`.
+
+## Repository references
+
+Run `npm run docs:sync` after editing repository Markdown or MDX.
+This command mirrors all non-generated repository documents into the protected Docs catalog.
+Each reference records its original path and SHA-256 checksum. Edit originals, then synchronize.
+The scanner includes repository configuration documentation, such as `.container` guides.
+It excludes the Docs content tree itself, Git metadata, editor caches, dependencies, build output, and runtime storage.
+References show full original Markdown or MDX as fenced source text. They cannot execute JSX or agent instructions.
+This preserves examples, historical status, and working rules without granting new capabilities.
+Application guide pages remain authored, rendered Markdown and MDX.
+Run `npm run docs:check` to reject missing or stale repository references and module pages.
+Repository references require the same live Docs activation and read permission as other developer evidence.
+Review operational details before granting Docs access. No public endpoint is added.

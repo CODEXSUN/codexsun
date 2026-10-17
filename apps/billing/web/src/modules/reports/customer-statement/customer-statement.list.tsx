@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import {
   WorkspaceTableEmptyState,
@@ -13,10 +14,12 @@ import type { CustomerStatementLine } from "./customer-statement.types";
 
 export function CustomerStatementList({
   entries,
-  loading
+  loading,
+  tools
 }: {
   entries: CustomerStatementLine[];
   loading: boolean;
+  tools: WorkspaceListTools;
 }) {
   return (
     <WorkspaceTablePanel>
@@ -27,6 +30,7 @@ export function CustomerStatementList({
               {["Date", "Voucher", "Type", "Narration", "Debit", "Credit", "Balance", "Age"].map(
                 (heading) => (
                   <th
+                    hidden={tools.hidden.includes(heading)}
                     className={`border-b border-border/70 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground ${["Debit", "Credit", "Balance", "Age"].includes(heading) ? "text-right" : "text-left"}`}
                     key={heading}
                   >
@@ -35,6 +39,17 @@ export function CustomerStatementList({
                 )
               )}
             </tr>
+            {tools.showFilters && (
+              <tr>
+                {["Date", "Voucher", "Type", "Narration", "Debit", "Credit", "Balance", "Age"]
+                  .filter((label) => !tools.hidden.includes(label))
+                  .map((label) => (
+                    <th className="px-3 pb-2" key={label}>
+                      {tools.filterRow(label)}
+                    </th>
+                  ))}
+              </tr>
+            )}
           </thead>
           <tbody>
             {entries.map((entry) => (
@@ -42,11 +57,13 @@ export function CustomerStatementList({
                 className="border-b border-border/70 last:border-b-0 hover:bg-muted/20"
                 key={`${entry.kind}-${entry.documentId}`}
               >
-                <td className="whitespace-nowrap px-4 py-3">
+                <td hidden={tools.hidden.includes("Date")} className="whitespace-nowrap px-4 py-3">
                   {formatCustomerStatementDate(entry.date)}
                 </td>
-                <td className="px-4 py-3 font-semibold">{entry.documentNumber}</td>
-                <td className="px-4 py-3">
+                <td hidden={tools.hidden.includes("Voucher")} className="px-4 py-3 font-semibold">
+                  {entry.documentNumber}
+                </td>
+                <td hidden={tools.hidden.includes("Type")} className="px-4 py-3">
                   <WorkspaceStatusBadge
                     label={
                       entry.kind === "receipt"
@@ -58,17 +75,29 @@ export function CustomerStatementList({
                     tone={entry.kind === "receipt" ? "success" : "info"}
                   />
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">{entry.narration}</td>
-                <td className="px-4 py-3 text-right">
+                <td
+                  hidden={tools.hidden.includes("Narration")}
+                  className="px-4 py-3 text-muted-foreground"
+                >
+                  {entry.narration}
+                </td>
+                <td hidden={tools.hidden.includes("Debit")} className="px-4 py-3 text-right">
                   {entry.debit ? formatCustomerStatementMoney(entry.debit) : "-"}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td hidden={tools.hidden.includes("Credit")} className="px-4 py-3 text-right">
                   {entry.credit ? formatCustomerStatementMoney(entry.credit) : "-"}
                 </td>
-                <td className="px-4 py-3 text-right font-semibold">
+                <td
+                  hidden={tools.hidden.includes("Balance")}
+                  className="px-4 py-3 text-right font-semibold"
+                >
                   {formatCustomerStatementMoney(entry.balance)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right" title="Days since bill date">
+                <td
+                  hidden={tools.hidden.includes("Age")}
+                  className="whitespace-nowrap px-4 py-3 text-right"
+                  title="Days since bill date"
+                >
                   {entry.kind === "receipt" ? "—" : `${formatCustomerStatementAge(entry.date)} d`}
                 </td>
               </tr>

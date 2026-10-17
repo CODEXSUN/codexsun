@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Eye, Printer, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
@@ -16,7 +17,20 @@ import {
 import { formatDate, formatMoney, totalSaleQuantity } from "./sales.services";
 import type { Sale } from "./sales.types";
 
+const columnIds: Record<string, string> = {
+  Sale: "number",
+  Date: "date",
+  Customer: "customer",
+  QTY: "items",
+  Taxable: "taxable",
+  GST: "gst",
+  Total: "total",
+  Status: "status",
+  Action: "action"
+};
+
 export function SalesList({
+  listTools,
   canEditEntries,
   canEditFinalizedEntries,
   canAdminRevoke,
@@ -32,6 +46,7 @@ export function SalesList({
   totalsView,
   visibleColumns
 }: {
+  listTools: WorkspaceListTools;
   canEditEntries: boolean;
   canEditFinalizedEntries: boolean;
   canAdminRevoke: boolean;
@@ -79,6 +94,11 @@ export function SalesList({
                       )}
                     >
                       {heading}
+                      {listTools.showFilters ? (
+                        <div className="mt-2 font-normal normal-case tracking-normal">
+                          {listTools.filterRow(columnIds[heading] ?? "")}
+                        </div>
+                      ) : null}
                     </th>
                   ))}
                 </tr>
@@ -90,6 +110,7 @@ export function SalesList({
                     aria-label={`View sale ${sale.saleNumber}`}
                     className="cursor-pointer border-b border-border/70 last:border-b-0 [&>td]:transition-colors hover:[&>td]:bg-muted/60 focus-visible:[&>td]:bg-muted/60 focus-visible:outline-none"
                     onClick={(event) => {
+                      if (!event.currentTarget.contains(event.target as Node)) return;
                       if ((event.target as Element).closest("button, input, a")) return;
                       onView(sale);
                     }}

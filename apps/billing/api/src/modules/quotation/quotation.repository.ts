@@ -1,3 +1,4 @@
+import { quotationColumnPredicate } from "./quotation.list-query.js";
 import { sql, type Kysely } from "kysely";
 import { runBillingTransaction } from "../../database/billing-database.js";
 import { assertQuotationMutable } from "./quotation.lifecycle-guard.js";
@@ -60,6 +61,14 @@ export class QuotationRepository {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      quantitySearch?: string;
+      taxableSearch?: string;
+      taxSearch?: string;
     }
   ) {
     const database = await quotationDatabase(databaseName);
@@ -69,6 +78,7 @@ export class QuotationRepository {
     const scope = currentBillingScope();
     const [result, count] = await Promise.all([
       selectQuotationHeaders(undefined, {
+        ...options,
         customer,
         dateFrom: options.dateFrom,
         dateTo: options.dateTo,
@@ -82,6 +92,7 @@ export class QuotationRepository {
         INNER JOIN core_contacts customer ON customer.id=s.customer_id
         LEFT JOIN core_work_orders work_order ON work_order.id=s.work_order_id
         WHERE s.deleted_at IS NULL
+          ${quotationColumnPredicate(options)}
           AND s.company_id=${scope.companyId}
           AND s.financial_year_id=${scope.financialYearId}
           AND (${options.status}='all' OR s.status=${options.status})
@@ -156,7 +167,7 @@ export class QuotationRepository {
       SELECT
         EXISTS(SELECT 1 FROM core_companies WHERE id = ${input.companyId} AND id=${scope.companyId} AND status = 'active') AS company,
         EXISTS(SELECT 1 FROM core_financial_years WHERE id = ${input.financialYearId} AND id=${scope.financialYearId} AND status = 'active' AND ${input.date} BETWEEN start_date AND end_date) AS financialYear,
-        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.customerId} AND status = 'active') AS customer,
+        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.customerId} AND status = 'active' AND deleted_at IS NULL) AS customer,
         EXISTS(SELECT 1 FROM core_contacts_addresses WHERE id = ${input.billingAddressId} AND parent_id = ${input.customerId}) AS billingAddress,
         EXISTS(SELECT 1 FROM core_contacts_addresses WHERE id = ${input.shippingAddressId} AND parent_id = ${input.customerId}) AS shippingAddress,
         ${input.workOrderId ? sql`EXISTS(SELECT 1 FROM core_work_orders WHERE id = ${input.workOrderId} AND status = 'active')` : sql`1`} AS workOrder,

@@ -156,7 +156,8 @@ const connections = new Map<string, BillingConnectionEntry>();
 const tenantConnectionOptions = new Map<string, TenantConnectionOptions>();
 const migrated = new Set<string>();
 const bootstrapping = new Map<string, Promise<void>>();
-const bootstrapTimeoutMs = 5_000;
+// Fresh tenant migrations can exceed five seconds under normal database load.
+const bootstrapTimeoutMs = 30_000;
 const connectionIdleMs = 10 * 60 * 1000;
 const evictionTimer = setInterval(() => void evictIdleBillingDatabases(), 60_000);
 evictionTimer.unref();

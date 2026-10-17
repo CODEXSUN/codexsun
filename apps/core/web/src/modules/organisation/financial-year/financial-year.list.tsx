@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import {
   formatDate as formatWorkspaceDate,
   formatDateTime as formatWorkspaceDateTime
@@ -6,7 +7,16 @@ import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy"
 import { CheckCircle2, Trash2 } from "lucide-react";
 import { WorkspaceRowActions, WorkspaceStatusBadge, WorkspaceTable } from "@codexsun/ui";
 import type { FinancialYearRecord } from "./financial-year.types";
+export const financialYearListColumns = {
+  id: "#",
+  name: "Name",
+  startDate: "Start date",
+  endDate: "End date",
+  updatedAt: "Updated"
+};
+
 export function FinancialYearList({
+  listTools,
   loading,
   onCurrent,
   onEdit,
@@ -15,6 +25,7 @@ export function FinancialYearList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onCurrent: (record: FinancialYearRecord) => void;
   onEdit: (record: FinancialYearRecord) => void;
@@ -107,7 +118,13 @@ export function FinancialYearList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No financial years found."
       isLoading={loading}

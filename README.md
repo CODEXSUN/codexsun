@@ -182,22 +182,35 @@ Production migration preflight requires a verified backup.
 
 ## Development commands
 
-| Command                        | Purpose                                                               |
-| ------------------------------ | --------------------------------------------------------------------- |
-| `npm run dev`                  | Start the supervised development services.                            |
-| `npm run dev:api`              | Start only the Platform API watcher.                                  |
-| `npm run dev:web`              | Start only Platform web after the API becomes healthy.                |
-| `npm run dev:ecommerce`        | Start the Ecommerce frontend.                                         |
-| `npm run dev:qcafe`            | Start Q Cafe development services.                                    |
-| `npm run dev:uiux`             | Start the UI gallery.                                                 |
-| `npm run dev:project-manager`  | Start the Project Manager frontend.                                   |
-| `npm run build`                | Build the repository and collect output under root `dist`.            |
-| `npm run start:api:production` | Start the built Platform API with production package resolution.      |
-| `npm run dependencies:check`   | Verify the root dependency and generated-output layout.               |
-| `npm run clean:dist`           | Clear generated output after stopping development servers and builds. |
+| Command                        | Purpose                                                                                 |
+| ------------------------------ | --------------------------------------------------------------------------------------- |
+| `npm run dev`                  | Start the supervised development services.                                              |
+| `npm run dev:api`              | Start only the Platform API watcher.                                                    |
+| `npm run dev:web`              | Start only Platform web after the API becomes healthy.                                  |
+| `npm run dev:ecommerce`        | Start the Ecommerce frontend.                                                           |
+| `npm run dev:qcafe`            | Start Q Cafe development services.                                                      |
+| `npm run dev:uiux`             | Start the UI gallery.                                                                   |
+| `npm run dev:project-manager`  | Start the Project Manager frontend.                                                     |
+| `npm run build`                | Build the repository and collect output under root `dist`.                              |
+| `npm run start:api:production` | Start the built Platform API with production package resolution.                        |
+| `npm run dependencies:check`   | Verify the root dependency and generated-output layout.                                 |
+| `npm run clean:dist`           | Clear generated output after stopping development servers and builds.                   |
+| `npm run clean:cache`          | Remove only disposable caches and temporary files. Keep build outputs and dependencies. |
 
-Use one runner per service. Development startup can replace an existing CODEXSUN listener on its configured port.
-Set `CODEXSUN_DEV_PORT_POLICY=abort` to refuse a port takeover.
+### Cache-only cleanup
+
+Run `npm run clean:cache -- --dry-run` to preview cleanup. Run `npm run clean:cache` to apply it.
+The command removes only `dist/.cache`, `dist/.tmp`, and the root dependency caches `.cache`, `.vite`, and `.vite-temp`.
+It preserves other `dist` content, installed packages, source files, lockfiles, and application storage.
+It rejects arbitrary paths and refuses symbolic links or junctions in cleanup targets before deletion.
+Close tools that use these caches before cleanup. The command refuses cleanup while a registered development launcher is running.
+It reports locked files and exits with an error if removal fails.
+It does not stop processes. Active tools can recreate caches after cleanup.
+Run cleanup after builds and checks. For the last cleanup without npm logging, use `node tools/clean-repository-cache.mjs`.
+Run `npm run test:cleanup` to verify preservation, preview mode, repeat cleanup, and link protection.
+
+Use one runner per service. Development startup leaves existing listeners and launchers running by default.
+Set `CODEXSUN_DEV_PORT_POLICY=takeover` only when you intend to replace an existing CODEXSUN runner.
 
 Use root build and mobile commands to keep generated files under `dist`.
 Avoid simultaneous builds because workspaces share the root output tree.

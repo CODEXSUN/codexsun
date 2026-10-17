@@ -18,6 +18,7 @@ export const defaultTenantModuleKeys = [
   "frappe",
   "zetro",
   "logicx-erp",
+  "tconnect",
   "ecommerce",
   "qcafe",
   "hrms",
@@ -28,6 +29,17 @@ export const defaultTenantModuleKeys = [
 ] as const;
 
 export const platformAppRegistry: PlatformAppDefinition[] = [
+  {
+    appId: "tconnect",
+    id: 0,
+    uuid: "",
+    label: "TConnect",
+    moduleKey: "tconnect",
+    stack: "tconnect",
+    alwaysEnabled: false,
+    defaultLanding: false,
+    description: "Buyer and seller discovery, branded company profiles and association communities."
+  },
   {
     appId: "codexsun",
     id: 0,
@@ -83,8 +95,7 @@ export const platformAppRegistry: PlatformAppDefinition[] = [
     stack: "sites",
     alwaysEnabled: false,
     defaultLanding: false,
-    description:
-      "Site Studio CMS portal for multi-client portfolio websites (Wix / Shopify style)."
+    description: "Site Studio CMS portal for multi-client portfolio websites (Wix / Shopify style)."
   },
   {
     appId: "qcafe",

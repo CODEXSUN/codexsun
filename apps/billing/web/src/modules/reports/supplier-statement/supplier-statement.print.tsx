@@ -1,3 +1,4 @@
+import { getReportCurrencyCode } from "../../../shared/api/tenant-context";
 import { formatDateTime as formatWorkspaceDateTime } from "@codexsun/ui/workspace";
 import { WorkspacePrintSheet } from "@codexsun/ui/workspace/print";
 import { BillingDocumentHeader } from "../../settings";
@@ -13,6 +14,7 @@ export function SupplierStatementPrint({ statement }: { statement: SupplierState
     <WorkspacePrintSheet className="billing-print-document billing-statement-print-document">
       <style>{printStyles}</style>
       <article className="bg-white px-3 py-3 text-[10px] text-black">
+        <div className="text-xs font-semibold">Currency: {getReportCurrencyCode()}</div>
         <BillingDocumentHeader
           className="border border-slate-500"
           documentMeta={

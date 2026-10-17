@@ -10,6 +10,7 @@ import type {
   KitchenTicket
 } from "./order.types.js";
 type Row = {
+  id: number;
   uuid: string;
   name: string;
   revision: number;
@@ -20,6 +21,7 @@ type Row = {
   seats_json: string;
   lines_json: string;
   bill_uuid: string | null;
+  booking_json: string | import("./order.types.js").BookingDetails | null;
 };
 export class OrderRepository {
   constructor(private readonly database: Kysely<QCafeDatabase>) {}
@@ -74,7 +76,15 @@ export class OrderRepository {
         if (replay) {
           if (replay.order_uuid !== uuid || replay.payload_hash !== hash)
             throw AppError.conflict("This operation ID already has different details.");
-          return JSON.parse(replay.response_json) as CafeOrder;
+          const response = JSON.parse(replay.response_json) as CafeOrder;
+          return {
+            ...response,
+            booking: response.booking ?? null,
+            bookingToken: response.bookingToken ?? null,
+            parcelToken: response.booking
+              ? null
+              : parcelToken({ ...row, mode: response.mode, booking_json: null })
+          };
         }
         if (row.revision !== input.revision || row.status !== "draft")
           throw AppError.conflict(
@@ -96,6 +106,18 @@ export class OrderRepository {
             db
           );
         } else {
+          const booking = input.booking === undefined ? current.booking : input.booking;
+          if (current.booking && !booking)
+            throw AppError.validation("Booking details cannot be removed.");
+          if (booking && (input.mode !== "TAKE AWAY" || input.tableUuid || input.seats.length))
+            throw AppError.validation("Pickup bookings cannot use a table or seats.");
+          const bookingChanged = JSON.stringify(booking) !== JSON.stringify(current.booking);
+          if (bookingChanged && current.tickets.length)
+            throw AppError.conflict(
+              "Booking details cannot change after a preparation ticket. Cancel and create a new booking."
+            );
+          if (bookingChanged && booking && Date.parse(booking.pickupAt) <= Date.now())
+            throw AppError.validation("Choose a pickup date and time in the future.");
           const menu = await deps.lookupMenu(
             db,
             input.lines.map((line) => line.menuUuid)
@@ -130,7 +152,7 @@ export class OrderRepository {
             await sql`INSERT INTO qcafe_order_seats(table_uuid,seat,order_uuid) VALUES(${input.tableUuid},${seat},${uuid})`.execute(
               db
             );
-          await sql`UPDATE qcafe_order SET name=${input.name},mode=${input.mode},table_uuid=${input.tableUuid},table_name=${tableName},seats_json=${JSON.stringify(input.seats)},lines_json=${JSON.stringify(lines)},revision=revision+1 WHERE uuid=${uuid}`.execute(
+          await sql`UPDATE qcafe_order SET name=${input.name},mode=${input.mode},table_uuid=${input.tableUuid},table_name=${tableName},seats_json=${JSON.stringify(input.seats)},lines_json=${JSON.stringify(lines)},booking_json=${booking ? JSON.stringify(booking) : null},revision=revision+1 WHERE uuid=${uuid}`.execute(
             db
           );
           if (input.action === "kitchen") {
@@ -152,7 +174,14 @@ export class OrderRepository {
               {
                 requestId: input.requestId,
                 lines,
-                context: { orderUuid: uuid, mode: input.mode, tableName, seats: input.seats }
+                context: {
+                  orderUuid: uuid,
+                  mode: input.mode,
+                  tableName,
+                  seats: input.seats,
+                  parcelToken: booking ? null : parcelToken({ ...row, mode: input.mode }),
+                  booking: booking ? { ...booking, token: bookingToken(row.id) } : null
+                }
               },
               actor
             );
@@ -205,6 +234,12 @@ export class OrderRepository {
       )
     ).rows;
     return {
+      booking:
+        typeof row.booking_json === "string"
+          ? JSON.parse(row.booking_json)
+          : (row.booking_json ?? null),
+      bookingToken: row.booking_json ? bookingToken(row.id) : null,
+      parcelToken: parcelToken(row),
       uuid: row.uuid,
       name: row.name,
       revision: row.revision,
@@ -224,6 +259,14 @@ export class OrderRepository {
       }))
     };
   }
+}
+function parcelToken(row: Row) {
+  return row.mode === "TAKE AWAY" && !row.booking_json
+    ? `PCL-${String(row.id).padStart(6, "0")}`
+    : null;
+}
+function bookingToken(id: number) {
+  return `BKG-${String(id).padStart(6, "0")}`;
 }
 function sentQuantities(tickets: KitchenTicket[]) {
   const sent = new Map<string, number>();

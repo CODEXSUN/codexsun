@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Trash2 } from "lucide-react";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { WorkspaceProtectedIndicator } from "@codexsun/ui/workspace/protected-indicator";
@@ -6,7 +7,10 @@ import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { CountryRecord } from "./country.types";
 
+export const countryListColumns = { name: "Country", code: "Country code", status: "Status" };
+
 export function CountryList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -14,6 +18,7 @@ export function CountryList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: CountryRecord) => void;
   onForceDelete: (record: CountryRecord) => void;
@@ -98,7 +103,13 @@ export function CountryList({
 
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No countries found."
       isLoading={loading}

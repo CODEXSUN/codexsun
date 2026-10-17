@@ -12,6 +12,8 @@ import { BlogRepository, BlogService } from "./blog/index.js";
 import { initialRamuTexPage } from "./page/page.content.js";
 import type { SitesDatabase } from "./site.types.js";
 import { SiteService } from "./site.service.js";
+import { PublicationRepository, PublicationService } from "./publication/index.js";
+import { verifyPublication } from "./publication/publication.integrity.js";
 import { SiteRepository } from "./site.repository.js";
 
 test(
@@ -115,6 +117,23 @@ test(
         }),
         /port is already assigned/
       );
+      const publication = new PublicationService(new PublicationRepository(db), ramu, "tenant-test");
+      const release = await publication.export(await page.published(), [], "cms-test@example.test");
+      assert.equal(verifyPublication(release).content.profile.name, "Draft name");
+      await assert.rejects(
+        new PublicationService(new PublicationRepository(db), other, "tenant-test").export(
+          null,
+          [],
+          "cms-test@example.test"
+        ),
+        /Publish/
+      );
+      const nextRelease = await publication.export(
+        await page.published(),
+        [],
+        "cms-test@example.test"
+      );
+      assert.ok(nextRelease.sequence > release.sequence);
       const blogs = new BlogService(new BlogRepository(db), ramu);
       const draft = {
         title: "Textile note",

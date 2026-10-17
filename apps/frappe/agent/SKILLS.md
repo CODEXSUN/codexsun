@@ -14,6 +14,10 @@ Use the public verified connection contract. Resolve tenant credentials server-s
 
 ## Implementation rules
 
+- Refer to [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git) for custom Frappe DocType schemas and controller functions.
+- Read [the source catalogue](LOGICX-CRM-REFERENCE.md) and [CRM comparison](../../crm/agent/FRAPPE-COMPARISON.md) before changing field mappings.
+- Use the explicitly supplied external checkout as a read-only contract reference. Verify installed-site metadata separately.
+
 - Inspect the affected source and public contracts before editing.
 - Keep concrete business behavior in its owning leaf or package.
 - Preserve authoritative validation, permission checks, and data ownership.

@@ -1,7 +1,9 @@
+import { createEnquiryGateway } from "./enquiry/index.js";
 import { sitePayloadSchema } from "./site.schema.js";
 import type { CmsSite, SiteGateway, SitePayload } from "./site.types.js";
 import { createPageGateway } from "./page/index.js";
 import { createBlogGateway } from "./blog/index.js";
+import { deliverySnapshotSchema } from "@codexsun/sites-api/delivery-contract";
 
 type HttpClient = {
   delete<T>(path: string): Promise<T>;
@@ -12,6 +14,9 @@ type HttpClient = {
 
 export function createSiteGateway(client: HttpClient): SiteGateway {
   return {
+    enquiries: createEnquiryGateway(client),
+    exportPublication: async (uuid) =>
+      deliverySnapshotSchema.parse(await client.post(`/sites/${uuid}/publication/export`)),
     page: createPageGateway(client),
     blog: createBlogGateway(client),
     start(uuid: string) {

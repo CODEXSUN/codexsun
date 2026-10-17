@@ -23,13 +23,13 @@ business logic or UI assumptions from an older CODEXSUN/CODEXSUN checkout.
 Every new or updated post-auth desk shell uses `AppLayout` to hold five Main
 Layout regions. Their order and case-sensitive technical names are:
 
-| Screen order | Region | Technical name |
-| --- | --- | --- |
-| 1 | Top Menu | `main.topMenu` |
-| 2 | Side Menu | `main.sideBar` |
-| 3 | App Header | `main.AppHeader` |
-| 4 | Workspace Canvas | `main.workspace` |
-| 5 | Status Bar | `main.StatusBar` |
+| Screen order | Region           | Technical name   |
+| ------------ | ---------------- | ---------------- |
+| 1            | Top Menu         | `main.topMenu`   |
+| 2            | Side Menu        | `main.sideBar`   |
+| 3            | App Header       | `main.AppHeader` |
+| 4            | Workspace Canvas | `main.workspace` |
+| 5            | Status Bar       | `main.StatusBar` |
 
 Place the Side Menu beside the workspace. Place the App Header above the page
 canvas within that workspace. The host app owns authentication, routing,
@@ -419,3 +419,11 @@ Before marking a module complete, check all items:
 - [ ] Has API tests.
 - [ ] Has E2E coverage for list/show/upsert/persistence.
 - [ ] Changelog and version are updated when behavior or standards change.
+
+## Compact Application Lists
+
+Application access lists and Core Organisation, Common Master, and Master lists use the CRM list tone. The application header shows the module name and New action. Do not repeat the list title, description, or Refresh action in the canvas.
+Use a flat breadcrumb with the page or module name. The list toolbar contains search, a column-search toggle, a selected status badge, Filters, and Columns.
+Keep column labels and record filtering in each leaf. Shared UI supplies controls and navigation state. Apply column filters before pagination.
+The host owns the router adapter and header action target. Query strings preserve search, status, page, page size, hidden columns, and column searches. New/Edit URLs remain refreshable.
+Sidebar clicks open the initial list. Ask whether to keep or discard changes before leaving a New/Edit route or a changed form.

@@ -2,6 +2,7 @@ import { sql, type Kysely } from "kysely";
 import type { SitesDatabase } from "./site.types.js";
 import { migratePageModule } from "./page/index.js";
 import { migrateBlogModule } from "./blog/index.js";
+import { migratePublicationModule } from "./publication/index.js";
 
 export const siteMigration = {
   description: "Create sites_portfolio_sites table for multi-client portfolio management.",
@@ -28,9 +29,11 @@ export async function migrateSiteModule(database: Kysely<SitesDatabase>) {
   `.execute(database);
   await migratePageModule(database);
   await migrateBlogModule(database);
+  await migratePublicationModule(database);
 }
 
 export async function rollbackSiteModule(database: Kysely<SitesDatabase>) {
+  await sql`DROP TABLE IF EXISTS sites_publications`.execute(database);
   await sql`DROP TABLE IF EXISTS sites_blog_activity`.execute(database);
   await sql`DROP TABLE IF EXISTS sites_blog_posts`.execute(database);
   await sql`DROP TABLE IF EXISTS sites_page_activity`.execute(database);

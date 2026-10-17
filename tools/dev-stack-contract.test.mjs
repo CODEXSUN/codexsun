@@ -1,7 +1,53 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { createServer } from "node:http";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import test from "node:test";
 import { previousPreflightPids, takeoverTarget } from "./dev-port-ownership.mjs";
+
+test("a duplicate development start leaves an occupied listener running", async () => {
+  const server = createServer((_request, response) => response.end("still running"));
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const { port } = server.address();
+    await assert.rejects(
+      promisify(execFile)(process.execPath, ["tools/preflight.mjs", "platform-web"], {
+        cwd: new URL("..", import.meta.url),
+        env: { ...process.env, PLATFORM_WEB_PORT: String(port), CODEXSUN_DEV_PORT_POLICY: "abort" },
+        timeout: 20_000
+      }),
+      (error) => error.code === 1 && /previous dev process or another listener/u.test(error.stderr)
+    );
+    const response = await fetch(`http://127.0.0.1:${port}`);
+    assert.equal(await response.text(), "still running");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("TConnect takeover refuses an unrelated port owner", async () => {
+  const server = createServer((_request, response) => response.end("unrelated listener"));
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const { port } = server.address();
+    await assert.rejects(
+      promisify(execFile)(process.execPath, ["tools/preflight.mjs", "tconnect-web"], {
+        cwd: new URL("..", import.meta.url),
+        env: {
+          ...process.env,
+          CODEXSUN_TCONNECT_WEB_PORT: String(port),
+          CODEXSUN_DEV_PORT_POLICY: "takeover"
+        },
+        timeout: 20000
+      }),
+      (error) => error.code === 1 && /another process; refusing takeover/u.test(error.stderr)
+    );
+    assert.equal(await (await fetch(`http://127.0.0.1:${port}`)).text(), "unrelated listener");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
 
 const [
   packageSource,
@@ -35,10 +81,10 @@ test("development commands keep API and web watchers independently available", (
   assert.match(preflightSource, /nodePackageBin\("vite", "bin\/vite\.js"\)/u);
   assert.match(
     preflightSource,
-    /\["platform-api", "platform-web", "qcafe-web", "ecommerce-web"\]\.includes\(app\)/u
+    /\[\s*"platform-api",\s*"platform-web",\s*"qcafe-web",\s*"ecommerce-web",\s*"tconnect-web"\s*\]\.includes\(\s*app\s*\)/u
   );
   assert.match(preflightSource, /--max-http-header-size=\$\{size\}/u);
-  assert.match(preflightSource, /withMaxHttpHeaderSize\([\s\S]*?65_536/u);
+  assert.match(preflightSource, /withMaxHttpHeaderSize\([\s\S]*?262_144/u);
 });
 
 test("API development resolves linked owner packages through the root dependency tree", () => {
@@ -64,7 +110,7 @@ test("combined development runtime restarts one service without stopping its sib
   assert.match(stackSource, /restartService\(serviceName, "failed health checks"\)/u);
   assert.match(stackSource, /await waitForPreflight\(child, service\.label\)/u);
   assert.match(preflightSource, /codexsun:preflight-ready/u);
-  assert.match(preflightSource, /env\.CODEXSUN_DEV_PORT_POLICY \?\? "takeover"/u);
+  assert.match(preflightSource, /env\.CODEXSUN_DEV_PORT_POLICY \?\? "abort"/u);
   assert.doesNotMatch(stackSource, /stopChildren\(child\)/u);
 });
 

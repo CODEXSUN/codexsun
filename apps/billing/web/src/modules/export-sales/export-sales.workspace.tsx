@@ -1,7 +1,9 @@
+import { useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useMemo, useState, type SetStateAction } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
@@ -83,7 +85,7 @@ export function ExportSalesWorkspace({
         : next.mode === "upsert" && !record
           ? `${basePath}/new`
           : `${basePath}/${encodeURIComponent(record!.id)}${next.mode === "upsert" ? "/edit" : ""}`;
-    if (location.pathname !== path) void navigate({ to: path });
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
   }
   useEffect(() => {
     const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
@@ -122,19 +124,32 @@ export function ExportSalesWorkspace({
       active = false;
     };
   }, [location.pathname]);
-  const [searchValue, setSearchValue] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [searchValue, setSearchValue] = useWorkspaceQueryValue("q", "");
+  const [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all");
+  const [dateFrom, setDateFrom] = useWorkspaceQueryValue("from", "");
+  const [dateTo, setDateTo] = useWorkspaceQueryValue("to", "");
   const [totalsView, setTotalsView] = useState<BillingDocumentTotalsViewMode>("bill");
-  const [contactFilter, setContactFilter] = useState("all");
+  const [contactFilter, setContactFilter] = useWorkspaceQueryValue("party", "all");
   const [selectedExportSaleIds, setSelectedExportSaleIds] = useState<Set<string>>(() => new Set());
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(exportSaleColumnCatalog.map((column) => [column.id, true]))
+  const listTools = useWorkspaceListTools({
+    number: "Export Sale",
+    date: "Date",
+    ...Object.fromEntries(exportSaleColumnCatalog.map((column) => [column.id, column.label]))
+  });
+  const visibleColumns = Object.fromEntries(
+    exportSaleColumnCatalog.map((column) => [column.id, !listTools.hidden.includes(column.id)])
   );
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [currentPage, setCurrentPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100);
   const exportSalesQuery = useExportSalesPage({
+    numberSearch: listTools.filters.number ?? "",
+    dateSearch: listTools.filters.date ?? "",
+    partySearch: listTools.filters.customer ?? "",
+    totalSearch: listTools.filters.total ?? "",
+    statusSearch: listTools.filters.status ?? "",
+    quantitySearch: listTools.filters.items ?? "",
+    taxableSearch: listTools.filters.taxable ?? "",
+    taxSearch: listTools.filters.gst ?? "",
     customer: contactFilter,
     dateFrom,
     dateTo,
@@ -355,21 +370,12 @@ export function ExportSalesWorkspace({
 
   return (
     <WorkspacePage
+      variant="list"
       title="Export Sales"
       description="Create and review tenant-isolated export sale vouchers with export sales layout controls."
       technicalName="page.billing.exportSale.list"
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            className="h-9 rounded-md"
-            disabled={exportSalesQuery.isFetching}
-            onClick={() => void exportSalesQuery.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", exportSalesQuery.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
           <Button className="h-9 rounded-md" onClick={() => void openNewExportSale()} type="button">
             <Plus className="size-4" />
             New export sale
@@ -378,7 +384,11 @@ export function ExportSalesWorkspace({
       }
     >
       <WorkspaceFilters
-        filterOptions={statusFilters}
+        showSelectedFilterChip
+        filterOptions={statusFilters.map((option) => ({
+          ...option,
+          ...(option.id === statusFilter ? { count: exportSalesQuery.data?.total ?? 0 } : {})
+        }))}
         filterValue={statusFilter}
         onFilterValueChange={(value) => {
           setStatusFilter(value);
@@ -390,32 +400,28 @@ export function ExportSalesWorkspace({
         }}
         searchPlaceholder="Search export sale, customer, work order, date, or total"
         searchValue={searchValue}
-        columnOptions={exportSaleColumnCatalog.map((column) => ({
-          ...column,
-          checked: Boolean(visibleColumns[column.id]),
-          onCheckedChange: (checked: boolean) =>
-            setVisibleColumns((current) => ({ ...current, [column.id]: checked }))
-        }))}
-        onShowAllColumns={() =>
-          setVisibleColumns(
-            Object.fromEntries(exportSaleColumnCatalog.map((column) => [column.id, true]))
-          )
-        }
+        columnOptions={listTools.columnOptions.filter((column) =>
+          exportSaleColumnCatalog.some((item) => item.id === column.id)
+        )}
+        onShowAllColumns={listTools.onShowAllColumns}
         toolbarAction={
-          <BillingDocumentListControls
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            onDateFromChange={(value) => {
-              setDateFrom(value);
-              setCurrentPage(1);
-            }}
-            onDateToChange={(value) => {
-              setDateTo(value);
-              setCurrentPage(1);
-            }}
-            onTotalsViewChange={setTotalsView}
-            totalsView={totalsView}
-          />
+          <>
+            {listTools.toolbarAction}{" "}
+            <BillingDocumentListControls
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={(value) => {
+                setDateFrom(value);
+                setCurrentPage(1);
+              }}
+              onDateToChange={(value) => {
+                setDateTo(value);
+                setCurrentPage(1);
+              }}
+              onTotalsViewChange={setTotalsView}
+              totalsView={totalsView}
+            />
+          </>
         }
       />
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/70 bg-card px-4 py-3 text-sm shadow-sm">
@@ -466,6 +472,7 @@ export function ExportSalesWorkspace({
         </WorkspaceTablePanel>
       ) : null}
       <ExportSalesList
+        listTools={listTools}
         entries={pageEntries}
         loading={exportSalesQuery.isLoading}
         totalsRecords={pageEntries.map((exportSale) => ({

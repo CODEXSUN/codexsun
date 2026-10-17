@@ -1,3 +1,4 @@
+import { quotationColumnPredicate, type QuotationColumnSearch } from "./quotation.list-query.js";
 import { sql, type Kysely, type RawBuilder, type Transaction } from "kysely";
 import { randomBytes } from "node:crypto";
 import { currentBillingScope } from "../../auth/billing-scope.js";
@@ -119,7 +120,7 @@ export function selectQuotationHeaders(
     offset: number;
     search: string;
     status: string;
-  }
+  } & QuotationColumnSearch
 ) {
   const scope = currentBillingScope();
   return sql<QuotationHeaderRow>`
@@ -157,6 +158,7 @@ export function selectQuotationHeaders(
     LEFT JOIN core_work_orders work_order ON work_order.id = s.work_order_id
     LEFT JOIN core_ledgers ledger ON ledger.id = s.ledger_id
     WHERE s.deleted_at IS NULL
+      ${page ? quotationColumnPredicate(page) : sql``}
       AND s.company_id=${scope.companyId} AND s.financial_year_id=${scope.financialYearId}
       ${uuid ? sql`AND s.uuid = ${uuid}` : sql``}
       ${

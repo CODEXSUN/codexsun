@@ -20,6 +20,12 @@ const configDir = fileURLToPath(new URL(".", import.meta.url));
 const rootPackage = JSON.parse(
   readFileSync(resolve(configDir, "../../../package.json"), "utf8")
 ) as { version: string };
+const sharedUiPackage = JSON.parse(
+  readFileSync(resolve(configDir, "../../../packages/ui/package.json"), "utf8")
+) as { dependencies: Record<string, string> };
+const sharedUiDependencies = Object.keys(sharedUiPackage.dependencies).filter(
+  (name) => !name.startsWith("@fontsource") && name !== "tailwindcss"
+);
 
 export default defineConfig(({ command, mode }) => {
   const runtimeEnv = loadEnv(mode, resolve(configDir, "../../.."), "");
@@ -33,6 +39,9 @@ export default defineConfig(({ command, mode }) => {
     cacheDir: "../../../dist/.cache/vite/platform-web",
     envDir: "../../..",
     define: {
+      __CODEXSUN_TCONNECT_WEB_PORT__: JSON.stringify(
+        Number(runtimeEnv.CODEXSUN_TCONNECT_WEB_PORT ?? 7040)
+      ),
       __APP_VERSION__: JSON.stringify(rootPackage.version),
       __CODEXSUN_ECOMMERCE_WEB_PORT__: JSON.stringify(
         Number(runtimeEnv.CODEXSUN_ECOMMERCE_WEB_PORT)
@@ -40,6 +49,8 @@ export default defineConfig(({ command, mode }) => {
     },
     optimizeDeps: {
       exclude: [
+        "@codexsun/ui",
+        "@codexsun/tconnect-web",
         "@codexsun/qcafe-web",
         "@codexsun/qcafe-web/web",
         "@codexsun/codexsun-web",
@@ -55,6 +66,17 @@ export default defineConfig(({ command, mode }) => {
         "@codexsun/chat-web"
       ],
       include: [
+        ...sharedUiDependencies,
+        "@tanstack/react-table/legacy",
+        "qrcode.react",
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "next-themes",
+        "sonner",
+        "socket.io-client",
         "react-markdown",
         "remark-gfm",
         "rehype-highlight",
@@ -84,7 +106,45 @@ export default defineConfig(({ command, mode }) => {
       react({ include: /\.(jsx|tsx|md|mdx)$/ })
     ],
     resolve: {
+      dedupe: ["react", "react-dom", "@tanstack/react-query"],
       alias: {
+        "@codexsun/ui": resolve(configDir, "../../../packages/ui/src"),
+        "@codexsun/core-web/modules/organisation/default-company/hooks": resolve(
+          configDir,
+          "../../core/web/src/modules/organisation/default-company/default-company.hooks.ts"
+        ),
+        "@codexsun/core-web/modules/organisation/default-company/services": resolve(
+          configDir,
+          "../../core/web/src/modules/organisation/default-company/default-company.services.ts"
+        ),
+        "@codexsun/core-web/modules/organisation/default-company/types": resolve(
+          configDir,
+          "../../core/web/src/modules/organisation/default-company/default-company.types.ts"
+        ),
+        "@codexsun/core-web/modules/organisation/default-company": resolve(
+          configDir,
+          "../../core/web/src/modules/organisation/default-company/index.ts"
+        ),
+        "@codexsun/ui/workspace/page": resolve(
+          configDir,
+          "../../../packages/ui/src/workspace/page.tsx"
+        ),
+        "@codexsun/ui/workspace/filters": resolve(
+          configDir,
+          "../../../packages/ui/src/workspace/filters.tsx"
+        ),
+        "@codexsun/ui/workspace/navigation": resolve(
+          configDir,
+          "../../../packages/ui/src/workspace/navigation.tsx"
+        ),
+        "@codexsun/ui/workspace/list-tools": resolve(
+          configDir,
+          "../../../packages/ui/src/workspace/list-tools.tsx"
+        ),
+        "@codexsun/ui/workspace/upsert": resolve(
+          configDir,
+          "../../../packages/ui/src/workspace/upsert.tsx"
+        ),
         "@codexsun/qcafe-web/web": resolve(configDir, "../../qcafe/web/src/web/WebApp.tsx"),
         "@codexsun/ui/workspace/column-filter": resolve(
           configDir,
@@ -102,6 +162,7 @@ export default defineConfig(({ command, mode }) => {
           configDir,
           "../../../packages/ui/src/workspace/row-actions.tsx"
         ),
+        "@codexsun/tconnect-web": resolve(configDir, "../../tconnect/web/src/index.ts"),
         "@codexsun/codexsun-web": resolve(configDir, "../../codexsun/web/src/index.ts"),
         "@codexsun/docs-web/modules/overview/gateway": resolve(
           configDir,

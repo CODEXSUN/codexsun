@@ -111,6 +111,14 @@ const activitySchema = z.object({
   previousStatus: statusSchema.nullable()
 });
 const pageQuerySchema = z.object({
+  numberSearch: z.string().max(100).default(""),
+  dateSearch: z.string().max(100).default(""),
+  partySearch: z.string().max(100).default(""),
+  totalSearch: z.string().max(100).default(""),
+  statusSearch: z.string().max(100).default(""),
+  modeSearch: z.string().max(100).default(""),
+  unallocatedSearch: z.string().max(100).default(""),
+
   dateFrom: z.union([z.iso.date(), z.literal("")]).default(""),
   dateTo: z.union([z.iso.date(), z.literal("")]).default(""),
   page: z.coerce.number().int().positive().default(1),

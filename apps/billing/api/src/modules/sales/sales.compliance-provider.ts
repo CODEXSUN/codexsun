@@ -198,7 +198,8 @@ async function reconcileSalesComplianceProvider(
   if (!invoice.einvoice.irn || action === "eway.cancel") {
     if (
       String(data.docNo ?? "").toUpperCase() !== invoice.invoiceNumber.toUpperCase() ||
-      String(data.fromGstin ?? "").toUpperCase() !== snapshot.gstin.toUpperCase()
+      String(data.fromGstin ?? "").toUpperCase() !== snapshot.gstin.toUpperCase() ||
+      storageDate(data.docDate, false) !== invoice.issuedOn.slice(0, 10)
     )
       throw AppError.conflict("E-way bill identity does not match this invoice and taxpayer.");
     if (invoice.eway.billNo && invoice.eway.billNo !== billNo)

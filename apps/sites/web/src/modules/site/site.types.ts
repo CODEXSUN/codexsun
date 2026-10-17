@@ -25,6 +25,10 @@ export type SitePayload = {
 };
 
 export type SiteGateway = {
+  exportPublication?(
+    uuid: string
+  ): Promise<import("@codexsun/sites-api/delivery-contract").DeliverySnapshot>;
+  enquiries?: import("./enquiry/index.js").EnquiryGateway;
   page?: PageGateway;
   blog?: BlogGateway;
   start?(uuid: string): Promise<{ port: number; state: "running"; url: string }>;

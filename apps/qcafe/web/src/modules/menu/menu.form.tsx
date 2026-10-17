@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ImagePlus } from "lucide-react";
+import { MenuSpecialPrices, type SpecialPriceDraft } from "./menu.special-prices";
+import { MenuPhoto } from "./menu.photo";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
 import { menuSchema } from "./menu.schema";
@@ -13,7 +14,9 @@ export function MenuForm({
   embedded = false,
   readOnly = false,
   initialCategory = "",
-  categories = []
+  categories = [],
+  onUploadBusy,
+  specialDefinitions = []
 }: {
   item: MenuItem | null;
   busy: boolean;
@@ -24,23 +27,32 @@ export function MenuForm({
   readOnly?: boolean;
   initialCategory?: string;
   categories?: string[];
+  specialDefinitions?: { prefix: string; name: string }[];
+  onUploadBusy?: (busy: boolean) => void;
 }) {
   const [code, setCode] = useState(item?.code ?? "");
   const [name, setName] = useState(item?.name ?? "");
   const [category, setCategory] = useState(item?.category ?? initialCategory);
   const [imageUrl, setImageUrl] = useState(item?.imageUrl ?? "");
+  const [specialPrices, setSpecialPrices] = useState<SpecialPriceDraft[]>(
+    (item?.specialPrices ?? []).map((row) => ({ ...row, price: (row.price / 100).toFixed(2) }))
+  );
   const [price, setPrice] = useState(item ? (item.price / 100).toFixed(2) : "");
   const [status, setStatus] = useState<MenuInput["status"]>(item?.status ?? "active");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [failedImage, setFailedImage] = useState(false);
+  const [uploading, setUploading] = useState(false);
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (readOnly) return;
+    if (readOnly || uploading) return;
     const parsed = menuSchema.safeParse({
       code,
       name,
       category,
       imageUrl,
+      specialPrices: specialPrices.map((row) => ({
+        ...row,
+        price: /^\d+(\.\d{1,2})?$/u.test(row.price) ? Math.round(Number(row.price) * 100) : 0
+      })),
       price: /^\d+(\.\d{1,2})?$/u.test(price) ? Math.round(Number(price) * 100) : 0,
       status
     });
@@ -56,7 +68,7 @@ export function MenuForm({
     setErrors({});
     await onSave(parsed.data);
   }
-  const disabled = busy || readOnly;
+  const disabled = busy || readOnly || uploading;
   return (
     <form id={formId} onSubmit={(event) => void submit(event)} className="qcafe-master-item-form">
       {Object.keys(errors).length > 0 && (
@@ -114,37 +126,26 @@ export function MenuForm({
           {errors.price && <small className="qcafe-master-error">{errors.price}</small>}
         </label>
       </div>
-      <section className="qcafe-master-photo">
-        <div className="qcafe-master-photo-preview">
-          {imageUrl && !failedImage ? (
-            <img
-              src={imageUrl}
-              alt={name || "Item photo"}
-              referrerPolicy="no-referrer"
-              onError={() => setFailedImage(true)}
-            />
-          ) : (
-            <ImagePlus size={25} />
-          )}
-        </div>
-        <label>
-          Item photo{" "}
-          <Input
-            value={imageUrl}
-            onChange={(e) => {
-              setImageUrl(e.target.value);
-              setFailedImage(false);
-            }}
-            placeholder="Paste an HTTPS image URL"
-            disabled={disabled}
-            aria-invalid={!!errors.imageUrl}
-          />
-          <small>Optional. Add a photo to help staff find this item in POS.</small>
-          {errors.imageUrl && (
-            <small className="qcafe-master-error">Use a valid HTTPS image URL.</small>
-          )}
-        </label>
-      </section>
+      <MenuPhoto
+        value={imageUrl}
+        disabled={busy || readOnly}
+        onChange={setImageUrl}
+        onBusy={(value) => {
+          setUploading(value);
+          onUploadBusy?.(value);
+        }}
+      />
+      <MenuSpecialPrices
+        items={specialPrices}
+        definitions={specialDefinitions}
+        disabled={disabled}
+        onChange={setSpecialPrices}
+      />
+      {errors.specialPrices && (
+        <p role="alert" className="qcafe-master-error">
+          {errors.specialPrices}
+        </p>
+      )}
       <label className="qcafe-master-status">
         Status
         <select

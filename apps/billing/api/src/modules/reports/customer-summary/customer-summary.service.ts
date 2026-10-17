@@ -1,3 +1,4 @@
+import { billingReportCurrency } from "../../../auth/billing-scope.js";
 import { AppError } from "@codexsun/framework/errors";
 import { CustomerSummaryRepository } from "./customer-summary.repository.js";
 import type { CustomerSummaryResult } from "./customer-summary.types.js";
@@ -18,6 +19,7 @@ export class CustomerSummaryService {
     }
     const items = await this.repository.summary(databaseName, context.company_id, contactId);
     return {
+      currencyCode: billingReportCurrency(),
       companyId: context.company_id,
       companyName: context.company_name,
       financialYearId: context.financial_year_id,

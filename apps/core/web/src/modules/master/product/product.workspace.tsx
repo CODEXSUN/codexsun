@@ -1,7 +1,9 @@
+import { WorkspaceHeaderActions, useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
@@ -13,7 +15,7 @@ import {
   useProductLookups,
   useProducts
 } from "./product.hooks";
-import { ProductList } from "./product.list";
+import { ProductList, productColumns } from "./product.list";
 import {
   createProduct,
   createHsnCodeLookup,
@@ -39,8 +41,13 @@ const emptyLookups: ProductLookups = {
   taxes: []
 };
 export function ProductWorkspace() {
+  const [listStatus, setListStatus] = useWorkspaceQueryValue("status", "all");
+  const listTools = useWorkspaceListTools(
+    Object.fromEntries(productColumns.map((column) => [column.id, column.label]))
+  );
+
   const client = useQueryClient(),
-    [search, setSearch] = useState(""),
+    [search, setSearch] = useWorkspaceQueryValue("q", ""),
     [editing, setLocalEditing] = useState<ProductRecord | null | undefined>(undefined),
     query = useProducts(search),
     lookupsQuery = useProductLookups();
@@ -55,7 +62,7 @@ export function ProductWorkspace() {
         : record === null
           ? `${basePath}/new`
           : `${basePath}/${encodeURIComponent(record.id)}/edit`;
-    if (location.pathname !== path) void navigate({ to: path });
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
   }
   useEffect(() => {
     const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
@@ -125,30 +132,49 @@ export function ProductWorkspace() {
       />
     );
   return (
-    <WorkspacePage
-      title="Products"
-      description="Manage product classification, HSN, unit, tax, opening quantity, price, and lifecycle."
-      actions={
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => void query.refetch()}>
-            <RefreshCw className="size-4" />
-            Refresh
-          </Button>
-          <Button onClick={() => setEditing(null)}>
-            <Plus className="size-4" />
-            New
-          </Button>
-        </div>
-      }
-    >
+    <WorkspacePage title="" className="w-full max-w-none py-0 lg:w-full lg:py-0">
+      <WorkspaceHeaderActions>
+        <Button onClick={() => setEditing(null)}>
+          <Plus className="size-4" />
+          New product
+        </Button>
+      </WorkspaceHeaderActions>
       <WorkspaceFilters
+        filterValue={listStatus}
+        onFilterValueChange={setListStatus}
+        filterOptions={[
+          { id: "all", label: "All records" },
+          {
+            id: "active",
+            label: "Active",
+            count: (query.data ?? []).filter((record) => record.isActive).length
+          },
+          {
+            id: "inactive",
+            label: "Inactive",
+            count: (query.data ?? []).filter((record) => !record.isActive).length
+          }
+        ]}
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
+        showSelectedFilterChip
         searchPlaceholder="Search products"
         searchValue={search}
         onSearchValueChange={setSearch}
       />
       <ProductList
+        listTools={listTools}
         loading={query.isFetching && !query.data}
-        records={query.data ?? []}
+        records={(query.data ?? []).filter(
+          (record) =>
+            listTools.matches({
+              ...record,
+              isActive: record.isActive ? "active" : "inactive",
+              status: record.isActive ? "active" : "inactive"
+            }) &&
+            (listStatus === "all" || (record.isActive ? "active" : "inactive") === listStatus)
+        )}
         onEdit={setEditing}
         onForceDelete={(record) => {
           if (confirm(`Force delete ${record.name}?`)) action.mutate({ record, type: "delete" });

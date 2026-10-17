@@ -1,3 +1,4 @@
+import { purchaseColumnPredicate } from "./purchase.list-query.js";
 import { sql, type Kysely } from "kysely";
 import { assertPurchaseHasNoAllocations } from "./purchase.allocation-guard.js";
 import { currentBillingScope } from "../../auth/billing-scope.js";
@@ -48,12 +49,21 @@ export class PurchaseRepository {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      quantitySearch?: string;
+      taxableSearch?: string;
+      taxSearch?: string;
     }
   ) {
     const database = await purchaseDatabase(databaseName);
     const search = `%${options.search.trim()}%`;
     const customer = options.customer.trim().toLowerCase();
     const page = {
+      ...options,
       customer,
       dateFrom: options.dateFrom,
       dateTo: options.dateTo,
@@ -70,6 +80,7 @@ export class PurchaseRepository {
         INNER JOIN core_contacts supplier ON supplier.id=s.supplier_id
         LEFT JOIN core_work_orders work_order ON work_order.id=s.work_order_id
         WHERE s.deleted_at IS NULL
+          ${purchaseColumnPredicate(options)}
           AND s.company_id=${scope.companyId} AND s.financial_year_id=${scope.financialYearId}
           AND (${page.status}='all' OR s.status=${page.status})
           AND (${options.dateFrom}='' OR s.purchase_date >= ${options.dateFrom})
@@ -143,7 +154,7 @@ export class PurchaseRepository {
       SELECT
         EXISTS(SELECT 1 FROM core_companies WHERE id = ${input.companyId} AND id=${scope.companyId} AND status = 'active') AS company,
         EXISTS(SELECT 1 FROM core_financial_years WHERE id = ${input.financialYearId} AND id=${scope.financialYearId} AND status = 'active' AND ${input.issuedOn} BETWEEN start_date AND end_date) AS financialYear,
-        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.supplierId} AND status = 'active') AS supplier,
+        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.supplierId} AND status = 'active' AND deleted_at IS NULL) AS supplier,
         EXISTS(SELECT 1 FROM core_contacts_addresses WHERE id = ${input.billingAddressId} AND parent_id = ${input.supplierId}) AS billingAddress,
         EXISTS(SELECT 1 FROM core_contacts_addresses WHERE id = ${input.shippingAddressId} AND parent_id = ${input.supplierId}) AS shippingAddress,
         ${input.workOrderId ? sql`EXISTS(SELECT 1 FROM core_work_orders WHERE id = ${input.workOrderId} AND status = 'active')` : sql`1`} AS workOrder,

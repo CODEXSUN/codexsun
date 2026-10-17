@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
@@ -69,7 +70,7 @@ function switchNote(key: keyof BillingDocumentLayoutSettings, label: string) {
 export function BillingSettingsWorkspace() {
   const queryClient = useQueryClient();
   const query = useBillingSettings();
-  const [activeTab, setActiveTab] = useState("layout");
+  const [activeTab, setActiveTab] = useWorkspaceQueryValue("settingsTab", "layout");
   const [form, setForm] = useState<BillingSettings>(defaultBillingSettings);
 
   useEffect(() => {
@@ -396,25 +397,27 @@ export function BillingSettingsWorkspace() {
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground/80">
-            Billing Settings
-          </h1>
-          <p className="mt-0.5 text-sm text-muted-foreground/70">
-            Configure billing layout, printing, customisation, and feature controls.
-          </p>
+      {activeTab !== "openings" && (
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-normal text-foreground/80">
+              Billing Settings
+            </h1>
+            <p className="mt-0.5 text-sm text-muted-foreground/70">
+              Configure billing layout, printing, customisation, and feature controls.
+            </p>
+          </div>
+          <Button
+            className="h-9 rounded-md"
+            disabled={query.isLoading || mutation.isPending}
+            onClick={() => mutation.mutate(form)}
+            type="button"
+          >
+            <Save className="size-4" />
+            Publish live
+          </Button>
         </div>
-        <Button
-          className="h-9 rounded-md"
-          disabled={query.isLoading || mutation.isPending}
-          onClick={() => mutation.mutate(form)}
-          type="button"
-        >
-          <Save className="size-4" />
-          Publish live
-        </Button>
-      </div>
+      )}
       {query.isError ? (
         <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {query.error instanceof Error

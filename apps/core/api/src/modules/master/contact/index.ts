@@ -3,6 +3,7 @@ export { migrateContactModule } from "./contact.migration.js";
 export { seedContactModule } from "./contact.seed.js";
 export {
   getActiveContactForDatabase,
+  resolveExternalCustomerForDatabase,
   resolveOrCreateCustomerForDatabase
 } from "./contact.lookup.js";
 export type {

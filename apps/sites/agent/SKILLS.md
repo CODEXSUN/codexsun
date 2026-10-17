@@ -61,3 +61,39 @@ Public route projections share one saved website publication. Do not describe th
 Each local client must proxy its own slug and validate the returned publication identity.
 Find the checkout from verified ancestor directories. Do not assume one source or build folder depth.
 Verify source and compiled-location lookup, real startup, per-client publication isolation, and the five standard public routes.
+
+## Deployment preparation
+
+Export published projections only. Preserve drafts and private Core data inside Studio.
+Resolve the opaque deployment identity from authenticated tenant and site context. Never accept that identity from browser input.
+Bind each SQLite file to its site UUID and opaque tenant/site key. Enforce sequence and checksum checks on every import.
+Keep the database outside release/public folders and preserve enquiries during content replacement.
+Do not describe checksum integrity as signature authentication. Imported artifacts require a trusted operator channel.
+Force production build mode independently of the root development environment.
+Verify rendered HTML without JavaScript, hydration, canonical URLs, sitemap routes, assets, enquiry persistence, and restart recovery.
+Keep contact records out of public responses, artifact folders, logs, and screenshots.
+Distinguish a stored enquiry from an email notification. Never invent a client phone number or physical address.
+Node runtime verification does not prove Docker, systemd, TLS, DNS, Cloudflare, or external deployment.
+
+## Enquiry inbox and software catalogues
+
+Keep enquiry persistence in the API Enquiry leaf. Client servers use the public enquiry runtime export.
+Resolve the SQLite namespace from authenticated tenant and saved site identity. Never accept a browser path or database name.
+Check view, update, and delete permissions on every protected request. Keep public submission separate from administration.
+Preserve existing submissions during transactional SQLite upgrades. Test status, stale revisions, trash, restore, and audit persistence.
+Keep visitor messages immutable and expire their activity with the retained enquiry.
+Describe attached storage and remote transport separately. Do not claim remote SQLite or D1 connectivity from a local test.
+Keep application catalogue text in the published page draft. Do not import private implementations from listed apps.
+Represent foundation modules honestly. Catalogue links do not grant entitlements or bypass Platform sign-in.
+Check all generated service and application routes, canonical metadata, mobile widths, and prefilled enquiry links.
+
+
+## LogicX marketing redesign
+
+Keep new marketing contracts and defaults inside the Page API leaf, and their editors inside the matching Page Web leaf.
+Keep the marketing field optional so older publications remain compatible.
+Use the existing draft revision, publication, permissions, and client delivery paths.
+Allow only deployed local marketing image paths. Do not accept arbitrary HTML, scripts, or external image URLs.
+Preserve checksum inputs for older snapshots. Do not inject new defaults into an immutable delivery snapshot.
+Treat dashboard numbers as labeled demonstration content. Do not turn them into company statistics.
+When replacing a design, remove unused template components and selectors after the replacement passes review.

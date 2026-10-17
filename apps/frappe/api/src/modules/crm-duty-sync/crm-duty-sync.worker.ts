@@ -5,6 +5,13 @@ import { requestFrappe } from "../connection/index.js";
 import { sql, type Kysely } from "kysely";
 
 import type { SyncDatabase, SyncResult } from "./crm-duty-sync.types.js";
+import {
+  frappeDutyFrequency,
+  resolveDutyDepartment,
+  dutyReportActions,
+  dutyReportDate,
+  dutyItemSteps
+} from "./crm-duty-sync.mapping.js";
 export async function processCrmDutySync(
   database: Kysely<SyncDatabase>,
   eventId: number,
@@ -49,7 +56,7 @@ export async function processCrmDutySync(
       claimed.local_record_id,
       claimed.remote_name,
       employeeCodeForEmail,
-      settings.baseUrl
+      settings
     );
     const response = remoteName
       ? await requestFrappe<{ data?: { name?: string } }>(
@@ -97,7 +104,7 @@ async function buildDocument(
   id: number,
   existingRemoteName: string | null,
   employeeCodeForEmail: (email: string, baseUrl: string) => Promise<string | null>,
-  baseUrl: string
+  settings: FrappeSettings
 ) {
   if (type === "sop-item") {
     const value = await db
@@ -106,9 +113,11 @@ async function buildDocument(
       .innerJoin("crm_sop_item_revisions as revision", "revision.sop_item_id", "item.id")
       .select([
         "sop.title as sop_title",
+        "item.title as item_title",
         "item.department",
         "item.frequency",
-        "revision.instructions"
+        "revision.instructions",
+        "revision.evidence_guidance"
       ])
       .where("item.id", "=", id)
       .where("revision.status", "=", "published")
@@ -116,14 +125,16 @@ async function buildDocument(
       .executeTakeFirst();
     if (!value)
       throw AppError.conflict("Publish an SOP Item revision before syncing it to Frappe.");
+    const frequency = frappeDutyFrequency(value.frequency);
+    const department = await resolveDutyDepartment(value.department, settings);
     return {
       path: "/api/resource/SOP Item",
       remoteName: existingRemoteName,
       payload: {
-        sop_name: value.sop_title,
-        department: value.department,
-        frequency: value.frequency,
-        steps: value.instructions
+        sop_name: `${value.sop_title}: ${value.item_title}`,
+        department,
+        frequency,
+        steps: dutyItemSteps(value.instructions, value.evidence_guidance)
       }
     };
   }
@@ -137,12 +148,14 @@ async function buildDocument(
       .executeTakeFirst();
     if (!value) throw AppError.notFound("Duty assignment was not found.");
     const remoteItem = await remoteNameFor(db, "sop-item", value.item_id);
-    const employee = await employeeCodeForEmail(value.email, baseUrl);
+    const employee = await employeeCodeForEmail(value.email, settings.baseUrl);
     if (!employee)
       throw AppError.conflict(`No active Frappe Employee mapping exists for ${value.email}.`);
+    const remoteName =
+      existingRemoteName ?? (await findRemoteAssignment(remoteItem, employee, settings));
     return {
       path: "/api/resource/SOP Assigned",
-      remoteName: existingRemoteName,
+      remoteName,
       payload: { user: employee, sop_item: remoteItem, index: value.display_order }
     };
   }
@@ -151,12 +164,23 @@ async function buildDocument(
     .innerJoin("crm_duty_assignments as assignment", "assignment.id", "report.assignment_id")
     .innerJoin("crm_sop_items as item", "item.id", "assignment.sop_item_id")
     .innerJoin("app_users as person", "person.id", "report.assignee_user_id")
-    .select(["item.id as item_id", "person.email", "report.performed_date", "report.actions"])
+    .innerJoin("crm_sop_item_revisions as revision", "revision.id", "report.revision_id")
+    .select([
+      "revision.id as revision_id",
+      "revision.instructions",
+      "revision.evidence_guidance",
+      "item.id as item_id",
+      "person.email",
+      "report.performed_date",
+      "report.actions",
+      "report.result",
+      "report.issue_details"
+    ])
     .where("report.id", "=", id)
     .executeTakeFirst();
   if (!value) throw AppError.notFound("Duty report was not found.");
   const remoteItem = await remoteNameFor(db, "sop-item", value.item_id);
-  const employee = await employeeCodeForEmail(value.email, baseUrl);
+  const employee = await employeeCodeForEmail(value.email, settings.baseUrl);
   if (!employee)
     throw AppError.conflict(`No active Frappe Employee mapping exists for ${value.email}.`);
   return {
@@ -165,10 +189,38 @@ async function buildDocument(
     payload: {
       user: employee,
       sop_item: remoteItem,
-      date: String(value.performed_date).slice(0, 10),
-      actions: value.actions
+      date: dutyReportDate(value.performed_date),
+      actions: dutyReportActions(value.actions, value.result, value.issue_details, {
+        revisionId: value.revision_id,
+        instructions: value.instructions,
+        evidenceGuidance: value.evidence_guidance
+      })
     }
   };
+}
+
+async function findRemoteAssignment(item: string, employee: string, settings: FrappeSettings) {
+  const query = new URLSearchParams({
+    fields: JSON.stringify(["name"]),
+    filters: JSON.stringify([
+      ["sop_item", "=", item],
+      ["user", "=", employee]
+    ]),
+    limit_page_length: "2"
+  });
+  const response = await requestFrappe<{ data?: Array<{ name: string }> }>(
+    `/api/resource/SOP Assigned?${query}`,
+    "GET",
+    settings
+  );
+  if (
+    !Array.isArray(response.data) ||
+    response.data.some((row) => !row || typeof row.name !== "string" || !row.name)
+  )
+    throw AppError.conflict("Frappe returned an invalid SOP assignment lookup response.");
+  if (response.data.length > 1)
+    throw AppError.conflict("Multiple Frappe assignments match this SOP Item and Employee.");
+  return response.data[0]?.name ?? null;
 }
 
 async function remoteNameFor(db: Kysely<SyncDatabase>, type: "sop-item", id: number) {

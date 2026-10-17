@@ -38,6 +38,7 @@ export type DashboardOutstandingContact = {
 };
 
 export type BillingDashboardSnapshot = {
+  currencyCode: string;
   companyId: number;
   companyName: string;
   financialYearEnd: string;

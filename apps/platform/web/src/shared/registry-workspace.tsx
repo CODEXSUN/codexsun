@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
-import { ArrowLeft, Pencil, Plus, RefreshCw, Save } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Save } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import {
   AlertDialog,
@@ -70,7 +70,7 @@ export function RegistryWorkspace<T extends RegistryRecord>({
   onActivate,
   onDeactivate,
   onForceDelete,
-  onRefresh,
+  onRefresh: _onRefresh,
   onUpdate
 }: {
   createLabel: string;
@@ -175,16 +175,13 @@ export function RegistryWorkspace<T extends RegistryRecord>({
 
   return (
     <>
-      <WorkspacePage
+      <WorkspacePage variant="list"
         title={title}
         description={description}
         technicalName={technicalName}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onRefresh}>
-              <RefreshCw className="size-4" />
-              Refresh
-            </Button>
+            
             <Button onClick={() => setView({ mode: "form", record: null })}>
               <Plus className="size-4" />
               {createLabel}

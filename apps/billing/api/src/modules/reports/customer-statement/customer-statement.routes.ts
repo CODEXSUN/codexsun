@@ -1,3 +1,4 @@
+import { CustomerStatementRepository } from "./customer-statement.repository.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { registerContractRoute } from "@codexsun/framework/http";
@@ -26,6 +27,7 @@ const responseSchema = z.object({
     total: z.number()
   }),
   closingBalance: z.number(),
+  currencyCode: z.string(),
   companyId: z.number().int().positive(),
   companyName: z.string(),
   contacts: z.array(contactSchema),
@@ -57,6 +59,12 @@ const responseSchema = z.object({
 const service = new CustomerStatementService();
 
 export async function registerCustomerStatementRoutes(app: FastifyInstance) {
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/billing/reports/customer-statement/currencies",
+    schemas: { response: z.array(z.object({ id: z.number().int().positive(), name: z.string() })) },
+    handler: ({ request }) => new CustomerStatementRepository().currencies(databaseName(request))
+  });
   registerContractRoute(app, {
     method: "GET",
     url: "/billing/reports/customer-statement",

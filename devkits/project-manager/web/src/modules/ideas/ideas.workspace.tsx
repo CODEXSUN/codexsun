@@ -68,7 +68,7 @@ export function IdeasWorkspace() {
   }
 
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Ideas"
       description="Capture proposals and turn rough thinking into clear work."
       actions={

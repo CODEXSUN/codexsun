@@ -1,14 +1,9 @@
+import { getReportCurrencyCode } from "../../../shared/api/tenant-context";
 import { formatDate as formatWorkspaceDate } from "@codexsun/ui/workspace";
 import { billingApiGet } from "../../../shared/api/billing-api";
 import type { SupplierStatement, SupplierStatementFilters } from "./supplier-statement.types";
 
-export function formatSupplierStatementAge(value: string, today = new Date()) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "—";
-  const date = new Date(`${value}T00:00:00Z`);
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return "—";
-  const currentDay = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-  return String(Math.max(0, Math.floor((currentDay - date.getTime()) / 86_400_000)));
-}
+export { formatSupplierStatementAge } from "./supplier-statement.age";
 
 export function getSupplierStatement(filters: SupplierStatementFilters) {
   const query = new URLSearchParams({
@@ -36,7 +31,7 @@ export async function getSupplierStatementForPrint(
 
 export function formatSupplierStatementMoney(value: number) {
   return new Intl.NumberFormat("en-IN", {
-    currency: "INR",
+    currency: getReportCurrencyCode(),
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
     style: "currency"

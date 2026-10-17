@@ -1,3 +1,4 @@
+import { getReportCurrencyCode } from "../../../shared/api/tenant-context";
 import {
   formatDate as formatWorkspaceDate,
   formatDateTime as formatWorkspaceDateTime
@@ -12,6 +13,9 @@ export function StockStatementPrint({ statement }: { statement: StockStatement }
     <WorkspacePrintSheet className="billing-print-document billing-statement-print-document">
       <style>{printStyles}</style>
       <article className="bg-white px-3 py-3 text-[9px] text-black">
+        <div className="text-xs font-semibold">
+          Currency: {getReportCurrencyCode()} (values only; quantities include all currencies)
+        </div>
         <BillingDocumentHeader
           className="border border-slate-500"
           documentMeta={

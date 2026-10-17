@@ -14,6 +14,9 @@ Core owns contact identity. Local CRM records remain authoritative. Only the app
 
 ## Implementation rules
 
+- For custom Frappe contracts, refer to [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git).
+- Read [the Frappe comparison](FRAPPE-COMPARISON.md) before changing CRM transfer contracts. It does not expand approved sync scope.
+
 - Inspect the affected source and public contracts before editing.
 - Keep concrete business behavior in its owning leaf or package.
 - Preserve authoritative validation, permission checks, and data ownership.

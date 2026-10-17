@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Trash2 } from "lucide-react";
 import { WorkspaceProtectedIndicator } from "@codexsun/ui/workspace/protected-indicator";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
@@ -16,12 +17,14 @@ export const productColumns = [
   { id: "status", label: "Status" }
 ];
 export function ProductList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
   onToggle,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: ProductRecord) => void;
   onForceDelete: (record: ProductRecord) => void;
@@ -34,18 +37,34 @@ export function ProductList({
         <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr>
-              {productColumns.map((column) => (
-                <WorkspaceTableHeaderCell key={column.id}>{column.label}</WorkspaceTableHeaderCell>
-              ))}
+              {productColumns
+                .filter((column) => !listTools?.hidden.includes(column.id))
+                .map((column) => (
+                  <WorkspaceTableHeaderCell key={column.id}>
+                    {column.label}
+                  </WorkspaceTableHeaderCell>
+                ))}
               <WorkspaceTableHeaderCell className="text-right">Action</WorkspaceTableHeaderCell>
             </tr>
+            {listTools?.showFilters ? (
+              <tr>
+                {productColumns
+                  .filter((column) => !listTools.hidden.includes(column.id))
+                  .map((column) => (
+                    <td key={column.id} className="border-b bg-muted/20 px-4 py-2">
+                      {listTools.filterRow(column.id)}
+                    </td>
+                  ))}
+                <td />
+              </tr>
+            ) : null}
           </thead>
           <tbody>
             {records.map((record) => {
               const protectedRow = record.name.trim() === "-";
               return (
                 <tr className="border-b last:border-0" key={record.id}>
-                  <td className="px-4 py-3">
+                  <td hidden={listTools?.hidden.includes("name")} className="px-4 py-3">
                     <button
                       className="font-medium hover:underline"
                       disabled={protectedRow}
@@ -54,9 +73,13 @@ export function ProductList({
                       {record.name}
                     </button>
                   </td>
-                  <td className="px-4 py-3">{record.openingStock}</td>
-                  <td className="px-4 py-3">{record.openingRate}</td>
-                  <td className="px-4 py-3">
+                  <td hidden={listTools?.hidden.includes("openingStock")} className="px-4 py-3">
+                    {record.openingStock}
+                  </td>
+                  <td hidden={listTools?.hidden.includes("openingRate")} className="px-4 py-3">
+                    {record.openingRate}
+                  </td>
+                  <td hidden={listTools?.hidden.includes("status")} className="px-4 py-3">
                     <WorkspaceStatusBadge
                       label={record.isActive ? "active" : "inactive"}
                       tone={record.isActive ? "success" : "warning"}

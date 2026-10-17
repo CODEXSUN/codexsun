@@ -1,3 +1,5 @@
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { useWorkspaceQueryValue, useWorkspaceRecordSelection } from "@codexsun/ui/workspace/navigation";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
@@ -19,7 +21,7 @@ import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
 import { StatusForm } from "./status.form";
 import { useStatus } from "./status.hooks";
-import { StatusList } from "./status.list";
+import { StatusList, statusListColumns } from "./status.list";
 import { StatusShow } from "./status.show";
 import {
   activateStatus,
@@ -33,13 +35,15 @@ import type { StatusInput, StatusRecord } from "./status.types";
 type Action = { record: StatusRecord; type: "suspend" | "restore" | "force-delete" };
 
 export function StatusWorkspace() {
+  const listTools = useWorkspaceListTools(statusListColumns);
   const client = useQueryClient();
   const query = useStatus();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
-  const [editing, setEditing] = useState<StatusRecord | null | undefined>(undefined);
+  const [editing, setEditing] = useWorkspaceRecordSelection<StatusRecord>(query.data ?? [], (record) => String(record.id));
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+  const [status, setStatus] = useWorkspaceQueryValue("status", "all");
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100);
+
   const [viewing, setViewing] = useState<StatusRecord | null>(null);
   const [pending, setPending] = useState<Action | null>(null);
   const save = useMutation({
@@ -75,18 +79,26 @@ export function StatusWorkspace() {
   });
   const filtered = useMemo(
     () =>
-      (query.data ?? []).filter(
+      (query.data ?? []).filter((record) => listTools.matches(record)).filter(
         (record) =>
           (status === "all" || record.status === status) &&
           record.name.toLowerCase().includes(search.trim().toLowerCase())
       ),
-    [query.data, search, status]
+    [query.data, search, status, JSON.stringify(listTools.filters)]
   );
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const records = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  if (editing !== undefined) return (<StatusForm
+        open={editing !== undefined}
+        record={editing ?? null}
+        loading={save.isPending}
+        error={save.error?.message ?? ""}
+        onCancel={() => setEditing(undefined)}
+        onSubmit={(input) => save.mutate(input)}
+      />);
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Statuses"
       description="Manage Status options for enquiries."
       technicalName="page.crm.status.list"
@@ -100,6 +112,9 @@ export function StatusWorkspace() {
       }
     >
       <WorkspaceFilters
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
         searchValue={search}
         searchPlaceholder="Search statuses"
         onSearchValueChange={(value) => {
@@ -113,8 +128,8 @@ export function StatusWorkspace() {
         }}
         filterOptions={[
           { id: "all", label: "All records" },
-          { id: "active", label: "Active" },
-          { id: "inactive", label: "Inactive" }
+          { id: "active", label: "Active", count: (query.data ?? []).filter((record) => record.status === "active").length },
+          { id: "inactive", label: "Inactive", count: (query.data ?? []).filter((record) => record.status === "inactive").length }
         ]}
       />
       {query.error ? (
@@ -123,6 +138,7 @@ export function StatusWorkspace() {
         </p>
       ) : null}
       <StatusList
+        listTools={listTools}
         records={records}
         loading={query.isLoading}
         onView={setViewing}
@@ -148,14 +164,7 @@ export function StatusWorkspace() {
           }}
         />
       ) : null}
-      <StatusForm
-        open={editing !== undefined}
-        record={editing ?? null}
-        loading={save.isPending}
-        error={save.error?.message ?? ""}
-        onCancel={() => setEditing(undefined)}
-        onSubmit={(input) => save.mutate(input)}
-      />
+
       <StatusShow
         record={viewing}
         onClose={() => setViewing(null)}

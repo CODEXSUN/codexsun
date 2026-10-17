@@ -6,6 +6,8 @@ import { AppError } from "@codexsun/framework/errors";
 import { tenantAccessContext } from "../../auth/tenant-access-context.js";
 import { registerContractRoute } from "@codexsun/framework/http";
 import { z } from "zod";
+import { join } from "node:path";
+import { tenantStorageRoot } from "../storage-manager/storage-manager.paths.js";
 
 export const qCafeModule = defineModule<PlatformModuleDependencies>({
   key: "qcafe",
@@ -55,7 +57,9 @@ export const qCafeModule = defineModule<PlatformModuleDependencies>({
       }
     });
     return registerQCafeWeb(app, {
-      resolveContext
+      resolveContext,
+      masterImageDirectory: (tenantId) =>
+        join(tenantStorageRoot(tenantId), "apps", "qcafe", "master")
     });
   }
 });

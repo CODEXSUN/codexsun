@@ -1,3 +1,6 @@
+import { verifySettingsAndDemo } from "./settings-demo.integration.js";
+import { verifySpecialPricing } from "./special.integration.js";
+import { verifyBookings } from "./booking.integration.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -6,6 +9,10 @@ import { createConnection } from "mysql2/promise";
 import { createPool } from "mysql2";
 import { Kysely, MysqlDialect, sql } from "kysely";
 import { AppError } from "@codexsun/framework/errors";
+import { mkdir, mkdtemp, rm, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 import { readFileSync } from "node:fs";
 import { parseEnv } from "node:util";
 import { migrateQCafeWeb, registerQCafeWeb } from "./index.js";
@@ -26,6 +33,9 @@ test("MariaDB POS isolates tenants, persists bills, and deduplicates settlement 
   const admin = await createConnection(config);
   const names = [0, 1].map((i) => `codexsun_dev_qcafe_test_${randomBytes(5).toString("hex")}_${i}`);
   const databases: Kysely<QCafeDatabase>[] = [];
+  const temporaryRoot = fileURLToPath(new URL("../../../../../dist/.tmp/", import.meta.url));
+  await mkdir(temporaryRoot, { recursive: true });
+  const imagesRoot = await mkdtemp(join(temporaryRoot, "codexsun-qcafe-images-"));
   const app = Fastify();
   app.setErrorHandler((error, _request, reply) => {
     const status = error instanceof AppError ? error.statusCode : 500;
@@ -45,6 +55,7 @@ test("MariaDB POS isolates tenants, persists bills, and deduplicates settlement 
       await migrateQCafeWeb(database);
     }
     registerQCafeWeb(app, {
+      masterImageDirectory: (tenantId) => join(imagesRoot, tenantId, "apps", "qcafe", "master"),
       async resolveContext(request) {
         const token = request.headers.authorization;
         if (
@@ -85,20 +96,95 @@ test("MariaDB POS isolates tenants, persists bills, and deduplicates settlement 
     };
     assert.equal((await app.inject({ method: "GET", url: "/qcafe/menu" })).statusCode, 401);
     assert.equal((await send("GET", "/qcafe/menu", undefined, "denied")).status, 403);
+    const photoBytes = await sharp({
+      create: { width: 20, height: 20, channels: 3, background: "#b65021" }
+    })
+      .png()
+      .toBuffer();
+    const upload = await send("POST", "/qcafe/menu/images", {
+      contentBase64: photoBytes.toString("base64")
+    });
+    assert.equal(upload.status, 200, JSON.stringify(upload.body));
+    const imageUrl = upload.body.data.imageUrl as string;
+    const photoRoute = imageUrl.replace("/api/app", "");
+    const stored = await readFile(
+      join(imagesRoot, names[0]!, "apps/qcafe/master", imageUrl.split("/").pop()!)
+    );
+    assert.equal((await sharp(stored).metadata()).format, "webp");
+    const photo = await app.inject({
+      method: "GET",
+      url: photoRoute,
+      headers: { authorization: "Bearer tenant-a" }
+    });
+    assert.equal(photo.statusCode, 200);
+    assert.deepEqual(photo.rawPayload, stored);
+    assert.equal((await app.inject({ method: "GET", url: photoRoute })).statusCode, 401);
+    assert.equal(
+      (
+        await app.inject({
+          method: "GET",
+          url: photoRoute,
+          headers: { authorization: "Bearer tenant-b" }
+        })
+      ).statusCode,
+      404
+    );
+    assert.equal(
+      (
+        await send(
+          "POST",
+          "/qcafe/menu/images",
+          { contentBase64: photoBytes.toString("base64") },
+          "read-only"
+        )
+      ).status,
+      403
+    );
+    assert.equal(
+      (
+        await send("POST", "/qcafe/menu/images", {
+          contentBase64: Buffer.from("<svg></svg>").toString("base64")
+        })
+      ).status,
+      400
+    );
+    assert.equal(
+      (
+        await send("POST", "/qcafe/menu/images", {
+          contentBase64: Buffer.alloc(5 * 1024 * 1024 + 1).toString("base64")
+        })
+      ).status,
+      400
+    );
+    assert.equal(
+      (
+        await send(
+          "POST",
+          "/qcafe/menu",
+          {
+            code: "FOREIGN",
+            name: "Foreign photo",
+            category: "Test",
+            price: 100,
+            status: "active",
+            imageUrl
+          },
+          "tenant-b"
+        )
+      ).status,
+      400
+    );
     const item = await send("POST", "/qcafe/menu", {
       code: "TEA",
       name: "Tea",
-      imageUrl: "https://example.com/tea.jpg",
+      imageUrl,
       category: "Drinks",
       price: 2500,
       status: "active"
     });
     assert.equal(item.status, 200, JSON.stringify(item.body));
-    assert.equal(item.body.data.imageUrl, "https://example.com/tea.jpg");
-    assert.equal(
-      (await send("GET", "/qcafe/menu")).body.data[0].imageUrl,
-      "https://example.com/tea.jpg"
-    );
+    assert.equal(item.body.data.imageUrl, imageUrl);
+    assert.equal((await send("GET", "/qcafe/menu")).body.data[0].imageUrl, imageUrl);
     assert.deepEqual((await send("GET", "/qcafe/menu", undefined, "tenant-b")).body.data, []);
     const input = {
       requestId: randomUUID(),
@@ -319,10 +405,94 @@ test("MariaDB POS isolates tenants, persists bills, and deduplicates settlement 
       count: number;
     }>`SELECT COUNT(*) AS count FROM qcafe_pos_activity`.execute(databases[0]!);
     assert.equal(Number(audit.rows[0]?.count), 5);
+    const parcelMenu = await send("POST", "/qcafe/menu", {
+      code: "PARCEL-IDLI",
+      name: "Parcel Idli",
+      category: "Breakfast",
+      price: 4000,
+      status: "active"
+    });
+    assert.equal(parcelMenu.status, 200, JSON.stringify(parcelMenu.body));
+    const parcelInput = {
+      ...draft,
+      requestId: randomUUID(),
+      revision: 0,
+      mode: "TAKE AWAY",
+      tableUuid: null,
+      seats: [],
+      lines: [{ menuUuid: parcelMenu.body.data.uuid, quantity: 1 }]
+    };
+    const parcelUrl = "/qcafe/orders/aaaabbbb";
+    const parcel = await send("PUT", parcelUrl, { ...parcelInput, lines: [] });
+    assert.equal(parcel.status, 200, JSON.stringify(parcel.body));
+    const token = parcel.body.data.parcelToken;
+    assert.match(token, /^PCL-\d{6,}$/u);
+    assert.equal((await send("GET", parcelUrl)).body.data.parcelToken, token);
+    assert.equal((await send("GET", parcelUrl, undefined, "tenant-b")).status, 404);
+    const parcelSend = { ...parcelInput, requestId: randomUUID(), revision: 1, action: "kitchen" };
+    const packed = await send("PUT", parcelUrl, parcelSend);
+    assert.equal(packed.status, 200, JSON.stringify(packed.body));
+    assert.equal(packed.body.data.parcelToken, token);
+    assert.equal((await send("PUT", parcelUrl, parcelSend)).body.data.tickets.length, 1);
+    assert.deepEqual(packed.body.data.seats, []);
+    assert.equal(packed.body.data.tableUuid, null);
+    assert.equal((await send("GET", "/qcafe/orders/occupied-seats")).body.data.length, 0);
+    const parcelBilled = await send("PUT", parcelUrl, {
+      ...parcelSend,
+      requestId: randomUUID(),
+      revision: packed.body.data.revision,
+      action: "bill"
+    });
+    assert.equal(parcelBilled.status, 200, JSON.stringify(parcelBilled.body));
+    assert.equal(
+      (await send("GET", `/qcafe/pos/${parcelBilled.body.data.billUuid}`)).body.data.serviceContext
+        .parcelToken,
+      token
+    );
+    const booking = await verifyBookings(send, parcelMenu.body.data.uuid);
+    const specials = await verifySpecialPricing(send);
+    const demo = await verifySettingsAndDemo(send);
+    const demoPhoto = await app.inject({
+      method: "GET",
+      url: demo.idliImage.replace("/api/app", ""),
+      headers: { authorization: "Bearer tenant-a" }
+    });
+    assert.equal(demoPhoto.statusCode, 200);
+    assert.equal((await sharp(demoPhoto.rawPayload).metadata()).format, "webp");
+    assert.equal(
+      (
+        await app.inject({
+          method: "GET",
+          url: demo.idliImage.replace("/api/app", ""),
+          headers: { authorization: "Bearer tenant-b" }
+        })
+      ).statusCode,
+      404
+    );
     const reopened = new Kysely<QCafeDatabase>({
       dialect: new MysqlDialect({ pool: createPool({ ...config, database: names[0]! }) })
     });
     try {
+      const persistedBooking = await sql<{
+        details: string;
+      }>`SELECT booking_json AS details FROM qcafe_order WHERE uuid=${booking.uuid}`.execute(
+        reopened
+      );
+      const storedDetails = persistedBooking.rows[0]?.details;
+      assert.deepEqual(
+        typeof storedDetails === "string" ? JSON.parse(storedDetails) : storedDetails,
+        booking.details
+      );
+      const persistedSpecial = await sql<{
+        revision: number;
+      }>`SELECT revision FROM qcafe_special_settings WHERE id=1`.execute(reopened);
+      assert.equal(persistedSpecial.rows[0]?.revision, specials.revision);
+      const persistedPrices = await sql<{
+        prices: unknown;
+      }>`SELECT special_prices AS prices FROM qcafe_menu WHERE uuid=${specials.menuUuid}`.execute(
+        reopened
+      );
+      assert.ok(JSON.stringify(persistedPrices.rows[0]?.prices).includes("SS"));
       assert.equal(
         (await sql<{ total: number }>`SELECT total FROM qcafe_pos`.execute(reopened)).rows[0]
           ?.total,
@@ -339,5 +509,7 @@ test("MariaDB POS isolates tenants, persists bills, and deduplicates settlement 
       await admin.query(`DROP DATABASE IF EXISTS \`${name}\``);
     }
     await admin.end();
+    assert.ok(imagesRoot.startsWith(join(temporaryRoot, "codexsun-qcafe-images-")));
+    await rm(imagesRoot, { recursive: true, force: true });
   }
 });

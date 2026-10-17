@@ -49,6 +49,7 @@ import { createProductStructuredData, setStorefrontSeo } from "./storefront.seo"
 import { observeStorefrontVitals } from "./storefront.performance";
 import { StorefrontCartPage } from "./storefront.cart.page";
 import { useStorefrontCatalog } from "./storefront.catalog";
+import { StorefrontJournalPage } from "./storefront.journal";
 
 const emptyDiscovery: StorefrontDiscovery = {
   brands: [],
@@ -61,17 +62,22 @@ export function StorefrontPage() {
   const path = window.location.pathname;
   const productSlug = path.startsWith("/shop/product/") ? decodeURIComponent(path.slice(14)) : "";
   const category = path.startsWith("/shop/category/") ? decodeURIComponent(path.slice(15)) : "";
-  const page = productSlug ? (
-    <ProductPage slug={productSlug} />
-  ) : path === "/cart" ? (
-    <StorefrontCartPage />
-  ) : path === "/campaigns" ? (
-    <CampaignsPage />
-  ) : path === "/search" || category ? (
-    <CatalogPage category={category} searchPage />
-  ) : (
-    <CatalogPage category="" />
-  );
+  const page =
+    path === "/blog" || path.startsWith("/blog/") ? (
+      <StorefrontJournalPage
+        slug={path.startsWith("/blog/") ? decodeURIComponent(path.slice(6)) : ""}
+      />
+    ) : productSlug ? (
+      <ProductPage slug={productSlug} />
+    ) : path === "/cart" ? (
+      <StorefrontCartPage />
+    ) : path === "/campaigns" ? (
+      <CampaignsPage />
+    ) : path === "/search" || category ? (
+      <CatalogPage category={category} searchPage />
+    ) : (
+      <CatalogPage category="" />
+    );
   return (
     <>
       {page}

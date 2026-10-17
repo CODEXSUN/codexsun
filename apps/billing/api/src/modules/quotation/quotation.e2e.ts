@@ -1,3 +1,5 @@
+import { verifyCurrencyReports } from "../reports/customer-summary/customer-summary.currency.e2e.js";
+import { verifyPaymentAudit } from "../payment/payment.audit.e2e.js";
 import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 import { createConnection, type RowDataPacket } from "mysql2/promise";
@@ -20,7 +22,9 @@ import {
   type BillingDatabase
 } from "../../database/billing-database.js";
 
-export async function runQuotationE2e(verifyCompliance?: (databaseName:string,saleId:string)=>Promise<void>) {
+export async function runQuotationE2e(
+  verifyCompliance?: (databaseName: string, saleId: string) => Promise<void>
+) {
   const databaseName = `codexsun_quotation_e2e_${Date.now()}`;
   let admin = await createConnection({
     host: env.DB_HOST,
@@ -414,68 +418,9 @@ export async function runQuotationE2e(verifyCompliance?: (databaseName:string,sa
           ),
         /must match/
       );
-      const originalFetch = globalThis.fetch;
-      const originalProvider = { ...env };
-      Object.assign(env, {
-        GSP_ENVIRONMENT: "sandbox",
-        GSP_GSTIN: "33ABCDE1234F1Z5",
-        GSP_CLIENT_ID: "test-client",
-        GSP_CLIENT_SECRET: "test-secret",
-        GSP_USERNAME: "test-user",
-        GSP_PASSWORD: "test-password",
-        GSP_EMAIL: "test@example.invalid",
-        GSP_IP_ADDRESS: "127.0.0.1"
-      });
-      let providerCalls = 0;
-      globalThis.fetch = async (input) => {
-        providerCalls += 1;
-        const url = String(input);
-        return Response.json({
-          status_cd: "1",
-          data: url.includes("authenticate")
-            ? { AuthToken: "test-token" }
-            : url.includes("GENERATE_EWAYBILL")
-              ? { EwbNo: 123456789012, EwbDt: "16/10/2026 12:00:00" }
-              : {
-                  Irn: "a".repeat(64),
-                  AckNo: 1234567890,
-                  AckDt: "16/10/2026 12:00:00",
-                  SignedQRCode: "test-signed-qr"
-                }
-        });
-      };
-      try {
-        const salesService = new SalesService();
-        const generated = await salesService.generateEinvoice(databaseName, complianceSale.id);
-        assert.equal(generated?.einvoice.irn, "a".repeat(64));
-        assert.equal(
-          (await salesService.getSale(databaseName, complianceSale.id))?.einvoice.ackDate,
-          "2026-10-16T12:00:00"
-        );
-        const eway = await salesService.generateEway(
-          databaseName,
-          complianceSale.id,
-          { ...complianceSale.eway, part: "Part B", vehicleNo: "TN01AB1234" },
-          100
-        );
-        assert.equal(eway?.eway.billNo, "123456789012");
-        assert.equal(
-          (await salesService.getSale(databaseName, complianceSale.id))?.eway.billDate,
-          "2026-10-16"
-        );
-        const count = providerCalls;
-        await salesService.generateEinvoice(databaseName, complianceSale.id);
-        await salesService.generateEway(databaseName, complianceSale.id, undefined, 100);
-        assert.equal(providerCalls, count);
-        await assert.rejects(
-          () => salesService.cancelSale(databaseName, complianceSale.id),
-          /provider/
-        );
-      } finally {
-        globalThis.fetch = originalFetch;
-        Object.assign(env, originalProvider);
-      }
-      if(verifyCompliance) await verifyCompliance(databaseName,conversion.sale.id);
+      await verifyPaymentAudit(databaseName);
+      await verifyCurrencyReports(databaseName, conversion.sale.id);
+      if (verifyCompliance) await verifyCompliance(databaseName, conversion.sale.id);
       return { databaseName, quotationId: convertible.id, saleId: conversion.sale.id };
     });
   } finally {

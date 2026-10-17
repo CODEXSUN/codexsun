@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { useWorkspaceQueryValue, useWorkspaceRecordSelection } from "@codexsun/ui/workspace/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Plus, RefreshCw } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { StorefrontSectionSwitch } from "../catalog-data-source";
 import { SeasonStripForm } from "./season-strip.form";
-import { SeasonStripList } from "./season-strip.list";
+import { SeasonStripList, seasonstripListColumns, seasonstripListValues } from "./season-strip.list";
 import { invalidateStorefrontClientCache } from "../storefront";
 import type { SeasonStripPayload, SeasonStripRecord } from "./season-strip.types";
 import {
@@ -20,13 +21,17 @@ import {
 
 const queryKey = ["ecommerce", "season-strips"] as const;
 export function SeasonStripWorkspace() {
+  const listTools = useWorkspaceListTools(seasonstripListColumns);
+  const [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all");
   const client = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [editing, setEditing] = useState<SeasonStripRecord | null | undefined>();
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+
   const query = useQuery({
     queryKey: [...queryKey, search],
     queryFn: () => listSeasonStrips(search)
   });
+  const records = (query.data ?? []).filter((record) => (statusFilter === "all" || record.status === statusFilter) && listTools.matches(seasonstripListValues(record)));
+  const [editing, setEditing] = useWorkspaceRecordSelection<SeasonStripRecord>(query.data ?? [], (record) => String(record.id));
   const refresh = () => {
     invalidateStorefrontClientCache();
     return client.invalidateQueries({ queryKey });
@@ -65,7 +70,7 @@ export function SeasonStripWorkspace() {
       />
     );
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Season Strips"
       description="Manage the two seasonal storefront banners separately from promotion cards."
       actions={
@@ -75,10 +80,7 @@ export function SeasonStripWorkspace() {
             <Download className="size-4" />
             {pull.isPending ? "Pulling..." : "Pull from Frappe"}
           </Button>
-          <Button variant="outline" onClick={() => void query.refetch()}>
-            <RefreshCw className="size-4" />
-            Refresh
-          </Button>
+          
           <Button onClick={() => setEditing(null)}>
             <Plus className="size-4" />
             New
@@ -87,13 +89,20 @@ export function SeasonStripWorkspace() {
       }
     >
       <WorkspaceFilters
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
+        filterValue={statusFilter}
+        onFilterValueChange={setStatusFilter}
+        filterOptions={[{ id: "all", label: "All statuses" },{ id: "active", label: "Active", count: (query.data ?? []).filter((record) => record.status === "active").length },{ id: "inactive", label: "Inactive", count: (query.data ?? []).filter((record) => record.status === "inactive").length }]} 
         searchPlaceholder="Search season code, title, or Frappe item"
         searchValue={search}
         onSearchValueChange={setSearch}
       />
       <SeasonStripList
+        listTools={listTools}
         loading={query.isLoading}
-        records={query.data ?? []}
+        records={records}
         onEdit={setEditing}
         onStatus={(record) => changeStatus.mutate(record)}
       />

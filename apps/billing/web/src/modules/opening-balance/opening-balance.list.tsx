@@ -1,39 +1,57 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceTablePanel } from "@codexsun/ui/workspace/table";
 import type { OpeningBalance } from "./opening-balance.types";
 export function OpeningBalanceList({
   items,
   onEdit,
-  canEdit
+  canEdit,
+  tools
 }: {
   items: OpeningBalance[];
   onEdit: (item: OpeningBalance) => void;
   canEdit: boolean;
+  tools: WorkspaceListTools;
 }) {
   return (
     <WorkspaceTablePanel>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left">
-            <th className="p-3">PARTY</th>
-            <th className="p-3">ROLE</th>
-            <th className="p-3">OPENING</th>
-            <th className="p-3">SOURCE</th>
-            <th className="p-3">ACTION</th>
+            {!tools.hidden.includes("Party") && <th className="p-3">PARTY</th>}
+            {!tools.hidden.includes("Role") && <th className="p-3">ROLE</th>}
+            {!tools.hidden.includes("Opening") && <th className="p-3">OPENING</th>}
+            {!tools.hidden.includes("Source") && <th className="p-3">SOURCE</th>}
+            {!tools.hidden.includes("Action") && <th className="p-3">ACTION</th>}
           </tr>
+          {tools.showFilters && (
+            <tr>
+              {["Party", "Role", "Opening", "Source", "Action"]
+                .filter((label) => !tools.hidden.includes(label))
+                .map((label) => (
+                  <th className="px-3 pb-2" key={label}>
+                    {tools.filterRow(label)}
+                  </th>
+                ))}
+            </tr>
+          )}
         </thead>
         <tbody>
           {items.map((item) => (
             <tr key={item.id} className="border-b">
-              <td className="p-3">{item.contactName}</td>
-              <td className="p-3">{item.partyRole}</td>
-              <td className="p-3">
+              <td hidden={tools.hidden.includes("Party")} className="p-3">
+                {item.contactName}
+              </td>
+              <td hidden={tools.hidden.includes("Role")} className="p-3">
+                {item.partyRole}
+              </td>
+              <td hidden={tools.hidden.includes("Opening")} className="p-3">
                 {item.currencyCode} {item.amount.toFixed(2)}
               </td>
-              <td className="p-3">
+              <td hidden={tools.hidden.includes("Source")} className="p-3">
                 {item.assignLegacy ? "Reviewed legacy assignment" : "Manual opening"}
               </td>
-              <td className="p-3">
+              <td hidden={tools.hidden.includes("Action")} className="p-3">
                 <Button variant="outline" disabled={!canEdit} onClick={() => onEdit(item)}>
                   Edit
                 </Button>

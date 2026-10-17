@@ -1,3 +1,4 @@
+export { createPortalUser } from "./tenant-user.portal.js";
 export { tenantUserModule } from "./tenant-user.module.js";
 export { TenantUserService } from "./tenant-user.service.js";
 export { migrateTenantUserModule, tenantUserMigration } from "./tenant-user.migration.js";

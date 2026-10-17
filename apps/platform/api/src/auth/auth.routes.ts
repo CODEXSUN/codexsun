@@ -4,6 +4,7 @@ import { z } from "zod";
 import { AuthService } from "./auth.service.js";
 import { AuthSessionRepository } from "./auth-session.repository.js";
 import { clearSelectedSessionCookie, writeEncryptedSessionCookie } from "./session-cookie.js";
+import { writeDevelopmentSessionCookie } from "./development-session-cookie.js";
 import { enforceBrowserRequestOrigin, requestHost } from "./auth-request-context.js";
 import { isSharedApplicationHost } from "../modules/tenant-domain/tenant-domain.repository.js";
 import { TenantRepository } from "../modules/tenant/tenant.repository.js";
@@ -77,7 +78,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     if (!result || !("tenantId" in result)) {
       return reply.code(401).send(invalidCredentials(request));
     }
-    const sessionSlot = writeEncryptedSessionCookie(reply, result.accessToken);
+    const sessionSlot = writeDevelopmentSessionCookie(reply, request, result.accessToken);
     return ok(publicResult(request, result, sessionSlot), {
       requestId: request.id,
       tenantId: result.tenantId

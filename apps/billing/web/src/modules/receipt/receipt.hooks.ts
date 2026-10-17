@@ -21,6 +21,13 @@ export function useReceiptPage(query: {
   pageSize: number;
   search: string;
   status: string;
+  numberSearch?: string;
+  dateSearch?: string;
+  partySearch?: string;
+  totalSearch?: string;
+  statusSearch?: string;
+  modeSearch?: string;
+  unallocatedSearch?: string;
 }) {
   const search = useDebouncedValue(query.search);
   const request = { ...query, search };

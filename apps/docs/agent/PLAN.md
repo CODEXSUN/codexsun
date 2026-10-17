@@ -42,3 +42,10 @@ Source presence is not release evidence. Confirm executable behavior before desc
 Use `npm run check:component-docs` and the relevant root checks.
 Run database, browser, native, and deployment checks when the changed behavior needs them.
 Do not mark an untested phase or planned feature complete.
+
+## Repository documentation synchronization
+
+Original repository Markdown and MDX remain authoritative.
+`tools/sync-repository-docs.mjs` creates protected catalog references with stable path-derived page keys and source hashes.
+Full source is fenced to prevent MDX and instruction execution.
+The checker rejects missing mirrors and drift. Authored application guides keep their existing rendering.

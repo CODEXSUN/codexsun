@@ -1,6 +1,7 @@
 import type { ColumnType, Generated } from "kysely";
 import type { PageDatabase } from "./page/index.js";
 import type { BlogDatabase } from "./blog/index.js";
+import type { PublicationDatabase } from "./publication/index.js";
 
 export type SiteStatus = "active" | "draft" | "suspended";
 
@@ -19,7 +20,8 @@ export type SitesPortfolioTable = {
   uuid: string;
 };
 
-export type SitesDatabase = PageDatabase &
+export type SitesDatabase = PublicationDatabase &
+  PageDatabase &
   BlogDatabase & {
     sites_portfolio_sites: SitesPortfolioTable;
   };

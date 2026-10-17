@@ -1,5 +1,8 @@
+import { useLocation, useNavigate } from "@tanstack/react-router";
+import { WorkspaceHeaderActions, useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -12,7 +15,6 @@ import {
   AlertDialogTitle
 } from "@codexsun/ui/components/alert-dialog";
 import { Button } from "@codexsun/ui/components/button";
-import { cn } from "@codexsun/ui/lib/utils";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspaceLookup } from "@codexsun/ui/workspace/lookup";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
@@ -31,10 +33,12 @@ import {
   useTenantUsersQuery,
   useTenantUserTenantsQuery
 } from "./tenant-user.hooks";
-import { TenantUserList } from "./tenant-user.list";
+import { TenantUserList, tenantUserListColumns } from "./tenant-user.list";
 import type { TenantUser, TenantUserSavePayload, TenantUserScope } from "./tenant-user.types";
 type PendingAction = { record: TenantUser; type: "force-delete" | "restore" | "suspend" };
 export function TenantUserWorkspace({ mode = "tenant" }: { mode?: "super-admin" | "tenant" }) {
+  const listTools = useWorkspaceListTools(tenantUserListColumns);
+
   const superAdmin = mode === "super-admin";
   const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
   const tenantQuery = useTenantUserTenantsQuery(superAdmin);
@@ -45,31 +49,60 @@ export function TenantUserWorkspace({ mode = "tenant" }: { mode?: "super-admin" 
   const query = useTenantUsersQuery(scope, canManage);
   const roleOptionsQuery = useTenantUserRoleOptionsQuery(scope, canManage);
   const mutations = useTenantUserMutations(scope);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
-  const [editing, setEditing] = useState<TenantUser | null | undefined>(undefined);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+  const [status, setStatus] = useWorkspaceQueryValue("status", "all");
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100);
+  const [editing, setLocalEditing] = useState<TenantUser | null | undefined>(undefined);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const basePath = "/app/application/access/users";
+  function setEditing(record: TenantUser | null | undefined) {
+    setLocalEditing(record);
+    if (superAdmin) return;
+    const path =
+      record === undefined
+        ? basePath
+        : record === null
+          ? `${basePath}/new`
+          : `${basePath}/${record.id}/edit`;
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
+  }
+  useEffect(() => {
+    if (superAdmin) return;
+    const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
+    if (!tail.length) setLocalEditing(undefined);
+    else if (tail[0] === "new" && tail.length === 1) setLocalEditing(null);
+    else if (tail.length === 2 && tail[1] === "edit") {
+      const record = query.data?.find((item) => String(item.id) === tail[0]);
+      if (record) setLocalEditing((current) => (current?.id === record.id ? current : record));
+    }
+  }, [location.pathname, query.data]);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const selectedTenant = (tenantQuery.data ?? []).find((tenant) => tenant.id === selectedTenantId);
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (query.data ?? []).filter(
-      (record) =>
-        (status === "all" || record.status === status) &&
-        (!term ||
-          record.name.toLowerCase().includes(term) ||
-          record.email.toLowerCase().includes(term) ||
-          record.roles.some((role) => role.label.toLowerCase().includes(term)))
-    );
-  }, [query.data, search, status]);
+    return (query.data ?? [])
+      .filter((record) =>
+        listTools.matches({ ...record, role: record.roles.map((role) => role.label).join(", ") })
+      )
+      .filter(
+        (record) =>
+          (status === "all" || record.status === status) &&
+          (!term ||
+            record.name.toLowerCase().includes(term) ||
+            record.email.toLowerCase().includes(term) ||
+            record.roles.some((role) => role.label.toLowerCase().includes(term)))
+      );
+  }, [query.data, search, status, JSON.stringify(listTools.filters)]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const records = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
+    if (query.data && page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
   useEffect(() => {
+    if (!superAdmin) return;
     setEditing(undefined);
     setPendingAction(null);
     setSearch("");
@@ -109,21 +142,20 @@ export function TenantUserWorkspace({ mode = "tenant" }: { mode?: "super-admin" 
   }
   return (
     <WorkspacePage
-      actions={
-        <div className="flex items-center gap-2">
-          <Button
-            className="h-9 rounded-md"
-            disabled={query.isFetching || (superAdmin && !canManage)}
-            onClick={() => {
-              if (superAdmin) void tenantQuery.refetch();
-              if (canManage) void query.refetch();
-            }}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
+      title={superAdmin ? "Tenant User Manager" : ""}
+      {...(superAdmin
+        ? {
+            description:
+              "Select a tenant, then manage its users, credentials, and account lifecycle."
+          }
+        : {})}
+      className="w-full max-w-none py-0 lg:w-full lg:py-0"
+      technicalName={
+        superAdmin ? "page.super-admin.tenant-user-manager" : "page.application.access.users"
+      }
+    >
+      <WorkspaceHeaderActions>
+        {editing === undefined ? (
           <Button
             className="h-9 rounded-md"
             disabled={!canManage}
@@ -133,18 +165,8 @@ export function TenantUserWorkspace({ mode = "tenant" }: { mode?: "super-admin" 
             <Plus className="size-4" />
             New user
           </Button>
-        </div>
-      }
-      description={
-        superAdmin
-          ? "Select a tenant, then manage its users, credentials, and account lifecycle."
-          : "Manage tenant users, credentials, and account lifecycle."
-      }
-      technicalName={
-        superAdmin ? "page.super-admin.tenant-user-manager" : "page.application.access.users"
-      }
-      title={superAdmin ? "Tenant User Manager" : "Users"}
-    >
+        ) : null}
+      </WorkspaceHeaderActions>
       {superAdmin ? (
         <WorkspaceFormPanel
           description="User records are read from the selected tenant database."
@@ -173,63 +195,82 @@ export function TenantUserWorkspace({ mode = "tenant" }: { mode?: "super-admin" 
           </div>
         </WorkspaceFormPanel>
       ) : null}
-      {canManage ? (
-        <>
-          {query.error instanceof Error ? (
-            <WorkspaceFormBanner title="Unable to load users">
-              {query.error.message}
-            </WorkspaceFormBanner>
-          ) : null}
-          <WorkspaceFilters
-            filterOptions={[
-              { id: "all", label: "All users" },
-              { id: "active", label: "Active" },
-              { id: "inactive", label: "Inactive" },
-              { id: "suspended", label: "Suspended" }
-            ]}
-            filterValue={status}
-            onFilterValueChange={(value) => {
-              setStatus(value);
-              setPage(1);
-            }}
-            onSearchValueChange={(value) => {
-              setSearch(value);
-              setPage(1);
-            }}
-            searchPlaceholder="Search users"
-            searchValue={search}
-          />
-          <TenantUserList
-            loading={query.isFetching && !query.data}
-            onEdit={setEditing}
-            onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
-            onRestore={(record) => setPendingAction({ record, type: "restore" })}
-            onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
-            records={records}
-          />
-          <WorkspacePagination
-            page={currentPage}
-            rowsPerPage={rowsPerPage}
-            showingLabel={buildShowingLabel(currentPage, rowsPerPage, filtered.length)}
-            singularLabel="user"
-            totalCount={filtered.length}
-            totalPages={totalPages}
-            onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
-            onPageChange={setPage}
-            onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
-            onRowsPerPageChange={(value) => {
-              setRowsPerPage(value);
-              setPage(1);
-            }}
-          />
-        </>
-      ) : (
-        <WorkspaceShowCard title="Choose a tenant">
-          <p className="px-4 py-3 text-sm text-muted-foreground">
-            Select a tenant above to load and manage users from its database.
-          </p>
-        </WorkspaceShowCard>
-      )}
+      <div className="space-y-4" hidden={editing !== undefined}>
+        {canManage ? (
+          <>
+            {query.error instanceof Error ? (
+              <WorkspaceFormBanner title="Unable to load users">
+                {query.error.message}
+              </WorkspaceFormBanner>
+            ) : null}
+            <WorkspaceFilters
+              toolbarAction={listTools.toolbarAction}
+              columnOptions={listTools.columnOptions}
+              onShowAllColumns={listTools.onShowAllColumns}
+              showSelectedFilterChip
+              filterOptions={[
+                { id: "all", label: "All users" },
+                {
+                  id: "active",
+                  label: "Active",
+                  count: (query.data ?? []).filter((record) => record.status === "active").length
+                },
+                {
+                  id: "inactive",
+                  label: "Inactive",
+                  count: (query.data ?? []).filter((record) => record.status === "inactive").length
+                },
+                {
+                  id: "suspended",
+                  label: "Suspended",
+                  count: (query.data ?? []).filter((record) => record.status === "suspended").length
+                }
+              ]}
+              filterValue={status}
+              onFilterValueChange={(value) => {
+                setStatus(value);
+                setPage(1);
+              }}
+              onSearchValueChange={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              searchPlaceholder="Search users"
+              searchValue={search}
+            />
+            <TenantUserList
+              listTools={listTools}
+              loading={query.isFetching && !query.data}
+              onEdit={setEditing}
+              onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
+              onRestore={(record) => setPendingAction({ record, type: "restore" })}
+              onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
+              records={records}
+            />
+            <WorkspacePagination
+              page={currentPage}
+              rowsPerPage={rowsPerPage}
+              showingLabel={buildShowingLabel(currentPage, rowsPerPage, filtered.length)}
+              singularLabel="user"
+              totalCount={filtered.length}
+              totalPages={totalPages}
+              onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
+              onPageChange={setPage}
+              onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
+              onRowsPerPageChange={(value) => {
+                setRowsPerPage(value);
+                setPage(1);
+              }}
+            />
+          </>
+        ) : (
+          <WorkspaceShowCard title="Choose a tenant">
+            <p className="px-4 py-3 text-sm text-muted-foreground">
+              Select a tenant above to load and manage users from its database.
+            </p>
+          </WorkspaceShowCard>
+        )}
+      </div>
       <TenantUserForm
         {...(selectedTenant ? { contextLabel: selectedTenant.tenantName } : {})}
         {...(saveError instanceof Error

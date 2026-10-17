@@ -1,7 +1,9 @@
+import { useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, RefreshCw, Send } from "lucide-react";
+import { Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
@@ -106,20 +108,33 @@ export function QuotationWorkspace() {
           : { mode: "list" };
 
   function openQuotation(nextRoute: QuotationRoute) {
-    void navigate({ to: quotationRoutePath(nextRoute, tenantDesk) });
+    void navigate({ to: quotationRoutePath(nextRoute, tenantDesk), search: location.search });
   }
-  const [searchValue, setSearchValue] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [searchValue, setSearchValue] = useWorkspaceQueryValue("q", "");
+  const [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all");
+  const [dateFrom, setDateFrom] = useWorkspaceQueryValue("from", "");
+  const [dateTo, setDateTo] = useWorkspaceQueryValue("to", "");
   const [totalsView, setTotalsView] = useState<BillingDocumentTotalsViewMode>("bill");
   const [selectedQuotationIds, setSelectedQuotationIds] = useState<Set<string>>(() => new Set());
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(quotationColumnCatalog.map((column) => [column.id, true]))
+  const listTools = useWorkspaceListTools({
+    number: "Quotation",
+    date: "Date",
+    ...Object.fromEntries(quotationColumnCatalog.map((column) => [column.id, column.label]))
+  });
+  const visibleColumns = Object.fromEntries(
+    quotationColumnCatalog.map((column) => [column.id, !listTools.hidden.includes(column.id)])
   );
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [currentPage, setCurrentPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100);
   const quotationsQuery = useQuotationPage({
+    numberSearch: listTools.filters.number ?? "",
+    dateSearch: listTools.filters.date ?? "",
+    partySearch: listTools.filters.customer ?? "",
+    totalSearch: listTools.filters.total ?? "",
+    statusSearch: listTools.filters.status ?? "",
+    quantitySearch: listTools.filters.items ?? "",
+    taxableSearch: listTools.filters.taxable ?? "",
+    taxSearch: listTools.filters.gst ?? "",
     customer: "all",
     dateFrom,
     dateTo,
@@ -381,21 +396,12 @@ export function QuotationWorkspace() {
 
   return (
     <WorkspacePage
+      variant="list"
       title="Quotations"
       description="Create and review tenant-isolated quotation vouchers with sales layout controls."
       technicalName="page.billing.quotation.list"
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            className="h-9 rounded-md"
-            disabled={quotationsQuery.isFetching}
-            onClick={() => void quotationsQuery.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", quotationsQuery.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
           <Button
             className="h-9 rounded-md"
             disabled={!selectedEntries.length || batchConvertMutation.isPending}
@@ -418,7 +424,11 @@ export function QuotationWorkspace() {
       }
     >
       <WorkspaceFilters
-        filterOptions={statusFilters}
+        showSelectedFilterChip
+        filterOptions={statusFilters.map((option) => ({
+          ...option,
+          ...(option.id === statusFilter ? { count: quotationsQuery.data?.total ?? 0 } : {})
+        }))}
         filterValue={statusFilter}
         onFilterValueChange={(value) => {
           setStatusFilter(value);
@@ -430,32 +440,28 @@ export function QuotationWorkspace() {
         }}
         searchPlaceholder="Search quotation, customer, work order, date, or total"
         searchValue={searchValue}
-        columnOptions={quotationColumnCatalog.map((column) => ({
-          ...column,
-          checked: Boolean(visibleColumns[column.id]),
-          onCheckedChange: (checked: boolean) =>
-            setVisibleColumns((current) => ({ ...current, [column.id]: checked }))
-        }))}
-        onShowAllColumns={() =>
-          setVisibleColumns(
-            Object.fromEntries(quotationColumnCatalog.map((column) => [column.id, true]))
-          )
-        }
+        columnOptions={listTools.columnOptions.filter((column) =>
+          quotationColumnCatalog.some((item) => item.id === column.id)
+        )}
+        onShowAllColumns={listTools.onShowAllColumns}
         toolbarAction={
-          <BillingDocumentListControls
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            onDateFromChange={(value) => {
-              setDateFrom(value);
-              setCurrentPage(1);
-            }}
-            onDateToChange={(value) => {
-              setDateTo(value);
-              setCurrentPage(1);
-            }}
-            onTotalsViewChange={setTotalsView}
-            totalsView={totalsView}
-          />
+          <>
+            {listTools.toolbarAction}{" "}
+            <BillingDocumentListControls
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={(value) => {
+                setDateFrom(value);
+                setCurrentPage(1);
+              }}
+              onDateToChange={(value) => {
+                setDateTo(value);
+                setCurrentPage(1);
+              }}
+              onTotalsViewChange={setTotalsView}
+              totalsView={totalsView}
+            />
+          </>
         }
       />
       {quotationsQuery.isError ? (
@@ -468,6 +474,7 @@ export function QuotationWorkspace() {
         </WorkspaceTablePanel>
       ) : null}
       <QuotationList
+        listTools={listTools}
         entries={pageEntries}
         loading={quotationsQuery.isLoading}
         totalsRecords={pageEntries.map((quotation) => ({

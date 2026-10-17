@@ -1,3 +1,4 @@
+import { registerEnquiryRoutes } from "./enquiry/enquiry.routes.js";
 import { sitePublicationSchema } from "./site.public-contract.js";
 import { registerContractRoute } from "@codexsun/framework/http";
 import type { FastifyInstance, FastifyRequest } from "fastify";
@@ -12,6 +13,11 @@ import { SiteRuntimeService } from "./site.runtime.js";
 import { pageModule, PageRepository, PageService } from "./page/index.js";
 import { blogModule, BlogRepository, BlogService } from "./blog/index.js";
 import { SitePublicReader } from "./site.public.js";
+import {
+  publicationModule,
+  PublicationRepository,
+  PublicationService
+} from "./publication/index.js";
 
 const siteStatusSchema = z.enum(["active", "draft", "suspended"]);
 
@@ -54,6 +60,25 @@ export function registerSiteRoutes(
 ) {
   const runtime = new SiteRuntimeService();
   const publicReader = new SitePublicReader();
+  registerEnquiryRoutes(app, async (request, uuid, action) => {
+    const identity = await authorizeSitesAction(app, request, `sites.enquiry.inbox.${action}`);
+    const ctx = await resolveContext(request);
+    await new SiteService(new SiteRepository(ctx.database as Kysely<SitesDatabase>)).show(uuid);
+    return { tenantId: ctx.tenantId, actor: identity.actorEmail };
+  });
+
+  publicationModule.register(app, async (request, uuid) => {
+    const identity = await authorizeSitesAction(app, request, "sites.site.publication.export");
+    const ctx = await resolveContext(request);
+    const database = ctx.database as Kysely<SitesDatabase>;
+    const site = await new SiteService(new SiteRepository(database)).show(uuid);
+    return {
+      actor: identity.actorEmail,
+      service: new PublicationService(new PublicationRepository(database), site, ctx.tenantId),
+      content: await new PageService(new PageRepository(database), site).published(),
+      blogs: await new BlogService(new BlogRepository(database), site).published()
+    };
+  });
   pageModule.register(app, async (request, uuid, action) => {
     const identity = await authorizeSitesAction(app, request, `sites.page.content.${action}`);
     const ctx = await resolveContext(request);
@@ -115,8 +140,8 @@ export function registerSiteRoutes(
         { actor: identity.actorEmail, siteUuid: site.uuid, port: site.port },
         "Sites client start requested"
       );
-      const result = await runtime.start(site);
       const scope = await resolveContext(request);
+      const result = await runtime.start(site, scope.tenantId);
       publicReader.bind(scope.database as Kysely<SitesDatabase>, scope.tenantId, site);
       request.log.info(
         { actor: identity.actorEmail, siteUuid: site.uuid, port: site.port },

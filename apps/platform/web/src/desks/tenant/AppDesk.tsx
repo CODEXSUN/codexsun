@@ -1,3 +1,7 @@
+import { TconnectWorkspace } from "@codexsun/tconnect-web";
+import { tconnectGateway } from "../../modules/tconnect/tconnect-host";
+import { QCafeAppearance } from "./QCafeAppearance";
+import { WorkspaceNavigationProvider } from "@codexsun/ui/workspace/navigation";
 import { ApplicationOverview } from "./application-overview";
 import {
   DocsKnowledgeWorkspace,
@@ -45,6 +49,7 @@ import { PlusIcon, RocketIcon } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { TenantMainLayout } from "./TenantMainLayout";
+import { QCafeAppHeader } from "./QCafeAppHeader";
 import { ApplicationSettings } from "./ApplicationSettings";
 import {
   AlertDialog,
@@ -560,6 +565,12 @@ const TenantRolePermissionWorkspace = lazy(() =>
   }))
 );
 
+const TenantAccessControlWorkspace = lazy(() =>
+  import("../../modules/tenant-role-permission").then((module) => ({
+    default: module.TenantAccessControlWorkspace
+  }))
+);
+
 type AppPage =
   | "zetro.chat"
   | "frappe.overview"
@@ -579,6 +590,7 @@ type AppPage =
   | "frappe.user-mapping"
   | "auditor.overview"
   | "auditor.clients"
+  | "tconnect.overview"
   | "ecommerce.overview"
   | "ecommerce.categories"
   | "ecommerce.products"
@@ -599,8 +611,10 @@ type AppPage =
   | "ecommerce.trusted-strip"
   | "qcafe.overview"
   | "qcafe.menu"
+  | "qcafe.settings"
   | "qcafe.kot"
   | "qcafe.take-away"
+  | "qcafe.booking"
   | "hrms.overview"
   | "hrms.employees"
   | "hrms.attendance"
@@ -647,6 +661,7 @@ type AppPage =
   | "application.access.permissions"
   | "application.access.user-roles"
   | "application.access.role-permissions"
+  | "application.access.controls"
   | "billing.overview"
   | "billing.quotation"
   | "billing.quotation.print"
@@ -706,6 +721,7 @@ type AppPage =
 export function AppDesk() {
   const queryClient = useQueryClient();
   const location = useLocation();
+  const routeSearch: Record<string, unknown> = location.search;
   const navigate = useNavigate();
   const signedInUser = signedInTenantUser();
   const routePage = pageFromUrl(null, location.pathname);
@@ -724,6 +740,9 @@ export function AppDesk() {
     name: string;
     primaryPhone: string | null;
   } | null>(null);
+  const [applicationHeaderTarget, setApplicationHeaderTarget] = useState<HTMLDivElement | null>(
+    null
+  );
   const dirtyFormsRef = useRef<Set<Element>>(new Set());
   const [shouldResolveLandingPath, setShouldResolveLandingPath] = useState(() =>
     isAppRootPath(location.pathname)
@@ -790,55 +809,58 @@ export function AppDesk() {
     staleTime: 5 * 60 * 1_000
   });
   const appSafePage =
-    page.startsWith("devkit") || page.startsWith("project-manager")
+    page.startsWith("tconnect.") && !switchableApps.includes("tconnect")
       ? pageForApp(landingApp)
-      : page.startsWith("hrms.") && !switchableApps.includes("hrms")
+      : page.startsWith("devkit") || page.startsWith("project-manager")
         ? pageForApp(landingApp)
-        : page.startsWith("codexsun.") && !switchableApps.includes("codexsun")
+        : page.startsWith("hrms.") && !switchableApps.includes("hrms")
           ? pageForApp(landingApp)
-          : page.startsWith("docs.") && !switchableApps.includes("docs")
+          : page.startsWith("codexsun.") && !switchableApps.includes("codexsun")
             ? pageForApp(landingApp)
-            : page.startsWith("himsx.") && !switchableApps.includes("himsx")
+            : page.startsWith("docs.") && !switchableApps.includes("docs")
               ? pageForApp(landingApp)
-              : page.startsWith("sites.") && !switchableApps.includes("sites")
+              : page.startsWith("himsx.") && !switchableApps.includes("himsx")
                 ? pageForApp(landingApp)
-                : page.startsWith("qcafe") && !switchableApps.includes("qcafe")
+                : page.startsWith("sites.") && !switchableApps.includes("sites")
                   ? pageForApp(landingApp)
-                  : page.startsWith("ecommerce") && !switchableApps.includes("ecommerce")
+                  : page.startsWith("qcafe") && !switchableApps.includes("qcafe")
                     ? pageForApp(landingApp)
-                    : page.startsWith("auditor") && !switchableApps.includes("auditor")
+                    : page.startsWith("ecommerce") && !switchableApps.includes("ecommerce")
                       ? pageForApp(landingApp)
-                      : page.startsWith("logicx-erp") && !switchableApps.includes("logicx-erp")
+                      : page.startsWith("auditor") && !switchableApps.includes("auditor")
                         ? pageForApp(landingApp)
-                        : page.startsWith("logicx-erp.schemes") && !enabledApps.includes("billing")
-                          ? "logicx-erp.overview"
-                          : page.startsWith("zetro") && !switchableApps.includes("zetro")
-                            ? pageForApp(landingApp)
-                            : page.startsWith("frappe") && !switchableApps.includes("frappe")
+                        : page.startsWith("logicx-erp") && !switchableApps.includes("logicx-erp")
+                          ? pageForApp(landingApp)
+                          : page.startsWith("logicx-erp.schemes") &&
+                              !enabledApps.includes("billing")
+                            ? "logicx-erp.overview"
+                            : page.startsWith("zetro") && !switchableApps.includes("zetro")
                               ? pageForApp(landingApp)
-                              : page.startsWith("task-manager") &&
-                                  !switchableApps.includes("task-manager")
+                              : page.startsWith("frappe") && !switchableApps.includes("frappe")
                                 ? pageForApp(landingApp)
-                                : page.startsWith("mail") && !switchableApps.includes("mail")
+                                : page.startsWith("task-manager") &&
+                                    !switchableApps.includes("task-manager")
                                   ? pageForApp(landingApp)
-                                  : page.startsWith("notes") && !switchableApps.includes("notes")
+                                  : page.startsWith("mail") && !switchableApps.includes("mail")
                                     ? pageForApp(landingApp)
-                                    : page.startsWith("chat") && !switchableApps.includes("chat")
+                                    : page.startsWith("notes") && !switchableApps.includes("notes")
                                       ? pageForApp(landingApp)
-                                      : page.startsWith("crm") && !switchableApps.includes("crm")
+                                      : page.startsWith("chat") && !switchableApps.includes("chat")
                                         ? pageForApp(landingApp)
-                                        : page.startsWith("blog") &&
-                                            !switchableApps.includes("blog")
+                                        : page.startsWith("crm") && !switchableApps.includes("crm")
                                           ? pageForApp(landingApp)
-                                          : page.startsWith("accounts") &&
-                                              !switchableApps.includes("accounts")
+                                          : page.startsWith("blog") &&
+                                              !switchableApps.includes("blog")
                                             ? pageForApp(landingApp)
-                                            : (page.startsWith("billing") ||
-                                                  (page.startsWith("core") &&
-                                                    !page.startsWith("core.organisation"))) &&
-                                                !switchableApps.includes("billing")
+                                            : page.startsWith("accounts") &&
+                                                !switchableApps.includes("accounts")
                                               ? pageForApp(landingApp)
-                                              : page;
+                                              : (page.startsWith("billing") ||
+                                                    (page.startsWith("core") &&
+                                                      !page.startsWith("core.organisation"))) &&
+                                                  !switchableApps.includes("billing")
+                                                ? pageForApp(landingApp)
+                                                : page;
   const safePage = resolveBillingFeaturePage(appSafePage, billingSettingsQuery.data?.features);
   const activePageTitle =
     safePage === "hrms.employees" && location.pathname.endsWith("/new")
@@ -979,13 +1001,28 @@ export function AppDesk() {
     const allowedPage = resolveBillingFeaturePage(nextPage, billingSettingsQuery.data?.features);
     dirtyFormsRef.current.clear();
     setPendingListPage(null);
-    if (isCrmListPage(allowedPage)) setCrmListRevision((revision) => revision + 1);
+    if (
+      isCrmListPage(allowedPage) ||
+      allowedPage.startsWith("application.") ||
+      allowedPage.startsWith("core.") ||
+      allowedPage.startsWith("billing.") ||
+      allowedPage.startsWith("ecommerce.") ||
+      allowedPage.startsWith("auditor.") ||
+      allowedPage.startsWith("accounts.") ||
+      allowedPage.startsWith("hrms.")
+    )
+      setCrmListRevision((revision) => revision + 1);
     navigatePage(allowedPage, replaceHistory, search);
     setPlatformDocumentTitle(titleForPage(allowedPage));
   }
 
   function requestListNavigation(nextPage: AppPage, search?: Record<string, string>) {
-    if (Array.from(dirtyFormsRef.current).some((form) => form.isConnected)) {
+    if (
+      Array.from(dirtyFormsRef.current).some((form) => form.isConnected) ||
+      /\/(new|edit)$/.test(location.pathname) ||
+      routeSearch.form === "new" ||
+      routeSearch.form === "edit"
+    ) {
       setPendingListPage({ page: nextPage, ...(search ? { search } : {}) });
       return;
     }
@@ -1196,624 +1233,688 @@ export function AppDesk() {
   }
 
   return (
-    <TenantMainLayout
-      fullBleed={safePage.startsWith("chat.") && safePage !== "chat.telegram.settings"}
-      hideAppHeader={safePage.startsWith("chat.") && safePage !== "chat.telegram.settings"}
-      headerActionsAlignment={
-        safePage === "hrms.employees"
-          ? location.pathname === "/app/hrms/employees"
-            ? "workspace"
-            : "form"
-          : safePage === "crm.enquiries.new"
-            ? "form"
-            : safePage === "crm.tasks" && location.pathname === "/app/crm/tasks/new"
-              ? "form"
-              : safePage === "crm.enquiries" ||
-                  safePage === "crm.tasks" ||
-                  (safePage === "crm.contacts" && location.pathname === "/app/crm/contacts")
-                ? "workspace"
-                : "edge"
+    <WorkspaceNavigationProvider
+      headerTarget={applicationHeaderTarget}
+      inlineForms={
+        activeApp === "application" ||
+        safePage.startsWith("core.") ||
+        routeSearch.form === "new" ||
+        routeSearch.form === "edit"
       }
-      appItems={appLauncherItems}
-      addonAppItems={addonWorkspaceItems}
-      brand={{
-        href: telegramWorkspace ? "/app/chat/telegram" : appRootUrl(activeApp),
-        ...(companyBranding.lightLogoUrl ? { logoSrc: companyBranding.lightLogoUrl } : {}),
-        ...(companyBranding.darkLogoUrl ? { logoDarkSrc: companyBranding.darkLogoUrl } : {}),
-        logoAlt: `${companyBranding.brandName ?? "Company"} logo`,
-        options: activeCompanies.map((company) => ({
-          id: String(company.id),
-          subtitle: accountingYear,
-          title: companyBrandName(company)
-        })),
-        optionsLabel: "Company",
-        onOptionSelect: (id) => {
-          if (!selectedFinancialYear) return;
-          updateGlobalDefault(Number(id), selectedFinancialYear.id);
-        },
-        onSecondaryOptionSelect: (id) => {
-          if (!selectedCompany) return;
-          updateGlobalDefault(selectedCompany.id, Number(id));
-        },
-        ...(selectedCompany ? { selectedOptionId: String(selectedCompany.id) } : {}),
-        ...(selectedFinancialYear
-          ? { selectedSecondaryOptionId: String(selectedFinancialYear.id) }
-          : {}),
-        secondaryOptions: activeFinancialYears.map((year) => ({
-          id: String(year.id),
-          title: year.name
-        })),
-        secondaryOptionsLabel: "Financial year",
-        subtitle: selectedFinancialYear
-          ? selectedFinancialYear.name
-          : `${activeWorkspaceTitle.toLowerCase()} workspace`,
-        title: companyBranding.brandName ?? activeWorkspaceTitle
+      search={location.search}
+      onSearchChange={(search) => {
+        void navigate({ to: location.pathname, search, replace: true });
       }}
-      headerTitle={activePageTitle}
-      {...(showingCrmContact
-        ? {
-            headerContent: <CrmContactApplicationHeader contact={crmContactHeader} />
-          }
-        : {})}
-      headerActions={
-        safePage.startsWith("ecommerce.") ? (
-          <EcommerceStorefrontControls gateway={ecommerceStorefrontRuntimeGateway} />
-        ) : safePage === "hrms.employees" ? (
-          location.pathname === "/app/hrms/employees" ? (
-            <Button
-              key="new-hrms-employee"
-              size="sm"
-              className="h-7 px-3"
-              type="button"
-              onClick={(event) => {
-                event.preventDefault();
-                void navigate({ to: "/app/$", params: { _splat: "hrms/employees/new" } });
-              }}
-            >
-              <PlusIcon className="size-4" />
-              New employee
-            </Button>
-          ) : (
-            <Button
-              key="save-hrms-employee"
-              size="sm"
-              className="h-7 px-3"
-              type="submit"
-              form={employeeFormId}
-              aria-keyshortcuts="Control+S"
-            >
-              {location.pathname.endsWith("/edit") ? "Update employee" : "Save employee"}
-              <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
-                Ctrl S
-              </kbd>
-            </Button>
-          )
-        ) : safePage === "crm.contacts" && location.pathname === "/app/crm/contacts" ? (
-          <Button
-            size="sm"
-            className="h-7 px-3"
-            aria-keyshortcuts="Control+C"
-            onClick={openNewContact}
-          >
-            <PlusIcon className="size-4" />
-            New
-            <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
-              Ctrl C
-            </kbd>
-          </Button>
-        ) : safePage === "crm.enquiries" ? (
-          <Button
-            key="new-enquiry"
-            size="sm"
-            className="h-7 px-3"
-            type="button"
-            aria-keyshortcuts="Control+E"
-            onClick={(event) => {
-              event.preventDefault();
-              requestListNavigation("crm.enquiries.new");
-            }}
-          >
-            <PlusIcon className="size-4" />
-            New enquiry
-            <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
-              Ctrl E
-            </kbd>
-          </Button>
-        ) : safePage === "crm.tasks" && location.pathname === "/app/crm/tasks" ? (
-          <Button key="new-task" size="sm" className="h-7 px-3" type="button" onClick={openNewTask}>
-            <PlusIcon className="size-4" />
-            New task
-          </Button>
-        ) : safePage === "crm.tasks" && location.pathname === "/app/crm/tasks/new" ? (
-          <Button
-            key="save-task"
-            size="sm"
-            className="h-7 px-3"
-            type="submit"
-            form="crm-new-task-form"
-            aria-keyshortcuts="Control+S"
-          >
-            Save task
-            <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
-              Ctrl S
-            </kbd>
-          </Button>
-        ) : safePage === "crm.tasks" &&
-          /^\/app\/crm\/tasks\/[^/]+$/.test(location.pathname) &&
-          location.pathname !== "/app/crm/tasks/new" &&
-          taskEditAction ? (
-          <Button
-            key="edit-task"
-            size="sm"
-            className="h-7 px-3"
-            type="button"
-            onClick={taskEditAction.run}
-          >
-            Edit
-          </Button>
-        ) : safePage === "crm.enquiries.new" ? (
-          <Button
-            key="save-enquiry"
-            size="sm"
-            className="h-7 px-3"
-            type="submit"
-            form={newEnquiryFormId}
-            aria-keyshortcuts="Control+S"
-          >
-            Save enquiry
-            <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
-              Ctrl S
-            </kbd>
-          </Button>
-        ) : null
-      }
-      hideSidebarBrand={
-        activeApp === "ecommerce" ||
-        activeApp === "crm" ||
-        activeApp === "hrms" ||
-        activeApp === "chat" ||
-        activeApp === "frappe"
-      }
-      homeHref={telegramWorkspace ? "/app/chat/telegram" : appRootUrl(activeApp)}
-      menuItems={menuItems}
-      omitWorkspaceBreadcrumb={activeApp === "crm" || activeApp === "hrms" || activeApp === "chat"}
-      onLogout={handleLogout}
-      onOpenSettings={() =>
-        requestListNavigation(telegramWorkspace ? "chat.telegram.settings" : "application.settings")
-      }
-      settingsActive={safePage === "application.settings" || safePage === "chat.telegram.settings"}
-      user={signedInUser}
-      versionLabel={`v ${__APP_VERSION__}`}
-      workspaceName={activeWorkspaceTitle}
-      zetroDrawer={
-        switchableApps.includes("zetro") ? (
-          <Suspense fallback={null}>
-            <ZetroChatDrawer
-              key={`${runtime?.tenant?.uuid ?? "tenant"}:${signedInUser.email}`}
-              scopeKey={`${runtime?.tenant?.uuid ?? "tenant"}:${signedInUser.email}`}
-            />
-          </Suspense>
-        ) : null
-      }
     >
-      <main
-        className={
-          safePage.startsWith("qcafe.") && safePage !== "qcafe.menu"
-            ? "w-full min-w-0"
-            : safePage.startsWith("chat.")
-              ? "flex flex-1 min-h-0 w-full flex-col overflow-hidden"
-              : "mx-auto w-[calc(100%-2rem)] max-w-[92rem] space-y-5 py-4 lg:w-[calc(100%-3rem)] lg:py-5"
+      <TenantMainLayout
+        {...(safePage.startsWith("qcafe.")
+          ? { headerContent: <QCafeAppHeader page={safePage} /> }
+          : {})}
+        fullBleed={safePage.startsWith("chat.") && safePage !== "chat.telegram.settings"}
+        hideAppHeader={safePage.startsWith("chat.") && safePage !== "chat.telegram.settings"}
+        headerActionsAlignment={
+          activeApp === "application" || safePage.startsWith("core.") || activeApp === "billing"
+            ? "workspace"
+            : safePage === "hrms.employees"
+              ? location.pathname === "/app/hrms/employees"
+                ? "workspace"
+                : "form"
+              : safePage === "crm.enquiries.new"
+                ? "form"
+                : safePage === "crm.tasks" && location.pathname === "/app/crm/tasks/new"
+                  ? "form"
+                  : safePage === "crm.enquiries" ||
+                      safePage === "crm.tasks" ||
+                      (safePage === "crm.contacts" && location.pathname === "/app/crm/contacts")
+                    ? "workspace"
+                    : "edge"
         }
-        onChangeCapture={markUnsavedFormChanges}
-        onInputCapture={markUnsavedFormChanges}
-      >
-        <Suspense
-          key={
-            safePage.startsWith("qcafe.")
-              ? "qcafe"
-              : safePage.startsWith("core.") ||
-                  safePage.startsWith("billing.") ||
-                  safePage === "crm.contacts" ||
-                  safePage === "logicx-erp.schemes"
-                ? safePage
-                : `${safePage}:${location.href}`
-          }
-          fallback={
-            <GlobalLoader
-              className="min-h-[32rem]"
-              fullScreen={false}
-              message={`Loading ${activeWorkspaceTitle.toLowerCase()}…`}
-            />
-          }
-        >
-          {safePage === "blog.overview" || safePage === "blog.articles" ? (
-            <BlogsEditorWorkspace host={blogEditorHost} />
-          ) : null}
-          {safePage === "hrms.employees" ? <EmployeeWorkspace gateway={employeeGateway} /> : null}
-          {safePage === "hrms.attendance" ? (
-            <HrmsAttendanceWorkspace gateway={attendanceGateway} />
-          ) : null}
-          {safePage === "hrms.overview" ? (
-            <HrmsOverviewWorkspace
-              gateway={hrmsOverviewGateway}
-              currentUserName={signedInUser.name}
-              onOpenAttendance={() => requestListNavigation("hrms.attendance")}
-              onOpenEmployees={() => requestListNavigation("hrms.employees")}
-            />
-          ) : null}
-          {safePage === "codexsun.frontdesk" ||
-          safePage === "codexsun.workspace" ||
-          safePage === "codexsun.approvals" ? (
-            <CodexsunHost
-              surface={
-                safePage === "codexsun.workspace"
-                  ? "workspace"
-                  : safePage === "codexsun.approvals"
-                    ? "approvals"
-                    : "frontdesk"
-              }
-            />
-          ) : null}
-          {safePage === "docs.library" ? (
-            <DocsKnowledgeWorkspace
-              gateway={docsKnowledgeGateway}
-              selectedKey={selectedDocKey}
-              onSelect={openDocPage}
-            />
-          ) : null}
-          {safePage === "docs.overview" || safePage === "docs.guide" ? (
-            <DocsOverviewWorkspace
-              gateway={docsOverviewGateway}
-              guide={safePage === "docs.guide"}
-              onNavigate={requestListNavigation}
-            />
-          ) : null}
-          {safePage === "himsx.overview" || safePage === "himsx.guide" ? (
-            <HimsxOverviewWorkspace
-              gateway={himsxOverviewGateway}
-              guide={safePage === "himsx.guide"}
-              onNavigate={requestListNavigation}
-            />
-          ) : null}
-          {safePage.startsWith("sites.") ? (
-            <SitesOverviewWorkspace
-              gateway={sitesOverviewGateway}
-              guide={safePage === "sites.guide"}
-              siteGateway={siteGateway}
-              view={
-                safePage === "sites.sites"
-                  ? "portfolios"
-                  : safePage === "sites.guide"
-                    ? "guide"
-                    : "studio"
-              }
-              onNavigate={requestListNavigation}
-            />
-          ) : null}
-          {safePage === "auditor.overview" ? <AuditorOverviewWorkspace /> : null}
-          {ecommerceModulePages.includes(safePage as EcommerceModulePage) ? (
-            <EcommerceModuleWorkspace
-              page={safePage as EcommerceModulePage}
-              onOpenStore={openPublicStorefront}
-            />
-          ) : null}
-          {safePage === "ecommerce.overview" ? (
-            <EcommerceOverviewWorkspace gateway={ecommerceOverviewGateway} />
-          ) : null}
-          {safePage === "ecommerce.categories" ? <ProductCategoriesWorkspace /> : null}
-          {safePage === "ecommerce.products" ? <ProductWorkspace /> : null}
-          {safePage === "ecommerce.brands-strip" ? <BrandsWorkspace /> : null}
-          {safePage === "logicx-erp.overview" ? (
-            <LogicxErpOverviewWorkspace gateway={logicxErpOverviewGateway} />
-          ) : null}
-          {safePage === "logicx-erp.schemes" ? (
-            <LogicxErpSchemeWorkspace gateway={logicxErpSchemeGateway} />
-          ) : null}
-          {safePage === "frappe.overview" ? <FrappeOverviewWorkspace /> : null}
-          {safePage === "zetro.chat" ? (
-            <ZetroChatWorkspace
-              scopeKey={`${runtime?.tenant?.uuid ?? "tenant"}:${signedInUser.email}`}
-            />
-          ) : null}
-          {safePage === "frappe.enquiry-sync" ? <FrappeEnquirySyncWorkspace /> : null}
-          {safePage === "frappe.contacts" ? <FrappeContactImportWorkspace /> : null}
-          {safePage === "frappe.enquiries" ? <FrappeEnquiryImportWorkspace /> : null}
-          {safePage === "frappe.activities" ? <FrappeActivityImportWorkspace /> : null}
-          {safePage === "frappe.call-logs" ? <FrappeCallLogImportWorkspace /> : null}
-          {safePage === "frappe.export.contacts" ? <FrappeContactExportWorkspace /> : null}
-          {safePage === "frappe.export.enquiries" ? <FrappeEnquiryExportWorkspace /> : null}
-          {safePage === "frappe.export.activities" ? <FrappeActivityExportWorkspace /> : null}
-          {safePage === "frappe.export.call-logs" ? <FrappeCallLogExportWorkspace /> : null}
-          {safePage === "frappe.live-sync" ? <FrappeLiveSyncWorkspace /> : null}
-          {safePage === "frappe.live-sync-queue" ? <FrappeLiveSyncQueueWorkspace /> : null}
-          {safePage === "frappe.connection" ? <FrappeConnectionWorkspace /> : null}
-          {safePage === "frappe.users" ? <FrappeUserSyncWorkspace /> : null}
-          {safePage === "frappe.user-mapping" ? <FrappeUserMappingWorkspace /> : null}
-          {safePage === "auditor.clients" ? (
-            <AuditorClientWorkspace
-              gateway={auditorClientGateway}
-              initialRecordId={recordIdFromUrl()}
-              onRecordNavigate={selectAuditorRecord}
-            />
-          ) : null}
-          {safePage.startsWith("qcafe.") ? (
-            <QCafeWebApp
-              workspace={
-                safePage === "qcafe.menu"
-                  ? "menu"
-                  : safePage === "qcafe.kot"
-                    ? "kot"
-                    : safePage === "qcafe.take-away"
-                      ? "take-away"
-                      : "pos"
-              }
-              onWorkspaceChange={(workspace) =>
-                requestListNavigation(
-                  workspace === "pos"
-                    ? "qcafe.overview"
-                    : workspace === "kot"
-                      ? "qcafe.kot"
-                      : "qcafe.take-away"
-                )
-              }
-            />
-          ) : null}
-          {safePage === "crm.overview" ? (
-            <CrmOverviewWorkspace
-              currentUserEmail={signedInUser.email}
-              currentUserName={signedInUser.name}
-              onOpenMyJob={() => requestListNavigation("crm.my-job")}
-              onOpenMyCalls={() => requestListNavigation("crm.my-calls")}
-            />
-          ) : null}
-          {safePage === "crm.reports" ? (
-            <CrmReportsWorkspace
-              onOpenEnquiries={openReportEnquiries}
-              onViewChange={setCrmReportTitle}
-            />
-          ) : null}
-          {safePage === "crm.contacts" ? (
-            <CrmContactWorkspace
-              key={`${safePage}:${crmListRevision}`}
-              basePath="/app/crm/contacts"
-              hideSinglePagePagination
-              showListHeader={false}
-              onOpenEnquiry={openEnquiryRecord}
-              onShowContextChange={setCrmContactHeader}
-            />
-          ) : null}
-          {safePage === "crm.contact-360" ? <Contact360Workspace key={safePage} /> : null}
-          {safePage === "crm.activities" ? (
-            <ActivitiesWorkspace
-              key={`${safePage}:${crmListRevision}`}
-              onOpenEnquiry={(id) => openEnquiryRecord(String(id))}
-            />
-          ) : null}
-          {safePage === "crm.sops" ? <SopWorkspace /> : null}
-          {safePage === "crm.tasks" ? (
-            <TaskWorkspace
-              key={`${safePage}:${location.pathname}:${crmListRevision}`}
-              initialRecordKey={taskRecordKeyFromLocation(location.href)}
-              initialCreate={location.pathname === "/app/crm/tasks/new"}
-              onOpenRecord={openTaskRecord}
-              onCloseCreate={() => completeListNavigation("crm.tasks", true)}
-              onCancelCreate={() => requestListNavigation("crm.tasks")}
-              onEditActionChange={setTaskEditAction}
-            />
-          ) : null}
-          {safePage === "crm.duties" ? <MyDutiesWorkspace /> : null}
-          {safePage === "crm.duty-reporting" ? <DutyReportingWorkspace /> : null}
-          {safePage === "crm.closures" ? (
-            <ClosureWorkspace
-              key={`${safePage}:${crmListRevision}`}
-              onOpenEnquiry={(id) => openEnquiryRecord(String(id))}
-            />
-          ) : null}
-          {safePage === "crm.call-logs" ? (
-            <CallLogWorkspace key={`${safePage}:${crmListRevision}`} />
-          ) : null}
-          {safePage === "crm.enquiries" ? (
-            <EnquiryWorkspace
-              key={`${safePage}:${location.href}:${crmListRevision}`}
-              currentUserEmail={signedInUser.email}
-              reportFilters={reportFiltersFromLocation()}
-              mobileFilter={mobileFilterFromLocation(location.href)}
-              initialRecordKey={enquiryRecordKeyFromLocation(location.href)}
-              onOpenRecord={openEnquiryRecord}
-              onClearMobileFilter={() => requestListNavigation("crm.enquiries")}
-              onBackToReports={() => requestListNavigation("crm.reports")}
-            />
-          ) : null}
-          {safePage === "crm.enquiries.new" ? (
-            <EnquiryWorkspace
-              key={`${safePage}:${crmListRevision}`}
-              currentUserEmail={signedInUser.email}
-              initialCreate
-              onOpenRecord={openEnquiryRecord}
-              onSeeMoreEnquiries={openMobileEnquiries}
-              onOpenEnquiry={openMobileEnquiry}
-              onCloseCreate={() => completeListNavigation("crm.enquiries", true)}
-              onCancelCreate={() => requestListNavigation("crm.enquiries")}
-            />
-          ) : null}
-          {safePage === "crm.my-job" ? (
-            <EnquiryWorkspace
-              key={safePage}
-              scope="assigned"
-              currentUserEmail={signedInUser.email}
-              onOpenRecord={openEnquiryRecord}
-            />
-          ) : null}
-          {safePage === "crm.my-calls" ? (
-            <EnquiryWorkspace
-              key={safePage}
-              scope="created"
-              currentUserEmail={signedInUser.email}
-              onOpenRecord={openEnquiryRecord}
-            />
-          ) : null}
-          {safePage === "crm.list-in" ? (
-            <ListInWorkspace key={`${safePage}:${crmListRevision}`} />
-          ) : null}
-          {safePage === "crm.status" ? <StatusWorkspace key={safePage} /> : null}
-          {safePage === "crm.priority" ? <PriorityWorkspace key={safePage} /> : null}
-          {safePage === "application.overview" ? (
-            <ApplicationOverview
-              companyName={selectedCompany ? companyBrandName(selectedCompany) : "—"}
-              financialYear={selectedFinancialYear?.name ?? "—"}
-              tenantName={runtime?.tenant?.tenantName ?? "—"}
-              signedInEmail={signedInUser.email}
-              enabledApps={switchableApps}
-              landingApp={landingApp}
-              onNavigate={requestListNavigation}
-              onOpenApp={(appId) => requestListNavigation(pageForApp(appId))}
-            />
-          ) : null}
-          {safePage === "application.landing" ? (
-            <LandingDesk
-              enabledApps={enabledApps}
-              landingApp={landingApp}
-              onPublish={publishLandingApp}
-              saving={defaultSelectionMutation.isPending}
-            />
-          ) : null}
-          {safePage === "application.profile" ? <ApplicationProfile /> : null}
-          {safePage === "application.settings" ? (
-            <ApplicationSettings
-              companyName={selectedCompany ? companyBrandName(selectedCompany) : "—"}
-              financialYear={selectedFinancialYear?.name ?? "—"}
-              onNavigate={requestListNavigation}
-              signedInEmail={signedInUser.email}
-              tenantName={runtime?.tenant?.tenantName ?? "—"}
-              zetroEnabled={switchableApps.includes("zetro")}
-            />
-          ) : null}
-          {safePage === "application.access.users" ? <TenantUserWorkspace /> : null}
-          {safePage === "application.access.roles" ? <TenantRoleWorkspace /> : null}
-          {safePage === "application.access.permissions" ? <TenantPermissionWorkspace /> : null}
-          {safePage === "application.access.user-roles" ? <TenantUserRoleWorkspace /> : null}
-          {safePage === "application.access.role-permissions" ? (
-            <TenantRolePermissionWorkspace />
-          ) : null}
-          {safePage === "billing.overview" ? (
-            <BillingOverview onNavigate={selectPage} onNavigateToRecord={selectBillingRecord} />
-          ) : null}
-          {safePage === "billing.quotation" ? <QuotationWorkspace /> : null}
-          {safePage === "billing.quotation.print" ? <QuotationPrintRoutePage /> : null}
-          {safePage === "billing.sales" ? (
-            <BillingSales initialRecordId={recordIdFromUrl()} />
-          ) : null}
-          {safePage === "billing.sales.print" ? <SalesPrintRoutePage /> : null}
-          {safePage === "billing.purchase" ? (
-            <PurchaseWorkspace initialRecordId={recordIdFromUrl()} />
-          ) : null}
-          {safePage === "billing.purchase.print" ? <PurchasePrintRoutePage /> : null}
-          {safePage === "billing.export-sales" ? (
-            <ExportSalesWorkspace initialRecordId={recordIdFromUrl()} />
-          ) : null}
-          {safePage === "billing.export-sales.print" ? <ExportSalesPrintRoutePage /> : null}
-          {safePage === "billing.payment" ? (
-            <PaymentWorkspace initialRecordId={recordIdFromUrl()} />
-          ) : null}
-          {safePage === "billing.receipt" ? (
-            <ReceiptWorkspace initialRecordId={recordIdFromUrl()} />
-          ) : null}
-          {safePage === "billing.reports.customer-statement" ? (
-            <CustomerStatementWorkspace />
-          ) : null}
-          {safePage === "billing.reports.customer-summary" ? <CustomerSummaryWorkspace /> : null}
-          {safePage === "billing.reports.supplier-statement" ? (
-            <SupplierStatementWorkspace />
-          ) : null}
-          {safePage === "billing.reports.supplier-summary" ? <SupplierSummaryWorkspace /> : null}
-          {safePage === "billing.reports.stock-statement" ? <StockStatementWorkspace /> : null}
-          {safePage === "billing.reports.gst-statement" ? <GstStatementWorkspace /> : null}
-          {safePage === "billing.settings" ? <BillingSettingsWorkspace /> : null}
-          {safePage === "billing.document-settings" ? <DocumentSettingsWorkspace /> : null}
-          {safePage === "accounts.overview" ? <AccountsOverviewWorkspace /> : null}
-          {safePage === "accounts.ledger-groups" ? <LedgerGroupsWorkspace /> : null}
-          {safePage === "accounts.ledgers" ? <LedgersWorkspace /> : null}
-          {safePage === "accounts.journal" ? (
-            <AccountingWorkspace initialRecordId={recordIdFromUrl()} />
-          ) : null}
-          {safePage === "accounts.ledger" ? (
-            <AccountingLedgerWorkspace initialRecordId={recordIdFromUrl()} />
-          ) : null}
-          {safePage === "accounts.periods" ? (
-            <AccountingPeriodsWorkspace initialRecordId={recordIdFromUrl()} />
-          ) : null}
-          {safePage === "accounts.cash-book" ? <CashBookWorkspace /> : null}
-          {safePage === "accounts.bank-book" ? <BankBookWorkspace /> : null}
-          {safePage.startsWith("mail.") ? (
-            <MailWorkspace mailbox={mailboxForPage(safePage)} />
-          ) : null}
-          {safePage === "notes.overview" ? <NotesWorkspace /> : null}
-          {safePage === "chat.telegram" ? (
-            <ChatTelegramWorkspace
-              currentUserEmail={signedInUser.email}
-              onOpenSettings={() => requestListNavigation("chat.telegram.settings")}
-            />
-          ) : null}
-          {safePage === "chat.telegram.settings" ? (
-            <ChatTelegramSettingsWorkspace
-              onCreateConversation={() => requestListNavigation("chat.groups")}
-            />
-          ) : null}
-          {safePage.startsWith("chat.") && !telegramWorkspace ? (
-            <ChatWorkspace
-              currentUserEmail={signedInUser.email}
-              filterKind={chatFilterForPage(safePage)}
-            />
-          ) : null}
-          {safePage === "task-manager.overview" || safePage === "task-manager.todos" ? (
-            <TaskManagerWorkspace desk="tenant" />
-          ) : null}
-          {safePage === "core.organisation.company" ? <CompanyWorkspace /> : null}
-          {safePage === "core.organisation.financial-year" ? <FinancialYearWorkspace /> : null}
-          {safePage === "core.organisation.default-company" ? (
-            <DefaultCompanyWorkspace
-              landingApps={landingAppOptions(switchableApps)}
-              onSaved={() => {
-                void defaultCompanyQuery.refetch();
-                void financialYearsQuery.refetch();
-              }}
-            />
-          ) : null}
-          {renderOwnedLocationPage(safePage)}
-          {renderOwnedCommonMasterPage(safePage)}
-          {safePage === "core.master.contact" ? <ContactWorkspace key={safePage} /> : null}
-          {safePage === "core.master.product" ? <ProductWorkspace key={safePage} /> : null}
-          {safePage === "core.master.work-order" ? <WorkOrderWorkspace key={safePage} /> : null}
-        </Suspense>
-      </main>
-      <AlertDialog
-        open={pendingListPage !== null}
-        onOpenChange={(open) => {
-          if (!open) setPendingListPage(null);
+        appItems={appLauncherItems}
+        addonAppItems={addonWorkspaceItems}
+        brand={{
+          href: telegramWorkspace ? "/app/chat/telegram" : appRootUrl(activeApp),
+          ...(companyBranding.lightLogoUrl ? { logoSrc: companyBranding.lightLogoUrl } : {}),
+          ...(companyBranding.darkLogoUrl ? { logoDarkSrc: companyBranding.darkLogoUrl } : {}),
+          logoAlt: `${companyBranding.brandName ?? "Company"} logo`,
+          options: activeCompanies.map((company) => ({
+            id: String(company.id),
+            subtitle: accountingYear,
+            title: companyBrandName(company)
+          })),
+          optionsLabel: "Company",
+          onOptionSelect: (id) => {
+            if (!selectedFinancialYear) return;
+            updateGlobalDefault(Number(id), selectedFinancialYear.id);
+          },
+          onSecondaryOptionSelect: (id) => {
+            if (!selectedCompany) return;
+            updateGlobalDefault(selectedCompany.id, Number(id));
+          },
+          ...(selectedCompany ? { selectedOptionId: String(selectedCompany.id) } : {}),
+          ...(selectedFinancialYear
+            ? { selectedSecondaryOptionId: String(selectedFinancialYear.id) }
+            : {}),
+          secondaryOptions: activeFinancialYears.map((year) => ({
+            id: String(year.id),
+            title: year.name
+          })),
+          secondaryOptionsLabel: "Financial year",
+          subtitle: selectedFinancialYear
+            ? selectedFinancialYear.name
+            : `${activeWorkspaceTitle.toLowerCase()} workspace`,
+          title: companyBranding.brandName ?? activeWorkspaceTitle
         }}
+        headerTitle={activePageTitle}
+        {...(showingCrmContact
+          ? {
+              headerContent: <CrmContactApplicationHeader contact={crmContactHeader} />
+            }
+          : {})}
+        headerActions={
+          <>
+            {activeApp === "application" ||
+            safePage.startsWith("core.") ? null : safePage.startsWith("ecommerce.") ? (
+              <EcommerceStorefrontControls gateway={ecommerceStorefrontRuntimeGateway} />
+            ) : safePage === "hrms.employees" ? (
+              location.pathname === "/app/hrms/employees" ? (
+                <Button
+                  key="new-hrms-employee"
+                  size="sm"
+                  className="h-7 px-3"
+                  type="button"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void navigate({ to: "/app/$", params: { _splat: "hrms/employees/new" } });
+                  }}
+                >
+                  <PlusIcon className="size-4" />
+                  New employee
+                </Button>
+              ) : (
+                <Button
+                  key="save-hrms-employee"
+                  size="sm"
+                  className="h-7 px-3"
+                  type="submit"
+                  form={employeeFormId}
+                  aria-keyshortcuts="Control+S"
+                >
+                  {location.pathname.endsWith("/edit") ? "Update employee" : "Save employee"}
+                  <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
+                    Ctrl S
+                  </kbd>
+                </Button>
+              )
+            ) : safePage === "crm.contacts" && location.pathname === "/app/crm/contacts" ? (
+              <Button
+                size="sm"
+                className="h-7 px-3"
+                aria-keyshortcuts="Control+C"
+                onClick={openNewContact}
+              >
+                <PlusIcon className="size-4" />
+                New
+                <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
+                  Ctrl C
+                </kbd>
+              </Button>
+            ) : safePage === "crm.enquiries" ? (
+              <Button
+                key="new-enquiry"
+                size="sm"
+                className="h-7 px-3"
+                type="button"
+                aria-keyshortcuts="Control+E"
+                onClick={(event) => {
+                  event.preventDefault();
+                  requestListNavigation("crm.enquiries.new");
+                }}
+              >
+                <PlusIcon className="size-4" />
+                New enquiry
+                <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
+                  Ctrl E
+                </kbd>
+              </Button>
+            ) : safePage === "crm.tasks" && location.pathname === "/app/crm/tasks" ? (
+              <Button
+                key="new-task"
+                size="sm"
+                className="h-7 px-3"
+                type="button"
+                onClick={openNewTask}
+              >
+                <PlusIcon className="size-4" />
+                New task
+              </Button>
+            ) : safePage === "crm.tasks" && location.pathname === "/app/crm/tasks/new" ? (
+              <Button
+                key="save-task"
+                size="sm"
+                className="h-7 px-3"
+                type="submit"
+                form="crm-new-task-form"
+                aria-keyshortcuts="Control+S"
+              >
+                Save task
+                <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
+                  Ctrl S
+                </kbd>
+              </Button>
+            ) : safePage === "crm.tasks" &&
+              /^\/app\/crm\/tasks\/[^/]+$/.test(location.pathname) &&
+              location.pathname !== "/app/crm/tasks/new" &&
+              taskEditAction ? (
+              <Button
+                key="edit-task"
+                size="sm"
+                className="h-7 px-3"
+                type="button"
+                onClick={taskEditAction.run}
+              >
+                Edit
+              </Button>
+            ) : safePage === "crm.enquiries.new" ? (
+              <Button
+                key="save-enquiry"
+                size="sm"
+                className="h-7 px-3"
+                type="submit"
+                form={newEnquiryFormId}
+                aria-keyshortcuts="Control+S"
+              >
+                Save enquiry
+                <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
+                  Ctrl S
+                </kbd>
+              </Button>
+            ) : null}
+            <div
+              ref={setApplicationHeaderTarget}
+              className="flex items-center gap-2 [&_button]:h-7 [&_button]:px-3 [&_button]:text-xs"
+            />
+          </>
+        }
+        hideSidebarBrand={
+          activeApp === "ecommerce" ||
+          activeApp === "crm" ||
+          activeApp === "hrms" ||
+          activeApp === "chat" ||
+          activeApp === "frappe"
+        }
+        homeHref={telegramWorkspace ? "/app/chat/telegram" : appRootUrl(activeApp)}
+        menuItems={menuItems}
+        omitWorkspaceBreadcrumb
+
+        onLogout={handleLogout}
+        onOpenSettings={() =>
+          requestListNavigation(
+            activeApp === "qcafe"
+              ? "qcafe.settings"
+              : telegramWorkspace
+                ? "chat.telegram.settings"
+                : "application.settings"
+          )
+        }
+        settingsActive={
+          safePage === "qcafe.settings" ||
+          safePage === "application.settings" ||
+          safePage === "chat.telegram.settings"
+        }
+        user={signedInUser}
+        versionLabel={`v ${__APP_VERSION__}`}
+        workspaceName={activeWorkspaceTitle}
+        zetroDrawer={
+          switchableApps.includes("zetro") ? (
+            <Suspense fallback={null}>
+              <ZetroChatDrawer
+                key={`${runtime?.tenant?.uuid ?? "tenant"}:${signedInUser.email}`}
+                scopeKey={`${runtime?.tenant?.uuid ?? "tenant"}:${signedInUser.email}`}
+              />
+            </Suspense>
+          ) : null
+        }
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Keep or discard changes?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your changes have not been saved. Keep editing, or discard them and open the list.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep editing</AlertDialogCancel>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (pendingListPage)
-                  completeListNavigation(pendingListPage.page, false, pendingListPage.search);
-              }}
-            >
-              Discard changes
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </TenantMainLayout>
+        <main
+          className={
+            safePage.startsWith("qcafe.") &&
+            safePage !== "qcafe.menu" &&
+            safePage !== "qcafe.settings"
+              ? "w-full min-w-0"
+              : safePage.startsWith("chat.")
+                ? "flex flex-1 min-h-0 w-full flex-col overflow-hidden"
+                : "mx-auto w-[calc(100%-2rem)] max-w-[92rem] space-y-5 py-4 lg:w-[calc(100%-3rem)] lg:py-5"
+          }
+          onChangeCapture={markUnsavedFormChanges}
+          onInputCapture={markUnsavedFormChanges}
+        >
+          <Suspense
+            key={
+              safePage.startsWith("qcafe.")
+                ? "qcafe"
+                : safePage.startsWith("application.") ||
+                    safePage.startsWith("core.") ||
+                    safePage.startsWith("billing.") ||
+                    safePage.startsWith("ecommerce.") ||
+                    safePage.startsWith("auditor.") ||
+                    safePage.startsWith("accounts.") ||
+                    safePage.startsWith("hrms.") ||
+                    safePage === "crm.contacts" ||
+                    safePage === "crm.status" ||
+                    safePage === "crm.priority" ||
+                    safePage === "crm.list-in" ||
+                    safePage === "logicx-erp.schemes"
+                  ? `${safePage}:${crmListRevision}`
+                  : `${safePage}:${location.href}`
+            }
+            fallback={
+              <GlobalLoader
+                className="min-h-[32rem]"
+                fullScreen={false}
+                message={`Loading ${activeWorkspaceTitle.toLowerCase()}…`}
+              />
+            }
+          >
+            {safePage === "blog.overview" || safePage === "blog.articles" ? (
+              <BlogsEditorWorkspace host={blogEditorHost} />
+            ) : null}
+            {safePage === "hrms.employees" ? <EmployeeWorkspace gateway={employeeGateway} /> : null}
+            {safePage === "hrms.attendance" ? (
+              <HrmsAttendanceWorkspace gateway={attendanceGateway} />
+            ) : null}
+            {safePage === "hrms.overview" ? (
+              <HrmsOverviewWorkspace
+                gateway={hrmsOverviewGateway}
+                currentUserName={signedInUser.name}
+                onOpenAttendance={() => requestListNavigation("hrms.attendance")}
+                onOpenEmployees={() => requestListNavigation("hrms.employees")}
+              />
+            ) : null}
+            {safePage === "codexsun.frontdesk" ||
+            safePage === "codexsun.workspace" ||
+            safePage === "codexsun.approvals" ? (
+              <CodexsunHost
+                surface={
+                  safePage === "codexsun.workspace"
+                    ? "workspace"
+                    : safePage === "codexsun.approvals"
+                      ? "approvals"
+                      : "frontdesk"
+                }
+              />
+            ) : null}
+            {safePage === "docs.library" ? (
+              <DocsKnowledgeWorkspace
+                gateway={docsKnowledgeGateway}
+                selectedKey={selectedDocKey}
+                onSelect={openDocPage}
+              />
+            ) : null}
+            {safePage === "docs.overview" || safePage === "docs.guide" ? (
+              <DocsOverviewWorkspace
+                gateway={docsOverviewGateway}
+                guide={safePage === "docs.guide"}
+                onNavigate={requestListNavigation}
+              />
+            ) : null}
+            {safePage === "himsx.overview" || safePage === "himsx.guide" ? (
+              <HimsxOverviewWorkspace
+                gateway={himsxOverviewGateway}
+                guide={safePage === "himsx.guide"}
+                onNavigate={requestListNavigation}
+              />
+            ) : null}
+            {safePage.startsWith("sites.") ? (
+              <SitesOverviewWorkspace
+                gateway={sitesOverviewGateway}
+                guide={safePage === "sites.guide"}
+                siteGateway={siteGateway}
+                view={
+                  safePage === "sites.sites"
+                    ? "portfolios"
+                    : safePage === "sites.guide"
+                      ? "guide"
+                      : "studio"
+                }
+                onNavigate={requestListNavigation}
+              />
+            ) : null}
+            {safePage === "auditor.overview" ? <AuditorOverviewWorkspace /> : null}
+            {ecommerceModulePages.includes(safePage as EcommerceModulePage) ? (
+              <EcommerceModuleWorkspace
+                page={safePage as EcommerceModulePage}
+                onOpenStore={openPublicStorefront}
+              />
+            ) : null}
+            {safePage === "tconnect.overview" ? (
+              <TconnectWorkspace gateway={tconnectGateway} />
+            ) : null}
+            {safePage === "ecommerce.overview" ? (
+              <EcommerceOverviewWorkspace gateway={ecommerceOverviewGateway} />
+            ) : null}
+            {safePage === "ecommerce.categories" ? <ProductCategoriesWorkspace /> : null}
+            {safePage === "ecommerce.products" ? <ProductWorkspace /> : null}
+            {safePage === "ecommerce.brands-strip" ? <BrandsWorkspace /> : null}
+            {safePage === "logicx-erp.overview" ? (
+              <LogicxErpOverviewWorkspace gateway={logicxErpOverviewGateway} />
+            ) : null}
+            {safePage === "logicx-erp.schemes" ? (
+              <LogicxErpSchemeWorkspace gateway={logicxErpSchemeGateway} />
+            ) : null}
+            {safePage === "frappe.overview" ? <FrappeOverviewWorkspace /> : null}
+            {safePage === "zetro.chat" ? (
+              <ZetroChatWorkspace
+                scopeKey={`${runtime?.tenant?.uuid ?? "tenant"}:${signedInUser.email}`}
+              />
+            ) : null}
+            {safePage === "frappe.enquiry-sync" ? <FrappeEnquirySyncWorkspace /> : null}
+            {safePage === "frappe.contacts" ? <FrappeContactImportWorkspace /> : null}
+            {safePage === "frappe.enquiries" ? <FrappeEnquiryImportWorkspace /> : null}
+            {safePage === "frappe.activities" ? <FrappeActivityImportWorkspace /> : null}
+            {safePage === "frappe.call-logs" ? <FrappeCallLogImportWorkspace /> : null}
+            {safePage === "frappe.export.contacts" ? <FrappeContactExportWorkspace /> : null}
+            {safePage === "frappe.export.enquiries" ? <FrappeEnquiryExportWorkspace /> : null}
+            {safePage === "frappe.export.activities" ? <FrappeActivityExportWorkspace /> : null}
+            {safePage === "frappe.export.call-logs" ? <FrappeCallLogExportWorkspace /> : null}
+            {safePage === "frappe.live-sync" ? <FrappeLiveSyncWorkspace /> : null}
+            {safePage === "frappe.live-sync-queue" ? <FrappeLiveSyncQueueWorkspace /> : null}
+            {safePage === "frappe.connection" ? <FrappeConnectionWorkspace /> : null}
+            {safePage === "frappe.users" ? <FrappeUserSyncWorkspace /> : null}
+            {safePage === "frappe.user-mapping" ? <FrappeUserMappingWorkspace /> : null}
+            {safePage === "auditor.clients" ? (
+              <AuditorClientWorkspace
+                gateway={auditorClientGateway}
+                initialRecordId={recordIdFromUrl()}
+                onRecordNavigate={selectAuditorRecord}
+              />
+            ) : null}
+            {safePage.startsWith("qcafe.") ? (
+              <QCafeWebApp
+                appearanceSettings={<QCafeAppearance />}
+                workspace={
+                  safePage === "qcafe.settings"
+                    ? "settings"
+                    : safePage === "qcafe.menu"
+                      ? "menu"
+                      : safePage === "qcafe.kot"
+                        ? "kot"
+                        : safePage === "qcafe.take-away"
+                          ? "take-away"
+                          : safePage === "qcafe.booking"
+                            ? "booking"
+                            : "pos"
+                }
+                onWorkspaceChange={(workspace) =>
+                  requestListNavigation(
+                    workspace === "pos"
+                      ? "qcafe.overview"
+                      : workspace === "kot"
+                        ? "qcafe.kot"
+                        : workspace === "booking"
+                          ? "qcafe.booking"
+                          : "qcafe.take-away"
+                  )
+                }
+              />
+            ) : null}
+            {safePage === "crm.overview" ? (
+              <CrmOverviewWorkspace
+                currentUserEmail={signedInUser.email}
+                currentUserName={signedInUser.name}
+                onOpenMyJob={() => requestListNavigation("crm.my-job")}
+                onOpenMyCalls={() => requestListNavigation("crm.my-calls")}
+              />
+            ) : null}
+            {safePage === "crm.reports" ? (
+              <CrmReportsWorkspace
+                onOpenEnquiries={openReportEnquiries}
+                onViewChange={setCrmReportTitle}
+              />
+            ) : null}
+            {safePage === "crm.contacts" ? (
+              <CrmContactWorkspace
+                key={`${safePage}:${crmListRevision}`}
+                basePath="/app/crm/contacts"
+                hideSinglePagePagination
+                showListHeader={false}
+                onOpenEnquiry={openEnquiryRecord}
+                onShowContextChange={setCrmContactHeader}
+              />
+            ) : null}
+            {safePage === "crm.contact-360" ? <Contact360Workspace key={safePage} /> : null}
+            {safePage === "crm.activities" ? (
+              <ActivitiesWorkspace
+                key={`${safePage}:${crmListRevision}`}
+                onOpenEnquiry={(id) => openEnquiryRecord(String(id))}
+              />
+            ) : null}
+            {safePage === "crm.sops" ? <SopWorkspace /> : null}
+            {safePage === "crm.tasks" ? (
+              <TaskWorkspace
+                key={`${safePage}:${location.pathname}:${crmListRevision}`}
+                initialRecordKey={taskRecordKeyFromLocation(location.href)}
+                initialCreate={location.pathname === "/app/crm/tasks/new"}
+                onOpenRecord={openTaskRecord}
+                onCloseCreate={() => completeListNavigation("crm.tasks", true)}
+                onCancelCreate={() => requestListNavigation("crm.tasks")}
+                onEditActionChange={setTaskEditAction}
+              />
+            ) : null}
+            {safePage === "crm.duties" ? <MyDutiesWorkspace /> : null}
+            {safePage === "crm.duty-reporting" ? <DutyReportingWorkspace /> : null}
+            {safePage === "crm.closures" ? (
+              <ClosureWorkspace
+                key={`${safePage}:${crmListRevision}`}
+                onOpenEnquiry={(id) => openEnquiryRecord(String(id))}
+              />
+            ) : null}
+            {safePage === "crm.call-logs" ? (
+              <CallLogWorkspace key={`${safePage}:${crmListRevision}`} />
+            ) : null}
+            {safePage === "crm.enquiries" ? (
+              <EnquiryWorkspace
+                key={`${safePage}:${location.href}:${crmListRevision}`}
+                currentUserEmail={signedInUser.email}
+                reportFilters={reportFiltersFromLocation()}
+                mobileFilter={mobileFilterFromLocation(location.href)}
+                initialRecordKey={enquiryRecordKeyFromLocation(location.href)}
+                onOpenRecord={openEnquiryRecord}
+                onClearMobileFilter={() => requestListNavigation("crm.enquiries")}
+                onBackToReports={() => requestListNavigation("crm.reports")}
+              />
+            ) : null}
+            {safePage === "crm.enquiries.new" ? (
+              <EnquiryWorkspace
+                key={`${safePage}:${crmListRevision}`}
+                currentUserEmail={signedInUser.email}
+                initialCreate
+                onOpenRecord={openEnquiryRecord}
+                onSeeMoreEnquiries={openMobileEnquiries}
+                onOpenEnquiry={openMobileEnquiry}
+                onCloseCreate={() => completeListNavigation("crm.enquiries", true)}
+                onCancelCreate={() => requestListNavigation("crm.enquiries")}
+              />
+            ) : null}
+            {safePage === "crm.my-job" ? (
+              <EnquiryWorkspace
+                key={safePage}
+                scope="assigned"
+                currentUserEmail={signedInUser.email}
+                onOpenRecord={openEnquiryRecord}
+              />
+            ) : null}
+            {safePage === "crm.my-calls" ? (
+              <EnquiryWorkspace
+                key={safePage}
+                scope="created"
+                currentUserEmail={signedInUser.email}
+                onOpenRecord={openEnquiryRecord}
+              />
+            ) : null}
+            {safePage === "crm.list-in" ? (
+              <ListInWorkspace key={`${safePage}:${crmListRevision}`} />
+            ) : null}
+            {safePage === "crm.status" ? <StatusWorkspace key={safePage} /> : null}
+            {safePage === "crm.priority" ? <PriorityWorkspace key={safePage} /> : null}
+            {safePage === "application.overview" ? (
+              <ApplicationOverview
+                companyName={selectedCompany ? companyBrandName(selectedCompany) : "—"}
+                financialYear={selectedFinancialYear?.name ?? "—"}
+                tenantName={runtime?.tenant?.tenantName ?? "—"}
+                signedInEmail={signedInUser.email}
+                enabledApps={switchableApps}
+                landingApp={landingApp}
+                onNavigate={requestListNavigation}
+                onOpenApp={(appId) => requestListNavigation(pageForApp(appId))}
+              />
+            ) : null}
+            {safePage === "application.landing" ? (
+              <LandingDesk
+                enabledApps={enabledApps}
+                landingApp={landingApp}
+                onPublish={publishLandingApp}
+                saving={defaultSelectionMutation.isPending}
+              />
+            ) : null}
+            {safePage === "application.profile" ? <ApplicationProfile /> : null}
+            {safePage === "application.settings" ? (
+              <ApplicationSettings
+                companyName={selectedCompany ? companyBrandName(selectedCompany) : "—"}
+                financialYear={selectedFinancialYear?.name ?? "—"}
+                onNavigate={requestListNavigation}
+                signedInEmail={signedInUser.email}
+                tenantName={runtime?.tenant?.tenantName ?? "—"}
+                zetroEnabled={switchableApps.includes("zetro")}
+              />
+            ) : null}
+            {safePage === "application.access.users" ? <TenantUserWorkspace /> : null}
+            {safePage === "application.access.roles" ? <TenantRoleWorkspace /> : null}
+            {safePage === "application.access.permissions" ? <TenantPermissionWorkspace /> : null}
+            {safePage === "application.access.user-roles" ? <TenantUserRoleWorkspace /> : null}
+            {safePage === "application.access.role-permissions" ? (
+              <TenantRolePermissionWorkspace />
+            ) : null}
+            {safePage === "application.access.controls" ? <TenantAccessControlWorkspace /> : null}
+            {safePage === "billing.overview" ? (
+              <BillingOverview onNavigate={selectPage} onNavigateToRecord={selectBillingRecord} />
+            ) : null}
+            {safePage === "billing.quotation" ? <QuotationWorkspace /> : null}
+            {safePage === "billing.quotation.print" ? <QuotationPrintRoutePage /> : null}
+            {safePage === "billing.sales" ? (
+              <BillingSales initialRecordId={recordIdFromUrl()} />
+            ) : null}
+            {safePage === "billing.sales.print" ? <SalesPrintRoutePage /> : null}
+            {safePage === "billing.purchase" ? (
+              <PurchaseWorkspace initialRecordId={recordIdFromUrl()} />
+            ) : null}
+            {safePage === "billing.purchase.print" ? <PurchasePrintRoutePage /> : null}
+            {safePage === "billing.export-sales" ? (
+              <ExportSalesWorkspace initialRecordId={recordIdFromUrl()} />
+            ) : null}
+            {safePage === "billing.export-sales.print" ? <ExportSalesPrintRoutePage /> : null}
+            {safePage === "billing.payment" ? (
+              <PaymentWorkspace initialRecordId={recordIdFromUrl()} />
+            ) : null}
+            {safePage === "billing.receipt" ? (
+              <ReceiptWorkspace initialRecordId={recordIdFromUrl()} />
+            ) : null}
+            {safePage === "billing.reports.customer-statement" ? (
+              <CustomerStatementWorkspace />
+            ) : null}
+            {safePage === "billing.reports.customer-summary" ? <CustomerSummaryWorkspace /> : null}
+            {safePage === "billing.reports.supplier-statement" ? (
+              <SupplierStatementWorkspace />
+            ) : null}
+            {safePage === "billing.reports.supplier-summary" ? <SupplierSummaryWorkspace /> : null}
+            {safePage === "billing.reports.stock-statement" ? <StockStatementWorkspace /> : null}
+            {safePage === "billing.reports.gst-statement" ? <GstStatementWorkspace /> : null}
+            {safePage === "billing.settings" ? <BillingSettingsWorkspace /> : null}
+            {safePage === "billing.document-settings" ? <DocumentSettingsWorkspace /> : null}
+            {safePage === "accounts.overview" ? <AccountsOverviewWorkspace /> : null}
+            {safePage === "accounts.ledger-groups" ? <LedgerGroupsWorkspace /> : null}
+            {safePage === "accounts.ledgers" ? <LedgersWorkspace /> : null}
+            {safePage === "accounts.journal" ? (
+              <AccountingWorkspace initialRecordId={recordIdFromUrl()} />
+            ) : null}
+            {safePage === "accounts.ledger" ? (
+              <AccountingLedgerWorkspace initialRecordId={recordIdFromUrl()} />
+            ) : null}
+            {safePage === "accounts.periods" ? (
+              <AccountingPeriodsWorkspace initialRecordId={recordIdFromUrl()} />
+            ) : null}
+            {safePage === "accounts.cash-book" ? <CashBookWorkspace /> : null}
+            {safePage === "accounts.bank-book" ? <BankBookWorkspace /> : null}
+            {safePage.startsWith("mail.") ? (
+              <MailWorkspace mailbox={mailboxForPage(safePage)} />
+            ) : null}
+            {safePage === "notes.overview" ? <NotesWorkspace /> : null}
+            {safePage === "chat.telegram" ? (
+              <ChatTelegramWorkspace
+                currentUserEmail={signedInUser.email}
+                onOpenSettings={() => requestListNavigation("chat.telegram.settings")}
+              />
+            ) : null}
+            {safePage === "chat.telegram.settings" ? (
+              <ChatTelegramSettingsWorkspace
+                onCreateConversation={() => requestListNavigation("chat.groups")}
+              />
+            ) : null}
+            {safePage.startsWith("chat.") && !telegramWorkspace ? (
+              <ChatWorkspace
+                currentUserEmail={signedInUser.email}
+                filterKind={chatFilterForPage(safePage)}
+              />
+            ) : null}
+            {safePage === "task-manager.overview" || safePage === "task-manager.todos" ? (
+              <TaskManagerWorkspace desk="tenant" />
+            ) : null}
+            {safePage === "core.organisation.company" ? <CompanyWorkspace /> : null}
+            {safePage === "core.organisation.financial-year" ? <FinancialYearWorkspace /> : null}
+            {safePage === "core.organisation.default-company" ? (
+              <DefaultCompanyWorkspace
+                landingApps={landingAppOptions(switchableApps)}
+                onSaved={() => {
+                  void defaultCompanyQuery.refetch();
+                  void financialYearsQuery.refetch();
+                }}
+              />
+            ) : null}
+            {renderOwnedLocationPage(safePage)}
+            {renderOwnedCommonMasterPage(safePage)}
+            {safePage === "core.master.contact" ? <ContactWorkspace key={safePage} /> : null}
+            {safePage === "core.master.product" ? <ProductWorkspace key={safePage} /> : null}
+            {safePage === "core.master.work-order" ? <WorkOrderWorkspace key={safePage} /> : null}
+          </Suspense>
+        </main>
+        <AlertDialog
+          open={pendingListPage !== null}
+          onOpenChange={(open) => {
+            if (!open) setPendingListPage(null);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Keep or discard changes?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Your changes have not been saved. Keep editing, or discard them and open the list.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep editing</AlertDialogCancel>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (pendingListPage)
+                    completeListNavigation(pendingListPage.page, false, pendingListPage.search);
+                }}
+              >
+                Discard changes
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </TenantMainLayout>
+    </WorkspaceNavigationProvider>
   );
 }
 
@@ -1866,6 +1967,18 @@ function isCrmListPage(page: AppPage) {
 function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPage {
   const [, , app, ...children] = pathname.split("/");
   if (!app) return pageForApp(landingApp ?? "application");
+  if (
+    app === "application" &&
+    children[0] === "access" &&
+    ["users", "roles", "permissions", "user-roles", "role-permissions"].includes(
+      children[1] ?? ""
+    ) &&
+    (children.length === 2 ||
+      (children.length === 3 && children[2] === "new") ||
+      (children.length === 4 && /^\d+$/.test(children[2] ?? "") && children[3] === "edit"))
+  ) {
+    return `application.access.${children[1]}` as AppPage;
+  }
   if (
     app === "hrms" &&
     children[0] === "employees" &&
@@ -1984,11 +2097,14 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     key === "frappe.user-mapping" ||
     key === "auditor.overview" ||
     key === "auditor.clients" ||
+    key === "tconnect.overview" ||
     key === "ecommerce.overview" ||
     key === "qcafe.overview" ||
     key === "qcafe.menu" ||
+    key === "qcafe.settings" ||
     key === "qcafe.kot" ||
     key === "qcafe.take-away" ||
+    key === "qcafe.booking" ||
     ecommerceModulePages.includes(key as EcommerceModulePage) ||
     key === "ecommerce.categories" ||
     key === "ecommerce.products" ||
@@ -2024,6 +2140,7 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     key === "application.access.permissions" ||
     key === "application.access.user-roles" ||
     key === "application.access.role-permissions" ||
+    key === "application.access.controls" ||
     key === "billing.overview" ||
     key === "billing.quotation" ||
     key === "billing.quotation.print" ||
@@ -2119,6 +2236,7 @@ function tenantPathMatchesPage(pathname: string, page: AppPage): boolean {
     );
   }
   if (
+    page.startsWith("application.access.") ||
     page === "crm.contacts" ||
     page === "logicx-erp.schemes" ||
     (page.startsWith("core.") && (isCommonMasterPage(page) || CORE_RECORD_PAGES.has(page)))
@@ -2443,10 +2561,12 @@ function titleForPage(page: AppPage) {
     "sites.guide": "Developer Guide",
     "qcafe.overview": "POS",
     "qcafe.menu": "Master",
+    "qcafe.settings": "Settings",
     "qcafe.kot": "KOT",
-    "qcafe.take-away": "Take Away",
+    "qcafe.take-away": "Parcel - Take away",
+    "qcafe.booking": "Booking",
     "frappe.overview": "Frappe",
-    "frappe.contacts": "Import contacts",
+    "frappe.contacts": "Import mobile customers",
     "frappe.enquiries": "Import enquiries",
     "frappe.activities": "Import activities",
     "frappe.call-logs": "Import call logs",
@@ -2462,6 +2582,7 @@ function titleForPage(page: AppPage) {
     "frappe.user-mapping": "User mapping",
     "auditor.overview": "Overview",
     "auditor.clients": "Clients",
+    "tconnect.overview": "Business network",
     "ecommerce.overview": "Overview",
     "ecommerce.catalog": "Catalog",
     "ecommerce.storefront": "Storefront",
@@ -2511,6 +2632,7 @@ function titleForPage(page: AppPage) {
     "application.access.permissions": "Permissions",
     "application.access.user-roles": "User Roles",
     "application.access.role-permissions": "Role Permissions",
+    "application.access.controls": "Access Control",
     "billing.overview": "Overview",
     "billing.quotation": "Quotation",
     "billing.sales": "Sales",
@@ -2653,6 +2775,8 @@ function appFromPage(
   if (page.startsWith("frappe")) return enabledApps.includes("frappe") ? "frappe" : landingApp;
   if (page.startsWith("crm")) return enabledApps.includes("crm") ? "crm" : landingApp;
   if (page.startsWith("auditor")) return enabledApps.includes("auditor") ? "auditor" : landingApp;
+  if (page.startsWith("tconnect"))
+    return enabledApps.includes("tconnect") ? "tconnect" : landingApp;
   if (page.startsWith("ecommerce"))
     return enabledApps.includes("ecommerce") ? "ecommerce" : landingApp;
   if (page.startsWith("logicx-erp"))

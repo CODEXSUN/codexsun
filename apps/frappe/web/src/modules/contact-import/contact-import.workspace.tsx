@@ -16,7 +16,7 @@ export function FrappeContactImportWorkspace() {
   const [progress, setProgress] = useState(0);
   const client = useQueryClient();
   const preview = useQuery({
-    queryKey: ["frappe", "contacts", page],
+    queryKey: ["frappe", "mobile-customers", page],
     queryFn: () => getFrappeContacts(page)
   });
   const importSelected = useMutation({
@@ -36,13 +36,18 @@ export function FrappeContactImportWorkspace() {
       return { imported, failures };
     },
     onSuccess: async ({ imported, failures }) => {
-      await client.invalidateQueries({ queryKey: ["frappe", "contacts"] });
+      await client.invalidateQueries({ queryKey: ["frappe", "mobile-customers"] });
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ["core", "master", "contacts"] }),
+        client.invalidateQueries({ queryKey: ["crm", "contacts"] }),
+        client.invalidateQueries({ queryKey: ["crm", "enquiries", "options"] })
+      ]);
       setSelected(new Set());
       if (failures.length)
-        toast.warning(`${imported} contacts imported`, {
+        toast.warning(`${imported} customer associations imported`, {
           description: failures.slice(0, 3).join("; ")
         });
-      else toast.success(`${imported} contacts imported`);
+      else toast.success(`${imported} customer associations imported`);
     }
   });
   const records = preview.data?.items ?? [];
@@ -76,10 +81,9 @@ export function FrappeContactImportWorkspace() {
         />
       )
     },
-    { accessorKey: "name", header: "FRAPPE ID" },
-    { accessorKey: "displayName", header: "CONTACT" },
+    { accessorKey: "customerId", header: "FRAPPE CUSTOMER" },
+    { accessorKey: "displayName", header: "CUSTOMER" },
     { accessorKey: "phone", header: "PHONE" },
-    { accessorKey: "email", header: "EMAIL" },
     {
       id: "local",
       header: "LOCAL CONTACT",
@@ -103,8 +107,8 @@ export function FrappeContactImportWorkspace() {
   ];
   return (
     <WorkspacePage
-      title="Import contacts"
-      description="Review Frappe contacts and copy selected records into local Contacts."
+      title="Import mobile customers"
+      description="Use Frappe Mobile Contact Customer associations to import customers and their mobile numbers."
       technicalName="page.frappe.contacts"
       actions={
         <Button
@@ -136,7 +140,7 @@ export function FrappeContactImportWorkspace() {
         columns={columns}
         data={records}
         isLoading={preview.isLoading}
-        emptyState="No Frappe contacts found."
+        emptyState="No Frappe mobile/customer associations found."
         minWidth="900px"
       />
       <div className="flex items-center justify-end gap-2">

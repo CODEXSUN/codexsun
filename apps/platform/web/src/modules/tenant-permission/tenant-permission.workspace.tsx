@@ -1,5 +1,8 @@
+import { useLocation, useNavigate } from "@tanstack/react-router";
+import { WorkspaceHeaderActions, useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -12,41 +15,66 @@ import {
   AlertDialogTitle
 } from "@codexsun/ui/components/alert-dialog";
 import { Button } from "@codexsun/ui/components/button";
-import { cn } from "@codexsun/ui/lib/utils";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
 import { TenantPermissionForm } from "./tenant-permission.form";
 import { useTenantPermissionMutations, useTenantPermissionsQuery } from "./tenant-permission.hooks";
-import { TenantPermissionList } from "./tenant-permission.list";
+import { TenantPermissionList, tenantPermissionListColumns } from "./tenant-permission.list";
 import type { TenantPermission, TenantPermissionSavePayload } from "./tenant-permission.types";
 type PendingAction = { record: TenantPermission; type: "force-delete" | "restore" | "suspend" };
 export function TenantPermissionWorkspace() {
+  const listTools = useWorkspaceListTools(tenantPermissionListColumns);
+
   const query = useTenantPermissionsQuery();
   const mutations = useTenantPermissionMutations();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
-  const [editing, setEditing] = useState<TenantPermission | null | undefined>(undefined);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+  const [status, setStatus] = useWorkspaceQueryValue("status", "all");
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100);
+  const [editing, setLocalEditing] = useState<TenantPermission | null | undefined>(undefined);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const basePath = "/app/application/access/permissions";
+  function setEditing(record: TenantPermission | null | undefined) {
+    setLocalEditing(record);
+    const path =
+      record === undefined
+        ? basePath
+        : record === null
+          ? `${basePath}/new`
+          : `${basePath}/${record.id}/edit`;
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
+  }
+  useEffect(() => {
+    const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
+    if (!tail.length) setLocalEditing(undefined);
+    else if (tail[0] === "new" && tail.length === 1) setLocalEditing(null);
+    else if (tail.length === 2 && tail[1] === "edit") {
+      const record = query.data?.find((item) => String(item.id) === tail[0]);
+      if (record) setLocalEditing((current) => (current?.id === record.id ? current : record));
+    }
+  }, [location.pathname, query.data]);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (query.data ?? []).filter(
-      (record) =>
-        (status === "all" || record.status === status) &&
-        (!term ||
-          record.label.toLowerCase().includes(term) ||
-          record.key.toLowerCase().includes(term) ||
-          record.description.toLowerCase().includes(term))
-    );
-  }, [query.data, search, status]);
+    return (query.data ?? [])
+      .filter((record) => listTools.matches(record))
+      .filter(
+        (record) =>
+          (status === "all" || record.status === status) &&
+          (!term ||
+            record.label.toLowerCase().includes(term) ||
+            record.key.toLowerCase().includes(term) ||
+            record.description.toLowerCase().includes(term))
+      );
+  }, [query.data, search, status, JSON.stringify(listTools.filters)]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const records = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
+    if (query.data && page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
   const saveError = mutations.create.error ?? mutations.update.error;
   async function save(value: TenantPermissionSavePayload) {
@@ -81,69 +109,74 @@ export function TenantPermissionWorkspace() {
   }
   return (
     <WorkspacePage
-      actions={
-        <div className="flex items-center gap-2">
-          <Button
-            className="h-9 rounded-md"
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
+      title=""
+      className="w-full max-w-none py-0 lg:w-full lg:py-0"
+      technicalName="page.application.access.permissions"
+    >
+      <WorkspaceHeaderActions>
+        {editing === undefined ? (
           <Button className="h-9 rounded-md" onClick={() => setEditing(null)} type="button">
             <Plus className="size-4" />
             New permission
           </Button>
-        </div>
-      }
-      description="Manage tenant permission definitions and lifecycle."
-      technicalName="page.application.access.permissions"
-      title="Permissions"
-    >
-      <WorkspaceFilters
-        filterOptions={[
-          { id: "all", label: "All permissions" },
-          { id: "active", label: "Active" },
-          { id: "inactive", label: "Inactive" }
-        ]}
-        filterValue={status}
-        onFilterValueChange={(value) => {
-          setStatus(value);
-          setPage(1);
-        }}
-        onSearchValueChange={(value) => {
-          setSearch(value);
-          setPage(1);
-        }}
-        searchPlaceholder="Search permissions"
-        searchValue={search}
-      />
-      <TenantPermissionList
-        loading={query.isFetching && !query.data}
-        onEdit={setEditing}
-        onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
-        onRestore={(record) => setPendingAction({ record, type: "restore" })}
-        onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
-        records={records}
-      />
-      <WorkspacePagination
-        page={currentPage}
-        rowsPerPage={rowsPerPage}
-        showingLabel={buildShowingLabel(currentPage, rowsPerPage, filtered.length)}
-        singularLabel="permission"
-        totalCount={filtered.length}
-        totalPages={totalPages}
-        onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
-        onPageChange={setPage}
-        onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
-        onRowsPerPageChange={(value) => {
-          setRowsPerPage(value);
-          setPage(1);
-        }}
-      />
+        ) : null}
+      </WorkspaceHeaderActions>
+      <div className="space-y-4" hidden={editing !== undefined}>
+        <WorkspaceFilters
+          toolbarAction={listTools.toolbarAction}
+          columnOptions={listTools.columnOptions}
+          onShowAllColumns={listTools.onShowAllColumns}
+          showSelectedFilterChip
+          filterOptions={[
+            { id: "all", label: "All permissions" },
+            {
+              id: "active",
+              label: "Active",
+              count: (query.data ?? []).filter((record) => record.status === "active").length
+            },
+            {
+              id: "inactive",
+              label: "Inactive",
+              count: (query.data ?? []).filter((record) => record.status === "inactive").length
+            }
+          ]}
+          filterValue={status}
+          onFilterValueChange={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+          onSearchValueChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          searchPlaceholder="Search permissions"
+          searchValue={search}
+        />
+        <TenantPermissionList
+          listTools={listTools}
+          loading={query.isFetching && !query.data}
+          onEdit={setEditing}
+          onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
+          onRestore={(record) => setPendingAction({ record, type: "restore" })}
+          onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
+          records={records}
+        />
+        <WorkspacePagination
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          showingLabel={buildShowingLabel(currentPage, rowsPerPage, filtered.length)}
+          singularLabel="permission"
+          totalCount={filtered.length}
+          totalPages={totalPages}
+          onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
+          onPageChange={setPage}
+          onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
+          onRowsPerPageChange={(value) => {
+            setRowsPerPage(value);
+            setPage(1);
+          }}
+        />
+      </div>
       <TenantPermissionForm
         {...(saveError instanceof Error ? { error: saveError.message } : {})}
         loading={mutations.create.isPending || mutations.update.isPending}

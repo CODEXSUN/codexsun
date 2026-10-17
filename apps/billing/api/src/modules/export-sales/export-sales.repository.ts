@@ -1,4 +1,9 @@
+import { exportsalesColumnPredicate } from "./export-sales.list-query.js";
 import { assertExportSalesComplianceUnlocked } from "./export-sales.compliance-repository.js";
+import {
+  assertExportSalesInvoiceEditable,
+  assertExportSalesInvoiceStatusChange
+} from "./export-sales.lifecycle-guard.js";
 import { sql, type Kysely } from "kysely";
 import { assertExportInvoiceUnallocated } from "../receipt/index.js";
 import { currentBillingScope } from "../../auth/billing-scope.js";
@@ -72,12 +77,21 @@ export class ExportSalesRepository {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      quantitySearch?: string;
+      taxableSearch?: string;
+      taxSearch?: string;
     }
   ) {
     const database = await exportSalesDatabase(databaseName);
     const search = `%${options.search.trim()}%`;
     const customer = options.customer.trim().toLowerCase();
     const page = {
+      ...options,
       customer,
       dateFrom: options.dateFrom,
       dateTo: options.dateTo,
@@ -92,6 +106,7 @@ export class ExportSalesRepository {
       sql<{ total: string | number }>`SELECT COUNT(*) AS total FROM billing_export_sales s
         INNER JOIN core_contacts customer ON customer.id=s.customer_id LEFT JOIN core_work_orders work_order ON work_order.id=s.work_order_id
         WHERE s.deleted_at IS NULL
+          ${exportsalesColumnPredicate(options)}
           AND s.company_id=${scope.companyId} AND s.financial_year_id=${scope.financialYearId}
           AND (${page.status}='all' OR s.status=${page.status})
         AND (${options.dateFrom}='' OR s.issued_on >= ${options.dateFrom})
@@ -163,7 +178,7 @@ export class ExportSalesRepository {
       SELECT
         EXISTS(SELECT 1 FROM core_companies WHERE id = ${input.companyId} AND id=${scope.companyId} AND status = 'active') AS company,
         EXISTS(SELECT 1 FROM core_financial_years WHERE id = ${input.financialYearId} AND id=${scope.financialYearId} AND status = 'active' AND ${input.issuedOn} BETWEEN start_date AND end_date) AS financialYear,
-        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.customerId} AND status = 'active') AS customer,
+        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.customerId} AND status = 'active' AND deleted_at IS NULL) AS customer,
         EXISTS(SELECT 1 FROM core_contacts_addresses WHERE id = ${input.billingAddressId} AND parent_id = ${input.customerId}) AS billingAddress,
         EXISTS(SELECT 1 FROM core_contacts_addresses WHERE id = ${input.shippingAddressId} AND parent_id = ${input.customerId}) AS shippingAddress,
         ${input.workOrderId ? sql`EXISTS(SELECT 1 FROM core_work_orders WHERE id = ${input.workOrderId} AND status = 'active')` : sql`1`} AS workOrder,
@@ -407,6 +422,7 @@ export class ExportSalesRepository {
     if (!existing) return null;
     await database.transaction().execute(async (transaction) => {
       await assertExportSalesComplianceUnlocked(transaction, existing.id);
+      await assertExportSalesInvoiceEditable(transaction, existing.id, input.status);
       await assertExportInvoiceUnallocated(transaction, existing.id);
       await sql`
         UPDATE billing_export_sales SET
@@ -442,6 +458,7 @@ export class ExportSalesRepository {
     if (!existing) return null;
     await database.transaction().execute(async (transaction) => {
       await assertExportSalesComplianceUnlocked(transaction, existing.id);
+      await assertExportSalesInvoiceStatusChange(transaction, existing.id, existing.status, status);
       if (status !== "confirmed") await assertExportInvoiceUnallocated(transaction, existing.id);
       await sql`
         UPDATE billing_export_sales SET status = ${status},
@@ -461,6 +478,7 @@ export class ExportSalesRepository {
     if (!existing) return null;
     await database.transaction().execute(async (transaction) => {
       await assertExportSalesComplianceUnlocked(transaction, existing.id);
+      await assertExportSalesInvoiceEditable(transaction, existing.id, "draft");
       await assertExportInvoiceUnallocated(transaction, existing.id);
       await insertActivity(
         transaction,

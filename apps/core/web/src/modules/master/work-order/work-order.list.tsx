@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Trash2 } from "lucide-react";
 import { WorkspaceProtectedIndicator } from "@codexsun/ui/workspace/protected-indicator";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
@@ -11,6 +12,7 @@ import {
 import type { WorkOrderRecord } from "./work-order.types";
 
 export function WorkOrderList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -18,6 +20,7 @@ export function WorkOrderList({
   records,
   visibleColumns
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: WorkOrderRecord) => void;
   onForceDelete: (record: WorkOrderRecord) => void;
@@ -25,7 +28,9 @@ export function WorkOrderList({
   records: WorkOrderRecord[];
   visibleColumns?: Record<string, boolean>;
 }) {
-  const columns = workOrderColumns.filter((column) => visibleColumns?.[column.id] ?? true);
+  const columns = workOrderColumns.filter(
+    (column) => (visibleColumns?.[column.id] ?? true) && !listTools?.hidden.includes(column.id)
+  );
 
   return (
     <WorkspaceTablePanel>
@@ -38,6 +43,18 @@ export function WorkOrderList({
               ))}
               <WorkspaceTableHeaderCell className="text-right">Action</WorkspaceTableHeaderCell>
             </tr>
+            {listTools?.showFilters ? (
+              <tr>
+                {columns
+                  .filter((column) => !listTools.hidden.includes(column.id))
+                  .map((column) => (
+                    <td key={column.id} className="border-b bg-muted/20 px-4 py-2">
+                      {listTools.filterRow(column.id)}
+                    </td>
+                  ))}
+                <td />
+              </tr>
+            ) : null}
           </thead>
           <tbody>
             {!loading

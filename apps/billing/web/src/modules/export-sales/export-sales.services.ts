@@ -140,6 +140,14 @@ export async function listExportSalesPage(
     pageSize: number;
     search: string;
     status: string;
+    numberSearch?: string;
+    dateSearch?: string;
+    partySearch?: string;
+    totalSearch?: string;
+    statusSearch?: string;
+    quantitySearch?: string;
+    taxableSearch?: string;
+    taxSearch?: string;
   },
   signal?: AbortSignal
 ) {
@@ -150,6 +158,15 @@ export async function listExportSalesPage(
     page: String(query.page),
     pageSize: String(query.pageSize),
     search: query.search,
+    numberSearch: query.numberSearch ?? "",
+    dateSearch: query.dateSearch ?? "",
+    partySearch: query.partySearch ?? "",
+    totalSearch: query.totalSearch ?? "",
+    statusSearch: query.statusSearch ?? "",
+    quantitySearch: query.quantitySearch ?? "",
+    taxableSearch: query.taxableSearch ?? "",
+    taxSearch: query.taxSearch ?? "",
+
     status: query.status
   });
   return billingApiGet<import("./export-sales.types").ExportSalePageResult>(

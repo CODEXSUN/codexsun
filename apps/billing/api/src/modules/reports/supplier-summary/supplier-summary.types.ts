@@ -8,6 +8,7 @@ export type SupplierSummaryItem = {
 };
 
 export type SupplierSummaryResult = {
+  currencyCode: string;
   companyId: number;
   companyName: string;
   financialYearId: number;

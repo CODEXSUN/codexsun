@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { useWorkspaceQueryValue, useWorkspaceRecordSelection } from "@codexsun/ui/workspace/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, Plus, RefreshCw } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { FeaturedCardForm } from "./featured-card.form";
 import { featuredCardQueryKey, useFeaturedCards } from "./featured-card.hooks";
-import { FeaturedCardList } from "./featured-card.list";
+import { FeaturedCardList, featuredcardListColumns, featuredcardListValues } from "./featured-card.list";
 import {
   changeFeaturedCardStatus,
   createFeaturedCard,
@@ -18,16 +19,19 @@ import { invalidateStorefrontClientCache } from "../storefront";
 import { StorefrontSectionSwitch } from "../catalog-data-source";
 import type {
   FeaturedCardPayload,
-  FeaturedCardRecord,
-  FeaturedCardStatus
+  FeaturedCardRecord
 } from "./featured-card.types";
 
 export function FeaturedCardWorkspace() {
+  const listTools = useWorkspaceListTools(featuredcardListColumns);
+  const [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all");
   const client = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [status] = useState<FeaturedCardStatus | undefined>();
-  const [editing, setEditing] = useState<FeaturedCardRecord | null | undefined>();
-  const query = useFeaturedCards(search, status);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+
+
+  const query = useFeaturedCards(search);
+  const records = (query.data ?? []).filter((record) => (statusFilter === "all" || record.status === statusFilter) && listTools.matches(featuredcardListValues(record)));
+  const [editing, setEditing] = useWorkspaceRecordSelection<FeaturedCardRecord>(query.data ?? [], (record) => String(record.id));
   const refresh = () => {
     invalidateStorefrontClientCache();
     return client.invalidateQueries({ queryKey: featuredCardQueryKey });
@@ -68,7 +72,7 @@ export function FeaturedCardWorkspace() {
       />
     );
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Featured Cards"
       description="Manage locally stored storefront slides and refresh their linked items and source documents from Frappe."
       actions={
@@ -78,10 +82,7 @@ export function FeaturedCardWorkspace() {
             <Download className="size-4" />
             {pull.isPending ? "Pulling..." : "Pull from Frappe"}
           </Button>
-          <Button variant="outline" onClick={() => void query.refetch()}>
-            <RefreshCw className="size-4" />
-            Refresh
-          </Button>
+          
           <Button onClick={() => setEditing(null)}>
             <Plus className="size-4" />
             New
@@ -90,13 +91,20 @@ export function FeaturedCardWorkspace() {
       }
     >
       <WorkspaceFilters
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
+        filterValue={statusFilter}
+        onFilterValueChange={setStatusFilter}
+        filterOptions={[{ id: "all", label: "All statuses" },{ id: "active", label: "Active", count: (query.data ?? []).filter((record) => record.status === "active").length },{ id: "inactive", label: "Inactive", count: (query.data ?? []).filter((record) => record.status === "inactive").length }]} 
         searchPlaceholder="Search featured code, title, or Frappe item"
         searchValue={search}
         onSearchValueChange={setSearch}
       />
       <FeaturedCardList
+        listTools={listTools}
         loading={query.isLoading}
-        records={query.data ?? []}
+        records={records}
         onEdit={setEditing}
         onStatus={(record) => changeStatus.mutate(record)}
       />

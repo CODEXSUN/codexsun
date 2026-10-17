@@ -9,12 +9,15 @@ import { PageList, type PageSection } from "./page.list.js";
 import type { PageGateway } from "./page.types.js";
 import { PageValidationContext } from "./page.fields.js";
 import { formatDateTime } from "@codexsun/ui/workspace";
+import { PageCompanyPhone } from "./page.company-phone.js";
 export function PageWorkspace({
+  withApplications = false,
   uuid,
   gateway,
   view,
   publicOrigin
 }: {
+  withApplications?: boolean;
   uuid: string;
   gateway: PageGateway | undefined;
   view: "profile" | "sections";
@@ -60,7 +63,14 @@ export function PageWorkspace({
             ["About", "/about"],
             ["Services", "/services"],
             ["Contact", "/contact"],
-            ["Blog", "/blogs"]
+            ["Blog", "/blogs"],
+            ["Privacy", "/privacy"],
+            ...(withApplications
+              ? [
+                  ["Apps", "/apps"],
+                  ["Support", "/support"]
+                ]
+              : [])
           ].map(([name, path]) => (
             <Button key={path} asChild size="sm" variant="outline">
               <a href={`${publicOrigin}${path}`} target="_blank" rel="noreferrer">
@@ -99,13 +109,24 @@ export function PageWorkspace({
                 : "No page loaded. Check the connection and permission grants."}
             </p>
           ) : view === "profile" ? (
-            <PageProfileForm
-              value={editor.draft.profile}
-              onChange={(profile) => editor.setDraft({ ...editor.draft!, profile })}
-            />
+            <>
+              <PageCompanyPhone
+                gateway={gateway}
+                value={editor.draft.profile}
+                onChange={(profile) => editor.setDraft({ ...editor.draft!, profile })}
+              />
+              <PageProfileForm
+                value={editor.draft.profile}
+                onChange={(profile) => editor.setDraft({ ...editor.draft!, profile })}
+              />
+            </>
           ) : (
             <>
-              <PageList selected={section} onSelect={setSection} />
+              <PageList
+                withApplications={withApplications}
+                selected={section}
+                onSelect={setSection}
+              />
               <PageForm value={editor.draft} onChange={editor.setDraft} section={section} />
             </>
           )}

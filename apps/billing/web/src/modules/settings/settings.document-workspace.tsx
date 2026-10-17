@@ -32,6 +32,7 @@ export function DocumentSettingsWorkspace() {
     queryKey: ["billing", "document-settings", companyId]
   });
   const [form, setForm] = useState<BillingSettings["numbering"]>(defaultBillingSettings.numbering);
+  const [savedRevision, setSavedRevision] = useState(0);
 
   useEffect(() => {
     if (query.data) setForm(query.data);
@@ -41,6 +42,7 @@ export function DocumentSettingsWorkspace() {
     mutationFn: saveDocumentSettings,
     onSuccess: async (settings) => {
       setForm(settings);
+      setSavedRevision((revision) => revision + 1);
       await queryClient.invalidateQueries({
         queryKey: ["billing", "document-settings", companyId]
       });
@@ -58,7 +60,7 @@ export function DocumentSettingsWorkspace() {
   }
 
   return (
-    <section className="space-y-4">
+    <section key={savedRevision} className="space-y-4" data-codexsun-draft-form="true">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal text-foreground/80">

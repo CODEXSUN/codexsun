@@ -47,16 +47,16 @@ function service(verificationStatus: "unverified" | "verified") {
   );
 }
 
-test("Frappe Live cannot be selected before connection verification", async () => {
+test("unverified connections cannot select a remote CRM provider", async () => {
   await assert.rejects(
     () => service("unverified").saveProvider("frappe", "user@example.com"),
-    /verify/
+    /local database/
   );
 });
 
-test("verified connection can select live and then return to local", async () => {
+test("even a verified connection cannot switch CRM away from local storage", async () => {
   const connection = service("verified");
-  assert.equal((await connection.saveProvider("frappe", "user@example.com")).provider, "frappe");
+  await assert.rejects(connection.saveProvider("frappe", "user@example.com"), /local database/);
   assert.equal((await connection.saveProvider("local", "user@example.com")).provider, "local");
 });
 

@@ -14,9 +14,39 @@ const bill = z
     serviceContext: z
       .object({
         orderUuid: uuid,
+        parcelToken: z.string().nullable().optional(),
+        booking: z
+          .object({
+            token: z.string(),
+            customerName: z.string(),
+            mobile: z.string(),
+            pickupAt: z.string()
+          })
+          .strict()
+          .nullable()
+          .optional(),
         mode: z.string(),
         tableName: z.string(),
         seats: z.array(z.number())
+      })
+      .strict()
+      .nullable(),
+    receiptContext: z
+      .object({
+        restaurantName: z.string(),
+        branchName: z.string(),
+        address: z.string(),
+        contactNumber: z.string(),
+        gstin: z.string(),
+        fssai: z.string(),
+        receiptHeader: z.string(),
+        receiptFooter: z.string(),
+        receiptLegalNote: z.string(),
+        showReceiptContact: z.boolean(),
+        receiptWidth: z.enum(["58mm", "80mm"]),
+        gstRate: z.number(),
+        taxAmount: money,
+        netAmount: money
       })
       .strict()
       .nullable(),

@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Trash2 } from "lucide-react";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
@@ -5,7 +6,10 @@ import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { ProductCategoriesRecord } from "./product-categories.types";
 
+export const productCategoriesListColumns = { name: "Name", isActive: "Status" };
+
 export function ProductCategoriesList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -13,6 +17,7 @@ export function ProductCategoriesList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: ProductCategoriesRecord) => void;
   onForceDelete: (record: ProductCategoriesRecord) => void;
@@ -84,7 +89,13 @@ export function ProductCategoriesList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No product categories found."
       isLoading={loading}

@@ -1,9 +1,32 @@
 import { z } from "zod";
+import { logicxMarketingSchema } from "./page.marketing-schema.js";
+export {
+  logicxMarketingSchema,
+  logicxMarketingImages,
+  type LogicxMarketing
+} from "./page.marketing-schema.js";
 
 const text = z.string().trim().min(1).max(4000);
 const short = z.string().trim().min(1).max(180);
 const title = z.strictObject({ label: short, title: short, emphasis: short, intro: text });
 export const pageContentSchema = z.strictObject({
+  marketing: logicxMarketingSchema.optional(),
+  applications: z
+    .array(
+      z.strictObject({
+        slug: z.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/),
+        name: short,
+        category: short,
+        summary: text,
+        features: z.array(short).min(1).max(12)
+      })
+    )
+    .max(50)
+    .superRefine((apps, ctx) => {
+      if (new Set(apps.map((app) => app.slug)).size !== apps.length)
+        ctx.addIssue({ code: "custom", message: "Application slugs must be unique." });
+    })
+    .optional(),
   pageTitle: short,
   description: z.string().trim().min(1).max(320),
   profile: z.strictObject({
@@ -20,7 +43,12 @@ export const pageContentSchema = z.strictObject({
       .array(z.strictObject({ label: short, href: z.string().regex(/^\+[0-9]{7,15}$/) }))
       .max(5),
     address: z.array(short).max(8),
-    gstin: z.string().trim().max(30)
+    gstin: z.string().trim().max(30),
+    whatsappNumber: z
+      .string()
+      .regex(/^$|^[1-9][0-9]{6,14}$/)
+      .optional(),
+    mapQuery: z.string().trim().max(300).optional()
   }),
   hero: z.strictObject({
     eyebrow: short,

@@ -10,6 +10,11 @@ export class CloudApiError extends Error {
 }
 
 export async function cloudRequest<T>(url: string, init: RequestInit = {}): Promise<T> {
+  const response = await cloudResponse(url, init);
+  return (await response.json()).data as T;
+}
+
+export async function cloudResponse(url: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
   const slot = sessionStorage.getItem("codexsun.auth.slot");
@@ -24,13 +29,13 @@ export async function cloudRequest<T>(url: string, init: RequestInit = {}): Prom
       "Cannot reach Platform. Check your connection. Your unsaved order is still here."
     );
   }
-  const result = await response.json();
   if (!response.ok) {
+    const result = await response.json();
     const message =
       response.status === 401
         ? "Your Platform session has ended. Sign in to Platform again."
         : result.error?.message;
     throw new CloudApiError(message ?? "The request could not be completed.", response.status);
   }
-  return result.data as T;
+  return response;
 }

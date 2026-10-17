@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/sites-clients",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "private": true,
   "type": "module",
   "exports": {
@@ -9,19 +9,25 @@
     "./ramutex": "./src/clients/ramutex/index.ts"
   },
   "scripts": {
-    "build:portfolio": "vite build --mode portfolio",
-    "dev:portfolio": "vite --mode portfolio",
-    "build": "tsc -p tsconfig.json --noEmit && vite build --mode logicx && vite build --mode ramutex",
-    "build:logicx": "vite build --mode logicx",
-    "build:ramutex": "vite build --mode ramutex",
-    "dev:logicx": "vite --mode logicx",
-    "dev:ramutex": "vite --mode ramutex",
+    "prepare:deploy": "node --import tsx deploy/prepare.mjs",
+    "test:runtime": "node --import tsx --test runtime/content/content-store.test.mjs runtime/enquiry/enquiry.test.mjs",
+    "build:portfolio": "node deploy/build.mjs portfolio",
+    "dev:portfolio": "node --max-http-header-size=262144 --import tsx ../../../node_modules/vite/bin/vite.js --mode portfolio",
+    "build": "tsc -p tsconfig.json --noEmit && node --import tsx deploy/build.mjs logicx ramutex",
+    "build:logicx": "node deploy/build.mjs logicx",
+    "build:ramutex": "node deploy/build.mjs ramutex",
+    "dev:logicx": "node --max-http-header-size=262144 --import tsx ../../../node_modules/vite/bin/vite.js --mode logicx",
+    "dev:ramutex": "node --max-http-header-size=262144 --import tsx ../../../node_modules/vite/bin/vite.js --mode ramutex",
     "lint": "oxlint src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "devDependencies": {
+    "sharp": "^0.35.5"
+  },
   "dependencies": {
-    "@codexsun/sites-api": "^1.1.2",
-    "@codexsun/ui": "^1.1.2",
+    "zod": "^4.6.5",
+    "@codexsun/sites-api": "^1.1.3",
+    "@codexsun/ui": "^1.1.3",
     "framer-motion": "^14.0.0",
     "lucide-react": "^1.52.0",
     "react": "^19.3.0",

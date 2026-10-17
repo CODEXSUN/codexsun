@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Trash2 } from "lucide-react";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
@@ -5,7 +6,10 @@ import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { ColoursRecord } from "./colours.types";
 
+export const coloursListColumns = { name: "Name", isActive: "Status" };
+
 export function ColoursList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -13,6 +17,7 @@ export function ColoursList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: ColoursRecord) => void;
   onForceDelete: (record: ColoursRecord) => void;
@@ -90,7 +95,13 @@ export function ColoursList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No colours found."
       isLoading={loading}

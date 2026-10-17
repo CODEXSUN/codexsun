@@ -8,6 +8,7 @@ import {
   DialogDescription
 } from "@codexsun/ui/components/dialog";
 import { WorkspaceFormBanner } from "@codexsun/ui/workspace/upsert";
+import { useCafeSettings } from "../settings";
 import { useMenu } from "../menu";
 import { usePosBills } from "./pos.hooks";
 import { OrderWorkspace } from "../order";
@@ -33,9 +34,10 @@ export function PosWorkspace({
   canManageTables: boolean;
   restaurantName: string;
   active?: boolean;
-  serviceMode: "POS" | "KOT" | "TAKE AWAY";
+  serviceMode: "POS" | "KOT" | "TAKE AWAY" | "BOOKING";
 }) {
   const menu = useMenu();
+  const preferences = useCafeSettings();
   const history = usePosBills();
   const [view, setView] = useState<"sale" | "history">("sale");
   const [selected, setSelected] = useState<PosBill | null>(null);
@@ -72,6 +74,7 @@ export function PosWorkspace({
       const bill = await collectPosPayment(selected.uuid, input);
       history.remember(bill);
       setSelected(bill);
+      if (preferences.settings.autoPrintBill && bill.status === "paid") setPrintSaved(true);
       setNotice("Payment recorded.");
       return true;
     } catch (error) {

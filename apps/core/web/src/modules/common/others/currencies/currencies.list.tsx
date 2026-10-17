@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Trash2 } from "lucide-react";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
@@ -5,7 +6,10 @@ import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { CurrenciesRecord } from "./currencies.types";
 
+export const currenciesListColumns = { name: "Name", symbol: "Symbol", isActive: "Status" };
+
 export function CurrenciesList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -13,6 +17,7 @@ export function CurrenciesList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: CurrenciesRecord) => void;
   onForceDelete: (record: CurrenciesRecord) => void;
@@ -85,7 +90,13 @@ export function CurrenciesList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No currencies found."
       isLoading={loading}

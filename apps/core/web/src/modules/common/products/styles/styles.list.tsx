@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Trash2 } from "lucide-react";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
@@ -5,7 +6,10 @@ import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { StylesRecord } from "./styles.types";
 
+export const stylesListColumns = { name: "Name", isActive: "Status" };
+
 export function StylesList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -13,6 +17,7 @@ export function StylesList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: StylesRecord) => void;
   onForceDelete: (record: StylesRecord) => void;
@@ -84,7 +89,13 @@ export function StylesList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No styles found."
       isLoading={loading}

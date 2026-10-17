@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { useWorkspaceQueryValue, useWorkspaceRecordSelection } from "@codexsun/ui/workspace/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
@@ -11,7 +12,7 @@ import {
   useProductVariants,
   useVariantProducts
 } from "./product-variant.hooks";
-import { ProductVariantList } from "./product-variant.list";
+import { ProductVariantList, productvariantListColumns, productvariantListValues } from "./product-variant.list";
 import {
   changeProductVariantStatus,
   createProductVariant,
@@ -19,15 +20,18 @@ import {
 } from "./product-variant.services";
 import type {
   ProductVariantPayload,
-  ProductVariantRecord,
-  VariantStatus
+  ProductVariantRecord
 } from "./product-variant.types";
 export function ProductVariantWorkspace() {
+  const listTools = useWorkspaceListTools(productvariantListColumns);
+  const [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all");
   const client = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<VariantStatus | undefined>();
-  const [editing, setEditing] = useState<ProductVariantRecord | null | undefined>();
-  const query = useProductVariants(search, status);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+
+
+  const query = useProductVariants(search);
+  const records = (query.data ?? []).filter((record) => (statusFilter === "all" || record.status === statusFilter) && listTools.matches(productvariantListValues(record)));
+  const [editing, setEditing] = useWorkspaceRecordSelection<ProductVariantRecord>(query.data ?? [], (record) => String(record.id));
   const products = useVariantProducts();
   const refresh = () => client.invalidateQueries({ queryKey: productVariantQueryKey });
   const save = useMutation({
@@ -56,15 +60,12 @@ export function ProductVariantWorkspace() {
       />
     );
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Product Variants"
       description="Manage purchasable SKUs, option combinations, adjustments, and weights."
       actions={
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => void query.refetch()}>
-            <RefreshCw className="size-4" />
-            Refresh
-          </Button>
+          
           <Button onClick={() => setEditing(null)}>
             <Plus className="size-4" />
             New
@@ -75,26 +76,22 @@ export function ProductVariantWorkspace() {
       <div className="flex gap-3">
         <div className="flex-1">
           <WorkspaceFilters
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
+        filterValue={statusFilter}
+        onFilterValueChange={setStatusFilter}
+        filterOptions={[{ id: "all", label: "All statuses" },{ id: "active", label: "Active", count: (query.data ?? []).filter((record) => record.status === "active").length },{ id: "inactive", label: "Inactive", count: (query.data ?? []).filter((record) => record.status === "inactive").length }]} 
             searchPlaceholder="Search SKU, title, or product"
             searchValue={search}
             onSearchValueChange={setSearch}
           />
         </div>
-        <select
-          className="h-10 rounded-md border bg-background px-3"
-          value={status ?? ""}
-          onChange={(event) =>
-            setStatus((event.target.value || undefined) as VariantStatus | undefined)
-          }
-        >
-          <option value="">All states</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
       </div>
       <ProductVariantList
+        listTools={listTools}
         loading={query.isLoading}
-        records={query.data ?? []}
+        records={records}
         onEdit={setEditing}
         onStatus={(record) => statusMutation.mutate(record)}
       />

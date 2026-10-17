@@ -1,4 +1,3 @@
-import { loadComplianceParties } from "./export-sales.compliance-parties.js";
 import { AppError } from "@codexsun/framework/errors";
 import { assertBillingEntryEditable } from "../../auth/billing-scope.js";
 import { billingDashboardProjection } from "../dashboard/index.js";
@@ -16,10 +15,6 @@ import type {
   ExportSaleLineItemInput,
   ExportSaleSavePayload
 } from "./export-sales.types.js";
-import {
-  generateExportSaleEinvoice,
-  generateExportSaleEway
-} from "./export-sales-whitebooks.client.js";
 
 export class ExportSalesService {
   constructor(
@@ -40,6 +35,14 @@ export class ExportSalesService {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      quantitySearch?: string;
+      taxableSearch?: string;
+      taxSearch?: string;
     }
   ) {
     return this.repository.listPage(databaseName, query);
@@ -87,13 +90,12 @@ export class ExportSalesService {
     const exportSale = await this.repository.create(databaseName, numbered.input, totals);
     if (!exportSale) throw AppError.validation("Export sales invoice could not be created.");
     if (numbering.automatic && (numbered.generated || numbered.nextNumber > numbering.nextNumber)) {
-      await this.settings.saveBillingSettings(databaseName, normalized.companyId, {
-        ...billingSettings,
-        numbering: {
-          ...billingSettings.numbering,
-          exportSales: { ...numbering, nextNumber: numbered.nextNumber }
-        }
-      });
+      await this.settings.advanceNextNumber(
+        databaseName,
+        normalized.companyId,
+        "exportSales",
+        numbered.nextNumber
+      );
     }
     await this.project(databaseName, "created", exportSale);
     return exportSale;
@@ -190,52 +192,6 @@ export class ExportSalesService {
     await this.repository.softDelete(databaseName, id);
     await this.project(databaseName, "deleted", current);
     return current;
-  }
-
-  async generateEinvoice(databaseName: string, id: string, _details?: ExportSaleEinvoiceDetails) {
-    let exportSale = await this.repository.get(databaseName, id);
-    if (!exportSale) return null;
-    const settings = await this.settings.getBillingSettings(databaseName, exportSale.companyId);
-    if (!settings.layout.useEinvoice)
-      throw AppError.conflict("E-invoice is disabled for this company.");
-    if (exportSale.status !== "confirmed")
-      throw AppError.conflict("Confirm the export sale before generating an E-invoice.");
-    if (exportSale.einvoice.irn) return exportSale;
-    const result = await generateExportSaleEinvoice(
-      exportSale,
-      await loadComplianceParties(databaseName, exportSale)
-    );
-    return this.repository.updateCompliance(databaseName, id, {
-      einvoice: { ...exportSale.einvoice, ...result.einvoice, status: "generated" }
-    });
-  }
-
-  async generateEway(
-    databaseName: string,
-    id: string,
-    details?: ExportSaleEwayDetails,
-    distanceKm = 0
-  ) {
-    let exportSale = await this.repository.get(databaseName, id);
-    if (!exportSale) return null;
-    const settings = await this.settings.getBillingSettings(databaseName, exportSale.companyId);
-    if (!settings.layout.useEway) throw AppError.conflict("E-way is disabled for this company.");
-    if (exportSale.status !== "confirmed")
-      throw AppError.conflict("Confirm the export sale before generating an E-way bill.");
-    if (exportSale.eway.billNo && exportSale.eway.status === "generated") return exportSale;
-    if (details)
-      exportSale = {
-        ...exportSale,
-        eway: { ...details, billNo: "", billDate: "", status: "not-generated" }
-      };
-    const result = await generateExportSaleEway(
-      exportSale,
-      await loadComplianceParties(databaseName, exportSale),
-      distanceKm
-    );
-    return this.repository.updateCompliance(databaseName, id, {
-      eway: { ...exportSale.eway, ...result.eway, status: "generated" }
-    });
   }
 
   private async validateReferences(databaseName: string, input: ExportSaleSavePayload) {

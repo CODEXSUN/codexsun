@@ -228,7 +228,7 @@ export function CrmContactWorkspace({
       />
     );
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title={showListHeader ? "Contacts" : ""}
       {...(showListHeader
         ? {

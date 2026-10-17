@@ -8,6 +8,7 @@ export type CustomerSummaryItem = {
 };
 
 export type CustomerSummary = {
+  currencyCode: string;
   companyId: number;
   companyName: string;
   financialYearId: number;

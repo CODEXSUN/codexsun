@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { Trash2 } from "lucide-react";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
@@ -6,7 +7,10 @@ import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { CrmStatusBadge } from "../../crm-colors";
 import type { StatusRecord } from "./status.types";
 
+export const statusListColumns = {"sortOrder": "ORDER", "name": "NAME", "code": "CODE", "status": "STATUS"};
+
 export function StatusList({
+  listTools,
   records,
   loading,
   onView,
@@ -15,6 +19,7 @@ export function StatusList({
   onRestore,
   onForceDelete
 }: {
+  listTools?: WorkspaceListTools;
   records: StatusRecord[];
   loading: boolean;
   onView: (record: StatusRecord) => void;
@@ -84,7 +89,8 @@ export function StatusList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))))}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No statuses records found."
       isLoading={loading}

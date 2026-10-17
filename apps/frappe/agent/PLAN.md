@@ -2,6 +2,10 @@
 
 ## Scope
 
+Customer import now sources `Mobile Contact Customer` and validates its `Mobile Contact` and `Customer` references.
+Customer identity is connection-scoped, not phone-scoped. Core owns persistence through `resolveExternalCustomerForDatabase`.
+See the README for source fields, existing-data compatibility, and test commands.
+
 Verified external connections, user mappings, imports, exports, and approved CRM integration workers.
 
 ## Ownership contract
@@ -30,6 +34,12 @@ Source presence is not release evidence. Confirm executable behavior before desc
 7. Record evidence and remaining work in [TASK.md](TASK.md).
 
 ## Verification gates
+
+The approved SOP/Duty adapter follows [CRM-DUTY-FIELD-MAPPING.md](CRM-DUTY-FIELD-MAPPING.md).
+Run `npm run test:crm-frappe` for all CRM/Frappe unit tests and the isolated Duty API/database E2E.
+Its remote responses are mocked. The separate `npm run test:e2e:crm-duties-live` passed against logicx.tmnext.in on 17-10-2026.
+See the field mapping for live metadata, readback, retry, and cleanup evidence.
+Platform authentication, queue relay scheduling, and mobile acceptance remain separate gates.
 
 - `node tools/check-module-boundaries.mjs frappe`
 - `npm run typecheck -w @codexsun/frappe-api`

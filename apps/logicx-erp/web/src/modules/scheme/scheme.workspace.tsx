@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { GlobalLoader } from "@codexsun/ui/components/global-loader";
@@ -11,7 +11,6 @@ import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { WorkspaceSelect } from "@codexsun/ui/workspace/select";
 import { WorkspaceTableEmptyState, WorkspaceTablePanel } from "@codexsun/ui/workspace/table";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
-import { cn } from "@codexsun/ui/lib/utils";
 import { LogicxErpSchemeForm } from "./scheme.form";
 import { logicxErpSchemesQueryKey, useLogicxErpScheme, useLogicxErpSchemes } from "./scheme.hooks";
 import { LogicxErpSchemeList, logicxErpSchemeColumns } from "./scheme.list";
@@ -193,21 +192,12 @@ export function LogicxErpSchemeWorkspace({ gateway }: { gateway: LogicxErpScheme
 
   return (
     <WorkspacePage
+      variant="list"
       title="Schemes"
       description="Vendor-operated schemes raised against sales invoices."
       technicalName="page.logicx-erp.scheme.list"
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            className="h-9 rounded-md"
-            disabled={schemesQuery.isFetching}
-            onClick={() => void schemesQuery.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", schemesQuery.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
           <Button className="h-9 rounded-md" onClick={openNew} type="button">
             <Plus className="size-4" />
             New scheme

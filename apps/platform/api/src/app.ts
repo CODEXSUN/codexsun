@@ -1,3 +1,4 @@
+import { registerTconnectHost } from "./tconnect-host.js";
 import { registerBillingComplianceHost } from "./billing-compliance-host.js";
 import { sql } from "kysely";
 import { codexsunApiModuleKeys } from "@codexsun/codexsun-api";
@@ -38,7 +39,8 @@ import {
   registerCoreApi,
   registerCoreTenantDatabaseConnection,
   getActiveContactForDatabase,
-  resolveOrCreateCustomerForDatabase
+  resolveOrCreateCustomerForDatabase,
+  resolveExternalCustomerForDatabase
 } from "@codexsun/core-api";
 import {
   enquiryModule,
@@ -225,7 +227,7 @@ export async function createApp() {
     ]
   });
   const queueService = new QueueManagerService();
-  registerBillingComplianceHost(app,queueService);
+  registerBillingComplianceHost(app, queueService);
   registerAuthRequestContext(app);
   await registerProjectManagerHost(app);
   await registerZunoHost(app);
@@ -1112,8 +1114,19 @@ export async function createApp() {
       );
       return {
         database: context.database as unknown as import("kysely").Kysely<FrappeDatabase>,
-        resolveContact: (name: string, mobile: string | null) =>
-          resolveOrCreateCustomerForDatabase(context.tenantDatabase, { name, mobile })
+        resolveContact: async (input: { externalKey: string; name: string; mobile: string }) => {
+          const customer = await resolveExternalCustomerForDatabase(context.tenantDatabase, input);
+          await recordTenantAccessAudit({
+            action: "imported",
+            actorEmail: context.actorEmail,
+            moduleKey: "frappe.contact-import",
+            recordId: customer.id,
+            recordUuid: customer.uuid,
+            recordLabel: input.name,
+            tenantId: context.tenantId
+          });
+          return customer;
+        }
       };
     },
     frappeSettings,
@@ -2000,6 +2013,7 @@ export async function createApp() {
   console.info("[platform.routes] Billing package ready");
   await registerAccountsApi(app);
   console.info("[platform.routes] Accounts package ready");
+  await registerTconnectHost(app);
   await registerPlatformAddons(app);
   console.info("[platform.routes] add-on packages ready");
   await registerModules(

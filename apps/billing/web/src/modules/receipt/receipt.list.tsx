@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Eye, Pencil, Send, Trash2, XCircle } from "lucide-react";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
@@ -14,7 +15,19 @@ import {
 import { formatReceiptDate, formatReceiptMoney } from "./receipt.services";
 import type { Receipt } from "./receipt.types";
 
+const columnIds: Record<string, string> = {
+  "Receipt no": "number",
+  Date: "date",
+  Customer: "party",
+  Mode: "mode",
+  Amount: "total",
+  Unallocated: "unallocated",
+  Status: "status",
+  Action: "action"
+};
+
 export function ReceiptList({
+  listTools,
   canEditEntries,
   canEditFinalizedEntries,
   entries,
@@ -27,6 +40,7 @@ export function ReceiptList({
   totalsRecords,
   totalsView
 }: {
+  listTools: WorkspaceListTools;
   canEditEntries: boolean;
   canEditFinalizedEntries: boolean;
   entries: Receipt[];
@@ -56,14 +70,21 @@ export function ReceiptList({
                     "Unallocated",
                     "Status",
                     "Action"
-                  ].map((label) => (
-                    <th
-                      className="border-b border-border/70 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-                      key={label}
-                    >
-                      {label}
-                    </th>
-                  ))}
+                  ]
+                    .filter((label) => !listTools.hidden.includes(columnIds[label] ?? ""))
+                    .map((label) => (
+                      <th
+                        className="border-b border-border/70 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                        key={label}
+                      >
+                        {label}
+                        {listTools.showFilters ? (
+                          <div className="mt-2 font-normal normal-case tracking-normal">
+                            {listTools.filterRow(columnIds[label] ?? "")}
+                          </div>
+                        ) : null}
+                      </th>
+                    ))}
                 </tr>
               </thead>
               <tbody>
@@ -73,6 +94,7 @@ export function ReceiptList({
                     className="cursor-pointer border-b border-border/70 last:border-0 [&>td]:transition-colors hover:[&>td]:bg-muted/60 focus-visible:[&>td]:bg-muted/60 focus-visible:outline-none"
                     key={receipt.id}
                     onClick={(event) => {
+                      if (!event.currentTarget.contains(event.target as Node)) return;
                       if ((event.target as Element).closest("button, input, a")) return;
                       onView(receipt);
                     }}
@@ -85,18 +107,34 @@ export function ReceiptList({
                     }}
                     tabIndex={0}
                   >
-                    <td className="px-4 py-3 font-semibold">{receipt.receiptNumber}</td>
-                    <td className="px-4 py-3">{formatReceiptDate(receipt.receiptDate)}</td>
-                    <td className="px-4 py-3">{receipt.customerName}</td>
-                    <td className="px-4 py-3 capitalize">{receipt.receiptMode}</td>
-                    <td className="px-4 py-3 font-medium">
+                    <td
+                      hidden={listTools.hidden.includes("number")}
+                      className="px-4 py-3 font-semibold"
+                    >
+                      {receipt.receiptNumber}
+                    </td>
+                    <td hidden={listTools.hidden.includes("date")} className="px-4 py-3">
+                      {formatReceiptDate(receipt.receiptDate)}
+                    </td>
+                    <td hidden={listTools.hidden.includes("party")} className="px-4 py-3">
+                      {receipt.customerName}
+                    </td>
+                    <td hidden={listTools.hidden.includes("mode")} className="px-4 py-3 capitalize">
+                      {receipt.receiptMode}
+                    </td>
+                    <td
+                      hidden={listTools.hidden.includes("total")}
+                      className="px-4 py-3 font-medium"
+                    >
                       {formatReceiptMoney(receipt.totalAmount)}
                     </td>
-                    <td className="px-4 py-3">{formatReceiptMoney(receipt.unallocatedAmount)}</td>
-                    <td className="px-4 py-3">
+                    <td hidden={listTools.hidden.includes("unallocated")} className="px-4 py-3">
+                      {formatReceiptMoney(receipt.unallocatedAmount)}
+                    </td>
+                    <td hidden={listTools.hidden.includes("status")} className="px-4 py-3">
                       <ReceiptStatus receipt={receipt} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td hidden={listTools.hidden.includes("action")} className="px-4 py-3">
                       <WorkspaceRowActions
                         actions={[
                           {

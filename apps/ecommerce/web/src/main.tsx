@@ -7,7 +7,9 @@ declare const __CODEXSUN_PLATFORM_WEB_PORT__: number;
 
 const pathname = window.location.pathname;
 const publicPage =
-  ["/shop", "/cart", "/campaigns", "/search"].includes(pathname) || pathname.startsWith("/shop/");
+  ["/shop", "/cart", "/campaigns", "/search", "/blog"].includes(pathname) ||
+  pathname.startsWith("/shop/") ||
+  pathname.startsWith("/blog/");
 
 if (publicPage) {
   createRoot(document.getElementById("root")!).render(

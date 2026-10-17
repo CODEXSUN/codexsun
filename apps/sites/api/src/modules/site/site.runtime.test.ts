@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:net";
 import { createServer as createHttpServer } from "node:http";
-import test from "node:test";
+import test, { after } from "node:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+const testDirectory = mkdtempSync(resolve(tmpdir(), "codexsun-sites-runtime-"));
+after(() =>
+  rmSync(testDirectory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
+);
 import { resolve } from "node:path";
 import { SiteRuntimeService, validateRuntimeSite, findSitesCheckout } from "./site.runtime.js";
 import type { CmsSite } from "./site.types.js";
@@ -50,7 +56,7 @@ test(
   { timeout: 30000 },
   async () => {
     const port = await unusedPort();
-    const runtime = new SiteRuntimeService();
+    const runtime = new SiteRuntimeService({ dataRoot: testDirectory });
     try {
       const input = { ...site, port };
       const [first, second] = await Promise.all([runtime.start(input), runtime.start(input)]);
@@ -58,7 +64,12 @@ test(
       assert.equal(first.state, "running");
       assert.equal(first.port, port);
       const response = await fetch(`${first.url}/__codexsun_sites_identity`);
-      assert.deepEqual(await response.json(), { client: "ramutex" });
+      assert.equal((await response.json()).client, "ramutex");
+      const largeHeaders = await fetch(`${first.url}/__codexsun_sites_identity`, {
+        headers: { Cookie: `local_preview=${"x".repeat(32768)}` }
+      });
+      assert.equal(largeHeaders.status, 200);
+      assert.equal((await largeHeaders.json()).client, "ramutex");
       assert.deepEqual(await runtime.start(input), first);
     } finally {
       runtime.close();
@@ -81,7 +92,7 @@ test(
   "starts a new client's standard template with its own identity",
   { timeout: 30000 },
   async () => {
-    const runtime = new SiteRuntimeService();
+    const runtime = new SiteRuntimeService({ dataRoot: testDirectory });
     try {
       const result = await runtime.start({
         ...site,
@@ -90,7 +101,7 @@ test(
         port: await unusedPort()
       });
       const response = await fetch(`${result.url}/__codexsun_sites_identity`);
-      assert.deepEqual(await response.json(), { client: "new-client" });
+      assert.equal((await response.json()).client, "new-client");
       const home = await fetch(result.url);
       assert.equal(home.status, 200);
     } finally {
@@ -110,7 +121,7 @@ test(
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("No test port allocated.");
-    const runtime = new SiteRuntimeService();
+    const runtime = new SiteRuntimeService({ dataRoot: testDirectory });
     try {
       await assert.rejects(runtime.start({ ...site, port: address.port }), /could not start/);
       assert.equal((await fetch(`http://127.0.0.1:${address.port}`)).status, 200);

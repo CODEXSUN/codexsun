@@ -2,7 +2,7 @@ import { sql } from "kysely";
 import { AppError } from "@codexsun/framework/errors";
 import { buildCustomerStatementAgeing } from "./customer-statement.ageing.js";
 import { getBillingDatabase } from "../../../database/billing-database.js";
-import { currentBillingScope } from "../../../auth/billing-scope.js";
+import { billingReportCurrency, currentBillingScope } from "../../../auth/billing-scope.js";
 import { readOpeningBalanceOverrides } from "../../opening-balance/index.js";
 import type {
   CustomerStatementContact,
@@ -30,6 +30,17 @@ type MovementRow = {
 };
 
 export class CustomerStatementRepository {
+  async currencies(databaseName: string) {
+    return (
+      await sql<{
+        id: number;
+        name: string;
+      }>`SELECT id,UPPER(name) AS name FROM core_currencies WHERE CHAR_LENGTH(name)=3 ORDER BY name,id`.execute(
+        await getBillingDatabase(databaseName)
+      )
+    ).rows;
+  }
+
   async ageing(
     databaseName: string,
     companyId: number,
@@ -44,27 +55,27 @@ export class CustomerStatementRepository {
  COALESCE((SELECT SUM(allocation.allocated_amount)
  FROM billing_receipt_allocations allocation JOIN billing_receipts receipt ON receipt.id=allocation.receipt_id
  WHERE allocation.sales_id=sale.id AND receipt.status='posted' AND receipt.deleted_at IS NULL
- AND receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId}
+ AND receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
  AND receipt.customer_id=${contactId} AND receipt.receipt_date<=${to}),0) AS settled
  FROM billing_sales sale
- WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId}
+ WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
  AND sale.customer_id=${contactId} AND sale.status='confirmed' AND sale.deleted_at IS NULL
  AND sale.issued_on<=${to}
  UNION ALL SELECT DATE_FORMAT(sale.issued_on,'%Y-%m-%d'), sale.amount,
  COALESCE((SELECT SUM(allocation.allocated_amount)
  FROM billing_receipt_export_allocations allocation JOIN billing_receipts receipt ON receipt.id=allocation.receipt_id
  WHERE allocation.export_sales_id=sale.id AND receipt.status='posted' AND receipt.deleted_at IS NULL
- AND receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId}
+ AND receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
  AND receipt.customer_id=${contactId} AND receipt.receipt_date<=${to}),0)
  FROM billing_export_sales sale WHERE sale.company_id=${companyId}
- AND sale.financial_year_id=${financialYearId} AND sale.customer_id=${contactId}
+ AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND sale.customer_id=${contactId}
  AND sale.status='confirmed' AND sale.deleted_at IS NULL AND sale.issued_on<=${to}
       ORDER BY date
     `.execute(database);
     const settlements = await sql<{ total: string | number; reserved: string | number }>`
       SELECT COALESCE(SUM(CASE WHEN status='posted' THEN total_amount ELSE 0 END),0) AS total,
       COALESCE(SUM(CASE WHEN status='draft' THEN allocated_amount ELSE 0 END),0) AS reserved
-      FROM billing_receipts WHERE company_id=${companyId} AND financial_year_id=${financialYearId}
+      FROM billing_receipts WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
       AND customer_id=${contactId} AND deleted_at IS NULL AND receipt_date<=${to}
     `.execute(database);
     const opening = await this.openingBalance(databaseName, companyId, contactId, yearStart);
@@ -120,11 +131,11 @@ export class CustomerStatementRepository {
         AND (
           LOWER(COALESCE(contact.type_name,'')) LIKE '%customer%'
           OR EXISTS (SELECT 1 FROM billing_sales sale WHERE sale.customer_id=contact.id
-            AND sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.deleted_at IS NULL)
+            AND sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND sale.deleted_at IS NULL)
           OR EXISTS (SELECT 1 FROM billing_export_sales sale WHERE sale.customer_id=contact.id
-            AND sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.deleted_at IS NULL)
+            AND sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND sale.deleted_at IS NULL)
           OR EXISTS (SELECT 1 FROM billing_receipts receipt WHERE receipt.customer_id=contact.id
-            AND receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.deleted_at IS NULL)
+            AND receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND receipt.deleted_at IS NULL)
         )
       ORDER BY contact.name, contact.id
     `.execute(database);
@@ -140,15 +151,15 @@ export class CustomerStatementRepository {
     const database = await getBillingDatabase(databaseName);
     const { financialYearId } = currentBillingScope();
     const result = await sql<{ balance: string | number; legacy: string | number }>`
-      SELECT COALESCE(contact.opening_balance,0) AS legacy, COALESCE(contact.opening_balance,0)
+      SELECT (CASE WHEN ${billingReportCurrency()}='INR' THEN COALESCE(contact.opening_balance,0) ELSE 0 END) AS legacy, (CASE WHEN ${billingReportCurrency()}='INR' THEN COALESCE(contact.opening_balance,0) ELSE 0 END)
         + COALESCE((SELECT SUM(sale.amount) FROM billing_sales sale
-          WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.customer_id=${contactId}
+          WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND sale.customer_id=${contactId}
             AND sale.status='confirmed' AND sale.deleted_at IS NULL AND sale.issued_on<${from}),0)
         + COALESCE((SELECT SUM(sale.amount) FROM billing_export_sales sale
-          WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.customer_id=${contactId}
+          WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND sale.customer_id=${contactId}
             AND sale.status='confirmed' AND sale.deleted_at IS NULL AND sale.issued_on<${from}),0)
         - COALESCE((SELECT SUM(receipt.total_amount) FROM billing_receipts receipt
-          WHERE receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.customer_id=${contactId}
+          WHERE receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND receipt.customer_id=${contactId}
             AND receipt.status='posted' AND receipt.deleted_at IS NULL
             AND receipt.receipt_date<${from}),0) AS balance
       FROM core_contacts contact WHERE contact.id=${contactId} LIMIT 1
@@ -234,14 +245,14 @@ function customerMovements(companyId: number, contactId: number, from: string, t
            DATE_FORMAT(sale.issued_on,'%Y-%m-%d') AS document_date,
            'Sales invoice' AS narration, sale.amount AS debit, 0 AS credit
     FROM billing_sales sale
-    WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.customer_id=${contactId}
+    WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND sale.customer_id=${contactId}
       AND sale.status='confirmed' AND sale.deleted_at IS NULL
       AND sale.issued_on BETWEEN ${from} AND ${to}
     UNION ALL
     SELECT sale.id, 2, sale.uuid, sale.invoice_number, 'export-sale',
            DATE_FORMAT(sale.issued_on,'%Y-%m-%d'), 'Export sales invoice', sale.amount, 0
     FROM billing_export_sales sale
-    WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.customer_id=${contactId}
+    WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND sale.customer_id=${contactId}
       AND sale.status='confirmed' AND sale.deleted_at IS NULL
       AND sale.issued_on BETWEEN ${from} AND ${to}
     UNION ALL
@@ -249,7 +260,7 @@ function customerMovements(companyId: number, contactId: number, from: string, t
            DATE_FORMAT(receipt.receipt_date,'%Y-%m-%d'),
            CONCAT('Receipt - ', receipt.receipt_mode), 0, receipt.total_amount
     FROM billing_receipts receipt
-    WHERE receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.customer_id=${contactId}
+    WHERE receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND receipt.customer_id=${contactId}
       AND receipt.status='posted' AND receipt.deleted_at IS NULL
       AND receipt.receipt_date BETWEEN ${from} AND ${to}
   `;

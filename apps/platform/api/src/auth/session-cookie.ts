@@ -44,9 +44,13 @@ export function readEncryptedSessionCookie(request: FastifyRequest) {
   return "";
 }
 
-export function writeEncryptedSessionCookie(reply: FastifyReply, token: string) {
+export function writeEncryptedSessionCookie(
+  reply: FastifyReply,
+  token: string,
+  slot = randomBytes(16).toString("hex")
+) {
   if (env.AUTH_MODE === "jwt") return null;
-  const slot = randomBytes(16).toString("hex");
+  if (!sessionSlotPattern.test(slot)) throw new Error("Invalid session cookie slot.");
   reply.setCookie(authCookieName(slot), encryptSessionCookie(token), {
     httpOnly: true,
     maxAge: env.AUTH_SESSION_TTL_HOURS * 60 * 60,

@@ -1,3 +1,6 @@
+import { sql } from "kysely";
+import { AppError } from "@codexsun/framework/errors";
+import { getBillingDatabase } from "./database/billing-database.js";
 import { requireTenantAccess } from "@codexsun/framework/api";
 import { ok } from "@codexsun/framework/http";
 import type { FastifyInstance } from "fastify";
@@ -52,6 +55,18 @@ export async function registerBillingApi(app: FastifyInstance) {
       const access = await authorizeBillingRequest(request, tenantDatabase, claims.email ?? "");
       setBillingFinalizedEntryEditAccess(access.canEditFinalizedEntries);
       currentBillingScope().actorEmail = claims.email ?? "";
+      if (
+        request.url.startsWith("/billing/reports/") ||
+        request.url.startsWith("/billing/dashboard")
+      ) {
+        const currency = currentBillingScope().reportCurrencyCode ?? "INR";
+        const rows =
+          await sql`SELECT id FROM core_currencies WHERE UPPER(name)=${currency} LIMIT 1`.execute(
+            await getBillingDatabase(tenantDatabase)
+          );
+        if (!rows.rows.length)
+          throw AppError.validation("The reporting currency is not configured for this tenant.");
+      }
     });
     billingApp.get("/billing/access", async (request) => {
       const canEditEntries = Boolean(currentBillingScope().canEditFinalizedEntries);

@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
-import { Minus, Plus, Trash2, Utensils } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import type { CafeOrder, MenuOption, LastBill } from "./order.types";
+import { MenuImage } from "../menu";
 import { OrderEntry } from "./order.entry";
 import "./order.css";
 export function OrderForm({
@@ -13,7 +14,13 @@ export function OrderForm({
   onAssign,
   onHistory,
   lastBill,
-  search
+  search,
+  preferences,
+  kitchenMode = false,
+  parcelMode = false,
+  bookingMode = false,
+  actionDisabled = false,
+  footerContent
 }: {
   order: CafeOrder;
   menu: MenuOption[];
@@ -25,6 +32,12 @@ export function OrderForm({
   onHistory: () => void;
   lastBill: LastBill | undefined;
   search: string;
+  preferences: { showItemImages: boolean; showItemCodes: boolean; showSpecialLabels: boolean };
+  kitchenMode?: boolean;
+  parcelMode?: boolean;
+  bookingMode?: boolean;
+  actionDisabled?: boolean;
+  footerContent?: ReactNode;
 }) {
   const lines = order.lines;
   const [category, setCategory] = useState("");
@@ -32,7 +45,6 @@ export function OrderForm({
   const [code, setCode] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [error, setError] = useState("");
-  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const codeRef = useRef<HTMLInputElement>(null);
   const payRef = useRef<HTMLButtonElement>(null);
   const available = menu.filter((item) => item.status === "active");
@@ -123,23 +135,16 @@ export function OrderForm({
                 }}
               >
                 <div className="qcafe-product-image">
-                  {item.imageUrl && !failedImages[item.imageUrl] ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.name}
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                      onError={() =>
-                        setFailedImages((previous) => ({ ...previous, [item.imageUrl!]: true }))
-                      }
-                    />
-                  ) : (
-                    <Utensils aria-hidden="true" />
-                  )}
-                  <span>{item.code}</span>
+                  {preferences.showItemImages && <MenuImage src={item.imageUrl} alt={item.name} />}
+                  {preferences.showItemCodes && <span>{item.code}</span>}
                 </div>
                 <strong title={item.name}>{item.name}</strong>
                 <b>₹{(item.price / 100).toFixed(2)}</b>
+                {preferences.showSpecialLabels && item.activeSpecial && (
+                  <small className="qcafe-product-special" title={item.activeSpecial.name}>
+                    {item.activeSpecial.prefix} · {item.activeSpecial.name}
+                  </small>
+                )}
               </button>
             ))}
           </div>
@@ -152,14 +157,16 @@ export function OrderForm({
         <section className="qcafe-bill" aria-label="Current order">
           <header className="qcafe-bill-heading">
             <div>
-              <button
-                className="qcafe-assignment-button"
-                onClick={onAssign}
-                disabled={locked || order.tickets.length > 0}
-              >
-                {order.mode} · {order.tableName || "Parcel"}
-                {order.seats.length ? ` · Seat ${order.seats.join(", ")}` : ""}
-              </button>
+              {!parcelMode && order.mode !== "TAKE AWAY" && (
+                <button
+                  className="qcafe-assignment-button"
+                  onClick={onAssign}
+                  disabled={locked || (!kitchenMode && order.tickets.length > 0)}
+                >
+                  {order.mode} · {order.tableName}
+                  {order.seats.length ? ` · Seat ${order.seats.join(", ")}` : ""}
+                </button>
+              )}
               <strong>{order.name}</strong>
             </div>
             <div>
@@ -246,8 +253,21 @@ export function OrderForm({
           )}
 
           <footer className="qcafe-bill-total">
-            <button ref={payRef} disabled={busy || disabled || !lines.length} onClick={onBill}>
-              {busy ? "Saving…" : "Pay"} <kbd>F7</kbd>
+            <button
+              ref={payRef}
+              disabled={busy || disabled || actionDisabled || !lines.length}
+              onClick={onBill}
+            >
+              {busy
+                ? "Saving…"
+                : bookingMode
+                  ? "Send for preparation"
+                  : parcelMode
+                    ? "Send parcel"
+                    : kitchenMode
+                      ? "Send KOT"
+                      : "Pay"}{" "}
+              <kbd>{kitchenMode ? "F4" : "F7"}</kbd>
             </button>
             <div>
               <span>TOTAL</span>
@@ -267,6 +287,7 @@ export function OrderForm({
         enterCode={enterCode}
         lastBill={lastBill}
         onHistory={onHistory}
+        leadingContent={footerContent}
       />
     </div>
   );

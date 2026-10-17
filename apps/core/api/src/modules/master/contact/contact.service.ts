@@ -60,8 +60,40 @@ export class ContactService {
     return { id: created.id, name: created.name };
   }
 
+  async resolveExternalCustomer(externalKey: string, name: string, mobile: string) {
+    if (!/^[a-f0-9]{64}$/.test(externalKey) || !name.trim() || !/^\d{10}$/.test(mobile))
+      throw AppError.validation(
+        "External customer identity, name, and a 10-digit mobile are required."
+      );
+    const code = `EXT-${externalKey.toUpperCase()}`;
+    const existing = await this.repository.lockExternalCustomer(code);
+    if (existing) {
+      if (existing.status !== "active" || existing.deleted_at)
+        throw AppError.conflict(
+          "The linked Core customer is inactive or deleted. Restore it before importing."
+        );
+      await this.repository.attachExternalCustomerPhone(existing.id, mobile);
+      return { id: existing.id, uuid: existing.uuid };
+    }
+    const type = await this.repository.findContactTypeByName("Customer");
+    if (!type) throw AppError.validation("Active Customer contact type is required.");
+    const created = await this.create({
+      code,
+      name: name.trim(),
+      typeId: type.id,
+      phones: [{ phone: mobile, phoneType: "Mobile", isPrimary: true }]
+    });
+    return { id: created.id, uuid: created.uuid };
+  }
+
   async update(id: string, input: ContactSaveInput) {
     const contact = await this.mutable(id);
+    if (
+      /^EXT-[a-f0-9]{64}$/i.test(contact.code) &&
+      input.code !== undefined &&
+      input.code.trim().toUpperCase() !== contact.code.toUpperCase()
+    )
+      throw AppError.conflict("An externally linked customer code cannot change.");
     const normalized = await this.validateAndEnrich(input);
     await this.ensureUniqueCode(normalized.code ?? "", contact.id);
     return this.save(async () => {

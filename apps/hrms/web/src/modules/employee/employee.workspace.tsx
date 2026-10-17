@@ -1,3 +1,4 @@
+import { useWorkspaceQueryValue, useWorkspaceQueryState } from "@codexsun/ui/workspace/navigation";
 import { useDeferredValue, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -47,13 +48,13 @@ export function EmployeeWorkspace({ gateway }: { gateway: EmployeeGateway }) {
 function EmployeeListWorkspace({ gateway }: { gateway: EmployeeGateway }) {
   const client = useQueryClient();
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<EmployeeFilters>({
+  const [filters, setFilters] = useWorkspaceQueryState<EmployeeFilters>({
     search: "",
     status: "all",
     deleted: false
   });
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100);
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
   const [showInlineFilters, setShowInlineFilters] = useState(false);
   const [columnFilters, setColumnFilters] = useState<EmployeeColumnFilters>({});
@@ -103,7 +104,7 @@ function EmployeeListWorkspace({ gateway }: { gateway: EmployeeGateway }) {
   const currentPage = Math.min(page, totalPages);
   const activeColumnFilters = Object.values(columnFilters).filter((value) => value?.trim()).length;
   return (
-    <WorkspacePage title="" className="pt-0 lg:pt-0" technicalName="page.hrms.employee.list">
+    <WorkspacePage variant="list" title="" className="pt-0 lg:pt-0" technicalName="page.hrms.employee.list">
       <WorkspaceFilters
         searchValue={filters.search}
         searchPlaceholder="Search code, name, email or department"

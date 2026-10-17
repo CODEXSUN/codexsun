@@ -1,27 +1,33 @@
+import { initialLogicxMarketing } from "./page.marketing-defaults.js";
+import { logicxApplications } from "./page.logicx-apps.js";
 import type { PageContent } from "./page.schema.js";
 
 export const initialLogicxPage: PageContent = {
-  pageTitle: "LogicX | Practical software systems",
+  marketing: initialLogicxMarketing,
+  applications: logicxApplications,
+  pageTitle: "LogicX Software | Custom software, Frappe, React & mobile apps",
   description:
-    "Custom software, ERPNext, Tally integration, website engineering and workflow automation.",
+    "Custom business software, Frappe and ERPNext, React web apps, mobile applications, integrations and ongoing automation support.",
   profile: {
-    name: "LogicX ERP",
+    name: "LogicX Software",
     brand: "LogicX",
-    location: "Software & integration",
+    location: "Software, apps & business automation",
     tagline: "Software that connects the work",
     domain: "logicx.in",
     emails: ["hello@logicx.in"],
-    phones: [],
+    phones: [{ label: "+91 96552 27738", href: "+919655227738" }],
+    whatsappNumber: "919655227738",
+    mapQuery: "LogicX Software, logicx.in",
     address: [],
     gstin: ""
   },
   hero: {
     eyebrow: "Software that connects the work",
-    title: "Practical systems.",
-    secondLine: "Built around",
-    emphasis: "your business.",
+    title: "Your business.",
+    secondLine: "Connected by",
+    emphasis: "better software.",
     intro:
-      "Connect operations, finance and customer workflows through purposeful software that fits the way your team already works.",
+      "Custom software, Frappe and ERPNext, React web apps and mobile experiences. We connect the tools, teams and decisions that keep your business moving.",
     button: "Explore services",
     caption: "Custom software · ERP · Integration",
     artLabel: "Connected systems",
@@ -29,7 +35,14 @@ export const initialLogicxPage: PageContent = {
     artEmphasis: "Deliver."
   },
   materials: {
-    names: ["Custom software", "ERPNext", "Tally", "Web systems", "Automation"],
+    names: [
+      "Custom software",
+      "Frappe & ERPNext",
+      "React apps",
+      "Mobile apps",
+      "Business automation",
+      "Support"
+    ],
     caption: "Useful technology, joined properly."
   },
   about: {
@@ -69,12 +82,46 @@ export const initialLogicxPage: PageContent = {
     emphasis: "joined properly.",
     intro: "Purposeful software for operations, finance and customer experience.",
     items: [
-      { name: "Custom software", detail: "Purpose-built systems for the way your team works." },
-      { name: "Tally integration", detail: "Finance data connected, validated and reconciled." },
-      { name: "ERPNext delivery", detail: "Practical ERP rollout shaped around real operations." },
-      { name: "Website engineering", detail: "Fast digital experiences built to keep evolving." },
-      { name: "Workflow automation", detail: "Rules and approvals that remove repetitive work." },
-      { name: "Hosting and care", detail: "Production care after every launch." }
+      {
+        name: "Custom business software",
+        detail:
+          "Purpose-built portals, internal tools, operational systems and APIs, designed around your processes and permissions."
+      },
+      {
+        name: "Frappe & ERPNext",
+        detail:
+          "Frappe applications, DocTypes, ERPNext setup, workflow extensions, reports, migrations and integrations."
+      },
+      {
+        name: "React web applications",
+        detail:
+          "Responsive customer portals, dashboards and business applications with React, typed APIs and accessible interfaces."
+      },
+      {
+        name: "Mobile applications",
+        detail:
+          "Mobile workflows for customers and field teams, connected to business APIs with offline needs assessed during discovery."
+      },
+      {
+        name: "Business automation",
+        detail:
+          "Approvals, scheduled jobs, document flows and integrations that reduce repeated work while preserving traceability."
+      },
+      {
+        name: "Tally & system integrations",
+        detail:
+          "Connect accounting, commerce, ERP and external services through validated data exchange and explicit ownership."
+      },
+      {
+        name: "Websites & ecommerce",
+        detail:
+          "Portfolio sites, content workspaces and storefront experiences connected to your business processes."
+      },
+      {
+        name: "Hosting, maintenance & support",
+        detail:
+          "Deployment, monitoring, backups, upgrades, issue resolution and ongoing improvements under an agreed support scope."
+      }
     ]
   },
   responsibility: {
@@ -92,7 +139,16 @@ export const initialLogicxPage: PageContent = {
   },
   equipment: {
     label: "Technology & integrations",
-    names: ["ERPNext", "Tally", "Web systems"],
+    names: [
+      "Frappe",
+      "ERPNext",
+      "React",
+      "TypeScript",
+      "Mobile APIs",
+      "MariaDB",
+      "SQLite",
+      "Tally"
+    ],
     note: "Technology is selected around the workflow."
   },
   contact: {
@@ -108,6 +164,6 @@ export const initialLogicxPage: PageContent = {
   },
   footer: {
     lineOne: "Software that connects the work.",
-    lineTwo: "Custom software · ERPNext · Tally · Websites · Automation"
+    lineTwo: "Custom software · Frappe · React · Mobile · Automation · Support"
   }
 };

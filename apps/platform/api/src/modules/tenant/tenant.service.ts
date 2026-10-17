@@ -383,6 +383,12 @@ function tenantPersistenceError(error: unknown) {
  * A single-tenant install has exactly one tenant, so its storefront is served on any host.
  */
 export async function resolvePublicStorefrontTenant(value: string): Promise<Tenant> {
+  return resolvePublicApplicationTenant(value, "ecommerce");
+}
+export async function resolvePublicApplicationTenant(
+  value: string,
+  moduleKey: "ecommerce" | "tconnect"
+): Promise<Tenant> {
   const host = normalizeTenantDomain(value);
   const repository = new TenantRepository();
   const tenant = isSingleTenantMode()
@@ -392,7 +398,7 @@ export async function resolvePublicStorefrontTenant(value: string): Promise<Tena
         (host === "localhost" || host === "127.0.0.1")
       ? await repository.findByCorporateId(env.DEFAULT_TENANT_CORPORATE_ID)
       : await repository.findByDomain(host);
-  if (!tenant || tenant.status !== "active" || !tenant.enabledModuleKeys.includes("ecommerce"))
-    throw AppError.notFound("Storefront is not available for this domain.");
+  if (!tenant || tenant.status !== "active" || !tenant.enabledModuleKeys.includes(moduleKey))
+    throw AppError.notFound("The public application is not available for this domain.");
   return tenant;
 }

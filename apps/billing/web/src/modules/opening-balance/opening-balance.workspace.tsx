@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useOpeningBalanceControls } from "./opening-balance.controls";
+import { WorkspaceHeaderActions } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceRecordSelection } from "@codexsun/ui/workspace/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
@@ -7,13 +9,20 @@ import { useOpeningBalances } from "./opening-balance.hooks";
 import { OpeningBalanceForm } from "./opening-balance.form";
 import { OpeningBalanceList } from "./opening-balance.list";
 import { saveOpeningBalance } from "./opening-balance.services";
-import type { OpeningBalanceInput } from "./opening-balance.types";
+import type { OpeningBalance } from "./opening-balance.types";
 
 export function OpeningBalanceWorkspace() {
   const query = useOpeningBalances();
+  const { tools, entries, toolbar } = useOpeningBalanceControls(query.data?.items ?? []);
   const access = useBillingAccess();
   const client = useQueryClient();
-  const [form, setForm] = useState<{ initial: OpeningBalanceInput | null } | null>(null);
+  const [editing, setEditing] = useWorkspaceRecordSelection(
+    query.data?.items ?? [],
+    (item) => item.id
+  );
+  const form = editing === undefined ? null : { initial: editing };
+  const setForm = (value: { initial: OpeningBalance | null } | null) =>
+    setEditing(value === null ? undefined : value.initial);
   const mutation = useMutation({
     mutationFn: saveOpeningBalance,
     onSuccess: async () => {
@@ -27,10 +36,6 @@ export function OpeningBalanceWorkspace() {
   if (!query.data) return null;
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Openings belong to the selected company and financial year. Review legacy values before
-        assignment.
-      </p>
       {form ? (
         <OpeningBalanceForm
           data={query.data}
@@ -42,17 +47,21 @@ export function OpeningBalanceWorkspace() {
         />
       ) : (
         <>
-          <Button
-            disabled={!access.data?.canEditEntries}
-            onClick={() => {
-              mutation.reset();
-              setForm({ initial: null });
-            }}
-          >
-            New opening
-          </Button>
+          <WorkspaceHeaderActions>
+            <Button
+              disabled={!access.data?.canEditEntries}
+              onClick={() => {
+                mutation.reset();
+                setForm({ initial: null });
+              }}
+            >
+              New opening
+            </Button>
+          </WorkspaceHeaderActions>
+          {toolbar}
           <OpeningBalanceList
-            items={query.data.items}
+            tools={tools}
+            items={entries}
             canEdit={Boolean(access.data?.canEditEntries)}
             onEdit={(item) => {
               mutation.reset();

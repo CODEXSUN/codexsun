@@ -1,10 +1,15 @@
+import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { RotateCcw, Trash2 } from "lucide-react";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import type { AttendanceRecord } from "./attendance.types";
 
+export const attendanceListColumns = {"employeeCode": "Employee code", "employeeName": "Employee", "department": "Department", "workDate": "Date", "status": "Status", "checkIn": "Check in", "checkOut": "Check out"};
+
 type AttendanceListProps = {
+  listTools?: WorkspaceListTools;
   records: AttendanceRecord[];
   loading: boolean;
   onEdit: (record: AttendanceRecord) => void;
@@ -13,19 +18,14 @@ type AttendanceListProps = {
 };
 
 export function AttendanceList({
+  listTools,
   records,
   loading,
   onEdit,
   onRestore,
   onRemove
 }: AttendanceListProps) {
-  return (
-    <WorkspaceTable
-      data={records}
-      isLoading={loading}
-      emptyState="No attendance records for this date."
-      minWidth="900px"
-      columns={[
+  const columns: ColumnDef<AttendanceRecord>[] = [
         { accessorKey: "employeeCode", header: "Employee code" },
         { accessorKey: "employeeName", header: "Employee" },
         { accessorKey: "department", header: "Department" },
@@ -89,7 +89,16 @@ export function AttendanceList({
             />
           )
         }
-      ]}
+      ];
+
+  return (
+    <WorkspaceTable
+      data={records}
+      isLoading={loading}
+      emptyState="No attendance records for this date."
+      minWidth="900px"
+      columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))))}
+      {...(listTools?.showFilters ? {filterRow:listTools.filterRow} : {})}
     />
   );
 }

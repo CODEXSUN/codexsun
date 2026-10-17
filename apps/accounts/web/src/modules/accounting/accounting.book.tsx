@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
@@ -206,18 +206,10 @@ export function BookWorkspace({
     );
 
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       action={
         <div className="flex gap-2">
-          <Button
-            disabled={registerQuery.isFetching}
-            onClick={() => void registerQuery.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", registerQuery.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
+          
           <Button onClick={() => setView({ mode: "upsert" })} type="button">
             <Plus className="size-4" />
             New {kind} entry

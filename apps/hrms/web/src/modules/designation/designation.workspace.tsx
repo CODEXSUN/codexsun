@@ -1,3 +1,5 @@
+import { useWorkspaceQueryValue, useWorkspaceQueryState } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useDeferredValue, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -26,7 +28,7 @@ import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspaceFormBanner } from "@codexsun/ui/workspace/upsert";
 import { designationQueryKey, useDesignations } from "./designation.hooks";
-import { DesignationList, type DesignationAction } from "./designation.list";
+import { DesignationList, designationListColumns, type DesignationAction } from "./designation.list";
 import { designationRouteFromPath } from "./designation.routing";
 import { DesignationShow } from "./designation.show";
 import { DesignationUpsertPage } from "./designation.upsert";
@@ -48,15 +50,16 @@ export function DesignationWorkspace({ gateway }: { gateway: DesignationGateway 
 }
 
 function DesignationListWorkspace({ gateway }: { gateway: DesignationGateway }) {
+  const listTools = useWorkspaceListTools(designationListColumns);
   const client = useQueryClient();
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<DesignationFilters>({
+  const [filters, setFilters] = useWorkspaceQueryState<DesignationFilters>({
     search: "",
     status: "all",
     deleted: false
   });
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 20);
   const [view, setView] = useState<DesignationRecord | null>(null);
   const [confirmation, setConfirmation] = useState<{
     designation: DesignationRecord;
@@ -93,7 +96,7 @@ function DesignationListWorkspace({ gateway }: { gateway: DesignationGateway }) 
     },
     onError: (error) => toast.error("Unable to update designation", { description: error.message })
   });
-  const entries = query.data ?? [];
+  const entries = (query.data ?? []).filter((record) => listTools.matches(record));
   const totalPages = Math.max(1, Math.ceil(entries.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const updateFilters = (next: Partial<DesignationFilters>) => {
@@ -102,7 +105,7 @@ function DesignationListWorkspace({ gateway }: { gateway: DesignationGateway }) 
   };
 
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Designations"
       description="Manage the designations used by employee records."
       technicalName="page.hrms.designation.list"
@@ -117,6 +120,8 @@ function DesignationListWorkspace({ gateway }: { gateway: DesignationGateway }) 
       }
     >
       <WorkspaceFilters
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
         searchValue={filters.search}
         searchPlaceholder="Search designation name or description"
         onSearchValueChange={(search) => updateFilters({ search })}
@@ -124,14 +129,14 @@ function DesignationListWorkspace({ gateway }: { gateway: DesignationGateway }) 
         showSelectedFilterChip
         filterOptions={[
           { id: "all", label: "All statuses" },
-          { id: "active", label: "Active" },
-          { id: "inactive", label: "Inactive" }
+          { id: "active", label: "Active", count: (query.data ?? []).filter((record) => record.status === "active").length },
+          { id: "inactive", label: "Inactive", count: (query.data ?? []).filter((record) => record.status === "inactive").length }
         ]}
         onFilterValueChange={(status) =>
           updateFilters({ status: status === "active" || status === "inactive" ? status : "all" })
         }
         toolbarAction={
-          <Select
+          <>{listTools.toolbarAction}          <Select
             value={filters.deleted ? "deleted" : "current"}
             onValueChange={(value) => updateFilters({ deleted: value === "deleted" })}
           >
@@ -145,7 +150,7 @@ function DesignationListWorkspace({ gateway }: { gateway: DesignationGateway }) 
               <SelectItem value="current">Current designations</SelectItem>
               <SelectItem value="deleted">Deleted designations</SelectItem>
             </SelectContent>
-          </Select>
+          </Select></>
         }
       />
       {query.isError && (
@@ -154,7 +159,7 @@ function DesignationListWorkspace({ gateway }: { gateway: DesignationGateway }) 
         </WorkspaceFormBanner>
       )}
       <DesignationList
-        entries={entries.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)}
+        listTools={listTools}        entries={entries.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)}
         loading={query.isPending}
         onView={setView}
         onEdit={openEdit}

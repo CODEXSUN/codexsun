@@ -1,45 +1,35 @@
+import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { sliderImageSource } from "./storefront-slider.image-field";
 import type { StorefrontSliderRecord } from "./storefront-slider.types";
 
+export const storefrontsliderListColumns = {"imageUrl": "Preview", "title": "Slider", "ishopItem": "Frappe item", "displayOrder": "Order", "published": "Publication", "status": "Status"};
+
+export function storefrontsliderListValues(record: StorefrontSliderRecord) {
+  return {
+    imageUrl: record.imageUrl || "No image",
+    title: `${record.title} ${record.sliderCode}`,
+    ishopItem: record.ishopItem || "Not linked",
+    displayOrder: record.displayOrder,
+    published: record.published ? "Published" : "Draft",
+    status: record.status,
+  };
+}
+
 export function StorefrontSliderList({
-  loading,
-  onEdit,
-  onStatus,
-  records
+  listTools, loading, onEdit, onStatus, records,
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: StorefrontSliderRecord) => void;
   onStatus: (record: StorefrontSliderRecord) => void;
   records: StorefrontSliderRecord[];
 }) {
-  if (loading || records.length === 0) {
-    return (
-      <div className="rounded-md border p-8 text-center text-sm text-muted-foreground">
-        {loading ? "Loading home sliders..." : "No home sliders found."}
-      </div>
-    );
-  }
-  return (
-    <div className="overflow-x-auto rounded-md border">
-      <table className="w-full min-w-[920px] text-sm">
-        <thead>
-          <tr className="border-b bg-muted/40">
-            <th className="px-4 py-3 text-left">Preview</th>
-            <th className="px-4 py-3 text-left">Slider</th>
-            <th className="px-4 py-3 text-left">Frappe item</th>
-            <th className="px-4 py-3 text-left">Order</th>
-            <th className="px-4 py-3 text-left">Publication</th>
-            <th className="px-4 py-3 text-left">Status</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((record) => (
-            <tr className="border-b" key={record.id}>
-              <td className="px-4 py-3">
-                {record.imageUrl ? (
+  const columns: ColumnDef<StorefrontSliderRecord>[] = [
+    { id: "imageUrl", header: "Preview", accessorFn: (record) => storefrontsliderListValues(record).imageUrl, cell: ({ row }) => { const record = row.original; return <> {record.imageUrl ? (
                   <img
                     alt={record.title}
                     className="h-12 w-20 rounded border bg-muted/20 object-contain p-1"
@@ -47,33 +37,22 @@ export function StorefrontSliderList({
                   />
                 ) : (
                   <span className="text-muted-foreground">No image</span>
-                )}
-              </td>
-              <td className="px-4 py-3">
-                <div className="font-medium">{record.title}</div>
-                <div className="text-xs text-muted-foreground">{record.sliderCode}</div>
-              </td>
-              <td className="px-4 py-3">{record.ishopItem || "Not linked"}</td>
-              <td className="px-4 py-3">{record.displayOrder}</td>
-              <td className="px-4 py-3">{record.published ? "Published" : "Draft"}</td>
-              <td className="px-4 py-3">
-                <WorkspaceStatusBadge
+                )} </>; } },
+    { id: "title", header: "Slider", accessorFn: (record) => storefrontsliderListValues(record).title, cell: ({ row }) => { const record = row.original; return <> <div className="font-medium">{record.title}</div>
+                <div className="text-xs text-muted-foreground">{record.sliderCode}</div> </>; } },
+    { id: "ishopItem", header: "Frappe item", accessorFn: (record) => storefrontsliderListValues(record).ishopItem, cell: ({ row }) => { const record = row.original; return <> {record.ishopItem || "Not linked"} </>; } },
+    { id: "displayOrder", header: "Order", accessorFn: (record) => storefrontsliderListValues(record).displayOrder, cell: ({ row }) => { const record = row.original; return <> {record.displayOrder} </>; } },
+    { id: "published", header: "Publication", accessorFn: (record) => storefrontsliderListValues(record).published, cell: ({ row }) => { const record = row.original; return <> {record.published ? "Published" : "Draft"} </>; } },
+    { id: "status", header: "Status", accessorFn: (record) => storefrontsliderListValues(record).status, cell: ({ row }) => { const record = row.original; return <> <WorkspaceStatusBadge
                   label={record.status}
                   tone={record.status === "active" ? "success" : "neutral"}
-                />
-              </td>
-              <td className="px-4 py-3 text-right">
-                <Button size="sm" variant="outline" onClick={() => onEdit(record)}>
+                /> </>; } },
+    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => { const record = row.original; return <> <Button size="sm" variant="outline" onClick={() => onEdit(record)}>
                   Edit
                 </Button>{" "}
                 <Button size="sm" variant="outline" onClick={() => onStatus(record)}>
                   {record.status === "active" ? "Deactivate" : "Activate"}
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+                </Button> </>; } },
+  ];
+  return <WorkspaceTable columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id)))} data={records} isLoading={loading} emptyState="No storefront slider records found." minWidth="800px" {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})} />;
 }

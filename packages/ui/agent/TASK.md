@@ -34,3 +34,12 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 Use `npm run check:component-docs` for this documentation contract.
 Run applicable tests before marking implementation work complete.
 Do not treat documentation, a build, or a model response as proof of live persistence or deployment.
+
+### Host-composed list controls, 17-10-2026
+
+- Added a host router adapter and header-action portal. Query updates from one event are batched. Query numbers accept router-decoded values.
+- Shared list tools provide column-search controls, counted toggle state, visibility preferences, and case-insensitive matching of leaf-supplied values. Field labels and record projections remain in module owners.
+- Application hosts render upsert dialogs as inline form panels when a header target is supplied. Other hosts retain dialogs.
+- Passed UI typecheck, lint, and build. The Platform browser checks exercised these controls across 41 lists and verified refresh persistence and draft navigation.
+
+- TConnect source is included in shared Tailwind scanning for its Platform buyer and member workspaces.

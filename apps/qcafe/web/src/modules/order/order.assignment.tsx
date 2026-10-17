@@ -8,17 +8,19 @@ export function OrderAssignment({
   busy,
   onSave,
   onCancel,
-  fixedMode
+  fixedMode,
+  initialMode
 }: {
   order: CafeOrder;
-  fixedMode?: CafeOrder["mode"];
+  fixedMode?: CafeOrder["mode"] | undefined;
+  initialMode?: CafeOrder["mode"];
   tables: TableOption[];
   occupied: OccupiedSeat[];
   busy: boolean;
   onSave: (patch: Partial<OrderPatch>) => void;
   onCancel: () => void;
 }) {
-  const [mode, setMode] = useState(order.mode);
+  const [mode, setMode] = useState(initialMode ?? order.mode);
   const [tableUuid, setTable] = useState(order.tableUuid ?? "");
   const [seats, setSeats] = useState(order.seats);
   const table = tables.find((table) => table.uuid === tableUuid);
@@ -45,7 +47,7 @@ export function OrderAssignment({
         >
           <option>POS</option>
           <option>KOT</option>
-          <option>TAKE AWAY</option>
+          <option value="TAKE AWAY">Parcel - Take away</option>
         </select>
       </label>
       {mode !== "TAKE AWAY" && (

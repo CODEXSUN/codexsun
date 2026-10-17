@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { useWorkspaceQueryValue, useWorkspaceRecordSelection } from "@codexsun/ui/workspace/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
@@ -12,7 +13,7 @@ import {
   useProductInformation,
   productInformationQueryKey
 } from "./product-information.hooks";
-import { ProductInformationList } from "./product-information.list";
+import { ProductInformationList, productinformationListColumns, productinformationListValues } from "./product-information.list";
 import {
   archiveProductInformation,
   createProductInformation,
@@ -20,15 +21,18 @@ import {
 } from "./product-information.services";
 import type {
   ProductInformationPayload,
-  ProductInformationRecord,
-  PublicationStatus
+  ProductInformationRecord
 } from "./product-information.types";
 export function ProductInformationWorkspace({ onOpenAi }: { onOpenAi: (draft: string) => void }) {
+  const listTools = useWorkspaceListTools(productinformationListColumns);
+  const [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all");
   const client = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<PublicationStatus | undefined>();
-  const [editing, setEditing] = useState<ProductInformationRecord | null | undefined>();
-  const query = useProductInformation(search, status);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+
+
+  const query = useProductInformation(search);
+  const records = (query.data ?? []).filter((record) => (statusFilter === "all" || record.publicationStatus === statusFilter) && listTools.matches(productinformationListValues(record)));
+  const [editing, setEditing] = useWorkspaceRecordSelection<ProductInformationRecord>(query.data ?? [], (record) => String(record.id));
   const coreProducts = useCoreProductOptions();
   const brands = useCoreBrandOptions();
   const save = useMutation({
@@ -64,15 +68,12 @@ export function ProductInformationWorkspace({ onOpenAi }: { onOpenAi: (draft: st
       />
     );
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Items"
       description="Manage Frappe-linked items and their complete storefront content."
       actions={
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => void query.refetch()}>
-            <RefreshCw className="size-4" />
-            Refresh
-          </Button>
+          
           <Button onClick={() => setEditing(null)}>
             <Plus className="size-4" />
             New item
@@ -83,27 +84,22 @@ export function ProductInformationWorkspace({ onOpenAi }: { onOpenAi: (draft: st
       <div className="flex flex-wrap gap-3">
         <div className="min-w-72 flex-1">
           <WorkspaceFilters
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
+        filterValue={statusFilter}
+        onFilterValueChange={setStatusFilter}
+        filterOptions={[{ id: "all", label: "All statuses" },{ id: "draft", label: "Draft", count: (query.data ?? []).filter((record) => record.publicationStatus === "draft").length },{ id: "published", label: "Published", count: (query.data ?? []).filter((record) => record.publicationStatus === "published").length },{ id: "archived", label: "Archived", count: (query.data ?? []).filter((record) => record.publicationStatus === "archived").length }]} 
             searchPlaceholder="Search ecommerce products"
             searchValue={search}
             onSearchValueChange={setSearch}
           />
         </div>
-        <select
-          className="h-10 rounded-md border bg-background px-3 text-sm"
-          value={status ?? ""}
-          onChange={(event) =>
-            setStatus((event.target.value || undefined) as PublicationStatus | undefined)
-          }
-        >
-          <option value="">All states</option>
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-          <option value="archived">Archived</option>
-        </select>
       </div>
       <ProductInformationList
+        listTools={listTools}
         loading={query.isLoading}
-        records={query.data ?? []}
+        records={records}
         onEdit={setEditing}
         onArchive={(record) => archive.mutate(record)}
       />

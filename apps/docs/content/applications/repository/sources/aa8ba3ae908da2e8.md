@@ -1,0 +1,56 @@
+# Core plan
+
+Repository source: `apps/core/agent/PLAN.md`
+
+Source SHA-256 (LF line endings): `2590750b602fc6a75664bc91029ed2451f79e433341b99bfd24005da2909d125`
+
+This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
+Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
+Historical notes and unchecked plans retain their original status.
+
+```markdown
+# Core plan
+
+## Scope
+
+Shared tenant masters, contact and product identity, organization records, and geographic relationships.
+
+## Ownership contract
+
+A concrete leaf owns its schema, repository, validation, routes, seeds, and UI. Other apps use public lookup contracts rather than private Core implementations.
+
+The root Agent Guide and governance rules remain authoritative.
+Keep one root dependency installation, lockfile, and generated output tree.
+Keep business roles inside their owner and compose other components through public contracts.
+
+## Current source surfaces
+
+- `api/src/modules`: `common`, `common/accounts/ledger-groups`, `common/accounts/ledgers`, `common/contacts/address-types`, `common/contacts/bank-names`, `common/contacts/contact-groups`, `common/contacts/contact-types`, `common/location`, `common/location/city`, `common/location/country`, `common/location/district`, `common/location/pincode`, `common/location/state`, `common/others/currencies`, `common/others/months`, `common/others/payment-terms`, `common/others/priorities`, `common/others/sales-types`, `common/products/brands`, `common/products/colours`, `common/products/hsn-codes`, `common/products/product-categories`, `common/products/product-groups`, `common/products/product-types`, `common/products/sizes`, `common/products/styles`, `common/products/taxes`, `common/products/units`, `common/workorder/destinations`, `common/workorder/stock-rejection-types`, `common/workorder/transports`, `common/workorder/warehouses`, `common/workorder/work-order-types`, `master`, `master/contact`, `master/product`, `master/work-order`, `organisation`, `organisation/company`, `organisation/default-company`, `organisation/financial-year`.
+- `web/src/modules`: `common/accounts/ledger-groups`, `common/accounts/ledgers`, `common/contacts/address-types`, `common/contacts/bank-names`, `common/contacts/contact-groups`, `common/contacts/contact-types`, `common/location/city`, `common/location/country`, `common/location/district`, `common/location/pincode`, `common/location/state`, `common/others/currencies`, `common/others/months`, `common/others/payment-terms`, `common/others/priorities`, `common/others/sales-types`, `common/products/brands`, `common/products/colours`, `common/products/hsn-codes`, `common/products/product-categories`, `common/products/product-groups`, `common/products/product-types`, `common/products/sizes`, `common/products/styles`, `common/products/taxes`, `common/products/units`, `common/workorder/destinations`, `common/workorder/stock-rejection-types`, `common/workorder/transports`, `common/workorder/warehouses`, `common/workorder/work-order-types`, `master/contact`, `master/product`, `master/work-order`, `organisation/company`, `organisation/default-company`, `organisation/financial-year`.
+
+Source presence is not release evidence. Confirm executable behavior before describing a capability as complete.
+
+## Delivery sequence
+
+1. Read [TASK.md](TASK.md), [SKILLS.md](SKILLS.md), and the affected public entry points.
+2. Inventory the current Core implementation and its consumers.
+3. Define the requested change and acceptance criteria within the scope above.
+4. Resolve stored-data and public-contract compatibility before changing behavior.
+5. Implement the change in its owner and update legitimate composition points.
+6. Verify the owner, denied-access paths where relevant, and dependent applications.
+7. Record evidence and remaining work in [TASK.md](TASK.md).
+
+## Verification gates
+
+- `node tools/check-module-boundaries.mjs core`
+- `npm run typecheck -w @codexsun/core-api`
+- `npm run lint -w @codexsun/core-api`
+- `npm run build -w @codexsun/core-api`
+- `npm run typecheck -w @codexsun/core-web`
+- `npm run lint -w @codexsun/core-web`
+- `npm run build -w @codexsun/core-web`
+
+Use `npm run check:component-docs` and the relevant root checks.
+Run database, browser, native, and deployment checks when the changed behavior needs them.
+Do not mark an untested phase or planned feature complete.
+```

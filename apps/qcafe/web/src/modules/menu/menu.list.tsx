@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Pencil, Power, Utensils } from "lucide-react";
+import { Pencil, Power } from "lucide-react";
+import { MenuImage } from "./menu.image";
 import type { MenuItem } from "./menu.types";
 export function MenuList({
   items,
@@ -18,7 +18,6 @@ export function MenuList({
   canManage: boolean;
   disabled?: boolean;
 }) {
-  const [failed, setFailed] = useState<Record<string, boolean>>({});
   return (
     <div className="qcafe-master-records">
       {items.map((item) => (
@@ -32,17 +31,7 @@ export function MenuList({
             onClick={() => onSelect(item)}
           >
             <span className="qcafe-master-thumb">
-              {item.imageUrl && !failed[item.imageUrl] ? (
-                <img
-                  src={item.imageUrl}
-                  alt=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                  onError={() => setFailed((current) => ({ ...current, [item.imageUrl!]: true }))}
-                />
-              ) : (
-                <Utensils size={20} />
-              )}
+              <MenuImage src={item.imageUrl} />
             </span>
             <span className="qcafe-master-record-copy">
               <strong>{item.name}</strong>

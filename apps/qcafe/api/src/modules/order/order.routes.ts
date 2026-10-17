@@ -4,6 +4,16 @@ import { registerContractRoute } from "@codexsun/framework/http";
 import type { OrderDependencies } from "./order.types.js";
 import { OrderService } from "./order.service.js";
 const uuid = z.string().regex(/^[a-f0-9]{8}$/u);
+const booking = z
+  .object({
+    customerName: z.string().trim().min(1).max(120),
+    mobile: z
+      .string()
+      .trim()
+      .regex(/^\+?[0-9]{7,15}$/u, "Enter a mobile number with 7 to 15 digits."),
+    pickupAt: z.iso.datetime({ offset: true })
+  })
+  .strict();
 const line = z
   .object({
     menuUuid: uuid,
@@ -25,6 +35,9 @@ const ticket = z
   .strict();
 const order = z
   .object({
+    parcelToken: z.string().nullable(),
+    booking: booking.nullable(),
+    bookingToken: z.string().nullable(),
     uuid,
     name: z.string(),
     revision: z.number(),
@@ -41,6 +54,7 @@ const order = z
 const input = z
   .object({
     requestId: z.uuid(),
+    booking: booking.nullable().optional(),
     revision: z.number().int().nonnegative(),
     action: z.enum(["save", "kitchen", "bill", "cancel"]),
     name: z.string().trim().min(1).max(40),
@@ -57,6 +71,8 @@ const input = z
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (v.booking && v.mode !== "TAKE AWAY")
+      ctx.addIssue({ code: "custom", message: "Pickup bookings cannot use a table or seats." });
     if (new Set(v.seats).size !== v.seats.length)
       ctx.addIssue({ code: "custom", message: "Choose each seat only once." });
     if (

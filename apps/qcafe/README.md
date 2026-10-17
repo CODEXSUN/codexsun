@@ -2,7 +2,7 @@
 
 QCafe has separate web and desktop entry points. Platform opens the web app at `/app/qcafe` using its existing tenant session. Web users do not enter a cashier PIN. Desktop retains the existing PIN login, local SQLite API, Tauri host, and printing flow.
 
-The current web milestone covers menu management, saved parallel dine-in and takeaway orders, tables and seats, kitchen tickets, immutable bills, partial and full payments, bill history, and browser printing. Web records live in tenant MariaDB tables. Bookings, inventory, configurable tax, discounts, reversals, and desktop synchronization remain follow-up work.
+The current web milestone covers menu management, saved parallel dine-in and takeaway orders, tables and seats, kitchen tickets, immutable bills, partial and full payments, bill history, and browser printing. Web records live in tenant MariaDB tables. Reservation records, inventory, additional tax schemes, discounts, reversals, and desktop synchronization remain follow-up work.
 
 ## Local development
 
@@ -83,9 +83,9 @@ QCafe web renders inside Platform's shared tenant workspace, following the CRM c
 
 ### Desktop-style web POS
 
-The web POS uses the desktop visual arrangement: category pills, compact image cards, a 440px bill panel, line quantity buttons, a blue total, last-bill status, and bottom item-code entry. F2 focuses search, F3 focuses item code, and F7 saves the bill and opens collection. Existing request IDs protect interrupted bill retries. Menu items accept an optional HTTPS photo URL stored in tenant MariaDB by migration `qcafe.menu.002`; missing or failed photos show an empty-image state.
+The web POS uses the desktop visual arrangement: category pills, compact image cards, a 440px bill panel, line quantity buttons, a blue total, last-bill status, and bottom item-code entry. F2 focuses search, F3 focuses item code, and F7 saves the bill and opens collection. Existing request IDs protect interrupted bill retries. Master accepts JPG, PNG, and WebP uploads up to 5 MB through a file picker or drag and drop. The server decodes and resizes each image, strips metadata, and writes WebP files under `storage/<tenant-uuid>/apps/qcafe/master/`. Tenant MariaDB stores the image reference in `image_url` (migration `qcafe.menu.002`). Master and POS load photos through the authenticated tenant endpoint; missing or failed photos show an empty-image state. Existing HTTPS references remain readable.
 
-Web supports saved parallel orders, POS/KOT dine-in assignment, takeaway, table and seat configuration, incremental kitchen tickets, cancellation tickets, bill creation, settlement, and browser printing. The top bar provides search (F2), order tabs, New Order (F9), Kitchen (F4), and Save & print (F8). F1 cycles POS → KOT → Take Away → POS; F7 opens bill collection. The separate pages use `/app/qcafe`, `/app/qcafe/kot`, and `/app/qcafe/take-away`. The new KOT and Take Away pages currently use the existing POS layout and order workflow; page-specific behavior will be refined separately. Kitchen opens the saved KOT preview with Print KOT; reprinting uses the existing snapshot.
+Web supports saved parallel orders, POS/KOT dine-in assignment, takeaway, table and seat configuration, incremental kitchen tickets, cancellation tickets, bill creation, settlement, and browser printing. The top bar provides search (F2), order tabs, New Order (F9), Kitchen (F4), and Save & print (F8). F1 cycles POS → KOT → Parcel - Take away → Booking → POS; F7 opens bill collection. The separate pages use `/app/qcafe`, `/app/qcafe/kot`, and `/app/qcafe/take-away`. The new KOT and Take Away pages currently use the existing POS layout and order workflow; page-specific behavior will be refined separately. Kitchen opens the saved KOT preview with Print KOT; reprinting uses the existing snapshot.
 
 Orders are saved to tenant MariaDB after each edit. Revision checks reject stale edits. Unique seat claims prevent overlapping assignments and remain held until payment completes or an order is cancelled. After sending a KOT, its quantities cannot be reduced or reassigned; cancellation issues a retained cancellation ticket. New kitchen sends include only additional quantities. Retrying an uncertain operation keeps its original request ID and locks further editing until confirmed. Bill creation and order finalization commit in one transaction.
 
@@ -97,6 +97,107 @@ The POS header keeps search, order tabs, New Order, and Save & print. Refresh, T
 
 ### Master workspace
 
-The sidebar label is Master with a crossed-utensils icon. `/app/qcafe/menu` remains the stable route. Items uses a searchable record list and an inline view/edit form. Save item stays at the top of the editor. The form supports item category, code, name, rupee price, photo URL, and status. Item deactivation hides it from new orders without deleting historical bills.
+The sidebar label is Master with a crossed-utensils icon. `/app/qcafe/menu` remains the stable route. Items uses a searchable record list and an inline view/edit form. Save item stays at the top of the editor. The form supports item category, code, name, rupee price, image upload, and status. Item deactivation hides it from new orders without deleting historical bills.
 
-Categories displays the groups already stored with menu items. New categories are entered in the item form. Restaurant Tables uses the same split layout for name, seat count, and active/inactive status. Each business module retains its existing Platform permissions and tenant MariaDB persistence. File upload and special-price configuration are not part of this layout change.
+Categories displays the groups already stored with menu items. New categories are entered in the item form. Restaurant Tables uses the same split layout for name, seat count, and active/inactive status. Each business module retains its existing Platform permissions and tenant MariaDB persistence. Special prices are configured per item and selected in QCafe Settings. Upload requires `qcafe.menu.manage`; reading a photo requires `qcafe.menu.view`. Save item applies the uploaded reference. Replacing or removing a photo does not delete earlier files; include this folder with the tenant backup.
+
+### Today Special pricing
+
+Open QCafe **Settings** at `/app/qcafe/settings`. Add a unique prefix and name, select the active special, and save settings.
+In **Master → Items**, add a special price, choose its definition, enter the rupee price, and enable **Use in POS**.
+Enable **Today Special** in Settings to apply the selected price. Unmatched or disabled item specials use the normal price.
+
+The Special module owns tenant-wide definitions, selection, optimistic revision checks, and audit snapshots.
+Menu owns item special prices. Its POS lookup returns the effective server price and active special label.
+Saving new order lines and creating bills use that same pricing policy. Saved lines and issued bills retain their snapshot rate.
+Settings changes refresh the current web POS menu. Other sessions load the current prices when they refresh.
+View requires `qcafe.menu.view`. Changing definitions, selection, or item prices requires `qcafe.menu.manage`.
+
+Tracked migrations `qcafe.special.001` and `qcafe.menu.003` add `qcafe_special_settings`, `qcafe_special_activity`, and `qcafe_menu.special_prices`.
+Both steps are additive. Existing prices and bills remain intact. Run the QCafe migration batch for each tenant before using this version.
+Expected validation: settings revision increments, item special prices contain configured prefixes, and old bill totals do not change.
+Back up the tenant database before deployment. Roll back application code without dropping these tables or columns.
+Desktop Settings, Master, PIN login, SQLite, and native printing are unchanged.
+
+### Web page headers
+
+Platform gives QCafe sales pages distinct app headers: blue for POS, green for KOT, and purple for Take Away.
+Each header uses white text and a 16px breadcrumb with the page icon. The middle QCafe breadcrumb is omitted.
+Master and Settings retain neutral headers with their own icons. The shared top menu and desktop UI are unchanged.
+
+The selected order tab, Add button, and total use the same page accent as the web app header. These colors follow the page selected with F1. Desktop styles remain unchanged.
+
+### Booking order page
+
+Booking opens at `/app/qcafe/booking` with the same order-entry layout and saved-order workflow as the other sales pages.
+Its header, selected order tab, Add button, total, and Save & print button use amber.
+It is a presentation page over existing tenant orders. Dedicated customer, date, and table reservation records remain follow-up work.
+The web label **Parcel - Take away** replaces Take Away. Existing `/app/qcafe/take-away` links and stored order modes remain valid.
+F1 includes Booking after Parcel - Take away and returns to POS. Desktop remains unchanged.
+
+### Web restaurant Settings and demo content
+
+QCafe Settings remains `/app/qcafe/settings`. Its nine sections follow desktop: General & Profile, Features & Toggles, POS & Billing, Printer & Receipts, Image Storage & Media, Today Special, License, Appearance, and System & Runtime.
+Restaurant profile, POS defaults, receipt preferences, display toggles, and image protection save in tenant MariaDB with revision checks and audit history.
+Appearance uses Platform’s device preferences. License and runtime sections show the signed-in Platform tenant context.
+Windows printer installation, direct printer selection, local folder permissions, native updates, SQLite backups, and desktop exit remain desktop-only.
+Web currently bills in INR and uses the browser print dialog. Save & print still opens that dialog. Optional automatic printing runs after full payment.
+
+Open **POS & Billing → South Indian demo menu** to preview and import 18 sample items in five categories.
+The pack includes breakfast, meals and rice, snacks, beverages, and sweets, with English/Tamil names and sample INR prices.
+Original code-generated food illustrations accompany the pack. They are demo illustrations, not product photography.
+Codes start with `DEMO-`. Existing menu items, edited demo items, orders, bills, and payments are preserved.
+Import is repeat-safe under concurrent requests. Categories are stored as the existing menu category values.
+Images use deterministic tenant-specific filenames under `storage/<tenant-uuid>/apps/qcafe/master/` and authenticated image delivery.
+Preview requires `qcafe.menu.view`. Import and settings updates require `qcafe.menu.manage`.
+Image write protection blocks image uploads, replacement/removal, and demo import at the API.
+
+Tracked migrations `qcafe.settings.001` and `qcafe.pos.003` add tenant settings/audit tables and receipt snapshots.
+Configured GST is included in menu prices. New bills snapshot net amount, included GST, profile, receipt notes, and paper width.
+The total is unchanged by the included GST breakdown. Existing bills retain their original receipt context or legacy display.
+These are additive migrations. Back up the tenant database before deployment and apply the QCafe migration batch to every tenant.
+No desktop code or SQLite data is changed.
+
+### KOT content flow
+
+The KOT page has table and row/seat controls in its content footer. Its kitchen token is the latest saved KOT number.
+Current orders opens a side drawer with pending quantities, order selection, KOT send/reprint, and explicit Bill & pay.
+On KOT, Save & print sends a kitchen ticket instead of creating a bill. Table and seats are required before sending.
+The existing tenant order API owns persistence, occupied-seat checks, revisions, incremental tickets, and billing.
+The top menu, app header, and toolbar layout are unchanged. Desktop code is unchanged.
+
+### Parcel order flow: 17-10-2026
+
+Parcel shows only saved TAKE AWAY orders. New parcels do not use the dine-in default or table assignment.
+Each parcel has a stable PCL token derived from its tenant database order ID. Tokens are unique within the tenant, not daily counters.
+The content footer shows the parcel token and Current orders. The drawer supports send, reprint, selection, and explicit Bill & pay.
+Save & print sends a parcel ticket. Final bill receipts capture the parcel token in the existing service context.
+No schema migration is required. Existing records receive their token on read. Headers and desktop code remain unchanged.
+
+### KOT table drill-down: 17-10-2026
+
+KOT opens the tenant-backed Floor & Guest Tables view before the item menu.
+Select available chairs, then press the table to create a saved KOT order and open its items.
+Select an occupied chair, then press the table to resume its existing draft without changing its lines.
+A billed chair awaiting payment cannot become a new editable order. Seat claims remain enforced by the tenant API.
+New Order and Back to tables return to the floor. The application headers retain their existing layout.
+Only configured tenant tables appear. The reference image does not seed additional restaurant tables.
+
+### Scheduled pickup Booking
+
+Booking has its own order flow, customer form, pickup schedule, BKG token, and Current bookings drawer.
+Customer name, mobile number, and a future pickup date/time are required when creating or rescheduling a booking.
+The form uses device-local time and saves an ISO timestamp with an explicit offset in tenant MariaDB.
+Booking is scheduled pickup metadata on the Order aggregate. It is separate from parcel orders and does not reserve restaurant tables.
+The order API retains server pricing, live permissions, revision checks, operation deduplication, and audit records.
+Booking tokens derive from the saved tenant order ID. They are not daily counters.
+Save & print sends a preparation ticket. The drawer supports reprint and explicit Bill & pay.
+Customer and pickup details become immutable after the first preparation ticket. Cancel and create a new booking to change them afterward.
+New bill receipts snapshot the booking token and details. Old receipts retain their original context.
+Tracked additive migration qcafe.order.002 adds nullable booking_json to qcafe_order. Existing orders remain unchanged.
+Apply this migration to each tenant before using Booking. It was applied locally to verified tenant f63abb54.
+Top menu, application header, and toolbar layout remain unchanged. Desktop PIN, SQLite, and native printing remain unchanged.
+
+### Visual KOT floor
+
+KOT opens a compact table and chair floor with a running-orders panel on the right. Select chairs and press the table to enter items. The panel can send pending quantities to the kitchen or reopen the latest ticket. Table cards display pending, sent, seated, or payment-due status from saved tenant orders and seat claims. Table setup remains in Master; table counts are not hard-coded.

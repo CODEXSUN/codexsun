@@ -63,3 +63,19 @@ test("Frappe navigation groups import, export, and connection pages", () => {
   menu[3]?.items?.[1]?.onSelect?.();
   assert.deepEqual(selected, ["frappe.export.enquiries", "frappe.connection"]);
 });
+
+test("Application access controls follow role permissions and navigate to their own page", () => {
+  const selected: string[] = [];
+  const menu = appMenuItemsFor("application", "application.access.controls", (page) =>
+    selected.push(page)
+  );
+  const access = menu.find((item) => item.title === "Access Control");
+  const entries = access?.items ?? [];
+  const index = entries.findIndex((item) => item.title === "Role Permissions");
+  assert.ok(index >= 0);
+  const controls = entries[index + 1];
+  assert.equal(controls?.title, "Access Control");
+  assert.equal(controls?.isActive, true);
+  controls?.onSelect?.();
+  assert.deepEqual(selected, ["application.access.controls"]);
+});

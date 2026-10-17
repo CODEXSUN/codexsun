@@ -1,3 +1,4 @@
+import { getReportCurrencyCode } from "../../../shared/api/tenant-context";
 import { formatDateTime } from "@codexsun/ui/workspace";
 import { WorkspacePrintSheet } from "@codexsun/ui/workspace/print";
 import { BillingDocumentHeader } from "../../settings";
@@ -29,6 +30,7 @@ export function CustomerSummaryPrint({
         .billing-customer-summary-print-document tr { break-inside: avoid; }
       }`}</style>
       <article className="bg-white px-3 py-3 text-[10px] text-black">
+        <div className="text-xs font-semibold">Currency: {getReportCurrencyCode()}</div>
         <BillingDocumentHeader
           className="border border-slate-500"
           documentMeta={summary.financialYearName}

@@ -10,6 +10,41 @@ const idParams = z.object({ id: z.string().regex(/^\d+$/u) });
 const addressParams = idParams.extend({ addressId: z.string().regex(/^\d+$/u) });
 const searchQuery = z.object({ search: z.string().trim().optional() });
 const body = z.unknown();
+const contactSaveBody = z
+  .object({
+    phones: z
+      .array(
+        z
+          .object({
+            phone: z.string().trim().min(1),
+            phoneType: z.string().trim().min(1),
+            isPrimary: z.boolean()
+          })
+          .passthrough()
+      )
+      .superRefine((phones, context) => {
+        const mobiles = phones.filter((phone) => ["Mobile", "WhatsApp"].includes(phone.phoneType));
+        if (!mobiles.length)
+          context.addIssue({ code: "custom", message: "Add at least one mobile number." });
+        for (const [index, phone] of phones.entries()) {
+          if (mobiles.includes(phone) && !/^\d{10}$/.test(phone.phone))
+            context.addIssue({
+              code: "custom",
+              path: [index, "phone"],
+              message: "Enter a 10-digit mobile number."
+            });
+          if (phones.slice(0, index).some((other) => other.phone === phone.phone))
+            context.addIssue({
+              code: "custom",
+              path: [index, "phone"],
+              message: "This number is already added to this customer."
+            });
+        }
+        if (phones.filter((phone) => phone.isPrimary).length !== 1)
+          context.addIssue({ code: "custom", message: "Choose one primary phone number." });
+      })
+  })
+  .passthrough();
 const lookups: readonly (readonly [CrmContactLookupName, string, string])[] = [
   ["contactTypes", "contact-types", "/core/common/contacts/contact-types"],
   ["contactGroups", "contact-groups", "/core/common/contacts/contact-groups"],
@@ -44,7 +79,7 @@ export function registerCrmContactRoutes(
     handler: ({ body: input, request }) => service.forward(request, "POST", CORE_CONTACTS, input),
     method: "POST",
     preHandler,
-    schemas: { body, response },
+    schemas: { body: contactSaveBody, response },
     url: base
   });
   registerContractRoute(app, {
@@ -67,7 +102,7 @@ export function registerCrmContactRoutes(
       service.forward(request, "PUT", `${CORE_CONTACTS}/${params.id}`, input),
     method: "PUT",
     preHandler,
-    schemas: { body, params: idParams, response },
+    schemas: { body: contactSaveBody, params: idParams, response },
     url: `${base}/:id`
   });
   registerContractRoute(app, {

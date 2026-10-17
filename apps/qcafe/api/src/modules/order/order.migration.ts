@@ -40,3 +40,10 @@ export async function migrateOrders(database: Kysely<QCafeDatabase>) {
     )
     .execute(database);
 }
+export async function migrateOrderBookings(database: Kysely<QCafeDatabase>) {
+  await sql
+    .raw(
+      "ALTER TABLE qcafe_order ADD COLUMN IF NOT EXISTS booking_json LONGTEXT NULL CHECK (booking_json IS NULL OR JSON_VALID(booking_json))"
+    )
+    .execute(database);
+}

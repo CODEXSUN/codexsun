@@ -1,3 +1,4 @@
+import { getReportCurrencyCode } from "../../shared/api/tenant-context";
 import type { ReactNode } from "react";
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Clock3 } from "lucide-react";
 import { cn } from "@codexsun/ui/lib/utils";
@@ -426,7 +427,7 @@ function Empty({ text }: { text: string }) {
 }
 function money(value: number) {
   return new Intl.NumberFormat("en-IN", {
-    currency: "INR",
+    currency: getReportCurrencyCode(),
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
     style: "currency"

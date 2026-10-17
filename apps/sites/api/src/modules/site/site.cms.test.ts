@@ -4,6 +4,8 @@ import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { Kysely, SqliteDialect } from "kysely";
 import Fastify from "fastify";
 import { AppError } from "@codexsun/framework/errors";
+import { initialLogicxPage } from "./page/page.logicx-content.js";
+import { initialLogicxMarketing } from "./page/page.marketing-defaults.js";
 import { initialRamuTexPage } from "./page/page.content.js";
 import { pageContentSchema } from "./page/page.schema.js";
 import { PageRepository, PageService } from "./page/index.js";
@@ -30,8 +32,9 @@ test("client workspaces use their own defaults, saved pages and publication", as
     const logicxPage = new PageService(new PageRepository(db), logicx);
     const draft = (await logicxPage.show()).content;
     assert.equal(draft.profile.domain, "logicx.in");
-    assert.deepEqual(draft.profile.phones, []);
-    assert.equal(draft.finishes.items[0]?.name, "Custom software");
+    assert.equal(draft.profile.phones[0]?.href, "+919655227738");
+    assert.equal(draft.finishes.items[0]?.name, "Custom business software");
+    assert.equal(draft.applications?.length, 23);
     draft.hero.title = "LogicX only";
     await logicxPage.save(draft, 0, "editor@example.test");
     assert.notEqual((await ramuPage.show()).content.hero.title, draft.hero.title);
@@ -207,6 +210,52 @@ test("tenant databases stay isolated and public delivery cannot be rebound acros
     await first.destroy();
     await second.destroy();
   }
+});
+
+test("marketing content survives draft publication and legacy pages remain valid", async () => {
+  const db = createDatabase();
+  try {
+    const service = new PageService(new PageRepository(db), { ...owner, slug: "logicx" });
+    const legacy = structuredClone(initialLogicxPage);
+    delete legacy.marketing;
+    const first = await service.save(legacy, 0, "editor@example.test");
+    await service.publish(first.revision, "publisher@example.test");
+    assert.equal((await service.published())?.marketing, undefined);
+    const content = { ...legacy, marketing: structuredClone(initialLogicxMarketing) };
+    content.marketing.faq.title = "Answers from this client";
+    const saved = await service.save(content, first.revision, "editor@example.test");
+    assert.equal((await service.published())?.marketing, undefined);
+    await service.publish(saved.revision, "publisher@example.test");
+    assert.equal((await service.published())?.marketing?.faq.title, "Answers from this client");
+    assert.equal(
+      (await new PageService(new PageRepository(db), { ...owner, id: 2, slug: "ramutex" }).show())
+        .content.marketing,
+      undefined
+    );
+    await assert.rejects(service.save(content, first.revision, "stale@example.test"), /changed/);
+  } finally {
+    await db.destroy();
+  }
+});
+
+test("marketing media and section limits reject unsafe published data", () => {
+  for (const path of [
+    "https://example.com/asset.svg",
+    "/../private.svg",
+    "/design/missing.html",
+    "javascript:alert(1)",
+    "//example.com/image.svg"
+  ]) {
+    const content = structuredClone(initialLogicxPage);
+    content.marketing!.heroImage = path;
+    assert.equal(pageContentSchema.safeParse(content).success, false, path);
+  }
+  const content = structuredClone(initialLogicxPage);
+  content.marketing!.questions = Array.from({ length: 21 }, () => ({
+    title: "Question",
+    answer: "Answer"
+  }));
+  assert.equal(pageContentSchema.safeParse(content).success, false);
 });
 
 function createDatabase() {

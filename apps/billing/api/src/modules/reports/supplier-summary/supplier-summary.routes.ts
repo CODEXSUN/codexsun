@@ -1,3 +1,4 @@
+import { SupplierSummaryRepository } from "./supplier-summary.repository.js";
 import { registerContractRoute } from "@codexsun/framework/http";
 import { type FastifyInstance, type FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -13,6 +14,7 @@ const itemSchema = z.object({
   name: z.string()
 });
 const responseSchema = z.object({
+  currencyCode: z.string(),
   companyId: z.number().int().positive(),
   companyName: z.string(),
   financialYearId: z.number().int().positive(),
@@ -26,6 +28,12 @@ const responseSchema = z.object({
 const service = new SupplierSummaryService();
 
 export async function registerSupplierSummaryRoutes(app: FastifyInstance) {
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/billing/reports/supplier-summary/currencies",
+    schemas: { response: z.array(z.object({ id: z.number().int().positive(), name: z.string() })) },
+    handler: ({ request }) => new SupplierSummaryRepository().currencies(databaseName(request))
+  });
   registerContractRoute(app, {
     method: "GET",
     url: "/billing/reports/supplier-summary",

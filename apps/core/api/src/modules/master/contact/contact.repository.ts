@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { AppError } from "@codexsun/framework/errors";
 import { sql, type Kysely, type Transaction } from "kysely";
 import {
   currentCoreTransaction,
@@ -21,6 +22,49 @@ type Row = Record<string, unknown>;
 type ContactDatabase = Kysely<CoreDatabase> | Transaction<CoreDatabase>;
 
 export class ContactRepository {
+  async lockExternalCustomer(code: string) {
+    const result = await sql<{
+      id: number;
+      uuid: string;
+      status: string;
+      deleted_at: Date | string | null;
+    }>`SELECT id,uuid,status,deleted_at FROM core_contacts WHERE code=${code} FOR UPDATE`.execute(
+      getCoreDatabase()
+    );
+    return result.rows[0] ?? null;
+  }
+
+  async attachExternalCustomerPhone(id: number, phone: string) {
+    const database = getCoreDatabase();
+    const existing = await sql<{
+      id: number;
+    }>`SELECT id FROM core_contacts_phones WHERE parent_id=${id} AND phone=${phone} LIMIT 1`.execute(
+      database
+    );
+    if (existing.rows.length) return;
+    const contact = await this.find(id);
+    if (!contact) throw AppError.notFound("Contact was not found.");
+    await this.assertUniqueIdentity(database, {
+      ...contact,
+      phones: [
+        ...contact.phones,
+        {
+          id: 0,
+          phone,
+          phoneType: "Mobile",
+          isPrimary: false,
+          sortOrder: contact.phones.length + 1
+        }
+      ]
+    });
+    await sql`INSERT INTO core_contacts_phones (parent_id,phone,phone_type,is_primary,sort_order,created_by)
+      SELECT ${id},${phone},'Mobile',IF(COUNT(*)=0,1,0),COALESCE(MAX(sort_order),0)+1,'system:external-customer-import'
+      FROM core_contacts_phones WHERE parent_id=${id}`.execute(database);
+    await sql`UPDATE core_contacts SET primary_phone=COALESCE(NULLIF(primary_phone,''),${phone}) WHERE id=${id}`.execute(
+      database
+    );
+  }
+
   async createAddress(contactId: number, address: ContactAddress) {
     await getCoreDatabase()
       .insertInto("core_contacts_addresses" as never)
@@ -156,6 +200,7 @@ export class ContactRepository {
     const draft = normalizeContact(input, null);
     const database = getCoreDatabase();
     const insert = async (transaction: Transaction<CoreDatabase>) => {
+      await this.assertUniqueIdentity(transaction, draft);
       const result = await transaction
         .insertInto("core_contacts" as never)
         .values(toContactRow(draft) as never)
@@ -177,6 +222,7 @@ export class ContactRepository {
     const draft = normalizeContact(input, current);
     const database = getCoreDatabase();
     await database.transaction().execute(async (transaction) => {
+      await this.assertUniqueIdentity(transaction, draft);
       await transaction
         .updateTable("core_contacts" as never)
         .set(toContactRow(draft) as never)
@@ -185,6 +231,30 @@ export class ContactRepository {
       await replaceContactChildren(transaction, numericId, draft);
     });
     return requiredContact(await this.find(numericId));
+  }
+
+  private async assertUniqueIdentity(database: ContactDatabase, draft: ContactRecord) {
+    const phones = [
+      ...new Set(draft.phones.map((phone) => phone.phone.replace(/\D/g, "")).filter(Boolean))
+    ];
+    if (!phones.length) return;
+    // Serialize contact saves on an existing tenant reference row, including an empty contact table.
+    await sql`SELECT id FROM core_contact_types ORDER BY id LIMIT 1 FOR UPDATE`.execute(database);
+    const matches = await sql<{ id: number }>`
+      SELECT DISTINCT contact.id FROM core_contacts AS contact
+      LEFT JOIN core_contacts_phones AS phone ON phone.parent_id=contact.id
+      WHERE contact.id<>${draft.id}
+        AND contact.deleted_at IS NULL AND contact.status<>'deleted'
+        AND COALESCE(contact.group_id,0)=${draft.groupId ?? 0}
+        AND LOWER(REGEXP_REPLACE(TRIM(contact.name),'[[:space:]]+',' '))=${draft.name.trim().replace(/\s+/g, " ").toLowerCase()}
+        AND (REGEXP_REPLACE(COALESCE(phone.phone,''),'[^0-9]','') IN (${sql.join(phones)})
+          OR REGEXP_REPLACE(COALESCE(contact.primary_phone,''),'[^0-9]','') IN (${sql.join(phones)}))
+      LIMIT 1 FOR UPDATE
+    `.execute(database);
+    if (matches.rows.length)
+      throw AppError.conflict(
+        "A contact with the same customer name and phone number already exists in this group."
+      );
   }
 
   async setActive(id: number | string, isActive: boolean) {

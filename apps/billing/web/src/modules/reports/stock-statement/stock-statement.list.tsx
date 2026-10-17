@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import {
   WorkspaceTableEmptyState,
   WorkspaceTableLoadingState,
@@ -8,10 +9,12 @@ import type { StockStatementLine } from "./stock-statement.types";
 
 export function StockStatementList({
   entries,
-  loading
+  loading,
+  tools
 }: {
   entries: StockStatementLine[];
   loading: boolean;
+  tools: WorkspaceListTools;
 }) {
   return (
     <WorkspaceTablePanel>
@@ -31,6 +34,7 @@ export function StockStatementList({
                 "Sales value"
               ].map((heading) => (
                 <th
+                  hidden={tools.hidden.includes(heading)}
                   className={`border-b border-border/70 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground ${["Opening", "Inward", "Outward", "Closing", "Purchase value", "Sales value"].includes(heading) ? "text-right" : "text-left"}`}
                   key={heading}
                 >
@@ -38,6 +42,27 @@ export function StockStatementList({
                 </th>
               ))}
             </tr>
+            {tools.showFilters && (
+              <tr>
+                {[
+                  "Product",
+                  "HSN",
+                  "Unit",
+                  "Opening",
+                  "Inward",
+                  "Outward",
+                  "Closing",
+                  "Purchase value",
+                  "Sales value"
+                ]
+                  .filter((label) => !tools.hidden.includes(label))
+                  .map((label) => (
+                    <th className="px-3 pb-2" key={label}>
+                      {tools.filterRow(label)}
+                    </th>
+                  ))}
+              </tr>
+            )}
           </thead>
           <tbody>
             {entries.map((entry) => (
@@ -45,25 +70,43 @@ export function StockStatementList({
                 className="border-b border-border/70 last:border-b-0 hover:bg-muted/20"
                 key={entry.productId}
               >
-                <td className="px-4 py-3 font-semibold">{entry.productName}</td>
-                <td className="px-4 py-3">{entry.hsnCode || "-"}</td>
-                <td className="px-4 py-3">{entry.unitName || "-"}</td>
-                <td className="px-4 py-3 text-right">
+                <td hidden={tools.hidden.includes("Product")} className="px-4 py-3 font-semibold">
+                  {entry.productName}
+                </td>
+                <td hidden={tools.hidden.includes("HSN")} className="px-4 py-3">
+                  {entry.hsnCode || "-"}
+                </td>
+                <td hidden={tools.hidden.includes("Unit")} className="px-4 py-3">
+                  {entry.unitName || "-"}
+                </td>
+                <td hidden={tools.hidden.includes("Opening")} className="px-4 py-3 text-right">
                   {formatStockQuantity(entry.openingQuantity)}
                 </td>
-                <td className="px-4 py-3 text-right text-emerald-700">
+                <td
+                  hidden={tools.hidden.includes("Inward")}
+                  className="px-4 py-3 text-right text-emerald-700"
+                >
                   {formatStockQuantity(entry.inwardQuantity)}
                 </td>
-                <td className="px-4 py-3 text-right text-rose-700">
+                <td
+                  hidden={tools.hidden.includes("Outward")}
+                  className="px-4 py-3 text-right text-rose-700"
+                >
                   {formatStockQuantity(entry.outwardQuantity)}
                 </td>
-                <td className="px-4 py-3 text-right font-semibold">
+                <td
+                  hidden={tools.hidden.includes("Closing")}
+                  className="px-4 py-3 text-right font-semibold"
+                >
                   {formatStockQuantity(entry.closingQuantity)}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td
+                  hidden={tools.hidden.includes("Purchase value")}
+                  className="px-4 py-3 text-right"
+                >
                   {formatStockStatementMoney(entry.purchaseValue)}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td hidden={tools.hidden.includes("Sales value")} className="px-4 py-3 text-right">
                   {formatStockStatementMoney(entry.salesValue)}
                 </td>
               </tr>

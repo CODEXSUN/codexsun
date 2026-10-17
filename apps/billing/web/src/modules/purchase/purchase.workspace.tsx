@@ -1,7 +1,9 @@
+import { useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useMemo, useState, type SetStateAction } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, RefreshCw, Send } from "lucide-react";
+import { Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
@@ -77,7 +79,7 @@ export function PurchaseWorkspace({ initialRecordId }: { initialRecordId?: strin
         : next.mode === "upsert" && !record
           ? `${basePath}/new`
           : `${basePath}/${encodeURIComponent(record!.id)}${next.mode === "upsert" ? "/edit" : ""}`;
-    if (location.pathname !== path) void navigate({ to: path });
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
   }
   useEffect(() => {
     const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
@@ -116,18 +118,31 @@ export function PurchaseWorkspace({ initialRecordId }: { initialRecordId?: strin
       active = false;
     };
   }, [location.pathname]);
-  const [searchValue, setSearchValue] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [searchValue, setSearchValue] = useWorkspaceQueryValue("q", "");
+  const [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all");
+  const [dateFrom, setDateFrom] = useWorkspaceQueryValue("from", "");
+  const [dateTo, setDateTo] = useWorkspaceQueryValue("to", "");
   const [totalsView, setTotalsView] = useState<BillingDocumentTotalsViewMode>("bill");
   const [selectedPurchaseIds, setSelectedPurchaseIds] = useState<Set<string>>(() => new Set());
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(purchaseColumnCatalog.map((column) => [column.id, true]))
+  const listTools = useWorkspaceListTools({
+    number: "Purchase",
+    date: "Date",
+    ...Object.fromEntries(purchaseColumnCatalog.map((column) => [column.id, column.label]))
+  });
+  const visibleColumns = Object.fromEntries(
+    purchaseColumnCatalog.map((column) => [column.id, !listTools.hidden.includes(column.id)])
   );
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [currentPage, setCurrentPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100);
   const purchasesQuery = usePurchasePage({
+    numberSearch: listTools.filters.number ?? "",
+    dateSearch: listTools.filters.issuedOn ?? "",
+    partySearch: listTools.filters.supplier ?? "",
+    totalSearch: listTools.filters.total ?? "",
+    statusSearch: listTools.filters.status ?? "",
+    quantitySearch: listTools.filters.items ?? "",
+    taxableSearch: listTools.filters.taxable ?? "",
+    taxSearch: listTools.filters.gst ?? "",
     customer: "all",
     dateFrom,
     dateTo,
@@ -383,6 +398,7 @@ export function PurchaseWorkspace({ initialRecordId }: { initialRecordId?: strin
 
   return (
     <WorkspacePage
+      variant="list"
       title="Purchases"
       description="Create and review tenant-isolated purchase vouchers with sales layout controls."
       technicalName="page.billing.purchase.list"
@@ -400,16 +416,7 @@ export function PurchaseWorkspace({ initialRecordId }: { initialRecordId?: strin
             <Send className="size-4" />
             Generate invoice{selectedEntries.length ? ` (${selectedEntries.length})` : ""}
           </Button>
-          <Button
-            className="h-9 rounded-md"
-            disabled={purchasesQuery.isFetching}
-            onClick={() => void purchasesQuery.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", purchasesQuery.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
+
           <Button
             className="h-9 rounded-md"
             onClick={() => setView({ mode: "upsert", purchase: null, returnTo: "list" })}
@@ -422,7 +429,11 @@ export function PurchaseWorkspace({ initialRecordId }: { initialRecordId?: strin
       }
     >
       <WorkspaceFilters
-        filterOptions={statusFilters}
+        showSelectedFilterChip
+        filterOptions={statusFilters.map((option) => ({
+          ...option,
+          ...(option.id === statusFilter ? { count: purchasesQuery.data?.total ?? 0 } : {})
+        }))}
         filterValue={statusFilter}
         onFilterValueChange={(value) => {
           setStatusFilter(value);
@@ -434,32 +445,28 @@ export function PurchaseWorkspace({ initialRecordId }: { initialRecordId?: strin
         }}
         searchPlaceholder="Search purchase, supplier, work order, date, or total"
         searchValue={searchValue}
-        columnOptions={purchaseColumnCatalog.map((column) => ({
-          ...column,
-          checked: Boolean(visibleColumns[column.id]),
-          onCheckedChange: (checked: boolean) =>
-            setVisibleColumns((current) => ({ ...current, [column.id]: checked }))
-        }))}
-        onShowAllColumns={() =>
-          setVisibleColumns(
-            Object.fromEntries(purchaseColumnCatalog.map((column) => [column.id, true]))
-          )
-        }
+        columnOptions={listTools.columnOptions.filter((column) =>
+          purchaseColumnCatalog.some((item) => item.id === column.id)
+        )}
+        onShowAllColumns={listTools.onShowAllColumns}
         toolbarAction={
-          <BillingDocumentListControls
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            onDateFromChange={(value) => {
-              setDateFrom(value);
-              setCurrentPage(1);
-            }}
-            onDateToChange={(value) => {
-              setDateTo(value);
-              setCurrentPage(1);
-            }}
-            onTotalsViewChange={setTotalsView}
-            totalsView={totalsView}
-          />
+          <>
+            {listTools.toolbarAction}{" "}
+            <BillingDocumentListControls
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={(value) => {
+                setDateFrom(value);
+                setCurrentPage(1);
+              }}
+              onDateToChange={(value) => {
+                setDateTo(value);
+                setCurrentPage(1);
+              }}
+              onTotalsViewChange={setTotalsView}
+              totalsView={totalsView}
+            />
+          </>
         }
       />
       {purchasesQuery.isError ? (
@@ -472,6 +479,7 @@ export function PurchaseWorkspace({ initialRecordId }: { initialRecordId?: strin
         </WorkspaceTablePanel>
       ) : null}
       <PurchaseList
+        listTools={listTools}
         entries={pageEntries}
         loading={purchasesQuery.isLoading}
         totalsRecords={pageEntries.map((purchase) => ({

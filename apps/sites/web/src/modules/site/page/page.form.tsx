@@ -1,3 +1,5 @@
+import { PageMarketingForm } from "./page.marketing-form.js";
+import { PageApplicationsForm } from "./page.applications-form.js";
 import { PageResponsibilityForm } from "./page.responsibility-form.js";
 import { PageFinishesForm } from "./page.finishes-form.js";
 import { PageField } from "./page.fields.js";
@@ -17,6 +19,10 @@ export function PageForm({
   const hero = value.hero;
   return (
     <div className="grid gap-5">
+      {section === "marketing" ? <PageMarketingForm value={value} onChange={onChange} /> : null}
+      {section === "applications" ? (
+        <PageApplicationsForm value={value} onChange={onChange} />
+      ) : null}
       {section === "seo" ? (
         <>
           <PageField

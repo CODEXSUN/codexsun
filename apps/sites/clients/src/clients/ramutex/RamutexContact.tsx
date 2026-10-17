@@ -1,6 +1,7 @@
 import { MapPin, Phone, Mail, ArrowUpRight, ArrowDownToLine, ArrowRight } from "lucide-react";
 import type { PageContent } from "@codexsun/sites-api/page-contract";
-import { RamutexEnquiry } from "./RamutexEnquiry";
+import { ContactForm } from "../../enquiry/ContactForm";
+import { CompanyMap } from "../../shared/SiteContactTools";
 import profileUrl from "./assets/ramu-tex-company-profile.pdf?url";
 export function RamutexContact({ content }: { content: PageContent }) {
   const { profile, contact, footer } = content;
@@ -57,9 +58,12 @@ export function RamutexContact({ content }: { content: PageContent }) {
               </div>
             </div>
           </div>
-          <RamutexEnquiry profile={profile} contact={contact} />
+          <ContactForm contact={contact} />
         </div>
       </section>
+      <div className="rt-wrap">
+        <CompanyMap profile={profile} />
+      </div>
       <footer className="rt-footer rt-wrap">
         <div className="rt-footer-top">
           <a className="rt-footer-name" href="#">
@@ -78,6 +82,7 @@ export function RamutexContact({ content }: { content: PageContent }) {
         </div>
         <div className="rt-footer-bottom">
           <span>{profile.name}</span>
+          <a href="/privacy">Privacy notice</a>
           {profile.gstin ? <span>GSTIN {profile.gstin}</span> : null}
           <a href={`https://${profile.domain}`} target="_blank" rel="noreferrer">
             {profile.domain}

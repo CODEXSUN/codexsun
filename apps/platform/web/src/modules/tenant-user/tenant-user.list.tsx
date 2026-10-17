@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Trash2 } from "lucide-react";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { WorkspaceProtectedIndicator } from "@codexsun/ui/workspace/protected-indicator";
@@ -6,7 +7,10 @@ import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { TenantUser } from "./tenant-user.types";
 
+export const tenantUserListColumns = { name: "User", email: "Email", status: "Status" };
+
 export function TenantUserList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -14,6 +18,7 @@ export function TenantUserList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: TenantUser) => void;
   onForceDelete: (record: TenantUser) => void;
@@ -68,7 +73,13 @@ export function TenantUserList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No users found."
       isLoading={loading}

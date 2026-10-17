@@ -1,5 +1,6 @@
 import { requiredClientEnv } from "../env/client-env";
 import {
+  getReportCurrencyCode,
   getCompanyId,
   getFinancialYearId,
   getTenantDbName,
@@ -49,6 +50,14 @@ async function billingApiRequest<T>(path: string, init?: RequestInit) {
     credentials: "include",
     headers: {
       Accept: "application/json",
+      ...(path.startsWith("/billing/reports/") || path.startsWith("/billing/dashboard")
+        ? {
+            "x-billing-report-currency":
+              path.startsWith("/billing/reports/gst-statement") || path.endsWith("/currencies")
+                ? "INR"
+                : getReportCurrencyCode()
+          }
+        : {}),
       ...(init?.body !== undefined ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(tenantId ? { "x-tenant-id": tenantId } : {}),

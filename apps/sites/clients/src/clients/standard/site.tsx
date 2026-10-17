@@ -1,3 +1,4 @@
+import { sitePathname } from "../../shared/sitePathname";
 import { useMemo } from "react";
 import { initialSitePage } from "@codexsun/sites-api/page-defaults";
 import { useSitePublication } from "../../shared/useSitePublication";
@@ -11,7 +12,7 @@ export function StandardSite() {
     [slug]
   );
   const { content, blogs, connected, published } = useSitePublication(slug, initial);
-  const article = blogs.find((post) => window.location.pathname === `/blogs/${post.slug}`);
+  const article = blogs.find((post) => sitePathname() === `/blogs/${post.slug}`);
   useClientDocument(
     article ? `${article.title} | ${content.profile.name}` : content.pageTitle,
     article?.summary ?? content.description,

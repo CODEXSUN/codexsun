@@ -33,6 +33,7 @@ export type DashboardOutstanding = {
   settledAmount: number;
 };
 export type BillingDashboard = {
+  currencyCode: string;
   companyId: number;
   companyName: string;
   financialYearEnd: string;

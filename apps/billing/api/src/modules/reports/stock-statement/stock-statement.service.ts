@@ -1,3 +1,4 @@
+import { billingReportCurrency } from "../../../auth/billing-scope.js";
 import { AppError } from "@codexsun/framework/errors";
 import { StockStatementRepository } from "./stock-statement.repository.js";
 import type { StockStatementQuery, StockStatementResult } from "./stock-statement.types.js";
@@ -29,6 +30,7 @@ export class StockStatementService {
       this.repository.count(databaseName, normalized.search)
     ]);
     return {
+      currencyCode: billingReportCurrency(),
       ...summary,
       companyId: context.company_id,
       companyName: context.company_name,

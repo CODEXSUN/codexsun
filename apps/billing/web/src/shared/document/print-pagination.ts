@@ -14,9 +14,18 @@ const BILLING_PRINT_MINIMUM_CONTINUATION_ITEMS = 4;
 const BILLING_PRINT_LINES_PER_ITEM = 3;
 const BILLING_PRINT_PARTICULARS_CHARACTERS_PER_LINE = 42;
 
-export function paginateBillingPrintItems<T>(items: readonly T[]) {
+export function paginateBillingPrintItems<T>(items: readonly T[], compactPageSize?: number) {
   const indexedItems = items.map((item, index) => ({ item, index }));
   const itemCount = indexedItems.length;
+  if (compactPageSize !== undefined) {
+    if (!Number.isInteger(compactPageSize) || compactPageSize < 1)
+      throw new Error("Invalid print page size.");
+    const pages: Array<Array<BillingPrintPageItem<T>>> = [];
+    for (let cursor = 0; cursor < itemCount; cursor += compactPageSize) {
+      pages.push(indexedItems.slice(cursor, cursor + compactPageSize));
+    }
+    return pages.length ? pages : [[]];
+  }
 
   if (itemCount <= BILLING_PRINT_ITEMS_PER_PAGE) {
     return [indexedItems];

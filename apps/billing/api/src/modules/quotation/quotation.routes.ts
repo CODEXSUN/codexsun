@@ -140,6 +140,15 @@ const contextSchema = z.object({
   financialYearName: z.string()
 });
 const pageQuerySchema = z.object({
+  numberSearch: z.string().max(100).default(""),
+  dateSearch: z.string().max(100).default(""),
+  partySearch: z.string().max(100).default(""),
+  totalSearch: z.string().max(100).default(""),
+  statusSearch: z.string().max(100).default(""),
+  quantitySearch: z.string().max(100).default(""),
+  taxableSearch: z.string().max(100).default(""),
+  taxSearch: z.string().max(100).default(""),
+
   customer: z.string().default("all"),
   dateFrom: z.union([z.iso.date(), z.literal("")]).default(""),
   dateTo: z.union([z.iso.date(), z.literal("")]).default(""),

@@ -39,3 +39,9 @@ This owner declares no internal workspace dependency in its package manifests.
 ### Public package entry points
 
 - `@codexsun/ui`: `.`, `./styles.css`, `./components/*`, `./design-system`, `./features/interface-topology`, `./layouts/main-layouts`, `./layouts/*`, `./blocks/*`, `./lib/*`, `./workspace`, `./workspace/*`, `./presets/*`.
+
+### Host-composed list navigation
+
+`workspace/navigation` exports `WorkspaceNavigationProvider`, `WorkspaceHeaderActions`, and `useWorkspaceQueryValue`. The host supplies its router search and header action target. The provider batches query changes made in one event.
+`workspace/list-tools` supplies column search controls and visibility state. Owning modules supply their column labels and record projections. It contains no business CRUD or permission decisions.
+With an application header target, `WorkspaceUpsertDialog` renders a form panel in the workspace. Other hosts retain the existing dialog behavior.

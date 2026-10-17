@@ -19,6 +19,7 @@ export type CustomerStatementLine = {
 };
 
 export type CustomerStatement = {
+  currencyCode: string;
   ageing: {
     buckets: { label: string; amount: number }[];
     undatedOpening: number;

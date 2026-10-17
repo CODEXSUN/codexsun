@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { sql } from "kysely";
 import { AppError } from "@codexsun/framework/errors";
 import { getBillingDatabase } from "../../database/billing-database.js";
-import { currentBillingScope } from "../../auth/billing-scope.js";
+import { billingReportCurrency, currentBillingScope } from "../../auth/billing-scope.js";
 import type { OpeningBalanceInput, OpeningBalanceRole } from "./opening-balance.types.js";
 
 export class OpeningBalanceRepository {
@@ -126,11 +126,13 @@ export async function readOpeningBalanceOverrides(
   const database = await getBillingDatabase(databaseName);
   const scope = currentBillingScope();
   const rows = await sql<{ contact_id: number; amount: number | string }>`
-    SELECT c.id AS contact_id, COALESCE(b.amount, CASE WHEN a.id IS NOT NULL THEN 0 ELSE c.opening_balance END,0) AS amount
+    SELECT c.id AS contact_id, COALESCE(b.amount, CASE WHEN a.id IS NOT NULL OR ${billingReportCurrency()}<>'INR' THEN 0 ELSE c.opening_balance END,0) AS amount
     FROM core_contacts c LEFT JOIN billing_opening_balances b ON b.contact_id=c.id
-      AND b.company_id=${scope.companyId} AND b.financial_year_id=${scope.financialYearId} AND b.party_role=${partyRole}
+      AND b.company_id=${scope.companyId} AND b.financial_year_id=${scope.financialYearId} AND b.party_role=${partyRole} AND b.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
     LEFT JOIN billing_opening_balance_legacy_assignments a ON a.contact_id=c.id AND a.party_role=${partyRole}
-    WHERE b.id IS NOT NULL OR a.id IS NOT NULL`.execute(database);
+    WHERE b.id IS NOT NULL OR a.id IS NOT NULL OR ${billingReportCurrency()}<>'INR'`.execute(
+    database
+  );
   return new Map(rows.rows.map((row) => [row.contact_id, Number(row.amount)]));
 }
 

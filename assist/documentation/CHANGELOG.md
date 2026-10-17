@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.2
+Current version: 1.1.3
 
-Release tag: v-1.1.2
+Release tag: v-1.1.3
 
-Changelog label: v 1.1.2
+Changelog label: v 1.1.3
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,36 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.3
+
+### [v 1.1.3] 2026-10-17 3:37 pm - Business workflows, TConnect, and shared list controls
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Includes TConnect tenant tables and permission seeds, Q Cafe settings/special/menu/order schema updates, and Sites publication/enquiry persistence.
+- Includes Billing Sales and Export Sales migration changes. Existing databases need reviewed migration checks, backups, and applicable permission seeds.
+- Live database upgrades, production provider operations, and deployment were not repeated during this release preparation.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.3.
+- Added TConnect public directories, member and buyer desks, controlled portal registration, enquiries, conversations, messages, and quotations.
+- Added fixed Platform portal identity contracts and role policies for TConnect buyers and members.
+- Updated Billing list queries, financial-year and currency context, reports, dashboard totals, payment auditing, and voucher lifecycle guards.
+- Updated Sales and Export Sales compliance recovery, WhiteBooks sandbox configuration checks, QR rendering, and invoice pagination.
+- Added host-composed list controls, column filters, header actions, and workspace form navigation across Core, Billing, Platform, and other app lists.
+- Updated CRM contacts, duty/SOP persistence, Frappe duty field mappings, and related verification tools.
+- Expanded Q Cafe settings, special pricing, menu images, floor bookings, kitchen workflows, and responsive application headers.
+- Updated Sites publication and enquiry modules, portfolio layouts, LogicX branding, and local vendor-logo assets.
+- Updated Ecommerce storefront image handling, journal content, and organisation documentation.
+- Added full-source repository documentation references, synchronization checks, missing module guides, and guarded cache-cleanup tooling.
+- Added the missing TConnect Message guide and refreshed repository references. Docs validation now covers 506 pages across 25 app groups.
+- Passed the full repository check, including component documents, cleanup regression tests, module boundaries, add-on validation, Docs validation, TypeScript, and lint.
+- Passed 19 TConnect tests, seven Docs tests, 14 focused Billing/Frappe tests, two invoice-rendering tests with the web JSX configuration, and the version-bump test.
+- Prior component task files contain browser, sandbox-provider, and database verification evidence. Those live checks were not repeated for this release.
+- Passed the root production build. Bundle-size and ineffective dynamic-import warnings remain in the frontend output.
 
 ## v-1.1.2
 

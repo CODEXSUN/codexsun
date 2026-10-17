@@ -1,3 +1,5 @@
+import { sitePublicPaths } from "./page/page.public-routes.js";
+import { pageContentSchema } from "./page/page.schema.js";
 import type { Kysely, Selectable } from "kysely";
 import { PageRepository } from "./page/index.js";
 import { BlogRepository } from "./blog/index.js";
@@ -67,7 +69,17 @@ export class SiteRepository {
 
   private async mapSite(row: Selectable<SitesPortfolioTable>): Promise<CmsSite> {
     const page = await new PageRepository(this.database).find(Number(row.id));
-    return { ...mapRowToSite(row), publishedPages: page?.published_json ? 5 : 0 };
+    const content = page?.published_json
+      ? pageContentSchema.parse(JSON.parse(page.published_json))
+      : null;
+    const posts = await new BlogRepository(this.database).list(Number(row.id));
+    const blogs = posts
+      .filter((post) => post.published_json)
+      .map((post) => JSON.parse(post.published_json!) as { slug: string });
+    return {
+      ...mapRowToSite(row),
+      publishedPages: content ? sitePublicPaths(row.slug, content, blogs).length : 0
+    };
   }
 
   async create(payload: SiteCreatePayload & { uuid: string }): Promise<CmsSite> {

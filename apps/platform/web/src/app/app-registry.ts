@@ -7,6 +7,7 @@ import {
   Building2Icon,
   CircleGaugeIcon,
   CoffeeIcon,
+  CalendarDaysIcon,
   UtensilsCrossedIcon,
   ShoppingBagIcon,
   Clock3Icon,
@@ -61,6 +62,7 @@ export type PlatformAppId =
   | "frappe"
   | "zetro"
   | "logicx-erp"
+  | "tconnect"
   | "ecommerce"
   | "qcafe"
   | "hrms"
@@ -87,11 +89,14 @@ export type PlatformAppRootPage =
   | "frappe.overview"
   | "zetro.chat"
   | "logicx-erp.overview"
+  | "tconnect.overview"
   | "ecommerce.overview"
   | "qcafe.overview"
   | "qcafe.menu"
+  | "qcafe.settings"
   | "qcafe.kot"
   | "qcafe.take-away"
+  | "qcafe.booking"
   | "hrms.overview"
   | "hrms.employees"
   | "docs.overview"
@@ -143,6 +148,7 @@ export type PlatformAppDefinition = {
     | "frappe"
     | "zetro"
     | "logicx-erp"
+    | "tconnect"
     | "ecommerce"
     | "qcafe"
     | "hrms"
@@ -165,6 +171,7 @@ export const defaultTenantModuleKeys = [
   "frappe",
   "zetro",
   "logicx-erp",
+  "tconnect",
   "ecommerce",
   "qcafe",
   "hrms",
@@ -242,6 +249,17 @@ export const platformAppRegistry: PlatformAppDefinition[] = [
     alwaysEnabled: false,
     defaultLanding: false,
     description: "Restaurant operations with a separate Q Cafe PIN login."
+  },
+  {
+    id: "tconnect",
+    label: "TConnect",
+    moduleKey: "tconnect",
+    stack: "tconnect",
+    icon: UsersIcon,
+    accentClass: "bg-emerald-700",
+    alwaysEnabled: false,
+    defaultLanding: false,
+    description: "Business discovery and association communities."
   },
   {
     id: "ecommerce",
@@ -493,6 +511,7 @@ export function appRootPage(appId: PlatformAppId): PlatformAppRootPage {
   if (appId === "docs") return "docs.overview";
   if (appId === "hrms") return "hrms.overview";
   if (appId === "qcafe") return "qcafe.overview";
+  if (appId === "tconnect") return "tconnect.overview";
   if (appId === "ecommerce") return "ecommerce.overview";
   if (appId === "logicx-erp") return "logicx-erp.overview";
   if (appId === "zetro") return "zetro.chat";
@@ -649,9 +668,15 @@ export function appMenuFor(
         },
         {
           icon: ShoppingBagIcon,
-          title: "Take Away",
+          title: "Parcel - Take away",
           isActive: activePage === "qcafe.take-away",
           onSelect: () => onSelect("qcafe.take-away")
+        },
+        {
+          icon: CalendarDaysIcon,
+          title: "Booking",
+          isActive: activePage === "qcafe.booking",
+          onSelect: () => onSelect("qcafe.booking")
         },
         {
           icon: UtensilsCrossedIcon,
@@ -662,6 +687,20 @@ export function appMenuFor(
       ]
     };
   }
+  if (appId === "tconnect")
+    return {
+      icon: UsersIcon,
+      title: "TConnect",
+      isActive: activePage.startsWith("tconnect."),
+      items: [
+        {
+          icon: UsersIcon,
+          title: "Business network",
+          isActive: activePage === "tconnect.overview",
+          onSelect: () => onSelect("tconnect.overview")
+        }
+      ]
+    };
   if (appId === "ecommerce") {
     return {
       icon: PackageIcon,
@@ -1094,6 +1133,11 @@ export function appMenuFor(
             title: "Role Permissions",
             isActive: activePage === "application.access.role-permissions",
             onSelect: () => onSelect("application.access.role-permissions")
+          },
+          {
+            title: "Access Control",
+            isActive: activePage === "application.access.controls",
+            onSelect: () => onSelect("application.access.controls")
           }
         ]
       },
@@ -1228,9 +1272,15 @@ export function appMenuItemsFor(
       },
       {
         icon: ShoppingBagIcon,
-        title: "Take Away",
+        title: "Parcel - Take away",
         isActive: activePage === "qcafe.take-away",
         onSelect: () => onSelect("qcafe.take-away")
+      },
+      {
+        icon: CalendarDaysIcon,
+        title: "Booking",
+        isActive: activePage === "qcafe.booking",
+        onSelect: () => onSelect("qcafe.booking")
       },
       {
         icon: UtensilsCrossedIcon,
@@ -1240,6 +1290,15 @@ export function appMenuItemsFor(
       }
     ];
   }
+  if (appId === "tconnect")
+    return [
+      {
+        icon: UsersIcon,
+        title: "Business network",
+        isActive: activePage === "tconnect.overview",
+        onSelect: () => onSelect("tconnect.overview")
+      }
+    ];
   if (appId === "ecommerce") {
     return ecommerceMenuItems(activePage, onSelect);
   }
@@ -1887,6 +1946,11 @@ export function appMenuItemsFor(
           title: "Role Permissions",
           isActive: activePage === "application.access.role-permissions",
           onSelect: () => onSelect("application.access.role-permissions")
+        },
+        {
+          title: "Access Control",
+          isActive: activePage === "application.access.controls",
+          onSelect: () => onSelect("application.access.controls")
         }
       ]
     },

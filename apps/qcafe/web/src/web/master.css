@@ -307,3 +307,73 @@
     font-size: 12px;
   }
 }
+
+.qcafe-master-drop {
+  width: 100%;
+  text-align: left;
+  border: 2px dashed var(--border);
+  background: transparent;
+}
+.qcafe-master-drop.is-dragging {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+.qcafe-master-drop:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+.qcafe-master-drop small {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.qcafe-master-photo-remove {
+  margin-top: 8px;
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.qcafe-menu-special {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+.qcafe-menu-special header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.qcafe-menu-special h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.qcafe-menu-special p {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  margin-top: 5px;
+}
+.qcafe-menu-special-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 120px auto auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.qcafe-menu-special-row label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.qcafe-menu-special-row > button {
+  color: var(--destructive);
+  cursor: pointer;
+}
+@media (max-width: 800px) {
+  .qcafe-menu-special-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -12,6 +12,7 @@ import { env } from "../../env.js";
 import { getBillingDatabase } from "../../database/billing-database.js";
 import { withBillingScope } from "../../auth/billing-scope.js";
 import { runQuotationE2e } from "../quotation/quotation.e2e.js";
+import { SalesRepository } from "./sales.repository.js";
 import { SalesService } from "./sales.service.js";
 import {
   SalesComplianceService,
@@ -42,7 +43,9 @@ await runQuotationE2e(async (databaseName, saleId) => {
   configureSalesComplianceRuntime(true);
   let postCount = 0,
     timeout = false,
-    currentIrn = "b".repeat(64);
+    currentIrn = "b".repeat(64),
+    recoveredDocDate = "01/01/2020",
+    recoveredDocNo = "";
   globalThis.fetch = async (input, options) => {
     const path = new URL(String(input)).pathname;
     if (path.includes("authenticate"))
@@ -50,6 +53,18 @@ await runQuotationE2e(async (databaseName, saleId) => {
     if (options?.method === "POST") postCount++;
     if (timeout && options?.method === "POST")
       throw new Error("simulated connection lost after provider accepted");
+    if (path.includes("/getewaybill"))
+      return Response.json({
+        status_cd: "1",
+        data: {
+          ewayBillNo: 123456789014,
+          ewayBillDate: "16/10/2026",
+          docNo: recoveredDocNo,
+          docDate: recoveredDocDate,
+          fromGstin: env.GSP_GSTIN,
+          status: "ACT"
+        }
+      });
     const body = options?.body ? JSON.parse(String(options.body)) : {};
     const data = path.includes("canewb")
       ? { ewayBillNo: body.ewbNo, cancelDate: "16/10/2026 12:00:00" }
@@ -100,6 +115,25 @@ await runQuotationE2e(async (databaseName, saleId) => {
     assert.equal(postCount, before + 1);
     assert.equal((await jobs.read(databaseName, a.uuid)).status, "completed");
     assert.equal((await service.getSale(databaseName, invoice.id))?.einvoice.irn, "b".repeat(64));
+    await assert.rejects(
+      () => new SalesRepository().setStatus(databaseName, invoice.id, "cancelled"),
+      /provider/
+    );
+    await assert.rejects(
+      () => new SalesRepository().softDelete(databaseName, invoice.id),
+      /status changed/
+    );
+    const generatedInvoice = (await service.getSale(databaseName, invoice.id))!;
+    await assert.rejects(
+      () =>
+        new SalesRepository().update(
+          databaseName,
+          invoice.id,
+          { ...generatedInvoice, einvoice: base!.einvoice, eway: base!.eway },
+          generatedInvoice
+        ),
+      /generated compliance/
+    );
     const eway = await requests.request(databaseName, invoice.id, "eway.generate", {
       distanceKm: 100
     });
@@ -190,6 +224,47 @@ await runQuotationE2e(async (databaseName, saleId) => {
       (await service.getSale(databaseName, interrupted.id))?.einvoice.irn,
       "c".repeat(64)
     );
+
+    const localFailure = await fresh("QUEUE-LOCAL-FAIL");
+    currentIrn = "f".repeat(64);
+    const localJob = await requests.request(databaseName, localFailure.id, "einvoice.generate");
+    const originalUpdate = SalesRepository.prototype.updateCompliance;
+    try {
+      SalesRepository.prototype.updateCompliance = async () => {
+        throw AppError.conflict("Simulated local write conflict");
+      };
+      await processSalesComplianceJob(databaseName, localJob.uuid, authorize);
+    } finally {
+      SalesRepository.prototype.updateCompliance = originalUpdate;
+    }
+    assert.equal((await jobs.read(databaseName, localJob.uuid)).status, "review");
+    await assert.rejects(
+      () => service.cancelSale(databaseName, localFailure.id),
+      /compliance request/
+    );
+    const postsBeforeReplay = postCount;
+    await requests.reconcile(databaseName, localFailure.id, localJob.uuid);
+    await processSalesComplianceJob(databaseName, localJob.uuid, authorize);
+    assert.equal(postCount, postsBeforeReplay);
+    assert.equal((await jobs.read(databaseName, localJob.uuid)).status, "completed");
+
+    const standalone = await fresh("QUEUE-DATE");
+    recoveredDocNo = standalone.invoiceNumber;
+    timeout = true;
+    const standaloneJob = await requests.request(databaseName, standalone.id, "eway.generate", {
+      distanceKm: 100
+    });
+    await processSalesComplianceJob(databaseName, standaloneJob.uuid, authorize);
+    timeout = false;
+    await requests.reconcile(databaseName, standalone.id, standaloneJob.uuid, "123456789014");
+    await processSalesComplianceJob(databaseName, standaloneJob.uuid, authorize);
+    assert.equal((await jobs.read(databaseName, standaloneJob.uuid)).status, "review");
+    const [year, month, day] = standalone.issuedOn.slice(0, 10).split("-");
+    recoveredDocDate = `${day}/${month}/${year}`;
+    await requests.reconcile(databaseName, standalone.id, standaloneJob.uuid, "123456789014");
+    await processSalesComplianceJob(databaseName, standaloneJob.uuid, authorize);
+    const recoveredStandalone = await jobs.read(databaseName, standaloneJob.uuid);
+    assert.equal(recoveredStandalone.status, "completed", recoveredStandalone.error);
 
     const denied = await fresh("QUEUE-4");
     const deniedJob = await requests.request(databaseName, denied.id, "einvoice.generate");

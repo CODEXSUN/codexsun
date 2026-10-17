@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { Button, WorkspacePage } from "@codexsun/ui";
+import { WorkspacePage } from "@codexsun/ui";
 import { DefaultCompanyForm } from "./default-company.form";
 import {
   defaultCompanyQueryKey,
@@ -22,7 +21,9 @@ export function DefaultCompanyWorkspace({
   const client = useQueryClient();
   const query = useDefaultCompany();
   const lookups = useDefaultCompanyLookups();
-  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useWorkspaceQueryValue("form", "");
+  const editing = form === "edit";
+  const setEditing = (open: boolean) => setForm(open ? "edit" : "");
   const save = useMutation({
     mutationFn: (payload: DefaultCompanySavePayload) => saveDefaultCompany(payload),
     onSuccess: async (record) => {
@@ -40,20 +41,11 @@ export function DefaultCompanyWorkspace({
   });
   return (
     <WorkspacePage
-      title="Default Company"
-      description="Startup company and accounting year used across tenant workflows."
+      title=""
+      className="w-full max-w-none py-0 lg:w-full lg:py-0"
       technicalName="page.organisation.default-company"
-      actions={
-        <Button
-          variant="outline"
-          onClick={() => void Promise.all([query.refetch(), lookups.refetch()])}
-        >
-          <RefreshCw className={`size-4 ${query.isFetching ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
-      }
     >
-      <DefaultCompanyList record={query.data ?? null} onEdit={() => setEditing(true)} />
+      {!editing ? <DefaultCompanyList record={query.data ?? null} onEdit={() => setEditing(true)} /> : null}
       <DefaultCompanyForm
         open={editing}
         record={query.data ?? null}

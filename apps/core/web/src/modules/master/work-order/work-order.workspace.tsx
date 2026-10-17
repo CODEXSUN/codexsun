@@ -1,17 +1,18 @@
+import { WorkspaceHeaderActions, useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
-import { cn } from "@codexsun/ui/lib/utils";
 import { WorkOrderForm } from "./work-order.form";
 import { useWorkOrders } from "./work-order.hooks";
-import { WorkOrderList, isProtectedWorkOrder, workOrderColumns } from "./work-order.list";
+import { WorkOrderList, workOrderColumns, isProtectedWorkOrder } from "./work-order.list";
 import {
   createWorkOrder,
   forceDeleteWorkOrder,
@@ -27,12 +28,15 @@ const workOrderFilterOptions = [
 ];
 
 export function WorkOrderWorkspace() {
+  const listTools = useWorkspaceListTools(
+    Object.fromEntries(workOrderColumns.map((column) => [column.id, column.label]))
+  );
+
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+  const [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all");
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100);
   const [editing, setLocalEditing] = useState<WorkOrderRecord | null | undefined>(undefined);
   const query = useWorkOrders(search);
   const location = useLocation();
@@ -46,7 +50,7 @@ export function WorkOrderWorkspace() {
         : record === null
           ? `${basePath}/new`
           : `${basePath}/${encodeURIComponent(record.id)}/edit`;
-    if (location.pathname !== path) void navigate({ to: path });
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
   }
   useEffect(() => {
     const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
@@ -101,33 +105,26 @@ export function WorkOrderWorkspace() {
       })
   });
   const rows = query.data ?? [];
-  const columnOptions = useMemo(
-    () =>
-      workOrderColumns.map((column) => ({
-        checked: visibleColumns[column.id] ?? true,
-        id: column.id,
-        label: column.label,
-        onCheckedChange: (checked: boolean) =>
-          setVisibleColumns((current) => ({ ...current, [column.id]: checked }))
-      })),
-    [visibleColumns]
-  );
   const filteredRows = useMemo(
     () =>
-      rows.filter((record) => {
-        if (statusFilter === "active") return record.isActive;
-        if (statusFilter === "inactive") return !record.isActive;
-        return true;
-      }),
-    [rows, statusFilter]
+      rows
+        .filter((record) =>
+          listTools.matches({
+            ...record,
+            isActive: record.isActive ? "active" : "inactive",
+            status: record.isActive ? "active" : "inactive"
+          })
+        )
+        .filter((record) => {
+          if (statusFilter === "active") return record.isActive;
+          if (statusFilter === "inactive") return !record.isActive;
+          return true;
+        }),
+    [rows, statusFilter, JSON.stringify(listTools.filters)]
   );
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const pageRows = filteredRows.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, statusFilter]);
 
   if (editing !== undefined) {
     return (
@@ -143,38 +140,41 @@ export function WorkOrderWorkspace() {
   }
 
   return (
-    <WorkspacePage
-      title="Work Orders"
-      description="Manage work order code, name, status, and lifecycle."
-      actions={
-        <div className="flex gap-2">
-          <Button className="h-9 rounded-md" variant="outline" onClick={() => void query.refetch()}>
-            <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
-          <Button className="h-9 rounded-md" onClick={() => setEditing(null)}>
-            <Plus className="size-4" />
-            New
-          </Button>
-        </div>
-      }
-    >
+    <WorkspacePage title="" className="w-full max-w-none py-0 lg:w-full lg:py-0">
+      <WorkspaceHeaderActions>
+        <Button className="h-9 rounded-md" onClick={() => setEditing(null)}>
+          <Plus className="size-4" />
+          New work order
+        </Button>
+      </WorkspaceHeaderActions>
       <WorkspaceFilters
-        columnOptions={columnOptions}
-        filterOptions={workOrderFilterOptions}
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
+        showSelectedFilterChip
+        filterOptions={workOrderFilterOptions.map((option) => ({
+          ...option,
+          count: rows.filter(
+            (record) =>
+              option.id === "all" || (record.isActive ? "active" : "inactive") === option.id
+          ).length
+        }))}
         filterValue={statusFilter}
         searchPlaceholder="Search code or work order"
         searchValue={search}
-        onFilterValueChange={setStatusFilter}
-        onSearchValueChange={setSearch}
-        onShowAllColumns={() =>
-          setVisibleColumns(Object.fromEntries(workOrderColumns.map((column) => [column.id, true])))
-        }
+        onFilterValueChange={(value) => {
+          setStatusFilter(value);
+          setPage(1);
+        }}
+        onSearchValueChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
       />
       <WorkOrderList
+        listTools={listTools}
         loading={query.isFetching && !query.data}
         records={pageRows}
-        visibleColumns={visibleColumns}
         onEdit={(record) => {
           if (!isProtectedWorkOrder(record)) setEditing(record);
         }}

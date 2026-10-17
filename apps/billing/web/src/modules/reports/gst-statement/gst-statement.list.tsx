@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { formatDate as formatWorkspaceDate } from "@codexsun/ui/workspace";
 import { useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, Printer } from "lucide-react";
@@ -19,12 +20,14 @@ export function GstStatementDocumentCard({
   loading,
   onPrint,
   panel,
-  side
+  side,
+  tools
 }: {
   loading: boolean;
   onPrint?: (visiblePanel: GstStatementPanel) => void;
   panel: GstStatementPanel | undefined;
   side: "purchase" | "sales";
+  tools: WorkspaceListTools;
 }) {
   const sales = side === "sales";
   const documents = panel?.documents ?? [];
@@ -136,6 +139,7 @@ export function GstStatementDocumentCard({
                     "Invoice total"
                   ].map((heading) => (
                     <th
+                      hidden={tools.hidden.includes(heading)}
                       className={`border-b border-border/70 px-3 py-2.5 font-semibold uppercase tracking-wide text-muted-foreground ${["Taxable amount", "Tax %", "IGST", "CGST", "SGST", "Invoice total"].includes(heading) ? "text-right" : "text-left"}`}
                       key={heading}
                     >
@@ -151,6 +155,28 @@ export function GstStatementDocumentCard({
                     </th>
                   ))}
                 </tr>
+                {tools.showFilters && (
+                  <tr>
+                    {[
+                      "Show",
+                      "#",
+                      "GST No",
+                      "Contact name",
+                      "Taxable amount",
+                      "Tax %",
+                      "IGST",
+                      "CGST",
+                      "SGST",
+                      "Invoice total"
+                    ]
+                      .filter((label) => !tools.hidden.includes(label))
+                      .map((label) => (
+                        <th className="px-3 pb-2" key={label}>
+                          {tools.filterRow(label)}
+                        </th>
+                      ))}
+                  </tr>
+                )}
               </thead>
               <tbody>
                 {displayedDocuments.map((entry) => {
@@ -160,32 +186,49 @@ export function GstStatementDocumentCard({
                       className={`border-b border-border/70 last:border-b-0 ${visible ? "" : "bg-muted/20 opacity-60"}`}
                       key={`${entry.documentType}-${entry.documentNumber}`}
                     >
-                      <td className="px-3 py-2.5">
+                      <td hidden={tools.hidden.includes("Show")} className="px-3 py-2.5">
                         <Checkbox
                           aria-label={`${visible ? "Hide" : "Show"} ${entry.documentNumber}`}
                           checked={visible}
                           onCheckedChange={(checked) => setDocumentVisible(entry, checked === true)}
                         />
                       </td>
-                      <td className="px-3 py-2.5">{entry.serial}</td>
-                      <td className="px-3 py-2.5 font-medium">{entry.gstin || "Unregistered"}</td>
-                      <td className="px-3 py-2.5">
+                      <td hidden={tools.hidden.includes("#")} className="px-3 py-2.5">
+                        {entry.serial}
+                      </td>
+                      <td
+                        hidden={tools.hidden.includes("GST No")}
+                        className="px-3 py-2.5 font-medium"
+                      >
+                        {entry.gstin || "Unregistered"}
+                      </td>
+                      <td hidden={tools.hidden.includes("Contact name")} className="px-3 py-2.5">
                         <div className="font-medium">{entry.contactName}</div>
                         <div className="mt-0.5 text-[11px] text-muted-foreground">
                           {entry.documentNumber} · {formatDate(entry.documentDate)}
                           {entry.documentType === "export-sale" ? " · Export" : ""}
                         </div>
                       </td>
-                      <MoneyCell value={entry.taxableAmount} />
-                      <td className="px-3 py-2.5 text-right font-medium">
+                      <MoneyCell
+                        hidden={tools.hidden.includes("Taxable amount")}
+                        value={entry.taxableAmount}
+                      />
+                      <td
+                        hidden={tools.hidden.includes("Tax %")}
+                        className="px-3 py-2.5 text-right font-medium"
+                      >
                         {entry.taxRates.length
                           ? entry.taxRates.map((rate) => `${rate}%`).join(", ")
                           : "0%"}
                       </td>
-                      <MoneyCell value={entry.igstAmount} />
-                      <MoneyCell value={entry.cgstAmount} />
-                      <MoneyCell value={entry.sgstAmount} />
-                      <MoneyCell strong value={entry.invoiceTotal} />
+                      <MoneyCell hidden={tools.hidden.includes("IGST")} value={entry.igstAmount} />
+                      <MoneyCell hidden={tools.hidden.includes("CGST")} value={entry.cgstAmount} />
+                      <MoneyCell hidden={tools.hidden.includes("SGST")} value={entry.sgstAmount} />
+                      <MoneyCell
+                        hidden={tools.hidden.includes("Invoice total")}
+                        strong
+                        value={entry.invoiceTotal}
+                      />
                     </tr>
                   );
                 })}
@@ -241,11 +284,13 @@ function summarizeDocuments(documents: GstStatementDocument[]) {
 export function GstStatementHsnCard({
   loading,
   panel,
-  side
+  side,
+  tools
 }: {
   loading: boolean;
   panel: GstStatementPanel | undefined;
   side: "purchase" | "sales";
+  tools: WorkspaceListTools;
 }) {
   const sales = side === "sales";
   const hsn = panel?.hsn ?? [];
@@ -286,6 +331,7 @@ export function GstStatementHsnCard({
                   "SGST"
                 ].map((heading) => (
                   <th
+                    hidden={tools.hidden.includes(heading)}
                     className={`border-b border-border/70 px-3 py-2.5 font-semibold uppercase tracking-wide text-muted-foreground ${["Total qty", "Taxable amount", "IGST", "CGST", "SGST"].includes(heading) ? "text-right" : "text-left"}`}
                     key={heading}
                   >
@@ -293,6 +339,25 @@ export function GstStatementHsnCard({
                   </th>
                 ))}
               </tr>
+              {tools.showFilters && (
+                <tr>
+                  {[
+                    "HSN code",
+                    "Product name",
+                    "Total qty",
+                    "Taxable amount",
+                    "IGST",
+                    "CGST",
+                    "SGST"
+                  ]
+                    .filter((label) => !tools.hidden.includes(label))
+                    .map((label) => (
+                      <th className="px-3 pb-2" key={label}>
+                        {tools.filterRow(label)}
+                      </th>
+                    ))}
+                </tr>
+              )}
             </thead>
             <tbody>
               {hsn.map((entry) => (
@@ -300,15 +365,28 @@ export function GstStatementHsnCard({
                   className="border-b border-border/70 last:border-b-0"
                   key={`${entry.hsnCode}-${entry.productName}`}
                 >
-                  <td className="px-3 py-2.5 font-medium">{entry.hsnCode}</td>
-                  <td className="px-3 py-2.5">{entry.productName}</td>
-                  <td className="px-3 py-2.5 text-right">
+                  <td
+                    hidden={tools.hidden.includes("HSN code")}
+                    className="px-3 py-2.5 font-medium"
+                  >
+                    {entry.hsnCode}
+                  </td>
+                  <td hidden={tools.hidden.includes("Product name")} className="px-3 py-2.5">
+                    {entry.productName}
+                  </td>
+                  <td
+                    hidden={tools.hidden.includes("Total qty")}
+                    className="px-3 py-2.5 text-right"
+                  >
                     {formatGstQuantity(entry.totalQuantity)}
                   </td>
-                  <MoneyCell value={entry.taxableAmount} />
-                  <MoneyCell value={entry.igstAmount} />
-                  <MoneyCell value={entry.cgstAmount} />
-                  <MoneyCell value={entry.sgstAmount} />
+                  <MoneyCell
+                    hidden={tools.hidden.includes("Taxable amount")}
+                    value={entry.taxableAmount}
+                  />
+                  <MoneyCell hidden={tools.hidden.includes("IGST")} value={entry.igstAmount} />
+                  <MoneyCell hidden={tools.hidden.includes("CGST")} value={entry.cgstAmount} />
+                  <MoneyCell hidden={tools.hidden.includes("SGST")} value={entry.sgstAmount} />
                 </tr>
               ))}
             </tbody>
@@ -334,9 +412,17 @@ function PanelTotal({ label, value }: { label: string; value: number }) {
   );
 }
 
-function MoneyCell({ strong, value }: { strong?: boolean; value: number }) {
+function MoneyCell({
+  strong,
+  value,
+  hidden
+}: {
+  strong?: boolean;
+  value: number;
+  hidden?: boolean;
+}) {
   return (
-    <td className={`px-3 py-2.5 text-right ${strong ? "font-semibold" : ""}`}>
+    <td hidden={hidden} className={`px-3 py-2.5 text-right ${strong ? "font-semibold" : ""}`}>
       {formatGstStatementMoney(value)}
     </td>
   );

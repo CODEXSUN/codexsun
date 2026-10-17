@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
-import { Coffee, LayoutGrid, UtensilsCrossed, ShoppingBag } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Coffee, LayoutGrid, UtensilsCrossed, ShoppingBag, CalendarDays } from "lucide-react";
 import { MainLayout } from "@codexsun/ui/layouts/main-layouts";
 import { Button } from "@codexsun/ui/components/button";
+import { SettingsWorkspace } from "../modules/settings";
 import { PosWorkspace } from "../modules/pos";
 import { MasterWorkspace } from "./MasterWorkspace";
 import { cloudRequest } from "./transport";
@@ -18,21 +19,33 @@ type Context = {
   canKitchen: boolean;
   canManageTables: boolean;
 };
-type SalePage = "pos" | "kot" | "take-away";
+type SalePage = "pos" | "kot" | "take-away" | "booking";
 export function WebApp({
   workspace,
-  onWorkspaceChange
-}: { workspace?: SalePage | "menu"; onWorkspaceChange?: (page: SalePage) => void } = {}) {
+  onWorkspaceChange,
+  appearanceSettings
+}: {
+  appearanceSettings?: ReactNode;
+  workspace?: SalePage | "menu" | "settings";
+  onWorkspaceChange?: (page: SalePage) => void;
+} = {}) {
   const [context, setContext] = useState<Context | null>(null);
   const [error, setError] = useState("");
-  const [page, setPage] = useState<SalePage | "menu">("pos");
+  const [page, setPage] = useState<SalePage | "menu" | "settings">("pos");
   const current = workspace ?? page;
   useEffect(() => {
-    if (current === "menu") return;
+    if (current === "menu" || current === "settings") return;
     const switchPage = (event: KeyboardEvent) => {
       if (event.key !== "F1" || event.repeat || document.querySelector('[role="dialog"]')) return;
       event.preventDefault();
-      const next = current === "pos" ? "kot" : current === "kot" ? "take-away" : "pos";
+      const next =
+        current === "pos"
+          ? "kot"
+          : current === "kot"
+            ? "take-away"
+            : current === "take-away"
+              ? "booking"
+              : "pos";
       if (onWorkspaceChange) onWorkspaceChange(next);
       else setPage(next);
     };
@@ -69,10 +82,18 @@ export function WebApp({
     );
   const content = (
     <>
-      <div className={(workspace ?? page) === "menu" ? "hidden" : ""}>
+      <div className={current === "menu" || current === "settings" ? "hidden" : ""}>
         <PosWorkspace
-          active={current !== "menu"}
-          serviceMode={current === "kot" ? "KOT" : current === "take-away" ? "TAKE AWAY" : "POS"}
+          active={current !== "menu" && current !== "settings"}
+          serviceMode={
+            current === "booking"
+              ? "BOOKING"
+              : current === "kot"
+                ? "KOT"
+                : current === "take-away"
+                  ? "TAKE AWAY"
+                  : "POS"
+          }
           canCreate={context.canCreate}
           canPay={context.canPay}
           canKitchen={context.canKitchen}
@@ -80,6 +101,15 @@ export function WebApp({
           restaurantName={context.tenantName}
         />
       </div>
+      {current === "settings" && (
+        <SettingsWorkspace
+          appearanceSettings={appearanceSettings}
+          canManage={context.canManageMenu}
+          tenantId={context.tenantId}
+          tenantName={context.tenantName}
+          email={context.email}
+        />
+      )}
       {(workspace ?? page) === "menu" && (
         <MasterWorkspace
           canManageMenu={context.canManageMenu}
@@ -92,7 +122,7 @@ export function WebApp({
   return (
     <MainLayout
       applicationName="QCafe"
-      workspaceTitle="POS"
+      workspaceTitle={current === "settings" ? "Settings" : "POS"}
       homeHref="/app/application/overview"
       appItems={[
         {
@@ -110,8 +140,14 @@ export function WebApp({
           items: [
             { label: "POS", icon: LayoutGrid, onSelect: () => setPage("pos") },
             { label: "KOT", icon: UtensilsCrossed, onSelect: () => setPage("kot") },
-            { label: "Take Away", icon: ShoppingBag, onSelect: () => setPage("take-away") },
-            { label: "Master", icon: UtensilsCrossed, onSelect: () => setPage("menu") }
+            {
+              label: "Parcel - Take away",
+              icon: ShoppingBag,
+              onSelect: () => setPage("take-away")
+            },
+            { label: "Booking", icon: CalendarDays, onSelect: () => setPage("booking") },
+            { label: "Master", icon: UtensilsCrossed, onSelect: () => setPage("menu") },
+            { label: "Settings", icon: UtensilsCrossed, onSelect: () => setPage("settings") }
           ]
         }
       ]}

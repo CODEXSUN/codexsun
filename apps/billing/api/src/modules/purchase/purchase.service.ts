@@ -45,6 +45,14 @@ export class PurchaseService {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      quantitySearch?: string;
+      taxableSearch?: string;
+      taxSearch?: string;
     }
   ) {
     return this.repository.listPage(databaseName, query);
@@ -84,13 +92,12 @@ export class PurchaseService {
     const purchase = await this.repository.create(databaseName, numbered.input, totals);
     if (!purchase) throw AppError.validation("Purchase could not be created.");
     if (numbering.automatic && (numbered.generated || numbered.nextNumber > numbering.nextNumber)) {
-      await this.settings.saveBillingSettings(databaseName, normalized.companyId, {
-        ...billingSettings,
-        numbering: {
-          ...billingSettings.numbering,
-          purchase: { ...numbering, nextNumber: numbered.nextNumber }
-        }
-      });
+      await this.settings.advanceNextNumber(
+        databaseName,
+        normalized.companyId,
+        "purchase",
+        numbered.nextNumber
+      );
     }
     await this.publish("created", purchase, databaseName);
     return purchase;

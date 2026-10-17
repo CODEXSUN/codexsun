@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Eye, Pencil, Send, Trash2, XCircle } from "lucide-react";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
@@ -14,7 +15,19 @@ import {
 import { formatPaymentDate, formatPaymentMoney } from "./payment.services";
 import type { Payment } from "./payment.types";
 
+const columnIds: Record<string, string> = {
+  "Payment no": "number",
+  Date: "date",
+  Supplier: "party",
+  Mode: "mode",
+  Amount: "total",
+  Unallocated: "unallocated",
+  Status: "status",
+  Action: "action"
+};
+
 export function PaymentList({
+  listTools,
   canEditEntries,
   canEditFinalizedEntries,
   entries,
@@ -27,6 +40,7 @@ export function PaymentList({
   totalsRecords,
   totalsView
 }: {
+  listTools: WorkspaceListTools;
   canEditEntries: boolean;
   canEditFinalizedEntries: boolean;
   entries: Payment[];
@@ -56,14 +70,21 @@ export function PaymentList({
                     "Unallocated",
                     "Status",
                     "Action"
-                  ].map((label) => (
-                    <th
-                      className="border-b border-border/70 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-                      key={label}
-                    >
-                      {label}
-                    </th>
-                  ))}
+                  ]
+                    .filter((label) => !listTools.hidden.includes(columnIds[label] ?? ""))
+                    .map((label) => (
+                      <th
+                        className="border-b border-border/70 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                        key={label}
+                      >
+                        {label}
+                        {listTools.showFilters ? (
+                          <div className="mt-2 font-normal normal-case tracking-normal">
+                            {listTools.filterRow(columnIds[label] ?? "")}
+                          </div>
+                        ) : null}
+                      </th>
+                    ))}
                 </tr>
               </thead>
               <tbody>
@@ -73,6 +94,7 @@ export function PaymentList({
                     className="cursor-pointer border-b border-border/70 last:border-0 [&>td]:transition-colors hover:[&>td]:bg-muted/60 focus-visible:[&>td]:bg-muted/60 focus-visible:outline-none"
                     key={payment.id}
                     onClick={(event) => {
+                      if (!event.currentTarget.contains(event.target as Node)) return;
                       if ((event.target as Element).closest("button, input, a")) return;
                       onView(payment);
                     }}
@@ -85,18 +107,34 @@ export function PaymentList({
                     }}
                     tabIndex={0}
                   >
-                    <td className="px-4 py-3 font-semibold">{payment.paymentNumber}</td>
-                    <td className="px-4 py-3">{formatPaymentDate(payment.paymentDate)}</td>
-                    <td className="px-4 py-3">{payment.supplierName}</td>
-                    <td className="px-4 py-3 capitalize">{payment.paymentMode}</td>
-                    <td className="px-4 py-3 font-medium">
+                    <td
+                      hidden={listTools.hidden.includes("number")}
+                      className="px-4 py-3 font-semibold"
+                    >
+                      {payment.paymentNumber}
+                    </td>
+                    <td hidden={listTools.hidden.includes("date")} className="px-4 py-3">
+                      {formatPaymentDate(payment.paymentDate)}
+                    </td>
+                    <td hidden={listTools.hidden.includes("party")} className="px-4 py-3">
+                      {payment.supplierName}
+                    </td>
+                    <td hidden={listTools.hidden.includes("mode")} className="px-4 py-3 capitalize">
+                      {payment.paymentMode}
+                    </td>
+                    <td
+                      hidden={listTools.hidden.includes("total")}
+                      className="px-4 py-3 font-medium"
+                    >
                       {formatPaymentMoney(payment.totalAmount)}
                     </td>
-                    <td className="px-4 py-3">{formatPaymentMoney(payment.unallocatedAmount)}</td>
-                    <td className="px-4 py-3">
+                    <td hidden={listTools.hidden.includes("unallocated")} className="px-4 py-3">
+                      {formatPaymentMoney(payment.unallocatedAmount)}
+                    </td>
+                    <td hidden={listTools.hidden.includes("status")} className="px-4 py-3">
                       <PaymentStatus payment={payment} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td hidden={listTools.hidden.includes("action")} className="px-4 py-3">
                       <WorkspaceRowActions
                         actions={[
                           {

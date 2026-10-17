@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
@@ -8,7 +8,6 @@ import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { WorkspaceTableEmptyState, WorkspaceTablePanel } from "@codexsun/ui/workspace/table";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
-import { cn } from "@codexsun/ui/lib/utils";
 import { getCompanyId, getFinancialYearId } from "../../shared/api/tenant-context";
 import {
   cancelJournal,
@@ -245,22 +244,13 @@ export function AccountingWorkspace({ initialRecordId }: { initialRecordId?: str
   }
 
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Journals"
       description="Create balanced double-entry journal entries, submit, post, and reverse with full audit."
       technicalName="page.accounts.journal"
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            className="h-9 rounded-md"
-            disabled={journalsQuery.isFetching}
-            onClick={() => void journalsQuery.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", journalsQuery.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
+          
           <Button className="h-9 rounded-md" onClick={openNew} type="button">
             <Plus className="size-4" />
             New entry

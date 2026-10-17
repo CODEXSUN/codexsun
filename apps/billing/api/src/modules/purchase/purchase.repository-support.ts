@@ -1,3 +1,4 @@
+import { purchaseColumnPredicate, type PurchaseColumnSearch } from "./purchase.list-query.js";
 import { sql, type Kysely, type RawBuilder, type Transaction } from "kysely";
 import { randomBytes } from "node:crypto";
 import { currentBillingScope } from "../../auth/billing-scope.js";
@@ -121,7 +122,7 @@ export function selectPurchaseHeaders(
     offset: number;
     search: string;
     status: string;
-  }
+  } & PurchaseColumnSearch
 ) {
   const scope = currentBillingScope();
   return sql<PurchaseHeaderRow>`
@@ -157,6 +158,7 @@ export function selectPurchaseHeaders(
     LEFT JOIN core_work_orders work_order ON work_order.id = s.work_order_id
     LEFT JOIN core_ledgers ledger ON ledger.id = s.ledger_id
     WHERE s.deleted_at IS NULL
+      ${page ? purchaseColumnPredicate(page) : sql``}
       AND s.company_id=${scope.companyId} AND s.financial_year_id=${scope.financialYearId}
       ${uuid ? sql`AND s.uuid = ${uuid}` : sql``}
       ${

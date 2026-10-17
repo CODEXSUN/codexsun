@@ -1,7 +1,9 @@
+import { WorkspaceHeaderActions, useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
@@ -13,7 +15,7 @@ import {
   useCompanies,
   useCompanyLookups
 } from "./company.hooks";
-import { CompanyList } from "./company.list";
+import { CompanyList, companyColumns } from "./company.list";
 import {
   activateCompany,
   createAddressTypeLookup,
@@ -46,8 +48,13 @@ const emptyLookups: CompanyLookups = {
   pincodes: []
 };
 export function CompanyWorkspace() {
+  const [listStatus, setListStatus] = useWorkspaceQueryValue("status", "all");
+  const listTools = useWorkspaceListTools(
+    Object.fromEntries(companyColumns.map((column) => [column.id, column.label]))
+  );
+
   const client = useQueryClient(),
-    [search, setSearch] = useState(""),
+    [search, setSearch] = useWorkspaceQueryValue("q", ""),
     [editing, setLocalEditing] = useState<CompanyRecord | null | undefined>(undefined),
     query = useCompanies(search),
     lookupsQuery = useCompanyLookups(),
@@ -63,7 +70,7 @@ export function CompanyWorkspace() {
         : record === null
           ? `${basePath}/new`
           : `${basePath}/${encodeURIComponent(record.id)}/edit`;
-    if (location.pathname !== path) void navigate({ to: path });
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
   }
   useEffect(() => {
     const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
@@ -146,30 +153,45 @@ export function CompanyWorkspace() {
       />
     );
   return (
-    <WorkspacePage
-      title="Companies"
-      description="Manage organisation companies, tax identity, communication, and industry details."
-      actions={
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => void query.refetch()}>
-            <RefreshCw className="size-4" />
-            Refresh
-          </Button>
-          <Button onClick={() => setEditing(null)}>
-            <Plus className="size-4" />
-            New
-          </Button>
-        </div>
-      }
-    >
+    <WorkspacePage title="" className="w-full max-w-none py-0 lg:w-full lg:py-0">
+      <WorkspaceHeaderActions>
+        <Button onClick={() => setEditing(null)}>
+          <Plus className="size-4" />
+          New company
+        </Button>
+      </WorkspaceHeaderActions>
       <WorkspaceFilters
+        filterValue={listStatus}
+        onFilterValueChange={setListStatus}
+        filterOptions={[
+          { id: "all", label: "All records" },
+          {
+            id: "active",
+            label: "Active",
+            count: (query.data ?? []).filter((record) => record.isActive).length
+          },
+          {
+            id: "inactive",
+            label: "Inactive",
+            count: (query.data ?? []).filter((record) => !record.isActive).length
+          }
+        ]}
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
+        showSelectedFilterChip
         searchPlaceholder="Search code, company, phone, or email"
         searchValue={search}
         onSearchValueChange={setSearch}
       />
       <CompanyList
+        listTools={listTools}
         loading={query.isFetching && !query.data}
-        records={records}
+        records={records.filter(
+          (record) =>
+            listTools.matches({ ...record, status: record.isActive ? "active" : "inactive" }) &&
+            (listStatus === "all" || (record.isActive ? "active" : "inactive") === listStatus)
+        )}
         onEdit={setEditing}
         onForceDelete={(record) => {
           if (window.confirm(`Force delete ${record.name}?`))

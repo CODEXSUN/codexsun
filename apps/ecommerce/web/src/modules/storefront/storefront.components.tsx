@@ -92,17 +92,19 @@ export function HeroSlider({ slides }: { slides: StorefrontSlider[] }) {
         </a>
       </div>
       <div className="cx-store__hero-media">
-        <img
-          key={slide.sliderCode}
-          alt={slide.imageAlt || slide.title}
-          decoding="async"
-          fetchPriority="high"
-          height={720}
-          sizes="(max-width: 900px) 100vw, 50vw"
-          src={slide.imageUrl}
-          srcSet={responsiveImageSrcSet(slide.imageUrl, [480, 768, 1200, 1600])}
-          width={1200}
-        />
+        <div className="cx-store__hero-image-base">
+          <img
+            key={slide.sliderCode}
+            alt={slide.imageAlt || slide.title}
+            decoding="async"
+            fetchPriority="high"
+            height={720}
+            sizes="(max-width: 900px) 100vw, 50vw"
+            src={slide.imageUrl}
+            srcSet={responsiveImageSrcSet(slide.imageUrl, [480, 768, 1200, 1600])}
+            width={1200}
+          />
+        </div>
         <div aria-label="Choose storefront highlight" className="cx-store__hero-bullets">
           {slides.map((item, index) => (
             <button
@@ -333,8 +335,17 @@ export function PromotionsSection({ promotions }: { promotions: StorefrontPromot
   );
 }
 
-export function SeasonBanner({ promotions }: { promotions: StorefrontPromotion[] }) {
+export function SeasonBanner({
+  promotions,
+  brandName,
+  proofPoints = []
+}: {
+  promotions: StorefrontPromotion[];
+  brandName?: string | undefined;
+  proofPoints?: string[] | undefined;
+}) {
   const campaigns = promotions.slice(0, 2);
+  const benefits = proofPoints.filter(Boolean).slice(0, 3);
   if (!campaigns.length) return null;
 
   return (
@@ -342,32 +353,40 @@ export function SeasonBanner({ promotions }: { promotions: StorefrontPromotion[]
       <div className={`cx-store__campaign-panels is-${campaigns.length}`}>
         {campaigns.map((campaign) => (
           <a href={campaign.actionUrl} key={campaign.promotionCode}>
-            <img
-              alt={campaign.imageAlt || campaign.title}
-              decoding="async"
-              loading="lazy"
-              src={campaign.imageUrl}
-              sizes="(max-width: 800px) 100vw, 50vw"
-              srcSet={responsiveImageSrcSet(campaign.imageUrl, [480, 768, 960])}
-              height={520}
-              width={960}
-            />
-            <span className="cx-store__campaign-copy">
+            <div className="cx-store__campaign-image">
+              <img
+                alt={campaign.imageAlt || campaign.title}
+                decoding="async"
+                loading="lazy"
+                src={campaign.imageUrl}
+                sizes="(max-width: 800px) 100vw, 50vw"
+                srcSet={responsiveImageSrcSet(campaign.imageUrl, [480, 768, 960])}
+                height={520}
+                width={960}
+              />
+            </div>
+            <div className="cx-store__campaign-copy">
               <small>{campaign.eyebrow || "Featured offer"}</small>
-              <strong>{campaign.title}</strong>
+              <h2>{campaign.title}</h2>
+              {campaign.description ? <p>{campaign.description}</p> : null}
               <span>
                 {campaign.actionLabel || "Explore offer"} <ArrowUpRightIcon />
               </span>
-            </span>
+            </div>
           </a>
         ))}
       </div>
-      <div className="cx-store__campaign-benefits" aria-label="Shopping benefits">
-        <strong>Tech Media assurance</strong>
-        <span>Local product guidance</span>
-        <span>Business-ready installation</span>
-        <span>Support after purchase</span>
-      </div>
+      {benefits.length ? (
+        <div className="cx-store__campaign-benefits" aria-label="Shopping benefits">
+          <strong>{brandName || "Store"} assurance</strong>
+          {benefits.map((benefit) => (
+            <span key={benefit}>
+              <CheckIcon aria-hidden="true" />
+              {benefit}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

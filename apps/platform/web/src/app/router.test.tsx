@@ -51,3 +51,36 @@ test("record search values use ordinary URL query strings", () => {
   });
   assert.equal(location.href, "/app/auditor/clients?record=12");
 });
+
+test("Application access forms retain their deep links", () => {
+  for (const module of ["users", "roles", "permissions", "user-roles", "role-permissions"]) {
+    for (const suffix of ["", "/new", "/5/edit"]) {
+      const path = `/app/application/access/${module}${suffix}`;
+      assert.equal(router.matchRoutes(path).at(-1)?.routeId, "/app/$", path);
+    }
+  }
+});
+
+test("Application list searches round trip punctuation and column controls", () => {
+  const location = router.buildLocation({
+    to: "/app/$",
+    params: { _splat: "application/access/roles" },
+    search: {
+      q: "A & B / team",
+      status: "active",
+      columnSearch: "1",
+      "column.label": "Audit & review",
+      hidden: "key",
+      page: "2",
+      pageSize: "25"
+    }
+  });
+  const parsed = router.options.parseSearch!(new URL(location.href, "http://localhost").search);
+  assert.equal(parsed.q, "A & B / team");
+  assert.equal(parsed["column.label"], "Audit & review");
+  assert.equal(parsed.status, "active");
+  assert.equal(parsed.hidden, "key");
+  assert.equal(String(parsed.columnSearch), "1");
+  assert.equal(String(parsed.page), "2");
+  assert.equal(String(parsed.pageSize), "25");
+});

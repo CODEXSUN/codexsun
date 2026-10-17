@@ -1,6 +1,6 @@
 import { sql } from "kysely";
 import { getBillingDatabase } from "../../../database/billing-database.js";
-import { currentBillingScope } from "../../../auth/billing-scope.js";
+import { billingReportCurrency, currentBillingScope } from "../../../auth/billing-scope.js";
 import type { StockStatementLine } from "./stock-statement.types.js";
 
 type ContextRow = {
@@ -26,6 +26,17 @@ type StockRow = {
 };
 
 export class StockStatementRepository {
+  async currencies(databaseName: string) {
+    return (
+      await sql<{
+        id: number;
+        name: string;
+      }>`SELECT id,UPPER(name) AS name FROM core_currencies WHERE CHAR_LENGTH(name)=3 ORDER BY name,id`.execute(
+        await getBillingDatabase(databaseName)
+      )
+    ).rows;
+  }
+
   async context(databaseName: string, companyId?: number) {
     const database = await getBillingDatabase(databaseName);
     const scope = currentBillingScope();
@@ -128,7 +139,7 @@ function stockRows(companyId: number, from: string, to: string, search: string) 
         CASE WHEN purchase.purchase_date<${from} THEN item.quantity ELSE 0 END AS opening_delta,
         CASE WHEN purchase.purchase_date BETWEEN ${from} AND ${to} THEN item.quantity ELSE 0 END AS inward_quantity,
         0 AS outward_quantity,
-        CASE WHEN purchase.purchase_date BETWEEN ${from} AND ${to} THEN item.taxable_amount ELSE 0 END AS purchase_value,
+        CASE WHEN purchase.purchase_date BETWEEN ${from} AND ${to} AND purchase.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) THEN item.taxable_amount ELSE 0 END AS purchase_value,
         0 AS sales_value
       FROM billing_purchase_items item
       INNER JOIN billing_purchases purchase ON purchase.id=item.purchase_id
@@ -140,7 +151,7 @@ function stockRows(companyId: number, from: string, to: string, search: string) 
         0,
         CASE WHEN sale.issued_on BETWEEN ${from} AND ${to} THEN item.quantity ELSE 0 END,
         0,
-        CASE WHEN sale.issued_on BETWEEN ${from} AND ${to} THEN item.taxable_amount ELSE 0 END
+        CASE WHEN sale.issued_on BETWEEN ${from} AND ${to} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) THEN item.taxable_amount ELSE 0 END
       FROM billing_sales_items item
       INNER JOIN billing_sales sale ON sale.id=item.sales_id
       WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.status='confirmed'
@@ -151,7 +162,7 @@ function stockRows(companyId: number, from: string, to: string, search: string) 
         0,
         CASE WHEN sale.issued_on BETWEEN ${from} AND ${to} THEN item.quantity ELSE 0 END,
         0,
-        CASE WHEN sale.issued_on BETWEEN ${from} AND ${to} THEN item.taxable_amount ELSE 0 END
+        CASE WHEN sale.issued_on BETWEEN ${from} AND ${to} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) THEN item.taxable_amount ELSE 0 END
       FROM billing_export_sales_items item
       INNER JOIN billing_export_sales sale ON sale.id=item.export_sale_id
       WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.status='confirmed'

@@ -92,4 +92,110 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - [x] Add Items, Categories, and Restaurant Tables tabs with clear record lists and inline editors.
 - [x] Verify item view/edit state, top Save item validation, category grouping, and table view/edit state in the browser.
 - [x] Preserve existing tenant APIs, permissions, prices, bill history, and desktop code.
-- [ ] Photo file upload and special-price settings remain separate follow-up features; the current photo field accepts HTTPS URLs.
+- [x] Web Master accepts file upload and drag and drop, stores decoded WebP images per tenant, and loads them in POS through authenticated requests.
+- [x] Web Today Special definitions, selection, and per-item prices persist in tenant MariaDB.
+
+### Tenant menu images: 17-10-2026
+
+- [x] Live Platform session: user-selected photo uploaded, saved on the existing QA item, and reloaded from tenant MariaDB after refresh.
+- [x] File exists under `storage/f63abb54/apps/qcafe/master/`; Master thumbnail and POS card both load the saved image.
+- [x] Two-database integration covers image storage, decoding, authorization, cross-tenant reads/references, invalid files, and the 5 MB limit.
+- [x] Platform production build, API and web type checks, lint, component docs, module boundaries, dependency layout, two POS unit tests, and nine desktop regressions pass. Desktop source is unchanged.
+- [ ] Native file drag was not exercised in browser automation; the live file selection was performed by the user because the extension blocks local file access.
+
+### Today Special web pricing: 17-10-2026
+
+- [x] Master supports multiple configured special prices, removal, and per-item Use in POS.
+- [x] QCafe Settings defines specials and saves one enabled active selection with a revision conflict check.
+- [x] Tracked additive migrations applied to verified local tenant `f63abb54` through the QCafe migration runner.
+- [x] Live Platform session saved QA Special at ₹0.75 against the existing QA item's ₹1.00 normal price.
+- [x] POS shows ₹0.75 after refresh. Disabling Today Special shows ₹1.00. Re-enabling restores ₹0.75.
+- [x] Two-tenant database test covers invalid prefixes, duplicates, invalid prices, denied updates, stale settings, persistence, fallback, server bill prices, and stable saved-order rates.
+- [ ] Production deployment and native printer checks are outside this local web verification.
+
+### Sales page headers: 17-10-2026
+
+- [x] Blue POS, green KOT, and purple Take Away app headers use white text and page icons.
+- [x] Breadcrumb text is 16px. The middle QCafe breadcrumb is omitted.
+- [x] All three pages and F1 switching verified in the browser. Platform typecheck, lint, and module boundaries pass.
+- [x] No desktop or database changes.
+
+### Booking page and Parcel label: 17-10-2026
+
+- [x] Booking uses the existing order-entry layout at `/app/qcafe/booking` with an amber theme and calendar icon.
+- [x] Web navigation, toolbar, assignment labels, and print labels use Parcel - Take away.
+- [x] Existing tenant order persistence and stored service modes remain unchanged. Reservation CRUD is not introduced.
+- [x] Browser verification covers Booking navigation, direct reload, matching control colors, and F1 switching.
+- [x] Platform typecheck, lint, and QCafe/Platform module boundaries pass. Desktop sources are unchanged.
+
+### Web Settings and South Indian demo pack: 17-10-2026
+
+- [x] Dedicated web Settings page follows all nine desktop section names with working web controls and explicit native-only boundaries.
+- [x] Tenant MariaDB saves profile, POS defaults, display preferences, receipt content, included GST, print preferences, and image protection with revision checks and audit history.
+- [x] POS Settings previews and imports 18 sample items in five categories with English/Tamil names and original illustrations.
+- [x] Live import on tenant `f63abb54` added 18 items. All images loaded in preview and POS. Existing QA item and saved orders remain present.
+- [x] After refresh, MariaDB contains 18 demo items and five demo categories. All 18 files exist under the tenant Master image directory.
+- [x] Sample receipt header persisted as South Indian Demo Menu at settings revision 1.
+- [x] Database tests cover tenant isolation, permissions, strict settings validation, stale revisions, repeat/concurrent imports, edited-item preservation, protected images, and immutable receipt/GST snapshots through both bill paths.
+- [x] Production build, API/web type checks, lint, module boundaries, component docs, dependency layout, two POS tests, and nine desktop regressions pass.
+- [ ] Physical browser printer output and native printer services were not tested. Native functionality remains unchanged.
+
+### KOT content workflow: 17-10-2026
+
+- [x] Keep the top menu, app header, and order toolbar layout unchanged.
+- [x] Add table, row/seat, kitchen token, and Current orders controls in the KOT content footer.
+- [x] Current orders opens a shared Sheet drawer with item quantities, pending-send status, order selection, KOT send/reprint, and billing actions.
+- [x] KOT Save & print sends a kitchen ticket. It does not create a bill. Billing remains explicit in the drawer.
+- [x] Require a table and seats before a KOT-page send. Reuse server seat locks, revisions, immutable tickets, and operation retry IDs.
+- [x] Use the saved KOT number as the kitchen token. No new token field or migration is required.
+- [x] QCafe/Platform type checks, Platform production build, focused lint, module boundaries, MariaDB integration, component documentation, dependency layout, and nine desktop regressions passed.
+- [x] Live browser verification after reconnect: table QA-T07 seat 4 saved, one demo Idli sent as KOT-000002, token and sent state persisted after refresh, and drawer reprint opened the same saved ticket. Tenant MariaDB confirmed order 4ba448d4, ticket 093c92de, seat claim 4, and no bill created.
+- [ ] Physical KOT printer output remains unverified. Desktop sources remain unchanged.
+
+### Parcel flow: 17-10-2026
+
+- [x] Parcel-only order list, stable tenant order token, content footer, and Current orders drawer.
+- [x] No table or seat controls. New parcels ignore the dine-in default. Saved KOT orders are excluded from Parcel.
+- [x] Send/reprint and explicit billing preserve tenant authorization, revisions, and idempotency.
+- [x] Final bill service context snapshots the parcel token. No database migration is required.
+- [x] Live PCL-000005 sent one filter coffee as ticket c17e9545. MariaDB confirmed TAKE AWAY mode, null table, empty seats, zero seat claims, and no bill created.
+- [x] Integration covers token persistence, tenant access denial, duplicate sends, no seat claims, and token retention on bill receipts.
+- [x] API and Platform type checks, production build, lint, module boundaries, and nine desktop regressions passed.
+- [ ] Physical printer output remains unverified.
+- [x] After refresh, the Parcel footer retained PCL-000005 and sent status. The parcel-only drawer contained no table/seat controls, excluded the KOT order, and reopened the same saved ticket for reprint.
+
+### KOT floor drill-down: 17-10-2026
+
+- [x] Table and chair cards, availability counts and filters use the tenant table and occupied-seat APIs.
+- [x] Select chairs then press the table to create or reopen the correct order and show its items.
+- [x] KOT starts on the floor. New Order and Back to tables return there. Hidden item-stage shortcuts cannot send a ticket.
+- [x] Live browser verified occupied chair 4 reopened the existing QA-T07 order with its 11 items unchanged.
+- [x] Platform typecheck, production build, focused lint, module boundaries, and MariaDB integration passed.
+- [x] Reconnected browser verification: retried the original operation once, created order 2267af15 at QA-T07 chair 1, refreshed, then selected that chair and pressed the table to reopen its item menu. MariaDB confirmed the saved assignment. Cancelled the empty test order afterward to release chair 1. Existing chair 4 order and all 11 items remained unchanged.
+- [x] No backend, schema, header layout, or desktop source changes.
+
+### Scheduled pickup Booking: 17-10-2026
+
+- [x] Booking-only form and order list require customer name, mobile, and future pickup date/time before saving.
+- [x] Stable BKG token, current bookings drawer sorted by pickup time, preparation send/reprint, and explicit billing use existing Order APIs.
+- [x] Booking details persist in tenant MariaDB through additive qcafe.order.002. Applied to verified local tenant f63abb54.
+- [x] Server validation rejects malformed details, past schedules, table/seat bookings, removed details, and changes after preparation tickets.
+- [x] Booking details and token appear on preparation tickets and immutable bill receipt snapshots.
+- [x] Live BKG-000010 (e48bc859) saved Demo Pickup Verification with synthetic mobile and 19-10-2026 12:30 device-local pickup. Sent one Idli at the 3500-paise special price as ticket cba641f9.
+- [x] Refresh, booking drawer, reprint, and detail-lock checks passed. Direct MariaDB reads confirmed schedule 2026-10-19T07:00:00.000Z, saved item/ticket, null table, empty seats, zero seat claims, and no live bill created.
+- [x] Parcel verification excluded Booking tokens and retained its existing PCL order. Existing customer bookings remain unchanged.
+- [x] Integration covers invalid input, denied updates, tenant isolation, replay, immutable schedules, receipt snapshots, and persistence through a new database connection.
+- [x] API/Platform type checks, production build, focused lint, module boundaries, and nine desktop regressions passed.
+- [ ] Physical printer output remains unverified. The demo booking remains saved for review.
+- [ ] Root dependency-layout check is blocked by unrelated generated apps/tconnect/web/dist. No TConnect output was removed during Booking work.
+
+## Visual KOT floor and running orders: 17-10-2026
+
+- [x] KOT floor keeps the compact chair-to-table-to-items drill down and adds a right-side running-orders panel.
+- [x] The panel shows table, chairs, item quantities, total, latest ticket, Send to kitchen, and View ticket. Existing permission checks and retry-safe order mutations remain authoritative.
+- [x] Table cards show pending quantities, sent-to-kitchen state, seated state, and payment-due state from saved orders and seat claims.
+- [x] Current tenant setup contains 15 active four-seat tables. Existing QA-T07 was preserved; T01-T06 and T08-T15 were created through Master.
+- [x] Browser verified T01 chair 1 selection, item drill down, two pending items, and Send to kitchen from the floor panel. Ticket KOT-000006 (17c3a3f9), order 68b963b3, contains Idli at 3500 paise and coffee at 2500 paise.
+- [x] Full refresh retained the occupied chair, sent state, and ticket. Direct MariaDB reads confirmed all 15 tables and the ticket in codexsun_db.
+- [x] Platform web typecheck and build, focused order-module lint, and QCafe module boundaries passed. Physical kitchen printing was not tested.
+- [x] This change preserves the application headers and desktop source. The sample KOT remains available for review; no bill or payment was created.

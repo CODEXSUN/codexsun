@@ -32,6 +32,13 @@ export class PaymentService {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      modeSearch?: string;
+      unallocatedSearch?: string;
     }
   ) {
     return this.repository.listPage(databaseName, query);
@@ -103,10 +110,7 @@ export class PaymentService {
     const sequence = settings.numbering.payment;
     const nextNumber = nextBillingDocumentNumber(sequence, input.paymentNumber);
     if (sequence.automatic && nextNumber > sequence.nextNumber) {
-      await this.settings.saveBillingSettings(databaseName, input.companyId, {
-        ...settings,
-        numbering: { ...settings.numbering, payment: { ...sequence, nextNumber } }
-      });
+      await this.settings.advanceNextNumber(databaseName, input.companyId, "payment", nextNumber);
     }
     const saved = automaticRetry
       ? {

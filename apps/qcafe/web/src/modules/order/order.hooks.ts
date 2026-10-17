@@ -118,6 +118,7 @@ export function useOrders(
     if (pending) return null;
     const parsed = orderInputSchema.safeParse({
       name: order.name,
+      booking: order.booking ?? null,
       mode: order.mode,
       tableUuid: order.tableUuid,
       seats: order.seats,
@@ -148,6 +149,7 @@ export function useOrders(
         revision: 0,
         action: "save",
         name: `Order ${next}`,
+        booking: null,
         mode: "TAKE AWAY",
         tableUuid: null,
         seats: [],

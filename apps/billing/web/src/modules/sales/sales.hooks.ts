@@ -19,6 +19,14 @@ export function useSalesPage(query: {
   pageSize: number;
   search: string;
   status: string;
+  numberSearch?: string;
+  dateSearch?: string;
+  partySearch?: string;
+  totalSearch?: string;
+  statusSearch?: string;
+  quantitySearch?: string;
+  taxableSearch?: string;
+  taxSearch?: string;
 }) {
   const search = useDebouncedValue(query.search);
   const request = { ...query, search };

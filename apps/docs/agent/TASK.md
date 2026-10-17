@@ -31,3 +31,19 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 Use `npm run check:component-docs` for this documentation contract.
 Run applicable tests before marking implementation work complete.
 Do not treat documentation, a build, or a model response as proof of live persistence or deployment.
+
+## Repository reference acceptance
+
+- [x] Add Storefront Organisation and newly discovered QCafe/Sites module references.
+- [x] Add full-source repository references with stable identity and stale-reference verification.
+- [x] Verify synchronization, all 500 catalog MD/MDX pages, all 28 component documentation owners, and seven Docs tests.
+- [x] Verify production composition after the CODEXSUN Requirements and Platform Tenant JSX corrections.
+
+The October 17, 2026 audit includes 208 repository Markdown/MDX originals and fifteen added module references.
+Module boundaries, the Blog add-on contract, and the root dependency layout passed.
+The follow-up root check passed all type checks and lint tasks. All 50 production build tasks passed with forced compilation.
+The final `npm run build` passed root cleanup, all 50 forced build tasks, and artifact collection with zero cache hits.
+Repository development processes were stopped before cleanup. The old root `dist`, including caches and temporary files, was removed.
+Thirteen CODEXSUN tests, ten CI isolation tests, and both module-boundary regression tests passed.
+Repository reference hashes normalize CRLF to LF so Windows and Linux produce the same catalog.
+No database, browser, desktop/mobile, or deployment verification is included in this documentation audit.

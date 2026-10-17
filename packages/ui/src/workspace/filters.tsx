@@ -27,7 +27,7 @@ export function WorkspaceFilters({
   onShowAllColumns,
   searchPlaceholder,
   searchValue,
-  showSelectedFilterChip = false,
+  showSelectedFilterChip = true,
   toolbarAction
 }: {
   className?: string;

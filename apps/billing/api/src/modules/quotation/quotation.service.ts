@@ -91,6 +91,14 @@ export class QuotationService {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      quantitySearch?: string;
+      taxableSearch?: string;
+      taxSearch?: string;
     }
   ) {
     return this.repository.listPage(databaseName, query);
@@ -130,13 +138,12 @@ export class QuotationService {
     const quotation = await this.repository.create(databaseName, numbered.input, totals);
     if (!quotation) throw AppError.validation("Quotation could not be created.");
     if (numbering.automatic && (numbered.generated || numbered.nextNumber > numbering.nextNumber)) {
-      await this.settings.saveBillingSettings(databaseName, normalized.companyId, {
-        ...billingSettings,
-        numbering: {
-          ...billingSettings.numbering,
-          quotation: { ...numbering, nextNumber: numbered.nextNumber }
-        }
-      });
+      await this.settings.advanceNextNumber(
+        databaseName,
+        normalized.companyId,
+        "quotation",
+        numbered.nextNumber
+      );
     }
     await this.publish("created", quotation, databaseName);
     return quotation;

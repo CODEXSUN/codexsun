@@ -1,3 +1,4 @@
+import { paymentColumnPredicate, type PaymentColumnSearch } from "./payment.list-query.js";
 import { randomBytes } from "node:crypto";
 import { sql, type Kysely, type Transaction } from "kysely";
 import { AppError } from "@codexsun/framework/errors";
@@ -80,11 +81,19 @@ export class PaymentRepository {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      modeSearch?: string;
+      unallocatedSearch?: string;
     }
   ) {
     const database = await paymentDatabase(databaseName);
     const search = `%${options.search.trim()}%`;
     const page = {
+      ...options,
       limit: options.pageSize,
       offset: (options.page - 1) * options.pageSize,
       dateFrom: options.dateFrom,
@@ -98,6 +107,7 @@ export class PaymentRepository {
       sql<{ total: string | number }>`SELECT COUNT(*) AS total FROM billing_payments r
         INNER JOIN core_contacts supplier ON supplier.id=r.supplier_id INNER JOIN core_ledgers ledger ON ledger.id=r.ledger_id
         WHERE r.deleted_at IS NULL
+          ${paymentColumnPredicate(options)}
         AND r.company_id=${scope.companyId} AND r.financial_year_id=${scope.financialYearId}
         AND (${page.status}='all' OR r.status=${page.status})
         AND (${page.dateFrom}='' OR r.payment_date >= ${page.dateFrom})
@@ -215,7 +225,7 @@ export class PaymentRepository {
         EXISTS(SELECT 1 FROM core_companies WHERE id = ${input.companyId} AND id=${scope.companyId} AND status = 'active') AS company,
         EXISTS(SELECT 1 FROM core_financial_years WHERE id = ${input.financialYearId} AND id=${scope.financialYearId} AND status = 'active' AND ${input.paymentDate} BETWEEN start_date AND end_date) AS financialYear,
         EXISTS(SELECT 1 FROM core_currencies WHERE id = ${input.currencyId} AND status = 'active') AS currency,
-        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.supplierId} AND status = 'active') AS supplier,
+        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.supplierId} AND status = 'active' AND deleted_at IS NULL) AS supplier,
         EXISTS(SELECT 1 FROM core_ledgers WHERE id = ${input.ledgerId} AND status = 'active') AS ledger
     `.execute(database);
     const allocations = await Promise.all(
@@ -340,6 +350,7 @@ export class PaymentRepository {
     const internal = await internalPayment(database, uuid);
     if (!internal) return null;
     await database.transaction().execute(async (transaction) => {
+      await assertPaymentUnchanged(transaction, internal.id, internal.status);
       await assertPaymentAllocationsAvailable(transaction, input, internal.id);
       await sql`
         UPDATE billing_payments SET company_id=${input.companyId}, financial_year_id=${input.financialYearId},
@@ -355,7 +366,14 @@ export class PaymentRepository {
         transaction
       );
       await replaceAllocations(transaction, internal.id, input.allocations);
-      await addActivity(transaction, internal.id, "updated", "Payment updated.", "draft", "draft");
+      await addActivity(
+        transaction,
+        internal.id,
+        "updated",
+        "Payment updated.",
+        internal.status,
+        internal.status
+      );
     });
     return this.get(databaseName, uuid);
   }
@@ -365,6 +383,12 @@ export class PaymentRepository {
     const current = await internalPayment(database, uuid);
     if (!current) return null;
     await database.transaction().execute(async (transaction) => {
+      await assertPaymentUnchanged(transaction, current.id, current.status);
+      if (
+        (status === "posted" && current.status !== "draft") ||
+        (status === "cancelled" && current.status !== "posted")
+      )
+        throw AppError.conflict("Payment status changed. Refresh and try again.");
       await sql`
         UPDATE billing_payments SET status=${status},
           posted_at=${status === "posted" ? sql`CURRENT_TIMESTAMP(3)` : sql`posted_at`},
@@ -387,9 +411,20 @@ export class PaymentRepository {
     const database = await paymentDatabase(databaseName);
     const current = await internalPayment(database, uuid);
     if (!current) return null;
-    await sql`UPDATE billing_payments SET deleted_at=CURRENT_TIMESTAMP(3) WHERE id=${current.id}`.execute(
-      database
-    );
+    await database.transaction().execute(async (transaction) => {
+      await assertPaymentUnchanged(transaction, current.id, "draft");
+      await sql`UPDATE billing_payments SET deleted_at=CURRENT_TIMESTAMP(3) WHERE id=${current.id}`.execute(
+        transaction
+      );
+      await addActivity(
+        transaction,
+        current.id,
+        "deleted",
+        "Draft payment deleted.",
+        "draft",
+        null
+      );
+    });
     return this.getIncludingDeleted(database, uuid);
   }
 
@@ -485,7 +520,7 @@ function selectHeaders(
     offset: number;
     search: string;
     status: string;
-  }
+  } & PaymentColumnSearch
 ) {
   const scope = currentBillingScope();
   return sql<HeaderRow>`
@@ -510,6 +545,7 @@ function selectHeaders(
           OR r.status LIKE ${page.search} OR COALESCE(r.reference_no,'') LIKE ${page.search})`
           : sql``
       }
+      ${page ? paymentColumnPredicate(page) : sql``}
     ORDER BY r.payment_date DESC, r.line_number DESC
     ${page ? sql`LIMIT ${page.limit} OFFSET ${page.offset}` : sql``}
   `;
@@ -592,6 +628,19 @@ async function internalPayment(database: Kysely<PaymentDatabase>, uuid: string) 
     AND company_id=${scope.companyId} AND financial_year_id=${scope.financialYearId}
     AND deleted_at IS NULL LIMIT 1`.execute(database);
   return result.rows[0] ?? null;
+}
+
+async function assertPaymentUnchanged(
+  transaction: PaymentTransaction,
+  id: number,
+  status: PaymentStatus
+) {
+  const scope = currentBillingScope();
+  const result = await sql<{ status: PaymentStatus }>`SELECT status FROM billing_payments
+    WHERE id=${id} AND company_id=${scope.companyId} AND financial_year_id=${scope.financialYearId}
+      AND deleted_at IS NULL FOR UPDATE`.execute(transaction);
+  if (result.rows[0]?.status !== status)
+    throw AppError.conflict("Payment status changed. Refresh and try again.");
 }
 
 function paymentDatabase(databaseName: string) {

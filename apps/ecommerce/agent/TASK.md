@@ -20,6 +20,25 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Storefront section fit review, 17-10-2026
+
+- Reviewed all 11 homepage sections live at desktop and mobile widths, plus narrow phone and tablet fit checks at 320 and 768 pixels.
+- Reworked seasonal offers into separate image and text areas. Titles, descriptions, images, and action URLs come from the existing season feed; the company name and assurance proof points come from branding and Storefront Profile.
+- Changed catalog images to contain the complete product, reserved space for badges, corrected promotion badge positions, and let promotion grids fill the available columns. Mobile catalog cards use two columns above 359 pixels.
+- Removed hero text clamping and reserved space for the sample slide copy to reduce page movement. Reduced the floating assistant size and separated it from Back to top.
+- Verified no failed loaded homepage images, cover-cropped images, horizontal page overflow, or clipped headings/paragraphs at the checked widths. A seasonal card opened the matching backend product page.
+- Passed Ecommerce web typecheck/lint, storefront production build, and Ecommerce module boundaries. The existing build bundle-size warning remains.
+
+### Populated storefront reference content, 17-10-2026
+
+- Added reference records to the configured local CODEXSUN tenant through authenticated Core, Ecommerce, and Blog APIs. Existing products and branding were preserved.
+- Verified public feeds for 10 products/sliders, 3 promotions/campaigns, 4 featured cards, 2 seasonal banners, and 4 brands. Uploaded product images and all 10 product detail feeds returned successfully.
+- Enabled Blog at the user's request, ran managed tenant setup, assigned Blog management to the existing tenant admin role, and added 3 reference buying guides. The homepage displays these latest posts from the public Blog API.
+- Fixed the product image service to accept the local URLs returned by its upload API. Regression tests cover uploaded URLs, traversal, unrelated paths, and executable protocols.
+- Added storefront journal list/article routes using the published Blog package and retained all homepage sections on mobile. Local Blog routing uses the existing configured development storefront tenant fallback without changing production routing or activation checks.
+- Passed Ecommerce API/web and Platform API typechecks, Ecommerce lint, storefront build, Ecommerce/Platform boundaries, add-on checks/tests, and dependency layout verification. The build retains its bundle-size warning.
+- Browser verification confirmed all 11 sections on mobile, no horizontal page overflow or failed loaded homepage images on desktop/mobile, and a working public journal article with its saved paragraphs. The local API restarted during source changes; the storefront was restarted independently for the final checks.
+
 ### Storefront HTTP 431 and readiness, 16-10-2026
 
 - Added the 64 KiB development header limit to both Ecommerce preflight and header-button startup.

@@ -1,14 +1,10 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import type { Kysely } from "kysely";
 import { z } from "zod";
 import { registerContractRoute } from "@codexsun/framework/http";
-import type { FrappeDatabase, FrappeSettings } from "../connection/index.js";
+import type { FrappeSettings } from "../connection/index.js";
 import { FrappeContactImportService } from "./contact-import.service.js";
 
-type Context = {
-  database: Kysely<FrappeDatabase>;
-  resolveContact: (name: string, mobile: string | null) => Promise<{ id: number }>;
-};
+type Context = import("./contact-import.types.js").FrappeContactImportContext;
 
 export function registerFrappeContactImportRoutes(
   app: FastifyInstance,
@@ -26,12 +22,14 @@ export function registerFrappeContactImportRoutes(
     schemas: {
       querystring: z.object({ page: z.coerce.number().int().positive().default(1) }),
       response: z.object({
+        source: z.literal("mobile-contact-customer"),
         page: z.number(),
         pageSize: z.number(),
         hasMore: z.boolean(),
         items: z.array(
           z.object({
             name: z.string(),
+            customerId: z.string(),
             displayName: z.string(),
             email: z.string().nullable(),
             phone: z.string().nullable(),

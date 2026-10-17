@@ -1,29 +1,25 @@
-import { useMemo, useState } from "react";
-import { Printer, RefreshCw } from "lucide-react";
+import { useCustomerSummaryControls } from "./customer-summary.controls";
+import { CustomerSummaryCurrencySelection } from "./customer-summary.currency";
+import { Printer } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import { cn } from "@codexsun/ui/lib/utils";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { useCustomerSummary } from "./customer-summary.hooks";
-import { CustomerSummaryForm } from "./customer-summary.form";
 import { CustomerSummaryList } from "./customer-summary.list";
 import { CustomerSummaryPrint } from "./customer-summary.print";
-import { customerSummaryFiltersSchema } from "./customer-summary.schema";
 import { formatCustomerSummaryMoney } from "./customer-summary.services";
 
 export function CustomerSummaryWorkspace() {
-  const [search, setSearch] = useState("");
   const query = useCustomerSummary();
   const summary = query.data;
-  const filters = customerSummaryFiltersSchema.parse({ search });
-  const entries = useMemo(
-    () => filterCustomerSummary(summary?.items ?? [], filters.search),
-    [filters.search, summary?.items]
-  );
+  const { tools, entries, toolbar, search } = useCustomerSummaryControls(summary?.items ?? []);
   return (
     <WorkspacePage
+      variant="list"
       className="billing-document-print-page"
       actions={
         <div className="flex gap-2 print:hidden">
+          <CustomerSummaryCurrencySelection />
           <Button
             disabled={!summary || query.isFetching || query.isError}
             onClick={() => window.print()}
@@ -31,15 +27,6 @@ export function CustomerSummaryWorkspace() {
           >
             <Printer className="size-4" />
             Print
-          </Button>
-          <Button
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
-            Refresh
           </Button>
         </div>
       }
@@ -55,33 +42,22 @@ export function CustomerSummaryWorkspace() {
               : "Customer Summary could not be loaded."}
           </div>
         ) : null}
-        <CustomerSummaryForm onSearchChange={setSearch} search={search} />
+        {toolbar}
         <div className="grid gap-3 sm:grid-cols-3">
           <SummaryTotal label="Debit" value={summary?.totalDebit ?? 0} />
           <SummaryTotal label="Credit" value={summary?.totalCredit ?? 0} />
           <SummaryTotal label="Outstanding balance" strong value={summary?.totalBalance ?? 0} />
         </div>
-        <CustomerSummaryList entries={entries} loading={query.isLoading} />
+        <CustomerSummaryList tools={tools} entries={entries} loading={query.isLoading} />
         <section className="billing-print-area hidden print:block">
           <div>
             {summary && !query.isError ? (
-              <CustomerSummaryPrint summary={summary} entries={entries} search={filters.search} />
+              <CustomerSummaryPrint summary={summary} entries={entries} search={search} />
             ) : null}
           </div>
         </section>
       </main>
     </WorkspacePage>
-  );
-}
-
-function filterCustomerSummary<T extends { code: string; name: string }>(
-  entries: T[],
-  search: string
-) {
-  const normalizedSearch = search.toLocaleLowerCase();
-  if (!normalizedSearch) return entries;
-  return entries.filter((entry) =>
-    `${entry.name} ${entry.code}`.toLocaleLowerCase().includes(normalizedSearch)
   );
 }
 

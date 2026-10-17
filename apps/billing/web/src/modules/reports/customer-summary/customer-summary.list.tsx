@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import {
   WorkspaceTableEmptyState,
   WorkspaceTableLoadingState,
@@ -8,10 +9,12 @@ import type { CustomerSummaryItem } from "./customer-summary.types";
 
 export function CustomerSummaryList({
   entries,
-  loading
+  loading,
+  tools
 }: {
   entries: CustomerSummaryItem[];
   loading: boolean;
+  tools: WorkspaceListTools;
 }) {
   return (
     <WorkspaceTablePanel>
@@ -27,6 +30,7 @@ export function CustomerSummaryList({
                 { label: "Balance", align: "text-right" }
               ].map((heading) => (
                 <th
+                  hidden={tools.hidden.includes(heading.label)}
                   className={`border-b border-border/70 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground ${heading.align}`}
                   key={heading.label}
                 >
@@ -34,6 +38,17 @@ export function CustomerSummaryList({
                 </th>
               ))}
             </tr>
+            {tools.showFilters && (
+              <tr>
+                {["Customer", "Code", "Debit", "Credit", "Balance"]
+                  .filter((label) => !tools.hidden.includes(label))
+                  .map((label) => (
+                    <th className="px-3 pb-2" key={label}>
+                      {tools.filterRow(label)}
+                    </th>
+                  ))}
+              </tr>
+            )}
           </thead>
           <tbody>
             {entries.map((entry) => (
@@ -41,11 +56,25 @@ export function CustomerSummaryList({
                 className="border-b border-border/70 last:border-b-0 hover:bg-muted/20"
                 key={entry.id}
               >
-                <td className="px-4 py-3 font-semibold">{entry.name}</td>
-                <td className="px-4 py-3 text-muted-foreground">{entry.code || "-"}</td>
-                <td className="px-4 py-3 text-right">{formatCustomerSummaryMoney(entry.debit)}</td>
-                <td className="px-4 py-3 text-right">{formatCustomerSummaryMoney(entry.credit)}</td>
-                <td className="px-4 py-3 text-right font-semibold text-primary">
+                <td hidden={tools.hidden.includes("Customer")} className="px-4 py-3 font-semibold">
+                  {entry.name}
+                </td>
+                <td
+                  hidden={tools.hidden.includes("Code")}
+                  className="px-4 py-3 text-muted-foreground"
+                >
+                  {entry.code || "-"}
+                </td>
+                <td hidden={tools.hidden.includes("Debit")} className="px-4 py-3 text-right">
+                  {formatCustomerSummaryMoney(entry.debit)}
+                </td>
+                <td hidden={tools.hidden.includes("Credit")} className="px-4 py-3 text-right">
+                  {formatCustomerSummaryMoney(entry.credit)}
+                </td>
+                <td
+                  hidden={tools.hidden.includes("Balance")}
+                  className="px-4 py-3 text-right font-semibold text-primary"
+                >
                   {formatCustomerSummaryMoney(entry.balance)}
                 </td>
               </tr>

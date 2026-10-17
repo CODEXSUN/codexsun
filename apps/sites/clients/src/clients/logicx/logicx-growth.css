@@ -1,0 +1,254 @@
+.lx-growth-section {
+  padding-block: 100px;
+}
+.lx-growth-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 790px;
+  padding-bottom: 52px;
+}
+.lx-growth-heading h2 {
+  margin: 0;
+}
+.lx-growth-heading > p:last-child {
+  color: #626e68;
+  max-width: 650px;
+}
+.lx-engagements {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 38px;
+}
+.lx-engagements article {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+  border-top: 1px solid #cbd9ce;
+  padding-top: 28px;
+}
+.lx-engagement-number {
+  font-size: 38px;
+  line-height: 1;
+  color: #b3c6b8;
+  font-weight: 300;
+}
+.lx-engagements h3 {
+  font-size: 27px;
+  line-height: 1.3;
+  font-weight: 400;
+  margin: 0;
+  min-height: 70px;
+}
+.lx-engagements article > p:not(.lx-kicker) {
+  color: #626e68;
+}
+.lx-engagements ul {
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+}
+.lx-engagements li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 15px;
+}
+.lx-engagements li svg {
+  flex-shrink: 0;
+  color: #27823b;
+}
+.lx-engagements .lx-text-link {
+  margin-top: auto;
+}
+.lx-industry-section {
+  background: #f4f7f4;
+  padding-block: 90px;
+}
+.lx-industry-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 90px;
+}
+.lx-industry-layout > div:first-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 22px;
+}
+.lx-industry-layout h2 {
+  margin: 0;
+}
+.lx-industry-layout p {
+  color: #626e68;
+}
+.lx-industries {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 36px;
+  align-content: center;
+}
+.lx-industries article {
+  border-top: 1px solid #b8cdbd;
+  padding-top: 22px;
+}
+.lx-industries h3 {
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 400;
+  margin: 0 0 14px;
+}
+.lx-faq-list {
+  max-width: 950px;
+}
+.lx-faq-list details {
+  border-bottom: 1px solid #d9e2dc;
+}
+.lx-faq-list summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 25px 0;
+  cursor: pointer;
+  font-size: 21px;
+  line-height: 1.45;
+  list-style: none;
+}
+.lx-faq-list summary::-webkit-details-marker {
+  display: none;
+}
+.lx-faq-list summary svg {
+  flex-shrink: 0;
+  color: #27823b;
+  transition: transform 0.25s ease;
+}
+.lx-faq-list details[open] summary svg {
+  transform: rotate(45deg);
+}
+.lx-faq-list details > p {
+  color: #626e68;
+  padding: 0 36px 26px 0;
+  max-width: 850px;
+}
+.lx-faq-list summary:focus-visible {
+  outline: 2px solid #27823b;
+  outline-offset: 5px;
+}
+.lx-faq-contact {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-top: 32px;
+}
+@media (max-width: 900px) {
+  .lx-engagements {
+    gap: 24px;
+  }
+  .lx-engagements h3 {
+    font-size: 23px;
+  }
+  .lx-industry-layout {
+    gap: 36px;
+  }
+}
+@media (max-width: 700px) {
+  .lx-growth-section {
+    padding-block: 64px;
+  }
+  .lx-engagements,
+  .lx-industry-layout {
+    grid-template-columns: 1fr;
+  }
+  .lx-engagements {
+    gap: 42px;
+  }
+  .lx-engagements h3 {
+    min-height: 0;
+  }
+  .lx-growth-heading {
+    padding-bottom: 34px;
+  }
+  .lx-industry-section {
+    padding-block: 64px;
+  }
+  .lx-industries {
+    gap: 26px;
+  }
+  .lx-faq-list summary {
+    font-size: 18px;
+  }
+}
+@media (max-width: 420px) {
+  .lx-industries {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lx-faq-list summary svg {
+    transition: none;
+  }
+}
+.lx-workflows {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+.lx-workflows article {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+.lx-workflows .lx-text-link {
+  margin-top: auto;
+}
+.lx-workflow-art {
+  width: 100%;
+  min-height: 250px;
+  padding: 28px;
+  background: #e6efdf;
+  border-radius: 65px 65px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  justify-content: center;
+}
+.lx-workflow-art span {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fcfefa;
+  border: 1px solid #cfddc7;
+  padding: 11px;
+  font-size: 12px;
+  border-radius: 8px;
+  color: #29472e;
+}
+.lx-workflow-art b {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.6;
+}
+.lx-workflow-art svg {
+  margin-left: auto;
+}
+.lx-workflow-art-1 {
+  background: #e5eaf0;
+}
+.lx-workflow-art-2 {
+  background: #eee9e0;
+}
+@media (max-width: 900px) {
+  .lx-workflows {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .lx-workflow-art {
+    max-width: 600px;
+  }
+}

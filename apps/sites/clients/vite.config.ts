@@ -1,3 +1,4 @@
+import { clientEnquiryPlugin } from "./runtime/enquiry/enquiry.vite.mjs";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
@@ -48,13 +49,26 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       tailwindcss(),
       react(),
+      clientEnquiryPlugin(
+        repositoryDirectory,
+        clientSlug,
+        runtimeEnv.CODEXSUN_SITES_CLIENT_UUID,
+        runtimeEnv.CODEXSUN_SITES_DATA_DIRECTORY
+      ),
       {
         name: "codexsun-sites-client-identity",
         configureServer(server) {
           server.middlewares.use("/__codexsun_sites_identity", (_request, response) => {
             response.setHeader("Content-Type", "application/json");
             response.setHeader("Cache-Control", "no-store");
-            response.end(JSON.stringify({ client: clientSlug }));
+            response.end(
+              JSON.stringify({
+                client: clientSlug,
+                ...(runtimeEnv.CODEXSUN_SITES_RUNTIME_KEY
+                  ? { runtimeKey: runtimeEnv.CODEXSUN_SITES_RUNTIME_KEY }
+                  : {})
+              })
+            );
           });
         }
       }
@@ -69,6 +83,7 @@ export default defineConfig(({ command, mode }) => {
       dedupe: ["react", "react-dom"]
     },
     root: webDirectory,
+    publicDir: resolve(webDirectory, "public", mode === "portfolio" ? "standard" : surfaceId),
     ...(command === "serve"
       ? {
           server: {

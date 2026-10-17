@@ -28,6 +28,7 @@ export type SupplierStatementLine = {
 };
 
 export type SupplierStatementResult = {
+  currencyCode: string;
   ageing: {
     buckets: { label: string; amount: number }[];
     undatedOpening: number;

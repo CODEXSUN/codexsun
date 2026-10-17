@@ -1,10 +1,13 @@
 import React from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import "@codexsun/ui/styles.css";
 import ClientSurface from "@sites-client-entry";
 
-createRoot(document.getElementById("root") as HTMLElement).render(
+const root = document.getElementById("root")!;
+const surface = (
   <React.StrictMode>
     <ClientSurface />
   </React.StrictMode>
 );
+if (root.hasChildNodes()) hydrateRoot(root, surface);
+else createRoot(root).render(surface);

@@ -1,6 +1,10 @@
+import { sitePathname } from "./sitePathname";
 import type { PageContent } from "@codexsun/sites-api/page-contract";
 import type { SitePublication } from "@codexsun/sites-api/public-contract";
 import "./portfolio-pages.css";
+import { ContactForm } from "../enquiry/ContactForm";
+import { CompanyMap, WhatsAppEnquiry } from "./SiteContactTools";
+import { BrandLogo } from "./BrandLogo";
 import { useState } from "react";
 
 export const portfolioRoutes = [
@@ -8,17 +12,20 @@ export const portfolioRoutes = [
   ["About", "/about"],
   ["Services", "/services"],
   ["Contact", "/contact"],
-  ["Blog", "/blogs"]
+  ["Blog", "/blogs"],
+  ["Privacy", "/privacy"]
 ] as const;
 
 export function PortfolioPageLinks() {
   return (
     <nav className="portfolio-page-links" aria-label="Website pages">
-      {portfolioRoutes.map(([label, href]) => (
-        <a key={href} href={href}>
-          {label}
-        </a>
-      ))}
+      {portfolioRoutes
+        .filter(([, href]) => href !== "/privacy")
+        .map(([label, href]) => (
+          <a key={href} href={href}>
+            {label}
+          </a>
+        ))}
     </nav>
   );
 }
@@ -27,16 +34,18 @@ export function PortfolioPages({
   content,
   blogs,
   connected,
+  embedded = false,
   tone = "blue"
 }: {
   content: PageContent;
   blogs: SitePublication["blogs"];
   connected: boolean;
+  embedded?: boolean;
   tone?: "blue" | "earth";
 }) {
   const [compact, setCompact] = useState(false);
   const [options, setOptions] = useState(false);
-  const path = window.location.pathname.replace(/\/$/, "");
+  const path = sitePathname().replace(/\/$/, "");
   const { profile, about, processing, finishes, contact } = content;
   const article = path.startsWith("/blogs/")
     ? blogs.find((post) => `/blogs/${post.slug}` === path)
@@ -52,13 +61,15 @@ export function PortfolioPages({
       <a className="portfolio-skip" href="#portfolio-main">
         Skip to content
       </a>
-      <header className="portfolio-shell portfolio-header">
-        <a href="/" className="portfolio-brand">
-          {profile.brand}
-          <small>{profile.tagline}</small>
-        </a>
-        <PortfolioPageLinks />
-      </header>
+      {!embedded ? (
+        <header className="portfolio-shell portfolio-header">
+          <a href="/" className="portfolio-brand">
+            <BrandLogo name={profile.name} />
+            <small>{profile.tagline}</small>
+          </a>
+          <PortfolioPageLinks />
+        </header>
+      ) : null}
       <main id="portfolio-main" className="portfolio-shell portfolio-main">
         <p className="portfolio-eyebrow">{profile.name}</p>
         <h1>{title}</h1>
@@ -176,25 +187,36 @@ export function PortfolioPages({
                 ))}
                 {profile.gstin ? <p>GSTIN: {profile.gstin}</p> : null}
               </section>
-              <section className="portfolio-panel">
-                <h2>{contact.formTitle}</h2>
-                <p>{contact.formIntro}</p>
-                {profile.emails[0] ? (
-                  <>
-                    <a
-                      className="portfolio-cta"
-                      href={`mailto:${profile.emails[0]}?subject=${encodeURIComponent(`Website enquiry — ${profile.name}`)}`}
-                    >
-                      Write to us ↗
-                    </a>
-                    <p className="portfolio-note">Opens your email application.</p>
-                  </>
-                ) : (
-                  <p>Contact details will be available soon.</p>
-                )}
-              </section>
+              <ContactForm contact={contact} />
             </div>
+            <CompanyMap profile={profile} />
           </>
+        ) : path === "/privacy" ? (
+          <section className="portfolio-prose">
+            <p>This notice explains how {profile.name} handles enquiries through this website.</p>
+            <h2>Information you provide</h2>
+            <p>
+              The enquiry form collects your name, email address, optional company and phone
+              details, and your message. We use these details to respond to your request.
+            </p>
+            <h2>Storage and retention</h2>
+            <p>
+              Enquiries are stored in this company's website database. Submitted records are removed
+              after 90 days. We do not publish your enquiry or share it with other client websites.
+            </p>
+            <h2>Maps and WhatsApp</h2>
+            <p>
+              Interactive maps load only when you choose to load them. Google Maps and WhatsApp are
+              external services with their own privacy policies. Opening those services may share
+              technical information with their providers.
+            </p>
+            <h2>Contact and requests</h2>
+            <p>
+              To ask about your enquiry or request its deletion, contact our team through the
+              details on the <a href="/contact">contact page</a>. Quote your enquiry reference when
+              available.
+            </p>
+          </section>
         ) : path === "/blogs" ? (
           <>
             <p className="portfolio-lead">News, ideas and updates from {profile.brand}.</p>
@@ -239,12 +261,16 @@ export function PortfolioPages({
           <a href="/contact">Start a conversation ↗</a>
         </aside>
       </main>
-      <footer className="portfolio-shell portfolio-footer">
-        <span>{profile.name}</span>
-        <span>{content.footer.lineOne}</span>
-        <PortfolioPageLinks />
-      </footer>
-      {import.meta.env.DEV ? (
+      {!embedded ? (
+        <footer className="portfolio-shell portfolio-footer">
+          <span>{profile.name}</span>
+          <span>{content.footer.lineOne}</span>
+          <a href="/privacy">Privacy notice</a>
+          <PortfolioPageLinks />
+        </footer>
+      ) : null}
+      {!embedded ? <WhatsAppEnquiry profile={profile} /> : null}
+      {import.meta.env.DEV && !embedded ? (
         <aside className="portfolio-tweaks">
           <button onClick={() => setOptions(!options)} aria-expanded={options}>
             Design options

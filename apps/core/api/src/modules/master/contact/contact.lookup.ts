@@ -24,3 +24,37 @@ export function resolveOrCreateCustomerForDatabase(
     ? runWithCoreTransaction(databaseName, transaction, resolve)
     : runWithCoreDatabase(databaseName, resolve);
 }
+
+export async function resolveExternalCustomerForDatabase(
+  databaseName: string,
+  input: { externalKey: string; name: string; mobile: string }
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await getCoreDatabase(databaseName)
+        .transaction()
+        .execute((transaction) =>
+          runWithCoreTransaction(databaseName, transaction, () =>
+            new ContactService().resolveExternalCustomer(
+              input.externalKey,
+              input.name,
+              input.mobile
+            )
+          )
+        );
+    } catch (error) {
+      const code =
+        typeof error === "object" && error !== null && "code" in error ? error.code : null;
+      const duplicateContactCode =
+        code === "CONFLICT" &&
+        error instanceof Error &&
+        error.message === "Contact code already exists.";
+      if (
+        attempt === 2 ||
+        (!duplicateContactCode && !["ER_LOCK_DEADLOCK", "ER_DUP_ENTRY"].includes(String(code)))
+      )
+        throw error;
+    }
+  }
+  throw new Error("External customer resolution failed.");
+}

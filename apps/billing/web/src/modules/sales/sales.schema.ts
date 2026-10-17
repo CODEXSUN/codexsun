@@ -63,7 +63,14 @@ export const salesSchema = z
     billingAddress: z.string().trim().min(1, "Billing address is required."),
     billingAddressId: z.number().int().positive("Select a persisted billing address."),
     companyId: z.number().int().positive("Default Company is required."),
-    currencyCode: z.string().trim().length(3, "Currency code must be 3 letters."),
+    currencyCode: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .refine(
+        (code) => code === "INR",
+        "Normal sales use INR only. Use Export Sales for other currencies."
+      ),
     currencyId: z.number().int().positive("Currency is required."),
     customerEmail: z.union([
       z.literal(""),

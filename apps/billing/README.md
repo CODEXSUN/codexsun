@@ -20,7 +20,7 @@ Manual quotation conversion links an existing invoice without changing its items
       Existing dates remain unchanged. Use document-date ageing until due dates are available.
 - [ ] Statement ageing: calculate from all confirmed invoices and posted settlements through the statement To date.
       Honor explicit allocations first. Apply remaining credits to undated opening then oldest invoices for report purposes only.
-      Show 0–30, 31–60, 61–90, and 91+ days, undated opening, credit balance, and draft reservations.
+      Show 0â€“30, 31â€“60, 61â€“90, and 91+ days, undated opening, credit balance, and draft reservations.
       Print once after all statement movements. Buckets less credit balance must equal closing balance.
 - [ ] Release audit: fix the existing quotation E2E fixture. Test two tenants, two companies, two years, persistence, and complete printing.
 
@@ -201,3 +201,52 @@ Existing completed results return without another generation request.
 Reference: [WhiteBooks IRN API](https://whitebooks.in/developer/e-invoice-api/post-einvoice-type-generate-version-v1-03),
 [IRN E-way API](https://whitebooks.in/developer/e-invoice-api/post-einvoice-type-generate-ewaybill-version-v1-03),
 and [standalone E-way API](https://whitebooks.in/developer/e-way-bill-api/post-ewaybillapi-v1.03-ewayapi-genewaybill).
+
+## Currency-separated financial reporting
+
+Customer and Supplier Summary, Customer and Supplier Statement, Stock Statement values, and the Billing dashboard support a reporting currency.
+INR is the default. The selector lists currencies configured in the tenant database, including historical inactive currencies.
+Each module owns its currency relation endpoint. Billing view permission is sufficient. Core CRUD permission is not required.
+
+Financial totals, movements, receipt/payment allocations, ageing, and dashboard balances use one currency at a time.
+The API validates the three-letter `x-billing-report-currency` header and returns `currencyCode` in report results.
+Selection belongs to the current browser tab, tenant, company, and financial year. Changing currency reloads the view and clears stale results.
+Printed reports show the currency code and format amounts in that currency.
+
+Legacy contact opening balances and configured opening-balance entries remain INR-only.
+Foreign-currency reports use their own movements and do not inherit INR openings or compare against INR credit limits.
+Stock quantities include every currency. Purchase and sales value columns use the selected reporting currency.
+GST filing and tax reports remain INR-only. Foreign-currency invoices are excluded until an explicit INR tax-conversion workflow exists.
+No report applies an exchange rate or adds amounts from different currencies.
+
+Dashboard projection version 2 stores INR data. Older snapshots rebuild automatically.
+Foreign-currency dashboard views calculate separately and cannot overwrite the INR snapshot.
+Export outstanding balances include posted export receipt allocations.
+No database schema migration is required for this reporting change.
+
+SalesService and ExportSalesService no longer expose synchronous e-invoice or e-way generation methods.
+HTTP generation uses the durable owner queue. Only owner provider workers call the generation clients in runtime code.
+The disposable currency regressions run with `npm run test:billing -- --database`.
+
+Frontend currency context verification: `node --import tsx --test apps/billing/web/src/shared/api/tenant-context.test.ts`.
+This verifies tab scope, reload behavior, currency formatting, and report headers without live provider calls.
+
+### Sales currency rule
+
+Normal Sales invoices use INR only. The API validates both the currency code and the persisted currency ID.
+Create, edit, and confirmation checks reject a foreign-currency normal sale. The Sales form defaults to INR.
+Export Sales supports multiple currencies. Foreign-currency customer receipts can settle Export Sales in the same currency.
+Reporting separates export currencies from INR. Existing documents are not converted or relabeled by this validation change.
+
+### E-invoice QR and print verification
+
+Sales and Export Sales print the saved provider signed QR payload as a local SVG QR code.
+The invoice show page, print layout, and PDF source include IRN, acknowledgement number, and acknowledgement date.
+Saved compliance details remain visible when generation settings change. Cancelled IRNs keep their cancellation label and original identifiers.
+No external QR image service receives invoice data. Missing QR data shows an explicit message.
+E-invoice pages reserve room for the QR block and use six item slots per page.
+Billing print styles reset host containers to A4 content width to prevent clipping and blank overflow pages.
+No schema migration is required for these display changes.
+
+For frontend rendering regressions, set `TSX_TSCONFIG_PATH=apps/billing/web/tsconfig.json` and run:
+`node --import tsx --test apps/billing/web/src/modules/sales/sales.einvoice-print.test.ts apps/billing/web/src/modules/export-sales/export-sales.einvoice-print.test.ts apps/billing/web/src/shared/document/print-pagination.test.ts`.

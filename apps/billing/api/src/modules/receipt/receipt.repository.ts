@@ -1,3 +1,4 @@
+import { receiptColumnPredicate, type ReceiptColumnSearch } from "./receipt.list-query.js";
 import { randomBytes } from "node:crypto";
 import { sql, type Kysely, type Transaction } from "kysely";
 import { AppError } from "@codexsun/framework/errors";
@@ -82,11 +83,19 @@ export class ReceiptRepository {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      modeSearch?: string;
+      unallocatedSearch?: string;
     }
   ) {
     const database = await receiptDatabase(databaseName);
     const search = `%${options.search.trim()}%`;
     const page = {
+      ...options,
       limit: options.pageSize,
       offset: (options.page - 1) * options.pageSize,
       dateFrom: options.dateFrom,
@@ -100,6 +109,7 @@ export class ReceiptRepository {
       sql<{ total: string | number }>`SELECT COUNT(*) AS total FROM billing_receipts r
         INNER JOIN core_contacts customer ON customer.id=r.customer_id INNER JOIN core_ledgers ledger ON ledger.id=r.ledger_id
         WHERE r.deleted_at IS NULL
+        ${receiptColumnPredicate(options)}
         AND r.company_id=${scope.companyId} AND r.financial_year_id=${scope.financialYearId}
         AND (${page.status}='all' OR r.status=${page.status})
         AND (${page.dateFrom}='' OR r.receipt_date >= ${page.dateFrom})
@@ -217,7 +227,7 @@ export class ReceiptRepository {
         EXISTS(SELECT 1 FROM core_companies WHERE id = ${input.companyId} AND id=${scope.companyId} AND status = 'active') AS company,
         EXISTS(SELECT 1 FROM core_financial_years WHERE id = ${input.financialYearId} AND id=${scope.financialYearId} AND status = 'active' AND ${input.receiptDate} BETWEEN start_date AND end_date) AS financialYear,
         EXISTS(SELECT 1 FROM core_currencies WHERE id = ${input.currencyId} AND status = 'active') AS currency,
-        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.customerId} AND status = 'active') AS customer,
+        EXISTS(SELECT 1 FROM core_contacts WHERE id = ${input.customerId} AND status = 'active' AND deleted_at IS NULL) AS customer,
         EXISTS(SELECT 1 FROM core_ledgers WHERE id = ${input.ledgerId} AND status = 'active') AS ledger
     `.execute(database);
     const allocations = await Promise.all(
@@ -535,7 +545,7 @@ function selectHeaders(
     offset: number;
     search: string;
     status: string;
-  }
+  } & ReceiptColumnSearch
 ) {
   const scope = currentBillingScope();
   return sql<HeaderRow>`
@@ -560,6 +570,7 @@ function selectHeaders(
           OR r.status LIKE ${page.search} OR COALESCE(r.reference_no,'') LIKE ${page.search})`
           : sql``
       }
+      ${page ? receiptColumnPredicate(page) : sql``}
     ORDER BY r.receipt_date DESC, r.line_number DESC
     ${page ? sql`LIMIT ${page.limit} OFFSET ${page.offset}` : sql``}
   `;

@@ -1,25 +1,30 @@
-import { useState } from "react";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { useWorkspaceQueryValue, useWorkspaceRecordSelection } from "@codexsun/ui/workspace/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { ProductImageForm } from "./product-image.form";
 import { productImageQueryKey, useImageOptions, useProductImages } from "./product-image.hooks";
-import { ProductImageList } from "./product-image.list";
+import { ProductImageList, productimageListColumns, productimageListValues } from "./product-image.list";
 import {
   changeProductImageStatus,
   createProductImage,
   updateProductImage
 } from "./product-image.services";
-import type { ImageStatus, ProductImagePayload, ProductImageRecord } from "./product-image.types";
+import type { ProductImagePayload, ProductImageRecord } from "./product-image.types";
 export function ProductImageWorkspace() {
+  const listTools = useWorkspaceListTools(productimageListColumns);
+  const [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all");
   const client = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<ImageStatus | undefined>();
-  const [editing, setEditing] = useState<ProductImageRecord | null | undefined>();
-  const query = useProductImages(search, status);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+
+
+  const query = useProductImages(search);
+  const records = (query.data ?? []).filter((record) => (statusFilter === "all" || record.status === statusFilter) && listTools.matches(productimageListValues(record)));
+  const [editing, setEditing] = useWorkspaceRecordSelection<ProductImageRecord>(query.data ?? [], (record) => String(record.id));
   const options = useImageOptions();
   const refresh = () => client.invalidateQueries({ queryKey: productImageQueryKey });
   const save = useMutation({
@@ -49,15 +54,12 @@ export function ProductImageWorkspace() {
       />
     );
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Product Images"
       description="Manage primary, gallery, and variant-specific storefront images."
       actions={
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => void query.refetch()}>
-            <RefreshCw className="size-4" />
-            Refresh
-          </Button>
+          
           <Button onClick={() => setEditing(null)}>
             <Plus className="size-4" />
             New
@@ -68,26 +70,22 @@ export function ProductImageWorkspace() {
       <div className="flex gap-3">
         <div className="flex-1">
           <WorkspaceFilters
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
+        filterValue={statusFilter}
+        onFilterValueChange={setStatusFilter}
+        filterOptions={[{ id: "all", label: "All statuses" },{ id: "active", label: "Active", count: (query.data ?? []).filter((record) => record.status === "active").length },{ id: "inactive", label: "Inactive", count: (query.data ?? []).filter((record) => record.status === "inactive").length }]} 
             searchPlaceholder="Search product, variant, or alternative text"
             searchValue={search}
             onSearchValueChange={setSearch}
           />
         </div>
-        <select
-          className="h-10 rounded-md border bg-background px-3"
-          value={status ?? ""}
-          onChange={(event) =>
-            setStatus((event.target.value || undefined) as ImageStatus | undefined)
-          }
-        >
-          <option value="">All states</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
       </div>
       <ProductImageList
+        listTools={listTools}
         loading={query.isLoading}
-        records={query.data ?? []}
+        records={records}
         onEdit={setEditing}
         onStatus={(record) => statusMutation.mutate(record)}
       />

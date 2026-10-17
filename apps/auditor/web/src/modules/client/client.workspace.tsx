@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { useWorkspaceQueryValue, useWorkspaceRecordSelection } from "@codexsun/ui/workspace/navigation";
+import { useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
@@ -9,7 +11,7 @@ import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
 import { AuditorClientForm } from "./client.form";
 import { auditorClientsQueryKey, useAuditorClient, useAuditorClients } from "./client.hooks";
-import { AuditorClientList } from "./client.list";
+import { AuditorClientList, clientListColumns } from "./client.list";
 import { AuditorClientShowPage } from "./client.show";
 import type { AuditorClientGateway } from "./client.services";
 import type { AuditorClientRecord, AuditorClientSavePayload } from "./client.types";
@@ -23,14 +25,16 @@ export function AuditorClientWorkspace({
   initialRecordId?: string | undefined;
   onRecordNavigate: (recordId: string | null) => void;
 }) {
+  const listTools = useWorkspaceListTools(clientListColumns);
   const client = useQueryClient();
-  const [editing, setEditing] = useState<AuditorClientRecord | null | undefined>(undefined);
+
   const viewingId = parseRecordId(initialRecordId);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+  const [status, setStatus] = useWorkspaceQueryValue("status", "all");
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 20);
   const query = useAuditorClients(gateway);
+  const [editing, setEditing] = useWorkspaceRecordSelection<AuditorClientRecord>(query.data ?? [], (record) => String(record.id));
   const selectedQuery = useAuditorClient(gateway, viewingId);
   const openClient = (id: number) => onRecordNavigate(String(id));
   const showClients = () => onRecordNavigate(null);
@@ -47,7 +51,7 @@ export function AuditorClientWorkspace({
   });
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (query.data ?? []).filter(
+    return (query.data ?? []).filter((record) => listTools.matches(record)).filter(
       (record) =>
         (status === "all" || record.status === status) &&
         (!term ||
@@ -60,7 +64,7 @@ export function AuditorClientWorkspace({
             record.gstin
           ].some((field) => field?.toLowerCase().includes(term)))
     );
-  }, [query.data, search, status]);
+  }, [query.data, search, status, JSON.stringify(listTools.filters)]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const records = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
@@ -90,21 +94,13 @@ export function AuditorClientWorkspace({
     );
   }
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Clients"
       description="Manage the auditor office client directory."
       technicalName="page.auditor.clients.list"
       actions={
         <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void query.refetch()}
-            disabled={query.isFetching}
-          >
-            <RefreshCw className="size-4" />
-            Refresh
-          </Button>
+          
           <Button type="button" onClick={() => setEditing(null)}>
             <Plus className="size-4" />
             New client
@@ -113,6 +109,9 @@ export function AuditorClientWorkspace({
       }
     >
       <WorkspaceFilters
+        toolbarAction={listTools.toolbarAction}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
         searchPlaceholder="Search clients"
         searchValue={search}
         onSearchValueChange={(value) => {
@@ -126,8 +125,8 @@ export function AuditorClientWorkspace({
         }}
         filterOptions={[
           { id: "all", label: "All statuses" },
-          { id: "active", label: "Active" },
-          { id: "inactive", label: "Inactive" }
+          { id: "active", label: "Active", count: (query.data ?? []).filter((record) => record.status === "active").length },
+          { id: "inactive", label: "Inactive", count: (query.data ?? []).filter((record) => record.status === "inactive").length }
         ]}
       />
       {query.error ? (
@@ -136,6 +135,7 @@ export function AuditorClientWorkspace({
         </p>
       ) : null}
       <AuditorClientList
+        listTools={listTools}
         records={records}
         loading={query.isLoading}
         onEdit={setEditing}

@@ -2,7 +2,7 @@ import { sql } from "kysely";
 import { AppError } from "@codexsun/framework/errors";
 import { buildSupplierStatementAgeing } from "./supplier-statement.ageing.js";
 import { getBillingDatabase } from "../../../database/billing-database.js";
-import { currentBillingScope } from "../../../auth/billing-scope.js";
+import { billingReportCurrency, currentBillingScope } from "../../../auth/billing-scope.js";
 import { readOpeningBalanceOverrides } from "../../opening-balance/index.js";
 import type {
   SupplierStatementContact,
@@ -30,6 +30,17 @@ type MovementRow = {
 };
 
 export class SupplierStatementRepository {
+  async currencies(databaseName: string) {
+    return (
+      await sql<{
+        id: number;
+        name: string;
+      }>`SELECT id,UPPER(name) AS name FROM core_currencies WHERE CHAR_LENGTH(name)=3 ORDER BY name,id`.execute(
+        await getBillingDatabase(databaseName)
+      )
+    ).rows;
+  }
+
   async ageing(
     databaseName: string,
     companyId: number,
@@ -44,10 +55,10 @@ export class SupplierStatementRepository {
  COALESCE((SELECT SUM(allocation.allocated_amount)
  FROM billing_payment_allocations allocation JOIN billing_payments payment ON payment.id=allocation.payment_id
  WHERE allocation.purchase_id=purchase.id AND payment.status='posted' AND payment.deleted_at IS NULL
- AND payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId}
+ AND payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId} AND payment.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
  AND payment.supplier_id=${contactId} AND payment.payment_date<=${to}),0) AS settled
  FROM billing_purchases purchase
- WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId}
+ WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
  AND purchase.supplier_id=${contactId} AND purchase.status='confirmed' AND purchase.deleted_at IS NULL
  AND purchase.purchase_date<=${to}
       ORDER BY date
@@ -55,7 +66,7 @@ export class SupplierStatementRepository {
     const settlements = await sql<{ total: string | number; reserved: string | number }>`
       SELECT COALESCE(SUM(CASE WHEN status='posted' THEN total_amount ELSE 0 END),0) AS total,
       COALESCE(SUM(CASE WHEN status='draft' THEN allocated_amount ELSE 0 END),0) AS reserved
-      FROM billing_payments WHERE company_id=${companyId} AND financial_year_id=${financialYearId}
+      FROM billing_payments WHERE company_id=${companyId} AND financial_year_id=${financialYearId} AND currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
       AND supplier_id=${contactId} AND deleted_at IS NULL AND payment_date<=${to}
     `.execute(database);
     const opening = await this.openingBalance(databaseName, companyId, contactId, yearStart);
@@ -111,9 +122,9 @@ export class SupplierStatementRepository {
         AND (
           LOWER(COALESCE(contact.type_name,'')) LIKE '%supplier%'
           OR EXISTS (SELECT 1 FROM billing_purchases purchase WHERE purchase.supplier_id=contact.id
-            AND purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.deleted_at IS NULL)
+            AND purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND purchase.deleted_at IS NULL)
           OR EXISTS (SELECT 1 FROM billing_payments payment WHERE payment.supplier_id=contact.id
-            AND payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId} AND payment.deleted_at IS NULL)
+            AND payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId} AND payment.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND payment.deleted_at IS NULL)
         )
       ORDER BY contact.name, contact.id
     `.execute(database);
@@ -129,13 +140,13 @@ export class SupplierStatementRepository {
     const database = await getBillingDatabase(databaseName);
     const { financialYearId } = currentBillingScope();
     const result = await sql<{ balance: string | number; legacy: string | number }>`
-      SELECT COALESCE(contact.opening_balance,0) AS legacy, COALESCE(contact.opening_balance,0)
+      SELECT (CASE WHEN ${billingReportCurrency()}='INR' THEN COALESCE(contact.opening_balance,0) ELSE 0 END) AS legacy, (CASE WHEN ${billingReportCurrency()}='INR' THEN COALESCE(contact.opening_balance,0) ELSE 0 END)
         + COALESCE((SELECT SUM(purchase.amount) FROM billing_purchases purchase
-          WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.supplier_id=${contactId}
+          WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND purchase.supplier_id=${contactId}
             AND purchase.status='confirmed' AND purchase.deleted_at IS NULL
             AND purchase.purchase_date<${from}),0)
         - COALESCE((SELECT SUM(payment.total_amount) FROM billing_payments payment
-          WHERE payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId} AND payment.supplier_id=${contactId}
+          WHERE payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId} AND payment.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND payment.supplier_id=${contactId}
             AND payment.status='posted' AND payment.deleted_at IS NULL
             AND payment.payment_date<${from}),0) AS balance
       FROM core_contacts contact WHERE contact.id=${contactId} LIMIT 1
@@ -223,7 +234,7 @@ function supplierMovements(companyId: number, contactId: number, from: string, t
              THEN '' ELSE CONCAT(' - ', purchase.supplier_bill_number) END) AS narration,
            0 AS debit, purchase.amount AS credit
     FROM billing_purchases purchase
-    WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.supplier_id=${contactId}
+    WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND purchase.supplier_id=${contactId}
       AND purchase.status='confirmed' AND purchase.deleted_at IS NULL
       AND purchase.purchase_date BETWEEN ${from} AND ${to}
     UNION ALL
@@ -231,7 +242,7 @@ function supplierMovements(companyId: number, contactId: number, from: string, t
            DATE_FORMAT(payment.payment_date,'%Y-%m-%d'),
            CONCAT('Payment - ', payment.payment_mode), payment.total_amount, 0
     FROM billing_payments payment
-    WHERE payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId} AND payment.supplier_id=${contactId}
+    WHERE payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId} AND payment.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND payment.supplier_id=${contactId}
       AND payment.status='posted' AND payment.deleted_at IS NULL
       AND payment.payment_date BETWEEN ${from} AND ${to}
   `;

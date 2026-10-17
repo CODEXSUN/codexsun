@@ -37,3 +37,9 @@ Composition registers public app contracts. Business CRUD stays in each owner. P
 
 Check affected consumers and relevant tests. Report skipped or blocked checks explicitly.
 Documentation and prompts never replace backend authorization or deployment approval.
+
+TConnect buyer provisioning must select `portal.tconnect-buyer` on the server. Keep its grants separate from seller
+management permissions. A buyer login parameter selects a fixed shell; it cannot supply a role or redirect URL.
+
+Compose TConnect conversation, message, and quotation self-access grants only for the fixed portal roles.
+Do not treat Platform staff permissions as ownership of buyer-seller conversations or competing quotations.

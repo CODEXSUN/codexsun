@@ -1,13 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "@codexsun/ui/components/button";
 import { Skeleton } from "@codexsun/ui/components/skeleton";
-import {
-  WorkspacePage,
-  WorkspaceHeader,
-  WorkspaceFilters,
-  WorkspacePagination
-} from "@codexsun/ui/workspace";
+import { WorkspacePage, WorkspaceFilters, WorkspacePagination } from "@codexsun/ui/workspace";
 import { WorkspaceFormBanner } from "@codexsun/ui/workspace/upsert";
 import { RequirementsForm } from "./requirements.form";
 import { RequirementsList } from "./requirements.list";
@@ -110,26 +104,7 @@ export function CodexsunWorkspace({
   }
 
   return (
-    <WorkspacePage title="">
-      <WorkspaceHeader
-        title={
-          surface === "frontdesk"
-            ? "Zuno · Front desk"
-            : surface === "workspace"
-              ? "Zuno · Workspace"
-              : "Zuno · Approvals"
-        }
-        subtitle={
-          context.data
-            ? `${context.data.tenantName} · ${context.data.actorEmail}`
-            : "CODEXSUN personal assistance"
-        }
-        actions={
-          <Button variant="outline" disabled={list.isFetching} onClick={() => void list.refetch()}>
-            Refresh
-          </Button>
-        }
-      />
+    <WorkspacePage variant="list" title="">
       {context.isPending && <Skeleton className="h-24" />}
       {(context.isError || list.isError || error) && (
         <WorkspaceFormBanner title="Unable to complete request">

@@ -46,7 +46,12 @@ export function redirectForExpiredSession(desk?: Desk): boolean {
 
   redirectStarted = true;
   clearSession();
-  window.location.replace(sessionExpiredLoginPath(activeDesk));
+  const loginPath = sessionExpiredLoginPath(activeDesk);
+  window.location.replace(
+    activeDesk === "tenant" && window.location.pathname.startsWith("/app/tconnect/")
+      ? `${loginPath}&app=tconnect${window.location.pathname.startsWith("/app/tconnect/buyer") ? "&account=buyer" : ""}`
+      : loginPath
+  );
   return true;
 }
 
@@ -59,12 +64,15 @@ export function installSessionExpiryInterceptor(onClearSession: () => void): voi
   window.fetch = async (...arguments_: Parameters<typeof window.fetch>) => {
     const [input, init] = arguments_;
     const slot = getSessionSlot();
+    const platformRequest = isPlatformApiRequest(input);
     const options =
-      slot && isPlatformApiRequest(input)
-        ? { ...init, headers: withSessionSlot(input, init, slot) }
-        : init;
+      slot && platformRequest ? { ...init, headers: withSessionSlot(input, init, slot) } : init;
     const response = await browserFetch(input, options);
-    if (await isExpiredSessionResponse(response)) {
+    if (
+      platformRequest &&
+      slot === getSessionSlot() &&
+      (await isExpiredSessionResponse(response))
+    ) {
       redirectForExpiredSession();
     }
     return response;

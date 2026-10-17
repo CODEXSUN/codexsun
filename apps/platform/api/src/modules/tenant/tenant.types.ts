@@ -25,6 +25,7 @@ export type Tenant = {
     | "frappe"
     | "zetro"
     | "logicx-erp"
+    | "tconnect"
     | "ecommerce"
     | "qcafe"
     | "hrms"

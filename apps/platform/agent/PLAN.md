@@ -46,3 +46,11 @@ Source presence is not release evidence. Confirm executable behavior before desc
 Use `npm run check:component-docs` and the relevant root checks.
 Run database, browser, native, and deployment checks when the changed behavior needs them.
 Do not mark an untested phase or planned feature complete.
+
+## TConnect buyer composition
+
+Compose the fixed buyer role and dedicated buyer shell. Resolve buyer and member mappings from the signed user UUID.
+Keep buyer persistence and business routes inside TConnect. Retain buyer entry parameters when a session expires.
+
+TConnect negotiation extends the existing fixed buyer and seller roles with participant permissions.
+Keep quote calculations, messages, privacy checks, and persistence in TConnect. Platform supplies desk navigation and fixed transport adapters.

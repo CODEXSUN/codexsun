@@ -1,5 +1,8 @@
+import { useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useCustomerStatementControls } from "./customer-statement.controls";
+import { CustomerStatementCurrencySelection } from "./customer-statement.currency";
 import { useEffect, useState } from "react";
-import { Printer, RefreshCw } from "lucide-react";
+import { Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
@@ -16,11 +19,14 @@ import {
 import type { CustomerStatement } from "./customer-statement.types";
 
 export function CustomerStatementWorkspace() {
-  const [contactId, setContactId] = useState<number | null>();
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [contactValue, setContactValue] = useWorkspaceQueryValue("contactId", "");
+  const contactId = contactValue === "none" ? null : Number(contactValue) || undefined;
+  const setContactId = (value: number | null) =>
+    setContactValue(value === null ? "none" : String(value));
+  const [from, setFrom] = useWorkspaceQueryValue("from", "");
+  const [to, setTo] = useWorkspaceQueryValue("to", "");
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [pageSize, setPageSize] = useWorkspaceQueryValue("pageSize", 50);
   const [printStatement, setPrintStatement] = useState<CustomerStatement>();
   const [printing, setPrinting] = useState(false);
   const query = useCustomerStatement({
@@ -42,7 +48,8 @@ export function CustomerStatementWorkspace() {
     }
   }, [contactId, from, statement, to]);
 
-  const totalPages = Math.max(1, Math.ceil((visibleStatement?.total ?? 0) / pageSize));
+  const { tools, entries, toolbar } = useCustomerStatementControls(visibleStatement?.items ?? []);
+  const totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
 
   async function handlePrint() {
     if (!contactId) return;
@@ -66,9 +73,11 @@ export function CustomerStatementWorkspace() {
 
   return (
     <WorkspacePage
+      variant="list"
       className="billing-document-print-page"
       actions={
         <div className="flex gap-2 print:hidden">
+          <CustomerStatementCurrencySelection />
           <Button
             disabled={!contactId || printing}
             onClick={() => void handlePrint()}
@@ -77,15 +86,6 @@ export function CustomerStatementWorkspace() {
             <Printer className="size-4" />
             {printing ? "Preparing..." : "Print"}
           </Button>
-          <Button
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
         </div>
       }
       description="Customer invoices, receipts, opening balance, and running receivable balance."
@@ -93,6 +93,7 @@ export function CustomerStatementWorkspace() {
       title="Customer Statement"
     >
       <main className="space-y-4">
+        {toolbar}
         <CustomerStatementForm
           contactId={contactId === null ? undefined : (contactId ?? statement?.selectedContact?.id)}
           contacts={statement?.contacts ?? []}
@@ -137,21 +138,28 @@ export function CustomerStatementWorkspace() {
             value={visibleStatement?.closingBalance ?? 0}
           />
         </div>
-        <CustomerStatementList entries={visibleStatement?.items ?? []} loading={query.isLoading} />
+        <CustomerStatementList
+          tools={tools}
+          entries={entries.slice(
+            (Math.min(page, totalPages) - 1) * pageSize,
+            Math.min(page, totalPages) * pageSize
+          )}
+          loading={query.isLoading}
+        />
         <WorkspacePagination
-          onNextPage={() => setPage((current) => Math.min(totalPages, current + 1))}
+          onNextPage={() => setPage(Math.min(totalPages, Math.min(page, totalPages) + 1))}
           onPageChange={setPage}
-          onPreviousPage={() => setPage((current) => Math.max(1, current - 1))}
+          onPreviousPage={() => setPage(Math.max(1, Math.min(page, totalPages) - 1))}
           onRowsPerPageChange={(value) => {
             setPageSize(value);
             setPage(1);
           }}
-          page={page}
+          page={Math.min(page, totalPages)}
           rowsPerPage={pageSize}
           rowsPerPageOptions={[10, 20, 50, 100, 200, 500]}
-          showingLabel={`${visibleStatement?.items.length ?? 0} rows on this page`}
+          showingLabel={`${Math.min(pageSize, Math.max(0, entries.length - (Math.min(page, totalPages) - 1) * pageSize))} rows on this page`}
           singularLabel="movements"
-          totalCount={visibleStatement?.total ?? 0}
+          totalCount={entries.length}
           totalPages={totalPages}
         />
         <section className="billing-print-area hidden print:block">

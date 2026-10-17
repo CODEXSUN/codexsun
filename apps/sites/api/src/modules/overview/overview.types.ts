@@ -1,6 +1,10 @@
 export const sitesOverviewPermissions = [
   "sites.overview.view",
+  "sites.enquiry.inbox.view",
+  "sites.enquiry.inbox.update",
+  "sites.enquiry.inbox.delete",
   "sites.site.runtime.start",
+  "sites.site.publication.export",
   "sites.site.registry.create",
   "sites.page.content.view",
   "sites.page.content.update",

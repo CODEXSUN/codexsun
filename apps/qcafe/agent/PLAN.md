@@ -58,3 +58,25 @@ Do not mark an untested phase or planned feature complete.
 POS composes the public Order workspace. Order owns editable tabs, table/seat assignments, KOT snapshots, cancellation, and draft persistence. Table owns restaurant table maintenance and a public locking lookup. POS owns immutable bill snapshots, payment locking, and receipt printing. Composition injects table/menu lookups and transactional bill creation. The order module releases its seat claims from the payment transaction when the bill is paid.
 
 Continue with remaining restaurant modules and deployment checks before desktop sync work. Physical printer validation is a separate runtime check.
+
+## Web Today Special pricing
+
+Special owns tenant MariaDB definitions, selection, enablement, revision checks, and audit history.
+Menu owns per-item special prices and exposes the effective price for POS through a public function.
+Cloud composition injects the Special policy into menu pricing and both bill creation paths.
+Saved order lines and immutable bills retain their original rates when settings change.
+Desktop sources and SQLite are outside this web change.
+
+## Web Settings and demo ownership
+
+Settings owns tenant restaurant preferences, strict contracts, revision checks, and audit history.
+Menu owns the South Indian demo catalog, original illustrated assets, transactional import, and image protection enforcement.
+POS owns immutable receipt and included-GST snapshots. The Settings page composes each owner’s public UI.
+Native printer services, machine licenses, SQLite backups, updater actions, and filesystem controls remain desktop-only.
+
+## Scheduled pickup Booking ownership
+
+Order owns booking customer details and pickup schedules as part of its saved-order aggregate.
+Booking remains distinct from table reservations. Its fixed API validates schedule changes and snapshots details into issued bills.
+Parcel excludes orders with booking metadata. Booking displays only orders with that metadata.
+Keep immutable preparation metadata, live order permissions, tenant isolation, idempotent retries, and audited cancellation.

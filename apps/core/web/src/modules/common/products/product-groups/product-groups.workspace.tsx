@@ -1,7 +1,9 @@
+import { WorkspaceHeaderActions, useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -18,10 +20,9 @@ import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
-import { cn } from "@codexsun/ui/lib/utils";
 import { ProductGroupsForm } from "./product-groups.form";
 import { productGroupsQueryKey, useProductGroups } from "./product-groups.hooks";
-import { ProductGroupsList } from "./product-groups.list";
+import { ProductGroupsList, productGroupsListColumns } from "./product-groups.list";
 import {
   activateProductGroups,
   createProductGroups,
@@ -33,11 +34,13 @@ import type { ProductGroupsRecord, ProductGroupsSavePayload } from "./product-gr
 type PendingAction = { record: ProductGroupsRecord; type: "force-delete" | "restore" | "suspend" };
 
 export function ProductGroupsWorkspace() {
+  const listTools = useWorkspaceListTools(productGroupsListColumns);
+
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+  const [status, setStatus] = useWorkspaceQueryValue("status", "all");
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100);
   const [editing, setLocalEditing] = useState<ProductGroupsRecord | null | undefined>(undefined);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const query = useProductGroups();
@@ -52,7 +55,7 @@ export function ProductGroupsWorkspace() {
         : record === null
           ? `${basePath}/new`
           : `${basePath}/${encodeURIComponent(record.id)}/edit`;
-    if (location.pathname !== path) void navigate({ to: path });
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
   }
   useEffect(() => {
     const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
@@ -111,83 +114,100 @@ export function ProductGroupsWorkspace() {
   });
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (query.data ?? []).filter(
-      (record) =>
-        (status === "all" || (status === "active" ? record.isActive : !record.isActive)) &&
-        (!term || String(record.name).toLowerCase().includes(term))
-    );
-  }, [query.data, search, status]);
+    return (query.data ?? [])
+      .filter((record) =>
+        listTools.matches({
+          ...record,
+          isActive: record.isActive ? "active" : "inactive",
+          status: record.isActive ? "active" : "inactive"
+        })
+      )
+      .filter(
+        (record) =>
+          (status === "all" || (status === "active" ? record.isActive : !record.isActive)) &&
+          (!term || String(record.name).toLowerCase().includes(term))
+      );
+  }, [query.data, search, status, JSON.stringify(listTools.filters)]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const records = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
+    if (query.data && page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
   return (
     <WorkspacePage
-      actions={
-        <div className="flex items-center gap-2">
-          <Button
-            className="h-9 rounded-md"
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
+      title=""
+      className="w-full max-w-none py-0 lg:w-full lg:py-0"
+      technicalName="page.common.products.product-groups.list"
+    >
+      <WorkspaceHeaderActions>
+        {editing === undefined ? (
           <Button className="h-9 rounded-md" onClick={() => setEditing(null)} type="button">
             <Plus className="size-4" />
             New product group
           </Button>
-        </div>
-      }
-      description="Manage product groups for the current tenant database."
-      technicalName="page.common.products.product-groups.list"
-      title="Product Groups"
-    >
-      <WorkspaceFilters
-        filterOptions={[
-          { id: "all", label: "All records" },
-          { id: "active", label: "Active" },
-          { id: "inactive", label: "Inactive" }
-        ]}
-        filterValue={status}
-        onFilterValueChange={(value) => {
-          setStatus(value);
-          setPage(1);
-        }}
-        onSearchValueChange={(value) => {
-          setSearch(value);
-          setPage(1);
-        }}
-        searchPlaceholder="Search product groups"
-        searchValue={search}
-      />
-      <ProductGroupsList
-        loading={query.isFetching && !query.data}
-        onEdit={setEditing}
-        onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
-        onRestore={(record) => setPendingAction({ record, type: "restore" })}
-        onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
-        records={records}
-      />
-      <WorkspacePagination
-        page={currentPage}
-        rowsPerPage={rowsPerPage}
-        showingLabel={buildShowingLabel(currentPage, rowsPerPage, filtered.length)}
-        singularLabel="product group"
-        totalCount={filtered.length}
-        totalPages={totalPages}
-        onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
-        onPageChange={setPage}
-        onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
-        onRowsPerPageChange={(value) => {
-          setRowsPerPage(value);
-          setPage(1);
-        }}
-      />
+        ) : null}
+      </WorkspaceHeaderActions>
+      <div className="space-y-4" hidden={editing !== undefined}>
+        <WorkspaceFilters
+          toolbarAction={listTools.toolbarAction}
+          columnOptions={listTools.columnOptions}
+          onShowAllColumns={listTools.onShowAllColumns}
+          showSelectedFilterChip
+          filterOptions={[
+            { id: "all", label: "All records" },
+            {
+              id: "active",
+              label: "Active",
+              count: (query.data ?? []).filter(
+                (record) => (record.isActive ? "active" : "inactive") === "active"
+              ).length
+            },
+            {
+              id: "inactive",
+              label: "Inactive",
+              count: (query.data ?? []).filter(
+                (record) => (record.isActive ? "active" : "inactive") === "inactive"
+              ).length
+            }
+          ]}
+          filterValue={status}
+          onFilterValueChange={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+          onSearchValueChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          searchPlaceholder="Search product groups"
+          searchValue={search}
+        />
+        <ProductGroupsList
+          listTools={listTools}
+          loading={query.isFetching && !query.data}
+          onEdit={setEditing}
+          onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
+          onRestore={(record) => setPendingAction({ record, type: "restore" })}
+          onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
+          records={records}
+        />
+        <WorkspacePagination
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          showingLabel={buildShowingLabel(currentPage, rowsPerPage, filtered.length)}
+          singularLabel="product group"
+          totalCount={filtered.length}
+          totalPages={totalPages}
+          onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
+          onPageChange={setPage}
+          onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
+          onRowsPerPageChange={(value) => {
+            setRowsPerPage(value);
+            setPage(1);
+          }}
+        />
+      </div>
       <ProductGroupsForm
         {...(saveMutation.error instanceof Error ? { error: saveMutation.error.message } : {})}
         loading={saveMutation.isPending}

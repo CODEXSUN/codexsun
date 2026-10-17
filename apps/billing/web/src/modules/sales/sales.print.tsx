@@ -1,3 +1,5 @@
+import "../../shared/document/invoice-print.css";
+import { SaleEinvoicePrint } from "./sales.einvoice-print";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { WorkspacePrintSheet } from "@codexsun/ui/workspace/print";
@@ -171,7 +173,7 @@ export function SalePrintDocument({ copy, sale }: { copy: SalePrintCopy; sale: S
     useEinvoice: billingSettings?.layout.useEinvoice ?? false,
     useEway: billingSettings?.layout.useEway ?? false
   });
-  const showComplianceDetails = complianceFields.irn || complianceFields.ewayBillNo;
+  const showComplianceDetails = complianceFields.ewayBillNo;
   const primaryBankAccount =
     billingSettings?.printing.printAccountNumber === true
       ? (company?.bankAccounts.find(
@@ -187,7 +189,7 @@ export function SalePrintDocument({ copy, sale }: { copy: SalePrintCopy; sale: S
     sale.shippingAddress || sale.billingAddress,
     statesQuery.data ?? []
   );
-  const pages = paginateBillingPrintItems(sale.items);
+  const pages = paginateBillingPrintItems(sale.items, sale.einvoice.irn.trim() ? 6 : undefined);
   const terms = resolveBillingPrintTerms(billingSettings, "sales", sale.terms);
 
   return (
@@ -266,7 +268,8 @@ function SalePrintPage({
 }) {
   const splitTax = sale.taxType === "cgst-sgst";
   const blankLines = getBillingPrintDummyLineCount(
-    items.map(({ item }) => salePrintParticulars(item, showColour, showSize))
+    items.map(({ item }) => salePrintParticulars(item, showColour, showSize)),
+    sale.einvoice.irn.trim() ? 6 : undefined
   );
   const headings = [
     "S.no",
@@ -306,6 +309,7 @@ function SalePrintPage({
         </header>
 
         <BillingDocumentHeader />
+        <SaleEinvoicePrint einvoice={sale.einvoice} />
 
         {addressMode === "billing_and_shipping" ? (
           <section className="grid border-b border-slate-300 text-[10px] sm:grid-cols-2">
@@ -696,28 +700,6 @@ function ComplianceDetails({
 }) {
   return (
     <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-2 gap-y-1">
-      {fields.irn ? (
-        <>
-          <span className="whitespace-nowrap font-semibold">IRN :</span>
-          <span className="col-span-3 break-all font-semibold">{sale.einvoice.irn.trim()}</span>
-        </>
-      ) : null}
-      {fields.ackNo ? (
-        <>
-          <span className="whitespace-nowrap font-semibold">Ack No.:</span>
-          <span className="font-semibold">{sale.einvoice.ackNo.trim()}</span>
-        </>
-      ) : null}
-      {fields.ackDate ? (
-        <>
-          <span
-            className={`whitespace-nowrap text-right font-semibold ${fields.ackNo ? "" : "col-start-3"}`}
-          >
-            Ack Date:
-          </span>
-          <span className="text-right font-semibold">{formatDate(sale.einvoice.ackDate)}</span>
-        </>
-      ) : null}
       {fields.ewayBillNo ? (
         <>
           <span className="whitespace-nowrap font-semibold">E-Way Bill No.:</span>
@@ -834,7 +816,7 @@ function printCopyLabel(copy: SalePrintCopy) {
 }
 
 function money(value: number) {
-  return formatMoney(value).replace("Ã¢â€šÂ¹", "").trim();
+  return formatMoney(value).replace("ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹", "").trim();
 }
 
 function amountInWords(value: number) {

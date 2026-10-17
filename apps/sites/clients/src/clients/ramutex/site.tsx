@@ -1,3 +1,4 @@
+import { sitePathname } from "../../shared/sitePathname";
 import { ArrowDown, ArrowDownToLine, ArrowUpRight, Menu, SlidersHorizontal, X } from "lucide-react";
 import { useState } from "react";
 import { useClientDocument } from "../../shared/useClientDocument";
@@ -6,6 +7,8 @@ import { PortfolioPages, PortfolioPageLinks } from "../../shared/PortfolioPages"
 import { RamutexCapabilities } from "./RamutexCapabilities";
 import { RamutexContact } from "./RamutexContact";
 import { RamutexBlogs } from "./RamutexBlogs";
+import { BrandLogo } from "../../shared/BrandLogo";
+import { WhatsAppEnquiry } from "../../shared/SiteContactTools";
 import profileUrl from "./assets/ramu-tex-company-profile.pdf?url";
 import "./ramutex.css";
 export function RamutexSite() {
@@ -15,8 +18,8 @@ export function RamutexSite() {
   const [compact, setCompact] = useState(false);
   const { content, blogs, connected } = useSitePublication("ramutex");
   const { profile, hero, materials, about } = content;
-  const slug = window.location.pathname.startsWith("/blogs/")
-    ? window.location.pathname.slice(7)
+  const slug = sitePathname().startsWith("/blogs/")
+    ? sitePathname().slice(7)
     : null;
   const post = blogs.find((item) => item.slug === slug);
   useClientDocument(
@@ -24,7 +27,7 @@ export function RamutexSite() {
     post?.summary ?? content.description,
     "#f5f3eb"
   );
-  if (window.location.pathname !== "/")
+  if (sitePathname() !== "/")
     return <PortfolioPages content={content} blogs={blogs} connected={connected} tone="earth" />;
   const navigation = [
     ["About", "/about"],
@@ -45,13 +48,7 @@ export function RamutexSite() {
       </div>
       <header className="rt-header rt-wrap">
         <a className="rt-wordmark" href="#" aria-label={`${profile.name} home`}>
-          <span className="rt-mark" aria-hidden="true">
-            r<span>t</span>
-          </span>
-          <span>
-            {profile.brand}
-            <small>{profile.tagline.toUpperCase()}</small>
-          </span>
+          <BrandLogo name={profile.name} />
         </a>
         <nav className={menuOpen ? "rt-nav is-open" : "rt-nav"} aria-label="Main navigation">
           {navigation.map(([label, id]) => (
@@ -151,6 +148,7 @@ export function RamutexSite() {
         <PortfolioPageLinks />
       </main>
       <RamutexContact content={content} />
+      <WhatsAppEnquiry profile={profile} />
       {import.meta.env.DEV ? (
         <aside className="rt-tweaks">
           <button onClick={() => setTweaksOpen(!tweaksOpen)} aria-expanded={tweaksOpen}>

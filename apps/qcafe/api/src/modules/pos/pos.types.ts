@@ -29,7 +29,15 @@ export type PosPayment = {
   createdAt: string;
 };
 export type PosBill = {
-  serviceContext: { orderUuid: string; mode: string; tableName: string; seats: number[] } | null;
+  receiptContext: ReceiptContext | null;
+  serviceContext: {
+    orderUuid: string;
+    mode: string;
+    tableName: string;
+    seats: number[];
+    parcelToken?: string | null;
+    booking?: { token: string; customerName: string; mobile: string; pickupAt: string } | null;
+  } | null;
   uuid: string;
   number: string;
   total: number;
@@ -38,4 +46,21 @@ export type PosBill = {
   createdAt: string;
   lines: PosLine[];
   payments: PosPayment[];
+};
+
+export type ReceiptContext = {
+  restaurantName: string;
+  branchName: string;
+  address: string;
+  contactNumber: string;
+  gstin: string;
+  fssai: string;
+  receiptHeader: string;
+  receiptFooter: string;
+  receiptLegalNote: string;
+  showReceiptContact: boolean;
+  receiptWidth: "58mm" | "80mm";
+  gstRate: number;
+  taxAmount: number;
+  netAmount: number;
 };

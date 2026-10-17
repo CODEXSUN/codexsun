@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { Trash2 } from "lucide-react";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { WorkspaceProtectedIndicator } from "@codexsun/ui/workspace/protected-indicator";
@@ -5,7 +6,14 @@ import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { TenantPermission } from "./tenant-permission.types";
+export const tenantPermissionListColumns = {
+  label: "Permission",
+  key: "Permission key",
+  status: "Status"
+};
+
 export function TenantPermissionList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -13,6 +21,7 @@ export function TenantPermissionList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: TenantPermission) => void;
   onForceDelete: (record: TenantPermission) => void;
@@ -72,7 +81,13 @@ export function TenantPermissionList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No permissions found."
       isLoading={loading}

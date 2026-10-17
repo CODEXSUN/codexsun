@@ -11,7 +11,7 @@ import { pathToFileURL } from "node:url";
 import { loadDevEnv, requiredDevPort } from "./dev-runtime-env.mjs";
 import { requestProcessStop, startProcessControl } from "./dev-process-control.mjs";
 import { requestDevApiShutdown } from "./dev-shutdown-client.mjs";
-import { takeoverTarget } from "./dev-port-ownership.mjs";
+import { previousPreflightPids, takeoverTarget } from "./dev-port-ownership.mjs";
 import {
   apiSourceDirectories,
   captureApiInputs,
@@ -50,6 +50,15 @@ const apps = {
     displayName: "project manager web",
     cwd: "devkits/project-manager/web",
     envKey: "CODEXSUN_PROJECT_MANAGER_WEB_PORT",
+    host: "127.0.0.1",
+    command: process.execPath,
+    args: [nodePackageBin("vite", "bin/vite.js"), "--strictPort"]
+  },
+  "tconnect-web": {
+    displayName: "TConnect web",
+    cwd: "apps/tconnect/web",
+    envKey: "CODEXSUN_TCONNECT_WEB_PORT",
+    defaultPort: 7040,
     host: "127.0.0.1",
     command: process.execPath,
     args: [nodePackageBin("vite", "bin/vite.js"), "--strictPort"]
@@ -125,8 +134,7 @@ const port = requiredDevPort(
   config.envKey
 );
 const host = config.host;
-const portPolicy =
-  process.env.CODEXSUN_DEV_PORT_POLICY ?? env.CODEXSUN_DEV_PORT_POLICY ?? "takeover";
+const portPolicy = process.env.CODEXSUN_DEV_PORT_POLICY ?? env.CODEXSUN_DEV_PORT_POLICY ?? "abort";
 const controlFile = join(tmpdir(), `codexsun-dev-shutdown-${process.pid}.json`);
 const controlToken = randomBytes(32).toString("hex");
 let child;
@@ -155,7 +163,12 @@ await freePort(port, host);
 
 if (app === "platform-api") {
   ensurePlatformApiDependencies();
-} else if (app === "platform-web" || app === "ecommerce-web" || app === "project-manager-web") {
+} else if (
+  app === "platform-web" ||
+  app === "ecommerce-web" ||
+  app === "tconnect-web" ||
+  app === "project-manager-web"
+) {
   await waitForPlatformApi(
     requiredDevPort(process.env.PLATFORM_API_PORT ?? env.PLATFORM_API_PORT, "PLATFORM_API_PORT")
   );
@@ -211,11 +224,14 @@ function launchChild() {
         TEMP: tmpdir(),
         TMP: tmpdir(),
         TMPDIR: tmpdir(),
-        ...(["platform-api", "platform-web", "qcafe-web", "ecommerce-web"].includes(app)
+        ...(["platform-api", "platform-web", "qcafe-web", "ecommerce-web", "tconnect-web"].includes(
+          app
+        )
           ? {
               NODE_OPTIONS: withMaxHttpHeaderSize(
                 process.env.NODE_OPTIONS ?? env.NODE_OPTIONS,
-                65_536
+                // Admit accumulated local cookies once so development login can retire them.
+                262_144
               )
             }
           : {}),
@@ -427,14 +443,17 @@ async function freePort(port, host) {
 
   const available = await probePort(port, host);
   const pids = available ? [] : getPidsOnPort(port);
+  const processes = getProcessSnapshot();
+  // A restarting launcher still owns the service while its port is free.
+  const previous = previousPreflightPids(processes, app, process.pid);
 
-  if (available) {
+  if (available && !previous.length) {
     await waitForPortRelease();
     console.log(`  ok ${host}:${port} is ready\n`);
     return;
   }
 
-  if (!pids.length) {
+  if (!pids.length && !previous.length) {
     if (await probePort(port, host)) {
       console.log(`  ok ${host}:${port} is ready\n`);
       return;
@@ -444,6 +463,8 @@ async function freePort(port, host) {
   }
 
   if (pids.length) console.log(`  ! ${host}:${port} is already in use by PID ${pids.join(", ")}`);
+  if (previous.length)
+    console.log(`  - Previous ${config.displayName} launcher: ${previous.join(", ")}`);
   if (portPolicy === "abort") {
     console.error(
       "  x A previous dev process or another listener is active. Set CODEXSUN_DEV_PORT_POLICY=takeover to replace it.\n"
@@ -458,9 +479,8 @@ async function freePort(port, host) {
     process.exit(1);
   }
 
-  const processes = getProcessSnapshot();
   const targets = new Set();
-  for (const pid of pids) {
+  for (const pid of new Set([...pids, ...previous])) {
     const target = portPolicy === "force" ? pid : takeoverTarget(pid, processes, app, process.pid);
     if (!target) {
       console.error(`  x Port ${port} belongs to another process; refusing takeover.\n`);

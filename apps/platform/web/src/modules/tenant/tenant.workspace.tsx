@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Pencil, Plus, RefreshCw, Save, X } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { requiredClientEnv } from "../../shared/env/client-env";
 import { Button } from "@codexsun/ui/components/button";
@@ -250,6 +250,7 @@ export function TenantList({ onBack: _onBack }: { onBack: () => void }) {
 
   return (
     <WorkspacePage
+      variant="list"
       title={singleMode ? "Client" : "Tenants"}
       description={
         singleMode
@@ -259,16 +260,6 @@ export function TenantList({ onBack: _onBack }: { onBack: () => void }) {
       technicalName="page.tenant.list"
       actions={
         <div className="flex items-center gap-2">
-          <Button
-            disabled={tenantsQuery.isFetching}
-            onClick={() => void tenantsQuery.refetch()}
-            type="button"
-            variant="outline"
-            className="h-9 rounded-md"
-          >
-            <RefreshCw className={cn("size-4", tenantsQuery.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
           {!singleMode ? (
             <Button
               type="button"

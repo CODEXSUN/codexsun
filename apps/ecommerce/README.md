@@ -23,7 +23,9 @@ The Ecommerce sidebar groups pages under Catalog, Storefront UX, and Settings. O
 
 The homepage section order matches the requested `cxshop` reference: hero, trust, promotions, brands, featured cards, season, catalog, campaigns/events, service banner, journal, and closing action. Existing Ecommerce routes and tenant APIs remain authoritative. Brands Strip edits Core brand logos and storefront visibility. Local Campaign Events and Promotion Cards share promotion records, as in the reference. Their section visibility controls remain separate. Empty or disabled brand/campaign feeds do not fall back to unrelated homepage content.
 
-The hero slider uses the supplied SoftAurora with a broad, soft band at 65% opacity behind a feathered white surface. It keeps random color pairs per page load, respects reduced motion and page visibility, and does not intercept slide controls. MagicRings has been removed.
+The hero slider uses the supplied SoftAurora with a broad, soft band at 65% opacity. Product images fit without cropping inside rounded white bases with a subtle shadow. Slide controls sit below the image base. It keeps random color pairs per page load, respects reduced motion and page visibility, and does not intercept slide controls. MagicRings has been removed.
+
+Seasonal offers use separate image and copy areas, with complete product images, saved titles, descriptions, and product links. Their assurance row uses the storefront company name and the proof points saved in Storefront Profile. The cards stack on mobile. The homepage catalog uses two columns on phones and one below 360 pixels. Hero text can wrap without clamping, and image badges have reserved space so they do not cover products.
 
 The staff desk owns product information, variants, images, catalog data sources, matching, sliders, promotions, featured cards, season strips, announcements, and the storefront profile. Core owns the underlying product, category, and brand records. Ecommerce reads those through its tenant database and keeps its own published storefront content. The staff UI is available from the Ecommerce menu in Platform.
 
@@ -33,6 +35,10 @@ Frappe connection settings and credentials belong to the Frappe app. Configure a
 The current Platform activation contract requires CRM and Frappe to be enabled together for Frappe routes and migrations.
 
 The public storefront reads published products and content through `/storefront/*` routes. It resolves the tenant from the verified request hostname and requires an active Ecommerce entitlement. The basket is local browser state; it does not submit orders, collect payment, or reserve stock. The Piko button has a product search fallback while the optional chat endpoint and panda sprite are unavailable.
+
+The local CODEXSUN tenant has reference content for storefront refinement: 10 products and sliders, 3 promotion/campaign cards, 4 featured cards, 2 seasonal banners, 4 brands, and journal articles. Product images are uploaded through Ecommerce and saved in its tenant storage. Reference products use enquiry pricing; no price or stock availability is asserted. Edit the records through Catalog and Storefront UX. All homepage sections also remain visible on mobile.
+
+The homepage journal reads published Blog articles. `/blog` lists them and `/blog/:slug` composes the pinned Blog package's public article view with the storefront header and footer. Blog must be enabled for the tenant; staff management requires `blog.manage`. Local development Blog reads can resolve the same configured localhost Ecommerce tenant, while verified-domain routing and Blog activation checks remain in place elsewhere.
 
 Open **Ecommerce → Organisation Settings** at `/app/ecommerce/organisation` to select the default company and accounting year. Both dropdowns read active records from this tenant's Core organisation modules. Ecommerce saves its selection without changing the Application Default Company. Until saved, it uses the tenant's Default Company selection.
 

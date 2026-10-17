@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, Plus, Send, Printer } from "lucide-react";
+import { Search, Plus, Printer } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import {
   Dialog,
@@ -8,18 +8,28 @@ import {
   DialogTitle,
   DialogDescription
 } from "@codexsun/ui/components/dialog";
-import { TableWorkspace } from "../table";
+import { useCafeSettings } from "../settings";
 import { useOrders } from "./order.hooks";
 import { OrderTabs } from "./order.list";
 import { OrderForm } from "./order.form";
 import { OrderAssignment } from "./order.assignment";
+import { OrderKitchenFlow } from "./order.kitchen";
+import { OrderParcelFlow } from "./order.parcel";
+import { OrderFloor } from "./order.floor";
+import { BookingDetailsForm } from "./order.booking-form";
+import { OrderBookingFlow } from "./order.booking-flow";
 import { KitchenPrint } from "./order.print";
-import type { CafeOrder, KitchenTicket, LastBill } from "./order.types";
+import type {
+  CafeOrder,
+  KitchenTicket,
+  LastBill,
+  TableOption,
+  BookingDetails
+} from "./order.types";
 import "./order.css";
 export function OrderWorkspace({
   canCreate,
   canKitchen,
-  canManageTables,
   lastBill,
   onHistory,
   onBillSaved,
@@ -35,11 +45,20 @@ export function OrderWorkspace({
   onBillSaved: (uuid: string, print: boolean) => Promise<void>;
   restaurantName: string;
   active?: boolean;
-  serviceMode: CafeOrder["mode"];
+  serviceMode: CafeOrder["mode"] | "BOOKING";
 }) {
+  const { settings: preferences, loading: preferencesLoading } = useCafeSettings();
+  const [defaultAssignment, setDefaultAssignment] = useState(false);
   const [search, setSearch] = useState("");
   const [assignment, setAssignment] = useState(false);
-  const [manage, setManage] = useState(false);
+  const [bookingEditor, setBookingEditor] = useState<{ order: CafeOrder | null } | null>(null);
+  const [kotItems, setKotItems] = useState(false);
+  useEffect(() => {
+    if (serviceMode === "KOT") {
+      setKotItems(false);
+      void data.refresh();
+    }
+  }, [serviceMode]);
   const [closing, setClosing] = useState<CafeOrder | null>(null);
   const [printTicket, setPrintTicket] = useState<{
     order: CafeOrder;
@@ -59,22 +78,39 @@ export function OrderWorkspace({
       setNotice(action === "cancel" ? "Order cancelled. Seats released." : "Kitchen ticket saved.");
     }
   });
-  const visibleOrders = data.orders;
-  const remembered = useRef<Partial<Record<CafeOrder["mode"], string>>>({});
-  const initialized = useRef(false);
+  const visibleOrders =
+    serviceMode === "BOOKING"
+      ? data.orders.filter((order) => !!order.booking)
+      : serviceMode === "TAKE AWAY"
+        ? data.orders.filter((order) => order.mode === "TAKE AWAY" && !order.booking)
+        : data.orders;
+  const preparationFlow =
+    serviceMode === "KOT" || serviceMode === "TAKE AWAY" || serviceMode === "BOOKING";
+  const remembered = useRef<Partial<Record<typeof serviceMode, string>>>({});
+  const initialized = useRef(new Set<string>());
   useEffect(() => {
     if (
       data.loaded &&
+      !preferencesLoading &&
       !visibleOrders.length &&
       !data.pending &&
       !data.busy &&
       canCreate &&
-      !initialized.current
+      serviceMode !== "KOT" &&
+      !initialized.current.has(serviceMode)
     ) {
-      initialized.current = true;
-      void data.create();
+      initialized.current.add(serviceMode);
+      createOrder();
     }
-  }, [serviceMode, data.loaded, visibleOrders.length, data.pending, data.busy, canCreate]);
+  }, [
+    serviceMode,
+    data.loaded,
+    visibleOrders.length,
+    data.pending,
+    data.busy,
+    canCreate,
+    preferencesLoading
+  ]);
   const order =
     visibleOrders.find((order) => order.uuid === data.activeId) ??
     visibleOrders.find((order) => order.uuid === remembered.current[serviceMode]) ??
@@ -84,14 +120,59 @@ export function OrderWorkspace({
   }, [serviceMode, order?.uuid]);
   const assignmentOrder = order;
   function createOrder() {
-    void data.create();
+    if (serviceMode === "BOOKING") {
+      setBookingEditor({ order: null });
+      return;
+    }
+    if (serviceMode === "KOT") {
+      setKotItems(false);
+      void data.refresh();
+      return;
+    }
+    void data.create().then((order) => {
+      if (order && serviceMode !== "TAKE AWAY" && preferences.defaultServiceType === "POS") {
+        setDefaultAssignment(true);
+        setAssignment(true);
+      }
+    });
   }
 
-  const locked = data.busy || !!data.pending || !canCreate;
-  async function kitchen() {
-    if (order && !locked && canKitchen) await data.mutate(order, "kitchen", {}, true);
+  const locked = preferencesLoading || data.busy || !!data.pending || !canCreate;
+  async function saveBooking(details: BookingDetails) {
+    if (locked || !bookingEditor) return;
+    const result = bookingEditor.order
+      ? await data.mutate(bookingEditor.order, "save", { booking: details })
+      : await data.create({ mode: "TAKE AWAY", booking: details });
+    if (result) setBookingEditor(null);
+  }
+  function selectOrder(uuid: string) {
+    data.setActiveId(uuid);
+    if (serviceMode === "KOT") setKotItems(!!data.orders.find((o) => o.uuid === uuid)?.tableUuid);
+  }
+  async function openFloorTable(table: TableOption, seats: number[], existing?: CafeOrder) {
+    if (locked) return;
+    if (existing) {
+      selectOrder(existing.uuid);
+      return;
+    }
+    const created = await data.create({ mode: "KOT", tableUuid: table.uuid, seats });
+    if (created) setKotItems(true);
+  }
+  async function kitchen(target = order) {
+    if (!target || locked || !canKitchen) return null;
+    if (serviceMode === "KOT" && !kotItems) return null;
+    if (serviceMode === "TAKE AWAY" && target.mode !== "TAKE AWAY") return null;
+    if (serviceMode === "BOOKING" && !target.booking) return null;
+    if (serviceMode === "KOT" && (!target.tableUuid || !target.seats.length)) {
+      data.setActiveId(target.uuid);
+      setDefaultAssignment(true);
+      setAssignment(true);
+      return null;
+    }
+    return data.mutate(target, "kitchen", {}, true);
   }
   async function bill(print: boolean) {
+    if (preparationFlow && print) return kitchen();
     if (order && !locked) await data.mutate(order, "bill", {}, print);
   }
   useEffect(() => {
@@ -107,19 +188,19 @@ export function OrderWorkspace({
         event.preventDefault();
         root.current?.querySelector<HTMLInputElement>('[aria-label="Item code"]')?.focus();
       }
-      if (event.key === "F4" && serviceMode === "KOT") {
+      if (event.key === "F4" && preparationFlow) {
         event.preventDefault();
         void kitchen();
       }
       if (event.key === "F7") {
         event.preventDefault();
-        void bill(false);
+        void (preparationFlow ? kitchen() : bill(false));
       }
       if (event.key === "F8") {
         event.preventDefault();
         void bill(true);
       }
-      if (event.key === "F9") {
+      if (event.key === "F9" && preferences.showOrderTabs) {
         event.preventDefault();
         if (!locked) createOrder();
       }
@@ -129,10 +210,15 @@ export function OrderWorkspace({
   });
 
   return (
-    <div ref={root} className="qcafe-orders-workspace">
+    <div ref={root} className="qcafe-orders-workspace" data-page-theme={serviceMode}>
       <header className="qcafe-pos-toolbar">
         <span className="qcafe-page-mode">
-          {serviceMode === "TAKE AWAY" ? "Take Away" : serviceMode} <kbd>F1</kbd>
+          {serviceMode === "BOOKING"
+            ? "Booking"
+            : serviceMode === "TAKE AWAY"
+              ? "Parcel - Take away"
+              : serviceMode}{" "}
+          <kbd>F1</kbd>
         </span>
         <div className="qcafe-toolbar-search">
           <Search size={15} />
@@ -145,42 +231,25 @@ export function OrderWorkspace({
           />
           <kbd>F2</kbd>
         </div>
-        <OrderTabs
-          orders={visibleOrders}
-          activeId={order?.uuid ?? ""}
-          disabled={data.busy || !!data.pending}
-          onSelect={data.setActiveId}
-          onClose={setClosing}
-        />
-        <button className="qcafe-new-order" disabled={locked} onClick={createOrder}>
-          <Plus size={13} />
-          New Order
-        </button>
+        {preferences.showOrderTabs && (
+          <>
+            <OrderTabs
+              orders={visibleOrders}
+              activeId={order?.uuid ?? ""}
+              disabled={data.busy || !!data.pending}
+              onSelect={selectOrder}
+              onClose={setClosing}
+            />
+            <button className="qcafe-new-order" disabled={locked} onClick={createOrder}>
+              <Plus size={13} />
+              New Order
+            </button>
+          </>
+        )}
         <div className="qcafe-toolbar-actions">
-          {serviceMode === "KOT" && (
-            <>
-              <button
-                onClick={() => {
-                  void data.refresh();
-                }}
-                disabled={data.busy}
-              >
-                Refresh
-              </button>
-              <button onClick={() => setManage(true)}>Tables</button>
-              <button
-                className="qcafe-kitchen"
-                disabled={locked || !canKitchen || !order?.lines.length}
-                onClick={() => void kitchen()}
-              >
-                <Send size={13} />
-                Kitchen <kbd>F4</kbd>
-              </button>
-            </>
-          )}
           <button
             className="qcafe-save-print"
-            disabled={locked || !order?.lines.length}
+            disabled={locked || !order?.lines.length || (serviceMode === "KOT" && !kotItems)}
             onClick={() => void bill(true)}
           >
             <Printer size={13} />
@@ -203,20 +272,91 @@ export function OrderWorkspace({
       )}
       {!data.loaded ? (
         <p className="p-6">Loading saved orders…</p>
+      ) : serviceMode === "KOT" && !kotItems ? (
+        <OrderFloor
+          tables={data.tables}
+          orders={data.orders}
+          occupied={data.occupied}
+          locked={locked}
+          onOpen={openFloorTable}
+          onRefresh={data.refresh}
+          canSend={canKitchen}
+          onSelect={(target) => selectOrder(target.uuid)}
+          onSend={(target) => data.mutate(target, "kitchen", {}, true)}
+          onTicket={(order, ticket) => setPrintTicket({ order, ticket })}
+        />
       ) : order ? (
         <OrderForm
           key={order.uuid}
           order={order}
           menu={data.menu}
           search={search}
+          preferences={preferences}
           busy={data.busy}
           disabled={!!data.pending || !canCreate}
           onChange={(lines) => void data.mutate(order, "save", { lines })}
           onAssign={() => {
+            if (serviceMode === "KOT") {
+              setKotItems(false);
+              void data.refresh();
+              return;
+            }
+            setDefaultAssignment(false);
             void data.refresh();
             setAssignment(true);
           }}
-          onBill={() => void bill(false)}
+          kitchenMode={preparationFlow}
+          parcelMode={serviceMode === "TAKE AWAY" || serviceMode === "BOOKING"}
+          bookingMode={serviceMode === "BOOKING"}
+          actionDisabled={preparationFlow && !canKitchen}
+          onBill={() => void (preparationFlow ? kitchen() : bill(false))}
+          footerContent={
+            serviceMode === "KOT" ? (
+              <OrderKitchenFlow
+                order={order}
+                orders={visibleOrders}
+                locked={locked}
+                canKitchen={canKitchen}
+                error={data.error}
+                onRefresh={data.refresh}
+                onAssign={() => {
+                  setKotItems(false);
+                  void data.refresh();
+                }}
+                onSelect={selectOrder}
+                onSend={kitchen}
+                onBill={(target) => data.mutate(target, "bill")}
+                onReprint={(order, ticket) => setPrintTicket({ order, ticket })}
+              />
+            ) : serviceMode === "TAKE AWAY" ? (
+              <OrderParcelFlow
+                order={order}
+                orders={visibleOrders}
+                locked={locked}
+                canSend={canKitchen}
+                error={data.error}
+                onRefresh={data.refresh}
+                onSelect={data.setActiveId}
+                onSend={kitchen}
+                onBill={(target) => data.mutate(target, "bill")}
+                onReprint={(order, ticket) => setPrintTicket({ order, ticket })}
+              />
+            ) : serviceMode === "BOOKING" ? (
+              <OrderBookingFlow
+                order={order}
+                orders={visibleOrders}
+                locked={locked}
+                canSend={canKitchen}
+                error={data.error}
+                onEdit={() => setBookingEditor({ order })}
+                onRefresh={data.refresh}
+                onSelect={selectOrder}
+                onSend={kitchen}
+                onBill={(target) => data.mutate(target, "bill")}
+                onReprint={(order, ticket) => setPrintTicket({ order, ticket })}
+              />
+            ) : undefined
+          }
           lastBill={lastBill}
           onHistory={onHistory}
         />
@@ -231,15 +371,57 @@ export function OrderWorkspace({
           </Button>
         </div>
       )}
-      {order?.tickets.length ? (
+      <Dialog
+        open={serviceMode === "BOOKING" && !!bookingEditor}
+        onOpenChange={(open) => {
+          if (!open) setBookingEditor(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{bookingEditor?.order ? "Edit booking" : "New booking"}</DialogTitle>
+            <DialogDescription>
+              Enter the customer and pickup details before adding items. Pickup uses this device’s
+              local time.
+            </DialogDescription>
+          </DialogHeader>
+          {data.error && (
+            <p role="alert" className="text-destructive">
+              {data.error}
+            </p>
+          )}
+          {bookingEditor && (
+            <BookingDetailsForm
+              key={bookingEditor.order?.uuid ?? "new"}
+              value={bookingEditor.order?.booking ?? null}
+              busy={locked}
+              onSave={saveBooking}
+              onCancel={() => setBookingEditor(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      {order?.tickets.length && (serviceMode !== "KOT" || kotItems) ? (
         <div className="qcafe-kot-reprint">
           <span>{order.tickets.at(-1)?.number}</span>
           <button onClick={() => setPrintTicket({ order, ticket: order.tickets.at(-1)! })}>
-            Reprint last KOT
+            {serviceMode === "BOOKING"
+              ? "Reprint last booking ticket"
+              : serviceMode === "TAKE AWAY"
+                ? "Reprint last parcel ticket"
+                : "Reprint last KOT"}
           </button>
         </div>
       ) : null}
-      <Dialog open={assignment && !!assignmentOrder} onOpenChange={setAssignment}>
+      <Dialog
+        open={
+          serviceMode !== "TAKE AWAY" &&
+          serviceMode !== "BOOKING" &&
+          assignment &&
+          !!assignmentOrder
+        }
+        onOpenChange={setAssignment}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Table and seats</DialogTitle>
@@ -257,6 +439,12 @@ export function OrderWorkspace({
             <OrderAssignment
               key={assignmentOrder.uuid + serviceMode}
               order={assignmentOrder}
+              initialMode={
+                defaultAssignment ? (serviceMode === "KOT" ? "KOT" : "POS") : assignmentOrder.mode
+              }
+              fixedMode={
+                serviceMode === "KOT" && !assignmentOrder.tickets.length ? "KOT" : undefined
+              }
               tables={data.tables}
               occupied={data.occupied}
               busy={data.busy}
@@ -268,17 +456,6 @@ export function OrderWorkspace({
               onCancel={() => setAssignment(false)}
             />
           )}
-        </DialogContent>
-      </Dialog>
-      <Dialog open={manage} onOpenChange={setManage}>
-        <DialogContent className="max-h-[85vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle>Tables</DialogTitle>
-            <DialogDescription>
-              Restaurant table and seat configuration for this workspace.
-            </DialogDescription>
-          </DialogHeader>
-          <TableWorkspace canManage={canManageTables} onChanged={() => void data.refresh()} />
         </DialogContent>
       </Dialog>
       <Dialog
@@ -320,12 +497,21 @@ export function OrderWorkspace({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {printTicket?.ticket.kind === "cancel" ? "Cancellation KOT" : "Kitchen order"} ·{" "}
-              {printTicket?.ticket.number}
+              {printTicket?.ticket.kind === "cancel"
+                ? "Cancellation ticket"
+                : printTicket?.order.booking
+                  ? "Booking preparation ticket"
+                  : printTicket?.order.mode === "TAKE AWAY"
+                    ? "Parcel ticket"
+                    : "Kitchen order"}{" "}
+              · {printTicket?.ticket.number}
             </DialogTitle>
             <DialogDescription>
-              {printTicket?.order.name} · {printTicket?.order.tableName || "Parcel"} · Seats{" "}
-              {printTicket?.order.seats.join(", ") || "—"}
+              {printTicket?.order.booking
+                ? `${printTicket.order.bookingToken} · ${printTicket.order.booking.customerName} · ${printTicket.order.booking.mobile} · Pickup ${new Date(printTicket.order.booking.pickupAt).toLocaleString("en-GB")}`
+                : printTicket?.order.mode === "TAKE AWAY"
+                  ? `${printTicket.order.parcelToken} · ${printTicket.order.name}`
+                  : `${printTicket?.order.name} · ${printTicket?.order.tableName} · Seats ${printTicket?.order.seats.join(", ")}`}
             </DialogDescription>
           </DialogHeader>
           {printTicket?.ticket.lines.map((line) => (
@@ -340,7 +526,12 @@ export function OrderWorkspace({
               window.print();
             }}
           >
-            <Printer size={14} /> Print KOT
+            <Printer size={14} />{" "}
+            {printTicket?.order.booking
+              ? "Print booking ticket"
+              : printTicket?.order.mode === "TAKE AWAY"
+                ? "Print parcel ticket"
+                : "Print KOT"}
           </Button>
         </DialogContent>
       </Dialog>

@@ -1,3 +1,4 @@
+import { salesColumnPredicate, type SaleColumnSearch } from "./sales.list-query.js";
 import { sql, type Kysely, type RawBuilder, type Transaction } from "kysely";
 import { randomBytes } from "node:crypto";
 import { currentBillingScope } from "../../auth/billing-scope.js";
@@ -169,7 +170,8 @@ export function selectSalePageHeaders(
   dateFrom: string,
   dateTo: string,
   limit: number,
-  offset: number
+  offset: number,
+  filters: SaleColumnSearch = {}
 ) {
   const scope = currentBillingScope();
   return sql<SaleHeaderRow>`
@@ -206,6 +208,7 @@ export function selectSalePageHeaders(
     LEFT JOIN core_work_orders work_order ON work_order.id = s.work_order_id
     LEFT JOIN core_ledgers ledger ON ledger.id = s.ledger_id
     WHERE s.deleted_at IS NULL
+      ${salesColumnPredicate(filters)}
       AND s.company_id=${scope.companyId} AND s.financial_year_id=${scope.financialYearId}
       AND (${status} = 'all' OR s.status = ${status})
       AND (${dateFrom}='' OR s.issued_on >= ${dateFrom})

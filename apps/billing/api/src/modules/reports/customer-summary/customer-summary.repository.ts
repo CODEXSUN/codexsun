@@ -1,5 +1,5 @@
 import { sql } from "kysely";
-import { currentBillingScope } from "../../../auth/billing-scope.js";
+import { billingReportCurrency, currentBillingScope } from "../../../auth/billing-scope.js";
 import { getBillingDatabase } from "../../../database/billing-database.js";
 import { readOpeningBalanceOverrides } from "../../opening-balance/index.js";
 import type { CustomerSummaryItem } from "./customer-summary.types.js";
@@ -19,6 +19,17 @@ type SummaryRow = CustomerSummaryItem & {
 };
 
 export class CustomerSummaryRepository {
+  async currencies(databaseName: string) {
+    return (
+      await sql<{
+        id: number;
+        name: string;
+      }>`SELECT id,UPPER(name) AS name FROM core_currencies WHERE CHAR_LENGTH(name)=3 ORDER BY name,id`.execute(
+        await getBillingDatabase(databaseName)
+      )
+    ).rows;
+  }
+
   async context(databaseName: string, companyId?: number) {
     const database = await getBillingDatabase(databaseName);
     const scope = currentBillingScope();
@@ -42,26 +53,26 @@ export class CustomerSummaryRepository {
     const database = await getBillingDatabase(databaseName);
     const { financialYearId } = currentBillingScope();
     const result = await sql<SummaryRow>`
-      SELECT contact.id, contact.code, contact.name, COALESCE(contact.opening_balance,0) AS legacy,
-        COALESCE(contact.opening_balance, 0)
+      SELECT contact.id, contact.code, contact.name, (CASE WHEN ${billingReportCurrency()}='INR' THEN COALESCE(contact.opening_balance,0) ELSE 0 END) AS legacy,
+        (CASE WHEN ${billingReportCurrency()}='INR' THEN COALESCE(contact.opening_balance,0) ELSE 0 END)
           + COALESCE((SELECT SUM(sale.amount) FROM billing_sales sale
-            WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId}
+            WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
               AND sale.customer_id=contact.id AND sale.status='confirmed' AND sale.deleted_at IS NULL), 0)
           + COALESCE((SELECT SUM(sale.amount) FROM billing_export_sales sale
-            WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId}
+            WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
               AND sale.customer_id=contact.id AND sale.status='confirmed' AND sale.deleted_at IS NULL), 0) AS debit,
         COALESCE((SELECT SUM(receipt.total_amount) FROM billing_receipts receipt
-          WHERE receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId}
+          WHERE receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
             AND receipt.customer_id=contact.id AND receipt.status='posted' AND receipt.deleted_at IS NULL), 0) AS credit,
-        COALESCE(contact.opening_balance, 0)
+        (CASE WHEN ${billingReportCurrency()}='INR' THEN COALESCE(contact.opening_balance,0) ELSE 0 END)
           + COALESCE((SELECT SUM(sale.amount) FROM billing_sales sale
-            WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId}
+            WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
               AND sale.customer_id=contact.id AND sale.status='confirmed' AND sale.deleted_at IS NULL), 0)
           + COALESCE((SELECT SUM(sale.amount) FROM billing_export_sales sale
-            WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId}
+            WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
               AND sale.customer_id=contact.id AND sale.status='confirmed' AND sale.deleted_at IS NULL), 0)
           - COALESCE((SELECT SUM(receipt.total_amount) FROM billing_receipts receipt
-            WHERE receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId}
+            WHERE receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
               AND receipt.customer_id=contact.id AND receipt.status='posted' AND receipt.deleted_at IS NULL), 0) AS balance
       FROM core_contacts contact
       WHERE contact.deleted_at IS NULL
@@ -70,11 +81,11 @@ export class CustomerSummaryRepository {
           OR EXISTS (SELECT 1 FROM billing_opening_balances opening WHERE opening.contact_id=contact.id
             AND opening.company_id=${companyId} AND opening.financial_year_id=${financialYearId} AND opening.party_role='customer')
           OR EXISTS (SELECT 1 FROM billing_sales sale WHERE sale.customer_id=contact.id
-            AND sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.deleted_at IS NULL)
+            AND sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND sale.deleted_at IS NULL)
           OR EXISTS (SELECT 1 FROM billing_export_sales sale WHERE sale.customer_id=contact.id
-            AND sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.deleted_at IS NULL)
+            AND sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND sale.deleted_at IS NULL)
           OR EXISTS (SELECT 1 FROM billing_receipts receipt WHERE receipt.customer_id=contact.id
-            AND receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.deleted_at IS NULL))
+            AND receipt.company_id=${companyId} AND receipt.financial_year_id=${financialYearId} AND receipt.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND receipt.deleted_at IS NULL))
       ORDER BY contact.name, contact.id
     `.execute(database);
     const overrides = await readOpeningBalanceOverrides(databaseName, "customer");

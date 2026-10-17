@@ -21,6 +21,7 @@ export type StockStatementLine = {
 };
 
 export type StockStatementResult = {
+  currencyCode: string;
   closingQuantity: number;
   companyId: number;
   companyName: string;

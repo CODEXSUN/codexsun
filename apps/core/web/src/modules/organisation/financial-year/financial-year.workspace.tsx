@@ -1,7 +1,9 @@
+import { WorkspaceHeaderActions, useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -18,10 +20,9 @@ import {
   WorkspacePagination
 } from "@codexsun/ui";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
-import { cn } from "@codexsun/ui/lib/utils";
 import { FinancialYearForm } from "./financial-year.form";
 import { financialYearsQueryKey, useFinancialYears } from "./financial-year.hooks";
-import { FinancialYearList } from "./financial-year.list";
+import { FinancialYearList, financialYearListColumns } from "./financial-year.list";
 import {
   activateFinancialYear,
   createFinancialYear,
@@ -33,12 +34,14 @@ import {
 import type { FinancialYearRecord, FinancialYearSavePayload } from "./financial-year.types";
 type Action = { record: FinancialYearRecord; type: "current" | "delete" | "restore" | "suspend" };
 export function FinancialYearWorkspace() {
+  const listTools = useWorkspaceListTools(financialYearListColumns);
+
   const client = useQueryClient();
   const query = useFinancialYears();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+  const [status, setStatus] = useWorkspaceQueryValue("status", "all");
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 25);
   const [editing, setLocalEditing] = useState<FinancialYearRecord | null | undefined>(undefined);
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,7 +54,7 @@ export function FinancialYearWorkspace() {
         : record === null
           ? `${basePath}/new`
           : `${basePath}/${encodeURIComponent(record.id)}/edit`;
-    if (location.pathname !== path) void navigate({ to: path });
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
   }
   useEffect(() => {
     const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
@@ -108,87 +111,94 @@ export function FinancialYearWorkspace() {
   });
   const records = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (query.data ?? []).filter(
-      (record) =>
-        (status === "all" || record.status === status) &&
-        (!term ||
-          [record.name, record.startDate, record.endDate, record.status].some((value) =>
-            value.toLowerCase().includes(term)
-          ))
-    );
-  }, [query.data, search, status]);
+    return (query.data ?? [])
+      .filter((record) => listTools.matches({ ...record, status: record.status }))
+      .filter(
+        (record) =>
+          (status === "all" || record.status === status) &&
+          (!term ||
+            [record.name, record.startDate, record.endDate, record.status].some((value) =>
+              value.toLowerCase().includes(term)
+            ))
+      );
+  }, [query.data, search, status, JSON.stringify(listTools.filters)]);
   const totalPages = Math.max(1, Math.ceil(records.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const visibleRecords = records.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
+    if (query.data && page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
   return (
     <WorkspacePage
-      title="Financial Years"
-      description="Accounting periods shared across tenant applications and daily transactions."
+      title=""
+      className="w-full max-w-none py-0 lg:w-full lg:py-0"
       technicalName="page.organisation.financial-years.list"
-      actions={
-        <div className="flex items-center gap-2">
-          <Button
-            className="h-9 rounded-md"
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
+    >
+      <WorkspaceHeaderActions>
+        {editing === undefined ? (
           <Button className="h-9 rounded-md" onClick={() => setEditing(null)} type="button">
             <Plus className="size-4" />
             New financial year
           </Button>
-        </div>
-      }
-    >
-      <WorkspaceFilters
-        filterOptions={[
-          { id: "all", label: "All records" },
-          { id: "active", label: "Active" },
-          { id: "inactive", label: "Inactive" }
-        ]}
-        filterValue={status}
-        onFilterValueChange={(value) => {
-          setStatus(value);
-          setPage(1);
-        }}
-        searchPlaceholder="Search name, start date, or status"
-        searchValue={search}
-        onSearchValueChange={(value) => {
-          setSearch(value);
-          setPage(1);
-        }}
-      />
-      <FinancialYearList
-        loading={query.isFetching && !query.data}
-        records={visibleRecords}
-        onEdit={setEditing}
-        onCurrent={(record) => setAction({ record, type: "current" })}
-        onForceDelete={(record) => setAction({ record, type: "delete" })}
-        onRestore={(record) => setAction({ record, type: "restore" })}
-        onSuspend={(record) => setAction({ record, type: "suspend" })}
-      />
-      <WorkspacePagination
-        page={currentPage}
-        rowsPerPage={rowsPerPage}
-        showingLabel={buildShowingLabel(currentPage, rowsPerPage, records.length)}
-        singularLabel="financial year"
-        totalCount={records.length}
-        totalPages={totalPages}
-        onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
-        onPageChange={setPage}
-        onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
-        onRowsPerPageChange={(value) => {
-          setRowsPerPage(value);
-          setPage(1);
-        }}
-      />
+        ) : null}
+      </WorkspaceHeaderActions>
+      <div className="space-y-4" hidden={editing !== undefined}>
+        <WorkspaceFilters
+          toolbarAction={listTools.toolbarAction}
+          columnOptions={listTools.columnOptions}
+          onShowAllColumns={listTools.onShowAllColumns}
+          showSelectedFilterChip
+          filterOptions={[
+            { id: "all", label: "All records" },
+            {
+              id: "active",
+              label: "Active",
+              count: (query.data ?? []).filter((record) => record.status === "active").length
+            },
+            {
+              id: "inactive",
+              label: "Inactive",
+              count: (query.data ?? []).filter((record) => record.status === "inactive").length
+            }
+          ]}
+          filterValue={status}
+          onFilterValueChange={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+          searchPlaceholder="Search name, start date, or status"
+          searchValue={search}
+          onSearchValueChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+        />
+        <FinancialYearList
+          listTools={listTools}
+          loading={query.isFetching && !query.data}
+          records={visibleRecords}
+          onEdit={setEditing}
+          onCurrent={(record) => setAction({ record, type: "current" })}
+          onForceDelete={(record) => setAction({ record, type: "delete" })}
+          onRestore={(record) => setAction({ record, type: "restore" })}
+          onSuspend={(record) => setAction({ record, type: "suspend" })}
+        />
+        <WorkspacePagination
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          showingLabel={buildShowingLabel(currentPage, rowsPerPage, records.length)}
+          singularLabel="financial year"
+          totalCount={records.length}
+          totalPages={totalPages}
+          onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
+          onPageChange={setPage}
+          onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
+          onRowsPerPageChange={(value) => {
+            setRowsPerPage(value);
+            setPage(1);
+          }}
+        />
+      </div>
       <FinancialYearForm
         open={editing !== undefined}
         record={editing ?? null}

@@ -1,3 +1,4 @@
+import { StockStatementRepository } from "./stock-statement.repository.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { registerContractRoute } from "@codexsun/framework/http";
@@ -13,6 +14,7 @@ const querySchema = z.object({
 });
 const responseSchema = z.object({
   closingQuantity: z.number(),
+  currencyCode: z.string(),
   companyId: z.number().int().positive(),
   companyName: z.string(),
   financialYearId: z.number().int().positive(),
@@ -47,6 +49,12 @@ const responseSchema = z.object({
 const service = new StockStatementService();
 
 export async function registerStockStatementRoutes(app: FastifyInstance) {
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/billing/reports/stock-statement/currencies",
+    schemas: { response: z.array(z.object({ id: z.number().int().positive(), name: z.string() })) },
+    handler: ({ request }) => new StockStatementRepository().currencies(databaseName(request))
+  });
   registerContractRoute(app, {
     method: "GET",
     url: "/billing/reports/stock-statement",

@@ -1,3 +1,5 @@
+import { useWorkspaceQueryValue, useWorkspaceQueryState } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useDeferredValue, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -26,7 +28,7 @@ import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspaceFormBanner } from "@codexsun/ui/workspace/upsert";
 import { departmentQueryKey, useDepartments } from "./department.hooks";
-import { DepartmentList, type DepartmentAction } from "./department.list";
+import { DepartmentList, departmentListColumns, type DepartmentAction } from "./department.list";
 import { departmentRouteFromPath } from "./department.routing";
 import { DepartmentShow } from "./department.show";
 import { DepartmentUpsertPage } from "./department.upsert";
@@ -48,15 +50,16 @@ export function DepartmentWorkspace({ gateway }: { gateway: DepartmentGateway })
 }
 
 function DepartmentListWorkspace({ gateway }: { gateway: DepartmentGateway }) {
+  const listTools = useWorkspaceListTools(departmentListColumns);
   const client = useQueryClient();
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<DepartmentFilters>({
+  const [filters, setFilters] = useWorkspaceQueryState<DepartmentFilters>({
     search: "",
     status: "all",
     deleted: false
   });
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 20);
   const [view, setView] = useState<DepartmentRecord | null>(null);
   const [confirmation, setConfirmation] = useState<{
     department: DepartmentRecord;
@@ -93,7 +96,7 @@ function DepartmentListWorkspace({ gateway }: { gateway: DepartmentGateway }) {
     },
     onError: (error) => toast.error("Unable to update department", { description: error.message })
   });
-  const entries = query.data ?? [];
+  const entries = (query.data ?? []).filter((record) => listTools.matches(record));
   const totalPages = Math.max(1, Math.ceil(entries.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const updateFilters = (next: Partial<DepartmentFilters>) => {
@@ -102,7 +105,7 @@ function DepartmentListWorkspace({ gateway }: { gateway: DepartmentGateway }) {
   };
 
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title="Departments"
       description="Manage the departments used by employee records."
       technicalName="page.hrms.department.list"
@@ -117,6 +120,8 @@ function DepartmentListWorkspace({ gateway }: { gateway: DepartmentGateway }) {
       }
     >
       <WorkspaceFilters
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
         searchValue={filters.search}
         searchPlaceholder="Search department name or description"
         onSearchValueChange={(search) => updateFilters({ search })}
@@ -124,14 +129,14 @@ function DepartmentListWorkspace({ gateway }: { gateway: DepartmentGateway }) {
         showSelectedFilterChip
         filterOptions={[
           { id: "all", label: "All statuses" },
-          { id: "active", label: "Active" },
-          { id: "inactive", label: "Inactive" }
+          { id: "active", label: "Active", count: (query.data ?? []).filter((record) => record.status === "active").length },
+          { id: "inactive", label: "Inactive", count: (query.data ?? []).filter((record) => record.status === "inactive").length }
         ]}
         onFilterValueChange={(status) =>
           updateFilters({ status: status === "active" || status === "inactive" ? status : "all" })
         }
         toolbarAction={
-          <Select
+          <>{listTools.toolbarAction}          <Select
             value={filters.deleted ? "deleted" : "current"}
             onValueChange={(value) => updateFilters({ deleted: value === "deleted" })}
           >
@@ -145,7 +150,7 @@ function DepartmentListWorkspace({ gateway }: { gateway: DepartmentGateway }) {
               <SelectItem value="current">Current departments</SelectItem>
               <SelectItem value="deleted">Deleted departments</SelectItem>
             </SelectContent>
-          </Select>
+          </Select></>
         }
       />
       {query.isError && (
@@ -154,7 +159,7 @@ function DepartmentListWorkspace({ gateway }: { gateway: DepartmentGateway }) {
         </WorkspaceFormBanner>
       )}
       <DepartmentList
-        entries={entries.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)}
+        listTools={listTools}        entries={entries.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)}
         loading={query.isPending}
         onView={setView}
         onEdit={openEdit}

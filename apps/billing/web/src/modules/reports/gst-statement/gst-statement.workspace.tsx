@@ -1,10 +1,11 @@
+import { useGstStatementControls } from "./gst-statement.controls";
 import {
   formatDate as formatWorkspaceDate,
   formatDateTime as formatWorkspaceDateTime
 } from "@codexsun/ui/workspace";
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Printer, RefreshCw, Save } from "lucide-react";
+import { Printer, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
@@ -42,6 +43,7 @@ export function GstStatementWorkspace() {
   const [printScope, setPrintScope] = useState<GstStatementPrintScope>("all");
   const query = useGstStatement({ month, year });
   const statement = query.data;
+  const { tools, toolbar, filterPanel } = useGstStatementControls(statement);
 
   useEffect(() => {
     if (!statement) return;
@@ -107,6 +109,7 @@ export function GstStatementWorkspace() {
 
   return (
     <WorkspacePage
+      variant="list"
       className="billing-document-print-page"
       actions={
         <div className="flex gap-2 print:hidden">
@@ -114,22 +117,14 @@ export function GstStatementWorkspace() {
             <Printer className="size-4" />
             Print
           </Button>
-          <Button
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
         </div>
       }
-      description="Monthly GST sales, purchase, HSN, reconciliation, and filing details."
+      description="INR only. Foreign-currency invoices are excluded until tax conversion is configured. Monthly GST sales, purchase, HSN, reconciliation, and filing details."
       technicalName="page.billing.reports.gst-statement"
       title="GST Statement"
     >
       <main className="space-y-4">
+        {toolbar}
         <GstStatementForm
           availableYears={statement?.availableYears ?? []}
           month={month ?? statement?.month}
@@ -181,13 +176,15 @@ export function GstStatementWorkspace() {
               <GstStatementDocumentCard
                 loading={query.isLoading}
                 onPrint={(visiblePanel) => handlePrint("sales", visiblePanel)}
-                panel={statement?.sales}
+                tools={tools}
+                panel={filterPanel(statement?.sales)}
                 side="sales"
               />
               <GstStatementDocumentCard
                 loading={query.isLoading}
                 onPrint={(visiblePanel) => handlePrint("purchase", visiblePanel)}
-                panel={statement?.purchases}
+                tools={tools}
+                panel={filterPanel(statement?.purchases)}
                 side="purchase"
               />
             </div>
@@ -195,12 +192,14 @@ export function GstStatementWorkspace() {
             <div className="grid min-w-0 items-start gap-4 xl:grid-cols-2">
               <GstStatementHsnCard
                 loading={query.isLoading}
-                panel={statement?.sales}
+                tools={tools}
+                panel={filterPanel(statement?.sales)}
                 side="sales"
               />
               <GstStatementHsnCard
                 loading={query.isLoading}
-                panel={statement?.purchases}
+                tools={tools}
+                panel={filterPanel(statement?.purchases)}
                 side="purchase"
               />
             </div>

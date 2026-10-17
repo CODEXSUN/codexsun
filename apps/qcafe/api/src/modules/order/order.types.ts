@@ -1,5 +1,6 @@
 import type { Kysely } from "kysely";
 import type { QCafeDatabase, QCafeDependencies } from "../../cloud/runtime.js";
+export type BookingDetails = { customerName: string; mobile: string; pickupAt: string };
 export type OrderLine = {
   menuUuid: string;
   code: string;
@@ -9,6 +10,7 @@ export type OrderLine = {
   amount: number;
 };
 export type OrderInput = {
+  booking?: BookingDetails | null | undefined;
   requestId: string;
   revision: number;
   action: "save" | "kitchen" | "bill" | "cancel";
@@ -26,6 +28,9 @@ export type KitchenTicket = {
   lines: OrderLine[];
 };
 export type CafeOrder = {
+  booking: BookingDetails | null;
+  bookingToken: string | null;
+  parcelToken: string | null;
   uuid: string;
   name: string;
   revision: number;
@@ -52,7 +57,14 @@ export type OrderDependencies = QCafeDependencies & {
     input: {
       requestId: string;
       lines: OrderLine[];
-      context: { orderUuid: string; mode: string; tableName: string; seats: number[] };
+      context: {
+        orderUuid: string;
+        mode: string;
+        tableName: string;
+        seats: number[];
+        parcelToken: string | null;
+        booking: (BookingDetails & { token: string }) | null;
+      };
     },
     actor: string
   ) => Promise<{ uuid: string }>;

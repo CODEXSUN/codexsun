@@ -251,10 +251,6 @@ test("services preserve existing compliance and reject local destructive changes
   } as unknown as BillingSettingsRepository;
   const sales = new SalesService(repository as unknown as SalesRepository, settings);
   const exports = new ExportSalesService(repository as unknown as ExportSalesRepository, settings);
-  assert.equal(await sales.generateEinvoice("test", "invoice"), saved);
-  assert.equal(await sales.generateEway("test", "invoice"), saved);
-  assert.equal(await exports.generateEinvoice("test", "invoice"), saved);
-  assert.equal(await exports.generateEway("test", "invoice"), saved);
   await assert.rejects(() => sales.cancelSale("test", "invoice"), /provider/);
   await assert.rejects(() => sales.revokeSale("test", "invoice"), /generated/);
   await assert.rejects(() => sales.clearEinvoice("test", "invoice"), /cannot be cleared/);

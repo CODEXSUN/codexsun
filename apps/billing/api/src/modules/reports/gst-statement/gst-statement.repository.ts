@@ -1,5 +1,5 @@
 import { sql } from "kysely";
-import { currentBillingScope } from "../../../auth/billing-scope.js";
+import { billingReportCurrency, currentBillingScope } from "../../../auth/billing-scope.js";
 import { getBillingDatabase } from "../../../database/billing-database.js";
 import type {
   GstStatementDocument,
@@ -154,7 +154,7 @@ function salesDocuments(companyId: number, from: string, to: string) {
       FROM billing_sales sale
       INNER JOIN billing_sales_items item ON item.sales_id=sale.id
       INNER JOIN core_contacts contact ON contact.id=sale.customer_id
-      WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId}
+      WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
         AND sale.status='confirmed' AND sale.deleted_at IS NULL
         AND sale.issued_on BETWEEN ${from} AND ${to}
       UNION ALL
@@ -165,7 +165,7 @@ function salesDocuments(companyId: number, from: string, to: string) {
       FROM billing_export_sales sale
       INNER JOIN billing_export_sales_items item ON item.export_sale_id=sale.id
       INNER JOIN core_contacts contact ON contact.id=sale.customer_id
-      WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId}
+      WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
         AND sale.status='confirmed' AND sale.deleted_at IS NULL
         AND sale.issued_on BETWEEN ${from} AND ${to}
     ) movement
@@ -187,7 +187,7 @@ function purchaseDocuments(companyId: number, from: string, to: string) {
     FROM billing_purchases purchase
     INNER JOIN billing_purchase_items item ON item.purchase_id=purchase.id
     INNER JOIN core_contacts contact ON contact.id=purchase.supplier_id
-    WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId}
+    WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
       AND purchase.status='confirmed' AND purchase.deleted_at IS NULL
       AND purchase.purchase_date BETWEEN ${from} AND ${to}
     GROUP BY purchase.id, purchase.purchase_number, purchase.purchase_date,
@@ -213,7 +213,7 @@ function salesHsn(companyId: number, from: string, to: string) {
       INNER JOIN billing_sales_items item ON item.sales_id=sale.id
       LEFT JOIN core_products product ON product.id=item.product_id
       LEFT JOIN core_hsn_codes hsn ON hsn.id=item.hsn_code_id
-      WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId}
+      WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
         AND sale.status='confirmed' AND sale.deleted_at IS NULL
         AND sale.issued_on BETWEEN ${from} AND ${to}
       UNION ALL
@@ -224,7 +224,7 @@ function salesHsn(companyId: number, from: string, to: string) {
       INNER JOIN billing_export_sales_items item ON item.export_sale_id=sale.id
       LEFT JOIN core_products product ON product.id=item.product_id
       LEFT JOIN core_hsn_codes hsn ON hsn.id=item.hsn_code_id
-      WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId}
+      WHERE sale.company_id=${companyId} AND sale.financial_year_id=${financialYearId} AND sale.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
         AND sale.status='confirmed' AND sale.deleted_at IS NULL
         AND sale.issued_on BETWEEN ${from} AND ${to}
     ) movement
@@ -247,7 +247,7 @@ function purchaseHsn(companyId: number, from: string, to: string) {
     INNER JOIN billing_purchase_items item ON item.purchase_id=purchase.id
     LEFT JOIN core_products product ON product.id=item.product_id
     LEFT JOIN core_hsn_codes hsn ON hsn.id=item.hsn_code_id
-    WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId}
+    WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
       AND purchase.status='confirmed' AND purchase.deleted_at IS NULL
       AND purchase.purchase_date BETWEEN ${from} AND ${to}
     GROUP BY hsn_code, product_name

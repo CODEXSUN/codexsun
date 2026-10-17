@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { Trash2 } from "lucide-react";
 import { WorkspaceProtectedIndicator } from "@codexsun/ui/workspace/protected-indicator";
@@ -5,7 +6,15 @@ import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { DistrictRecord } from "./district.types";
+export const districtListColumns = {
+  name: "District",
+  stateName: "State",
+  countryName: "Country",
+  status: "Status"
+};
+
 export function DistrictList({
+  listTools,
   loading,
   onEdit,
   onForceDelete,
@@ -13,6 +22,7 @@ export function DistrictList({
   onSuspend,
   records
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (r: DistrictRecord) => void;
   onForceDelete: (r: DistrictRecord) => void;
@@ -96,7 +106,13 @@ export function DistrictList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            "accessorKey" in column ? String(column.accessorKey) : (column.id ?? "")
+          )
+      )}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No districts found."
       isLoading={loading}

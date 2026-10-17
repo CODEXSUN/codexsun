@@ -1,48 +1,37 @@
+import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import type { PromotionCardRecord } from "./promotion-card.types";
 
+export const promotioncardListColumns = {"imageUrl": "Preview", "title": "Promotion", "ishopItem": "Frappe item", "offerPrice": "Price", "displayOrder": "Order", "published": "Publication", "status": "Status"};
+
+export function promotioncardListValues(record: PromotionCardRecord) {
+  return {
+    imageUrl: record.imageUrl || "No image",
+    title: `${record.title} ${record.promotionCode}`,
+    ishopItem: record.ishopItem || "Not linked",
+    offerPrice: record.offerPrice,
+    displayOrder: record.displayOrder,
+    published: record.published ? "Published" : "Draft",
+    status: record.status,
+  };
+}
+
 export function PromotionCardList({
+  listTools, loading, onEdit, onStatus, records,
   kind = "promotion",
-  loading,
-  onEdit,
-  onStatus,
-  records
 }: {
-  kind?: "promotion" | "season";
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: PromotionCardRecord) => void;
   onStatus: (record: PromotionCardRecord) => void;
   records: PromotionCardRecord[];
+  kind?: "promotion" | "season";
 }) {
-  if (loading || records.length === 0) {
-    return (
-      <div className="rounded-md border p-8 text-center text-sm text-muted-foreground">
-        {loading
-          ? `Loading ${kind === "season" ? "season strips" : "promotion cards"}...`
-          : `No ${kind === "season" ? "season strips" : "promotion cards"} found.`}
-      </div>
-    );
-  }
-  return (
-    <div className="overflow-x-auto rounded-md border">
-      <table className="w-full min-w-[920px] text-sm">
-        <thead>
-          <tr className="border-b bg-muted/40">
-            <th className="px-4 py-3 text-left">Preview</th>
-            <th className="px-4 py-3 text-left">{kind === "season" ? "Season" : "Promotion"}</th>
-            <th className="px-4 py-3 text-left">Frappe item</th>
-            <th className="px-4 py-3 text-left">Order</th>
-            <th className="px-4 py-3 text-left">Publication</th>
-            <th className="px-4 py-3 text-left">Status</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((record) => (
-            <tr className="border-b" key={record.id}>
-              <td className="px-4 py-3">
-                {record.imageUrl ? (
+  const columns: ColumnDef<PromotionCardRecord>[] = [
+    { id: "imageUrl", header: "Preview", accessorFn: (record) => promotioncardListValues(record).imageUrl, cell: ({ row }) => { const record = row.original; return <> {record.imageUrl ? (
                   <img
                     alt={record.title}
                     className="h-12 w-20 rounded border bg-muted/20 object-contain p-1"
@@ -50,34 +39,23 @@ export function PromotionCardList({
                   />
                 ) : (
                   <span className="text-muted-foreground">No image</span>
-                )}
-              </td>
-              <td className="px-4 py-3">
-                <div className="font-medium">{record.title}</div>
-                <div className="text-xs text-muted-foreground">{record.promotionCode}</div>
-              </td>
-              <td className="px-4 py-3">{record.ishopItem || "Not linked"}</td>
-              <td className="px-4 py-3">{record.offerPrice.toLocaleString()}</td>
-              <td className="px-4 py-3">{record.displayOrder}</td>
-              <td className="px-4 py-3">{record.published ? "Published" : "Draft"}</td>
-              <td className="px-4 py-3">
-                <WorkspaceStatusBadge
+                )} </>; } },
+    { id: "title", header: kind === "season" ? "Season" : "Promotion", accessorFn: (record) => promotioncardListValues(record).title, cell: ({ row }) => { const record = row.original; return <> <div className="font-medium">{record.title}</div>
+                <div className="text-xs text-muted-foreground">{record.promotionCode}</div> </>; } },
+    { id: "ishopItem", header: "Frappe item", accessorFn: (record) => promotioncardListValues(record).ishopItem, cell: ({ row }) => { const record = row.original; return <> {record.ishopItem || "Not linked"} </>; } },
+    { id: "offerPrice", header: "Price", accessorFn: (record) => promotioncardListValues(record).offerPrice, cell: ({ row }) => { const record = row.original; return <> {record.offerPrice.toLocaleString()} </>; } },
+    { id: "displayOrder", header: "Order", accessorFn: (record) => promotioncardListValues(record).displayOrder, cell: ({ row }) => { const record = row.original; return <> {record.displayOrder} </>; } },
+    { id: "published", header: "Publication", accessorFn: (record) => promotioncardListValues(record).published, cell: ({ row }) => { const record = row.original; return <> {record.published ? "Published" : "Draft"} </>; } },
+    { id: "status", header: "Status", accessorFn: (record) => promotioncardListValues(record).status, cell: ({ row }) => { const record = row.original; return <> <WorkspaceStatusBadge
                   label={record.status}
                   tone={record.status === "active" ? "success" : "neutral"}
-                />
-              </td>
-              <td className="px-4 py-3 text-right">
-                <Button size="sm" variant="outline" onClick={() => onEdit(record)}>
+                /> </>; } },
+    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => { const record = row.original; return <> <Button size="sm" variant="outline" onClick={() => onEdit(record)}>
                   Edit
                 </Button>{" "}
                 <Button size="sm" variant="outline" onClick={() => onStatus(record)}>
                   {record.status === "active" ? "Deactivate" : "Activate"}
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+                </Button> </>; } },
+  ];
+  return <WorkspaceTable columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id)))} data={records} isLoading={loading} emptyState="No promotion card records found." minWidth="800px" {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})} />;
 }

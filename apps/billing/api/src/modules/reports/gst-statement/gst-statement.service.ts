@@ -1,3 +1,4 @@
+import { billingReportCurrency } from "../../../auth/billing-scope.js";
 import { AppError } from "@codexsun/framework/errors";
 import { GstStatementRepository } from "./gst-statement.repository.js";
 import type {
@@ -10,6 +11,10 @@ export class GstStatementService {
   constructor(private readonly repository = new GstStatementRepository()) {}
 
   async get(databaseName: string, query: GstStatementQuery): Promise<GstStatementResult> {
+    if (billingReportCurrency() !== "INR")
+      throw AppError.validation(
+        "GST reporting is INR-only. Select INR to view or update filing data."
+      );
     const context = await this.requireContext(databaseName, query.companyId);
     const period = resolvePeriod(
       query.year,
@@ -30,6 +35,7 @@ export class GstStatementService {
     ]);
     const balance = money(filing.openingBalance + sales.taxAmount - purchases.taxAmount);
     return {
+      currencyCode: billingReportCurrency(),
       availableYears: yearsBetween(context.financial_year_start, context.financial_year_end),
       companyGstin: context.company_gstin ?? "",
       companyId: context.company_id,
@@ -56,6 +62,10 @@ export class GstStatementService {
   }
 
   async saveFiling(databaseName: string, input: GstStatementFilingPayload, companyId?: number) {
+    if (billingReportCurrency() !== "INR")
+      throw AppError.validation(
+        "GST reporting is INR-only. Select INR to view or update filing data."
+      );
     const context = await this.requireContext(databaseName, companyId);
     resolvePeriod(
       input.year,

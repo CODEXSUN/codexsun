@@ -23,6 +23,13 @@ export class ReceiptService {
       pageSize: number;
       search: string;
       status: string;
+      numberSearch?: string;
+      dateSearch?: string;
+      partySearch?: string;
+      totalSearch?: string;
+      statusSearch?: string;
+      modeSearch?: string;
+      unallocatedSearch?: string;
     }
   ) {
     return this.repository.listPage(databaseName, query);
@@ -93,10 +100,7 @@ export class ReceiptService {
     const sequence = settings.numbering.receipt;
     const nextNumber = nextBillingDocumentNumber(sequence, input.receiptNumber);
     if (sequence.automatic && nextNumber > sequence.nextNumber) {
-      await this.settings.saveBillingSettings(databaseName, input.companyId, {
-        ...settings,
-        numbering: { ...settings.numbering, receipt: { ...sequence, nextNumber } }
-      });
+      await this.settings.advanceNextNumber(databaseName, input.companyId, "receipt", nextNumber);
     }
     if (!record) throw AppError.notFound("Created receipt could not be reloaded.");
     const saved = automaticRetry

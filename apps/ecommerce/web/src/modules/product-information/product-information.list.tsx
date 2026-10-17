@@ -1,51 +1,36 @@
+import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import type { ProductInformationRecord } from "./product-information.types";
+export const productinformationListColumns = {"storefrontTitle": "Storefront product", "coreProductName": "Core product", "brandName": "Brand", "slug": "Slug", "publicationStatus": "Status"};
+
+export function productinformationListValues(record: ProductInformationRecord) {
+  return {
+    storefrontTitle: record.storefrontTitle,
+    coreProductName: record.coreProductName,
+    brandName: record.brandName,
+    slug: `/${record.slug}`,
+    publicationStatus: record.publicationStatus,
+  };
+}
+
 export function ProductInformationList({
-  loading,
-  onArchive,
-  onEdit,
-  records
+  listTools, loading, onEdit, onArchive, records,
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
-  onArchive: (record: ProductInformationRecord) => void;
   onEdit: (record: ProductInformationRecord) => void;
+  onArchive: (record: ProductInformationRecord) => void;
   records: ProductInformationRecord[];
 }) {
-  if (loading)
-    return (
-      <div className="rounded-md border p-8 text-center text-sm text-muted-foreground">
-        Loading product information...
-      </div>
-    );
-  if (!records.length)
-    return (
-      <div className="rounded-md border p-8 text-center text-sm text-muted-foreground">
-        No ecommerce product information found.
-      </div>
-    );
-  return (
-    <div className="overflow-x-auto rounded-md border">
-      <table className="w-full min-w-[760px] text-sm">
-        <thead>
-          <tr className="border-b bg-muted/40">
-            <th className="px-4 py-3 text-left">Storefront product</th>
-            <th className="px-4 py-3 text-left">Core product</th>
-            <th className="px-4 py-3 text-left">Brand</th>
-            <th className="px-4 py-3 text-left">Slug</th>
-            <th className="px-4 py-3 text-left">Status</th>
-            <th className="px-4 py-3 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((record) => (
-            <tr className="border-b last:border-0" key={record.id}>
-              <td className="px-4 py-3 font-medium">{record.storefrontTitle}</td>
-              <td className="px-4 py-3">{record.coreProductName}</td>
-              <td className="px-4 py-3">{record.brandName || "-"}</td>
-              <td className="px-4 py-3 text-muted-foreground">/{record.slug}</td>
-              <td className="px-4 py-3">
-                <WorkspaceStatusBadge
+  const columns: ColumnDef<ProductInformationRecord>[] = [
+    { id: "storefrontTitle", header: "Storefront product", accessorFn: (record) => productinformationListValues(record).storefrontTitle, cell: ({ row }) => { const record = row.original; return <> {record.storefrontTitle} </>; } },
+    { id: "coreProductName", header: "Core product", accessorFn: (record) => productinformationListValues(record).coreProductName, cell: ({ row }) => { const record = row.original; return <> {record.coreProductName} </>; } },
+    { id: "brandName", header: "Brand", accessorFn: (record) => productinformationListValues(record).brandName, cell: ({ row }) => { const record = row.original; return <> {record.brandName || "-"} </>; } },
+    { id: "slug", header: "Slug", accessorFn: (record) => productinformationListValues(record).slug, cell: ({ row }) => { const record = row.original; return <> /{record.slug} </>; } },
+    { id: "publicationStatus", header: "Status", accessorFn: (record) => productinformationListValues(record).publicationStatus, cell: ({ row }) => { const record = row.original; return <> <WorkspaceStatusBadge
                   label={record.publicationStatus}
                   tone={
                     record.publicationStatus === "published"
@@ -54,10 +39,8 @@ export function ProductInformationList({
                         ? "warning"
                         : "neutral"
                   }
-                />
-              </td>
-              <td className="px-4 py-3 text-right">
-                <div className="flex justify-end gap-2">
+                /> </>; } },
+    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => { const record = row.original; return <> <div className="flex justify-end gap-2">
                   <Button size="sm" variant="outline" onClick={() => onEdit(record)}>
                     Edit
                   </Button>
@@ -66,12 +49,7 @@ export function ProductInformationList({
                       Archive
                     </Button>
                   ) : null}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+                </div> </>; } },
+  ];
+  return <WorkspaceTable columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id)))} data={records} isLoading={loading} emptyState="No product information records found." minWidth="800px" {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})} />;
 }

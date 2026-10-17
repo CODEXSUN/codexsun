@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { cn } from "../lib/utils";
+import { WorkspaceHeaderActions } from "./navigation";
 
 export function WorkspacePage({
   action,
@@ -11,7 +12,8 @@ export function WorkspacePage({
   description,
   onBack,
   technicalName,
-  title
+  title,
+  variant = "page"
 }: {
   action?: ReactNode;
   actions?: ReactNode;
@@ -21,6 +23,7 @@ export function WorkspacePage({
   onBack?: () => void;
   technicalName?: string;
   title: string;
+  variant?: "page" | "list";
 }) {
   return (
     <section
@@ -30,7 +33,11 @@ export function WorkspacePage({
         className
       )}
     >
-      {title || description || actions || action || onBack ? (
+      {variant === "list" ? (
+        <WorkspaceHeaderActions>
+          <div className="flex items-center gap-2">{actions ?? action}</div>
+        </WorkspaceHeaderActions>
+      ) : title || description || actions || action || onBack ? (
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             {title ? (

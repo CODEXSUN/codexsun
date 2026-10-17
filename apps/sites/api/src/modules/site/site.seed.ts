@@ -9,8 +9,9 @@ export const siteSeed = {
 
 const defaultPortfolios = [
   {
-    description: "Enterprise operations, ERP, and integration solutions portfolio.",
-    name: "LogicX ERP",
+    description:
+      "Custom software, Frappe and ERPNext, React and mobile apps, integrations, and business automation support.",
+    name: "LogicX Software",
     port: 7131,
     primaryDomain: "logicx.in",
     publishedPages: 1,

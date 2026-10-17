@@ -20,6 +20,28 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Report and Opening Balances list controls, 17-10-2026
+
+- Customer/Supplier Statements, Customer/Supplier Summaries, Stock Statement, GST Statement, and Opening Balances use the shared search, column-search toggle, Filters, selected-filter badge, and Columns controls.
+- Each leaf owns its columns, search values, and filter rules. Search, selected filters, column searches, and hidden columns persist in the workspace URL.
+- The three paginated reports collect their complete scoped result in existing API batches before applying client filters and pagination. Running party balances and period totals remain authoritative. Stock totals and printed rows use the filtered product set.
+- Report page headings, descriptions, and Refresh actions are removed. Print and currency controls appear in the application header. Opening Balances hides the settings page heading and places New opening in that header.
+- Chrome verified all seven toolbars, column visibility, selected badges, and refresh persistence. Opening Balances also passed New refresh and Keep/Discard checks.
+- Stock Statement had 11 products. Live search returned six Acer products; column search returned one wireless Acer product. The selected zero-stock badge showed one result after refresh. Search from page two returned six products and reset pagination to page one.
+- Other report results and scoped openings were empty. No business records were saved. Opening Edit remains unverified because no opening exists.
+- Five focused tests passed for signed balances, combined search, matches beyond the first page, stock totals, legacy openings, and GST documents/HSN lines. Billing web typecheck, lint, Billing module boundaries, and component documentation checks passed.
+- Root dependency validation found unrelated generated folders under Sites and TConnect. They were left unchanged.
+
+### Browser navigation checks, 17-10-2026
+
+- Opening Balances stores its settings tab and New/Edit selection in the workspace URL. Chrome confirmed New survives refresh.
+- Document Settings marks its edited controls as a draft surface. A successful save resets that surface's dirty marker.
+- Chrome confirmed Document Settings retains an edited value with Keep editing. Discard changes opens the selected page without saving it.
+- Five enabled entry lists passed toolbar, New refresh, and navigation dialog checks. They had no records for Edit checks.
+- Core Common/Master lists were checked from Billing navigation. Empty or protected rows limited some Edit checks.
+- The follow-up below adds and verifies the missing report and Opening Balances controls.
+- Export Sales was disabled. No business data was saved. Billing and Platform web typecheck and lint passed.
+
 ### Summary printing, October 16, 2026
 
 - Customer Summary and Supplier Summary now provide Print actions with module-owned A4 layouts.
@@ -78,3 +100,95 @@ Its database checks also verify the compliance company/address reads and provide
 - Passed Billing API/web and Platform API type checks, lint and builds; Platform web build; Billing/Platform boundaries; component documentation checks/tests; root dependency layout.
 - Root migration-contract check still fails on unrelated Chat, QCafe, Sites, Docs and other owner definitions; it reports no Billing compliance table violations. This remains a repository-wide release limitation.
 - Two additive compliance queue migrations require deployment preflight and execution. Production taxpayer credentials/authentication, production rollout, and Redis backend recovery were not verified. Active WhiteBooks mode remains sandbox; no production invoice was submitted.
+
+## Billing re-audit, October 17, 2026
+
+Reviewed entry creation, posting, cancellation, allocations, company/year scope, opening balances, numbering, report queries, printing, permissions, and WhiteBooks queue recovery.
+The review included source scans across the Billing API and web folders. It does not certify every browser route or production deployment.
+
+### Corrections
+
+- Keep known provider outcomes under review when local persistence fails. Replay saved results without another provider submission.
+- Match standalone E-way recovery to the invoice date, number, and seller GSTIN.
+- Recheck Sales and Export Sales status and compliance under the invoice lock before editing, deleting, or changing local status.
+- Lock Payment mutations and reject invalid status transitions. Preserve actual previous/new status in activity records.
+- Advance Export Sales, Purchase, Quotation, Payment, and Receipt numbers atomically. Do not overwrite unrelated settings from an old document-creation snapshot.
+- Initialize company settings without replacing a concurrent initialization or edit.
+- Reject soft-deleted contacts in Sales, Export Sales, Purchase, Quotation, Receipt, and Payment reference checks.
+- Allow thirty seconds for bounded tenant bootstrap. The previous five-second limit repeatedly failed fresh database tests under load.
+
+These corrections require no new database migration. They do not modify production credentials or submit production documents.
+
+### Remaining findings
+
+- Resolved October 17: reporting currency separates Customer/Supplier Summary, Statements, dashboard totals, allocations, and stock values. No exchange rates are inferred.
+- Resolved October 17: removed synchronous service generation methods. Runtime generation enters through durable owner compliance jobs.
+- Production taxpayer authentication, deployment migration preflight, Redis recovery, and native/physical print output remain separate release checks.
+
+### Re-audit verification
+
+- Passed all 20 Billing unit tests and all three disposable MariaDB stages after the corrections.
+- New checks cover retained provider results after local failure, e-way date mismatch, protected invoice edits/status/deletion, Payment lifecycle, deleted contacts, and concurrent numbering.
+- Passed Billing API/web type checks, lint, and builds. Passed the Platform API consumer type check.
+- Passed Billing module boundaries, component documentation checks/tests, root dependency layout, focused formatting, and diff whitespace checks.
+- No browser, production provider, Redis, deployment, or physical printing checks were repeated during this code audit.
+
+## Currency reporting and queued generation completion, October 17, 2026
+
+- Added owner-scoped currency selectors and lookup endpoints for summaries, statements, stock values, and the dashboard.
+- Validated reporting currency server-side and added currency identity to public response schemas and types.
+- Separated monetary movement, allocation, ageing, summary, and dashboard calculations by currency.
+- Kept opening balances and credit-limit comparisons in INR. Preserved stock quantities across currencies while separating values.
+- Made GST's INR-only basis and foreign-currency exclusion explicit on screen and in print.
+- Rebuilt old dashboard snapshots as version 2. Foreign views do not overwrite INR projections.
+- Corrected export outstanding balances to include posted export receipt allocations.
+- Removed synchronous SalesService/ExportSalesService generation and obsolete test consumers. Durable queue regressions verify generation and recovery.
+- Added disposable INR/USD regressions for summaries, statements, ageing, dashboard/cache, stock, GST, allocations, company/year isolation, and absence of old service methods.
+- Passed all 20 unit tests and all three disposable MariaDB stages.
+- Passed Billing API/web type checks, lint and builds, Platform API type check, Platform web build, Billing boundaries, component documentation checks/tests, and dependency layout.
+- No new schema migration, production provider call, or credential change is part of this update.
+
+### Currency completion verification details
+
+- Authenticated HTTP checks passed for all seven report/dashboard endpoints in INR. The five selectable reports and dashboard passed USD response checks.
+- Currency relation lookup passed. Unknown and malformed currency requests returned 400. GST rejected non-INR requests.
+- `node --import tsx --test apps/billing/web/src/shared/api/tenant-context.test.ts` passed tab/tenant/company/year selection, reload behavior, five money formatters, and request currency headers.
+- The shared local API restarted during browser work. Chrome blocked the isolated local preview with ERR_BLOCKED_BY_CLIENT.
+  Browser dropdown interaction, browser print rendering, and physical printing are not signed off by this update.
+- Temporary verification used local server processes and authenticated read-only calls. No production provider call or customer financial write was required.
+
+## Sales currency clarification, October 17, 2026
+
+- Normal Sales is INR-only. Export Sales retains multiple currencies.
+- Sales validation checks the supplied code and the persisted currency ID. A forged INR label on a foreign currency ID fails.
+- Confirmation rejects a previously stored foreign-currency draft sale. The form schema also requires INR.
+- Currency reporting regressions now create USD customer invoices through Export Sales and allocate receipts as export receipts.
+- No stored financial documents are converted or relabeled. No schema migration is required.
+
+## Sandbox browser and QR verification, October 17, 2026
+
+- Added module-owned Sales and Export Sales SVG QR rendering from the saved signed provider payload.
+- Show pages and print/PDF layouts include IRN, acknowledgement number and original acknowledgement timestamp.
+- Cancelled e-invoices retain their signed QR and identifiers with a clear cancellation label.
+- Removed duplicate Sales IRN/acknowledgement fields from the older E-way block.
+- Fixed Billing print container width and compact invoice pagination after browser PDF checks found clipping and an overflow page.
+- Fixed portalled row-menu clicks opening the underlying voucher across the six Billing transaction lists.
+- Passed real WhiteBooks sandbox e-invoice and E-way authentication.
+- Read the saved sandbox IRN and E-way from WhiteBooks. Both returned CNL, matching saved cancellation state.
+- Verified Sales invoice show and print routes, saved compliance after reload, and a one-page A4 browser PDF.
+- Verified Customer Summary INR 118.00 changes to USD 0.00, persists after reload, and returns to INR without mixing balances.
+- Verified USD rendering on Supplier Summary, Customer/Supplier Statements, Stock Statement and dashboard. GST remains INR.
+- Created and removed one temporary sandbox draft. No new provider invoice, production document, or production configuration change was required.
+- Passed 20 Billing unit tests, all three disposable database stages, frontend QR/currency/pagination regressions, Billing web type check, lint and build.
+- Passed Billing boundaries, dependency layout, and component documentation checks/tests.
+- Per user clarification, production activation is deferred until sandbox acceptance and real tenant taxpayer onboarding.
+- Production authentication was not attempted with the sandbox taxpayer. Both product paths rejected that configuration before network submission.
+- Physical printing, phone-based QR scanning, production migration rollout and Redis recovery remain outside this verification.
+
+### Final browser evidence
+
+- Retested the Sales row-menu Edit action. It opens Edit Sale and does not navigate to the underlying show page.
+- Browser compliance controls show all four saved generation/cancellation jobs completed. Cancelled IRN generation remains disabled.
+- Rendered and visually checked Customer Summary and Supplier Summary A4 PDFs. Customer totals and supplier empty-state totals are visible without clipping.
+- Verified the Platform web production bundle with the new QR dependency.
+- Restored the original company and INR selection after browser verification.

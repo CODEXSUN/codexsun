@@ -1,0 +1,121 @@
+# CRM Duty field mapping
+
+## Contract and direction
+
+Source contract: [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git), commit `02826403ed87903f3eb7f4c57855eb2c829a8803`.
+The checked-in `crm-duty-sync/fixtures/logicx-duty-contract.json` preserves the three remote field definitions for tests.
+The adapter sends local CRM data to LogicX. CRM screens continue to read the local tenant database.
+This field correspondence does not enable inbound Frappe writes to local CRM.
+
+## SOP Item
+
+| Frappe field | Local source                                          | Binding                                                                                                                                                                  |
+| ------------ | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`       | `crm_frappe_sync_queue.remote_name`                   | Save returned identity. Use PUT after the first successful POST. Never substitute the local integer ID.                                                                  |
+| `sop_name`   | SOP title and item title                              | Send `SOP title: item title` so sibling items remain distinguishable.                                                                                                    |
+| `department` | `crm_sop_items.department`                            | Resolve an active Department by exact document name, then by a unique department_name. Send the remote name. Ambiguous or missing results fail without a document write. |
+| `frequency`  | `crm_sop_items.frequency`                             | daily ↔ Daily, weekly ↔ Weekly, monthly ↔ Monthly, annually ↔ Yearly. Reverse correspondence is tested but does not activate an import.                                  |
+| `steps`      | Published revision instructions and evidence guidance | Send escaped text-editor content. Include evidence guidance when present.                                                                                                |
+
+Quarterly and once have no remote equivalent. They remain valid local recurrences.
+Their queue event records a clear error instead of substituting another period or rolling back the local save.
+Assigned item frequency cannot change. Create a different item for a different recurrence.
+Assignment creation and frequency edits lock the same item row to protect this rule.
+
+## SOP Assigned
+
+| Frappe field | Local source                                            | Binding                                                                                                                                   |
+| ------------ | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`       | Queue remote_name or existing remote item/Employee pair | Reuse the existing pair through PUT. A missing pair uses POST. Ambiguous pairs fail.                                                      |
+| `sop_item`   | Assignment sop_item_id                                  | Resolve the successfully delivered SOP Item remote_name.                                                                                  |
+| `user`       | Assignee user email                                     | Use the verified connection-specific Employee mapping. The remote field links Employee, not User.                                         |
+| `index`      | Assignment display_order                                | Send the local order.                                                                                                                     |
+| `sop_name`   | Local SOP/item titles                                   | Remote fetch_from copies SOP Item.sop_name. Do not write fetched fields independently.                                                    |
+| `department` | Local item department                                   | Remote fetch_from copies the mapped SOP Item department.                                                                                  |
+| `frequency`  | Local item frequency                                    | Remote fetch_from copies the translated SOP Item frequency.                                                                               |
+| `steps`      | Assigned revision instructions                          | LogicX fetches current SOP Item.steps. It cannot store a separate immutable assignment revision. Local instructions remain authoritative. |
+
+Several local historical assignments can correspond to one remote item/Employee pair.
+The remote index represents the most recently transferred local assignment.
+Remote assignment creation has an application duplicate check, not a verified atomic pair constraint.
+Concurrent first delivery of different local assignments still needs live-site verification.
+
+## SOP Reporting
+
+| Frappe field | Local source                                                                      | Binding                                                                                                                                               |
+| ------------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`       | Queue remote_name                                                                 | Save the returned identity and reuse it on PUT retries.                                                                                               |
+| `sop_item`   | Report assignment's sop_item_id                                                   | Resolve the delivered SOP Item identity.                                                                                                              |
+| `user`       | Report assignee's email                                                           | Resolve the mapped Employee on the selected connection.                                                                                               |
+| `date`       | Report performed_date                                                             | Bind a database Date or API date to YYYY-MM-DD.                                                                                                       |
+| `actions`    | Actions, result, issue details, exact revision instructions and evidence guidance | Preserve all these values as escaped text-editor content, including completed/blocked outcome and revision ID.                                        |
+| `sop_name`   | Local SOP/item titles                                                             | Remote fetch_from copies current SOP Item.sop_name.                                                                                                   |
+| `department` | Local item department                                                             | Remote fetch_from copies current SOP Item.department.                                                                                                 |
+| `frequency`  | Local item frequency                                                              | Remote fetch_from copies current SOP Item.frequency.                                                                                                  |
+| `steps`      | Report revision instructions                                                      | Remote fetch_from copies current SOP Item.steps. The actions field also contains the immutable assigned instructions to preserve historical evidence. |
+
+## Local fields without structured remote equivalents
+
+| Local fields                                                                                    | Treatment                                                                                               |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| SOP code, purpose, owner, lifecycle, actor fields, timestamps                                   | Local only. LogicX has no separate SOP header contract.                                                 |
+| Item code, sort order, status, local UUID and audit fields                                      | Local only. Both titles and evidence guidance are represented in existing remote text fields.           |
+| Revision UUID, number, draft/published state, effective date, author and publication timestamps | Keep the full revision locally. Reports include their revision ID and instruction snapshot in actions.  |
+| Assignment revision ID, start/end dates, active/inactive state, assigned_by and timestamps      | Local only. No remote inactive field exists. Do not delete remote history to imitate deactivation.      |
+| Report assignment ID, recurrence key, UUID, submitted_by and timestamps                         | Local only. Result and issue details are preserved in actions but are not remote filter columns.        |
+| Local and remote creator/audit identities                                                       | Each system owns its audit fields. Do not impersonate a remote creator by sending owner or modified_by. |
+
+Structured remote filtering for outcomes, immutable revision references, effective dates, and inactive assignments requires an approved LogicX schema extension.
+The adapter deliberately sends only defined writable fields. It does not create Custom Fields or change the external repository.
+An uncertain first POST response can still produce duplicate remote reports on retry because LogicX lacks a unique CRM report key.
+A saved remote_name makes later deliveries updates. Exactly-once remote creation is not claimed.
+
+## Verification
+
+Run `npm run test:crm-frappe` from the repository root.
+It builds Framework, runs all CRM and Frappe API/web unit tests, then runs the Duty API/database E2E.
+The database user needs CREATE/DROP DATABASE permission for uniquely named disposable test schemas.
+Tests do not require a populated development tenant or live Frappe credentials.
+
+The E2E covers fresh owner migrations, API permission denial, own/all report access, report idempotency,
+strict SQL aggregates, recurrence protection, blocked results, queue claim races, retry recovery,
+updates during delivery, Department failure recovery, unsupported frequencies, assignment reuse,
+two-database tenant isolation, and persistence after reconnect.
+Remote HTTP responses are mocked and validated against the checked-in LogicX field definitions.
+This is not a browser, mobile-device, Platform authentication, queue-relay, or live Frappe delivery test.
+Those remain separate verification gates.
+
+No new database columns or migration steps are required for these changes.
+Existing queued records use the new adapter on their next delivery.
+Already-synced records are not automatically requeued. An explicit requeue updates their known remote document.
+
+## Live verification
+
+Run `npm run test:e2e:crm-duties-live` separately from the mocked suite.
+Set `CODEXSUN_FRAPPE_LIVE_TENANT` to an active tenant code when the default tenant is not the target.
+Credentials come only from that tenant's enabled, verified connection through the existing encrypted credential resolver.
+The test does not accept API secrets in source or logs and does not fall back to deployment credentials.
+
+Preflight checks live authentication, DocType metadata, and an existing connection-specific active Employee mapping.
+Use the Employee's Department when present. Otherwise, select an existing active Department for the SOP without editing the Employee.
+The saved connection must match `logicx.tmnext.in`, or an explicitly supplied `CODEXSUN_FRAPPE_LIVE_HOST`.
+The test then uses an isolated local database and module API routes to create labelled test records.
+It sends four supported frequencies through the real worker and reads back writable and fetched fields from live Frappe.
+It checks completed and blocked reports and stable remote identity on repeat worker dispatch.
+It deletes only remote document names created during that run, in child-first order, and drops its disposable local database.
+The remote account therefore needs metadata/read/create/write/delete permissions for these test DocTypes.
+This harness tests the sync worker and module APIs. It does not test Platform login or the queue relay scheduler.
+
+The initial attempt on 17-10-2026 was blocked by missing connection settings.
+After the connection was saved and verified, live verification passed against `https://logicx.tmnext.in/` for tenant CODEXSUN.
+An exact-email local user was linked to active Employee `HR-EMP-00003` through the existing mapping service, with a platform audit event.
+The Employee had no HR department. The test selected an existing active SOP Department without changing the Employee.
+
+`npm run test:e2e:crm-duties-live` passed: four frequencies, twelve created remote documents, and four report PUT retries.
+Live readback verified SOP title, Department, frequency, instructions, evidence guidance, Employee, item link, order, date, outcome, issue details, and immutable revision evidence.
+Assignment and report fetched fields matched the SOP Item. Retry delivery retained the report's remote name.
+All created remote documents were deleted in child-first order.
+A separate read-only check found zero remaining labelled SOP Item, SOP Assigned, and SOP Reporting records and zero disposable local databases.
+
+This proves live module API → database outbox → worker → Frappe delivery and readback.
+The test injects module request context and invokes the worker directly. Platform login, queue relay scheduling, browser, and mobile-device flows remain separate gates.

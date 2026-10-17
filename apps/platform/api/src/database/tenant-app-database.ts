@@ -1,3 +1,5 @@
+import { seedTconnectPortalRole } from "../tconnect-identity.js";
+import { migrateTconnect, seedTconnect, tconnectTenantMigrations } from "@codexsun/tconnect-api";
 import {
   codexsunTenantMigrations,
   migrateCodexsunDatabase,
@@ -189,6 +191,10 @@ export function tenantDatabaseMigrationsFor(_tenant: Tenant) {
       name,
       statements: [`RUN ${name}`]
     })),
+    ...tconnectTenantMigrations.map((migration) => ({
+      ...migration,
+      statements: [`RUN ${migration.name}`]
+    })),
     ...ecommerceTenantMigrations.map((migration) => ({
       ...migration,
       statements: [`RUN ${migration.name}`]
@@ -296,6 +302,8 @@ export async function migrateSelectedTenantApps(database: Kysely<TenantDatabase>
   await migrateProjectManagerDatabase(database as never);
   await migrateEcommerceTenantDatabase(database as unknown as Kysely<EcommerceDatabase>);
   provisionedApps.push("ecommerce");
+  await migrateTconnect(database as never);
+  provisionedApps.push("tconnect");
   await migrateCrmTenantDatabase(database as unknown as Kysely<EnquiryDatabase>);
   provisionedApps.push("crm");
   await migrateFrappeTenantDatabase(database as unknown as Kysely<FrappeDatabase>);
@@ -371,6 +379,11 @@ export async function seedSelectedTenantApps(database: Kysely<TenantDatabase>, t
   if (enabled.has("auditor")) {
     await seedAuditorClientPermissions(database as unknown as Kysely<AuditorClientDatabase>);
     seededApps.push("auditor");
+  }
+  if (enabled.has("tconnect")) {
+    await seedTconnect(database as never);
+    await seedTconnectPortalRole(database);
+    seededApps.push("tconnect");
   }
   if (enabled.has("ecommerce")) {
     await seedEcommerceOverviewPermissions(

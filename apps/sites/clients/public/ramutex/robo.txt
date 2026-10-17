@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /content/
+Disallow: /__sites-content
+Disallow: /health
+Sitemap: https://www.ramumag.com/sitemap.xml

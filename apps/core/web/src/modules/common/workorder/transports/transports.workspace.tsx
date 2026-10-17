@@ -1,7 +1,9 @@
+import { WorkspaceHeaderActions, useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -18,10 +20,9 @@ import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
-import { cn } from "@codexsun/ui/lib/utils";
 import { TransportsForm } from "./transports.form";
 import { transportsQueryKey, useTransports } from "./transports.hooks";
-import { TransportsList } from "./transports.list";
+import { TransportsList, transportsListColumns } from "./transports.list";
 import {
   activateTransports,
   createTransports,
@@ -33,11 +34,13 @@ import type { TransportsRecord, TransportsSavePayload } from "./transports.types
 type PendingAction = { record: TransportsRecord; type: "force-delete" | "restore" | "suspend" };
 
 export function TransportsWorkspace() {
+  const listTools = useWorkspaceListTools(transportsListColumns);
+
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+  const [status, setStatus] = useWorkspaceQueryValue("status", "all");
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 100);
   const [editing, setLocalEditing] = useState<TransportsRecord | null | undefined>(undefined);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const query = useTransports();
@@ -52,7 +55,7 @@ export function TransportsWorkspace() {
         : record === null
           ? `${basePath}/new`
           : `${basePath}/${encodeURIComponent(record.id)}/edit`;
-    if (location.pathname !== path) void navigate({ to: path });
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
   }
   useEffect(() => {
     const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
@@ -111,89 +114,106 @@ export function TransportsWorkspace() {
   });
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (query.data ?? []).filter(
-      (record) =>
-        (status === "all" || (status === "active" ? record.isActive : !record.isActive)) &&
-        (!term ||
-          String(record.name).toLowerCase().includes(term) ||
-          String(record.gst).toLowerCase().includes(term) ||
-          String(record.vehicleNo).toLowerCase().includes(term) ||
-          String(record.address).toLowerCase().includes(term) ||
-          String(record.contactNo).toLowerCase().includes(term) ||
-          String(record.contactPerson).toLowerCase().includes(term))
-    );
-  }, [query.data, search, status]);
+    return (query.data ?? [])
+      .filter((record) =>
+        listTools.matches({
+          ...record,
+          isActive: record.isActive ? "active" : "inactive",
+          status: record.isActive ? "active" : "inactive"
+        })
+      )
+      .filter(
+        (record) =>
+          (status === "all" || (status === "active" ? record.isActive : !record.isActive)) &&
+          (!term ||
+            String(record.name).toLowerCase().includes(term) ||
+            String(record.gst).toLowerCase().includes(term) ||
+            String(record.vehicleNo).toLowerCase().includes(term) ||
+            String(record.address).toLowerCase().includes(term) ||
+            String(record.contactNo).toLowerCase().includes(term) ||
+            String(record.contactPerson).toLowerCase().includes(term))
+      );
+  }, [query.data, search, status, JSON.stringify(listTools.filters)]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const records = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
+    if (query.data && page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
   return (
     <WorkspacePage
-      actions={
-        <div className="flex items-center gap-2">
-          <Button
-            className="h-9 rounded-md"
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw className={cn("size-4", query.isFetching && "animate-spin")} />
-            Refresh
-          </Button>
+      title=""
+      className="w-full max-w-none py-0 lg:w-full lg:py-0"
+      technicalName="page.common.workorder.transports.list"
+    >
+      <WorkspaceHeaderActions>
+        {editing === undefined ? (
           <Button className="h-9 rounded-md" onClick={() => setEditing(null)} type="button">
             <Plus className="size-4" />
             New transport
           </Button>
-        </div>
-      }
-      description="Manage transports for the current tenant database."
-      technicalName="page.common.workorder.transports.list"
-      title="Transports"
-    >
-      <WorkspaceFilters
-        filterOptions={[
-          { id: "all", label: "All records" },
-          { id: "active", label: "Active" },
-          { id: "inactive", label: "Inactive" }
-        ]}
-        filterValue={status}
-        onFilterValueChange={(value) => {
-          setStatus(value);
-          setPage(1);
-        }}
-        onSearchValueChange={(value) => {
-          setSearch(value);
-          setPage(1);
-        }}
-        searchPlaceholder="Search transports"
-        searchValue={search}
-      />
-      <TransportsList
-        loading={query.isFetching && !query.data}
-        onEdit={setEditing}
-        onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
-        onRestore={(record) => setPendingAction({ record, type: "restore" })}
-        onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
-        records={records}
-      />
-      <WorkspacePagination
-        page={currentPage}
-        rowsPerPage={rowsPerPage}
-        showingLabel={buildShowingLabel(currentPage, rowsPerPage, filtered.length)}
-        singularLabel="transport"
-        totalCount={filtered.length}
-        totalPages={totalPages}
-        onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
-        onPageChange={setPage}
-        onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
-        onRowsPerPageChange={(value) => {
-          setRowsPerPage(value);
-          setPage(1);
-        }}
-      />
+        ) : null}
+      </WorkspaceHeaderActions>
+      <div className="space-y-4" hidden={editing !== undefined}>
+        <WorkspaceFilters
+          toolbarAction={listTools.toolbarAction}
+          columnOptions={listTools.columnOptions}
+          onShowAllColumns={listTools.onShowAllColumns}
+          showSelectedFilterChip
+          filterOptions={[
+            { id: "all", label: "All records" },
+            {
+              id: "active",
+              label: "Active",
+              count: (query.data ?? []).filter(
+                (record) => (record.isActive ? "active" : "inactive") === "active"
+              ).length
+            },
+            {
+              id: "inactive",
+              label: "Inactive",
+              count: (query.data ?? []).filter(
+                (record) => (record.isActive ? "active" : "inactive") === "inactive"
+              ).length
+            }
+          ]}
+          filterValue={status}
+          onFilterValueChange={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+          onSearchValueChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          searchPlaceholder="Search transports"
+          searchValue={search}
+        />
+        <TransportsList
+          listTools={listTools}
+          loading={query.isFetching && !query.data}
+          onEdit={setEditing}
+          onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
+          onRestore={(record) => setPendingAction({ record, type: "restore" })}
+          onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
+          records={records}
+        />
+        <WorkspacePagination
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          showingLabel={buildShowingLabel(currentPage, rowsPerPage, filtered.length)}
+          singularLabel="transport"
+          totalCount={filtered.length}
+          totalPages={totalPages}
+          onNextPage={() => setPage((value) => Math.min(totalPages, value + 1))}
+          onPageChange={setPage}
+          onPreviousPage={() => setPage((value) => Math.max(1, value - 1))}
+          onRowsPerPageChange={(value) => {
+            setRowsPerPage(value);
+            setPage(1);
+          }}
+        />
+      </div>
       <TransportsForm
         {...(saveMutation.error instanceof Error ? { error: saveMutation.error.message } : {})}
         loading={saveMutation.isPending}

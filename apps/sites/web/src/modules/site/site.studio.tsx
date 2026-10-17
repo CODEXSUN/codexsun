@@ -1,3 +1,4 @@
+import { EnquiryWorkspace } from "./enquiry/index.js";
 import { useState } from "react";
 import { PageWorkspace } from "./page/index.js";
 import { BlogWorkspace } from "./blog/index.js";
@@ -23,10 +24,33 @@ export function SiteStudio({
   gateway: SiteGateway | undefined;
   onBack: () => void;
 }) {
-  const [tab, setTab] = useState<"details" | "pages" | "blogs">("details");
+  const [tab, setTab] = useState<"details" | "pages" | "blogs" | "enquiries">("details");
   const [settings, setSettings] = useState<SitePayload | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
+  async function exportPublication() {
+    if (!gateway?.exportPublication) return;
+    setExporting(true);
+    setError("");
+    try {
+      const snapshot = await gateway.exportPublication(site.uuid);
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" })
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${site.slug}-publication-${snapshot.sequence}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (failure) {
+      setError(
+        failure instanceof Error ? failure.message : "Could not export the published website."
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
   async function saveSettings() {
     if (!settings) return;
     setSaving(true);
@@ -68,6 +92,15 @@ export function SiteStudio({
         </div>
         <div className="flex flex-wrap items-start gap-2">
           <Button
+            size="sm"
+            variant="outline"
+            title="Downloads the last published website and blog posts"
+            disabled={exporting || !gateway?.exportPublication}
+            onClick={() => void exportPublication()}
+          >
+            {exporting ? "Exporting…" : "Export deployment content"}
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             onClick={() => {
@@ -90,23 +123,34 @@ export function SiteStudio({
       <WorkspaceAnimatedTabs
         value={tab}
         onValueChange={(value) => {
-          if (value === "details" || value === "pages" || value === "blogs") setTab(value);
+          if (
+            value === "details" ||
+            value === "pages" ||
+            value === "blogs" ||
+            value === "enquiries"
+          )
+            setTab(value);
         }}
         contentClassName="hidden"
         tabs={[
           { value: "details", label: "Client details", content: null },
           { value: "pages", label: "Pages", content: null },
-          { value: "blogs", label: "Blogs", content: null }
+          { value: "blogs", label: "Blogs", content: null },
+          { value: "enquiries", label: "Enquiries", content: null }
         ]}
       />
-      <div hidden={tab === "blogs"}>
+      <div hidden={tab === "blogs" || tab === "enquiries"}>
         <PageWorkspace
+          withApplications={site.slug === "logicx"}
           uuid={site.uuid}
           gateway={gateway?.page}
           view={tab === "details" ? "profile" : "sections"}
           publicOrigin={`http://127.0.0.1:${site.port}`}
         />
       </div>
+      {tab === "enquiries" ? (
+        <EnquiryWorkspace key={site.uuid} uuid={site.uuid} gateway={gateway?.enquiries} />
+      ) : null}
       <div hidden={tab !== "blogs"}>
         <BlogWorkspace uuid={site.uuid} gateway={gateway?.blog} />
       </div>

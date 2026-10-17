@@ -1,3 +1,4 @@
+import { billingReportCurrency } from "../../auth/billing-scope.js";
 import type { EventPublisher } from "@codexsun/framework/events";
 import { createDashboardProjectionEvent } from "./dashboard.events.js";
 import { DashboardRepository } from "./dashboard.repository.js";
@@ -7,14 +8,31 @@ import { BillingDatabaseEventPublisher } from "../runtime-persistence/runtime-pe
 
 export class DashboardService {
   constructor(
-    private readonly repository = new DashboardRepository(),
-    private readonly events: EventPublisher = new BillingDatabaseEventPublisher(),
-    private readonly worker = new DashboardProjectionWorker(repository)
+    private repositoryInstance?: DashboardRepository,
+    private eventsInstance?: EventPublisher,
+    private workerInstance?: DashboardProjectionWorker
   ) {}
+  private get repository() {
+    return (this.repositoryInstance ??= new DashboardRepository());
+  }
+  private get events() {
+    return (this.eventsInstance ??= new BillingDatabaseEventPublisher());
+  }
+  private get worker() {
+    return (this.workerInstance ??= new DashboardProjectionWorker(this.repository));
+  }
 
   async get(databaseName: string, companyId?: number) {
     const context = await this.repository.context(databaseName, companyId);
     if (!context) return null;
+    if (billingReportCurrency() !== "INR")
+      return this.repository.rebuild(
+        databaseName,
+        context.company_id,
+        context.financial_year_id,
+        "billing.dashboard.currency-view",
+        billingReportCurrency()
+      );
     return (
       (await this.repository.get(databaseName, context.company_id, context.financial_year_id)) ??
       this.repository.rebuild(

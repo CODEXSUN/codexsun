@@ -1,5 +1,7 @@
 "use client";
 
+import { useWorkspaceNavigation } from "./navigation";
+
 import type { ReactNode } from "react";
 import { AlertCircle, AlertTriangle, ArrowLeft, Info } from "lucide-react";
 import { Button } from "../components/button";
@@ -284,6 +286,14 @@ export function WorkspaceUpsertDialog({
   open: boolean;
   title: string;
 }) {
+  const navigation = useWorkspaceNavigation();
+  if (navigation?.inlineForms) {
+    return open ? (
+      <WorkspaceFormPanel title={title} {...(description ? { description } : {})}>
+        {children}
+      </WorkspaceFormPanel>
+    ) : null;
+  }
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose?.()}>
       <DialogContent className={cn("sm:max-w-lg", className)}>

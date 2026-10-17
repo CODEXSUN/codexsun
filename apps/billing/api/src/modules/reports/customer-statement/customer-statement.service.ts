@@ -1,3 +1,4 @@
+import { billingReportCurrency } from "../../../auth/billing-scope.js";
 import { AppError } from "@codexsun/framework/errors";
 import { buildCustomerStatementAgeing } from "./customer-statement.ageing.js";
 import { CustomerStatementRepository } from "./customer-statement.repository.js";
@@ -26,6 +27,7 @@ export class CustomerStatementService {
       contacts.find((contact) => contact.id === query.contactId) ?? contacts[0] ?? null;
     if (!selectedContact) {
       return {
+        currencyCode: billingReportCurrency(),
         ageing: buildCustomerStatementAgeing([], 0, 0, 0, to),
         closingBalance: 0,
         companyId: context.company_id,
@@ -83,6 +85,7 @@ export class CustomerStatementService {
         "Statement balances changed or allocations do not reconcile. Refresh and review allocations before printing."
       );
     return {
+      currencyCode: billingReportCurrency(),
       ageing,
       closingBalance: money(openingBalance + summary.debit - summary.credit),
       companyId: context.company_id,

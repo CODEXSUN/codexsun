@@ -5,10 +5,11 @@ import type { PageContent } from "@codexsun/sites-api/page-contract";
 
 export function useSitePublication(slug: string, fallback?: PageContent) {
   const initial = fallback ?? (slug === "logicx" ? initialLogicxPage : initialRamuTexPage);
-  const [content, setContent] = useState(initial);
-  const [blogs, setBlogs] = useState<SitePublication["blogs"]>([]);
-  const [connected, setConnected] = useState(false);
-  const [published, setPublished] = useState(false);
+  const [bootstrap] = useState(() => initialPublication(slug));
+  const [content, setContent] = useState(bootstrap?.content ?? initial);
+  const [blogs, setBlogs] = useState<SitePublication["blogs"]>(bootstrap?.blogs ?? []);
+  const [connected, setConnected] = useState(Boolean(bootstrap));
+  const [published, setPublished] = useState(Boolean(bootstrap?.content));
   useEffect(() => {
     let active = true;
     let pending = false;
@@ -54,4 +55,20 @@ export function useSitePublication(slug: string, fallback?: PageContent) {
     };
   }, [slug, initial]);
   return { content, blogs, connected, published };
+}
+
+function initialPublication(slug: string): SitePublication | null {
+  const server = (globalThis as unknown as { __CODEXSUN_SITES_PUBLICATION__?: unknown })
+    .__CODEXSUN_SITES_PUBLICATION__;
+  try {
+    const value =
+      server ??
+      (typeof document !== "undefined"
+        ? JSON.parse(document.getElementById("codexsun-sites-publication")?.textContent || "null")
+        : null);
+    const result = sitePublicationSchema.safeParse(value);
+    return result.success && result.data.siteSlug === slug ? result.data : null;
+  } catch {
+    return null;
+  }
 }

@@ -65,7 +65,13 @@ export function StorefrontHomeSections(props: HomeSectionsProps) {
     trust: <TechMediaTrustSection content={props.siteNavigation?.trustedStrip} />,
     "service-banner": <ServiceBanner content={props.siteNavigation?.serviceBanner} />,
     promotions: <PromotionsSection promotions={props.promotions} />,
-    season: <SeasonBanner promotions={props.seasonStrips} />,
+    season: (
+      <SeasonBanner
+        promotions={props.seasonStrips}
+        brandName={props.brandName}
+        proofPoints={props.siteNavigation?.trustedStrip.proofPoints}
+      />
+    ),
     "campaigns-events": <CampaignsAndEventsSection campaigns={props.campaignEvents} />,
     brands: <BrandsSection brands={props.brandStrips} />,
     featured: <FeaturedCardsSection cards={props.featuredCards} />,

@@ -72,3 +72,9 @@ export async function migratePosOrderContext(database: Kysely<QCafeDatabase>) {
     .raw("ALTER TABLE qcafe_pos ADD COLUMN IF NOT EXISTS service_context LONGTEXT NULL")
     .execute(database);
 }
+
+export async function migrateReceiptContext(database: Kysely<QCafeDatabase>) {
+  await sql
+    .raw("ALTER TABLE qcafe_pos ADD COLUMN IF NOT EXISTS receipt_context LONGTEXT NULL")
+    .execute(database);
+}

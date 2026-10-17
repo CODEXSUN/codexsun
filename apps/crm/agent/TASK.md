@@ -1,5 +1,39 @@
 # CRM Delivery Tasks
 
+## Mobile customer upsert
+
+- [x] Show mobile number and customer name on the left, with code and contact type on the right.
+      Keep active status below.
+      Move legal name, group, and additional phone controls to Additional details.
+      Default new records to Customer, with Mobile and primary phone defaults.
+- [x] Validate mobile format, duplicate numbers, and one primary phone in the form and CRM API.
+- [x] Verify create, reload, and edit through CRM and Core against a disposable database.
+      Evidence: `npm run test:e2e:crm-contact-upsert`, 17-10-2026.
+      The test also checks shared numbers across customers, retained email and finance fields,
+      rejected saves without data changes, and denied writes.
+      Regression: 90 unit tests and three isolated API/database E2E tests passed.
+      Browser check: the new form shows Customer by default and rejects a short mobile number.
+      This evidence does not certify deployment or browser saves.
+
+## Frappe reference review
+
+- [x] Collect the supplied LogicX HR DocType schemas and functions and compare them with CRM.
+      Evidence: [comparison](FRAPPE-COMPARISON.md) and [25-DocType catalogue](../../frappe/agent/LOGICX-CRM-REFERENCE.md), reviewed on 17-10-2026.
+      Documentation checks passed: `check:component-docs` and `test:component-docs` (2 tests).
+      This is source evidence only. Live schema and transfer verification remain open.
+- [x] Implement supported frequency conversion, verified Department name resolution,
+      remote assignment pair reuse, and report outcome/instruction text preservation.
+      Evidence: `crm-duty-sync.mapping.test.ts` and isolated `crm-duties.e2e.ts`, 17-10-2026.
+      Report aggregates pass strict SQL mode. Assigned item recurrence edits are blocked.
+- [ ] Resolve the remaining structured remote fields and live delivery requirements in
+      [the field mapping](../../frappe/agent/CRM-DUTY-FIELD-MAPPING.md) before claiming complete Frappe parity.
+- [x] Verify live SOP Item, assignment, and report bindings against logicx.tmnext.in.
+      Evidence: `npm run test:e2e:crm-duties-live`, 17-10-2026: Daily/Weekly/Monthly/Yearly,
+      all writable/fetched fields, completed/blocked reports, four PUT retries, and cleanup passed.
+      Exact-email Employee mapping was saved and audited. No Employee record was changed.
+      Regression suite: 90 unit tests and the isolated Duty database E2E passed.
+      The live test invokes the worker directly. Queue relay scheduling and UI acceptance remain open.
+
 This file tracks implementation of the product plan in [PLAN.md](./PLAN.md).
 The plan defines scope and ownership. This file defines the work order and
 completion evidence.

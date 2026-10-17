@@ -58,6 +58,7 @@ export type GstStatementPanel = {
 };
 
 export type GstStatementResult = {
+  currencyCode: string;
   availableYears: number[];
   companyGstin: string;
   companyId: number;

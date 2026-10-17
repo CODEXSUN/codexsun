@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { RefObject, ReactNode } from "react";
 import { Barcode, Minus, Plus, PlusCircle } from "lucide-react";
 import type { LastBill, MenuOption } from "./order.types";
 
@@ -12,7 +12,8 @@ export function OrderEntry({
   locked,
   enterCode,
   lastBill,
-  onHistory
+  onHistory,
+  leadingContent
 }: {
   available: MenuOption[];
   code: string;
@@ -24,27 +25,30 @@ export function OrderEntry({
   enterCode: () => void;
   lastBill: LastBill | undefined;
   onHistory: () => void;
+  leadingContent?: ReactNode;
 }) {
   return (
     <footer className="qcafe-pos-entry">
-      <section
-        className={`qcafe-last-bill ${lastBill?.status === "paid" ? "is-paid" : ""}`}
-        aria-label="Last bill notification"
-      >
-        {lastBill ? (
-          <>
-            <p>{lastBill.status === "paid" ? "✓ Paid" : "Amount pending"}</p>
-            <p>
-              Last billed no. {lastBill.number} · ₹{(lastBill.total / 100).toFixed(2)}
-            </p>
-          </>
-        ) : (
-          <p>No billed receipt yet</p>
-        )}
-        <button onClick={onHistory} className="qcafe-recent-bills">
-          Recent bills
-        </button>
-      </section>
+      {leadingContent ?? (
+        <section
+          className={`qcafe-last-bill ${lastBill?.status === "paid" ? "is-paid" : ""}`}
+          aria-label="Last bill notification"
+        >
+          {lastBill ? (
+            <>
+              <p>{lastBill.status === "paid" ? "✓ Paid" : "Amount pending"}</p>
+              <p>
+                Last billed no. {lastBill.number} · ₹{(lastBill.total / 100).toFixed(2)}
+              </p>
+            </>
+          ) : (
+            <p>No billed receipt yet</p>
+          )}
+          <button onClick={onHistory} className="qcafe-recent-bills">
+            Recent bills
+          </button>
+        </section>
+      )}
       <section className="qcafe-fast-entry" aria-label="Fast item entry">
         <label>
           <span>

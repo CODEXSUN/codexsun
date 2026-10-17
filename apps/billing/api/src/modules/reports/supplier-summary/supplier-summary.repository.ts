@@ -1,5 +1,5 @@
 import { sql } from "kysely";
-import { currentBillingScope } from "../../../auth/billing-scope.js";
+import { billingReportCurrency, currentBillingScope } from "../../../auth/billing-scope.js";
 import { getBillingDatabase } from "../../../database/billing-database.js";
 import { readOpeningBalanceOverrides } from "../../opening-balance/index.js";
 import type { SupplierSummaryItem } from "./supplier-summary.types.js";
@@ -19,6 +19,17 @@ type SummaryRow = SupplierSummaryItem & {
 };
 
 export class SupplierSummaryRepository {
+  async currencies(databaseName: string) {
+    return (
+      await sql<{
+        id: number;
+        name: string;
+      }>`SELECT id,UPPER(name) AS name FROM core_currencies WHERE CHAR_LENGTH(name)=3 ORDER BY name,id`.execute(
+        await getBillingDatabase(databaseName)
+      )
+    ).rows;
+  }
+
   async context(databaseName: string, companyId?: number) {
     const database = await getBillingDatabase(databaseName);
     const scope = currentBillingScope();
@@ -38,20 +49,20 @@ export class SupplierSummaryRepository {
     const database = await getBillingDatabase(databaseName);
     const { financialYearId } = currentBillingScope();
     const result = await sql<SummaryRow>`
-      SELECT contact.id, contact.code, contact.name, COALESCE(contact.opening_balance,0) AS legacy,
+      SELECT contact.id, contact.code, contact.name, (CASE WHEN ${billingReportCurrency()}='INR' THEN COALESCE(contact.opening_balance,0) ELSE 0 END) AS legacy,
         COALESCE((SELECT SUM(payment.total_amount) FROM billing_payments payment
-          WHERE payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId}
+          WHERE payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId} AND payment.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
             AND payment.supplier_id=contact.id AND payment.status='posted' AND payment.deleted_at IS NULL), 0) AS debit,
-        COALESCE(contact.opening_balance, 0)
+        (CASE WHEN ${billingReportCurrency()}='INR' THEN COALESCE(contact.opening_balance,0) ELSE 0 END)
           + COALESCE((SELECT SUM(purchase.amount) FROM billing_purchases purchase
-            WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId}
+            WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
               AND purchase.supplier_id=contact.id AND purchase.status='confirmed' AND purchase.deleted_at IS NULL), 0) AS credit,
-        COALESCE(contact.opening_balance, 0)
+        (CASE WHEN ${billingReportCurrency()}='INR' THEN COALESCE(contact.opening_balance,0) ELSE 0 END)
           + COALESCE((SELECT SUM(purchase.amount) FROM billing_purchases purchase
-            WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId}
+            WHERE purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
               AND purchase.supplier_id=contact.id AND purchase.status='confirmed' AND purchase.deleted_at IS NULL), 0)
           - COALESCE((SELECT SUM(payment.total_amount) FROM billing_payments payment
-            WHERE payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId}
+            WHERE payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId} AND payment.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()})
               AND payment.supplier_id=contact.id AND payment.status='posted' AND payment.deleted_at IS NULL), 0) AS balance
       FROM core_contacts contact
       WHERE contact.deleted_at IS NULL
@@ -59,9 +70,9 @@ export class SupplierSummaryRepository {
           OR EXISTS (SELECT 1 FROM billing_opening_balances opening WHERE opening.contact_id=contact.id
             AND opening.company_id=${companyId} AND opening.financial_year_id=${financialYearId} AND opening.party_role='supplier')
           OR EXISTS (SELECT 1 FROM billing_purchases purchase WHERE purchase.supplier_id=contact.id
-            AND purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.deleted_at IS NULL)
+            AND purchase.company_id=${companyId} AND purchase.financial_year_id=${financialYearId} AND purchase.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND purchase.deleted_at IS NULL)
           OR EXISTS (SELECT 1 FROM billing_payments payment WHERE payment.supplier_id=contact.id
-            AND payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId} AND payment.deleted_at IS NULL))
+            AND payment.company_id=${companyId} AND payment.financial_year_id=${financialYearId} AND payment.currency_id IN (SELECT id FROM core_currencies WHERE UPPER(name)=${billingReportCurrency()}) AND payment.deleted_at IS NULL))
       ORDER BY contact.name, contact.id
     `.execute(database);
     const overrides = await readOpeningBalanceOverrides(databaseName, "supplier");

@@ -224,7 +224,7 @@ function EnquiryPage({
     );
   }
   return (
-    <WorkspacePage
+    <WorkspacePage variant="list"
       title=""
       className="pt-0 lg:pt-0"
       technicalName={`page.crm.${scope}.enquiries.list`}

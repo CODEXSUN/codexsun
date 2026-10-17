@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { Trash2 } from "lucide-react";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
@@ -5,7 +6,10 @@ import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { ListInRecord } from "./list-in.types";
 
+export const listinListColumns = {"sortOrder": "ORDER", "name": "NAME", "status": "STATUS"};
+
 export function ListInList({
+  listTools,
   records,
   loading,
   onView,
@@ -14,6 +18,7 @@ export function ListInList({
   onRestore,
   onForceDelete
 }: {
+  listTools?: WorkspaceListTools;
   records: ListInRecord[];
   loading: boolean;
   onView: (record: ListInRecord) => void;
@@ -83,7 +88,8 @@ export function ListInList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))))}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No list in records found."
       isLoading={loading}

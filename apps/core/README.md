@@ -1,5 +1,24 @@
 # Core
 
+### External customer identity
+
+`resolveExternalCustomerForDatabase` creates or resolves an active Customer through a stable external key.
+It stores that identity in a unique `EXT-<hash>` code, appends mobile numbers, and never merges customers by phone alone.
+The owning transaction locks the customer while attaching phones. Concurrent creation retries are bounded.
+Existing email, address, bank, and social rows are preserved. Generated external codes cannot be edited through Contact update.
+No new columns or migration steps are required. Frappe owns source identity construction and import links.
+
+### Contact duplicate protection
+
+Core rejects a repeated customer name and phone combination within the same contact group.
+Contacts without a group share the ungrouped scope. Name case and repeated whitespace do not distinguish contacts.
+Phone punctuation does not distinguish numbers. The check covers all stored phone rows and the primary phone.
+Create, edit, and external phone attachment check within the save transaction.
+A locked tenant contact-type reference row serializes these saves to prevent concurrent duplicates without a schema change.
+Different names or groups may share a phone. Soft-deleted records do not block reuse.
+Existing duplicates remain unchanged. A conflicting save returns HTTP 409 with a clear message.
+Distinct external source identities that collide locally are rejected rather than merged.
+
 ## Component documentation
 
 Shared tenant masters, contact and product identity, organization records, and geographic relationships.
@@ -49,3 +68,9 @@ Report database, browser, native, and deployment checks separately.
 
 - `@codexsun/core-api`: `.`.
 - `@codexsun/core-web`: `.`, `./modules/common/*`, `./modules/master`, `./modules/master/*`, `./modules/master/contact/workspace`, `./modules/organisation`, `./modules/organisation/*`, `./modules/organisation/company/branding`, `./modules/organisation/company/services`, `./modules/organisation/default-company/hooks`, `./modules/organisation/default-company/services`, `./modules/organisation/default-company/types`, `./modules/organisation/financial-year/services`.
+
+### Application list presentation
+
+Organisation, Common Master, Contact, Product, and Work Order lists use compact shared table controls. New actions render in the host application header.
+Each leaf owns its columns and filtering projection. Shared UI owns toolbar state, column visibility, and the host navigation adapter. Search and list controls use the query string.
+Core New/Edit routes retain their existing paths. Sidebar navigation returns to the list after the host's draft confirmation. Default Company remains a singleton settings screen.

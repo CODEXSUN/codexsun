@@ -63,6 +63,7 @@ const panelSchema = z.object({
 const responseSchema = z.object({
   availableYears: z.array(z.number().int()),
   companyGstin: z.string(),
+  currencyCode: z.string(),
   companyId: z.number().int().positive(),
   companyName: z.string(),
   filing: filingSchema,

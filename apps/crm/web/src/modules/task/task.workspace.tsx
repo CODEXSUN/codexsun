@@ -145,7 +145,7 @@ export function TaskWorkspace({
     }))
   ];
   return (
-    <WorkspacePage title="" className="pt-0 lg:pt-0" technicalName="page.crm.tasks.list">
+    <WorkspacePage variant="list" title="" className="pt-0 lg:pt-0" technicalName="page.crm.tasks.list">
       <WorkspaceFilters
         toolbarAction={
           <Button

@@ -1,3 +1,4 @@
+import { readQCafeSettings } from "../settings/index.js";
 import { randomBytes } from "node:crypto";
 import { sql, type Kysely } from "kysely";
 import { AppError } from "@codexsun/framework/errors";
@@ -13,6 +14,7 @@ type BillRow = {
   created_epoch: number;
   payload_hash: string;
   service_context: string | null;
+  receipt_context: string | import("./pos.types.js").ReceiptContext | null;
 };
 
 export class PosRepository {
@@ -61,7 +63,14 @@ export class PosRepository {
     hash: string,
     lines: PosLine[],
     actor: string,
-    serviceContext?: { orderUuid: string; mode: string; tableName: string; seats: number[] }
+    serviceContext?: {
+      orderUuid: string;
+      mode: string;
+      tableName: string;
+      seats: number[];
+      parcelToken?: string | null;
+      booking?: { token: string; customerName: string; mobile: string; pickupAt: string } | null;
+    }
   ) {
     const existing = (
       await sql<BillRow>`SELECT * FROM qcafe_pos WHERE request_id=${requestId}`.execute(
@@ -71,8 +80,26 @@ export class PosRepository {
     if (existing) return this.replay(existing, hash);
     const uuid = randomBytes(4).toString("hex");
     const total = lines.reduce((sum, line) => sum + line.amount, 0);
-    await sql`INSERT INTO qcafe_pos (uuid, request_id, payload_hash, total, created_by, service_context)
-          VALUES (${uuid}, ${requestId}, ${hash}, ${total}, ${actor}, ${serviceContext ? JSON.stringify(serviceContext) : null})`.execute(
+    const prefs = await readQCafeSettings(this.database);
+    const netAmount = Math.round((total * 100) / (100 + prefs.gstRate));
+    const receiptContext = {
+      restaurantName: prefs.restaurantName,
+      branchName: prefs.branchName,
+      address: prefs.address,
+      contactNumber: prefs.contactNumber,
+      gstin: prefs.gstin,
+      fssai: prefs.fssai,
+      receiptHeader: prefs.receiptHeader,
+      receiptFooter: prefs.receiptFooter,
+      receiptLegalNote: prefs.receiptLegalNote,
+      showReceiptContact: prefs.showReceiptContact,
+      receiptWidth: prefs.receiptWidth,
+      gstRate: prefs.gstRate,
+      taxAmount: total - netAmount,
+      netAmount
+    };
+    await sql`INSERT INTO qcafe_pos (uuid, request_id, payload_hash, total, created_by, service_context, receipt_context)
+          VALUES (${uuid}, ${requestId}, ${hash}, ${total}, ${actor}, ${serviceContext ? JSON.stringify(serviceContext) : null},${JSON.stringify(receiptContext)})`.execute(
       this.database
     );
     const bill = (
@@ -162,6 +189,11 @@ export class PosRepository {
       FROM qcafe_pos_payments WHERE pos_id=${row.id} ORDER BY id`.execute(this.database)
     ).rows;
     return {
+      receiptContext: row.receipt_context
+        ? typeof row.receipt_context === "string"
+          ? JSON.parse(row.receipt_context)
+          : row.receipt_context
+        : null,
       serviceContext: row.service_context ? JSON.parse(row.service_context) : null,
       uuid: row.uuid,
       number: `POS-${String(row.id).padStart(6, "0")}`,

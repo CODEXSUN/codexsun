@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { Trash2 } from "lucide-react";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
@@ -6,7 +7,10 @@ import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { CrmColorLabel } from "../../crm-colors";
 import type { PriorityRecord } from "./priority.types";
 
+export const priorityListColumns = {"sortOrder": "ORDER", "name": "NAME", "code": "CODE", "status": "STATUS"};
+
 export function PriorityList({
+  listTools,
   records,
   loading,
   onView,
@@ -15,6 +19,7 @@ export function PriorityList({
   onRestore,
   onForceDelete
 }: {
+  listTools?: WorkspaceListTools;
   records: PriorityRecord[];
   loading: boolean;
   onView: (record: PriorityRecord) => void;
@@ -84,7 +89,8 @@ export function PriorityList({
   ];
   return (
     <WorkspaceTable
-      columns={columns}
+      columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))))}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No priorities records found."
       isLoading={loading}

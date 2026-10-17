@@ -1,45 +1,35 @@
+import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
+import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import type { SeasonStripRecord } from "./season-strip.types";
 
+export const seasonstripListColumns = {"imageUrl": "Preview", "title": "Season", "ishopItem": "Frappe item", "offerPrice": "Price", "displayOrder": "Order", "published": "Publication", "status": "Status"};
+
+export function seasonstripListValues(record: SeasonStripRecord) {
+  return {
+    imageUrl: record.imageUrl || "No image",
+    title: `${record.title} ${record.seasonCode}`,
+    ishopItem: record.ishopItem || "Not linked",
+    offerPrice: record.offerPrice,
+    displayOrder: record.displayOrder,
+    published: record.published ? "Published" : "Draft",
+    status: record.status,
+  };
+}
+
 export function SeasonStripList({
-  loading,
-  onEdit,
-  onStatus,
-  records
+  listTools, loading, onEdit, onStatus, records,
 }: {
+  listTools?: WorkspaceListTools;
   loading: boolean;
   onEdit: (record: SeasonStripRecord) => void;
   onStatus: (record: SeasonStripRecord) => void;
   records: SeasonStripRecord[];
 }) {
-  if (loading || records.length === 0) {
-    return (
-      <div className="rounded-md border p-8 text-center text-sm text-muted-foreground">
-        {loading ? "Loading season strips..." : "No season strips found."}
-      </div>
-    );
-  }
-  return (
-    <div className="overflow-x-auto rounded-md border">
-      <table className="w-full min-w-[920px] text-sm">
-        <thead>
-          <tr className="border-b bg-muted/40">
-            <th className="px-4 py-3 text-left">Preview</th>
-            <th className="px-4 py-3 text-left">Season</th>
-            <th className="px-4 py-3 text-left">Frappe item</th>
-            <th className="px-4 py-3 text-left">Price</th>
-            <th className="px-4 py-3 text-left">Order</th>
-            <th className="px-4 py-3 text-left">Publication</th>
-            <th className="px-4 py-3 text-left">Status</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((record) => (
-            <tr className="border-b" key={record.id}>
-              <td className="px-4 py-3">
-                {record.imageUrl ? (
+  const columns: ColumnDef<SeasonStripRecord>[] = [
+    { id: "imageUrl", header: "Preview", accessorFn: (record) => seasonstripListValues(record).imageUrl, cell: ({ row }) => { const record = row.original; return <> {record.imageUrl ? (
                   <img
                     alt={record.title}
                     className="h-12 w-20 rounded border bg-muted/20 object-contain p-1"
@@ -47,34 +37,23 @@ export function SeasonStripList({
                   />
                 ) : (
                   <span className="text-muted-foreground">No image</span>
-                )}
-              </td>
-              <td className="px-4 py-3">
-                <div className="font-medium">{record.title}</div>
-                <div className="text-xs text-muted-foreground">{record.seasonCode}</div>
-              </td>
-              <td className="px-4 py-3">{record.ishopItem || "Not linked"}</td>
-              <td className="px-4 py-3">{record.offerPrice.toLocaleString()}</td>
-              <td className="px-4 py-3">{record.displayOrder}</td>
-              <td className="px-4 py-3">{record.published ? "Published" : "Draft"}</td>
-              <td className="px-4 py-3">
-                <WorkspaceStatusBadge
+                )} </>; } },
+    { id: "title", header: "Season", accessorFn: (record) => seasonstripListValues(record).title, cell: ({ row }) => { const record = row.original; return <> <div className="font-medium">{record.title}</div>
+                <div className="text-xs text-muted-foreground">{record.seasonCode}</div> </>; } },
+    { id: "ishopItem", header: "Frappe item", accessorFn: (record) => seasonstripListValues(record).ishopItem, cell: ({ row }) => { const record = row.original; return <> {record.ishopItem || "Not linked"} </>; } },
+    { id: "offerPrice", header: "Price", accessorFn: (record) => seasonstripListValues(record).offerPrice, cell: ({ row }) => { const record = row.original; return <> {record.offerPrice.toLocaleString()} </>; } },
+    { id: "displayOrder", header: "Order", accessorFn: (record) => seasonstripListValues(record).displayOrder, cell: ({ row }) => { const record = row.original; return <> {record.displayOrder} </>; } },
+    { id: "published", header: "Publication", accessorFn: (record) => seasonstripListValues(record).published, cell: ({ row }) => { const record = row.original; return <> {record.published ? "Published" : "Draft"} </>; } },
+    { id: "status", header: "Status", accessorFn: (record) => seasonstripListValues(record).status, cell: ({ row }) => { const record = row.original; return <> <WorkspaceStatusBadge
                   label={record.status}
                   tone={record.status === "active" ? "success" : "neutral"}
-                />
-              </td>
-              <td className="px-4 py-3 text-right">
-                <Button size="sm" variant="outline" onClick={() => onEdit(record)}>
+                /> </>; } },
+    { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => { const record = row.original; return <> <Button size="sm" variant="outline" onClick={() => onEdit(record)}>
                   Edit
                 </Button>{" "}
                 <Button size="sm" variant="outline" onClick={() => onStatus(record)}>
                   {record.status === "active" ? "Deactivate" : "Activate"}
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+                </Button> </>; } },
+  ];
+  return <WorkspaceTable columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id)))} data={records} isLoading={loading} emptyState="No season strip records found." minWidth="800px" {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})} />;
 }

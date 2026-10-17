@@ -1,3 +1,4 @@
+import { DashboardRepository } from "./dashboard.repository.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { AppError } from "@codexsun/framework/errors";
@@ -12,6 +13,7 @@ const metric = z.object({
   total: z.number()
 });
 const response = z.object({
+  currencyCode: z.string(),
   companyId: z.number().int().positive(),
   companyName: z.string(),
   financialYearEnd: z.string(),
@@ -59,6 +61,12 @@ const response = z.object({
 const service = new DashboardService();
 
 export async function registerDashboardRoutes(app: FastifyInstance) {
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/billing/dashboard/currencies",
+    schemas: { response: z.array(z.object({ id: z.number().int().positive(), name: z.string() })) },
+    handler: ({ request }) => new DashboardRepository().currencies(databaseName(request))
+  });
   registerContractRoute(app, {
     method: "GET",
     url: "/billing/dashboard",

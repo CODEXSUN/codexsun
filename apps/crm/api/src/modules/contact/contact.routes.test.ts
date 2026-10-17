@@ -58,7 +58,11 @@ test("CRM contacts forwards create payloads to Core", async () => {
     return { success: true, data: { id: 18, name: "New customer" } };
   });
   registerCrmContactRoutes(app, async () => undefined);
-  const payload = { name: "New customer", typeId: 1 };
+  const payload = {
+    name: "New customer",
+    typeId: 1,
+    phones: [{ phone: "9876543210", phoneType: "Mobile", isPrimary: true }]
+  };
 
   const response = await app.inject({ method: "POST", url: "/crm/contacts", payload });
 

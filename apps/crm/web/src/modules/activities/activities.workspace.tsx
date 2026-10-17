@@ -33,7 +33,7 @@ export function ActivitiesWorkspace({ onOpenEnquiry }: { onOpenEnquiry: (id: num
     setFilters((current) => ({ ...current, ...patch, page: patch.page ?? 1 }));
 
   return (
-    <WorkspacePage title="" technicalName="page.crm.activities.list" className="pt-0 lg:pt-0">
+    <WorkspacePage variant="list" title="" technicalName="page.crm.activities.list" className="pt-0 lg:pt-0">
       <WorkspaceFilters
         searchPlaceholder="Search activities, contacts, or enquiry ID"
         searchValue={filters.search}

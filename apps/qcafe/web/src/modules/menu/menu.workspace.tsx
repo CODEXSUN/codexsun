@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogDescription
 } from "@codexsun/ui/components/dialog";
+import { useSpecialSettings } from "../special";
 import { useMenu } from "./menu.hooks";
 import { MenuForm } from "./menu.form";
 import { MenuList } from "./menu.list";
@@ -22,10 +23,12 @@ export function MenuWorkspace({
   initialCategory?: string;
 }) {
   const menu = useMenu();
+  const specials = useSpecialSettings();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<MenuItem | null>(null);
   const [mode, setMode] = useState<"new" | "view" | "edit">("new");
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [version, setVersion] = useState(0);
@@ -90,7 +93,7 @@ export function MenuWorkspace({
             Items <span>{menu.items.length}</span>
           </h2>
           {canManage && (
-            <Button size="sm" disabled={busy} onClick={start}>
+            <Button size="sm" disabled={busy || uploading} onClick={start}>
               <Plus size={14} />
               New item
             </Button>
@@ -118,7 +121,7 @@ export function MenuWorkspace({
             items={filtered}
             selectedUuid={selected?.uuid}
             canManage={canManage}
-            disabled={busy}
+            disabled={busy || uploading}
             onSelect={(item) => {
               setSelected(item);
               setMode("view");
@@ -155,7 +158,7 @@ export function MenuWorkspace({
                 key="edit-item"
                 type="button"
                 size="sm"
-                disabled={busy}
+                disabled={busy || uploading}
                 onClick={(event) => {
                   event.preventDefault();
                   setMode("edit");
@@ -166,7 +169,7 @@ export function MenuWorkspace({
                 Edit
               </Button>
             ) : (
-              <Button size="sm" type="submit" form="qcafe-menu-editor" disabled={busy}>
+              <Button size="sm" type="submit" form="qcafe-menu-editor" disabled={busy || uploading}>
                 <Save size={14} />
                 {busy ? "Saving…" : "Save item"}
               </Button>
@@ -188,12 +191,14 @@ export function MenuWorkspace({
             item={selected}
             busy={busy}
             onSave={save}
+            onUploadBusy={setUploading}
             onCancel={start}
             formId="qcafe-menu-editor"
             embedded
             readOnly={!canManage || mode === "view"}
             initialCategory={initialCategory}
             categories={[...new Set(menu.items.map((item) => item.category))]}
+            specialDefinitions={specials.settings?.definitions ?? []}
           />
         </div>
       </section>
@@ -215,10 +220,10 @@ export function MenuWorkspace({
             </DialogDescription>
           </DialogHeader>
           {error && <p role="alert">{error}</p>}
-          <Button variant="outline" disabled={busy} onClick={() => setToggle(null)}>
+          <Button variant="outline" disabled={busy || uploading} onClick={() => setToggle(null)}>
             Cancel
           </Button>
-          <Button disabled={busy} onClick={() => void toggleStatus()}>
+          <Button disabled={busy || uploading} onClick={() => void toggleStatus()}>
             {busy ? "Saving…" : "Confirm"}
           </Button>
         </DialogContent>

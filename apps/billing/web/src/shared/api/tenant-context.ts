@@ -63,3 +63,20 @@ export function getTenantUserIdentity(): { email: string; name: string } {
     return { email: "", name: "Tenant User" };
   }
 }
+
+function reportCurrencyKey() {
+  return `codexsun.billing.report-currency:${getTenantId()}:${getCompanyId()}:${getFinancialYearId()}`;
+}
+export function getReportCurrencyCode() {
+  try {
+    const code = sessionStorage.getItem(reportCurrencyKey()) ?? "INR";
+    return /^[A-Z]{3}$/.test(code) ? code : "INR";
+  } catch {
+    return "INR";
+  }
+}
+export function selectReportCurrencyCode(code: string) {
+  if (!/^[A-Z]{3}$/.test(code)) return;
+  sessionStorage.setItem(reportCurrencyKey(), code);
+  window.location.reload();
+}

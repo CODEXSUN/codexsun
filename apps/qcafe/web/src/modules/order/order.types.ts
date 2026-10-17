@@ -6,7 +6,9 @@ export type OrderLine = {
   rate: number;
   amount: number;
 };
+export type BookingDetails = { customerName: string; mobile: string; pickupAt: string };
 export type OrderPatch = {
+  booking?: BookingDetails | null | undefined;
   name: string;
   mode: "POS" | "KOT" | "TAKE AWAY";
   tableUuid: string | null;
@@ -26,6 +28,9 @@ export type KitchenTicket = {
   lines: OrderLine[];
 };
 export type CafeOrder = Omit<OrderPatch, "lines"> & {
+  booking: BookingDetails | null;
+  bookingToken: string | null;
+  parcelToken: string | null;
   uuid: string;
   revision: number;
   status: "draft" | "billed" | "cancelled";
@@ -40,6 +45,8 @@ export type MenuOption = {
   name: string;
   category: string;
   price: number;
+  normalPrice?: number;
+  activeSpecial?: { prefix: string; name: string } | null;
   imageUrl?: string | undefined;
   status: "active" | "inactive";
 };

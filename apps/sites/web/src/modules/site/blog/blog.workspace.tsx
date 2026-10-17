@@ -18,7 +18,7 @@ export function BlogWorkspace({
   return (
     <Card className="grid gap-5 p-5">
       <div className="flex justify-between gap-3">
-        <h2 className="font-semibold">Ramu Tex blogs</h2>
+        <h2 className="font-semibold">Client blogs</h2>
         <Button disabled={editor.busy || selected !== undefined} onClick={() => setSelected(null)}>
           New blog
         </Button>

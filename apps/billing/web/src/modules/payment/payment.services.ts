@@ -27,6 +27,13 @@ export const listPaymentsPage = (
     pageSize: number;
     search: string;
     status: string;
+    numberSearch?: string;
+    dateSearch?: string;
+    partySearch?: string;
+    totalSearch?: string;
+    statusSearch?: string;
+    modeSearch?: string;
+    unallocatedSearch?: string;
   },
   signal?: AbortSignal
 ) => {
@@ -36,6 +43,14 @@ export const listPaymentsPage = (
     page: String(query.page),
     pageSize: String(query.pageSize),
     search: query.search,
+    numberSearch: query.numberSearch ?? "",
+    dateSearch: query.dateSearch ?? "",
+    partySearch: query.partySearch ?? "",
+    totalSearch: query.totalSearch ?? "",
+    statusSearch: query.statusSearch ?? "",
+    modeSearch: query.modeSearch ?? "",
+    unallocatedSearch: query.unallocatedSearch ?? "",
+
     status: query.status
   });
   return billingApiGet<import("./payment.types").PaymentPageResult>(

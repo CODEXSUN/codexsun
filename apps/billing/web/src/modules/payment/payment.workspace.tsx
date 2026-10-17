@@ -1,8 +1,10 @@
+import { useWorkspaceQueryValue } from "@codexsun/ui/workspace/navigation";
+import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import { formatDateTime as formatWorkspaceDateTime } from "@codexsun/ui/workspace";
 import { useEffect, useState, type SetStateAction } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Pencil, Plus, Printer, RefreshCw } from "lucide-react";
+import { Pencil, Plus, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { GlobalLoader } from "@codexsun/ui/components/global-loader";
@@ -51,6 +53,16 @@ export function PaymentWorkspace({ initialRecordId }: { initialRecordId?: string
   const canEditFinalizedEntries = accessQuery.data?.canEditFinalizedEntries ?? false;
   const location = useLocation();
   const navigate = useNavigate();
+  const listTools = useWorkspaceListTools({
+    number: "Payment no",
+    date: "Date",
+    party: "Supplier",
+    mode: "Mode",
+    total: "Amount",
+    unallocated: "Unallocated",
+    status: "Status",
+    action: "Action"
+  });
   const [view, setLocalView] = useState<PaymentView>({ mode: "list" });
   const basePath = `${location.pathname.startsWith("/app/") ? "/app" : ""}/billing/payment`;
   function setView(update: SetStateAction<PaymentView>) {
@@ -63,7 +75,7 @@ export function PaymentWorkspace({ initialRecordId }: { initialRecordId?: string
         : next.mode === "upsert" && !record
           ? `${basePath}/new`
           : `${basePath}/${encodeURIComponent(record!.id)}${next.mode === "upsert" ? "/edit" : ""}`;
-    if (location.pathname !== path) void navigate({ to: path });
+    if (location.pathname !== path) void navigate({ to: path, search: location.search });
   }
   useEffect(() => {
     const tail = location.pathname.slice(basePath.length).split("/").filter(Boolean);
@@ -102,14 +114,21 @@ export function PaymentWorkspace({ initialRecordId }: { initialRecordId?: string
       active = false;
     };
   }, [location.pathname]);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [search, setSearch] = useWorkspaceQueryValue("q", "");
+  const [statusFilter, setStatusFilter] = useWorkspaceQueryValue("status", "all");
+  const [dateFrom, setDateFrom] = useWorkspaceQueryValue("from", "");
+  const [dateTo, setDateTo] = useWorkspaceQueryValue("to", "");
   const [totalsView, setTotalsView] = useState<BillingDocumentTotalsViewMode>("bill");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [page, setPage] = useWorkspaceQueryValue("page", 1);
+  const [rowsPerPage, setRowsPerPage] = useWorkspaceQueryValue("pageSize", 20);
   const paymentsQuery = usePaymentPage({
+    numberSearch: listTools.filters.number ?? "",
+    dateSearch: listTools.filters.date ?? "",
+    partySearch: listTools.filters.party ?? "",
+    totalSearch: listTools.filters.total ?? "",
+    statusSearch: listTools.filters.status ?? "",
+    modeSearch: listTools.filters.mode ?? "",
+    unallocatedSearch: listTools.filters.unallocated ?? "",
     dateFrom,
     dateTo,
     page,
@@ -205,12 +224,9 @@ export function PaymentWorkspace({ initialRecordId }: { initialRecordId?: string
     );
   return (
     <WorkspacePage
+      variant="list"
       action={
         <div className="flex gap-2">
-          <Button onClick={() => void paymentsQuery.refetch()} type="button" variant="outline">
-            <RefreshCw className="size-4" />
-            Refresh
-          </Button>
           <Button
             onClick={() => {
               void contextQuery.refetch();
@@ -227,7 +243,13 @@ export function PaymentWorkspace({ initialRecordId }: { initialRecordId?: string
       title="Payments"
     >
       <WorkspaceFilters
-        filterOptions={statusFilters}
+        columnOptions={listTools.columnOptions}
+        onShowAllColumns={listTools.onShowAllColumns}
+        showSelectedFilterChip
+        filterOptions={statusFilters.map((option) => ({
+          ...option,
+          ...(option.id === statusFilter ? { count: paymentsQuery.data?.total ?? 0 } : {})
+        }))}
         filterValue={statusFilter}
         onFilterValueChange={(value) => {
           setStatusFilter(value);
@@ -240,20 +262,23 @@ export function PaymentWorkspace({ initialRecordId }: { initialRecordId?: string
         searchPlaceholder="Search payment, supplier, ledger, mode, or status"
         searchValue={search}
         toolbarAction={
-          <BillingDocumentListControls
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            onDateFromChange={(value) => {
-              setDateFrom(value);
-              setPage(1);
-            }}
-            onDateToChange={(value) => {
-              setDateTo(value);
-              setPage(1);
-            }}
-            onTotalsViewChange={setTotalsView}
-            totalsView={totalsView}
-          />
+          <>
+            {listTools.toolbarAction}{" "}
+            <BillingDocumentListControls
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={(value) => {
+                setDateFrom(value);
+                setPage(1);
+              }}
+              onDateToChange={(value) => {
+                setDateTo(value);
+                setPage(1);
+              }}
+              onTotalsViewChange={setTotalsView}
+              totalsView={totalsView}
+            />
+          </>
         }
       />
       {paymentsQuery.isError ? (
@@ -262,6 +287,7 @@ export function PaymentWorkspace({ initialRecordId }: { initialRecordId?: string
         </p>
       ) : null}
       <PaymentList
+        listTools={listTools}
         entries={pageEntries}
         canEditEntries={canEditEntries}
         canEditFinalizedEntries={canEditFinalizedEntries}

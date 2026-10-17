@@ -6,7 +6,7 @@ import { AppError } from "@codexsun/framework/errors";
 import { blogPluginManifest } from "@codexsun/blog/contracts";
 import { tenantAccessContext } from "./auth/tenant-access-context.js";
 import { env } from "./env.js";
-import { TenantService } from "./modules/tenant/tenant.service.js";
+import { resolvePublicStorefrontTenant, TenantService } from "./modules/tenant/tenant.service.js";
 import { getTenantDatabase } from "./database/tenant-database.js";
 import { withInstalledAddonVersion } from "./addon-package.js";
 
@@ -121,7 +121,11 @@ async function resolveBlogContext(request: FastifyRequest): Promise<BlogContext>
   }
 
   const host = requestHost(request);
-  const { tenant } = await tenantService.getPublicApplicationCompany(host);
+  const { tenant: domainTenant } = await tenantService.getPublicApplicationCompany(host);
+  const localStorefront =
+    env.NODE_ENV === "development" && /^(?:localhost|127\.0\.0\.1)(?::\d+)?$/iu.test(host);
+  const tenant =
+    domainTenant ?? (localStorefront ? await resolvePublicStorefrontTenant(host) : null);
   if (!tenant) throw AppError.notFound("A public Blog tenant was not found for this domain.");
   if (!tenant.enabledModuleKeys.includes("blog")) {
     throw AppError.notFound("A public Blog tenant was not found for this domain.");

@@ -1,3 +1,4 @@
+import type { WorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { RotateCcw, Trash2 } from "lucide-react";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
@@ -7,13 +8,17 @@ import type { DepartmentRecord } from "./department.types";
 
 export type DepartmentAction = "activate" | "deactivate" | "remove" | "restore" | "forceDelete";
 
+export const departmentListColumns = {"name": "Department name", "description": "Description", "status": "Status"};
+
 export function DepartmentList({
+  listTools,
   entries,
   loading,
   onView,
   onEdit,
   onAction
 }: {
+  listTools?: WorkspaceListTools;
   entries: DepartmentRecord[];
   loading: boolean;
   onView: (department: DepartmentRecord) => void;
@@ -121,7 +126,8 @@ export function DepartmentList({
   return (
     <WorkspaceTable
       data={entries}
-      columns={columns}
+      columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))))}
+      {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       isLoading={loading}
       emptyState="No departments found."
       minWidth="760px"

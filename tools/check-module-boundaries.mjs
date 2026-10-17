@@ -4,6 +4,7 @@ import { join } from "node:path";
 const requestedApp = process.argv[2]?.trim();
 
 const moduleRoots = [
+  { app: "tconnect-api", path: join(process.cwd(), "apps", "tconnect", "api", "src", "modules") },
   { app: "qcafe-api", path: join(process.cwd(), "apps", "qcafe", "api", "src", "modules") },
   { app: "codexsun-api", path: join(process.cwd(), "apps", "codexsun", "api", "src", "modules") },
   { app: "hrms-api", path: join(process.cwd(), "apps", "hrms", "api", "src", "modules") },
@@ -107,10 +108,25 @@ const crmContact360Leaves = [
   "contact-documents"
 ];
 const capabilityBackendRoles = new Map([
+  ...[
+    "association",
+    "company",
+    "community",
+    "inquiry",
+    "member",
+    "product",
+    "buyer",
+    "requirement",
+    "conversation",
+    "message",
+    "quotation"
+  ].map((key) => [`tconnect-api/${key}`, reducedBackendRoles]),
   ["qcafe-api/menu", reducedBackendRoles],
   ["qcafe-api/pos", reducedBackendRoles],
   ["qcafe-api/order", reducedBackendRoles],
   ["qcafe-api/table", reducedBackendRoles],
+  ["qcafe-api/special", reducedBackendRoles],
+  ["qcafe-api/settings", reducedBackendRoles],
   ["hrms-api/attendance", reducedBackendRoles],
   ["hrms-api/department", reducedBackendRoles],
   ["hrms-api/designation", reducedBackendRoles],
@@ -191,6 +207,7 @@ const capabilityBackendRoles = new Map([
 ]);
 
 const webModuleRoots = [
+  { app: "tconnect-web", path: join(process.cwd(), "apps", "tconnect", "web", "src", "modules") },
   { app: "qcafe-web", path: join(process.cwd(), "apps", "qcafe", "web", "src", "modules") },
   { app: "codexsun-web", path: join(process.cwd(), "apps", "codexsun", "web", "src", "modules") },
   { app: "hrms-web", path: join(process.cwd(), "apps", "hrms", "web", "src", "modules") },
@@ -256,6 +273,14 @@ const requiredFrontendRoles = ["workspace", "list", "form", "services", "hooks",
 const shellOnlyFrontendModules = new Set();
 const shellOnlyFrontendRoles = ["module", "workspace", "services", "hooks", "types"];
 const capabilityFrontendRoles = new Map([
+  ["tconnect-web/conversation", ["workspace", "list", "services", "hooks", "types", "schema"]],
+  [
+    "tconnect-web/buyer",
+    ["workspace", "registration", "catalog", "enquiry", "sent", "services", "types", "schema"]
+  ],
+  ["tconnect-web/member", ["workspace", "services", "types", "schema"]],
+  ["tconnect-web/member", ["workspace", "registration", "review", "services", "types", "schema"]],
+  ["tconnect-web/inquiry", ["workspace", "form", "types", "schema"]],
   ["codexsun-web/devices", ["workspace", "list", "services", "hooks", "types"]],
   ["auditor-web/overview", ["workspace"]],
   ["hrms-web/overview", ["workspace", "services", "hooks", "types"]],
@@ -326,10 +351,25 @@ const forbiddenScaffoldPatterns = [
 ];
 
 const declaredSynchronousModules = new Set([
+  ...[
+    "association",
+    "company",
+    "community",
+    "inquiry",
+    "member",
+    "product",
+    "buyer",
+    "requirement",
+    "conversation",
+    "message",
+    "quotation"
+  ].map((key) => `tconnect-api/${key}`),
   "qcafe-api/menu",
   "qcafe-api/pos",
   "qcafe-api/order",
   "qcafe-api/table",
+  "qcafe-api/special",
+  "qcafe-api/settings",
   "hrms-api/attendance",
   "hrms-api/department",
   "hrms-api/designation",
@@ -418,7 +458,20 @@ for (const root of webModuleRoots) {
       continue;
 
     for (const role of moduleRoles) {
-      const extension = ["form", "list", "show", "workspace", "page"].includes(role) ? "tsx" : "ts";
+      const extension = [
+        "form",
+        "list",
+        "show",
+        "workspace",
+        "page",
+        "registration",
+        "review",
+        "catalog",
+        "enquiry",
+        "sent"
+      ].includes(role)
+        ? "tsx"
+        : "ts";
       const filePath = join(modulePath, `${moduleDir.name}.${role}.${extension}`);
       if (!existsSync(filePath)) {
         missing.push(
@@ -552,7 +605,12 @@ function validateRoleFile(filePath, moduleLabel, role) {
   if (markers && !markers.some((marker) => source.toLowerCase().includes(marker))) {
     missing.push(`${moduleLabel}: ${role} role has no callable ${markers.join("/")} behavior`);
   }
-  if (["form", "list", "workspace"].includes(role) && !/export\s+function\s+\w+/.test(source)) {
+  if (
+    ["form", "list", "workspace", "registration", "review", "catalog", "enquiry", "sent"].includes(
+      role
+    ) &&
+    !/export\s+function\s+\w+/.test(source)
+  ) {
     missing.push(`${moduleLabel}: ${role} role must export a real component`);
   }
 }
