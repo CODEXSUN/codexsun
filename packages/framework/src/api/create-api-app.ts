@@ -28,6 +28,7 @@ function requestMeta(request: { correlationId?: string; id: string; tenantId?: s
 export async function createApiApp(options: CreateApiAppOptions): Promise<FastifyInstance> {
   console.info(`[app.boot] creating ${options.appName} (${options.environment})`);
   const app = Fastify({
+    http: { maxHeaderSize: 64 * 1024 },
     logger: options.environment === "development" ? false : { level: "warn" },
     ...(options.rewriteUrl
       ? { rewriteUrl: (request: IncomingMessage) => options.rewriteUrl!(request.url ?? "/") }

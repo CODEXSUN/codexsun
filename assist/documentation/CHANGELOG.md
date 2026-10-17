@@ -46,6 +46,9 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Add the missing Sites deployment developer reference and synchronize 521 Docs pages across 25 app groups.
 - Pass the full repository check, version alignment, 31 focused release tests, and 15 deployment/runtime/persistence contract tests.
 - Add QCafe to the composed API Docker build and validate every resolver package against the build list.
+- Fix multi-tab header overflow with aligned 64 KiB API and nginx request limits, plus adequate upstream response buffers.
+- Clear invalid encrypted session cookies while preserving valid cookies in other tabs. A successful selected-slot login retires only that tab's previous session.
+- Pass nine cookie/header tests, including a real HTTP request above the former 16 KiB Node default and rejection above 64 KiB.
 - Revalidate shop HTML on refresh while retaining immutable hashed assets.
 - The local clean-all build stopped on a Windows dist file lock. Targeted Framework, Platform web, and shop production builds passed.
 - The Platform web build emits one remaining ineffective dynamic-import warning for the HRMS attendance gateway barrel, plus bundle-size warnings. Production rollout remains pending at commit preparation.

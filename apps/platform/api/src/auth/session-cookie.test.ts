@@ -1,9 +1,11 @@
+import { signAuthToken } from "./jwt.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import {
   authCookieName,
   clearAllSessionCookies,
+  clearInvalidSessionCookies,
   clearSelectedSessionCookie,
   decryptSessionCookie,
   encryptSessionCookie,
@@ -118,3 +120,25 @@ test("session cookie falls back to single slotted cookie when header and query s
   assert.equal(readEncryptedSessionCookie(requestWithoutSlot), "single-token");
 });
 
+test("cookie cleanup removes invalid slots while preserving valid sessions in every tab", () => {
+  const token = signAuthToken({ email: "user@example.test", userId: "user", userType: "tenant" });
+  const cleared: string[] = [];
+  const reply = {
+    clearCookie(name: string) {
+      cleared.push(name);
+      return this;
+    }
+  } as unknown as FastifyReply;
+  const valid = authCookieName("a".repeat(32));
+  const other = authCookieName("b".repeat(32));
+  const invalid = authCookieName("c".repeat(32));
+  clearInvalidSessionCookies(reply, {
+    cookies: {
+      [valid]: encryptSessionCookie(token),
+      [other]: encryptSessionCookie(token),
+      [invalid]: encryptSessionCookie("invalid-token"),
+      analytics: "keep"
+    }
+  } as unknown as FastifyRequest);
+  assert.deepEqual(cleared, [invalid]);
+});

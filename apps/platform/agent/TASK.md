@@ -26,6 +26,12 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Multi-tab header recovery, 17-10-2026
+
+- API requests allow bounded 64 KiB headers. Web and shop nginx align request and upstream-response buffers.
+- Invalid encrypted cookies expire without clearing valid sessions from other tabs. Successful login replaces only an explicitly selected previous session.
+- Nine focused cookie/header tests passed, including real HTTP acceptance and overflow rejection. The nginx configuration passed validation and the running proxy reload completed. Final API image rollout remains pending.
+
 ### Loading release preparation, 17-10-2026
 
 - Migration CLI skips only unprovisioned non-active tenants. Invalid active or configured targets still block release. Registry read failures no longer become an empty migration target list. Two target-selection tests pass.

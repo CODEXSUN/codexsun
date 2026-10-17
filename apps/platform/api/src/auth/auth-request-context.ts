@@ -11,7 +11,7 @@ import {
 import { getTenantDatabase, resolveTenantDatabasePassword } from "../database/tenant-database.js";
 import { AuthSessionRepository, type AuthSessionRecord } from "./auth-session.repository.js";
 import { verifyAuthToken, type AuthTokenPayload } from "./jwt.js";
-import { readEncryptedSessionCookie } from "./session-cookie.js";
+import { readEncryptedSessionCookie, clearInvalidSessionCookies } from "./session-cookie.js";
 import { isSingleTenantMode } from "../tenancy-mode.js";
 import { env } from "../env.js";
 
@@ -42,6 +42,7 @@ export function registerAuthRequestContext(app: FastifyInstance) {
   app.addHook("onRequest", async (request, reply) => {
     const requestPath = request.routeOptions.url ?? request.url.split("?")[0] ?? "";
     if (requestPath === "/health" || requestPath === "/ready") return;
+    clearInvalidSessionCookies(reply, request);
     const authentication = selectRequestAuthentication(
       bearerToken(request),
       readEncryptedSessionCookie(request)
@@ -129,7 +130,9 @@ export function registerAuthRequestContext(app: FastifyInstance) {
 }
 
 export function isPublicAuthenticationPath(path: string) {
-  return path.startsWith("/public/") || path.startsWith("/storefront/") || publicAuthPaths.has(path);
+  return (
+    path.startsWith("/public/") || path.startsWith("/storefront/") || publicAuthPaths.has(path)
+  );
 }
 
 export function requestHost(request: FastifyRequest) {

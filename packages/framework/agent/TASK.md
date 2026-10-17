@@ -20,6 +20,12 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Multi-tab header recovery, 17-10-2026
+
+- API requests allow bounded 64 KiB headers. Web and shop nginx align request and upstream-response buffers.
+- Invalid encrypted cookies expire without clearing valid sessions from other tabs. Successful login replaces only an explicitly selected previous session.
+- Nine focused cookie/header tests passed, including real HTTP acceptance and overflow rejection. The nginx configuration passed validation and the running proxy reload completed. Final API image rollout remains pending.
+
 - `npm run typecheck -w @codexsun/framework`
 - `npm run lint -w @codexsun/framework`
 - `npm run build -w @codexsun/framework`

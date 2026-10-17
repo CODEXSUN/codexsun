@@ -3,7 +3,11 @@ import { fail, ok } from "@codexsun/framework/http";
 import { z } from "zod";
 import { AuthService } from "./auth.service.js";
 import { AuthSessionRepository } from "./auth-session.repository.js";
-import { clearSelectedSessionCookie, writeEncryptedSessionCookie } from "./session-cookie.js";
+import {
+  clearSelectedSessionCookie,
+  writeEncryptedSessionCookie,
+  sessionSlotHeader
+} from "./session-cookie.js";
 import { writeDevelopmentSessionCookie } from "./development-session-cookie.js";
 import { enforceBrowserRequestOrigin, requestHost } from "./auth-request-context.js";
 import { isSharedApplicationHost } from "../modules/tenant-domain/tenant-domain.repository.js";
@@ -130,6 +134,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return reply.code(401).send(invalidCredentials(request));
     }
     await attempts.clear(key);
+    if (request.headers[sessionSlotHeader] && request.authContext?.source === "cookie") {
+      await replaceCurrentSession(request);
+      clearSelectedSessionCookie(reply, request);
+    }
     const sessionSlot = writeEncryptedSessionCookie(reply, result.accessToken);
     return ok(publicResult(request, result, sessionSlot), {
       requestId: request.id,

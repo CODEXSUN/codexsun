@@ -1,3 +1,4 @@
+import { verifyAuthToken } from "./jwt.js";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { env } from "../env.js";
@@ -59,6 +60,19 @@ export function writeEncryptedSessionCookie(
     secure: secureSessionCookies()
   });
   return slot;
+}
+
+export function clearInvalidSessionCookies(reply: FastifyReply, request: FastifyRequest) {
+  for (const [name, value] of Object.entries(request.cookies ?? {})) {
+    if (!/^(?:__Host-)?codexsun_session_[0-9a-f]{32}$/u.test(name)) continue;
+    if (value && verifyAuthToken(decryptSessionCookie(value))) continue;
+    reply.clearCookie(name, {
+      httpOnly: true,
+      path: "/",
+      sameSite: "strict",
+      secure: name.startsWith("__Host-")
+    });
+  }
 }
 
 export function clearSelectedSessionCookie(reply: FastifyReply, request: FastifyRequest) {
