@@ -211,6 +211,7 @@ export class FrappeEnquirySyncService {
         source.externalCustomer.code,
         local.contactId
       );
+    await this.importEnquiryMessages(local.id, remote.enquiry_messages ?? [], settings);
     await this.importComments(local.id, remote.name, settings);
     return {
       remoteName: remote.name,
@@ -314,6 +315,27 @@ export class FrappeEnquirySyncService {
         });
       }
       if (response.data.length < 500) break;
+    }
+  }
+
+  private async importEnquiryMessages(
+    enquiryId: number,
+    messages: NonNullable<RemoteEnquiry["enquiry_messages"]>,
+    settings: FrappeSettings
+  ) {
+    if (!this.context.importComment) return;
+    for (const message of messages) {
+      if (!message.name || !message.comment?.trim()) continue;
+      const author = message.owner?.trim()
+        ? ((await this.context.localActorForFrappeUser?.(message.owner.trim(), settings.baseUrl)) ??
+          message.owner.trim())
+        : "frappe-import";
+      await this.context.importComment(enquiryId, {
+        id: message.name,
+        content: message.comment,
+        author,
+        createdAt: normalizeSourceDateTime(message.creation, message.name, "message creation")
+      });
     }
   }
 

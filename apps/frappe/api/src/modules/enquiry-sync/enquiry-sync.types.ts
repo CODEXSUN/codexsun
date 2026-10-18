@@ -19,6 +19,13 @@ export type RemoteEnquiry = {
   user_employee?: string | null;
   assigned_to_employee?: string | null;
   group?: string | null;
+  enquiry_messages?: Array<{
+    name: string;
+    comment?: string | null;
+    owner?: string | null;
+    creation?: string | null;
+    mode?: string | null;
+  }>;
 };
 
 export type RemoteEnquiryComment = {

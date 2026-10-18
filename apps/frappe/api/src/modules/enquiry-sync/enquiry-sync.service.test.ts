@@ -506,7 +506,16 @@ test("pull imports Frappe comments with mapped author and source timestamp", asy
         owner: "agent@example.com",
         customer: "C123",
         mobile: "9994885548",
-        date: "2026-10-06"
+        date: "2026-10-06",
+        enquiry_messages: [
+          {
+            name: "MESSAGE-1",
+            comment: "Source enquiry message",
+            owner: "agent@example.com",
+            creation: "2026-10-06 10:30:00",
+            mode: "Comment"
+          }
+        ]
       }
     });
   };
@@ -535,6 +544,15 @@ test("pull imports Frappe comments with mapped author and source timestamp", asy
   );
   await service.pull("ENQ29");
   assert.deepEqual(imported, [
+    {
+      enquiryId: 42,
+      comment: {
+        id: "MESSAGE-1",
+        content: "Source enquiry message",
+        author: "local-agent@example.com",
+        createdAt: "2026-10-06T10:30:00.000Z"
+      }
+    },
     {
       enquiryId: 42,
       comment: {
