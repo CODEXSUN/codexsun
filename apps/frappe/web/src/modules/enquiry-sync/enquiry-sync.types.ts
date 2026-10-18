@@ -33,6 +33,8 @@ export type EnquiryImportJob = {
 export type FrappeConnectionState = {
   configured: boolean;
   enabled: boolean;
+  usable: boolean;
+  backgroundWorkerEnabled: boolean;
   baseUrl: string | null;
 };
 

@@ -37,7 +37,7 @@ export function CallLogWorkspace() {
   const update = (patch: Partial<CallLogFilters>) =>
     setFilters((current) => ({ ...current, ...patch, page: patch.page ?? 1 }));
   return (
-    <WorkspacePage variant="list" title="" technicalName="page.crm.call-logs.list" className="pt-0 lg:pt-0">
+    <WorkspacePage variant="list" title="" technicalName="page.crm.call-logs.list">
       <WorkspaceFilters
         searchValue={filters.search}
         searchPlaceholder="Search call logs or phone number"

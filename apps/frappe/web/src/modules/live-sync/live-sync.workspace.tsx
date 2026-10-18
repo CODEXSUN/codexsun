@@ -7,6 +7,7 @@ import { Card } from "@codexsun/ui/components/card";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { WorkspaceSwitchCard } from "@codexsun/ui/workspace/status";
+import { useFrappeConnectionSettings } from "../connection/connection.hooks";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import {
   getLiveSyncJobs,
@@ -26,6 +27,7 @@ const key = ["frappe", "live-sync"];
 
 export function FrappeLiveSyncWorkspace() {
   const client = useQueryClient();
+  const connection = useFrappeConnectionSettings();
   const settings = useQuery({ queryKey: [...key, "settings"], queryFn: getLiveSyncSettings });
   const [draft, setDraft] = useState<LiveSyncSettings | null>(null);
   useEffect(() => {
@@ -43,7 +45,7 @@ export function FrappeLiveSyncWorkspace() {
     return (
       <WorkspacePage
         title="Live sync"
-        description="Schedule local changes to Frappe."
+        description="CRM → Frappe scheduled delivery."
         technicalName="page.frappe.live-sync"
       >
         <p className="text-sm text-muted-foreground">Loading live sync…</p>
@@ -61,13 +63,13 @@ export function FrappeLiveSyncWorkspace() {
   return (
     <WorkspacePage
       title="Live sync"
-      description="Queue changed local records for Frappe. Sync stays off until enabled."
+      description="CRM → Frappe only. Scheduled exports send local CRM records to the connected Frappe site."
       technicalName="page.frappe.live-sync"
     >
       <Card className="space-y-4 p-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="font-semibold">Scheduled delivery</h2>
+            <h2 className="font-semibold">CRM → Frappe scheduled delivery</h2>
             <p className="text-sm text-muted-foreground">
               The queue sends local changes in batches of 50.
             </p>
@@ -110,7 +112,13 @@ export function FrappeLiveSyncWorkspace() {
             {draft.paused ? "Resume" : "Pause"}
           </Button>
           <span className="text-sm text-muted-foreground">
-            {draft.paused ? "Paused" : draft.enabled ? "Running" : "Off"}
+            {draft.paused
+              ? "Paused"
+              : !draft.enabled
+                ? "Off"
+                : draft.backgroundWorkerEnabled
+                  ? "Scheduled"
+                  : "Worker disabled"}
           </span>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
@@ -128,6 +136,17 @@ export function FrappeLiveSyncWorkspace() {
           ))}
         </div>
       </Card>
+      {!connection.data?.usable ? (
+        <p role="alert" className="text-sm text-amber-700">
+          Verify and enable the Frappe connection before scheduled exports can run.
+        </p>
+      ) : null}
+      {connection.data?.usable && !draft.backgroundWorkerEnabled ? (
+        <p role="alert" className="text-sm text-amber-700">
+          Background worker is disabled. Settings can be saved, but scheduled and manual exports
+          will not be queued.
+        </p>
+      ) : null}
       <p className="text-sm text-muted-foreground">
         Last schedule:{" "}
         {draft.lastScheduledAt ? new Date(draft.lastScheduledAt).toLocaleString() : "Not run"}
@@ -138,6 +157,7 @@ export function FrappeLiveSyncWorkspace() {
 
 export function FrappeLiveSyncQueueWorkspace() {
   const client = useQueryClient();
+  const connection = useFrappeConnectionSettings();
   const jobs = useQuery({
     queryKey: [...key, "jobs"],
     queryFn: getLiveSyncJobs,
@@ -172,7 +192,7 @@ export function FrappeLiveSyncQueueWorkspace() {
   return (
     <WorkspacePage
       title="Live sync queue"
-      description="Scheduled and re-sync work waiting for Frappe."
+      description="CRM → Frappe. View queued outbound exports and request manual re-syncs."
       technicalName="page.frappe.live-sync-queue"
       actions={
         <div className="flex gap-2">
@@ -180,7 +200,11 @@ export function FrappeLiveSyncQueueWorkspace() {
             <Button
               key={kind}
               variant="outline"
-              disabled={run.isPending}
+              disabled={
+                run.isPending ||
+                !connection.data?.usable ||
+                !connection.data.backgroundWorkerEnabled
+              }
               onClick={() => run.mutate(kind)}
             >
               <RefreshCw />
@@ -190,6 +214,16 @@ export function FrappeLiveSyncQueueWorkspace() {
         </div>
       }
     >
+      {connection.data && !connection.data.usable ? (
+        <p role="alert" className="text-sm text-amber-700">
+          Verify and enable the Frappe connection before requesting an export.
+        </p>
+      ) : null}
+      {connection.data?.usable && !connection.data.backgroundWorkerEnabled ? (
+        <p role="alert" className="text-sm text-amber-700">
+          Background worker is disabled. Queued CRM → Frappe exports cannot run yet.
+        </p>
+      ) : null}
       <WorkspaceTable columns={columns} data={jobs.data ?? []} isLoading={jobs.isLoading} />
     </WorkspacePage>
   );

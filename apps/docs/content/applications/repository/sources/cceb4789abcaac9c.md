@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `0cacd942069fb17dc0e942cdfa7e77302d6e08ab559a0e53758b907f8b7d8c2b`
+Source SHA-256 (LF line endings): `1983fa0363c1ed72c923dfc9bda943cfa03637eb6be50f944c8786fdbd1c3cc7`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -10,6 +10,19 @@ Historical notes and unchecked plans retain their original status.
 
 ```markdown
 # Frappe tasks
+
+## Sync direction audit - 2026-10-18
+
+- [x] Separate Frappe-to-CRM imports from CRM-to-Frappe exports in the API and web labels.
+- [x] Report connection usability and queue-worker availability to the web client.
+- [x] Reject queued import and export jobs when the background worker is disabled.
+- [x] Keep direct selected-row imports available without a background worker.
+      Evidence: `sync-readiness.test.ts`, `npm run test:crm-frappe`, and Frappe/Platform typechecks.
+- [ ] Resolve the CRM policy for automatic Contact, Enquiry, Activity, and Call Log exports.
+      CRM documentation approves automatic outbound transfer only for SOP and Duty records.
+- [x] Verify both Contact directions against the live Frappe site.
+      Evidence: `npm run test:e2e:frappe-contacts-live` on `logicx.tmnext.in` imported a live Mobile Contact Customer into a disposable local Core database, confirmed retry identity and read-only outbound matching, then created, fetched, updated, and deleted a unique Frappe Mobile Contact. The local test database and remote fixture were verified removed.
+      Outbound sends only the 10-digit Mobile Contact identity. Multiple local contacts can link to one shared Frappe mobile identity; imported association links remain separate. The additive link-table migration was applied to the configured local tenant. Queue relay scheduling and browser acceptance were not part of this direct-service test.
 
 ## Mobile customer source, 17-10-2026
 

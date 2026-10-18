@@ -37,7 +37,7 @@ export function FrappeEnquiryImportWorkspace() {
   const remote = useRemoteEnquiries(true, page, rowsPerPage);
   const importJob = useEnquiryImport(true);
   const importBusy = importJob.data?.status === "pending" || importJob.data?.status === "running";
-  const connected = Boolean(connection.data?.configured && connection.data.enabled);
+  const connected = Boolean(connection.data?.usable);
   const records = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (remote.data?.items ?? []).filter(
@@ -162,6 +162,7 @@ export function FrappeEnquiryImportWorkspace() {
       </Card>
       <EnquiryImportPanel
         connected={connected}
+        workerEnabled={Boolean(connection.data?.backgroundWorkerEnabled)}
         busy={pull.isPending}
         job={importJob.data}
         starting={importMutation.isPending}

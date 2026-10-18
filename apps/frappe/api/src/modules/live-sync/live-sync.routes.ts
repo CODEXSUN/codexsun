@@ -18,7 +18,8 @@ const settingsSchema = z.object({
     .strict(),
   lastScheduledAt: z.string().nullable(),
   updatedAt: z.string(),
-  updatedBy: z.string()
+  updatedBy: z.string(),
+  backgroundWorkerEnabled: z.boolean()
 });
 const jobSchema = z.object({
   id: z.number().int().positive(),

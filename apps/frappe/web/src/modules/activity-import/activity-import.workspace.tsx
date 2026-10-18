@@ -8,6 +8,7 @@ import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { formatDateTime } from "@codexsun/ui/workspace/utils";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
+import { useFrappeConnectionSettings } from "../connection/connection.hooks";
 import { getFrappeActivities, pullFrappeActivity } from "./activity-import.services";
 import type { FrappeActivity } from "./activity-import.types";
 
@@ -16,6 +17,8 @@ export function FrappeActivityImportWorkspace() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [progress, setProgress] = useState(0);
   const client = useQueryClient();
+  const connection = useFrappeConnectionSettings();
+  const connectionUsable = Boolean(connection.data?.usable);
   const preview = useQuery({
     queryKey: ["frappe", "activities", page],
     queryFn: () => getFrappeActivities(page)
@@ -55,7 +58,7 @@ export function FrappeActivityImportWorkspace() {
         <Checkbox
           aria-label="Select all activities on page"
           checked={eligible.length > 0 && eligible.every((item) => selected.has(item.name))}
-          disabled={!eligible.length || importSelected.isPending}
+          disabled={!eligible.length || importSelected.isPending || !connectionUsable}
           onCheckedChange={(checked) =>
             setSelected(checked === true ? new Set(eligible.map((item) => item.name)) : new Set())
           }
@@ -68,7 +71,8 @@ export function FrappeActivityImportWorkspace() {
           disabled={
             !row.original.localEnquiryId ||
             !!row.original.localActivityId ||
-            importSelected.isPending
+            importSelected.isPending ||
+            !connectionUsable
           }
           onCheckedChange={(checked) =>
             setSelected((current) => {
@@ -109,6 +113,7 @@ export function FrappeActivityImportWorkspace() {
           variant="outline"
           disabled={
             importSelected.isPending ||
+            !connectionUsable ||
             !!row.original.localActivityId ||
             !row.original.localEnquiryId
           }
@@ -122,7 +127,7 @@ export function FrappeActivityImportWorkspace() {
   return (
     <WorkspacePage
       title="Import activities"
-      description="Bring Frappe enquiry messages into local CRM activity. Import their enquiries first."
+      description="Frappe → local CRM activity. Import the linked enquiry first; these imports run immediately."
       technicalName="page.frappe.activities"
       actions={
         <Button
@@ -134,6 +139,15 @@ export function FrappeActivityImportWorkspace() {
         </Button>
       }
     >
+      {connection.error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {connection.error.message}
+        </p>
+      ) : connection.data && !connectionUsable ? (
+        <p role="alert" className="text-sm text-amber-700">
+          Verify and enable the Frappe connection before importing.
+        </p>
+      ) : null}
       <div className="flex items-center justify-end gap-2">
         <span className="text-sm text-muted-foreground">{selected.size} selected</span>
         <Button

@@ -11,8 +11,74 @@ const emptyDatabase = {
     selectAll: () => ({ where: () => ({ executeTakeFirst: async () => undefined }) })
   })
 } as unknown as Kysely<FrappeDatabase>;
+
+function readinessDatabase(
+  options: {
+    verificationStatus?: "unverified" | "verified" | "failed";
+    importCompletedAt?: string | null;
+  } = {}
+) {
+  return {
+    selectFrom: (table: string) => ({
+      selectAll: () => ({
+        where: () => ({
+          executeTakeFirst: async () =>
+            table === "frappe_connection_settings"
+              ? {
+                  base_url: "https://frappe.example/",
+                  connection_name: "Frappe",
+                  api_key_ciphertext: "key-cipher",
+                  api_secret_ciphertext: "secret-cipher",
+                  enabled: true,
+                  verification_status: options.verificationStatus ?? "verified",
+                  last_checked_at: null,
+                  last_verified_at: null
+                }
+              : undefined
+        })
+      }),
+      select: () => ({
+        where: () => ({
+          executeTakeFirst: async () => ({
+            completed_at: options.importCompletedAt ?? null,
+            completed_by: null
+          })
+        })
+      })
+    })
+  } as unknown as Kysely<FrappeDatabase>;
+}
 after(() => {
   globalThis.fetch = originalFetch;
+});
+
+test("connection readiness distinguishes verified, completed, and worker states", async () => {
+  const makeService = (database: Kysely<FrappeDatabase>) =>
+    new FrappeConnectionService(
+      database,
+      { baseUrl: "", apiKey: "", apiSecret: "", enabled: false },
+      async () => {
+        throw new Error("not used");
+      },
+      { actorEmail: "test@example.com", actorUserId: 1, canViewAll: false },
+      "",
+      undefined,
+      true
+    );
+
+  const ready = await makeService(readinessDatabase()).configured();
+  assert.equal(ready.usable, true);
+  assert.equal(ready.backgroundWorkerEnabled, true);
+
+  const unverified = await makeService(
+    readinessDatabase({ verificationStatus: "unverified" })
+  ).configured();
+  assert.equal(unverified.usable, false);
+
+  const completed = await makeService(
+    readinessDatabase({ importCompletedAt: "2026-10-18T00:00:00Z" })
+  ).configured();
+  assert.equal(completed.usable, false);
 });
 
 test("handshake uses TechMedia compatible token authentication", async () => {

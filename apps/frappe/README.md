@@ -33,6 +33,24 @@ Core remains the local identity owner. This source change does not make CRM scre
 No schema migration or automatic conversion of previously imported Contacts is required.
 Do not edit generated external customer codes. Customer names and other details retain their normal local behavior.
 
+### Sync direction contract
+
+Frappe-to-CRM imports copy selected Frappe records into local tenant databases. Mobile customers,
+enquiries, activities, and call logs use direct selected-row imports. Enquiry and call-log bulk imports
+use background jobs. These imports do not make Frappe the source of truth for CRM records.
+
+CRM-to-Frappe has separate controls. The Live Sync page schedules contacts, enquiries, activities,
+and call logs. The Export pages queue selected local records. CRM also has an approved automatic outbox
+for SOP items, duty assignments, and duty reports. The broader export controls conflict with CRM's
+documented outbound scope. Do not expand that scope without a product decision.
+
+The connection API reports whether the connection is usable and whether background workers are
+enabled. Queued imports and exports reject new jobs when workers are disabled. Direct selected-row
+imports do not require a background worker.
+
+Source audit on 2026-10-18 confirmed these paths. Local tests cover the queue-worker guard and import
+flows. No live Frappe post or pull was run during this audit.
+
 Verification: `npm run test:e2e:frappe-mobile-customers` covers real database persistence, shared mobiles,
 multiple mobiles, concurrent retries, inactive records, source-site isolation, old import links, permissions, and cutover.
 On 17-10-2026, live preview read 50 associations from logicx.tmnext.in.

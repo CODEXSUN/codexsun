@@ -9,6 +9,7 @@ import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
+import { useFrappeConnectionSettings } from "../connection/connection.hooks";
 import {
   getExportJob,
   getLocalContacts,
@@ -38,8 +39,8 @@ type ExportPageProps = {
 export function FrappeContactExportWorkspace() {
   return (
     <ExportPage
-      title="Export contacts"
-      description="Send selected local contacts to Frappe."
+      title="Export mobile contacts"
+      description="CRM → Frappe Mobile Contact. Exports each selected contact’s 10-digit mobile number."
       recordName="contacts"
       technicalName="page.frappe.export.contacts"
       queryKey="contacts"
@@ -53,7 +54,7 @@ export function FrappeEnquiryExportWorkspace() {
   return (
     <ExportPage
       title="Export enquiries"
-      description="Send selected local enquiries to Frappe."
+      description="CRM → Frappe. Verify selected local enquiries before exporting."
       recordName="enquiries"
       technicalName="page.frappe.export.enquiries"
       queryKey="enquiries"
@@ -67,7 +68,7 @@ export function FrappeActivityExportWorkspace() {
   return (
     <ExportPage
       title="Export activities"
-      description="Send selected local enquiry activities to Frappe. Export their enquiries first."
+      description="CRM → Frappe. Export the parent enquiries before their activities."
       recordName="activities"
       technicalName="page.frappe.export.activities"
       queryKey="activities"
@@ -81,7 +82,7 @@ export function FrappeCallLogExportWorkspace() {
   return (
     <ExportPage
       title="Export call logs"
-      description="Send selected local call logs to Frappe."
+      description="CRM → Frappe. Verify selected local call logs before exporting."
       recordName="call logs"
       technicalName="page.frappe.export.call-logs"
       queryKey="call-logs"
@@ -108,6 +109,8 @@ function ExportPage({
   const [reportedJob, setReportedJob] = useState<number | null>(null);
   const [verification, setVerification] = useState<Record<number, Verification>>({});
   const client = useQueryClient();
+  const connection = useFrappeConnectionSettings();
+  const queueReady = Boolean(connection.data?.usable && connection.data.backgroundWorkerEnabled);
   const preview = useQuery({
     queryKey: ["frappe", "export", queryKey, page],
     queryFn: () => list(page)
@@ -197,7 +200,7 @@ function ExportPage({
         <Checkbox
           aria-label={`Select all ${recordName} on page`}
           checked={eligible.length > 0 && eligible.every((item) => selected.has(item.id))}
-          disabled={busy || !eligible.length}
+          disabled={busy || !eligible.length || !queueReady}
           onCheckedChange={(checked) =>
             setSelected(checked === true ? new Set(eligible.map((item) => item.id)) : new Set())
           }
@@ -207,7 +210,7 @@ function ExportPage({
         <Checkbox
           aria-label={`Select ${recordName} #${row.original.id}`}
           checked={selected.has(row.original.id)}
-          disabled={busy || !!row.original.dependency}
+          disabled={busy || !!row.original.dependency || !queueReady}
           onCheckedChange={(checked) =>
             setSelected((current) => {
               const next = new Set(current);
@@ -263,7 +266,9 @@ function ExportPage({
           <Button
             size="sm"
             variant="outline"
-            disabled={busy || !verified(row.original.id) || !!row.original.dependency}
+            disabled={
+              busy || !verified(row.original.id) || !!row.original.dependency || !queueReady
+            }
             onClick={() =>
               send.mutate({ ids: [row.original.id], mode: "export", verifiedJobId: verifiedJobId! })
             }
@@ -293,13 +298,13 @@ function ExportPage({
         <span className="text-sm text-muted-foreground">{selected.size} selected</span>
         <Button
           variant="outline"
-          disabled={!selected.size || busy}
+          disabled={!selected.size || busy || !queueReady}
           onClick={() => send.mutate({ ids: [...selected], mode: "verify" })}
         >
           Verify selected
         </Button>
         <Button
-          disabled={!selectedVerified || busy}
+          disabled={!selectedVerified || busy || !queueReady}
           onClick={() =>
             send.mutate({ ids: [...selected], mode: "export", verifiedJobId: verifiedJobId! })
           }
@@ -310,6 +315,17 @@ function ExportPage({
       {preview.error ? (
         <p role="alert" className="text-sm text-destructive">
           {preview.error.message}
+        </p>
+      ) : null}
+      {connection.data && !connection.data.usable ? (
+        <p role="alert" className="text-sm text-amber-700">
+          Verify and enable the Frappe connection before exporting.
+        </p>
+      ) : null}
+      {connection.data?.usable && !connection.data.backgroundWorkerEnabled ? (
+        <p role="alert" className="text-sm text-amber-700">
+          Background worker is disabled. CRM → Frappe exports are queued and cannot run until it is
+          enabled.
         </p>
       ) : null}
       {job.data ? (

@@ -1,5 +1,18 @@
 # Frappe tasks
 
+## Sync direction audit - 2026-10-18
+
+- [x] Separate Frappe-to-CRM imports from CRM-to-Frappe exports in the API and web labels.
+- [x] Report connection usability and queue-worker availability to the web client.
+- [x] Reject queued import and export jobs when the background worker is disabled.
+- [x] Keep direct selected-row imports available without a background worker.
+      Evidence: `sync-readiness.test.ts`, `npm run test:crm-frappe`, and Frappe/Platform typechecks.
+- [ ] Resolve the CRM policy for automatic Contact, Enquiry, Activity, and Call Log exports.
+      CRM documentation approves automatic outbound transfer only for SOP and Duty records.
+- [x] Verify both Contact directions against the live Frappe site.
+      Evidence: `npm run test:e2e:frappe-contacts-live` on `logicx.tmnext.in` imported a live Mobile Contact Customer into a disposable local Core database, confirmed retry identity and read-only outbound matching, then created, fetched, updated, and deleted a unique Frappe Mobile Contact. The local test database and remote fixture were verified removed.
+      Outbound sends only the 10-digit Mobile Contact identity. Multiple local contacts can link to one shared Frappe mobile identity; imported association links remain separate. The additive link-table migration was applied to the configured local tenant. Queue relay scheduling and browser acceptance were not part of this direct-service test.
+
 ## Mobile customer source, 17-10-2026
 
 - [x] Replace person Contact import with Mobile Contact Customer associations and validate both linked records.

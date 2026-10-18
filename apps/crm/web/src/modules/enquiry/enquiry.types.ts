@@ -95,6 +95,7 @@ export type EnquirySummary = {
   allCount: number;
   assigned: EnquiryScopeSummary;
   created: EnquiryScopeSummary;
+  all: EnquiryScopeSummary;
 };
 
 export type EnquiryLookup = {

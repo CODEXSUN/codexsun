@@ -1,2 +1,2 @@
 export { SopWorkspace } from "./sop.workspace";
-export { listSopItems, type SopItem } from "./sop.services";
+export { listSops, listSopItems, type Sop, type SopItem } from "./sop.services";

@@ -141,7 +141,8 @@ export function ContactRelatedTabs({
       tabs={tabs}
       value={activeTab}
       onValueChange={(value) => setActiveTab(value as ContactRelatedTab | "details")}
-      contentClassName="mt-4"
+      listClassName="border-b-0 bg-card px-3 shadow-none"
+      contentClassName="pt-2 rounded-t-md bg-card pb-0"
     />
   );
 }
@@ -189,6 +190,7 @@ function ContactEnquiries({
         loading={loading}
         onShow={(record) => onOpenEnquiry?.(record.id)}
         openingCallId={null}
+        panelClassName="rounded-t-none"
       />
       {totalPages > 1 ? (
         <WorkspacePagination
@@ -220,7 +222,7 @@ function ContactActivities({
 }) {
   if (error) return <RelatedError message={error.message} />;
   return (
-    <WorkspaceTablePanel>
+    <WorkspaceTablePanel className="rounded-t-none">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">

@@ -61,7 +61,9 @@ export function registerCallLogRoutes(
         items: z.array(recordSchema),
         page: z.number(),
         pageSize: z.number(),
-        hasMore: z.boolean()
+        hasMore: z.boolean(),
+        total: z.number().int().nonnegative(),
+        statusCounts: z.array(z.object({ code: z.string(), count: z.number().int().nonnegative() }))
       })
     },
     handler: async ({ query, request }) => (await service(request)).list(query)

@@ -134,13 +134,13 @@ export function TaskShow({
 
   if (!row && !task.error)
     return (
-      <WorkspacePage title="Task" className="!pt-0 lg:!pt-0">
+      <WorkspacePage title="Task">
         <p className="text-sm text-muted-foreground">Loading task…</p>
       </WorkspacePage>
     );
   if (!row)
     return (
-      <WorkspacePage title="Task" className="!pt-0 lg:!pt-0">
+      <WorkspacePage title="Task">
         <p role="alert" className="text-sm text-destructive">
           {task.error?.message ?? "Task not found."}
         </p>
@@ -279,7 +279,7 @@ export function TaskShow({
     }
   ];
   return (
-    <WorkspacePage title="" className="!pt-0 lg:!pt-0" technicalName="page.crm.tasks.show">
+    <WorkspacePage title="" technicalName="page.crm.tasks.show">
       <section
         className={`rounded-md border border-border/70 bg-card px-4 py-4 shadow-sm ring-2 ${statusRing(row.status)}`}
       >

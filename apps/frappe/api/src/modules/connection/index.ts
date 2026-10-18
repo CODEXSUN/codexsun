@@ -1,6 +1,7 @@
 export { frappeConnectionModule } from "./connection.module.js";
 export { FrappeConnectionRepository } from "./connection.repository.js";
 export { FrappeConnectionAccess } from "./connection.access.js";
+export { assertFrappeQueueWorkerEnabled } from "./sync-readiness.js";
 export { requestFrappe } from "./connection.service.js";
 export { listLiveFrappeEnquiries } from "./connection.live-enquiries.js";
 export { FrappeCrmEnquirySource } from "./connection.data-source.js";

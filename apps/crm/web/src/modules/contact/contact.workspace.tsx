@@ -33,6 +33,7 @@ import {
   setContactActive,
   updateContact
 } from "./contact.services";
+import { prepareContactPayloadForSave } from "./contact.schema";
 import type {
   ContactLookupCreate,
   ContactLookups,
@@ -199,6 +200,68 @@ export function CrmContactWorkspace({
     },
     onError: (error) => toast.error("Unable to update contact", { description: error.message })
   });
+  const updateDetails = useMutation({
+    mutationFn: ({
+      record,
+      patch
+    }: {
+      record: ContactRecord;
+      patch: Partial<ContactSavePayload>;
+    }) =>
+      updateContact(
+        record.id,
+        prepareContactPayloadForSave({
+          code: record.code,
+          name: record.name,
+          legalName: record.legalName,
+          typeId: record.typeId ?? 0,
+          groupId: record.groupId,
+          gstin: record.gstin,
+          pan: record.pan,
+          msmeNo: record.msmeNo,
+          msmeCategory: record.msmeCategory,
+          tanNo: record.tanNo,
+          tdsAvailable: record.tdsAvailable,
+          tcsAvailable: record.tcsAvailable,
+          openingBalance: record.openingBalance,
+          creditLimit: record.creditLimit,
+          website: record.website,
+          description: record.description,
+          status: record.isActive ? "active" : "suspend",
+          isActive: record.isActive,
+          emails: record.emails,
+          phones: record.phones,
+          addresses: record.addresses,
+          bankAccounts: record.bankAccounts,
+          socialLinks: record.socialLinks,
+          ...patch
+        })
+      ),
+    onSuccess: async (saved) => {
+      setShowing(saved);
+      await Promise.all([
+        client.invalidateQueries({ queryKey: contactsQueryKey }),
+        client.invalidateQueries({ queryKey: enquiryContactsQueryKey })
+      ]);
+      toast.success("Contact details updated");
+    },
+    onError: (error) =>
+      toast.error("Unable to update contact details", { description: error.message })
+  });
+  const updateContactStatus = useMutation({
+    mutationFn: ({ record, active }: { record: ContactRecord; active: boolean }) =>
+      setContactActive(record.id, active),
+    onSuccess: async (saved) => {
+      setShowing(saved);
+      await Promise.all([
+        client.invalidateQueries({ queryKey: contactsQueryKey }),
+        client.invalidateQueries({ queryKey: enquiryContactsQueryKey })
+      ]);
+      toast.success("Contact status updated");
+    },
+    onError: (error) =>
+      toast.error("Unable to update contact status", { description: error.message })
+  });
   const refreshLookups = async <Record,>(work: () => Promise<Record>) => {
     const record = await work();
     await client.invalidateQueries({ queryKey: contactLookupsQueryKey });
@@ -217,7 +280,20 @@ export function CrmContactWorkspace({
       refreshLookups(() => createPincodeLookup(postalCode, area, cityId))
   };
   if (showing)
-    return <CrmContactShow record={showing} {...(onOpenEnquiry ? { onOpenEnquiry } : {})} />;
+    return (
+      <CrmContactShow
+        record={showing}
+        lookups={lookupsQuery.data ?? emptyLookups}
+        saving={updateDetails.isPending || updateContactStatus.isPending}
+        onUpdate={async (patch) => {
+          await updateDetails.mutateAsync({ record: showing, patch });
+        }}
+        onStatusChange={async (active) => {
+          await updateContactStatus.mutateAsync({ record: showing, active });
+        }}
+        {...(onOpenEnquiry ? { onOpenEnquiry } : {})}
+      />
+    );
   if (editing !== undefined)
     return (
       <CrmContactForm
@@ -251,7 +327,7 @@ export function CrmContactWorkspace({
               </div>
             )
           }
-        : { className: "pt-0 lg:pt-0" })}
+        : {})}
     >
       <WorkspaceFilters
         toolbarAction={

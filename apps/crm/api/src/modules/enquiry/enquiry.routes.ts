@@ -398,7 +398,8 @@ export function registerEnquiryRoutes(
       response: z.object({
         allCount: z.number().int().nonnegative(),
         assigned: scopeSummarySchema,
-        created: scopeSummarySchema
+        created: scopeSummarySchema,
+        all: scopeSummarySchema
       })
     },
     handler: async ({ query, request }) => {

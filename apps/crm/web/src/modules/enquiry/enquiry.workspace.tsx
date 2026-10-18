@@ -224,12 +224,7 @@ function EnquiryPage({
     );
   }
   return (
-    <WorkspacePage
-      variant="list"
-      title=""
-      className="pt-0 lg:pt-0"
-      technicalName={`page.crm.${scope}.enquiries.list`}
-    >
+    <WorkspacePage variant="list" title="" technicalName={`page.crm.${scope}.enquiries.list`}>
       {reportFilters ? (
         <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-4 py-2 text-sm">
           <span>Report results{reportContext ? ` · ${reportContext}` : ""}</span>

@@ -17,8 +17,9 @@ export const frappeConnectionModule = {
       viewer: Pick<EnquiryListOptions, "actorEmail" | "actorUserId" | "canViewAll">;
     }>,
     settings: FrappeSettings,
-    encryptionSecret: string
+    encryptionSecret: string,
+    backgroundWorkerEnabled: boolean
   ) {
-    registerFrappeRoutes(app, context, settings, encryptionSecret);
+    registerFrappeRoutes(app, context, settings, encryptionSecret, backgroundWorkerEnabled);
   }
 };

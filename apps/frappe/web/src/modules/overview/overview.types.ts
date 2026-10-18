@@ -1,6 +1,8 @@
 export type FrappeConnection = {
   configured: boolean;
   enabled: boolean;
+  usable: boolean;
+  backgroundWorkerEnabled: boolean;
   baseUrl: string | null;
   importCompletedAt: string | null;
 };

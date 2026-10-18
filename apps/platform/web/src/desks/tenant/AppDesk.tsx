@@ -1685,10 +1685,8 @@ export function AppDesk() {
             ) : null}
             {safePage === "crm.overview" ? (
               <CrmOverviewWorkspace
-                currentUserEmail={signedInUser.email}
                 currentUserName={signedInUser.name}
-                onOpenMyJob={() => requestListNavigation("crm.my-job")}
-                onOpenMyCalls={() => requestListNavigation("crm.my-calls")}
+                onOpenPage={(page) => requestListNavigation(page)}
               />
             ) : null}
             {safePage === "crm.reports" ? (

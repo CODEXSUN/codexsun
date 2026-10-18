@@ -79,7 +79,6 @@ export function DutyReportOverview({
     <WorkspacePage
       title="Duty Reporting"
       variant="list"
-      className="pt-0 lg:pt-0"
       technicalName="page.crm.duty.reporting"
       actions={
         canCreate ? (

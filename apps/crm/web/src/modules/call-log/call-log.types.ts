@@ -16,6 +16,8 @@ export type CallLogPage = {
   page: number;
   pageSize: number;
   hasMore: boolean;
+  total: number;
+  statusCounts: Array<{ code: string; count: number }>;
 };
 
 export type CallLogFilters = {

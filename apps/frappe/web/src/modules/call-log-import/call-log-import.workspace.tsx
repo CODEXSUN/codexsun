@@ -8,6 +8,7 @@ import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { formatDateTime } from "@codexsun/ui/workspace/utils";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
+import { useFrappeConnectionSettings } from "../connection/connection.hooks";
 import {
   getFrappeCallLogs,
   pullFrappeCallLog,
@@ -22,6 +23,9 @@ export function FrappeCallLogImportWorkspace() {
   const [progress, setProgress] = useState(0);
   const [jobId, setJobId] = useState<number | null>(null);
   const client = useQueryClient();
+  const connection = useFrappeConnectionSettings();
+  const connectionUsable = Boolean(connection.data?.usable);
+  const batchReady = connectionUsable && Boolean(connection.data?.backgroundWorkerEnabled);
   const preview = useQuery({
     queryKey: ["frappe", "call-logs", page],
     queryFn: () => getFrappeCallLogs(page)
@@ -91,7 +95,12 @@ export function FrappeCallLogImportWorkspace() {
         <Checkbox
           aria-label={`Select call log ${row.original.name}`}
           checked={selected.has(row.original.name)}
-          disabled={!!row.original.localCallLogId || importSelected.isPending || running}
+          disabled={
+            !!row.original.localCallLogId ||
+            importSelected.isPending ||
+            running ||
+            !connectionUsable
+          }
           onCheckedChange={(checked) =>
             setSelected((current) => {
               const next = new Set(current);
@@ -125,7 +134,7 @@ export function FrappeCallLogImportWorkspace() {
         <Button
           size="sm"
           variant="outline"
-          disabled={importSelected.isPending || !!row.original.localCallLogId}
+          disabled={importSelected.isPending || !!row.original.localCallLogId || !connectionUsable}
           onClick={() => importSelected.mutate([row.original.name])}
         >
           Import
@@ -136,7 +145,7 @@ export function FrappeCallLogImportWorkspace() {
   return (
     <WorkspacePage
       title="Import call logs"
-      description="Review Frappe call logs and copy records into local CRM."
+      description="Frappe → local CRM. Selected rows import immediately; import-all runs in the background."
       technicalName="page.frappe.call-logs"
       actions={
         <Button
@@ -148,17 +157,31 @@ export function FrappeCallLogImportWorkspace() {
         </Button>
       }
     >
+      {connection.error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {connection.error.message}
+        </p>
+      ) : connection.data && !connectionUsable ? (
+        <p role="alert" className="text-sm text-amber-700">
+          Verify and enable the Frappe connection before importing.
+        </p>
+      ) : connection.data?.backgroundWorkerEnabled ? null : (
+        <p role="alert" className="text-sm text-amber-700">
+          Background worker is disabled. Import selected call logs individually or enable the worker
+          before starting a batch.
+        </p>
+      )}
       <div className="flex items-center justify-end gap-2">
         <span className="text-sm text-muted-foreground">{selected.size} selected</span>
         <Button
           variant="outline"
-          disabled={running || startAll.isPending || importSelected.isPending}
+          disabled={!batchReady || running || startAll.isPending || importSelected.isPending}
           onClick={() => startAll.mutate()}
         >
           {running ? "Import running…" : "Import all unlinked"}
         </Button>
         <Button
-          disabled={!selected.size || importSelected.isPending || running}
+          disabled={!selected.size || !connectionUsable || importSelected.isPending || running}
           onClick={() => importSelected.mutate([...selected])}
         >
           {importSelected.isPending

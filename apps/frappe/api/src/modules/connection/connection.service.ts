@@ -20,19 +20,27 @@ export class FrappeConnectionService {
     private readonly mappedEmployeeCode: (
       localEmail: string,
       baseUrl: string
-    ) => Promise<string | null> = async () => null
+    ) => Promise<string | null> = async () => null,
+    private readonly backgroundWorkerEnabled = false
   ) {}
 
   async configured() {
     const importState = await new FrappeConnectionRepository(this.database).importState();
     const stored = await new FrappeConnectionRepository(this.database).connection();
-    if (stored)
+    if (stored) {
+      const configured = Boolean(
+        stored.base_url && stored.api_key_ciphertext && stored.api_secret_ciphertext
+      );
+      const enabled = Boolean(stored.enabled);
       return {
         source: "tenant" as const,
-        configured: Boolean(
-          stored.base_url && stored.api_key_ciphertext && stored.api_secret_ciphertext
-        ),
-        enabled: Boolean(stored.enabled),
+        configured,
+        enabled,
+        usable:
+          !importState.completedAt &&
+          configured &&
+          enabled &&
+          stored.verification_status === "verified",
         baseUrl: stored.base_url,
         connectionName: stored.connection_name,
         appKeyConfigured: Boolean(stored.api_key_ciphertext),
@@ -44,12 +52,18 @@ export class FrappeConnectionService {
         lastVerifiedAt: stored.last_verified_at
           ? new Date(stored.last_verified_at).toISOString()
           : null,
-        importCompletedAt: importState.completedAt
+        importCompletedAt: importState.completedAt,
+        backgroundWorkerEnabled: this.backgroundWorkerEnabled
       };
+    }
+    const configured = Boolean(
+      this.settings.baseUrl && this.settings.apiKey && this.settings.apiSecret
+    );
     return {
       source: "environment" as const,
-      configured: Boolean(this.settings.baseUrl && this.settings.apiKey && this.settings.apiSecret),
+      configured,
       enabled: this.settings.enabled,
+      usable: !importState.completedAt && configured && this.settings.enabled,
       baseUrl: this.settings.baseUrl || null,
       connectionName: "Frappe",
       appKeyConfigured: Boolean(this.settings.apiKey),
@@ -57,7 +71,8 @@ export class FrappeConnectionService {
       verificationStatus: "unverified" as const,
       lastCheckedAt: null,
       lastVerifiedAt: null,
-      importCompletedAt: importState.completedAt
+      importCompletedAt: importState.completedAt,
+      backgroundWorkerEnabled: this.backgroundWorkerEnabled
     };
   }
 

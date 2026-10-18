@@ -112,12 +112,9 @@ export class EnquiryRepository {
     const [assigned, created, all] = await Promise.all([
       this.scopeSummary({ ...base, scope: "assigned" }, today),
       this.scopeSummary({ ...base, scope: "created" }, today),
-      this.scopedQuery({ ...base, scope: "all" })
-        .clearSelect()
-        .select(({ fn }) => fn.count<number>("enquiry.id").as("count"))
-        .executeTakeFirstOrThrow()
+      this.scopeSummary({ ...base, scope: "all" }, today)
     ]);
-    return { assigned, created, allCount: Number(all.count) };
+    return { assigned, created, allCount: all.total, all };
   }
 
   private async scopeSummary(

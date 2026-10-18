@@ -7,6 +7,7 @@ export type LiveSyncSettings = {
   lastScheduledAt: string | null;
   updatedAt: string;
   updatedBy: string;
+  backgroundWorkerEnabled: boolean;
 };
 export type LiveSyncJob = {
   id: number;

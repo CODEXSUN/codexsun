@@ -7,6 +7,7 @@ import { Checkbox } from "@codexsun/ui/components/checkbox";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
+import { useFrappeConnectionSettings } from "../connection/connection.hooks";
 import { getFrappeContacts, pullFrappeContact } from "./contact-import.services";
 import type { FrappeContact } from "./contact-import.types";
 
@@ -15,6 +16,8 @@ export function FrappeContactImportWorkspace() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [progress, setProgress] = useState(0);
   const client = useQueryClient();
+  const connection = useFrappeConnectionSettings();
+  const connectionUsable = Boolean(connection.data?.usable);
   const preview = useQuery({
     queryKey: ["frappe", "mobile-customers", page],
     queryFn: () => getFrappeContacts(page)
@@ -59,7 +62,7 @@ export function FrappeContactImportWorkspace() {
         <Checkbox
           aria-label="Select all contacts on page"
           checked={eligible.length > 0 && eligible.every((item) => selected.has(item.name))}
-          disabled={!eligible.length || importSelected.isPending}
+          disabled={!eligible.length || importSelected.isPending || !connectionUsable}
           onCheckedChange={(checked) =>
             setSelected(checked === true ? new Set(eligible.map((item) => item.name)) : new Set())
           }
@@ -69,7 +72,7 @@ export function FrappeContactImportWorkspace() {
         <Checkbox
           aria-label={`Select ${row.original.displayName}`}
           checked={selected.has(row.original.name)}
-          disabled={!!row.original.localContactId || importSelected.isPending}
+          disabled={!!row.original.localContactId || importSelected.isPending || !connectionUsable}
           onCheckedChange={(checked) =>
             setSelected((current) => {
               const next = new Set(current);
@@ -97,7 +100,7 @@ export function FrappeContactImportWorkspace() {
         <Button
           size="sm"
           variant="outline"
-          disabled={importSelected.isPending || !!row.original.localContactId}
+          disabled={importSelected.isPending || !!row.original.localContactId || !connectionUsable}
           onClick={() => importSelected.mutate([row.original.name])}
         >
           Import
@@ -108,7 +111,7 @@ export function FrappeContactImportWorkspace() {
   return (
     <WorkspacePage
       title="Import mobile customers"
-      description="Use Frappe Mobile Contact Customer associations to import customers and their mobile numbers."
+      description="Frappe → Core customer import. Uses Mobile Contact Customer associations and preserves local identity."
       technicalName="page.frappe.contacts"
       actions={
         <Button
@@ -120,6 +123,15 @@ export function FrappeContactImportWorkspace() {
         </Button>
       }
     >
+      {connection.error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {connection.error.message}
+        </p>
+      ) : connection.data && !connectionUsable ? (
+        <p role="alert" className="text-sm text-amber-700">
+          Verify and enable the Frappe connection before importing.
+        </p>
+      ) : null}
       <div className="flex items-center justify-end gap-2">
         <span className="text-sm text-muted-foreground">{selected.size} selected</span>
         <Button

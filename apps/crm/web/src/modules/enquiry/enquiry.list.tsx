@@ -35,7 +35,8 @@ export function EnquiryList({
   onOpenCall,
   showViewAction = false,
   emptyState = "No enquiries found.",
-  openingCallId
+  openingCallId,
+  panelClassName
 }: {
   records: EnquiryRecord[];
   users: EnquiryLookup[];
@@ -53,6 +54,7 @@ export function EnquiryList({
   showViewAction?: boolean;
   emptyState?: string;
   openingCallId: string | null;
+  panelClassName?: string;
 }) {
   const userNames = new Map(users.map((user) => [String(user.id), user.name]));
   const creatorNames = new Map<string, string>();
@@ -226,6 +228,7 @@ export function EnquiryList({
       emptyState={emptyState}
       isLoading={loading}
       minWidth="1020px"
+      {...(panelClassName ? { panelClassName } : {})}
       onRowClick={onShow}
     />
   );

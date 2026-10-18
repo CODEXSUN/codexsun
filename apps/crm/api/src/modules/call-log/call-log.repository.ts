@@ -28,13 +28,16 @@ export class CallLogRepository {
       );
     }
     const where = sql.join(conditions, sql` AND `);
-    const result =
-      await sql<Row>`SELECT log.id, log.direction, log.from_number, log.to_number, log.call_status,
+    const [result, summary] = await Promise.all([
+      sql<Row>`SELECT log.id, log.direction, log.from_number, log.to_number, log.call_status,
       log.duration_seconds, log.user_email, log.created_at, log.started_at
       FROM crm_call_logs log WHERE ${where}
       ORDER BY log.id DESC LIMIT ${filters.pageSize + 1} OFFSET ${(filters.page - 1) * filters.pageSize}`.execute(
         this.database
-      );
+      ),
+      sql<{ status: string; status_count: number }>`SELECT log.call_status AS status, COUNT(*) AS status_count
+        FROM crm_call_logs log WHERE ${where} GROUP BY log.call_status`.execute(this.database)
+    ]);
     return {
       items: result.rows.slice(0, filters.pageSize).map((row) => ({
         name: `CL-${row.id}`,
@@ -50,7 +53,9 @@ export class CallLogRepository {
       })),
       page: filters.page,
       pageSize: filters.pageSize,
-      hasMore: result.rows.length > filters.pageSize
+      hasMore: result.rows.length > filters.pageSize,
+      total: summary.rows.reduce((total, row) => total + Number(row.status_count), 0),
+      statusCounts: summary.rows.map((row) => ({ code: row.status, count: Number(row.status_count) }))
     };
   }
 

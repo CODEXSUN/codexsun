@@ -1,245 +1,364 @@
-import { BarChart3, Clock3, MessageSquare, PhoneCall } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Activity,
+  ArrowRight,
+  BriefcaseBusiness,
+  ClipboardCheck,
+  ClipboardList,
+  PhoneCall,
+  Users
+} from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import { Card } from "@codexsun/ui/components/card";
-import {
-  useEnquirySummary,
-  useEnquiryOverviewActivity,
-  useEnquiryAttention,
-  useEnquiryOptions,
-  countEnquiryStatuses
-} from "../enquiry/index";
-import type { EnquiryMasterLookup } from "../enquiry/index";
+import { listActivities } from "../activities";
+import { listCallLogs } from "../call-log";
+import { useEnquirySummary } from "../enquiry";
+import { getReportOptions, listReports } from "../duty-report";
+import { getDutyOptions, listDuties, listOwnDuties } from "../duty-assignment";
+import { listSopItems, listSops } from "../sop";
+import { listTasks } from "../task";
+import type { ActivityFilters } from "../activities";
+import type { CallLogFilters } from "../call-log";
+
+type CrmPage =
+  | "crm.enquiries"
+  | "crm.tasks"
+  | "crm.call-logs"
+  | "crm.activities"
+  | "crm.sops"
+  | "crm.duties"
+  | "crm.duty-reporting"
+  | "crm.contacts";
 
 export function CrmOverviewWorkspace({
   currentUserName,
-  onOpenMyJob,
-  onOpenMyCalls
+  onOpenPage
 }: {
-  currentUserEmail: string;
   currentUserName: string;
-  onOpenMyJob: () => void;
-  onOpenMyCalls: () => void;
+  onOpenPage: (page: CrmPage) => void;
 }) {
-  return (
-    <OverviewContent
-      currentUserName={currentUserName}
-      onOpenMyJob={onOpenMyJob}
-      onOpenMyCalls={onOpenMyCalls}
-    />
-  );
-}
+  const today = localToday();
+  const enquiries = useEnquirySummary();
+  const tasks = useQuery({
+    queryKey: ["crm", "tasks", "overview"],
+    queryFn: () => listTasks("", 1, 1, "all", {}),
+    refetchInterval: 30_000
+  });
+  const calls = useQuery({
+    queryKey: ["crm", "call-logs", "overview"],
+    queryFn: () => listCallLogs(callLogFilters),
+    refetchInterval: 30_000
+  });
+  const activities = useQuery({
+    queryKey: ["crm", "activities", "overview"],
+    queryFn: () => listActivities(activityFilters),
+    refetchInterval: 30_000
+  });
+  const sops = useQuery({
+    queryKey: ["crm", "sops", "overview"],
+    queryFn: listSops,
+    refetchInterval: 30_000
+  });
+  const sopItems = useQuery({
+    queryKey: ["crm", "sop-items", "overview"],
+    queryFn: listSopItems,
+    refetchInterval: 30_000
+  });
+  const dutyOptions = useQuery({
+    queryKey: ["crm", "duties", "overview-options"],
+    queryFn: getDutyOptions
+  });
+  const duties = useQuery({
+    queryKey: ["crm", "duties", "overview", dutyOptions.data?.canViewAll],
+    queryFn: () => (dutyOptions.data?.canViewAll ? listDuties() : listOwnDuties()),
+    enabled: dutyOptions.data !== undefined,
+    refetchInterval: 30_000
+  });
+  const reportOptions = useQuery({
+    queryKey: ["crm", "duty-reports", "overview-options"],
+    queryFn: getReportOptions
+  });
+  const reports = useQuery({
+    queryKey: ["crm", "duty-reports", "overview"],
+    queryFn: () => listReports("", 1, "", ""),
+    enabled: reportOptions.data?.canViewAll === true,
+    refetchInterval: 30_000
+  });
+  const blockedReports = useQuery({
+    queryKey: ["crm", "duty-reports", "overview", today, "blocked"],
+    queryFn: () => listReports("", 1, today, today, { result: "blocked" }),
+    enabled: reportOptions.data?.canViewAll === true,
+    refetchInterval: 30_000
+  });
 
-function OverviewContent({
-  currentUserName,
-  onOpenMyJob,
-  onOpenMyCalls
-}: {
-  currentUserName: string;
-  onOpenMyJob: () => void;
-  onOpenMyCalls: () => void;
-}) {
-  const summary = useEnquirySummary();
-  const activity = useEnquiryOverviewActivity();
-  const followUps = useEnquiryAttention();
-  const options = useEnquiryOptions();
-  const jobs = summary.data?.assigned;
-  const calls = summary.data?.created;
-  const newJobs = jobs?.newCalls ?? 0;
-  const attention = jobs?.attention ?? 0;
-  const activeJobs = jobs?.active ?? 0;
-  const activeCalls = calls?.active ?? 0;
+  const activeTasks = (tasks.data?.statusCounts ?? [])
+    .filter(({ code }) => !["won", "lost", "closed"].includes(code))
+    .reduce((sum, row) => sum + row.count, 0);
+  const activeDuties = (duties.data ?? []).filter((duty) => duty.status === "active").length;
+  const completedCalls = countCode(calls.data?.statusCounts ?? [], "completed");
+  const openCalls = (calls.data?.statusCounts ?? [])
+    .filter(({ code }) =>
+      ["initiated", "ringing", "in progress", "queued"].includes(code.toLowerCase())
+    )
+    .reduce((sum, row) => sum + row.count, 0);
+  const errors = [
+    enquiries.error,
+    tasks.error,
+    calls.error,
+    activities.error,
+    sops.error,
+    sopItems.error,
+    dutyOptions.error,
+    duties.error,
+    reportOptions.error,
+    reports.error,
+    blockedReports.error
+  ].filter((error): error is Error => Boolean(error));
+
   return (
-    <section className="mx-auto max-w-6xl space-y-7 pb-10">
-      <div>
-        <p className="text-sm text-muted-foreground">Welcome back</p>
-        <h1 className="mt-1 text-3xl font-semibold">{currentUserName}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {newJobs} new {newJobs === 1 ? "call needs" : "calls need"} your attention.
-        </p>
-      </div>
-      {summary.error || activity.error || followUps.error ? (
-        <p className="text-sm text-destructive" role="alert">
-          {summary.error?.message ?? activity.error?.message ?? followUps.error?.message}
+    <section className="mx-auto max-w-7xl space-y-5 pb-8">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm text-muted-foreground">CRM administration</p>
+          <h1 className="mt-1 text-2xl font-semibold">Overview</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Workload and recent operational activity across CRM.
+          </p>
+        </div>
+        <span className="text-sm text-muted-foreground">Welcome, {currentUserName}</span>
+      </header>
+
+      {errors.length ? (
+        <p
+          className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+          role="alert"
+        >
+          Some overview totals could not be loaded. Each available module is shown below.
         </p>
       ) : null}
-      {followUps.data?.assignments.length || followUps.data?.due.length ? (
-        <Card className="flex flex-wrap items-center justify-between gap-3 border-amber-300 p-4">
-          <span>
-            {followUps.data.assignments.length} new assignments ·{" "}
-            {
-              followUps.data.due.filter((record) => record.dueDate && record.dueDate < localToday())
-                .length
-            }{" "}
-            overdue ·{" "}
-            {followUps.data.due.filter((record) => record.dueDate === localToday()).length} due
-            today
-          </span>
-          <Button variant="outline" onClick={onOpenMyJob}>
-            Review follow-ups
-          </Button>
-        </Card>
-      ) : null}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Metric label="New to open" value={newJobs} tone="border-l-sky-500" />
-        <Metric label="Needs attention" value={attention} tone="border-l-amber-500" />
-        <Metric label="Active follow-ups" value={activeJobs} tone="border-l-blue-600" />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard
+          icon={BriefcaseBusiness}
+          title="Enquiries"
+          total={enquiries.data?.allCount}
+          detail={`${enquiries.data?.all.active ?? 0} active · ${enquiries.data?.all.attention ?? 0} need attention`}
+          onOpen={() => onOpenPage("crm.enquiries")}
+        />
+        <SummaryCard
+          icon={ClipboardList}
+          title="Tasks"
+          total={tasks.data?.total}
+          detail={`${activeTasks} active · ${countCode(tasks.data?.statusCounts ?? [], "new")} new`}
+          onOpen={() => onOpenPage("crm.tasks")}
+        />
+        <SummaryCard
+          icon={PhoneCall}
+          title="Call logs"
+          total={calls.data?.total}
+          detail={`${openCalls} in progress · ${completedCalls} completed`}
+          onOpen={() => onOpenPage("crm.call-logs")}
+        />
+        <SummaryCard
+          icon={Activity}
+          title="Activities"
+          total={activities.data?.total}
+          detail="Enquiry activity records"
+          onOpen={() => onOpenPage("crm.activities")}
+        />
+        <SummaryCard
+          icon={ClipboardCheck}
+          title="SOPs"
+          total={sops.data?.length}
+          detail={`${(sops.data ?? []).filter((sop) => sop.status === "active").length} active · ${sopItems.data?.length ?? 0} steps`}
+          onOpen={() => onOpenPage("crm.sops")}
+        />
+        <SummaryCard
+          icon={Users}
+          title="Duties"
+          total={duties.data?.length}
+          detail={`${activeDuties} active assignments`}
+          onOpen={() => onOpenPage("crm.duties")}
+        />
+        {reportOptions.data?.canViewAll ? (
+          <SummaryCard
+            icon={ClipboardCheck}
+            title="Duty reports"
+            total={reports.data?.total}
+            detail={`${blockedReports.data?.total ?? 0} blocked today`}
+            onOpen={() => onOpenPage("crm.duty-reporting")}
+          />
+        ) : null}
       </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-5">
-          <SectionTitle icon={BarChart3} title="Priority focus" />
-          {priorityCounts(jobs?.priorityCounts ?? []).map(({ label, count, color }) => (
-            <div className="mt-4" key={label}>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{label}</span>
-                <strong>{count}</strong>
-              </div>
-              <div className="mt-1 h-2 rounded-full bg-muted">
-                <div
-                  className={`h-2 rounded-full ${color}`}
-                  style={{ width: `${activeJobs ? (count / activeJobs) * 100 : 0}%` }}
-                />
-              </div>
+        <Card className="p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">Enquiry actions</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Current workload in your permitted enquiry scope
+              </p>
             </div>
-          ))}
-        </Card>
-        <Card className="p-5">
-          <SectionTitle icon={Clock3} title="Attention and activity" />
-          <MetricGrid
+            <Button variant="outline" size="sm" onClick={() => onOpenPage("crm.enquiries")}>
+              Open enquiries <ArrowRight className="ml-1 size-4" />
+            </Button>
+          </div>
+          <MetricRows
             items={[
-              ["Needs attention", attention],
-              ["Updated this week", jobs?.updated7 ?? 0],
-              ["Created in 7 days", jobs?.created7 ?? 0],
-              ["Created in 30 days", jobs?.created30 ?? 0]
+              ["All enquiries", enquiries.data?.allCount],
+              ["Active enquiries", enquiries.data?.all.active],
+              ["Needs attention", enquiries.data?.all.attention],
+              ...(enquiries.data?.all.statusCounts ?? []).map(
+                ({ code, count }) => [statusLabel(code), count] as [string, number]
+              ),
+              ["Assigned to me · active", enquiries.data?.assigned.active],
+              ["Assigned to me · needs attention", enquiries.data?.assigned.attention],
+              ["Created by me · active", enquiries.data?.created.active],
+              ["Created in the last 7 days", enquiries.data?.created.created7]
             ]}
           />
         </Card>
-        <Card className="p-5">
-          <SectionTitle icon={MessageSquare} title="Your call activity" />
-          <MetricGrid
+        <Card className="p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">Task actions</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Status totals for tasks visible to you
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => onOpenPage("crm.tasks")}>
+              Open tasks <ArrowRight className="ml-1 size-4" />
+            </Button>
+          </div>
+          <MetricRows
             items={[
-              ["Your reactions, 7 days", "—"],
-              ["Your reactions, 30 days", "—"],
-              ["Comments by you, 30 days", activity.data?.commentsByYou30Days ?? "—"],
-              ["Calls updated, 30 days", jobs?.updated30 ?? 0]
+              ["All tasks", tasks.data?.total],
+              ["Active tasks", activeTasks],
+              ...(tasks.data?.statusCounts ?? []).map(
+                ({ code, count }) => [statusLabel(code), count] as [string, number]
+              )
             ]}
           />
         </Card>
-        <Card className="p-5">
-          <SectionTitle icon={PhoneCall} title="My Calls at a glance" />
-          <MetricGrid
-            items={[
-              ["Created by you", calls?.total ?? 0],
-              ["Active", activeCalls],
-              ["In progress", countEnquiryStatuses(calls?.statusCounts ?? [], "in-progress")],
-              ["Oldest active call", oldestDays(calls?.oldestActiveDays)]
-            ]}
-          />
-        </Card>
-      </div>
-      <div>
-        <h2 className="text-lg font-semibold">Your work mix</h2>
-        <p className="text-sm text-muted-foreground">
-          What needs action, what is progressing, and what you have created.
-        </p>
-      </div>
-      <div className="overflow-x-auto rounded-md border bg-card">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium">Status</th>
-              <th className="px-4 py-3 text-center font-medium">My Job · assigned to me</th>
-              <th className="px-4 py-3 text-center font-medium">My Calls · created by me</th>
-            </tr>
-          </thead>
-          <tbody>
-            {workMixRows(options.data?.statuses ?? []).map(({ label, filter }) => (
-              <tr className="border-t" key={label}>
-                <th className="px-4 py-3 text-left font-medium">{label}</th>
-                <td className="px-4 py-3 text-center">
-                  {countEnquiryStatuses(jobs?.statusCounts ?? [], filter)}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  {countEnquiryStatuses(calls?.statusCounts ?? [], filter)}
-                </td>
-              </tr>
+        <Card className="p-4 lg:col-span-2">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">Latest enquiry activity</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Recent changes and comments</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => onOpenPage("crm.activities")}>
+              Open activities <ArrowRight className="ml-1 size-4" />
+            </Button>
+          </div>
+          <div className="mt-3 divide-y">
+            {(activities.data?.items ?? []).slice(0, 5).map((item) => (
+              <div
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2 text-sm"
+                key={item.id}
+              >
+                <span className="min-w-0 flex-1 truncate">
+                  <strong>#{item.enquiryNo}</strong> · {item.action} ·{" "}
+                  {item.details || item.contact}
+                </span>
+                <span className="text-muted-foreground">
+                  {item.actor} · {formatDate(item.createdAt)}
+                </span>
+              </div>
             ))}
-            <tr className="border-t bg-muted/30">
-              <th className="px-4 py-3 text-left">Oldest active call</th>
-              <td className="px-4 py-3 text-center">{oldestDays(jobs?.oldestActiveDays)}</td>
-              <td className="px-4 py-3 text-center">{oldestDays(calls?.oldestActiveDays)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div className="flex gap-2">
-        <Button onClick={onOpenMyJob} variant="outline">
-          My Job
-        </Button>
-        <Button onClick={onOpenMyCalls} variant="outline">
-          My Calls
-        </Button>
+            {!activities.isLoading && !activities.data?.items.length ? (
+              <p className="py-3 text-sm text-muted-foreground">No activity records found.</p>
+            ) : null}
+          </div>
+        </Card>
       </div>
     </section>
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: number; tone: string }) {
+function SummaryCard({
+  icon: Icon,
+  title,
+  total,
+  detail,
+  onOpen
+}: {
+  icon: typeof Activity;
+  title: string;
+  total: number | undefined;
+  detail: string;
+  onOpen: () => void;
+}) {
   return (
-    <Card className={`border-l-2 p-4 ${tone}`}>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <strong className="mt-1 block text-xl">{value}</strong>
+    <Card className="flex min-h-32 flex-col justify-between p-4">
+      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <Icon className="size-4" />
+        {title}
+      </div>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <div>
+          <strong className="text-2xl">{total === undefined ? "—" : total}</strong>
+          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+        </div>
+        <button
+          className="mb-1 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          aria-label={`Open ${title}`}
+          onClick={onOpen}
+        >
+          <ArrowRight className="size-4" />
+        </button>
+      </div>
     </Card>
   );
 }
-function SectionTitle({ icon: Icon, title }: { icon: typeof BarChart3; title: string }) {
+
+function MetricRows({ items }: { items: Array<[string, number | undefined]> }) {
   return (
-    <h2 className="flex items-center gap-2 font-semibold">
-      <span className="rounded-md bg-muted p-2">
-        <Icon className="size-4" />
-      </span>
-      {title}
-    </h2>
-  );
-}
-function MetricGrid({ items }: { items: Array<[string, number | string]> }) {
-  return (
-    <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-md border">
+    <dl className="mt-3 divide-y">
       {items.map(([label, value]) => (
-        <div className="border-b border-r p-3" key={label}>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <strong>{value}</strong>
+        <div className="flex justify-between gap-4 py-2 text-sm" key={label}>
+          <dt className="text-muted-foreground">{label}</dt>
+          <dd className="font-medium">{value ?? "—"}</dd>
         </div>
       ))}
-    </div>
+    </dl>
   );
 }
-function priorityCounts(counts: Array<{ code: string; count: number }>) {
-  return [
-    { label: "Urgent", code: "urgent", color: "bg-rose-500" },
-    { label: "High", code: "high", color: "bg-amber-500" },
-    { label: "Normal", code: "normal", color: "bg-teal-500" },
-    { label: "Low", code: "low", color: "bg-sky-500" }
-  ]
-    .map((item) => ({
-      ...item,
-      count: counts.find((entry) => entry.code === item.code)?.count ?? 0
-    }))
-    .filter((item) => item.count > 0);
+
+function countCode(counts: Array<{ code: string; count: number }>, code: string) {
+  return counts.find((item) => item.code.toLowerCase() === code.toLowerCase())?.count ?? 0;
 }
-function workMixRows(records: EnquiryMasterLookup[]) {
-  const fixed = [
-    { label: "All calls", filter: "all" },
-    { label: "Active", filter: "active" },
-    { label: "In progress", filter: "in-progress" }
-  ];
-  const statuses = records
-    .filter((record) => record.status === "active")
-    .map((record) => ({ label: record.name, filter: record.code ?? "" }));
-  return [...fixed, ...statuses];
+
+function statusLabel(code: string) {
+  return code.replaceAll("-", " ").replace(/\b\w/gu, (letter) => letter.toUpperCase());
 }
-function oldestDays(days: number | null | undefined) {
-  return days === null || days === undefined ? "—" : `${days} days`;
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
+    new Date(value)
+  );
 }
+
+const callLogFilters = {
+  page: 1,
+  pageSize: 5,
+  search: "",
+  type: "",
+  status: ""
+} satisfies CallLogFilters;
+const activityFilters = {
+  page: 1,
+  pageSize: 5,
+  search: "",
+  contact: "",
+  enquiry: "",
+  allocatedTo: "",
+  listIn: "",
+  status: "",
+  action: "",
+  actor: ""
+} satisfies ActivityFilters;
+
 function localToday() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;

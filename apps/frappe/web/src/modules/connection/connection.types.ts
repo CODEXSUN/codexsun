@@ -2,6 +2,7 @@ export type FrappeConnection = {
   source: "tenant" | "environment";
   configured: boolean;
   enabled: boolean;
+  usable: boolean;
   baseUrl: string | null;
   connectionName: string;
   appKeyConfigured: boolean;
@@ -10,6 +11,7 @@ export type FrappeConnection = {
   lastCheckedAt: string | null;
   lastVerifiedAt: string | null;
   importCompletedAt: string | null;
+  backgroundWorkerEnabled: boolean;
 };
 
 export type FrappeConnectionInput = {

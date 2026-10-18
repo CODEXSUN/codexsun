@@ -27,3 +27,4 @@ export { enquiryContactsQueryKey } from "./enquiry.hooks";
 
 export { EnquiryCustomerFields } from "./enquiry.customer-fields";
 export { useEnquiryContacts } from "./enquiry.hooks";
+export { useEnquiryMasterCreate } from "./enquiry.master-create";

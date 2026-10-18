@@ -1,5 +1,15 @@
 # CRM Delivery Tasks
 
+## Admin CRM overview
+
+- [x] Show permission-scoped totals and status summaries for enquiries, tasks, calls, activities, SOPs, duties, and duty reports.
+- [x] Add links from each summary card to its CRM workspace and show the latest enquiry activity.
+- [x] Add exact call-log totals and status counts to the call-log list contract.
+- [ ] Verify overview loading and navigation in a live browser.
+
+      API and web type checks, lint, and CRM module-boundary checks passed on 18-10-2026.
+      Browser verification remains open.
+
 ## Mobile customer upsert
 
 - [x] Show mobile number and customer name on the left, with code and contact type on the right.
@@ -16,6 +26,10 @@
       This evidence does not certify deployment or browser saves.
 
 ## Frappe reference review
+
+- [ ] Resolve the outbound scope conflict found on 2026-10-18. Frappe exposes manual and scheduled
+      exports for Contacts, Enquiries, Activities, and Call Logs. This CRM plan approves only SOP and
+      Duty outbound sync. See [Frappe sync direction contract](../../frappe/README.md#sync-direction-contract).
 
 - [x] Collect the supplied LogicX HR DocType schemas and functions and compare them with CRM.
       Evidence: [comparison](FRAPPE-COMPARISON.md) and [25-DocType catalogue](../../frappe/agent/LOGICX-CRM-REFERENCE.md), reviewed on 17-10-2026.

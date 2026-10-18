@@ -9,6 +9,7 @@ export {
 export { listLiveFrappeEnquiries } from "./modules/connection/index.js";
 export { FrappeConnectionRepository } from "./modules/connection/index.js";
 export { FrappeConnectionAccess } from "./modules/connection/index.js";
+export { assertFrappeQueueWorkerEnabled } from "./modules/connection/index.js";
 export { requestFrappe } from "./modules/connection/index.js";
 export type { LiveEnquiryQuery } from "./modules/connection/index.js";
 export type { FrappeDatabase, FrappeSettings } from "./modules/connection/index.js";

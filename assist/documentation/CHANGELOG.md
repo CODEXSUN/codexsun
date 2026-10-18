@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.9
+Current version: 1.1.10
 
-Release tag: v-1.1.9
+Release tag: v-1.1.10
 
-Changelog label: v 1.1.9
+Changelog label: v 1.1.10
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,26 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.10
+
+### [v 1.1.10] 2026-10-18 3:29 pm - CRM overview and Frappe contact sync
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Add a separate tenant-scoped Frappe Mobile Contact export-link table and a follow-up migration that allows multiple CRM contacts to share the same remote mobile identity.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.10.
+- Build the CRM overview around enquiry and task workloads, call logs, activities, SOPs, duties, and permitted duty-report totals; align enquiry summary counts with visible records.
+- Refine CRM navigation and workspaces, including Call Logs placement, removal of the deferred Research menu, list spacing, task priority/status choices, and editable contact details.
+- Report Frappe connection readiness and queue-worker availability, and reject background-sync requests when the worker is disabled.
+- Sync CRM contacts to Frappe Mobile Contact by validated mobile number, reusing shared remote identities and preserving independent inbound import associations.
+- Record the CRM↔Frappe contact verification and cleanup E2E; pass the 95-test CRM/Frappe suite and its CRM duty, mobile-contact import, and contact-upsert E2Es.
+- Pass the live `logicx.tmnext.in` Mobile Contact import, retry, create, shared-identity, update, and remote-cleanup round trip.
+- Pass `npm run check`; repository docs, component docs, module boundaries, type checks, and lint all verify.
 
 ## v-1.1.9
 

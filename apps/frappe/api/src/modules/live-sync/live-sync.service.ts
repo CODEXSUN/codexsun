@@ -26,7 +26,8 @@ export class FrappeLiveSyncService {
       },
       lastScheduledAt: row.last_scheduled_at ? new Date(row.last_scheduled_at).toISOString() : null,
       updatedAt: new Date(row.updated_at).toISOString(),
-      updatedBy: row.updated_by
+      updatedBy: row.updated_by,
+      backgroundWorkerEnabled: false
     };
   }
   async save(

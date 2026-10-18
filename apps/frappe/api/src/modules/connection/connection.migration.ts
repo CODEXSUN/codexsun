@@ -9,7 +9,7 @@ import type { FrappeDatabase } from "./connection.types.js";
 export const frappeTenantMigrationBatch: MigrationBatch<FrappeDatabase> = {
   batch: 1,
   scope: "frappe.connection",
-  version: "1.0.84",
+  version: "1.0.86",
   description: "Adopt Frappe integration tables and standardize their audit columns.",
   steps: [
     {
@@ -46,6 +46,20 @@ export const frappeTenantMigrationBatch: MigrationBatch<FrappeDatabase> = {
       description: "Store scheduled live Frappe sync controls.",
       version: 5,
       up: addLiveSyncSettings
+    },
+    {
+      name: "frappe.connection.contact-exports-v6",
+      checksum: "frappe.connection.contact-exports-v6",
+      description: "Keep outbound Mobile Contact links separate from imported customer associations.",
+      version: 6,
+      up: addContactExports
+    },
+    {
+      name: "frappe.connection.shared-mobile-contact-links-v7",
+      checksum: "frappe.connection.shared-mobile-contact-links-v7",
+      description: "Allow multiple local contacts to share one Frappe Mobile Contact identity.",
+      version: 7,
+      up: allowSharedMobileContactExports
     }
   ]
 };
@@ -144,6 +158,30 @@ async function addInitialImportLinks(database: Kysely<FrappeDatabase>) {
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+    )
+    .execute(database);
+}
+
+async function addContactExports(database: Kysely<FrappeDatabase>) {
+  await sql
+    .raw(
+      `CREATE TABLE IF NOT EXISTS frappe_contact_exports (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    uuid CHAR(8) NOT NULL DEFAULT (LOWER(SUBSTRING(MD5(UUID()),1,8))) UNIQUE,
+    remote_name VARCHAR(191) NOT NULL UNIQUE,
+    local_contact_id INT NOT NULL UNIQUE,
+    created_by VARCHAR(191) NOT NULL DEFAULT 'system:frappe-export',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+    )
+    .execute(database);
+}
+
+async function allowSharedMobileContactExports(database: Kysely<FrappeDatabase>) {
+  await sql
+    .raw(
+      "ALTER TABLE frappe_contact_exports DROP INDEX remote_name, ADD INDEX frappe_contact_exports_remote (remote_name)"
     )
     .execute(database);
 }

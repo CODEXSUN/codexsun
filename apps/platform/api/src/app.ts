@@ -100,6 +100,7 @@ import {
   frappeConnectionModule,
   FrappeConnectionAccess,
   FrappeConnectionRepository,
+  assertFrappeQueueWorkerEnabled,
   frappeEnquirySyncModule,
   importFrappeCallLogs,
   previewFrappeCallLogs,
@@ -928,7 +929,8 @@ export async function createApp() {
       apiSecret: env.CODEXSUN_FRAPPE_APP_SECRET,
       enabled: env.CODEXSUN_FRAPPE_ENABLED === "1"
     },
-    env.JWT_SECRET
+    env.JWT_SECRET,
+    env.CODEXSUN_QUEUE_WORKER_ENABLED === "1"
   );
   const frappeSettings = {
     baseUrl: env.CODEXSUN_FRAPPE_BASE_URL,
@@ -973,6 +975,7 @@ export async function createApp() {
       await context.authorize("frappe.connection.manage");
       await context.authorize("crm.enquiry.view-all");
       if (mode === "export") await context.authorize("crm.enquiry.update");
+      assertFrappeQueueWorkerEnabled(env.CODEXSUN_QUEUE_WORKER_ENABLED === "1");
       const enabled = await context.database
         .selectFrom("app_module_settings")
         .select("module_key")
@@ -1103,20 +1106,23 @@ export async function createApp() {
     settings: async (request) => {
       const context = tenantAccessContext(request);
       await context.authorize("frappe.connection.manage");
-      return new FrappeLiveSyncService(
+      const settings = await new FrappeLiveSyncService(
         context.database as unknown as import("kysely").Kysely<FrappeDatabase>
       ).settings();
+      return { ...settings, backgroundWorkerEnabled: env.CODEXSUN_QUEUE_WORKER_ENABLED === "1" };
     },
     save: async (request, input) => {
       const context = tenantAccessContext(request);
       await context.authorize("frappe.connection.manage");
-      return new FrappeLiveSyncService(
+      const settings = await new FrappeLiveSyncService(
         context.database as unknown as import("kysely").Kysely<FrappeDatabase>
       ).save(input, context.actorEmail);
+      return { ...settings, backgroundWorkerEnabled: env.CODEXSUN_QUEUE_WORKER_ENABLED === "1" };
     },
     queue: async (request, kind) => {
       const context = tenantAccessContext(request);
       await context.authorize("frappe.connection.manage");
+      assertFrappeQueueWorkerEnabled(env.CODEXSUN_QUEUE_WORKER_ENABLED === "1");
       const job = await queueService.enqueue({
         actorEmail: context.actorEmail,
         correlationId: request.id,
@@ -1444,6 +1450,7 @@ export async function createApp() {
       const context = tenantAccessContext(request);
       await context.authorize("frappe.connection.manage");
       await context.authorize("crm.call-log.view");
+      assertFrappeQueueWorkerEnabled(env.CODEXSUN_QUEUE_WORKER_ENABLED === "1");
       await ensureFrappeImportOpen(
         context.database as unknown as import("kysely").Kysely<FrappeDatabase>
       );
@@ -1609,6 +1616,7 @@ export async function createApp() {
         await ensureFrappeImportOpen(
           context.database as unknown as import("kysely").Kysely<FrappeDatabase>
         );
+        assertFrappeQueueWorkerEnabled(env.CODEXSUN_QUEUE_WORKER_ENABLED === "1");
         const connection = await new FrappeConnectionAccess(
           context.database as unknown as import("kysely").Kysely<FrappeDatabase>,
           env.JWT_SECRET,

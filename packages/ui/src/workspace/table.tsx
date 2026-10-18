@@ -30,6 +30,7 @@ export function WorkspaceTable<T extends RowData>({
   filterRow,
   isLoading,
   minWidth = "640px",
+  panelClassName,
   onRowClick
 }: {
   columns: LegacyColumnDef<T>[];
@@ -38,6 +39,7 @@ export function WorkspaceTable<T extends RowData>({
   filterRow?: (columnId: string) => ReactNode;
   isLoading?: boolean;
   minWidth?: string;
+  panelClassName?: string;
   onRowClick?: (row: T) => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -56,7 +58,7 @@ export function WorkspaceTable<T extends RowData>({
   });
 
   return (
-    <WorkspaceTablePanel>
+    <WorkspaceTablePanel {...(panelClassName ? { className: panelClassName } : {})}>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm" style={{ minWidth }}>
           <thead className="bg-muted/50">

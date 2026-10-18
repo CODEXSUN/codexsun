@@ -43,6 +43,7 @@ const connectionResponseSchema = z.object({
   source: z.enum(["tenant", "environment"]),
   configured: z.boolean(),
   enabled: z.boolean(),
+  usable: z.boolean(),
   baseUrl: z.string().nullable(),
   connectionName: z.string(),
   appKeyConfigured: z.boolean(),
@@ -50,7 +51,8 @@ const connectionResponseSchema = z.object({
   verificationStatus: z.enum(["unverified", "verified", "failed"]),
   lastCheckedAt: z.string().nullable(),
   lastVerifiedAt: z.string().nullable(),
-  importCompletedAt: z.string().nullable()
+  importCompletedAt: z.string().nullable(),
+  backgroundWorkerEnabled: z.boolean()
 });
 const providerSchema = z.object({
   moduleKey: z.literal("crm.enquiries"),
@@ -67,7 +69,8 @@ export function registerFrappeRoutes(
     viewer: Pick<EnquiryListOptions, "actorEmail" | "actorUserId" | "canViewAll">;
   }>,
   settings: FrappeSettings,
-  encryptionSecret: string
+  encryptionSecret: string,
+  backgroundWorkerEnabled: boolean
 ) {
   const service = async (request: FastifyRequest) => {
     const scope = await context(request);
@@ -77,7 +80,8 @@ export function registerFrappeRoutes(
       scope.loadEnquiry,
       scope.viewer,
       encryptionSecret,
-      scope.mappedEmployeeCode
+      scope.mappedEmployeeCode,
+      backgroundWorkerEnabled
     );
   };
 

@@ -1,11 +1,18 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { EnquiryCustomerFields, useEnquiryContacts, enquiryContactsQueryKey } from "../enquiry";
+import {
+  EnquiryCustomerFields,
+  enquiryContactsQueryKey,
+  useEnquiryContacts,
+  useEnquiryMasterCreate
+} from "../enquiry";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@codexsun/ui/components/button";
 import { Input } from "@codexsun/ui/components/input";
 import { Textarea } from "@codexsun/ui/components/textarea";
 import { WorkspaceLookup } from "@codexsun/ui/workspace/lookup";
 import { WorkspaceDateInputPicker } from "@codexsun/ui/workspace/date-input-picker";
+import { prioritySwatch, statusIcon } from "../../crm-colors";
+import { taskOptionsQueryKey } from "./task.hooks";
 import {
   WorkspaceFormActions,
   WorkspaceFormBanner,
@@ -73,6 +80,7 @@ export function TaskForm({
   );
   const contacts = useEnquiryContacts();
   const client = useQueryClient();
+  const createMaster = useEnquiryMasterCreate();
   const setCustomer = useCallback(
     (next: Partial<Pick<TaskPayload, "contactId" | "capturedName" | "capturedPhone">>) =>
       setValue((current) => ({ ...current, ...next })),
@@ -213,24 +221,64 @@ export function TaskForm({
                     options={options.users}
                     onChange={(v) => set("assignedUserId", v)}
                   />
-                  <Lookup
-                    label="Priority"
-                    required
-                    value={value.priorityId || null}
-                    options={options.priorities}
-                    onChange={(v) => set("priorityId", v ?? 0)}
-                    {...(errors.priorityId ? { error: errors.priorityId } : {})}
-                  />
-                  <Lookup
-                    label="Status"
-                    required
-                    value={value.statusId || null}
-                    options={options.statuses.filter(
-                      (item) => item.code !== "closed" || record?.status === "closed"
-                    )}
-                    onChange={(v) => set("statusId", v ?? 0)}
-                    {...(errors.statusId ? { error: errors.statusId } : {})}
-                  />
+                  <WorkspaceFormField label="Priority" required>
+                    <WorkspaceLookup
+                      allowTextValue={false}
+                      clearable={false}
+                      createMode="inline"
+                      createLabel="Create Priority"
+                      showCreateWhenEmpty
+                      showAllOptionsOnFocus
+                      options={options.priorities.map((item) => ({
+                        label: item.name,
+                        value: String(item.id),
+                        swatchClassName: prioritySwatch(item.code ?? "")
+                      }))}
+                      value={value.priorityId ? String(value.priorityId) : ""}
+                      invalid={Boolean(errors.priorityId)}
+                      onCreate={async (name) => {
+                        const option = await createMaster.priority(name);
+                        await client.invalidateQueries({ queryKey: taskOptionsQueryKey });
+                        return option;
+                      }}
+                      onTextChange={() => set("priorityId", 0)}
+                      onValueChange={(selected) => set("priorityId", Number(selected) || 0)}
+                    />
+                    {errors.priorityId ? (
+                      <small className="text-destructive">{errors.priorityId}</small>
+                    ) : null}
+                  </WorkspaceFormField>
+                  <WorkspaceFormField label="Status" required>
+                    <WorkspaceLookup
+                      allowTextValue={false}
+                      clearable={false}
+                      createMode="inline"
+                      createLabel="Create Status"
+                      showCreateWhenEmpty
+                      showAllOptionsOnFocus
+                      options={options.statuses
+                        .filter(
+                          (item) => item.code !== "closed" || record?.status === "closed"
+                        )
+                        .map((item) => ({
+                          label: item.name,
+                          value: String(item.id),
+                          leadingIcon: statusIcon(item.code ?? "")
+                        }))}
+                      value={value.statusId ? String(value.statusId) : ""}
+                      invalid={Boolean(errors.statusId)}
+                      onCreate={async (name) => {
+                        const option = await createMaster.status(name);
+                        await client.invalidateQueries({ queryKey: taskOptionsQueryKey });
+                        return option;
+                      }}
+                      onTextChange={() => set("statusId", 0)}
+                      onValueChange={(selected) => set("statusId", Number(selected) || 0)}
+                    />
+                    {errors.statusId ? (
+                      <small className="text-destructive">{errors.statusId}</small>
+                    ) : null}
+                  </WorkspaceFormField>
                   <WorkspaceFormField label="Due date">
                     <WorkspaceDateInputPicker
                       value={value.dueDate ?? ""}

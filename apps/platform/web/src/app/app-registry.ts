@@ -33,7 +33,6 @@ import {
   LayoutDashboardIcon,
   LogsIcon,
   ReceiptTextIcon,
-  SearchIcon,
   SendIcon,
   ShieldCheckIcon,
   SparklesIcon,
@@ -797,6 +796,11 @@ export function appMenuFor(
           onSelect: () => onSelect("crm.tasks")
         },
         {
+          title: "Call Logs",
+          isActive: activePage === "crm.call-logs",
+          onSelect: () => onSelect("crm.call-logs")
+        },
+        {
           title: "Activities",
           isActive: activePage === "crm.activities",
           onSelect: () => onSelect("crm.activities")
@@ -817,11 +821,6 @@ export function appMenuFor(
           onSelect: () => onSelect("crm.duty-reporting")
         },
         {
-          title: "Call Logs",
-          isActive: activePage === "crm.call-logs",
-          onSelect: () => onSelect("crm.call-logs")
-        },
-        {
           title: "Reports",
           isActive: activePage === "crm.reports",
           onSelect: () => onSelect("crm.reports")
@@ -835,10 +834,6 @@ export function appMenuFor(
           title: "Contact 360",
           isActive: activePage === "crm.contact-360",
           onSelect: () => onSelect("crm.contact-360")
-        },
-        {
-          title: "On Research",
-          isActive: activePage === "crm.contact-360"
         },
         {
           title: "Common",
@@ -1514,6 +1509,12 @@ export function appMenuItemsFor(
         count: crmTaskCount
       },
       {
+        icon: PhoneCallIcon,
+        isActive: activePage === "crm.call-logs",
+        onSelect: () => onSelect("crm.call-logs"),
+        title: "Call Logs"
+      },
+      {
         icon: BarChart3Icon,
         isActive: activePage === "crm.reports",
         onSelect: () => onSelect("crm.reports"),
@@ -1543,70 +1544,6 @@ export function appMenuItemsFor(
         onSelect: () => onSelect("crm.duty-reporting"),
         title: "Duty Reporting"
       },
-      {
-        icon: PhoneCallIcon,
-        isActive: activePage === "crm.call-logs",
-        onSelect: () => onSelect("crm.call-logs"),
-        title: "Call Logs"
-      },
-      {
-        icon: SearchIcon,
-        isActive:
-          activePage === "crm.contact-360" ||
-          activePage === "crm.my-job" ||
-          activePage === "crm.my-calls" ||
-          activePage === "crm.list-in" ||
-          activePage === "crm.status" ||
-          activePage === "crm.priority",
-        title: "On Research",
-        items: [
-          {
-            icon: UsersIcon,
-            title: "Contact 360",
-            isActive: activePage === "crm.contact-360",
-            onSelect: () => onSelect("crm.contact-360")
-          },
-          {
-            icon: ClipboardListIcon,
-            title: "My Job",
-            count: crmCounts?.assigned,
-            isActive: activePage === "crm.my-job",
-            onSelect: () => onSelect("crm.my-job")
-          },
-          {
-            icon: PhoneCallIcon,
-            title: "My Calls",
-            count: crmCounts?.created,
-            isActive: activePage === "crm.my-calls",
-            onSelect: () => onSelect("crm.my-calls")
-          },
-          {
-            icon: PackageIcon,
-            title: "Common",
-            isActive:
-              activePage === "crm.list-in" ||
-              activePage === "crm.status" ||
-              activePage === "crm.priority",
-            items: [
-              {
-                title: "List In",
-                isActive: activePage === "crm.list-in",
-                onSelect: () => onSelect("crm.list-in")
-              },
-              {
-                title: "Status",
-                isActive: activePage === "crm.status",
-                onSelect: () => onSelect("crm.status")
-              },
-              {
-                title: "Priority",
-                isActive: activePage === "crm.priority",
-                onSelect: () => onSelect("crm.priority")
-              }
-            ]
-          }
-        ]
-      }
     ];
   }
   if (appId === "auditor") {
