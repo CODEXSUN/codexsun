@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.20
+Current version: 1.1.21
 
-Release tag: v-1.1.20
+Release tag: v-1.1.21
 
-Changelog label: v 1.1.20
+Changelog label: v 1.1.21
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,19 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.21
+
+### [v 1.1.21] 2026-10-18 8:58 pm - Enforce Frappe outbound export scope
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Release the Frappe export policy from 1.1.20: only Enquiries may be exported, while verification remains available for every export kind.
+- No schema, seed, tenant-database, or import changes are included in this release.
 
 ## v-1.1.20
 
