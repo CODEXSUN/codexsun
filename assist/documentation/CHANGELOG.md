@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.12
+Current version: 1.1.13
 
-Release tag: v-1.1.12
+Release tag: v-1.1.13
 
-Changelog label: v 1.1.12
+Changelog label: v 1.1.13
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -20,6 +20,21 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.1.13
+
+### [v 1.1.13] 2026-10-18 6:39 pm - Frappe enquiry import parity
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.13.
+- Import Frappe enquiries into CRM with matching numeric `ENQ` serials, original creation/modified timestamps, mapped owner and assignee, and exact site-scoped Customer identity links in Core.
+- Import Frappe Comment/Info history with source author and timestamp; stable retry keys and linked-enquiry reprocessing allow interrupted imports to resume without duplicating comments.
+- Keep CRM as the local authority after the explicit inbound import. No database schema changed; isolated CRM/Frappe suite and targeted route tests pass. Live deployment and TECHMEDIA backfill remain pending.
+
 ## v-1.1.12
 
 ### [v 1.1.12] 2026-10-18 5:13 pm - CRM overview card accents
@@ -32,6 +47,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 - Bumped workspace version to 1.1.12.
 - Match CRM overview summary cards to the HRMS metric layout, using distinct muted left-edge accents while keeping card surfaces neutral and navigation accessible.
+- Restore explicit Frappe-to-CRM enquiry imports with matching `ENQ` serials, source creation/modified times, mapped owners and assignees, site-scoped Customer identities, and idempotent Comment/Info history.
+- Reprocess linked source enquiries so interrupted comment imports can be retried; this path remains inbound-only, and production verification is pending.
 
 ## v-1.1.11
 

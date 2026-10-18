@@ -42,11 +42,13 @@ This source review does not verify live database or mobile behavior.
   server flow. Phase 0 must verify both with the running local database and app.
 
 CRM writes must stay in the tenant database. The mobile app sends records to the
-CRM API, which saves them locally. Enquiry and Call Log must not read from,
-import from, or enqueue writes to an external CRM. Published SOP Items, Duty
-Assignments, and Duty Reports use the approved outbound queue described in
+CRM API, which saves them locally. Enquiries may be explicitly imported from the
+tenant's verified Frappe connection into local CRM; the import preserves source
+serials, timestamps, mapped users, comments, and identity links. After import,
+local CRM remains authoritative and no automatic enquiry export is allowed.
+Call Logs remain outside this import scope. Published SOP Items, Duty Assignments,
+and Duty Reports use the approved outbound queue described in
 [DUTIES-SOP-PLAN.md](./DUTIES-SOP-PLAN.md). CRM reads these records locally.
-This exception does not authorize external Enquiry or Call Log integration.
 
 ## Product Shape
 

@@ -1,4 +1,5 @@
 import { AppError } from "@codexsun/framework/errors";
+import { createHash } from "node:crypto";
 import {
   FrappeConnectionRepository,
   requestFrappe,
@@ -8,7 +9,17 @@ import type { EnquiryInput } from "@codexsun/crm-api/enquiry-sync";
 import type { EnquirySyncContext, ImportProgress, RemoteEnquiry } from "./enquiry-sync.types.js";
 
 const pageSize = 50;
-const previewFields = ["name", "title", "mobile", "date", "priority", "status", "modified"];
+const previewFields = [
+  "name",
+  "title",
+  "mobile",
+  "date",
+  "priority",
+  "status",
+  "modified",
+  "creation",
+  "owner"
+];
 const detailFields = [
   ...previewFields,
   "enquiry_details",
@@ -22,6 +33,7 @@ const detailFields = [
 
 export class FrappeEnquirySyncService {
   private readonly repository: FrappeConnectionRepository;
+  private readonly customerNames = new Map<string, Promise<string | null>>();
 
   constructor(
     private readonly context: EnquirySyncContext,
@@ -44,8 +56,7 @@ export class FrappeEnquirySyncService {
     const total = count.message;
     if (typeof total !== "number" || !Number.isSafeInteger(total) || total < 0)
       throw AppError.validation("Frappe returned an invalid enquiry count.");
-    const valid = enquiries
-      .filter((item) => typeof item.name === "string" && item.name.trim());
+    const valid = enquiries.filter((item) => typeof item.name === "string" && item.name.trim());
     const links = await this.repository.linksByRemoteNames(valid.map((item) => item.name));
     const items = valid.map((item) => ({
       name: item.name,
@@ -89,13 +100,8 @@ export class FrappeEnquirySyncService {
       const names = page
         .map((item) => item.name)
         .filter((name): name is string => Boolean(name?.trim()));
-      const links = await this.repository.linksByRemoteNames(names);
       for (const name of names) {
         progress.scanned += 1;
-        if (links.has(name)) {
-          progress.skipped += 1;
-          continue;
-        }
         try {
           const result = await this.pullWithSettings(name, settings);
           if (result.status === "linked") progress.skipped += 1;
@@ -115,11 +121,7 @@ export class FrappeEnquirySyncService {
     return progress;
   }
 
-  private async listRemote(
-    settings: FrappeSettings,
-    start: number,
-    size: number
-  ) {
+  private async listRemote(settings: FrappeSettings, start: number, size: number) {
     const query = new URLSearchParams({
       fields: JSON.stringify(previewFields),
       limit_start: String(start),
@@ -170,11 +172,21 @@ export class FrappeEnquirySyncService {
         "The local enquiry changed after its last sync. Review it before pulling."
       );
 
-    const input = await this.toLocalInput(remote, linked, settings.baseUrl);
+    const input = await this.toLocalInput(remote, linked, settings);
+    const source = await this.sourceMetadata(remote, settings);
     const local = linked
-      ? await this.context.updateEnquiry(linked.enquiryId, input)
-      : await this.context.createEnquiry(input);
+      ? this.context.updateImportedEnquiry
+        ? await this.context.updateImportedEnquiry(linked.enquiryId, input, source)
+        : await this.context.updateEnquiry(linked.enquiryId, input)
+      : await this.createFromFrappe(remote, input, settings);
     await this.repository.save(local.id, remote.name);
+    if (source.externalCustomer && local.contactId && this.context.linkCustomerIdentity)
+      await this.context.linkCustomerIdentity(
+        source.externalCustomer.externalKey,
+        source.externalCustomer.code,
+        local.contactId
+      );
+    await this.importComments(local.id, remote.name, settings);
     return {
       remoteName: remote.name,
       enquiryId: local.id,
@@ -182,13 +194,114 @@ export class FrappeEnquirySyncService {
     };
   }
 
+  private async createFromFrappe(
+    remote: RemoteEnquiry,
+    input: EnquiryInput,
+    settings: FrappeSettings
+  ) {
+    const source = await this.sourceMetadata(remote, settings);
+    if (this.context.createImportedEnquiry)
+      return this.context.createImportedEnquiry(input, source);
+    return this.context.createEnquiry(input);
+  }
+
+  private async sourceMetadata(remote: RemoteEnquiry, settings: FrappeSettings) {
+    const match = /^ENQ([1-9]\d*)$/u.exec(remote.name);
+    const enquiryNo = match ? Number(match[1]) : NaN;
+    if (!Number.isSafeInteger(enquiryNo))
+      throw AppError.validation(
+        `Frappe enquiry ${remote.name} does not have a compatible CRM serial.`
+      );
+    const createdAt = normalizeSourceDateTime(remote.creation, remote.name, "creation");
+    const updatedAt = normalizeSourceDateTime(remote.modified, remote.name, "modified");
+    const createdBy = remote.owner?.trim()
+      ? ((await this.context.localActorForFrappeUser?.(remote.owner.trim(), settings.baseUrl)) ??
+        remote.owner.trim())
+      : "frappe-import";
+    const customerId = remote.customer?.trim();
+    const customerName = customerId ? await this.customerName(customerId, settings) : null;
+    const mobile = normalizeMobile(remote.mobile, remote.name);
+    const externalCustomer =
+      customerId && customerName && mobile
+        ? {
+            externalKey: createHash("sha256")
+              .update(
+                JSON.stringify([
+                  new URL(settings.baseUrl).origin.toLowerCase(),
+                  "Mobile Contact Customer",
+                  "customer",
+                  customerId
+                ])
+              )
+              .digest("hex"),
+            code: customerId,
+            name: customerName,
+            mobile
+          }
+        : undefined;
+    return {
+      enquiryNo,
+      createdAt,
+      updatedAt,
+      createdBy,
+      ...(externalCustomer ? { externalCustomer } : {})
+    };
+  }
+
+  private async importComments(enquiryId: number, remoteName: string, settings: FrappeSettings) {
+    if (!this.context.importComment) return;
+    const filters = JSON.stringify([
+      ["Comment", "reference_doctype", "=", "Enquiry"],
+      ["Comment", "reference_name", "=", remoteName]
+    ]);
+    const fields = JSON.stringify(["name", "content", "owner", "creation", "comment_type"]);
+    for (let start = 0; ; start += 500) {
+      const path = `/api/resource/Comment?${new URLSearchParams({ filters, fields, order_by: "creation asc", limit_start: String(start), limit_page_length: "500" })}`;
+      const response = await requestFrappe<{
+        data?: Array<{
+          name: string;
+          content?: string | null;
+          owner?: string | null;
+          creation?: string | null;
+          comment_type?: string | null;
+        }>;
+      }>(path, "GET", settings);
+      if (!Array.isArray(response.data))
+        throw AppError.validation("Frappe returned an invalid enquiry comment list.");
+      for (const comment of response.data) {
+        if (
+          !comment.name ||
+          !comment.content?.trim() ||
+          !["Comment", "Info"].includes(comment.comment_type ?? "Comment")
+        )
+          continue;
+        const author = comment.owner?.trim()
+          ? ((await this.context.localActorForFrappeUser?.(
+              comment.owner.trim(),
+              settings.baseUrl
+            )) ?? comment.owner.trim())
+          : "frappe-import";
+        await this.context.importComment(enquiryId, {
+          id: comment.name,
+          content: comment.content,
+          author,
+          createdAt: normalizeSourceDateTime(comment.creation, comment.name, "comment creation")
+        });
+      }
+      if (response.data.length < 500) break;
+    }
+  }
+
   private async toLocalInput(
     remote: RemoteEnquiry,
     linked: Awaited<ReturnType<FrappeConnectionRepository["byRemoteName"]>>,
-    baseUrl: string
+    settings: FrappeSettings
   ): Promise<EnquiryInput> {
     const phone = normalizeMobile(remote.mobile, remote.name);
-    const customer = remote.customer?.trim() || null;
+    const customerId = remote.customer?.trim() || null;
+    const customer = customerId
+      ? ((await this.customerName(customerId, settings)) ?? customerId)
+      : null;
     if (!phone && !customer)
       throw AppError.validation("The Frappe enquiry needs a mobile or customer before import.");
     const date = remote.date?.trim();
@@ -216,7 +329,10 @@ export class FrappeEnquirySyncService {
     if (dueDate && (!/^\d{4}-\d{2}-\d{2}$/u.test(dueDate) || Number.isNaN(Date.parse(dueDate))))
       throw AppError.validation("The Frappe enquiry has an invalid due date.");
     const mappedAssignee = remote.assigned_to_employee?.trim()
-      ? await this.context.localUserForEmployee(remote.assigned_to_employee.trim(), baseUrl)
+      ? await this.context.localUserForEmployee(
+          remote.assigned_to_employee.trim(),
+          settings.baseUrl
+        )
       : null;
     const listInId = remote.group?.trim()
       ? await this.context.listInForName(remote.group.trim())
@@ -240,6 +356,18 @@ export class FrappeEnquirySyncService {
         ? remote.status_details?.trim() || "Closed in Frappe"
         : null
     };
+  }
+
+  private customerName(customerId: string, settings: FrappeSettings) {
+    const existing = this.customerNames.get(customerId);
+    if (existing) return existing;
+    const pending = requestFrappe<{ data?: { customer_name?: string | null } }>(
+      `/api/resource/Customer/${encodeURIComponent(customerId)}?fields=${encodeURIComponent(JSON.stringify(["customer_name"]))}`,
+      "GET",
+      settings
+    ).then((response) => response.data?.customer_name?.trim() || null);
+    this.customerNames.set(customerId, pending);
+    return pending;
   }
 
   private async settings() {
@@ -279,4 +407,15 @@ function normalizeMobile(value: string | null | undefined, remoteName: string) {
   throw AppError.validation(
     `Frappe enquiry ${remoteName} needs a 10-digit mobile number for local CRM.`
   );
+}
+
+function normalizeSourceDateTime(
+  value: string | null | undefined,
+  remoteName: string,
+  field: string
+) {
+  const normalized = value?.trim().replace(" ", "T");
+  if (!normalized || Number.isNaN(Date.parse(normalized)))
+    throw AppError.validation(`Frappe enquiry ${remoteName} has an invalid ${field} timestamp.`);
+  return new Date(normalized.endsWith("Z") ? normalized : `${normalized}Z`).toISOString();
 }

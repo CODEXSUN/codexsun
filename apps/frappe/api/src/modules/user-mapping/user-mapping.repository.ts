@@ -90,3 +90,18 @@ export async function mappedLocalUserForEmployeeCode(
       AND mapping.connection_hash=${hash} LIMIT 1`.execute(database);
   return result.rows[0]?.local_user_id ?? null;
 }
+
+export async function mappedLocalActorForFrappeUser(
+  database: Kysely<FrappeUserMappingDatabase>,
+  remoteUser: string,
+  baseUrl: string
+) {
+  if (!baseUrl || !remoteUser) return null;
+  const hash = createHash("sha256").update(new URL(baseUrl).origin.toLowerCase()).digest("hex");
+  const result = await sql<{ email: string }>`SELECT local_user.email
+    FROM frappe_user_mappings mapping
+    INNER JOIN app_users local_user ON local_user.id=mapping.local_user_id
+    WHERE (LOWER(mapping.frappe_user_id)=LOWER(${remoteUser}) OR LOWER(mapping.frappe_email)=LOWER(${remoteUser}))
+      AND local_user.status='active' AND mapping.connection_hash=${hash} LIMIT 1`.execute(database);
+  return result.rows[0]?.email ?? null;
+}

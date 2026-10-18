@@ -2,6 +2,8 @@
 
 ## Sync direction audit - 2026-10-18
 
+- [ ] Deploy and verify TECHMEDIA Frappe enquiry import with source serials, creation/modified dates, mapped owner/assignee, site-scoped Customer identity, comments, audit history, and live Redis/BullMQ batches. Begin with a small selected-row test, then continue the queue until all 1,983 source enquiries are accounted for. Do not touch other tenant databases.
+
 - [x] Separate Frappe-to-CRM imports from CRM-to-Frappe exports in the API and web labels.
 - [x] Report connection usability and queue-worker availability to the web client.
 - [x] Reject queued import and export jobs when the background worker is disabled.

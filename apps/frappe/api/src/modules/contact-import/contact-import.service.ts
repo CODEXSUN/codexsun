@@ -278,3 +278,38 @@ export class FrappeContactImportService {
     return settings;
   }
 }
+
+export async function linkEnquiryCustomerIdentity(
+  database: Kysely<FrappeDatabase>,
+  sourceKey: string,
+  remoteName: string,
+  localContactId: number
+) {
+  const identities = await database
+    .selectFrom("frappe_contact_customer_identity")
+    .select(["source_key", "remote_name", "local_contact_id"])
+    .where((expression) =>
+      expression.or([
+        expression("source_key", "=", sourceKey),
+        expression("remote_name", "=", remoteName)
+      ])
+    )
+    .execute();
+  const sourceIdentity = identities.find((identity) => identity.source_key === sourceKey);
+  const remoteIdentity = identities.find((identity) => identity.remote_name === remoteName);
+  if (
+    (sourceIdentity &&
+      (sourceIdentity.remote_name !== remoteName ||
+        sourceIdentity.local_contact_id !== localContactId)) ||
+    (remoteIdentity &&
+      (remoteIdentity.source_key !== sourceKey ||
+        remoteIdentity.local_contact_id !== localContactId))
+  )
+    throw AppError.conflict(
+      "The Frappe Customer identity is already linked to a different Core contact."
+    );
+  await sql`INSERT INTO frappe_contact_customer_identity
+    (source_key, remote_name, local_contact_id)
+    VALUES (${sourceKey}, ${remoteName}, ${localContactId})
+    ON DUPLICATE KEY UPDATE local_contact_id=VALUES(local_contact_id)`.execute(database);
+}

@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `76ed42c1dda2df10c6636f94cc86dd2d3c68270b327ce1922f56017567a11b30`
+Source SHA-256 (LF line endings): `3e3f7ebc875436204ea24a1f9187ad3f47d9f491135ce0167f8daf8fdbc6062f`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -53,11 +53,13 @@ This source review does not verify live database or mobile behavior.
   server flow. Phase 0 must verify both with the running local database and app.
 
 CRM writes must stay in the tenant database. The mobile app sends records to the
-CRM API, which saves them locally. Enquiry and Call Log must not read from,
-import from, or enqueue writes to an external CRM. Published SOP Items, Duty
-Assignments, and Duty Reports use the approved outbound queue described in
+CRM API, which saves them locally. Enquiries may be explicitly imported from the
+tenant's verified Frappe connection into local CRM; the import preserves source
+serials, timestamps, mapped users, comments, and identity links. After import,
+local CRM remains authoritative and no automatic enquiry export is allowed.
+Call Logs remain outside this import scope. Published SOP Items, Duty Assignments,
+and Duty Reports use the approved outbound queue described in
 [DUTIES-SOP-PLAN.md](./DUTIES-SOP-PLAN.md). CRM reads these records locally.
-This exception does not authorize external Enquiry or Call Log integration.
 
 ## Product Shape
 
@@ -299,8 +301,5 @@ Service Request → Check Coverage and SLA → Diagnose
 
 - Track resource skills, working hours, territory, leave, capacity, service
   location, travel buffer, and customer time window.
-- Allow manual assignment first. Add optimization only after schedule data proves
-  accurate.
-- Keep resource booking state separate from work-order state.
-- Record schedule changes, d
+- Allow manual assignment f
 ````

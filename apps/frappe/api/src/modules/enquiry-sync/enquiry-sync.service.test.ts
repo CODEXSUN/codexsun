@@ -163,6 +163,9 @@ test("imports unlinked enquiries across multiple remote batches", async () => {
       JSON.stringify({
         data: {
           name,
+          creation: "2026-10-06 10:00:00.000000",
+          modified: "2026-10-07 11:30:00.000000",
+          owner: "agent@example.com",
           mobile: "9994885548",
           date: "2026-10-06",
           status: "New",
@@ -231,6 +234,9 @@ test("pull creates a local enquiry and records the remote identity", async () =>
       JSON.stringify({
         data: {
           name: "ENQ27",
+          creation: "2026-10-06 10:00:00.000000",
+          modified: "2026-10-07 11:30:00.000000",
+          owner: "agent@example.com",
           title: "Machine issue",
           enquiry_details: "Machine stopped",
           mobile: "9994885548",
@@ -247,10 +253,20 @@ test("pull creates a local enquiry and records the remote identity", async () =>
   const service = new FrappeEnquirySyncService(
     {
       database: scope.value,
-      createEnquiry: async (input) => {
+      createImportedEnquiry: async (input, source) => {
         created.push(input);
+        assert.deepEqual(source, {
+          enquiryNo: 27,
+          createdAt: "2026-10-06T10:00:00.000Z",
+          updatedAt: "2026-10-07T11:30:00.000Z",
+          createdBy: "agent@example.com"
+        });
         return { id: 42 } as EnquiryRecord;
       },
+      createEnquiry: async () => {
+        throw new Error("Unexpected legacy create");
+      },
+      localActorForFrappeUser: async () => null,
       updateEnquiry: async () => {
         throw new Error("Unexpected update");
       },
@@ -287,6 +303,8 @@ test("pull translates Frappe status, priority, and Indian mobile formatting", as
     Response.json({
       data: {
         name: "ENQ28",
+        creation: "2026-10-06 10:00:00.000000",
+        modified: "2026-10-07 11:30:00.000000",
         title: "Service enquiry",
         mobile: "+91 99948 85548",
         date: "2026-10-06",
@@ -313,6 +331,77 @@ test("pull translates Frappe status, priority, and Indian mobile formatting", as
   await service.pull("ENQ28");
   assert.equal(created[0]?.capturedPhone, "9994885548");
   assert.deepEqual(lookups, ["Open", "Normal"]);
+});
+
+test("pull imports Frappe comments with mapped author and source timestamp", async () => {
+  const scope = database();
+  const imported: Array<{
+    enquiryId: number;
+    comment: { id: string; content: string; author: string; createdAt: string };
+  }> = [];
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/Customer/C123"))
+      return Response.json({ data: { customer_name: "Example Customer" } });
+    if (url.pathname.endsWith("/Comment"))
+      return Response.json({
+        data: [
+          {
+            name: "COMM-1",
+            content: "Followed up",
+            owner: "agent@example.com",
+            creation: "2026-10-07 12:30:00",
+            comment_type: "Comment"
+          }
+        ]
+      });
+    return Response.json({
+      data: {
+        name: "ENQ29",
+        creation: "2026-10-06 10:00:00",
+        modified: "2026-10-07 11:30:00",
+        owner: "agent@example.com",
+        customer: "C123",
+        mobile: "9994885548",
+        date: "2026-10-06"
+      }
+    });
+  };
+  const service = new FrappeEnquirySyncService(
+    {
+      database: scope.value,
+      createEnquiry: async () => ({ id: 42 }) as EnquiryRecord,
+      createImportedEnquiry: async (_input, source) => {
+        assert.equal(source.externalCustomer?.code, "C123");
+        assert.equal(source.externalCustomer?.name, "Example Customer");
+        assert.equal(source.externalCustomer?.mobile, "9994885548");
+        return { id: 42 } as EnquiryRecord;
+      },
+      updateEnquiry: async () => {
+        throw new Error("Unexpected update");
+      },
+      localUserForEmployee: async () => null,
+      localActorForFrappeUser: async () => "local-agent@example.com",
+      importComment: async (enquiryId, comment) => {
+        imported.push({ enquiryId, comment });
+      },
+      listInForName: async () => null
+    },
+    defaults,
+    "secret"
+  );
+  await service.pull("ENQ29");
+  assert.deepEqual(imported, [
+    {
+      enquiryId: 42,
+      comment: {
+        id: "COMM-1",
+        content: "Followed up",
+        author: "local-agent@example.com",
+        createdAt: "2026-10-07T12:30:00.000Z"
+      }
+    }
+  ]);
 });
 
 test("pull rejects a linked enquiry with newer local edits", async () => {

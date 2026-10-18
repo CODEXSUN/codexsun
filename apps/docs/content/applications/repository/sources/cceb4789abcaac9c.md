@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `7a65c4a9afc546a3f694d1da0dc77f022e6c6dac70b5b0f1411359fc5e57b4e9`
+Source SHA-256 (LF line endings): `5f300e986b377217b6d9b2220670e4c05155891791a6ba233a81d975c059c823`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -12,6 +12,8 @@ Historical notes and unchecked plans retain their original status.
 # Frappe tasks
 
 ## Sync direction audit - 2026-10-18
+
+- [ ] Deploy and verify TECHMEDIA Frappe enquiry import with source serials, creation/modified dates, mapped owner/assignee, site-scoped Customer identity, comments, audit history, and live Redis/BullMQ batches. Begin with a small selected-row test, then continue the queue until all 1,983 source enquiries are accounted for. Do not touch other tenant databases.
 
 - [x] Separate Frappe-to-CRM imports from CRM-to-Frappe exports in the API and web labels.
 - [x] Report connection usability and queue-worker availability to the web client.

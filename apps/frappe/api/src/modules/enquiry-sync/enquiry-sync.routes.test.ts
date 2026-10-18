@@ -56,6 +56,9 @@ test("remote preview, selected pull, and import job routes are available", async
             ? [{ name: "ENQ27", title: "Machine issue", date: "2026-10-06" }]
             : {
                 name: "ENQ27",
+                creation: "2026-10-06 10:00:00",
+                modified: "2026-10-07 11:30:00",
+                owner: "agent@example.com",
                 title: "Machine issue",
                 mobile: "9994885548",
                 date: "2026-10-06",

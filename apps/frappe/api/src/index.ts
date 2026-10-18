@@ -29,6 +29,7 @@ export {
   frappeCallLogSyncModule
 } from "./modules/call-log-sync/index.js";
 export { frappeContactImportModule } from "./modules/contact-import/index.js";
+export { linkEnquiryCustomerIdentity } from "./modules/contact-import/contact-import.service.js";
 export { frappeActivityImportModule } from "./modules/activity-import/index.js";
 export {
   frappeExportModule,
@@ -45,6 +46,7 @@ export {
   frappeUserMappingMigrationBatch,
   mappedEmployeeCodeForLocalUser,
   mappedLocalUserForEmployeeCode,
+  mappedLocalActorForFrappeUser,
   frappeUserMappingMigrations,
   migrateFrappeUserMappingDatabase,
   rollbackFrappeUserMappingDatabase

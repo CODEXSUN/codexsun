@@ -54,7 +54,7 @@ It does not certify browser interaction or deployment.
 
 Local enquiries, contact activity, follow-up tasks, SOPs, duty assignments, and duty reporting across web and mobile.
 
-Core owns contact identity. Local CRM records remain authoritative. Only the approved SOP and Duty outbox transfers those records to Frappe. Preserve assignment scope and activity history.
+Core owns contact identity. Local CRM records remain authoritative after an explicit import from the tenant's verified Frappe connection. Imported enquiries preserve serials, dates, mapped user identity, comments, and site-scoped Customer identity. Do not add automatic enquiry export. Only the approved SOP and Duty outbox transfers CRM-owned records to Frappe. Preserve assignment scope and activity history.
 
 - [TASK.md](agent/TASK.md): work items and acceptance evidence.
 - [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.

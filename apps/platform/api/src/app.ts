@@ -108,6 +108,7 @@ import {
   previewFrappeCallLogs,
   pullFrappeCallLog,
   frappeContactImportModule,
+  linkEnquiryCustomerIdentity,
   frappeActivityImportModule,
   frappeExportModule,
   FrappeExportService,
@@ -121,6 +122,7 @@ import {
   frappeUserMappingModule,
   mappedEmployeeCodeForLocalUser,
   mappedLocalUserForEmployeeCode,
+  mappedLocalActorForFrappeUser,
   frappeUserSyncModule,
   type FrappeDatabase,
   type ExportProgress,
@@ -630,6 +632,16 @@ export async function createApp() {
     context: Pick<ReturnType<typeof tenantAccessContext>, "database" | "tenantDatabase">
   ) => ({
     contact: (id: number) => getActiveContactForDatabase(context.tenantDatabase, id),
+    resolveExternalCustomer: async (input: {
+      externalKey: string;
+      externalCode: string;
+      name: string;
+      mobile: string;
+    }) => {
+      const resolved = await resolveExternalContactForDatabase(context.tenantDatabase, input);
+      const contact = await getActiveContactForDatabase(context.tenantDatabase, resolved.id);
+      return { id: resolved.id, name: contact?.name ?? input.name };
+    },
     resolveOrCreateCustomer: (
       input: { name: string | null; mobile: string | null },
       transaction?: import("kysely").Transaction<EnquiryDatabase>
@@ -1554,6 +1566,24 @@ export async function createApp() {
       {
         database: database as unknown as import("kysely").Kysely<FrappeDatabase>,
         createEnquiry: (input) => enquiries.create(input, job.actorEmail ?? "system:frappe-import"),
+        createImportedEnquiry: (input, source) =>
+          enquiries.createImported(input, job.actorEmail ?? "system:frappe-import", source),
+        updateImportedEnquiry: (id, input, source) =>
+          enquiries.updateImported(id, input, job.actorEmail ?? "system:frappe-import", source),
+        importComment: (id, comment) => enquiries.importComment(id, comment),
+        linkCustomerIdentity: (sourceKey, remoteName, localContactId) =>
+          linkEnquiryCustomerIdentity(
+            database as unknown as import("kysely").Kysely<FrappeDatabase>,
+            sourceKey,
+            remoteName,
+            localContactId
+          ),
+        localActorForFrappeUser: (remoteUser, baseUrl) =>
+          mappedLocalActorForFrappeUser(
+            database as unknown as import("kysely").Kysely<FrappeUserMappingDatabase>,
+            remoteUser,
+            baseUrl
+          ),
         updateEnquiry: (id, input) =>
           enquiries.update(id, input, job.actorEmail ?? "system:frappe-import"),
         localUserForEmployee: (code, baseUrl) =>
@@ -1612,6 +1642,24 @@ export async function createApp() {
       return {
         database: context.database as unknown as import("kysely").Kysely<FrappeDatabase>,
         createEnquiry: (input) => enquiries.create(input, context.actorEmail),
+        createImportedEnquiry: (input, source) =>
+          enquiries.createImported(input, context.actorEmail, source),
+        updateImportedEnquiry: (id, input, source) =>
+          enquiries.updateImported(id, input, context.actorEmail, source),
+        importComment: (id, comment) => enquiries.importComment(id, comment),
+        linkCustomerIdentity: (sourceKey, remoteName, localContactId) =>
+          linkEnquiryCustomerIdentity(
+            context.database as unknown as import("kysely").Kysely<FrappeDatabase>,
+            sourceKey,
+            remoteName,
+            localContactId
+          ),
+        localActorForFrappeUser: (remoteUser, baseUrl) =>
+          mappedLocalActorForFrappeUser(
+            context.database as unknown as import("kysely").Kysely<FrappeUserMappingDatabase>,
+            remoteUser,
+            baseUrl
+          ),
         updateEnquiry: (id, input) => enquiries.update(id, input, context.actorEmail),
         localUserForEmployee: (code, baseUrl) =>
           mappedLocalUserForEmployeeCode(

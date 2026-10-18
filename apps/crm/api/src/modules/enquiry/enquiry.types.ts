@@ -127,8 +127,8 @@ export type EnquiryRow = {
   due_date: string | null;
   closed_reason: string | null;
   created_by: string;
-  created_at: ColumnType<string, string | undefined, never>;
-  updated_at: ColumnType<string, string | undefined, never>;
+  created_at: ColumnType<string, string | undefined, string>;
+  updated_at: ColumnType<string, string | undefined, string>;
 };
 
 export type EnquiryDatabase = ListInDatabase &

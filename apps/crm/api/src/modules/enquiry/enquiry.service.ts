@@ -1,4 +1,5 @@
 import { AppError } from "@codexsun/framework/errors";
+import { createHash } from "node:crypto";
 import type { Transaction } from "kysely";
 import { EnquiryRepository } from "./enquiry.repository.js";
 import type {
@@ -18,6 +19,12 @@ export type EnquiryRelations = {
     },
     transaction?: Transaction<EnquiryDatabase>
   ) => Promise<{ id: number; name: string }>;
+  resolveExternalCustomer?: (input: {
+    externalKey: string;
+    externalCode: string;
+    name: string;
+    mobile: string;
+  }) => Promise<{ id: number; name: string }>;
   user: (id: number) => Promise<{ name: string } | null>;
   listIn: (id: number) => Promise<{ name: string } | null>;
   status: (id: number) => Promise<{ name: string; code: string } | null>;
@@ -87,7 +94,84 @@ export class EnquiryService {
     return this.withContact(record);
   }
 
-  async update(id: number, input: EnquiryInput, actor: string) {
+  async createImported(
+    input: EnquiryInput,
+    actor: string,
+    source: {
+      enquiryNo: number;
+      createdAt: string;
+      updatedAt: string;
+      createdBy: string;
+      externalCustomer?: { externalKey: string; code: string; name: string; mobile: string };
+    }
+  ) {
+    if (input.capturedPhone?.trim() && !/^\d{10}$/.test(input.capturedPhone.trim())) {
+      throw AppError.validation("Enter a 10-digit mobile number.");
+    }
+    let prepared = await this.prepare(input, null);
+    if (source.externalCustomer && this.relations.resolveExternalCustomer) {
+      const contact = await this.relations.resolveExternalCustomer({
+        ...source.externalCustomer,
+        externalCode: source.externalCustomer.code
+      });
+      prepared = { ...prepared, contactId: contact.id, capturedName: contact.name };
+    }
+    const record = await this.repository.create(
+      prepared,
+      actor,
+      source.externalCustomer && this.relations.resolveExternalCustomer
+        ? undefined
+        : (transaction) => this.resolveContact(prepared, transaction),
+      source
+    );
+    if (!record) throw AppError.notFound("Enquiry could not be created.");
+    return this.withContact(record);
+  }
+
+  async importComment(
+    enquiryId: number,
+    comment: { id: string; content: string; author: string; createdAt: string }
+  ) {
+    await this.repository.addComment(
+      enquiryId,
+      null,
+      comment.content,
+      "html",
+      comment.author,
+      `frappe:${createHash("sha256").update(comment.id).digest("hex")}`,
+      comment.createdAt
+    );
+  }
+
+  async updateImported(
+    id: number,
+    input: EnquiryInput,
+    actor: string,
+    source: {
+      createdAt: string;
+      updatedAt: string;
+      createdBy: string;
+      externalCustomer?: { externalKey: string; code: string; name: string; mobile: string };
+    }
+  ) {
+    const externalContact =
+      source.externalCustomer && this.relations.resolveExternalCustomer
+        ? await this.relations.resolveExternalCustomer({
+            ...source.externalCustomer,
+            externalCode: source.externalCustomer.code
+          })
+        : null;
+    const record = await this.update(id, input, actor, externalContact?.id ?? null);
+    const metadata = {
+      createdAt: source.createdAt,
+      updatedAt: source.updatedAt,
+      createdBy: source.createdBy
+    };
+    await this.repository.setImportedSourceMetadata(id, metadata);
+    return { ...record, ...metadata };
+  }
+
+  async update(id: number, input: EnquiryInput, actor: string, importedContactId?: number | null) {
     const current = await this.get(id);
     const prepared = await this.prepare(input, current);
     const record = await this.repository.update(
@@ -96,7 +180,9 @@ export class EnquiryService {
       actor,
       "Enquiry updated",
       current.statusId,
-      (transaction) => this.resolveContact(prepared, transaction)
+      importedContactId !== undefined
+        ? async () => ({ ...prepared, contactId: importedContactId })
+        : (transaction) => this.resolveContact(prepared, transaction)
     );
     if (!record) throw AppError.notFound("Enquiry was not found.");
     return this.withContact(record);

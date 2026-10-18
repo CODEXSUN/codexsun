@@ -10,12 +10,12 @@ This file is component guidance. It does not install a global Codex skill or gra
 
 Local enquiries, contact activity, follow-up tasks, SOPs, duty assignments, and duty reporting across web and mobile.
 
-Core owns contact identity. Local CRM records remain authoritative. Only the approved SOP and Duty outbox transfers those records to Frappe. Preserve assignment scope and activity history.
+Core owns contact identity. Local CRM records remain authoritative after explicit imports from the tenant's verified Frappe connection. Imported enquiries retain source serials, timestamps, mapped user identity, comments, and source links. Do not add automatic enquiry export. Only the approved SOP and Duty outbox transfers CRM-owned records to Frappe. Preserve assignment scope and activity history.
 
 ## Implementation rules
 
 - For custom Frappe contracts, refer to [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git).
-- Read [the Frappe comparison](FRAPPE-COMPARISON.md) before changing CRM transfer contracts. It does not expand approved sync scope.
+- Read [the Frappe comparison](FRAPPE-COMPARISON.md) before changing CRM transfer contracts. Frappe-to-CRM enquiry import is explicit and one-way; this does not approve outbound enquiry sync.
 
 - Inspect the affected source and public contracts before editing.
 - Keep concrete business behavior in its owning leaf or package.

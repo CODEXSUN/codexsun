@@ -346,23 +346,41 @@ export class EnquiryRepository {
     return row ? toRecord(row) : null;
   }
 
+  async setImportedSourceMetadata(
+    id: number,
+    source: { createdAt: string; updatedAt: string; createdBy: string }
+  ) {
+    await this.database
+      .updateTable("crm_enquiries")
+      .set({
+        created_by: source.createdBy,
+        created_at: utcDateTime(source.createdAt),
+        updated_at: utcDateTime(source.updatedAt)
+      })
+      .where("id", "=", id)
+      .execute();
+  }
+
   async create(
     input: EnquiryInput,
     actor: string,
-    resolveContact?: (transaction: Transaction<EnquiryDatabase>) => Promise<EnquiryInput>
+    resolveContact?: (transaction: Transaction<EnquiryDatabase>) => Promise<EnquiryInput>,
+    source?: { enquiryNo: number; createdAt: string; updatedAt: string; createdBy: string }
   ) {
     const id = await this.database.transaction().execute(async (transaction) => {
       const prepared = resolveContact ? await resolveContact(transaction) : input;
-      const enquiryNo = await this.reserveNextNumber(transaction);
+      const enquiryNo = source
+        ? await this.reserveImportedNumber(transaction, source.enquiryNo)
+        : await this.reserveNextNumber(transaction);
       // MariaDB DATETIME has no timezone; these values are read back as UTC.
       const result = await transaction
         .insertInto("crm_enquiries")
         .values({
           ...toRow(prepared),
           enquiry_no: enquiryNo,
-          created_by: actor,
-          created_at: sql`UTC_TIMESTAMP()`,
-          updated_at: sql`UTC_TIMESTAMP()`
+          created_by: source?.createdBy ?? actor,
+          created_at: source ? utcDateTime(source.createdAt) : sql`UTC_TIMESTAMP()`,
+          updated_at: source ? utcDateTime(source.updatedAt) : sql`UTC_TIMESTAMP()`
         })
         .executeTakeFirstOrThrow();
       const enquiryId = Number(result.insertId);
@@ -577,7 +595,8 @@ export class EnquiryRepository {
     body: string,
     bodyFormat: "plain" | "html",
     actor: string,
-    requestId?: string
+    requestId?: string,
+    sourceCreatedAt?: string
   ) {
     const result = await this.database.transaction().execute(async (transaction) => {
       await transaction
@@ -616,8 +635,8 @@ export class EnquiryRepository {
           body_format: bodyFormat,
           status: "active",
           created_by: actor,
-          created_at: sql`UTC_TIMESTAMP()`,
-          updated_at: sql`UTC_TIMESTAMP()`
+          created_at: sourceCreatedAt ? utcDateTime(sourceCreatedAt) : sql`UTC_TIMESTAMP()`,
+          updated_at: sourceCreatedAt ? utcDateTime(sourceCreatedAt) : sql`UTC_TIMESTAMP()`
         })
         .executeTakeFirstOrThrow();
       await insertEnquiryActivity(
@@ -681,6 +700,23 @@ export class EnquiryRepository {
       .where("id", "=", 1)
       .execute();
     return sequence.next_no;
+  }
+
+  private async reserveImportedNumber(database: Kysely<EnquiryDatabase>, enquiryNo: number) {
+    if (!Number.isSafeInteger(enquiryNo) || enquiryNo < 1)
+      throw AppError.validation("The source enquiry number is invalid.");
+    const sequence = await database
+      .selectFrom("crm_enquiry_number_sequence")
+      .select("next_no")
+      .where("id", "=", 1)
+      .forUpdate()
+      .executeTakeFirstOrThrow();
+    await database
+      .updateTable("crm_enquiry_number_sequence")
+      .set({ next_no: Math.max(sequence.next_no, enquiryNo + 1) })
+      .where("id", "=", 1)
+      .execute();
+    return enquiryNo;
   }
 
   private detailQuery() {

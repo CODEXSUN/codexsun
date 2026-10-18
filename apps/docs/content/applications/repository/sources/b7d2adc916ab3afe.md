@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/SKILLS.md`
 
-Source SHA-256 (LF line endings): `019e61ca4513f20c47c9eef0a781f909057186c3a8f73309cc8378b7fb310a8a`
+Source SHA-256 (LF line endings): `01e18470435b809a5ad98c3024a2f085d499453f22a9c974cdd23dc5dd1d45ff`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -21,12 +21,12 @@ This file is component guidance. It does not install a global Codex skill or gra
 
 Local enquiries, contact activity, follow-up tasks, SOPs, duty assignments, and duty reporting across web and mobile.
 
-Core owns contact identity. Local CRM records remain authoritative. Only the approved SOP and Duty outbox transfers those records to Frappe. Preserve assignment scope and activity history.
+Core owns contact identity. Local CRM records remain authoritative after explicit imports from the tenant's verified Frappe connection. Imported enquiries retain source serials, timestamps, mapped user identity, comments, and source links. Do not add automatic enquiry export. Only the approved SOP and Duty outbox transfers CRM-owned records to Frappe. Preserve assignment scope and activity history.
 
 ## Implementation rules
 
 - For custom Frappe contracts, refer to [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git).
-- Read [the Frappe comparison](FRAPPE-COMPARISON.md) before changing CRM transfer contracts. It does not expand approved sync scope.
+- Read [the Frappe comparison](FRAPPE-COMPARISON.md) before changing CRM transfer contracts. Frappe-to-CRM enquiry import is explicit and one-way; this does not approve outbound enquiry sync.
 
 - Inspect the affected source and public contracts before editing.
 - Keep concrete business behavior in its owning leaf or package.

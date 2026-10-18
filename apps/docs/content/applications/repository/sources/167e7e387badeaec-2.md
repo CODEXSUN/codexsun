@@ -2,14 +2,17 @@
 
 Repository source: `apps/crm/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `76ed42c1dda2df10c6636f94cc86dd2d3c68270b327ce1922f56017567a11b30`
+Source SHA-256 (LF line endings): `3e3f7ebc875436204ea24a1f9187ad3f47d9f491135ce0167f8daf8fdbc6062f`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
 Historical notes and unchecked plans retain their original status.
 
 ```markdown
-ispatch, start, pause, completion, cancellation, and
+irst. Add optimization only after schedule data proves
+  accurate.
+- Keep resource booking state separate from work-order state.
+- Record schedule changes, dispatch, start, pause, completion, cancellation, and
   no-show reasons.
 - Support partial completion, multiple visits, multiple assets, and split work.
 - Store material demand separately from inventory reservation and issue.
