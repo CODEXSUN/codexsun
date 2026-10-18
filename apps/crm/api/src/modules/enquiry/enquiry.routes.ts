@@ -1,3 +1,4 @@
+import { enquiryWhatsAppModule } from "../enquiry-whatsapp/index.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { Kysely } from "kysely";
 import { z } from "zod";
@@ -174,6 +175,7 @@ const commentSchema = z.object({
   createdAt: z.string()
 });
 const commentInputSchema = z.object({
+  requestId: z.string().min(8).max(80).optional(),
   body: z.string().trim().min(1).max(10000),
   bodyFormat: z.enum(["plain", "html"]).default("plain"),
   parentId: z.number().int().positive().nullable().default(null)
@@ -516,11 +518,36 @@ export function registerEnquiryRoutes(
           body.body,
           body.parentId === null ? null : localId(body.parentId),
           current.scope.actorEmail,
-          body.bodyFormat
+          body.bodyFormat,
+          body.requestId
         );
         return localViewComment(saved);
       }
     }
+  });
+  enquiryWhatsAppModule.register(app, async (request) => {
+    const current = await service(request);
+    return {
+      database: current.scope.database as unknown as import("kysely").Kysely<
+        import("../enquiry-whatsapp/index.js").WhatsAppDatabase
+      >,
+      actorEmail: current.scope.actorEmail,
+      recordHandoff: async (transaction, enquiryId, message) => {
+        await current.scope.workEvent?.(
+          transaction as never,
+          enquiryId,
+          "whatsapp-handoff",
+          message
+        );
+      },
+      verifyEnquiry: async (id) => {
+        const record = await current.enquiry.get(id);
+        const contact = record.contactId
+          ? await current.scope.relations.contact(record.contactId)
+          : null;
+        return { mobile: contact?.primaryPhone || record.capturedPhone };
+      }
+    };
   });
   registerEnquiryWorkRoutes(app, async (request) => {
     const current = await service(request);

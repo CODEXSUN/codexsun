@@ -1,3 +1,4 @@
+import { CafeOverview } from "./CafeOverview";
 import { OrderKitchenWorkspace } from "../modules/order/order.kitchen-workspace";
 import { useEffect, useState, type ReactNode } from "react";
 import { Coffee, LayoutGrid, UtensilsCrossed, ShoppingBag, CalendarDays } from "lucide-react";
@@ -28,16 +29,22 @@ export function WebApp({
   appearanceSettings
 }: {
   appearanceSettings?: ReactNode;
-  workspace?: SalePage | "menu" | "settings" | "kitchen";
+  workspace?: SalePage | "menu" | "settings" | "kitchen" | "overview";
   onWorkspaceChange?: (page: SalePage) => void;
 } = {}) {
   const [openBillUuid, setOpenBillUuid] = useState<string | undefined>();
   const [context, setContext] = useState<Context | null>(null);
   const [error, setError] = useState("");
-  const [page, setPage] = useState<SalePage | "menu" | "settings" | "kitchen">("pos");
+  const [page, setPage] = useState<SalePage | "menu" | "settings" | "kitchen" | "overview">("pos");
   const current = workspace ?? page;
   useEffect(() => {
-    if (current === "menu" || current === "settings" || current === "kitchen") return;
+    if (
+      current === "menu" ||
+      current === "settings" ||
+      current === "kitchen" ||
+      current === "overview"
+    )
+      return;
     const switchPage = (event: KeyboardEvent) => {
       if (event.key !== "F1" || event.repeat || document.querySelector('[role="dialog"]')) return;
       event.preventDefault();
@@ -87,12 +94,22 @@ export function WebApp({
     <>
       <div
         className={
-          current === "menu" || current === "settings" || current === "kitchen" ? "hidden" : ""
+          current === "menu" ||
+          current === "settings" ||
+          current === "kitchen" ||
+          current === "overview"
+            ? "hidden"
+            : ""
         }
       >
         <PosWorkspace
           openBillUuid={openBillUuid}
-          active={current !== "menu" && current !== "settings" && current !== "kitchen"}
+          active={
+            current !== "menu" &&
+            current !== "settings" &&
+            current !== "kitchen" &&
+            current !== "overview"
+          }
           serviceMode={
             current === "booking"
               ? "BOOKING"
@@ -109,6 +126,14 @@ export function WebApp({
           restaurantName={context.tenantName}
         />
       </div>
+      {current === "overview" && (
+        <CafeOverview
+          onOpen={(page) => {
+            if (onWorkspaceChange) onWorkspaceChange(page);
+            else setPage(page);
+          }}
+        />
+      )}
       {current === "kitchen" && (
         <OrderKitchenWorkspace
           canKitchen={context.canKitchen}

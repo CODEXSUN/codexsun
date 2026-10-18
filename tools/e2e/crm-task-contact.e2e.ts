@@ -175,6 +175,45 @@ test(
     });
     assert.equal(selected.statusCode, 200, selected.body);
     const id = selected.json().data.id;
+    const firstComment = await app.inject({
+      method: "POST",
+      url: `/crm/tasks/${id}/comments`,
+      payload: { body: "Collect the bill" }
+    });
+    assert.equal(firstComment.statusCode, 200, firstComment.body);
+    assert.equal(firstComment.json().data.parentId, null);
+    const reply = await app.inject({
+      method: "POST",
+      url: `/crm/tasks/${id}/comments`,
+      payload: { body: "I will collect it", parentId: firstComment.json().data.id }
+    });
+    assert.equal(reply.statusCode, 200, reply.body);
+    assert.equal(reply.json().data.parentId, firstComment.json().data.id);
+    const nestedReply = await app.inject({
+      method: "POST",
+      url: `/crm/tasks/${id}/comments`,
+      payload: { body: "Nested replies are not supported", parentId: reply.json().data.id }
+    });
+    assert.equal(nestedReply.statusCode, 400, nestedReply.body);
+    const taskComments = await app.inject({ method: "GET", url: `/crm/tasks/${id}/comments` });
+    assert.equal(taskComments.statusCode, 200, taskComments.body);
+    assert.deepEqual(
+      taskComments.json().data.map((item: { parentId: number | null }) => item.parentId),
+      [null, firstComment.json().data.id]
+    );
+    const customerTasks = await app.inject({
+      method: "GET",
+      url: `/crm/tasks?contactId=${customer.id}&filter=all`
+    });
+    assert.equal(customerTasks.statusCode, 200, customerTasks.body);
+    assert.equal(customerTasks.json().data.total, 1);
+    assert.equal(customerTasks.json().data.items[0].id, id);
+    const unrelatedTasks = await app.inject({
+      method: "GET",
+      url: "/crm/tasks?contactId=99999999&filter=all"
+    });
+    assert.equal(unrelatedTasks.json().data.total, 0);
+
     const load = async () =>
       (await app.inject({ method: "GET", url: `/crm/tasks/${id}` })).json().data;
     assert.equal((await load()).contactName, "Bill recipient");

@@ -41,6 +41,27 @@ const statusIconColors: Record<string, string> = {
   unqualified: "text-slate-600"
 };
 
+const statusRings: Record<string, string> = {
+  new: "ring-blue-600/40",
+  open: "ring-sky-500/40",
+  won: "ring-emerald-500/40",
+  lost: "ring-red-600/40",
+  "hold-for-approval": "ring-amber-500/40",
+  "long-hold": "ring-violet-600/40",
+  "hold-for-spares": "ring-orange-500/40",
+  closed: "ring-slate-600/40",
+  "hold-for-job-out": "ring-amber-500/40",
+  escalation: "ring-rose-600/40",
+  reopen: "ring-blue-600/40",
+  contacted: "ring-sky-500/40",
+  qualified: "ring-emerald-500/40",
+  unqualified: "ring-slate-600/40"
+};
+
+export function statusRing(code: string) {
+  return statusRings[code] ?? "ring-slate-600/40";
+}
+
 export function prioritySwatch(code: string) {
   return prioritySwatches[code] ?? "bg-slate-500";
 }

@@ -17,8 +17,8 @@ export async function recordWorkEvent(
     transaction,
     {
       ...target,
-      action: action === "assigned" ? "assigned" : "report",
-      body: `${action}: ${body}`,
+      action: action === "comment" ? "comment-added" : action,
+      body,
       requestId: randomBytes(16).toString("hex"),
       latitude: null,
       longitude: null,

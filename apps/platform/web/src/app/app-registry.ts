@@ -91,6 +91,7 @@ export type PlatformAppRootPage =
   | "logicx-erp.overview"
   | "tconnect.overview"
   | "ecommerce.overview"
+  | "qcafe.dashboard"
   | "qcafe.overview"
   | "qcafe.menu"
   | "qcafe.settings"
@@ -655,6 +656,12 @@ export function appMenuFor(
       title: "QCafe",
       isActive: activePage.startsWith("qcafe."),
       items: [
+        {
+          icon: CoffeeIcon,
+          title: "Overview",
+          isActive: activePage === "qcafe.dashboard",
+          onSelect: () => onSelect("qcafe.dashboard")
+        },
         {
           icon: CoffeeIcon,
           title: "POS",
@@ -1260,6 +1267,12 @@ export function appMenuItemsFor(
     ];
   if (appId === "qcafe") {
     return [
+      {
+        icon: CoffeeIcon,
+        title: "Overview",
+        isActive: activePage === "qcafe.dashboard",
+        onSelect: () => onSelect("qcafe.dashboard")
+      },
       {
         icon: CoffeeIcon,
         title: "POS",

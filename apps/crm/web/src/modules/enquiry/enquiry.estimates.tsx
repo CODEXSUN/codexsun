@@ -39,6 +39,7 @@ export function EnquiryEstimates({
       setEditing(undefined);
       await Promise.all([
         client.invalidateQueries({ queryKey: enquiryEstimatesQueryKey(enquiryId) }),
+        client.invalidateQueries({ queryKey: ["crm", "work-reports", Number(enquiryId), null] }),
         client.invalidateQueries({ queryKey: enquiryActivityQueryKey(enquiryId) })
       ]);
       toast.success("Estimate saved");

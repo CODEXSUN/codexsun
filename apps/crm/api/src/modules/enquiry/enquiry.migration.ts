@@ -536,6 +536,23 @@ export const enquiryMigrationBatch: MigrationBatch<EnquiryDatabase> = {
       name: "crm.enquiry.import-identity-v13",
       up: indexImportedEnquiries,
       version: 13
+    },
+    {
+      name: "crm.enquiry.comment-retries-v14",
+      checksum: "crm.enquiry.comment-retries-v14:v1",
+      version: 14,
+      description: "Prevent duplicate enquiry comments on retried requests.",
+      up: async (db) => {
+        const columns = await db.introspection.getTables();
+        if (
+          !columns
+            .find((t) => t.name === "crm_enquiry_comments")
+            ?.columns.some((c) => c.name === "request_id")
+        )
+          await sql`ALTER TABLE crm_enquiry_comments ADD COLUMN request_id VARCHAR(80) NULL, ADD UNIQUE KEY crm_enquiry_comment_retry (created_by,request_id)`.execute(
+            db
+          );
+      }
     }
   ]
 };

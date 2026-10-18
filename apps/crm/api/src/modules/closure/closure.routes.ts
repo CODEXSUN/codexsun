@@ -101,14 +101,6 @@ export function registerClosureRoutes(
           body.note || "Closure requested and is waiting for verification.",
           scope.actorEmail
         );
-        await writeComment(
-          trx,
-          enquiry.id,
-          body.note
-            ? `Closure requested: ${body.note}`
-            : "Closure requested and is waiting for verification.",
-          scope.actorEmail
-        );
         await scope.workEvent?.(
           trx,
           enquiry.id,
@@ -219,6 +211,21 @@ export function registerClosureRoutes(
               "The enquiry has already moved to a terminal status. Reject this stale request instead."
             );
           }
+          const runningJob = await trx
+            .selectFrom("crm_enquiry_jobs")
+            .select("id")
+            .where("enquiry_id", "=", current.enquiry_id)
+            .where("status", "=", "running")
+            .executeTakeFirst();
+          if (runningJob)
+            throw AppError.conflict("Stop all running jobs before approving closure.");
+          const checkpoint = await sql<{ id: number }>`SELECT w.id FROM crm_work_reports w
+            WHERE w.enquiry_id=${current.enquiry_id} AND w.action='check-in'
+            AND NOT EXISTS (SELECT 1 FROM crm_work_reports later WHERE later.enquiry_id=w.enquiry_id
+              AND later.created_by=w.created_by AND later.action IN ('check-in','check-out') AND later.id>w.id)
+            LIMIT 1`.execute(trx);
+          if (checkpoint.rows.length)
+            throw AppError.conflict("Check out all checked-in users before approving closure.");
           const closed = await trx
             .selectFrom("crm_enquiry_statuses")
             .select("id")
@@ -255,18 +262,6 @@ export function registerClosureRoutes(
             (body.decision === "approve" ? "Closure approved." : "Closure request rejected."),
           scope.actorEmail
         );
-        await writeComment(
-          trx,
-          current.enquiry_id,
-          body.decision === "approve"
-            ? body.note
-              ? `Closure verified and enquiry closed: ${body.note}`
-              : "Closure verified. Enquiry closed."
-            : body.note
-              ? `Closure request rejected: ${body.note}`
-              : "Closure request rejected.",
-          scope.actorEmail
-        );
         await scope.workEvent?.(
           trx,
           current.enquiry_id,
@@ -296,27 +291,6 @@ async function writeActivity(
       enquiry_id: enquiryId,
       action,
       details,
-      status: "active",
-      created_by: actor,
-      created_at: sql`UTC_TIMESTAMP()`,
-      updated_at: sql`UTC_TIMESTAMP()`
-    })
-    .execute();
-}
-
-async function writeComment(
-  database: Kysely<ClosureDatabase>,
-  enquiryId: number,
-  body: string,
-  actor: string
-) {
-  await database
-    .insertInto("crm_enquiry_comments")
-    .values({
-      enquiry_id: enquiryId,
-      parent_id: null,
-      body,
-      body_format: "plain",
       status: "active",
       created_by: actor,
       created_at: sql`UTC_TIMESTAMP()`,

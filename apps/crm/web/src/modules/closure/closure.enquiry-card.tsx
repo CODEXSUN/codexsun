@@ -51,7 +51,7 @@ export function EnquiryClosureCard({
   const terminal = ["closed", "won", "lost"].includes(enquiryStatus);
 
   return (
-    <WorkspaceShowCard title="Closure approvals">
+    <WorkspaceShowCard>
       <div className="space-y-3 p-4">
         {request.isLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -69,15 +69,11 @@ export function EnquiryClosureCard({
               Retry
             </Button>
           </div>
-        ) : latest ? (
-          <ClosureRequestSummary request={latest} />
         ) : terminal ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <CheckCircle2 className="size-4 text-emerald-600" /> This enquiry is {enquiryStatus}.
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">No closure request has been made.</p>
-        )}
+        ) : null}
 
         {latest?.status === "pending" && request.data?.canReview ? (
           <div className="space-y-3 border-t border-border/60 pt-3">
@@ -135,36 +131,54 @@ export function EnquiryClosureCard({
             </Button>
           </div>
         ) : null}
+        {latest ? <ClosureRequestTable request={latest} /> : null}
       </div>
     </WorkspaceShowCard>
   );
 }
 
-function ClosureRequestSummary({ request }: { request: ClosureRequest }) {
-  const pending = request.status === "pending";
+function ClosureRequestTable({ request }: { request: ClosureRequest }) {
   return (
-    <div className="space-y-2">
-      {pending ? (
-        <ClosurePendingBadge />
-      ) : (
-        <WorkspaceStatusBadge
-          label={request.status}
-          tone={request.status === "approved" ? "success" : "neutral"}
-        />
-      )}
-      <p className="text-sm">
-        Requested by <span className="font-medium">{request.requester}</span>
-      </p>
-      <p className="text-xs text-muted-foreground">{formatDateTime(request.requestedAt)}</p>
-      {request.reviewedBy ? (
-        <p className="text-sm text-muted-foreground">
-          Reviewed by {request.reviewedBy}
-          {request.reviewedAt ? ` · ${formatDateTime(request.reviewedAt)}` : ""}
-        </p>
-      ) : null}
-      {request.reviewNote ? (
-        <p className="rounded-md bg-muted/40 p-2 text-sm">Review note: {request.reviewNote}</p>
-      ) : null}
+    <div className="overflow-x-auto rounded-md border border-border/70">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+          <tr>
+            <th className="w-16 px-3 py-2">#</th>
+            <th className="px-3 py-2">Status</th>
+            <th className="px-3 py-2">Requested by</th>
+            <th className="px-3 py-2">Requested</th>
+            <th className="px-3 py-2">Reviewed by</th>
+            <th className="px-3 py-2">Review note</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-t border-border/70 align-top">
+            <td className="px-3 py-2 text-muted-foreground">#{request.id}</td>
+            <td className="px-3 py-2">
+              {request.status === "pending" ? (
+                <ClosurePendingBadge />
+              ) : (
+                <WorkspaceStatusBadge
+                  label={request.status}
+                  tone={request.status === "approved" ? "success" : "neutral"}
+                />
+              )}
+            </td>
+            <td className="px-3 py-2">{request.requester}</td>
+            <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+              {formatDateTime(request.requestedAt)}
+            </td>
+            <td className="px-3 py-2 text-muted-foreground">
+              {request.reviewedBy
+                ? `${request.reviewedBy}${request.reviewedAt ? ` · ${formatDateTime(request.reviewedAt)}` : ""}`
+                : "—"}
+            </td>
+            <td className="min-w-48 px-3 py-2 text-muted-foreground">
+              {request.reviewNote || "—"}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 }

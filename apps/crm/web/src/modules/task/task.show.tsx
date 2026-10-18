@@ -1,21 +1,22 @@
 import { ClosurePendingBadge } from "../closure";
 import { WorkReportWorkspace } from "../work-report/index";
+import { TaskComments } from "./task.comments";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, BellRing, MessageSquare, Settings2, Timer } from "lucide-react";
+import { Activity, BellRing, LogIn, MessageSquare, Settings2, Timer } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@codexsun/ui/components/button";
-import { Textarea } from "@codexsun/ui/components/textarea";
 import { WorkspaceAnimatedTabs } from "@codexsun/ui/workspace/animated-tabs";
-import { WorkspaceLookup } from "@codexsun/ui/workspace/lookup";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
-import { CrmStatusBadge } from "../../crm-colors";
+import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { formatDateTime } from "@codexsun/ui/workspace/utils";
+import { CrmColorLabel, CrmStatusBadge, statusRing } from "../../crm-colors";
+import { useWorkReports } from "../work-report/work-report.hooks";
+import { TaskPropertiesPanel } from "./task.properties";
+import { TaskClosurePanel, TaskJobsPanel } from "./task.tab-panels";
 import { useTaskOptions, taskQueryKey } from "./task.hooks";
 import {
   addTaskComment,
   getTask,
-  getTaskActivity,
   getTaskClosures,
   getTaskComments,
   getTaskJobs,
@@ -27,7 +28,7 @@ import {
 } from "./task.services";
 import type { TaskRecord } from "./task.types";
 
-type Tab = "actions" | "comments" | "jobs" | "activity" | "details" | "closure";
+type Tab = "actions" | "comments" | "checkpoints" | "jobs" | "properties" | "closure";
 
 export function TaskShow({
   id,
@@ -39,8 +40,7 @@ export function TaskShow({
   onEditActionChange?: (action: { run: () => void } | null) => void;
 }) {
   const client = useQueryClient();
-  const [tab, setTab] = useState<Tab>("comments");
-  const [comment, setComment] = useState("");
+  const [tab, setTab] = useState<Tab>("actions");
   const [reason, setReason] = useState("");
   const task = useQuery({
     queryKey: [...taskQueryKey, "detail", id],
@@ -50,6 +50,9 @@ export function TaskShow({
   });
   const options = useTaskOptions();
   const key = Number(id);
+  const workTarget = { enquiryId: null, taskId: key };
+  const actions = useWorkReports(workTarget);
+  const checkpoints = useWorkReports(workTarget, 1, true);
   const comments = useQuery({
     queryKey: ["crm", "tasks", key, "comments"],
     queryFn: () => getTaskComments(key),
@@ -68,14 +71,9 @@ export function TaskShow({
     refetchInterval: 10000,
     enabled: Boolean(task.data)
   });
-  const activity = useQuery({
-    queryKey: ["crm", "tasks", key, "activity"],
-    queryFn: () => getTaskActivity(key),
-    refetchInterval: 10000,
-    enabled: Boolean(task.data)
-  });
   const refresh = async () => {
     await Promise.all([
+      client.invalidateQueries({ queryKey: ["crm", "work-reports", null, key] }),
       client.invalidateQueries({ queryKey: taskQueryKey }),
       client.invalidateQueries({ queryKey: [...taskQueryKey, "detail", id] }),
       client.invalidateQueries({ queryKey: ["crm", "tasks", key, "comments"] }),
@@ -84,15 +82,6 @@ export function TaskShow({
       client.invalidateQueries({ queryKey: ["crm", "tasks", key, "activity"] })
     ]);
   };
-  const commentMutation = useMutation({
-    mutationFn: () => addTaskComment(key, comment),
-    onSuccess: async () => {
-      setComment("");
-      await refresh();
-      toast.success("Comment added");
-    },
-    onError: (error) => toast.error("Unable to add comment", { description: error.message })
-  });
   const jobMutation = useMutation({
     mutationFn: async (running: boolean) => {
       if (running) {
@@ -159,51 +148,79 @@ export function TaskShow({
     );
   const canRespond = Boolean(options.data?.capabilities.respond);
   const tabs = [
-    { value: "actions", label: "Actions", content: <WorkReportWorkspace taskId={key} /> },
+    {
+      value: "actions",
+      label: (
+        <Label
+          icon={<Activity className="size-4" />}
+          text="Actions"
+          count={actions.data?.total ?? 0}
+        />
+      ),
+      content: (
+        <WorkReportWorkspace
+          taskId={key}
+          active={tab === "actions"}
+          onComment={
+            canRespond
+              ? async (body) => {
+                  await addTaskComment(
+                    key,
+                    new DOMParser()
+                      .parseFromString(body.replace(/<\/(p|li|div)>/giu, "</$1>\n"), "text/html")
+                      .body.textContent?.trim() ?? ""
+                  );
+                  await refresh();
+                }
+              : undefined
+          }
+          onJob={
+            options.data?.capabilities.work
+              ? () => jobMutation.mutate(Boolean(activeJob))
+              : undefined
+          }
+          onRequestClosure={canRespond ? () => setTab("closure") : undefined}
+          jobRunning={Boolean(activeJob)}
+          jobPending={jobMutation.isPending || jobs.isLoading}
+        />
+      )
+    },
     {
       value: "comments",
       label: (
         <Label
           icon={<MessageSquare className="size-4" />}
           text="Comments"
-          count={comments.data?.length ?? 0}
+          count={comments.data?.filter((item) => item.parentId === null).length ?? 0}
         />
       ),
       content: (
-        <section className="space-y-3 rounded-md border bg-background p-4 shadow-sm">
-          {comments.data?.map((item) => (
-            <div key={item.uuid} className="border-b py-2 text-sm">
-              <span className="font-medium">{item.createdBy}</span>
-              <span className="text-muted-foreground"> · {formatDateTime(item.createdAt)}</span>
-              <p className="mt-1 whitespace-pre-wrap">{item.body}</p>
-            </div>
-          ))}
-          {comments.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading comments…</p>
-          ) : null}
-          {comments.error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {comments.error.message}
-            </p>
-          ) : null}
-          {canRespond ? (
-            <>
-              <Textarea
-                value={comment}
-                onChange={(event) => setComment(event.target.value)}
-                placeholder="Write a response"
-                rows={3}
-              />
-              <Button
-                disabled={!comment.trim() || commentMutation.isPending}
-                onClick={() => commentMutation.mutate()}
-              >
-                Add comment
-              </Button>
-            </>
-          ) : null}
-        </section>
+        <TaskComments
+          comments={comments.data ?? []}
+          loading={comments.isLoading}
+          error={comments.error?.message}
+          canRespond={canRespond}
+          onAdd={async (body, parentId) => {
+            const text =
+              new DOMParser()
+                .parseFromString(body.replace(/<\/(p|li|div)>/giu, "</$1>\n"), "text/html")
+                .body.textContent?.trim() ?? "";
+            await addTaskComment(key, text, parentId);
+            await refresh();
+          }}
+        />
       )
+    },
+    {
+      value: "checkpoints",
+      label: (
+        <Label
+          icon={<LogIn className="size-4" />}
+          text="Check in / out"
+          count={checkpoints.data?.total ?? 0}
+        />
+      ),
+      content: <WorkReportWorkspace taskId={key} actionFilter="checkpoints" />
     },
     {
       value: "jobs",
@@ -211,89 +228,29 @@ export function TaskShow({
         <Label icon={<Timer className="size-4" />} text="Jobs" count={jobs.data?.length ?? 0} />
       ),
       content: (
-        <section className="space-y-3 rounded-md border bg-background p-4 shadow-sm">
-          {jobs.data?.map((item) => (
-            <div key={item.uuid} className="border-b py-2 text-sm">
-              {item.startedBy} · {formatDateTime(item.startedAt)}{" "}
-              {item.stoppedAt ? `– ${formatDateTime(item.stoppedAt)}` : "· Running"}
-            </div>
-          ))}
-          {options.data?.capabilities.work ? (
-            <Button
-              variant="outline"
-              disabled={jobMutation.isPending || Boolean(activeJob && !activeJob.canStop)}
-              onClick={() => jobMutation.mutate(Boolean(activeJob))}
-            >
-              {activeJob
-                ? activeJob.canStop
-                  ? "Stop job"
-                  : `Running by ${activeJob.startedBy}`
-                : "Start job"}
-            </Button>
-          ) : null}
-        </section>
-      )
-    },
-    {
-      value: "activity",
-      label: (
-        <Label
-          icon={<Activity className="size-4" />}
-          text="Activity"
-          count={activity.data?.length ?? 0}
+        <TaskJobsPanel
+          jobs={jobs.data ?? []}
+          loading={jobs.isLoading}
+          canWork={Boolean(options.data?.capabilities.work)}
+          pending={jobMutation.isPending || Boolean(activeJob && !activeJob.canStop)}
+          running={Boolean(activeJob)}
+          onToggle={() => jobMutation.mutate(Boolean(activeJob))}
         />
-      ),
-      content: (
-        <section className="divide-y rounded-md border bg-background p-4 shadow-sm">
-          {activity.data?.map((item) => (
-            <div key={item.uuid} className="py-3 text-sm">
-              <span className="font-medium">{item.actor}</span>
-              <span className="text-muted-foreground">
-                {" "}
-                · {item.description} · {formatDateTime(item.createdAt)}
-              </span>
-            </div>
-          ))}
-          {activity.isLoading ? (
-            <p className="py-3 text-sm text-muted-foreground">Loading activity…</p>
-          ) : null}
-        </section>
       )
     },
     {
-      value: "details",
-      label: <Label icon={<Settings2 className="size-4" />} text="Details" />,
+      value: "properties",
+      label: <Label icon={<Settings2 className="size-4" />} text="Properties" />,
       content: (
-        <section className="grid gap-4 rounded-md border bg-background p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-3">
-          <Property
-            label="List in"
-            value={row.listInId}
-            options={options.data?.lists ?? []}
-            onChange={(listInId) => propertyMutation.mutate({ listInId })}
-          />
-          <Property
-            label="Priority"
-            value={row.priorityId}
-            options={options.data?.priorities ?? []}
-            onChange={(priorityId) => {
-              if (priorityId) propertyMutation.mutate({ priorityId });
-            }}
-          />
-          <Property
-            label="Status"
-            value={row.statusId}
-            options={options.data?.statuses.filter((item) => item.code !== "closed") ?? []}
-            onChange={(statusId) => {
-              if (statusId) propertyMutation.mutate({ statusId });
-            }}
-          />
-          <Info
-            label="Created by"
-            value={`${row.creatorName} · ${formatDateTime(row.createdAt)}`}
-          />
-          <Info label="Assigned to" value={row.assignedTo ?? "Unassigned"} />
-          <Info label="Due date" value={formatDate(row.dueDate)} />
-        </section>
+        <TaskPropertiesPanel
+          record={row}
+          options={options.data}
+          canEdit={Boolean(options.data?.capabilities.respond)}
+          loading={propertyMutation.isPending}
+          onChange={async (patch) => {
+            await propertyMutation.mutateAsync(patch);
+          }}
+        />
       )
     },
     {
@@ -301,103 +258,108 @@ export function TaskShow({
       label: (
         <Label
           icon={<BellRing className="size-4" />}
-          text="Closure requests"
+          text="Closure approvals"
           count={closures.data?.length ?? 0}
         />
       ),
       content: (
-        <section className="space-y-3 rounded-md border bg-background p-4 shadow-sm">
-          {closures.data?.map((item) => (
-            <div key={item.uuid} className="border-b py-3 text-sm">
-              <p>{item.reason}</p>
-              <p className="text-muted-foreground">
-                {item.status === "pending" ? <ClosurePendingBadge /> : item.status} ·{" "}
-                {item.requestedBy} · {formatDateTime(item.createdAt)}
-              </p>
-              {item.status === "pending" && options.data?.capabilities.reviewClosure ? (
-                <div className="mt-2 flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      reviewMutation.mutate({ requestId: item.id, decision: "approved" })
-                    }
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      reviewMutation.mutate({ requestId: item.id, decision: "rejected" })
-                    }
-                  >
-                    Reject
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          ))}
-          {closures.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading closure requests…</p>
-          ) : null}
-          {canRespond ? (
-            <>
-              <Textarea
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                placeholder="Reason for requesting closure"
-                rows={2}
-              />
-              <Button
-                variant="outline"
-                disabled={!reason.trim() || closureMutation.isPending || row.closurePending}
-                onClick={() => closureMutation.mutate()}
-              >
-                Request closure
-              </Button>
-            </>
-          ) : null}
-        </section>
+        <TaskClosurePanel
+          requests={closures.data ?? []}
+          loading={closures.isLoading}
+          canRespond={canRespond}
+          canReview={Boolean(options.data?.capabilities.reviewClosure)}
+          reason={reason}
+          pending={closureMutation.isPending || reviewMutation.isPending}
+          requestBlocked={row.closurePending}
+          onReasonChange={setReason}
+          onRequest={() => closureMutation.mutate()}
+          onReview={(requestId, decision) => reviewMutation.mutate({ requestId, decision })}
+        />
       )
     }
   ];
   return (
     <WorkspacePage title="" className="!pt-0 lg:!pt-0" technicalName="page.crm.tasks.show">
-      <div className="rounded-md border bg-background p-4 shadow-sm">
+      <section
+        className={`rounded-md border border-border/70 bg-card px-4 py-4 shadow-sm ring-2 ${statusRing(row.status)}`}
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-xs text-muted-foreground">
-              Task #{row.id} · {row.listIn ?? "No list"}
-            </p>
-            <h1 className="mt-1 text-xl font-semibold">{row.title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Created by {row.creatorName} · Assigned to {row.assignedTo ?? "Unassigned"} ·{" "}
-              {row.statusName} · {row.priorityName}
-            </p>
+          <h1 className="min-w-0 flex-1 break-words text-lg font-semibold">
+            #{row.id} - {row.title}
+          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <WorkspaceStatusBadge
+              label={`List in · ${row.listIn || "Unlisted"}`}
+              tone="info"
+              showIcon={false}
+            />
+            <CrmStatusBadge code={row.status} label={row.statusName} />
+            <span className="inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-50 px-2 text-[11px] font-medium text-slate-700">
+              <CrmColorLabel kind="priority" code={row.priority} label={row.priorityName} />
+            </span>
+            {row.closurePending ? <ClosurePendingBadge /> : null}
           </div>
-          <CrmStatusBadge code={row.status} label={row.statusName} />
-          {row.closurePending ? <ClosurePendingBadge /> : null}
         </div>
-        {row.contactId ? (
-          <p className="mt-3 text-sm">
-            Contact:{" "}
-            <a
-              className="font-medium text-primary hover:underline"
-              href={`/app/crm/contacts/${row.contactId}/show`}
-            >
-              {row.contactName ?? "Open contact"}
-            </a>
-            {row.contactPhone ? ` - ${row.contactPhone}` : ""}
-          </p>
-        ) : null}
-        {row.description ? (
-          <p className="mt-4 whitespace-pre-wrap text-sm">{row.description}</p>
-        ) : null}
-      </div>
+        <div className="mt-4 overflow-hidden rounded-md border border-border/60">
+          <table aria-label="Task details" className="w-full table-fixed text-sm">
+            <colgroup>
+              <col className="w-[12%]" />
+              <col className="w-[38%]" />
+              <col className="w-[12%]" />
+              <col className="w-[38%]" />
+            </colgroup>
+            <tbody className="divide-y divide-border/60">
+              <tr>
+                <td colSpan={4} className="bg-muted/30 px-3 py-3 align-top">
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">Task details</p>
+                  <p className="whitespace-pre-wrap break-words text-base font-semibold [overflow-wrap:anywhere]">
+                    {row.description || row.title || "—"}
+                  </p>
+                  {row.description && row.title && row.description !== row.title ? (
+                    <p className="mt-1 break-words text-sm text-muted-foreground">{row.title}</p>
+                  ) : null}
+                </td>
+              </tr>
+              <SummaryDetail
+                leftLabel="Contact"
+                leftValue={
+                  row.contactId ? (
+                    <a
+                      className="font-medium text-primary hover:underline"
+                      href={`/app/crm/contacts/${row.contactId}/show`}
+                    >
+                      {row.contactName || "Open contact"}
+                    </a>
+                  ) : (
+                    "—"
+                  )
+                }
+                rightLabel="Mobile"
+                rightValue={row.contactPhone || "—"}
+              />
+              <SummaryDetail
+                leftLabel="Assigned to"
+                leftValue={row.assignedTo || "Unassigned"}
+                rightLabel="Due date"
+                rightValue={row.dueDate ? formatDate(row.dueDate) : "—"}
+              />
+              <SummaryDetail
+                leftLabel="Created by"
+                leftValue={row.creatorName || row.createdBy}
+                rightLabel="Created"
+                rightValue={<CreatedAge value={row.createdAt} />}
+              />
+            </tbody>
+          </table>
+        </div>
+      </section>
       <WorkspaceAnimatedTabs
         value={tab}
         onValueChange={(value) => setTab(value as Tab)}
+        keepMounted
         tabs={tabs}
+        listClassName="border-b-0 bg-card px-3 shadow-none"
+        contentClassName="mt-0 rounded-t-none bg-card pb-0 [&>*]:border-t-0 [&>*]:rounded-t-none"
       />
     </WorkspacePage>
   );
@@ -419,35 +381,62 @@ function formatDate(value: string | null) {
   const [year, month, day] = value.slice(0, 10).split("-");
   return `${day}-${month}-${year}`;
 }
-function Property({
-  label,
-  value,
-  options,
-  onChange
+function SummaryDetail({
+  leftLabel,
+  leftValue,
+  rightLabel,
+  rightValue
 }: {
-  label: string;
-  value: number | null;
-  options: Array<{ id: number; name: string }>;
-  onChange: (value: number | null) => void;
+  leftLabel: string;
+  leftValue: ReactNode;
+  rightLabel: string;
+  rightValue: ReactNode;
 }) {
   return (
-    <label className="grid gap-1 text-xs text-muted-foreground">
-      {label}
-      <WorkspaceLookup
-        allowTextValue={false}
-        clearable={label === "List in"}
-        options={options.map((item) => ({ label: item.name, value: String(item.id) }))}
-        value={value === null ? "" : String(value)}
-        onValueChange={(next) => onChange(next ? Number(next) : null)}
-      />
-    </label>
+    <tr className="grid grid-cols-[minmax(6rem,1fr)_minmax(0,2fr)] sm:table-row">
+      <th
+        scope="row"
+        className="border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground"
+      >
+        {leftLabel}
+      </th>
+      <td className="break-words bg-muted/30 px-3 py-2 align-top text-muted-foreground">
+        {leftValue}
+      </td>
+      <th
+        scope="row"
+        className="border-t border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground sm:border-t-0 sm:border-l"
+      >
+        {rightLabel}
+      </th>
+      <td className="break-words border-t border-border/60 bg-muted/30 px-3 py-2 align-top text-muted-foreground sm:border-t-0">
+        {rightValue}
+      </td>
+    </tr>
   );
 }
-function Info({ label, value }: { label: string; value: string }) {
+function CreatedAge({ value }: { value: string }) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return <>—</>;
+  const minutes = Math.floor(Math.max(0, now - timestamp) / 60_000);
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const text =
+    minutes < 1
+      ? "Just now"
+      : days
+        ? `${days} d ${hours} h ago`
+        : hours
+          ? `${hours} h ${minutes % 60} m ago`
+          : `${minutes} m ago`;
   return (
-    <div className="grid gap-1 text-xs">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-sm text-foreground">{value}</span>
-    </div>
+    <time dateTime={value} title={formatDateTime(value)}>
+      {text}
+    </time>
   );
 }

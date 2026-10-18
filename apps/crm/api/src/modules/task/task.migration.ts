@@ -232,6 +232,33 @@ export const taskMigrationBatch: MigrationBatch<TaskDatabase> = {
             db
           );
       }
+    },
+    {
+      name: "crm.task.comment-replies-v5",
+      description: "Support one-level replies to task comments.",
+      checksum: "crm.task.comment-replies-v5:v1",
+      version: 5,
+      up: async (db) => {
+        await ensureColumn(db, "crm_task_comments", "parent_id", "parent_id INT NULL");
+        const index = await sql<{
+          total: number;
+        }>`SELECT COUNT(*) AS total FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='crm_task_comments' AND INDEX_NAME='crm_task_comments_parent'`.execute(
+          db
+        );
+        if (!Number(index.rows[0]?.total ?? 0))
+          await sql`CREATE INDEX crm_task_comments_parent ON crm_task_comments (parent_id)`.execute(
+            db
+          );
+        const constraint = await sql<{
+          total: number;
+        }>`SELECT COUNT(*) AS total FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='crm_task_comments' AND CONSTRAINT_NAME='crm_task_comments_parent_fk'`.execute(
+          db
+        );
+        if (!Number(constraint.rows[0]?.total ?? 0))
+          await sql`ALTER TABLE crm_task_comments ADD CONSTRAINT crm_task_comments_parent_fk FOREIGN KEY (parent_id) REFERENCES crm_task_comments(id) ON DELETE RESTRICT`.execute(
+            db
+          );
+      }
     }
   ]
 };

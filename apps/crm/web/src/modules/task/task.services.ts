@@ -17,6 +17,7 @@ export const updateTaskProperties = (
     listInId?: number | null;
     priorityId?: number;
     statusId?: number;
+      assignedUserId?: number | null;
     dueDate?: string | null;
   }
 ) =>
@@ -58,10 +59,10 @@ export const updateTask = (id: number, payload: TaskPayload) =>
   crmRequest<TaskRecord>(`/crm/tasks/${id}`, { method: "PUT", body: JSON.stringify(payload) });
 export const getTaskComments = (id: number) =>
   crmRequest<TaskComment[]>(`/crm/tasks/${id}/comments`);
-export const addTaskComment = (id: number, body: string) =>
+export const addTaskComment = (id: number, body: string, parentId: number | null = null) =>
   crmRequest<TaskComment>(`/crm/tasks/${id}/comments`, {
     method: "POST",
-    body: JSON.stringify({ body })
+    body: JSON.stringify({ body, parentId })
   });
 export const getTaskJobs = (id: number) => crmRequest<TaskJob[]>(`/crm/tasks/${id}/jobs`);
 export const startTaskJob = (id: number) =>
@@ -80,3 +81,8 @@ export const reviewTaskClosure = (id: number, decision: "approved" | "rejected",
     method: "POST",
     body: JSON.stringify({ decision, note })
   });
+
+export const listCustomerTasks = (contactId: number, page: number) =>
+  crmRequest<{ items: TaskRecord[]; total: number }>(
+    `/crm/tasks?contactId=${contactId}&page=${page}&pageSize=10&filter=all`
+  );

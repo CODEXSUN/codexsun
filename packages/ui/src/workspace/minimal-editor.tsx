@@ -8,17 +8,20 @@ import { Bold, Italic, List, Redo2, Undo2 } from "lucide-react";
 import { cn } from "../lib/utils";
 
 export function WorkspaceMinimalEditor({
+  autoFocus = false,
   className,
   content,
   onChange,
   placeholder = "Add a description..."
 }: {
+  autoFocus?: boolean;
   className?: string;
   content?: string;
   onChange?: (html: string) => void;
   placeholder?: string;
 }) {
   const editor = useEditor({
+    autofocus: false,
     extensions: [StarterKit, Placeholder.configure({ placeholder })],
     content: content ?? "",
     editorProps: {
@@ -31,6 +34,14 @@ export function WorkspaceMinimalEditor({
     if (!editor || content === undefined || content === editor.getHTML()) return;
     editor.commands.setContent(content, { emitUpdate: false });
   }, [content, editor]);
+
+  React.useEffect(() => {
+    if (!editor || !autoFocus) return;
+    const frame = requestAnimationFrame(() =>
+      editor.commands.focus("end", { scrollIntoView: false })
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [autoFocus, editor]);
 
   if (!editor) return null;
 

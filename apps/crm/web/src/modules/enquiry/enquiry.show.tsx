@@ -1,10 +1,13 @@
+import { EnquiryWhatsAppWorkspace } from "../enquiry-whatsapp";
+import { useWhatsAppMessages } from "../enquiry-whatsapp/enquiry-whatsapp.hooks";
 import { WorkReportWorkspace } from "../work-report/index";
-import { useState, type ReactNode } from "react";
+import { useWorkReports } from "../work-report/work-report.hooks";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   BellRing,
-  MapPin,
+  LogIn,
   MessageSquare,
   ReceiptText,
   Settings2,
@@ -17,10 +20,9 @@ import { GlobalLoader } from "@codexsun/ui/components/global-loader";
 import { WorkspaceAnimatedTabs } from "@codexsun/ui/workspace/animated-tabs";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
-import { formatDateTime as formatWorkspaceDateTime } from "@codexsun/ui/workspace";
-import { CrmColorLabel, CrmStatusBadge } from "../../crm-colors";
+import { formatDate, formatDateTime as formatWorkspaceDateTime } from "@codexsun/ui/workspace";
+import { CrmColorLabel, CrmStatusBadge, statusRing } from "../../crm-colors";
 import { ClosurePendingBadge, useEnquiryClosureState, EnquiryClosureCard } from "../closure";
-import { EnquiryActivityPanel } from "./enquiry.activity";
 import { EnquiryComments } from "./enquiry.comments";
 import { EnquiryEstimates } from "./enquiry.estimates";
 import {
@@ -29,32 +31,28 @@ import {
   enquiryDetailQueryKey,
   enquiriesQueryKey,
   enquiryJobsQueryKey,
-  useEnquiryActivity,
   useEnquiryComments,
   useEnquiryDetail,
   useEnquiryEstimates,
-  useEnquiryJobs,
-  useEnquiryLocations
+  useEnquiryJobs
 } from "./enquiry.hooks";
 import { EnquiryJobs } from "./enquiry.jobs";
-import { EnquiryLocations } from "./enquiry.locations";
 import { EnquiryProperties } from "./enquiry.properties";
 import { EnquiryCustomer } from "./enquiry.customer";
-import { startEnquiryJob, stopEnquiryJob } from "./enquiry.services";
+import { createEnquiryComment, startEnquiryJob, stopEnquiryJob } from "./enquiry.services";
 import { enquiryTableText } from "./enquiry.table-text";
-import { whatsappUrl } from "./enquiry.view-utils";
 import type { EnquiryLookup, EnquiryMasterLookup, EnquiryRecord } from "./enquiry.types";
 
 type EnquiryTab =
   | "comments"
   | "jobs"
   | "estimate"
-  | "activity"
   | "actions"
-  | "locations"
+  | "checkpoints"
   | "properties"
   | "closure"
-  | "customer";
+  | "customer"
+  | "whatsapp";
 
 export function EnquiryShow({
   id,
@@ -74,23 +72,25 @@ export function EnquiryShow({
   priorities: EnquiryMasterLookup[];
 }) {
   const client = useQueryClient();
-  const [activeTab, setActiveTab] = useState<EnquiryTab>("comments");
+  const [activeTab, setActiveTab] = useState<EnquiryTab>("actions");
   const enquiry = useEnquiryDetail(id);
   const closure = useEnquiryClosureState(id);
   const comments = useEnquiryComments(id);
   const jobs = useEnquiryJobs(id);
   const estimates = useEnquiryEstimates(id);
-  const activity = useEnquiryActivity(id);
-  const locations = useEnquiryLocations(id);
+  const workTarget = { enquiryId: Number(id), taskId: null };
+  const actions = useWorkReports(workTarget);
+  const checkpoints = useWorkReports(workTarget, 1, true);
+  const whatsApp = useWhatsAppMessages(Number(id));
   const record = enquiry.data;
   const contact = contacts.find((item) => item.id === record?.contactId);
   const mobile = contact?.primaryPhone || record?.capturedPhone || null;
-  const whatsApp = whatsappUrl(mobile);
-  const error = enquiry.error ?? comments.error ?? jobs.error ?? estimates.error ?? activity.error;
+  const error = enquiry.error ?? comments.error ?? jobs.error ?? estimates.error;
   const jobAction = useMutation({
     mutationFn: (jobId: string | null) => (jobId ? stopEnquiryJob(id, jobId) : startEnquiryJob(id)),
     onSuccess: async (job) => {
       await Promise.all([
+        client.invalidateQueries({ queryKey: ["crm", "work-reports", Number(id), null] }),
         client.invalidateQueries({ queryKey: enquiryJobsQueryKey(id) }),
         client.invalidateQueries({ queryKey: enquiryActivityQueryKey(id) })
       ]);
@@ -99,7 +99,42 @@ export function EnquiryShow({
     onError: (failure) => toast.error("Unable to update job", { description: failure.message })
   });
   const tabs = [
-    { value: "actions", label: "Actions", content: <WorkReportWorkspace enquiryId={Number(id)} /> },
+    {
+      value: "actions",
+      label: (
+        <TabLabel
+          icon={<Activity className="size-4" />}
+          label="Actions"
+          count={actions.data?.total ?? 0}
+        />
+      ),
+      content: (
+        <WorkReportWorkspace
+          enquiryId={Number(id)}
+          active={activeTab === "actions"}
+          onWhatsApp={() => setActiveTab("whatsapp")}
+          onRequestClosure={() => setActiveTab("closure")}
+          onComment={async (body, parentId, requestId) => {
+            await createEnquiryComment(
+              id,
+              body,
+              parentId === null ? null : String(parentId),
+              "html",
+              requestId
+            );
+            await Promise.all([
+              client.invalidateQueries({ queryKey: enquiryCommentsQueryKey(id) }),
+              client.invalidateQueries({ queryKey: enquiryActivityQueryKey(id) })
+            ]);
+          }}
+          onJob={() =>
+            jobAction.mutate(jobs.data?.find((job) => job.status === "running")?.id ?? null)
+          }
+          jobRunning={jobs.data?.some((job) => job.status === "running") ?? false}
+          jobPending={jobAction.isPending || jobs.isLoading}
+        />
+      )
+    },
     {
       value: "comments",
       label: (
@@ -116,6 +151,17 @@ export function EnquiryShow({
           loading={comments.isLoading}
         />
       )
+    },
+    {
+      value: "checkpoints",
+      label: (
+        <TabLabel
+          icon={<LogIn className="size-4" />}
+          label="Check in / out"
+          count={checkpoints.data?.total ?? 0}
+        />
+      ),
+      content: <WorkReportWorkspace enquiryId={Number(id)} actionFilter="checkpoints" />
     },
     {
       value: "jobs",
@@ -135,8 +181,30 @@ export function EnquiryShow({
       )
     },
     {
+      value: "properties",
+      label: <TabLabel icon={<Settings2 className="size-4" />} label="Properties" />,
+      content: record ? (
+        <div className="p-4">
+          <EnquiryProperties
+            record={record}
+            mobile={mobile}
+            users={users}
+            listOptions={listOptions}
+            statuses={statuses}
+            priorities={priorities}
+          />
+        </div>
+      ) : null
+    },
+    {
       value: "estimate",
-      label: <TabLabel icon={<ReceiptText className="size-4" />} label="Estimate" />,
+      label: (
+        <TabLabel
+          icon={<ReceiptText className="size-4" />}
+          label="Estimate"
+          count={estimates.data?.length ?? 0}
+        />
+      ),
       content: (
         <EnquiryEstimates
           enquiryId={id}
@@ -147,51 +215,33 @@ export function EnquiryShow({
       )
     },
     {
-      value: "activity",
-      label: <TabLabel icon={<Activity className="size-4" />} label="Activity" />,
-      content: <EnquiryActivityPanel activity={activity.data ?? []} loading={activity.isLoading} />
+      value: "customer",
+      label: <TabLabel icon={<UserRound className="size-4" />} label="Customer" />,
+      content: record ? <EnquiryCustomer record={record} mobile={mobile} /> : null
     },
     {
-      value: "locations",
+      value: "whatsapp",
       label: (
-        <TabLabel
-          icon={<MapPin className="size-4" />}
-          label="Locations"
-          count={locations.data?.length ?? 0}
-        />
+        <TabLabel icon={<WhatsAppIcon />} label="WhatsApp" count={whatsApp.data?.length ?? 0} />
       ),
-      content: (
-        <EnquiryLocations
-          locations={locations.data ?? []}
-          loading={locations.isLoading}
-          error={locations.error}
-          onRetry={() => void locations.refetch()}
-        />
-      )
-    },
-    {
-      value: "properties",
-      label: <TabLabel icon={<Settings2 className="size-4" />} label="Properties" />,
-      content: record ? (
-        <EnquiryProperties
-          record={record}
-          mobile={mobile}
-          users={users}
-          listOptions={listOptions}
-          statuses={statuses}
-          priorities={priorities}
-        />
-      ) : null
+      content: <EnquiryWhatsAppWorkspace id={Number(id)} mobile={mobile} />
     },
     {
       value: "closure",
-      label: <TabLabel icon={<BellRing className="size-4" />} label="Closure approvals" />,
+      label: (
+        <TabLabel
+          icon={<BellRing className="size-4" />}
+          label="Closure approvals"
+          count={closure.data?.item ? 1 : 0}
+        />
+      ),
       content: record ? (
         <EnquiryClosureCard
           enquiryId={id}
           enquiryStatus={record.status}
           onChanged={() =>
             Promise.all([
+              client.invalidateQueries({ queryKey: ["crm", "work-reports", Number(id), null] }),
               client.invalidateQueries({ queryKey: enquiryDetailQueryKey(id) }),
               client.invalidateQueries({ queryKey: enquiryActivityQueryKey(id) }),
               client.invalidateQueries({ queryKey: enquiryCommentsQueryKey(id) }),
@@ -200,11 +250,6 @@ export function EnquiryShow({
           }
         />
       ) : null
-    },
-    {
-      value: "customer",
-      label: <TabLabel icon={<UserRound className="size-4" />} label="Customer" />,
-      content: record ? <EnquiryCustomer record={record} mobile={mobile} /> : null
     }
   ];
   if (!record && !error) {
@@ -215,30 +260,7 @@ export function EnquiryShow({
     <WorkspacePage
       className="!w-full !max-w-none px-1 lg:px-2"
       technicalName="page.crm.enquiry.show"
-      title={record ? enquiryHeading(record, mobile) : "Enquiry"}
-      actions={
-        whatsApp ? (
-          <Button asChild type="button">
-            <a
-              href={whatsApp}
-              rel="noopener noreferrer"
-              style={{ backgroundColor: "#25d366", color: "#fff" }}
-              target="_blank"
-            >
-              <WhatsAppIcon /> WhatsApp
-            </a>
-          </Button>
-        ) : (
-          <Button
-            disabled
-            style={{ backgroundColor: "#25d366", color: "#fff" }}
-            title="Add a valid mobile number to use WhatsApp"
-            type="button"
-          >
-            <WhatsAppIcon /> WhatsApp
-          </Button>
-        )
-      }
+      title=""
     >
       {error ? (
         <div
@@ -256,7 +278,6 @@ export function EnquiryShow({
               void comments.refetch();
               void jobs.refetch();
               void estimates.refetch();
-              void activity.refetch();
             }}
           >
             Retry
@@ -265,60 +286,154 @@ export function EnquiryShow({
       ) : null}
       {record ? (
         <>
-          {closure.data?.item?.status === "pending" ? (
-            <div>
-              <ClosurePendingBadge />
-            </div>
-          ) : null}
-          <EnquirySummary record={record} users={users} />
-          <div className="min-w-0 overflow-hidden rounded-md border border-border/70 bg-card/95 shadow-sm">
-            <WorkspaceAnimatedTabs
-              tabs={tabs}
-              value={activeTab}
-              onValueChange={(value) => setActiveTab(value as EnquiryTab)}
-              listClassName="px-3"
-              contentClassName="mt-0 pb-0"
-            />
-          </div>
+          <EnquirySummary
+            record={record}
+            users={users}
+            mobile={mobile}
+            closurePending={closure.data?.item?.status === "pending"}
+          />
+          <WorkspaceAnimatedTabs
+            keepMounted
+            tabs={tabs}
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as EnquiryTab)}
+            listClassName="border-b-0 bg-card px-3 shadow-none"
+            contentClassName="mt-0 rounded-t-none bg-card pb-0 [&>*]:border-t-0 [&>*]:rounded-t-none"
+          />
         </>
       ) : null}
     </WorkspacePage>
   );
 }
 
-function EnquirySummary({ record, users }: { record: EnquiryRecord; users: EnquiryLookup[] }) {
+function EnquirySummary({
+  record,
+  users,
+  mobile,
+  closurePending
+}: {
+  record: EnquiryRecord;
+  users: EnquiryLookup[];
+  mobile: string | null;
+  closurePending: boolean;
+}) {
   const creatorName =
     users.find((user) => user.email?.toLowerCase() === record.createdBy.toLowerCase())?.name ??
     record.createdBy;
-  const message = enquiryTableText(record.description);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const customer = record.contactName || record.capturedName || "No customer";
   const title = enquiryTableText(record.title);
+  const description = enquiryTableText(record.description);
   return (
-    <section className="rounded-md border border-border/70 bg-card/95 px-4 py-3 shadow-sm">
+    <section
+      className={`rounded-md border border-border/70 bg-card px-4 py-4 shadow-sm ring-2 ${statusRing(record.status)}`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="break-words text-lg font-semibold">{message || title}</h2>
-          {message && title && message !== title ? (
-            <p className="mt-1 break-words text-sm text-muted-foreground">{title}</p>
-          ) : null}
+        <div className="min-w-0 flex-1">
+          <h1 className="break-words text-lg font-semibold">
+            #{record.enquiryNo} - {title || "Untitled enquiry"}
+          </h1>
         </div>
-        <div className="flex flex-col items-start gap-2 sm:items-end">
-          <div className="flex flex-wrap gap-2">
-            <WorkspaceStatusBadge
-              label={`List in · ${record.listIn || "Unlisted"}`}
-              tone="info"
-              showIcon={false}
-            />
-            <CrmStatusBadge code={record.status} label={record.statusName} />
-            <span className="inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-50 px-2 text-[11px] font-medium text-slate-700">
-              <CrmColorLabel kind="priority" code={record.priority} label={record.priorityName} />
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Created by {creatorName} · {formatCreatedAt(record.createdAt)}
-          </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <WorkspaceStatusBadge
+            label={`List in · ${record.listIn || "Unlisted"}`}
+            tone="info"
+            showIcon={false}
+          />
+          <CrmStatusBadge code={record.status} label={record.statusName} />
+          <span className="inline-flex h-6 items-center rounded-md border border-slate-200 bg-slate-50 px-2 text-[11px] font-medium text-slate-700">
+            <CrmColorLabel kind="priority" code={record.priority} label={record.priorityName} />
+          </span>
+          {closurePending ? <ClosurePendingBadge /> : null}
         </div>
       </div>
+      <div className="mt-4 overflow-hidden rounded-md border border-border/60">
+        <table aria-label="Enquiry details" className="w-full table-fixed text-sm">
+          <colgroup>
+            <col className="w-[12%]" />
+            <col className="w-[38%]" />
+            <col className="w-[12%]" />
+            <col className="w-[38%]" />
+          </colgroup>
+          <tbody className="divide-y divide-border/60">
+            <tr>
+              <td colSpan={4} className="bg-muted/30 px-3 py-3 align-top">
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Enquiry message</p>
+                <p className="whitespace-pre-wrap break-words text-base font-semibold [overflow-wrap:anywhere]">
+                  {description || title || "—"}
+                </p>
+                {description && title && description !== title ? (
+                  <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                    {title}
+                  </p>
+                ) : null}
+              </td>
+            </tr>
+            <SummaryDetail
+              leftLabel="Customer"
+              leftValue={customer}
+              rightLabel="Mobile"
+              rightValue={mobile || "—"}
+            />
+            <SummaryDetail
+              leftLabel="Assigned to"
+              leftValue={record.assignedToName || "Unassigned"}
+              rightLabel="Due date"
+              rightValue={record.dueDate ? formatDate(record.dueDate) : "—"}
+            />
+            <SummaryDetail
+              leftLabel="Created by"
+              leftValue={creatorName}
+              rightLabel="Created"
+              rightValue={
+                <time dateTime={record.createdAt} title={formatCreatedAt(record.createdAt)}>
+                  {createdAge(record.createdAt, now)}
+                </time>
+              }
+            />
+          </tbody>
+        </table>
+      </div>
     </section>
+  );
+}
+
+function SummaryDetail({
+  leftLabel,
+  leftValue,
+  rightLabel,
+  rightValue
+}: {
+  leftLabel: string;
+  leftValue: string;
+  rightLabel: string;
+  rightValue: ReactNode;
+}) {
+  return (
+    <tr className="grid grid-cols-[minmax(6rem,1fr)_minmax(0,2fr)] sm:table-row">
+      <th
+        scope="row"
+        className="border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground"
+      >
+        {leftLabel}
+      </th>
+      <td className="break-words bg-muted/30 px-3 py-2 align-top text-muted-foreground">
+        {leftValue}
+      </td>
+      <th
+        scope="row"
+        className="border-t border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground sm:border-t-0 sm:border-l"
+      >
+        {rightLabel}
+      </th>
+      <td className="break-words border-t border-border/60 bg-muted/30 px-3 py-2 align-top text-muted-foreground sm:border-t-0">
+        {rightValue}
+      </td>
+    </tr>
   );
 }
 
@@ -334,11 +449,16 @@ function TabLabel({ icon, label, count }: { icon: ReactNode; label: string; coun
   );
 }
 
-function enquiryHeading(record: EnquiryRecord, mobile: string | null) {
-  const customer = record.contactName ?? record.capturedName;
-  return [`#${record.enquiryNo}`, mobile, customer !== mobile ? customer : null]
-    .filter(Boolean)
-    .join(" · ");
+function createdAge(value: string, now: number) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return "—";
+  const minutes = Math.floor(Math.max(0, now - timestamp) / 60_000);
+  if (minutes < 1) return "Just now";
+  const days = Math.floor(minutes / 1_440);
+  const hours = Math.floor((minutes % 1_440) / 60);
+  if (days) return `${days} d ${hours} h ago`;
+  if (hours) return `${hours} h ${minutes % 60} m ago`;
+  return `${minutes} m ago`;
 }
 
 function formatCreatedAt(value: string) {

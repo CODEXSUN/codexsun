@@ -18,6 +18,7 @@
 | `contact-tags`            | [Contact Tags](./modules/contact-tags)                       |
 | `data-source`             | [Data Source](./modules/data-source)                         |
 | `enquiry`                 | [Enquiry](./modules/enquiry)                                 |
+| `enquiry-whatsapp`        | [Enquiry WhatsApp](./modules/enquiry-whatsapp)                |
 | `list-in`                 | [List In](./modules/list-in)                                 |
 | `overview`                | [Overview](./modules/overview)                               |
 | `priority`                | [Priority](./modules/priority)                               |

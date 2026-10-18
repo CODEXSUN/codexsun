@@ -10,6 +10,14 @@ export class WorkReportService {
     await this.access(target, false);
     return this.repository.list(target);
   }
+  async history(target: WorkReportTarget, page: number, pageSize: number, checkpoints = false) {
+    await this.access(target, false);
+    return this.repository.history(target, page, pageSize, checkpoints);
+  }
+  async checkpoint(target: WorkReportTarget) {
+    await this.access(target, false);
+    return this.repository.checkpoint(target, this.context.actorEmail);
+  }
   async create(input: WorkReportInput) {
     input = {
       ...input,
@@ -18,8 +26,8 @@ export class WorkReportService {
       accuracyMeters: input.accuracyMeters === null ? null : Number(input.accuracyMeters.toFixed(2))
     };
     await this.access(input, true);
-    if (input.action === "assigned")
-      throw AppError.forbidden("Assignments are created by the assignment workflow.");
+    if (!["report", "check-in", "check-out"].includes(input.action))
+      throw AppError.forbidden("Workflow events must use their owning operation.");
     return this.repository.create(input, this.context);
   }
   private async access(target: WorkReportTarget, writing: boolean) {

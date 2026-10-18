@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.7
+Current version: 1.1.8
 
-Release tag: v-1.1.7
+Release tag: v-1.1.8
 
-Changelog label: v 1.1.7
+Changelog label: v 1.1.8
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,29 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.8
+
+### [v 1.1.8] 2026-10-18 12:54 pm - CRM workflows and tenant administration
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Add the tenant-scoped Enquiry WhatsApp handoff table and task-comment reply relationship with forward-only, repeatable migrations.
+- Make CRM comment retries idempotent and record comment, job, checkpoint, closure, estimate, and WhatsApp activity in the combined work history.
+- Seed every persisted permission onto the protected Admin role and restore protected Admin role membership for every active legacy admin user in each tenant.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.8.
+- Refactor Enquiry and Task details around one Actions history while retaining focused tabs, synchronized counts, inline property edits, and consistent tab/card framing.
+- Align task pagination with Enquiries: 100 rows per page, showing pagination only when more than 100 rows exist. Keep Jobs panels compact and closure records table-aligned.
+- Add persistent WhatsApp handoff history with sender, recipient, message, and time; expose action history refresh across comment, job, checkpoint, property, estimate, and closure writes.
+- Add component and Docs references for Enquiry WhatsApp and keep release/task logs consistent with threaded task comments.
+- Add the focused `test:e2e:crm-whatsapp` release command and cover tenant authorization, retry conflicts, migration repeatability, and rollback of incomplete handoffs.
+- Update QCafe overview and workspace navigation refinements included in this source batch.
+- Pass `npm run check`, version alignment, component documentation, and the focused WhatsApp, work-report, task-contact, and closure database E2Es. Platform API, Platform web, and Ecommerce shop builds pass.
+- Platform web and shop builds retain chunk-size and ineffective HRMS dynamic-import warnings. The separate CODEXSUN E2E needs a local baseline `app_roles` table that is missing from the configured development database.
 
 ## v-1.1.7
 

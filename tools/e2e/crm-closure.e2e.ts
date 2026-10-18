@@ -226,12 +226,16 @@ test("closure requests await web approval before changing enquiry status", async
   assert.equal(requestEnvelope.data.status, "pending");
   await assertPendingBadge(approvalEnquiryId, true);
   assert.equal(requested.json().data.contact, "Closure linked customer");
-  const requestComment = await database
+  const requestComments = await database
     .selectFrom("crm_enquiry_comments")
     .select("body")
     .where("enquiry_id", "=", approvalEnquiryId)
-    .executeTakeFirstOrThrow();
-  assert.match(requestComment.body, /Closure requested/);
+    .execute();
+  assert.equal(
+    requestComments.length,
+    0,
+    "Closure workflow notes belong in Actions, not Comments."
+  );
 
   for (const canReview of [false, true]) {
     const latest = await app.inject({
@@ -274,6 +278,70 @@ test("closure requests await web approval before changing enquiry status", async
     requestEnvelope.data.id
   );
 
+  await database
+    .insertInto("crm_enquiry_jobs")
+    .values({
+      enquiry_id: approvalEnquiryId,
+      employee: actor.email,
+      start_at: sql`UTC_TIMESTAMP()`,
+      stop_at: null,
+      duration_seconds: 0,
+      rate_per_hour: "0.00",
+      total_cost: "0.00",
+      status: "running",
+      created_by: actor.email
+    })
+    .execute();
+  const blockedByJob = await app.inject({
+    method: "PATCH",
+    url: `/crm/closure-requests/${requestEnvelope.data.id}/review`,
+    headers: { "x-test-reviewer": "true" },
+    payload: { decision: "approve" }
+  });
+  assert.equal(blockedByJob.statusCode, 409, blockedByJob.body);
+  await database
+    .updateTable("crm_enquiry_jobs")
+    .set({ status: "completed", stop_at: sql`UTC_TIMESTAMP()` })
+    .where("enquiry_id", "=", approvalEnquiryId)
+    .execute();
+  await database
+    .insertInto("crm_work_reports")
+    .values({
+      enquiry_id: approvalEnquiryId,
+      task_id: null,
+      action: "check-in",
+      body: "",
+      request_id: `closure-check-in-${approvalEnquiryId}`,
+      latitude: "1.2345678",
+      longitude: "2.3456789",
+      accuracy_meters: "5.00",
+      captured_at: sql`UTC_TIMESTAMP()`,
+      created_by: actor.email
+    })
+    .execute();
+  const blockedByCheckIn = await app.inject({
+    method: "PATCH",
+    url: `/crm/closure-requests/${requestEnvelope.data.id}/review`,
+    headers: { "x-test-reviewer": "true" },
+    payload: { decision: "approve" }
+  });
+  assert.equal(blockedByCheckIn.statusCode, 409, blockedByCheckIn.body);
+  await database
+    .insertInto("crm_work_reports")
+    .values({
+      enquiry_id: approvalEnquiryId,
+      task_id: null,
+      action: "check-out",
+      body: "",
+      request_id: `closure-check-out-${approvalEnquiryId}`,
+      latitude: "1.2345678",
+      longitude: "2.3456789",
+      accuracy_meters: "5.00",
+      captured_at: sql`UTC_TIMESTAMP()`,
+      created_by: actor.email
+    })
+    .execute();
+
   const approved = await app.inject({
     method: "PATCH",
     url: `/crm/closure-requests/${requestEnvelope.data.id}/review`,
@@ -290,13 +358,19 @@ test("closure requests await web approval before changing enquiry status", async
     .executeTakeFirstOrThrow();
   assert.equal(closed.code, "closed");
   await assertPendingBadge(approvalEnquiryId, false);
-  const reviewComment = await database
+  const reviewComments = await database
     .selectFrom("crm_enquiry_comments")
     .select("body")
     .where("enquiry_id", "=", approvalEnquiryId)
-    .orderBy("id", "desc")
-    .executeTakeFirstOrThrow();
-  assert.match(reviewComment.body, /Closure verified and enquiry closed/);
+    .execute();
+  assert.equal(reviewComments.length, 0);
+  const closureEvents = await database
+    .selectFrom("crm_enquiry_activity")
+    .select("action")
+    .where("enquiry_id", "=", approvalEnquiryId)
+    .where("action", "=", "closure-approved")
+    .execute();
+  assert.equal(closureEvents.length, 1);
 
   const rejectionEnquiryId = await makeEnquiry("Closure rejection e2e");
   const rejectedRequest = await requestClosure(rejectionEnquiryId, "web");
@@ -332,10 +406,10 @@ test("closure requests await web approval before changing enquiry status", async
     .executeTakeFirstOrThrow();
   assert.equal(statusActivity.action, "status-changed");
   assert.match(statusActivity.details, /Open to Won/);
-  const statusComment = await database
+  const statusComments = await database
     .selectFrom("crm_enquiry_comments")
     .select("body")
     .where("enquiry_id", "=", wonEnquiryId)
-    .executeTakeFirstOrThrow();
-  assert.match(statusComment.body, /Open to Won/);
+    .execute();
+  assert.equal(statusComments.length, 0, "Status changes are Actions, not user comments.");
 });

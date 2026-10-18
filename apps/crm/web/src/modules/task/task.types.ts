@@ -51,6 +51,7 @@ export type TaskOptions = {
     create: boolean;
     update: boolean;
     respond: boolean;
+    reopenClosed: boolean;
     work: boolean;
     reviewClosure: boolean;
   };
@@ -59,6 +60,7 @@ export type TaskComment = {
   id: number;
   uuid: string;
   taskId: number;
+  parentId: number | null;
   body: string;
   createdBy: string;
   createdAt: string | Date;

@@ -1,6 +1,6 @@
 import { AppError } from "@codexsun/framework/errors";
 import { type Kysely, type Selectable } from "kysely";
-import { insertEnquiryActivity, insertEnquiryComment } from "./enquiry.repository.js";
+import { insertEnquiryActivity } from "./enquiry.repository.js";
 import type {
   EnquiryActivity,
   EnquiryActivityRow,
@@ -32,7 +32,7 @@ export class EnquiryWorkRepository {
 
   async startJob(enquiryId: number, employee: string, actor: string) {
     const id = await this.database.transaction().execute(async (transaction) => {
-      await this.lockEnquiry(transaction, enquiryId);
+      await this.lockEnquiry(transaction, enquiryId, true);
       await this.assertNoRunningJob(transaction, enquiryId);
       const result = await transaction
         .insertInto("crm_enquiry_jobs")
@@ -56,7 +56,6 @@ export class EnquiryWorkRepository {
         `Job started by ${employee}`,
         actor
       );
-      await insertEnquiryComment(transaction, enquiryId, `Job started by ${employee}.`, actor);
       await this.workEvent?.(transaction, enquiryId, "job-started", `Job started by ${employee}.`);
       return Number(result.insertId);
     });
@@ -92,7 +91,6 @@ export class EnquiryWorkRepository {
         `Job #${jobId} stopped`,
         actor
       );
-      await insertEnquiryComment(transaction, enquiryId, `Job #${jobId} stopped.`, actor);
       await this.workEvent?.(transaction, enquiryId, "job-stopped", `Job #${jobId} stopped.`);
     });
     return this.getJob(enquiryId, jobId);
@@ -106,7 +104,7 @@ export class EnquiryWorkRepository {
     jobId?: number
   ) {
     const id = await this.database.transaction().execute(async (transaction) => {
-      await this.lockEnquiry(transaction, enquiryId);
+      await this.lockEnquiry(transaction, enquiryId, input.status === "running");
       if (jobId) {
         const current = await transaction
           .selectFrom("crm_enquiry_jobs")
@@ -148,12 +146,6 @@ export class EnquiryWorkRepository {
         enquiryId,
         jobId ? "job-updated" : "job-created",
         `Job #${savedId} ${jobId ? "updated" : "created"}`,
-        actor
-      );
-      await insertEnquiryComment(
-        transaction,
-        enquiryId,
-        `Job #${savedId} ${jobId ? "updated" : "created"}.`,
         actor
       );
       return savedId;
@@ -251,14 +243,25 @@ export class EnquiryWorkRepository {
     return rows.map(toActivity);
   }
 
-  private async lockEnquiry(database: Kysely<EnquiryDatabase>, enquiryId: number) {
+  private async lockEnquiry(
+    database: Kysely<EnquiryDatabase>,
+    enquiryId: number,
+    requireOpen = false
+  ) {
     const row = await database
       .selectFrom("crm_enquiries")
-      .select("id")
+      .select(["id", "status_id"])
       .where("id", "=", enquiryId)
       .forUpdate()
       .executeTakeFirst();
     if (!row) throw AppError.notFound("Enquiry was not found.");
+    const status = await database
+      .selectFrom("crm_enquiry_statuses")
+      .select("code")
+      .where("id", "=", row.status_id)
+      .executeTakeFirst();
+    if (requireOpen && status && ["closed", "won", "lost"].includes(status.code))
+      throw AppError.conflict("Closed enquiries cannot start or change jobs.");
   }
 
   private async assertNoRunningJob(

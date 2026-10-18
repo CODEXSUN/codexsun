@@ -51,6 +51,7 @@ export function EnquiryJobs({
       setEditing(undefined);
       await Promise.all([
         client.invalidateQueries({ queryKey: enquiryJobsQueryKey(enquiryId) }),
+        client.invalidateQueries({ queryKey: ["crm", "work-reports", Number(enquiryId), null] }),
         client.invalidateQueries({ queryKey: enquiryActivityQueryKey(enquiryId) })
       ]);
       toast.success("Job saved");
@@ -58,7 +59,7 @@ export function EnquiryJobs({
     onError: (error) => toast.error("Unable to save job", { description: error.message })
   });
   return (
-    <section className="min-h-[34rem] bg-card p-4">
+    <section className="bg-card p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">Time recorded against this enquiry.</p>
         <div className="flex gap-2">

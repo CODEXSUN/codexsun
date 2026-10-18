@@ -451,7 +451,6 @@ export class EnquiryRepository {
         const to = statusNames.get(prepared.statusId) ?? "Unknown";
         const message = `Status changed from ${from} to ${to}.`;
         await insertEnquiryActivity(transaction, id, "status-changed", message, actor);
-        await insertEnquiryComment(transaction, id, message, actor);
       }
       if (previous.assigned_user_id !== prepared.assignedUserId && previous.assigned_user_id) {
         await transaction
@@ -580,12 +579,40 @@ export class EnquiryRepository {
     parentId: number | null,
     body: string,
     bodyFormat: "plain" | "html",
-    actor: string
+    actor: string,
+    requestId?: string
   ) {
     const result = await this.database.transaction().execute(async (transaction) => {
+      await transaction
+        .selectFrom("crm_enquiries")
+        .select("id")
+        .where("id", "=", enquiryId)
+        .forUpdate()
+        .executeTakeFirstOrThrow();
+      if (requestId) {
+        const existing = await transaction
+          .selectFrom("crm_enquiry_comments")
+          .selectAll()
+          .where("created_by", "=", actor)
+          .where("request_id", "=", requestId)
+          .executeTakeFirst();
+        if (existing) {
+          if (
+            existing.enquiry_id !== enquiryId ||
+            existing.parent_id !== parentId ||
+            existing.body !== body ||
+            existing.body_format !== bodyFormat
+          )
+            throw AppError.conflict(
+              "This comment retry key was already used for different content."
+            );
+          return { insertId: BigInt(existing.id) };
+        }
+      }
       const inserted = await transaction
         .insertInto("crm_enquiry_comments")
         .values({
+          request_id: requestId ?? null,
           enquiry_id: enquiryId,
           parent_id: parentId,
           body,
@@ -603,7 +630,12 @@ export class EnquiryRepository {
         parentId ? "Reply added" : "Comment added",
         actor
       );
-      await this.workEvent?.(transaction, enquiryId, "comment", body);
+      await this.workEvent?.(
+        transaction,
+        enquiryId,
+        parentId ? "reply-added" : "comment-added",
+        body
+      );
       return inserted;
     });
     const row = await this.database
@@ -634,19 +666,6 @@ export class EnquiryRepository {
       if (result.numUpdatedRows !== 1n) {
         throw AppError.validation("This call is no longer New. Refresh the list.");
       }
-      await transaction
-        .insertInto("crm_enquiry_comments")
-        .values({
-          enquiry_id: id,
-          parent_id: null,
-          body: "New call opened",
-          body_format: "plain",
-          status: "active",
-          created_by: actor,
-          created_at: sql`UTC_TIMESTAMP()`,
-          updated_at: sql`UTC_TIMESTAMP()`
-        })
-        .execute();
       await insertEnquiryActivity(transaction, id, "new-call-opened", "New call opened", actor);
     });
     return this.get(id);
@@ -701,27 +720,6 @@ export async function insertEnquiryActivity(
       enquiry_id: enquiryId,
       action,
       details,
-      status: "active",
-      created_by: actor,
-      created_at: sql`UTC_TIMESTAMP()`,
-      updated_at: sql`UTC_TIMESTAMP()`
-    })
-    .execute();
-}
-
-export async function insertEnquiryComment(
-  database: Kysely<EnquiryDatabase>,
-  enquiryId: number,
-  body: string,
-  actor: string
-) {
-  await database
-    .insertInto("crm_enquiry_comments")
-    .values({
-      enquiry_id: enquiryId,
-      parent_id: null,
-      body,
-      body_format: "plain",
       status: "active",
       created_by: actor,
       created_at: sql`UTC_TIMESTAMP()`,

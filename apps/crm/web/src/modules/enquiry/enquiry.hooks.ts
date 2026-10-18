@@ -76,7 +76,10 @@ export const useEnquiryReport = (
       view,
       filters.fromDate,
       filters.toDate,
-      filters.assignedUserId
+      filters.listInId,
+      filters.createdBy,
+      filters.assignedUserId,
+      filters.filter
     ],
     queryFn: () => listEnquiryReport(filters, view)
   });
@@ -127,11 +130,23 @@ export function useCrmNavigationCounts(_email: string, enabled: boolean) {
   };
 }
 export const useEnquiryDetail = (id: string) =>
-  useQuery({ queryKey: enquiryDetailQueryKey(id), queryFn: () => getEnquiry(id) });
+  useQuery({
+    queryKey: enquiryDetailQueryKey(id),
+    queryFn: () => getEnquiry(id),
+    refetchInterval: 10000
+  });
 export const useEnquiryComments = (id: string) =>
-  useQuery({ queryKey: enquiryCommentsQueryKey(id), queryFn: () => listEnquiryComments(id) });
+  useQuery({
+    queryKey: enquiryCommentsQueryKey(id),
+    queryFn: () => listEnquiryComments(id),
+    refetchInterval: 10000
+  });
 export const useEnquiryJobs = (id: string) =>
-  useQuery({ queryKey: enquiryJobsQueryKey(id), queryFn: () => listEnquiryJobs(id) });
+  useQuery({
+    queryKey: enquiryJobsQueryKey(id),
+    queryFn: () => listEnquiryJobs(id),
+    refetchInterval: 10000
+  });
 export const useEnquiryEstimates = (id: string) =>
   useQuery({ queryKey: enquiryEstimatesQueryKey(id), queryFn: () => listEnquiryEstimates(id) });
 export const useEnquiryActivity = (id: string) =>

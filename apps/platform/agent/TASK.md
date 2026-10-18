@@ -26,6 +26,13 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Existing tenant administrator access, 17-10-2026
+
+- User-role seeding assigns Admin to every active legacy Admin, rather than only the first matching account. Inactive users are excluded.
+- Repaired the missing Admin assignment for the active TECHMEDIA administrator. Synchronized Core's existing Admin grants in TECHMEDIA and RAINBOW.
+- Live backend authorization passed view, create, update, delete, and lifecycle checks for all three active TECHMEDIA administrators and the active RAINBOW administrator. Inactive users were unchanged.
+- Browser retry remains to be verified. This repair does not grant Core access to the standard User role.
+
 ### Multi-tab header recovery, 17-10-2026
 
 - API requests allow bounded 64 KiB headers. Web and shop nginx align request and upstream-response buffers.

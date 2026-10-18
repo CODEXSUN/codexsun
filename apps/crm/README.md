@@ -187,3 +187,11 @@ Conversation lists poll and open conversations refresh. Native emulator sockets 
 The additive `crm.work-report.actions-v1` migration must run after enquiry/task migrations. No existing report history is replaced.
 This work remains local CRM data and does not expand Frappe transfer scope.
 Run `npm run test:e2e:crm-work-reports`, `npm run test:e2e:crm-duties`, and the CRM mobile tests for workflow and permission coverage.
+
+### Enquiry WhatsApp history
+
+The WhatsApp tab stores customer-message handoffs in `crm_enquiry_whatsapp_messages`.
+The server records the signed-in author, UTC time, recipient, and message before opening WhatsApp.
+The history does not confirm external sending or delivery. Existing tenants need the tracked CRM migration.
+Enquiry permissions and record visibility protect both reads and writes. Retry keys prevent duplicate handoffs.
+Run `npm exec tsx -- --test tools/e2e/crm-whatsapp.e2e.ts` for database acceptance.

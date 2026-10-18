@@ -517,3 +517,33 @@ browser, mobile, and end-to-end results separately.
 - Regression checks preserve denied Contact/SOP/Duty/Core writes for Manager. The database E2E passed.
 - Built separate Techmedia and Rainbow APKs, version 1.1.6, with distinct app IDs and tenant defaults.
 - Evidence: [LIVE-VERIFICATION-2026-10-17.md](LIVE-VERIFICATION-2026-10-17.md).
+
+
+## 2026-10-18: Combined Actions window
+
+- Actions is the initial Enquiry and Task detail tab. Existing Comments, Jobs, Estimate, and other detail tabs remain available.
+- Removed Send report from the web action form. Add comment submits through the owning comment operation. Enquiry replies can be composed from Actions.
+- The work history API combines workflow reports and audit activity, including estimate changes and task creation. Matching mirrored events appear once.
+- Older report-prefixed workflow events retain their true action on read. Existing report text remains available as comments in the web view.
+- Job operations immediately refresh the combined history.
+- CRM API build, API/web lint, web typecheck, boundaries, and the isolated work-report database E2E passed locally. No deployment or mobile rebuild was performed.
+- Task comments support threaded replies. Tasks remain independent of Enquiries, so task creation appears in that task's own history.
+
+
+## 2026-10-18: Persisted enquiry WhatsApp history
+
+- Added the Enquiry WhatsApp leaf with tracked migration `crm.enquiry-whatsapp.messages-v1`. Applied and verified `crm_enquiry_whatsapp_messages` in local `codexsun_db`.
+- Stores enquiry ID, server-resolved recipient, message, request ID, signed-in author, and UTC creation time. A unique author/request key prevents duplicate retries.
+- GET and POST `/crm/enquiries/:id/whatsapp-messages` use existing Enquiry permissions and record visibility. Names resolve from tenant users.
+- The WhatsApp tab saves the handoff before opening WhatsApp and refreshes its history table. History records message handoff, not confirmed transmission or delivery.
+- A database E2E verifies repeated migration, persistence, names, encoded message, retry reuse/conflict, missing recipient, and denied reads/writes.
+- CRM API build, API/web lint, web typecheck, and CRM boundary checks passed. Live databases and APKs were not changed.
+
+
+## 2026-10-18: Actions and focused-tab refresh wiring
+
+- Comments, job edits, estimates, properties, WhatsApp handoffs, and closure request/review now invalidate the combined Actions history immediately. Actions uses the same owning comment/job/checkpoint operations as focused tabs.
+- Check in / out includes a top toggle and refresh control. Both views read the signed-in user's persisted checkpoint state and invalidate the same cache after writes.
+- WhatsApp handoff creation emits a transactional `whatsapp-handoff` work event. Ignored duplicate inserts do not repeat the event. Event failure rolls back the handoff.
+- WhatsApp database E2E passed for one matching action per retry and rollback on event failure. Work-report database E2E passed for saved checkpoint state and action permissions.
+- CRM API build, API/web lint, web typecheck, and module boundaries passed locally. No live deployment or mobile rebuild is claimed.

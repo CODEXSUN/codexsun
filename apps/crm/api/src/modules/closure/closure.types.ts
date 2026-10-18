@@ -19,6 +19,7 @@ export type ClosureRequestRow = {
 
 export type ClosureDatabase = EnquiryDatabase & {
   crm_closure_requests: ClosureRequestRow;
+  crm_enquiry_jobs: EnquiryDatabase["crm_enquiry_jobs"];
   app_users: { id: number; name: string; email: string; status: string };
   core_contacts: { id: number; name: string; primary_phone: string | null };
 };

@@ -131,7 +131,7 @@ export function EnquiryList({
       id: "listIn",
       accessorKey: "listIn",
       header: "List in",
-      cell: ({ row }) => row.original.listIn ?? "—"
+      cell: ({ row }) => row.original.listIn || "Unlisted"
     },
     {
       id: "dueDate",

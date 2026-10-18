@@ -50,6 +50,7 @@ export function EnquiryProperties({
       setEditing(null);
       setDraft({});
       await Promise.all([
+        client.invalidateQueries({ queryKey: ["crm", "work-reports", Number(record.id), null] }),
         client.invalidateQueries({ queryKey: enquiryDetailQueryKey(record.id) }),
         client.invalidateQueries({ queryKey: enquiriesQueryKey }),
         client.invalidateQueries({ queryKey: enquiryActivityQueryKey(record.id) }),
@@ -93,149 +94,146 @@ export function EnquiryProperties({
   }
 
   return (
-      <WorkspaceShowCard title="Properties">
-        <EditableRow
-          label="List in"
-          value={record.listIn || "—"}
-          editing={editing === "listInId"}
-          loading={update.isPending}
-          onEdit={() => edit("listInId")}
-          onCancel={() => setEditing(null)}
-          onSave={() => save("listInId")}
-        >
-          <WorkspaceLookup
-            allowTextValue={false}
-            createMode="inline"
-            createLabel="Create List In"
-            showCreateWhenEmpty
-            showAllOptionsOnFocus
-            options={listOptions
-              .filter((item) => item.status === "active")
-              .map((item) => ({ value: String(item.id), label: item.name }))}
-            placeholder="Choose list"
-            value={draft.listInId ? String(draft.listInId) : ""}
-            onCreate={createMaster.listIn}
-            onTextChange={() => setDraft({ listInId: null })}
-            onValueChange={(value) => setDraft({ listInId: value || null })}
-          />
-        </EditableRow>
-        <EditableRow
-          label="Priority"
-          value={
-            <CrmColorLabel kind="priority" code={record.priority} label={record.priorityName} />
-          }
-          editing={editing === "priorityId"}
-          loading={update.isPending}
-          onEdit={() => edit("priorityId")}
-          onCancel={() => setEditing(null)}
-          onSave={() => save("priorityId")}
-        >
+    <WorkspaceShowCard className="border-t border-border/70">
+      <EditableRow
+        label="List in"
+        value={record.listIn || "—"}
+        editing={editing === "listInId"}
+        loading={update.isPending}
+        onEdit={() => edit("listInId")}
+        onCancel={() => setEditing(null)}
+        onSave={() => save("listInId")}
+      >
+        <WorkspaceLookup
+          allowTextValue={false}
+          createMode="inline"
+          createLabel="Create List In"
+          showCreateWhenEmpty
+          showAllOptionsOnFocus
+          options={listOptions
+            .filter((item) => item.status === "active")
+            .map((item) => ({ value: String(item.id), label: item.name }))}
+          placeholder="Choose list"
+          value={draft.listInId ? String(draft.listInId) : ""}
+          onCreate={createMaster.listIn}
+          onTextChange={() => setDraft({ listInId: null })}
+          onValueChange={(value) => setDraft({ listInId: value || null })}
+        />
+      </EditableRow>
+      <EditableRow
+        label="Priority"
+        value={<CrmColorLabel kind="priority" code={record.priority} label={record.priorityName} />}
+        editing={editing === "priorityId"}
+        loading={update.isPending}
+        onEdit={() => edit("priorityId")}
+        onCancel={() => setEditing(null)}
+        onSave={() => save("priorityId")}
+      >
+        <WorkspaceLookup
+          allowTextValue={false}
+          clearable={false}
+          createMode="inline"
+          createLabel="Create Priority"
+          showCreateWhenEmpty
+          showAllOptionsOnFocus
+          options={priorities
+            .filter((item) => item.status === "active")
+            .map((item) => ({
+              label: item.name,
+              value: String(item.id),
+              swatchClassName: prioritySwatch(item.code ?? "")
+            }))}
+          value={draft.priorityId ? String(draft.priorityId) : ""}
+          onCreate={createMaster.priority}
+          onTextChange={() => setDraft({ priorityId: "" })}
+          onValueChange={(value) => setDraft({ priorityId: value })}
+        />
+      </EditableRow>
+      <EditableRow
+        label="Assigned to"
+        value={users.find((user) => user.id === record.assignedUserId)?.name ?? "Unassigned"}
+        editing={editing === "assignedUserId"}
+        loading={update.isPending}
+        onEdit={() => edit("assignedUserId")}
+        onCancel={() => setEditing(null)}
+        onSave={() => save("assignedUserId")}
+      >
+        <WorkspaceLookup
+          allowTextValue={false}
+          showAllOptionsOnFocus
+          options={users.map((user) => ({ value: String(user.id), label: user.name }))}
+          placeholder="Unassigned"
+          value={draft.assignedUserId ? String(draft.assignedUserId) : ""}
+          onValueChange={(value) => setDraft({ assignedUserId: value || null })}
+        />
+      </EditableRow>
+      <EditableRow
+        label="Schedule date"
+        value={formatScheduleDate(record.dueDate)}
+        editing={editing === "dueDate"}
+        loading={update.isPending}
+        onEdit={() => edit("dueDate")}
+        onCancel={() => setEditing(null)}
+        onSave={() => save("dueDate")}
+      >
+        <WorkspaceDatePicker
+          ariaLabel="Enquiry schedule date"
+          placeholder="Select date"
+          value={draft.dueDate ?? ""}
+          onValueChange={(value) => setDraft({ dueDate: value || null })}
+        />
+      </EditableRow>
+      <EditableRow
+        label="Status"
+        value={<CrmColorLabel kind="status" code={record.status} label={record.statusName} />}
+        editing={editing === "statusId"}
+        loading={update.isPending}
+        onEdit={() => edit("statusId")}
+        onCancel={() => setEditing(null)}
+        onSave={() => save("statusId")}
+      >
+        <div className="space-y-2">
           <WorkspaceLookup
             allowTextValue={false}
             clearable={false}
             createMode="inline"
-            createLabel="Create Priority"
+            createLabel="Create Status"
             showCreateWhenEmpty
             showAllOptionsOnFocus
-            options={priorities
-              .filter((item) => item.status === "active")
+            options={statuses
+              .filter(
+                (item) =>
+                  item.status === "active" && (record.status === "closed" || item.code !== "closed")
+              )
               .map((item) => ({
                 label: item.name,
                 value: String(item.id),
-                swatchClassName: prioritySwatch(item.code ?? "")
+                leadingIcon: statusIcon(item.code ?? "")
               }))}
-            value={draft.priorityId ? String(draft.priorityId) : ""}
-            onCreate={createMaster.priority}
-            onTextChange={() => setDraft({ priorityId: "" })}
-            onValueChange={(value) => setDraft({ priorityId: value })}
+            value={draft.statusId ? String(draft.statusId) : ""}
+            onCreate={createMaster.status}
+            onTextChange={() => setDraft({ statusId: "" })}
+            onValueChange={(value) => setDraft({ ...draft, statusId: value })}
           />
-        </EditableRow>
-        <EditableRow
-          label="Assigned to"
-          value={users.find((user) => user.id === record.assignedUserId)?.name ?? "Unassigned"}
-          editing={editing === "assignedUserId"}
-          loading={update.isPending}
-          onEdit={() => edit("assignedUserId")}
-          onCancel={() => setEditing(null)}
-          onSave={() => save("assignedUserId")}
-        >
-          <WorkspaceLookup
-            allowTextValue={false}
-            showAllOptionsOnFocus
-            options={users.map((user) => ({ value: String(user.id), label: user.name }))}
-            placeholder="Unassigned"
-            value={draft.assignedUserId ? String(draft.assignedUserId) : ""}
-            onValueChange={(value) => setDraft({ assignedUserId: value || null })}
-          />
-        </EditableRow>
-        <EditableRow
-          label="Schedule date"
-          value={formatScheduleDate(record.dueDate)}
-          editing={editing === "dueDate"}
-          loading={update.isPending}
-          onEdit={() => edit("dueDate")}
-          onCancel={() => setEditing(null)}
-          onSave={() => save("dueDate")}
-        >
-          <WorkspaceDatePicker
-            ariaLabel="Enquiry schedule date"
-            placeholder="Select date"
-            value={draft.dueDate ?? ""}
-            onValueChange={(value) => setDraft({ dueDate: value || null })}
-          />
-        </EditableRow>
-        <EditableRow
-          label="Status"
-          value={<CrmColorLabel kind="status" code={record.status} label={record.statusName} />}
-          editing={editing === "statusId"}
-          loading={update.isPending}
-          onEdit={() => edit("statusId")}
-          onCancel={() => setEditing(null)}
-          onSave={() => save("statusId")}
-        >
-          <div className="space-y-2">
-            <WorkspaceLookup
-              allowTextValue={false}
-              clearable={false}
-              createMode="inline"
-              createLabel="Create Status"
-              showCreateWhenEmpty
-              showAllOptionsOnFocus
-              options={statuses
-                .filter(
-                  (item) =>
-                    item.status === "active" &&
-                    (record.status === "closed" || item.code !== "closed")
-                )
-                .map((item) => ({
-                  label: item.name,
-                  value: String(item.id),
-                  leadingIcon: statusIcon(item.code ?? "")
-                }))}
-              value={draft.statusId ? String(draft.statusId) : ""}
-              onCreate={createMaster.status}
-              onTextChange={() => setDraft({ statusId: "" })}
-              onValueChange={(value) => setDraft({ ...draft, statusId: value })}
+          {["won", "lost", "closed"].includes(
+            statuses.find((item) => item.id === draft.statusId)?.code ?? ""
+          ) ? (
+            <Textarea
+              aria-label="Outcome reason"
+              placeholder="Outcome reason"
+              value={draft.closedReason ?? ""}
+              onChange={(event) =>
+                setDraft((current) => ({ ...current, closedReason: event.target.value }))
+              }
             />
-            {["won", "lost", "closed"].includes(
-              statuses.find((item) => item.id === draft.statusId)?.code ?? ""
-            ) ? (
-              <Textarea
-                aria-label="Outcome reason"
-                placeholder="Outcome reason"
-                value={draft.closedReason ?? ""}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, closedReason: event.target.value }))
-                }
-              />
-            ) : null}
-          </div>
-        </EditableRow>
-        {record.closedReason ? (
-          <WorkspaceDetailTable rows={[["Outcome reason", record.closedReason]]} />
-        ) : null}
-        <WorkspaceDetailTable rows={[["Updated", formatDateTime(record.updatedAt)]]} />
-      </WorkspaceShowCard>
+          ) : null}
+        </div>
+      </EditableRow>
+      {record.closedReason ? (
+        <WorkspaceDetailTable rows={[["Outcome reason", record.closedReason]]} />
+      ) : null}
+      <WorkspaceDetailTable rows={[["Updated", formatDateTime(record.updatedAt)]]} />
+    </WorkspaceShowCard>
   );
 }
 

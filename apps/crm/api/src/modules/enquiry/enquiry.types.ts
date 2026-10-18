@@ -192,6 +192,7 @@ export type EnquiryAlert = {
 };
 
 export type EnquiryCommentRow = {
+  request_id: Generated<string | null>;
   id: Generated<number>;
   uuid: Generated<string>;
   enquiry_id: number;

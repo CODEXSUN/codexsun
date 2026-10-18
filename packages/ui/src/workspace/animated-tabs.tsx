@@ -31,10 +31,18 @@ export function WorkspaceAnimatedTabs({
   value: string;
 }) {
   return (
-    <Tabs value={value} onValueChange={onValueChange} className={cn("w-full", className)}>
+    <Tabs
+      value={value}
+      onValueChange={onValueChange}
+      className={cn(
+        "w-full",
+        tabs.length > 1 && "overflow-hidden rounded-md border border-border/70 bg-card shadow-sm",
+        className
+      )}
+    >
       <TabsList
         className={cn(
-          "relative h-auto w-full flex-nowrap justify-start overflow-x-auto overflow-y-hidden rounded-none border-0 border-b border-border/90 bg-transparent p-0 shadow-[inset_0_-1px_0_rgba(15,23,42,0.04)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          "relative h-auto w-full flex-nowrap justify-start overflow-x-auto overflow-y-hidden rounded-none border-0 border-b border-border/70 bg-card p-0 shadow-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           listClassName
         )}
       >
@@ -65,9 +73,10 @@ export function WorkspaceAnimatedTabs({
           value={tab.value}
           {...(keepMounted ? { forceMount: true } : {})}
           className={cn(
-            "mt-6 pb-2",
+            tabs.length > 1 ? "mt-0 pb-2" : "mt-6 pb-2",
             keepMounted && "data-[state=inactive]:hidden",
-            contentClassName
+            contentClassName,
+            tabs.length > 1 && "mt-0"
           )}
         >
           {tab.content}

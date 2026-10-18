@@ -30,6 +30,7 @@ export type CrmTaskCommentRow = {
   id: Generated<number>;
   uuid: Generated<string>;
   task_id: number;
+  parent_id: number | null;
   body: string;
   created_by: string;
   status: Generated<string>;

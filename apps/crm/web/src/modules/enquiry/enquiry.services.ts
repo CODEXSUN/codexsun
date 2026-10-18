@@ -86,11 +86,12 @@ export const createEnquiryComment = (
   id: string,
   body: string,
   parentId: string | null,
-  bodyFormat: "plain" | "html" = "plain"
+  bodyFormat: "plain" | "html" = "plain",
+  requestId?: string
 ) =>
   request<EnquiryComment>(`/crm/enquiries/${id}/comments`, {
     method: "POST",
-    body: JSON.stringify({ body, parentId, bodyFormat })
+    body: JSON.stringify({ body, parentId, bodyFormat, requestId })
   });
 export const updateEnquiryProperties = (id: string, patch: EnquiryPropertyPatch) =>
   request<EnquiryRecord>(`/crm/enquiries/${id}/properties`, {

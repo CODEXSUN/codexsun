@@ -272,8 +272,38 @@ test(
       dueDate: null
     });
     const events = await send("GET", `/crm/work-reports?taskId=${task.id}`);
-    assert.equal(events.length, 1);
+    assert.equal(events.length, 2);
+    assert.ok(events.some((event: { action: string }) => event.action === "created"));
     assert.equal(events[0].action, "assigned");
+    assert.equal(events[0].created_by_name, "Task tester");
+    assert.equal(events[0].body, "Deliver to linked customer");
+    await send("POST", `/crm/tasks/${task.id}/comments`, { body: "Bill acknowledged" });
+    await send("POST", `/crm/tasks/${task.id}/jobs/start`);
+    await send("POST", `/crm/tasks/${task.id}/jobs/stop`);
+    const actionHistory = await send("GET", `/crm/work-reports?taskId=${task.id}`);
+    assert.ok(actionHistory.some((row: { action: string }) => row.action === "job-stopped"));
+    assert.ok(actionHistory.some((row: { action: string }) => row.action === "job-started"));
+    assert.equal(
+      actionHistory.filter((row: { body: string }) => row.body === "Bill acknowledged").length,
+      1
+    );
+    const previousEvent = await database
+      .selectFrom("crm_work_reports")
+      .select("id")
+      .where("task_id", "=", task.id)
+      .orderBy("id", "desc")
+      .executeTakeFirstOrThrow();
+    await sql`UPDATE crm_work_reports SET action='report', body='comment: Older rich-text comment' WHERE id=${previousEvent.id}`.execute(
+      database
+    );
+    const legacyHistory = await send("GET", `/crm/work-reports?taskId=${task.id}`);
+    assert.ok(
+      legacyHistory.some(
+        (row: { action: string; body: string }) =>
+          row.action === "comment-added" && row.body === "Older rich-text comment"
+      )
+    );
+
     const chat = new ChatRepository();
     const chatContext = () => ({
       database: database as never,
@@ -307,7 +337,16 @@ test(
       { ...payload, action: "check-out", requestId: "codexsun-checkout-before" },
       409
     );
+    assert.equal(
+      (await send("GET", `/crm/work-reports/checkpoint?taskId=${task.id}`)).checkedIn,
+      false
+    );
     const checkin = await send("POST", "/crm/work-reports", payload);
+    assert.equal(
+      (await send("GET", `/crm/work-reports/checkpoint?taskId=${task.id}`)).checkedIn,
+      true
+    );
+
     const retry = await send("POST", "/crm/work-reports", payload);
     assert.equal(retry.uuid, checkin.uuid);
     await send(
@@ -337,11 +376,15 @@ test(
       body: "Delivered bill",
       requestId: "codexsun-checkout-01"
     });
+    assert.equal(
+      (await send("GET", `/crm/work-reports/checkpoint?taskId=${task.id}`)).checkedIn,
+      false
+    );
     assert.equal(Number(checkout.latitude), 13.0827);
     assert.equal(Number(checkout.longitude), 80.2707);
     const userChannels = await chat.listChannels(chatContext(), {});
     const userChat = await chat.channelDetail(chatContext(), userChannels[0]!.uuid);
-    assert.equal(userChat.messages.length, 4);
+    assert.equal(userChat.messages.length, 7);
     assert.ok(
       userChat.messages.some(
         (message) => message.body.includes("Delivered bill") && message.body.includes("GPS:")
@@ -349,7 +392,7 @@ test(
     );
     const channelId = userChannels[0]!.uuid;
     const reader = chatContext();
-    assert.equal((await chat.listChannels(reader, {}))[0]!.unreadCount, 1);
+    assert.equal((await chat.listChannels(reader, {}))[0]!.unreadCount, 4);
     const seen = userChat.messages.at(-1)!.id;
     await chat.markRead(reader, channelId, seen);
     assert.equal((await chat.listChannels(reader, {}))[0]!.unreadCount, 0);
@@ -383,8 +426,8 @@ test(
     actorId = actor.id;
     manager = true;
     const adminReports = await send("GET", `/crm/work-reports?taskId=${task.id}`);
-    assert.equal(adminReports.length, 4);
-    assert.ok(adminReports.some((row: { uuid: string }) => row.uuid === checkout.uuid));
+    assert.equal(adminReports.length, 8);
+    assert.ok(adminReports.some((row: { uuid: string }) => row.uuid.endsWith(checkout.uuid)));
     await sql`INSERT INTO crm_enquiries (title,description,enquired_at,created_by,status_id,priority_id,assigned_user_id,enquiry_no) VALUES ('Site visit','Visit customer',UTC_TIMESTAMP(),'task@example.test',${status.id},${priority.id},${field.id},1)`.execute(
       database
     );

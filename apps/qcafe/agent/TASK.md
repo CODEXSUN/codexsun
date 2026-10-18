@@ -222,3 +222,7 @@ The MariaDB integration suite passed with added serial-order, permission, cross-
 ## KOT order badges: 17-10-2026
 
 Table cards and running-order headers show the same deterministic coloured order badge. Clicking a table's running-order badge opens that exact saved order. Billed orders with unreleased seats retain their badge and open the saved bill, using an authorized tenant-local floor-bills lookup rather than reopening an editable order. API/frontend typechecks and the database integration suite passed, including floor-bill access denial and cross-tenant isolation.
+
+## Sidebar overview: 18-10-2026
+
+QCafe hides the company/financial-year sidebar brand block through the existing tenant layout option. Overview appears before POS and opens an app-owned summary of current saved orders with links to POS, KOT, Parcel and Booking. Existing POS route and the main app header remain unchanged. Platform web typecheck, focused lint and QCafe module boundary checks passed. Live local verification was unavailable: the connected browser only had the production codexsun.com POS tab; no production deployment was performed.

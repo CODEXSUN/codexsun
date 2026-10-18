@@ -56,6 +56,7 @@ const comment = z.object({
   id: z.number(),
   uuid: z.string(),
   taskId: z.number(),
+  parentId: z.number().nullable(),
   body: z.string(),
   createdBy: z.string(),
   createdAt: z.union([z.string(), z.date()])
@@ -101,6 +102,7 @@ export function registerTaskRoutes(
           create: z.boolean(),
           update: z.boolean(),
           respond: z.boolean(),
+          reopenClosed: z.boolean(),
           work: z.boolean(),
           reviewClosure: z.boolean()
         })
@@ -113,6 +115,7 @@ export function registerTaskRoutes(
         create: await permissionAvailable(ctx, "crm.task.create"),
         update: await permissionAvailable(ctx, "crm.task.update"),
         respond: await permissionAvailable(ctx, "crm.task.respond"),
+        reopenClosed: ctx.canViewAll,
         work: await permissionAvailable(ctx, "crm.task.work"),
         reviewClosure: await permissionAvailable(ctx, "crm.task.closure.review")
       };
@@ -134,6 +137,7 @@ export function registerTaskRoutes(
         search: z.string().trim().max(191).default(""),
         page: z.coerce.number().int().min(1).default(1),
         pageSize: z.coerce.number().int().min(1).max(200).default(50),
+        contactId: z.coerce.number().int().positive().optional(),
         filter: z.string().trim().max(64).default("all"),
         title: z.string().trim().max(191).default(""),
         listIn: z.string().trim().max(191).default(""),
@@ -152,15 +156,22 @@ export function registerTaskRoutes(
     handler: async ({ request, query }) => {
       const { ctx, work } = await service(await context(request));
       await ctx.authorize("crm.task.view");
-      return work.list(query.search, query.page, query.pageSize, query.filter, {
-        title: query.title,
-        listIn: query.listIn,
-        dueDate: query.dueDate,
-        priority: query.priority,
-        creator: query.creator,
-        assignedTo: query.assignedTo,
-        status: query.status
-      });
+      return work.list(
+        query.search,
+        query.page,
+        query.pageSize,
+        query.filter,
+        {
+          title: query.title,
+          listIn: query.listIn,
+          dueDate: query.dueDate,
+          priority: query.priority,
+          creator: query.creator,
+          assignedTo: query.assignedTo,
+          status: query.status
+        },
+        query.contactId
+      );
     }
   });
   registerContractRoute(app, {
@@ -203,6 +214,7 @@ export function registerTaskRoutes(
           listInId: z.number().int().positive().nullable().optional(),
           priorityId: z.number().int().positive().optional(),
           statusId: z.number().int().positive().optional(),
+          assignedUserId: z.number().int().positive().nullable().optional(),
           dueDate: z.iso.date().nullable().optional()
         })
         .strict()
@@ -216,6 +228,7 @@ export function registerTaskRoutes(
         ...(body.listInId !== undefined ? { listInId: body.listInId } : {}),
         ...(body.priorityId !== undefined ? { priorityId: body.priorityId } : {}),
         ...(body.statusId !== undefined ? { statusId: body.statusId } : {}),
+        ...(body.assignedUserId !== undefined ? { assignedUserId: body.assignedUserId } : {}),
         ...(body.dueDate !== undefined ? { dueDate: body.dueDate } : {})
       });
     }
@@ -260,14 +273,18 @@ export function registerTaskRoutes(
     url: "/crm/tasks/:id/comments",
     schemas: {
       params: id,
-      body: z.object({ body: z.string().trim().min(1).max(10000) }).strict(),
+      body: z
+        .object({
+          body: z.string().trim().min(1).max(10000),
+          parentId: z.number().int().positive().nullable().default(null)
+        })
+        .strict(),
       response: comment
     },
     handler: async ({ params, body, request }) => {
-      const { ctx, repo, work } = await service(await context(request));
+      const { ctx, work } = await service(await context(request));
       await ctx.authorize("crm.task.respond");
-      await work.assertParticipant(params.id);
-      return repo.addComment(params.id, body.body, ctx.actorEmail);
+      return work.addComment(params.id, body.body, body.parentId);
     }
   });
   registerContractRoute(app, {

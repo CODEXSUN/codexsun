@@ -32,7 +32,8 @@ export class TaskService {
     page: number,
     pageSize: number,
     filter: string,
-    columnFilters: TaskColumnFilters
+    columnFilters: TaskColumnFilters,
+    contactId?: number
   ) {
     return this.repo.list(
       this.ctx.canViewAll,
@@ -42,7 +43,8 @@ export class TaskService {
       page,
       pageSize,
       filter,
-      columnFilters
+      columnFilters,
+      contactId
     );
   }
   async get(id: number) {
@@ -90,6 +92,7 @@ export class TaskService {
       listInId?: number | null;
       priorityId?: number;
       statusId?: number;
+      assignedUserId?: number | null;
       dueDate?: string | null;
     }
   ) {
@@ -110,6 +113,17 @@ export class TaskService {
       !(await this.masterLookup.list(patch.listInId))
     )
       throw AppError.validation("Select an active list.");
+    if (
+      patch.assignedUserId !== undefined &&
+      patch.assignedUserId !== null &&
+      !(await this.ctx.database
+        .selectFrom("app_users")
+        .select("id")
+        .where("id", "=", patch.assignedUserId)
+        .where("status", "=", "active")
+        .executeTakeFirst())
+    )
+      throw AppError.validation("Select an active assignee.");
     await this.repo.patchProperties(id, this.ctx.actorEmail, patch);
     return this.get(id);
   }
@@ -124,5 +138,16 @@ export class TaskService {
     throw AppError.forbidden(
       "Only the task creator, assignee, or a CRM task manager can act on this task."
     );
+  }
+  async addComment(taskId: number, body: string, parentId: number | null) {
+    await this.assertParticipant(taskId);
+    const content = body.trim();
+    if (!content) throw AppError.validation("Enter a comment.");
+    if (parentId !== null) {
+      const parent = await this.repo.getComment(taskId, parentId);
+      if (!parent || parent.parent_id !== null)
+        throw AppError.validation("Select a comment from this task to reply to.");
+    }
+    return this.repo.addComment(taskId, content, this.ctx.actorEmail, parentId);
   }
 }

@@ -1,3 +1,8 @@
+import {
+  enquiryWhatsAppMigrationBatch,
+  migrateEnquiryWhatsApp,
+  type WhatsAppDatabase
+} from "./modules/enquiry-whatsapp/index.js";
 import { workReportMigrationBatch, migrateWorkReportModule } from "./modules/work-report/index.js";
 import type { Kysely } from "kysely";
 import { callLogMigrationBatch, migrateCallLogModule } from "./modules/call-log/index.js";
@@ -44,7 +49,8 @@ const batches = [
   dutyReportMigrationBatch,
   frappeSyncMigrationBatch,
   taskMigrationBatch,
-  workReportMigrationBatch
+  workReportMigrationBatch,
+  enquiryWhatsAppMigrationBatch
 ];
 
 export const crmTenantMigrations = batches.flatMap((batch) =>
@@ -56,6 +62,7 @@ export async function migrateCrmTenantDatabase(database: Kysely<EnquiryDatabase>
   await migrateStatusMaster(database as unknown as Kysely<StatusDatabase>);
   await migratePriorityMaster(database as unknown as Kysely<PriorityDatabase>);
   await migrateEnquiryDatabase(database);
+  await migrateEnquiryWhatsApp(database as unknown as Kysely<WhatsAppDatabase>);
   await migrateClosureModule(
     database as unknown as Kysely<import("./modules/closure/index.js").ClosureDatabase>
   );
@@ -86,7 +93,9 @@ export async function migrateCrmTenantDatabase(database: Kysely<EnquiryDatabase>
   await migrateTaskModule(
     database as unknown as Kysely<import("./modules/task/index.js").TaskDatabase>
   );
-  return migrateWorkReportModule(database as unknown as Kysely<import("./modules/work-report/index.js").WorkReportDatabase>);
+  return migrateWorkReportModule(
+    database as unknown as Kysely<import("./modules/work-report/index.js").WorkReportDatabase>
+  );
 }
 
 export const rollbackCrmTenantDatabase = rollbackEnquiryDatabase;

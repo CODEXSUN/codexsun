@@ -103,3 +103,29 @@ test("direct task status changes cannot bypass closure approval", async () => {
   );
   assert.equal(saved, false);
 });
+
+test("property edits reject inactive task assignees", async () => {
+  let saved = false;
+  const repository = {
+    get: async () => task,
+    patchProperties: async () => {
+      saved = true;
+    }
+  } as unknown as TaskRepository;
+  const database = {
+    selectFrom: () => ({
+      select: () => ({
+        where: () => ({
+          where: () => ({ executeTakeFirst: async () => undefined })
+        })
+      })
+    })
+  } as unknown as TaskContext["database"];
+  const service = new TaskService(repository, { ...context(), database });
+
+  await assert.rejects(
+    service.updateProperties(task.id, { assignedUserId: 8 }),
+    /Select an active assignee/i
+  );
+  assert.equal(saved, false);
+});

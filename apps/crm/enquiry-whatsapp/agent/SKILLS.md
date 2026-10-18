@@ -1,0 +1,23 @@
+# Enquiry WhatsApp working rules
+
+Read the parent [CRM README](../../README.md), [CRM TASK](../../agent/TASK.md),
+[CRM PLAN](../../agent/PLAN.md), and [CRM SKILLS](../../agent/SKILLS.md) before
+changing this leaf. This file documents component practice; it does not grant
+runtime capability or weaken backend authorization.
+
+Keep data in the tenant database and derive the recipient from the saved
+Enquiry. Preserve the Enquiry visibility check on both reads and writes. Resolve
+the actor from the authenticated request context; never trust actor identity,
+recipient, or delivery state from the browser. Keep request validation strict,
+retry handling idempotent, and action-history recording in the same transaction
+as a newly inserted handoff. A duplicate retry must not emit another action.
+
+Use forward-only, repeatable migrations and preserve existing rows. Do not
+introduce provider credentials, delivery claims, or external message sending in
+this leaf without an explicitly reviewed contract. Test permission denials and
+tenant isolation, not only successful persistence.
+
+Run checks from the repository root. The focused database test is
+`npm run test:e2e:crm-whatsapp`; also run CRM boundaries, API/web typechecks,
+lint, and production builds. Report local database, browser, live tenant, and
+mobile evidence separately.

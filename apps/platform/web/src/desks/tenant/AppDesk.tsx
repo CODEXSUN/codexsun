@@ -624,6 +624,7 @@ type AppPage =
   | "ecommerce.season-strips"
   | "ecommerce.service-banner"
   | "ecommerce.trusted-strip"
+  | "qcafe.dashboard"
   | "qcafe.overview"
   | "qcafe.menu"
   | "qcafe.settings"
@@ -1456,6 +1457,7 @@ export function AppDesk() {
           </>
         }
         hideSidebarBrand={
+          safePage.startsWith("qcafe.") ||
           activeApp === "ecommerce" ||
           activeApp === "crm" ||
           activeApp === "hrms" ||
@@ -1652,19 +1654,21 @@ export function AppDesk() {
               <QCafeWebApp
                 appearanceSettings={<QCafeAppearance />}
                 workspace={
-                  safePage === "qcafe.kitchen"
-                    ? "kitchen"
-                    : safePage === "qcafe.settings"
-                      ? "settings"
-                      : safePage === "qcafe.menu"
-                        ? "menu"
-                        : safePage === "qcafe.kot"
-                          ? "kot"
-                          : safePage === "qcafe.take-away"
-                            ? "take-away"
-                            : safePage === "qcafe.booking"
-                              ? "booking"
-                              : "pos"
+                  safePage === "qcafe.dashboard"
+                    ? "overview"
+                    : safePage === "qcafe.kitchen"
+                      ? "kitchen"
+                      : safePage === "qcafe.settings"
+                        ? "settings"
+                        : safePage === "qcafe.menu"
+                          ? "menu"
+                          : safePage === "qcafe.kot"
+                            ? "kot"
+                            : safePage === "qcafe.take-away"
+                              ? "take-away"
+                              : safePage === "qcafe.booking"
+                                ? "booking"
+                                : "pos"
                 }
                 onWorkspaceChange={(workspace) =>
                   requestListNavigation(
@@ -2121,6 +2125,7 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     key === "auditor.clients" ||
     key === "tconnect.overview" ||
     key === "ecommerce.overview" ||
+    key === "qcafe.dashboard" ||
     key === "qcafe.overview" ||
     key === "qcafe.menu" ||
     key === "qcafe.settings" ||
@@ -2584,6 +2589,7 @@ function titleForPage(page: AppPage) {
     "sites.studio": "Site Studio",
     "sites.sites": "Client Portfolios",
     "sites.guide": "Developer Guide",
+    "qcafe.dashboard": "Overview",
     "qcafe.overview": "POS",
     "qcafe.menu": "Master",
     "qcafe.settings": "Settings",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CornerUpLeft, MessageSquare, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ export function EnquiryComments({
 }) {
   const client = useQueryClient();
   const [body, setBody] = useState("");
+  const retry = useRef<{ body: string; parentId: string | null; id: string } | null>(null);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -28,13 +29,18 @@ export function EnquiryComments({
     return () => window.clearInterval(timer);
   }, []);
   const save = useMutation({
-    mutationFn: (parentId: string | null) =>
-      createEnquiryComment(enquiryId, body, parentId, "html"),
+    mutationFn: (parentId: string | null) => {
+      if (retry.current?.body !== body || retry.current.parentId !== parentId)
+        retry.current = { body, parentId, id: crypto.randomUUID() };
+      return createEnquiryComment(enquiryId, body, parentId, "html", retry.current.id);
+    },
     onSuccess: async () => {
       setBody("");
       setReplyTo(null);
+      retry.current = null;
       await Promise.all([
         client.invalidateQueries({ queryKey: enquiryCommentsQueryKey(enquiryId) }),
+        client.invalidateQueries({ queryKey: ["crm", "work-reports", Number(enquiryId), null] }),
         client.invalidateQueries({ queryKey: enquiryActivityQueryKey(enquiryId) })
       ]);
       toast.success("Comment added");

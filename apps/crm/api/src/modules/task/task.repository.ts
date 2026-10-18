@@ -61,9 +61,11 @@ export class TaskRepository {
     page: number,
     pageSize: number,
     filter: string,
-    columnFilters: TaskColumnFilters
+    columnFilters: TaskColumnFilters,
+    contactId?: number
   ) {
     let q = this.query();
+    if (contactId !== undefined) q = q.where("t.contact_id", "=", contactId);
     if (!canViewAll) {
       q = q.where((eb) =>
         eb.or([
@@ -230,6 +232,7 @@ export class TaskRepository {
       listInId?: number | null;
       priorityId?: number;
       statusId?: number;
+      assignedUserId?: number | null;
       dueDate?: string | null;
     }
   ) {
@@ -241,6 +244,9 @@ export class TaskRepository {
           ...(patch.listInId !== undefined ? { list_in_id: patch.listInId } : {}),
           ...(patch.priorityId !== undefined ? { priority_id: patch.priorityId } : {}),
           ...(patch.statusId !== undefined ? { status_id: patch.statusId } : {}),
+          ...(patch.assignedUserId !== undefined
+            ? { assigned_user_id: patch.assignedUserId }
+            : {}),
           ...(patch.dueDate !== undefined ? { due_date: patch.dueDate } : {})
         })
         .where("id", "=", id)
@@ -312,26 +318,42 @@ export class TaskRepository {
       users
     };
   }
-  async addComment(taskId: number, body: string, actor: string) {
+  async getComment(taskId: number, commentId: number) {
+    return this.db
+      .selectFrom("crm_task_comments")
+      .select(["id", "task_id", "parent_id"])
+      .where("id", "=", commentId)
+      .where("task_id", "=", taskId)
+      .executeTakeFirst();
+  }
+  async addComment(taskId: number, body: string, actor: string, parentId: number | null = null) {
     return this.db.transaction().execute(async (trx) => {
       const result = await trx
         .insertInto("crm_task_comments")
         .values({
           uuid: publicUuid(),
           task_id: taskId,
+          parent_id: parentId,
           body,
           created_by: actor,
           created_at: sql`UTC_TIMESTAMP()`,
           updated_at: sql`UTC_TIMESTAMP()`
         })
         .executeTakeFirstOrThrow();
-      await this.insertActivity(trx, taskId, "comment", body, actor);
+      await this.insertActivity(
+        trx,
+        taskId,
+        parentId === null ? "comment" : "reply-added",
+        parentId === null ? body : "Reply added",
+        actor
+      );
       return trx
         .selectFrom("crm_task_comments")
         .select([
           "id",
           "uuid",
           "task_id as taskId",
+          "parent_id as parentId",
           "body",
           "created_by as createdBy",
           "created_at as createdAt"
@@ -347,6 +369,7 @@ export class TaskRepository {
         "id",
         "uuid",
         "task_id as taskId",
+        "parent_id as parentId",
         "body",
         "created_by as createdBy",
         "created_at as createdAt"

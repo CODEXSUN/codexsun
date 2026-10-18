@@ -10,7 +10,7 @@ import type {
 import { commentPlainText, sanitizeCommentHtml } from "./enquiry.comment-html.js";
 
 export type EnquiryRelations = {
-  contact: (id: number) => Promise<{ name: string } | null>;
+  contact: (id: number) => Promise<{ name: string; primaryPhone?: string | null } | null>;
   resolveOrCreateCustomer: (
     input: {
       name: string | null;
@@ -179,7 +179,8 @@ export class EnquiryService {
     body: string,
     parentId: number | null,
     actor: string,
-    bodyFormat: "plain" | "html" = "plain"
+    bodyFormat: "plain" | "html" = "plain",
+    requestId?: string
   ) {
     await this.get(id);
     const text = bodyFormat === "html" ? sanitizeCommentHtml(body) : body.trim();
@@ -192,7 +193,7 @@ export class EnquiryService {
         throw AppError.validation("Select a comment from this enquiry to reply to.");
       }
     }
-    return this.repository.addComment(id, parentId, text, bodyFormat, actor);
+    return this.repository.addComment(id, parentId, text, bodyFormat, actor, requestId);
   }
 
   private async prepare(input: EnquiryInput, current: EnquiryRecord | null): Promise<EnquiryInput> {

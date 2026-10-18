@@ -3,12 +3,14 @@ export type WorkReport = {
   id: number;
   uuid: string;
   action: string;
+  comment_id?: number | null;
   body: string;
   latitude: string | null;
   longitude: string | null;
   accuracy_meters: string | null;
   captured_at: string | null;
   created_by: string;
+  created_by_name?: string;
   created_at: string;
 };
 export type WorkReportPayload = WorkReportTarget & {

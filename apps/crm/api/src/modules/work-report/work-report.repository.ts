@@ -1,3 +1,4 @@
+import { WorkReportHistory } from "./work-report.history.js";
 import { randomBytes } from "node:crypto";
 import { sql, type Kysely, type Transaction } from "kysely";
 import { AppError } from "@codexsun/framework/errors";
@@ -25,25 +26,33 @@ export class WorkReportRepository {
     if (!row) throw AppError.notFound("Assigned work was not found.");
     return row;
   }
-  async list(target: WorkReportTarget) {
-    return this.db
+  async checkpoint(target: WorkReportTarget, actor: string) {
+    const last = await this.db
       .selectFrom("crm_work_reports")
-      .selectAll()
+      .select("action")
       .where(
         target.enquiryId !== null ? "enquiry_id" : "task_id",
         "=",
         target.enquiryId ?? target.taskId!
       )
+      .where("created_by", "=", actor)
+      .where("action", "in", ["check-in", "check-out"])
       .orderBy("id", "desc")
-      .limit(200)
-      .execute();
+      .executeTakeFirst();
+    return { checkedIn: last?.action === "check-in" };
+  }
+  async list(target: WorkReportTarget) {
+    return (await this.history(target, 1, 200)).items;
+  }
+  history(target: WorkReportTarget, page: number, pageSize: number, checkpoints = false) {
+    return new WorkReportHistory(this.db).page(target, page, pageSize, checkpoints);
   }
   async create(input: WorkReportInput, context: WorkReportContext) {
     return this.db.transaction().execute(async (trx) => this.insert(trx, input, context, true));
   }
   async insert(
     trx: Transaction<WorkReportDatabase>,
-    input: WorkReportInput,
+    input: Omit<WorkReportInput, "action"> & { action: string },
     context: WorkReportContext,
     enforceAssignment = false
   ) {

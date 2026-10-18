@@ -183,6 +183,7 @@ const capabilityBackendRoles = new Map([
   ["crm-api/activities", ["module", "service", "repository", "routes", "types"]],
   ["crm-api/closure", ["module", "routes", "migration", "seed", "types"]],
   ["crm-api/work-report", ["module", "service", "repository", "routes", "migration", "types"]],
+  ["crm-api/enquiry-whatsapp", ["module", "service", "repository", "routes", "migration", "types"]],
   ["crm-api/enquiry-location", ["module", "service", "repository", "routes", "migration", "types"]],
   ["crm-api/call-log", ["module", "service", "routes", "seed", "types"]],
   ["crm-api/list-in", reducedBackendRoles],

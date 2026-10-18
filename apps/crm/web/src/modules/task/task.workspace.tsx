@@ -57,7 +57,7 @@ export function TaskWorkspace({
   const [showInlineFilters, setShowInlineFilters] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [rowsPerPage, setRowsPerPage] = useState(100);
   const [editing, setEditing] = useState<TaskRecord | null | undefined>(
     initialCreate ? null : undefined
   );
@@ -100,6 +100,9 @@ export function TaskWorkspace({
     if (query.data && page > Math.max(1, Math.ceil(query.data.total / rowsPerPage)))
       setPage(Math.max(1, Math.ceil(query.data.total / rowsPerPage)));
   }, [query.data, page, rowsPerPage]);
+  const total = query.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+  const currentPage = Math.min(page, totalPages);
 
   if (editing !== undefined) {
     if (!options.data)
@@ -236,22 +239,24 @@ export function TaskWorkspace({
         }}
         onHideInlineFilters={() => setShowInlineFilters(false)}
       />
-      <WorkspacePagination
-        page={page}
-        rowsPerPage={rowsPerPage}
-        rowsPerPageOptions={[20, 50, 100, 200]}
-        totalCount={query.data?.total ?? 0}
-        totalPages={Math.max(1, Math.ceil((query.data?.total ?? 0) / rowsPerPage))}
-        showingLabel={buildShowingLabel(page, rowsPerPage, query.data?.total ?? 0)}
-        singularLabel="task"
-        onPageChange={setPage}
-        onNextPage={() => setPage((current) => current + 1)}
-        onPreviousPage={() => setPage((current) => Math.max(1, current - 1))}
-        onRowsPerPageChange={(size) => {
-          setRowsPerPage(size);
-          setPage(1);
-        }}
-      />
+      {totalPages > 1 ? (
+        <WorkspacePagination
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={[20, 50, 100]}
+          totalCount={total}
+          totalPages={totalPages}
+          showingLabel={buildShowingLabel(currentPage, rowsPerPage, total)}
+          singularLabel="task"
+          onPageChange={setPage}
+          onNextPage={() => setPage((current) => Math.min(totalPages, current + 1))}
+          onPreviousPage={() => setPage((current) => Math.max(1, current - 1))}
+          onRowsPerPageChange={(size) => {
+            setRowsPerPage(size);
+            setPage(1);
+          }}
+        />
+      ) : null}
     </WorkspacePage>
   );
 }

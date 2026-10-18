@@ -36,6 +36,7 @@ const row = z.object({
   enquiry_id: z.number().nullable(),
   task_id: z.number().nullable(),
   action: z.string(),
+  comment_id: z.number().nullable().optional(),
   body: z.string(),
   request_id: z.string(),
   latitude: z.union([z.string(), z.number()]).nullable(),
@@ -43,6 +44,7 @@ const row = z.object({
   accuracy_meters: z.union([z.string(), z.number()]).nullable(),
   captured_at: z.union([z.string(), z.date()]).nullable(),
   created_by: z.string(),
+  created_by_name: z.string().optional(),
   created_at: z.union([z.string(), z.date()]),
   updated_at: z.union([z.string(), z.date()]),
   status: z.string()
@@ -56,6 +58,44 @@ export function registerWorkReportRoutes(
     url: "/crm/work-reports",
     schemas: { querystring: target, response: z.array(row) },
     handler: async ({ request, query }) => new WorkReportService(await context(request)).list(query)
+  });
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/crm/work-reports/checkpoint",
+    schemas: { querystring: target, response: z.object({ checkedIn: z.boolean() }) },
+    handler: async ({ request, query }) =>
+      new WorkReportService(await context(request)).checkpoint(query)
+  });
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/crm/work-reports/history",
+    schemas: {
+      querystring: z
+        .object({
+          enquiryId: z.coerce.number().int().positive().nullable().default(null),
+          taskId: z.coerce.number().int().positive().nullable().default(null),
+          page: z.coerce.number().int().positive().default(1),
+          pageSize: z.coerce.number().int().min(1).max(200).default(25),
+          filter: z.enum(["all", "checkpoints"]).default("all")
+        })
+        .refine(
+          (v) => (v.enquiryId === null) !== (v.taskId === null),
+          "Select one enquiry or task."
+        ),
+      response: z.object({
+        items: z.array(row),
+        total: z.number(),
+        page: z.number(),
+        pageSize: z.number()
+      })
+    },
+    handler: async ({ request, query }) =>
+      new WorkReportService(await context(request)).history(
+        query,
+        query.page,
+        query.pageSize,
+        query.filter === "checkpoints"
+      )
   });
   registerContractRoute(app, {
     method: "POST",
