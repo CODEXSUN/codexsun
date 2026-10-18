@@ -38,7 +38,8 @@ export async function readKnowledgeSource(source: KnowledgeSource) {
   if (!path.startsWith(root + sep) || (await stat(path)).size > 128000)
     throw new Error("Invalid documentation source");
   const body = await readFile(path, "utf8");
-  if (createHash("sha256").update(body).digest("hex") !== source.sourceHash)
+  const normalizedBody = body.replace(/\r\n/g, "\n");
+  if (createHash("sha256").update(normalizedBody).digest("hex") !== source.sourceHash)
     throw new Error("Documentation source hash mismatch; rebuild the catalog.");
   return body;
 }

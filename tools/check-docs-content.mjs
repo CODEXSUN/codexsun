@@ -15,7 +15,8 @@ for (const page of catalog.pages) {
   const path = resolve(root, page.sourcePath);
   assert.ok(path.startsWith(root + sep));
   const body = await readFile(path, "utf8");
-  const hash = createHash("sha256").update(body).digest("hex");
+  const normalizedBody = body.replace(/\r\n/g, "\n");
+  const hash = createHash("sha256").update(normalizedBody).digest("hex");
   if (process.argv.includes("--refresh-hashes")) page.sourceHash = hash;
   else
     assert.equal(
