@@ -19,6 +19,14 @@
 
 ## Enquiry live sync and source timestamps - 2026-10-18
 
+- [x] Limit scheduled CRM-to-Frappe exports to Enquiries; do not automatically export Contacts,
+      Activities, or Call Logs without separate approval. Regression:
+      `frappe-live-sync.policy.test.ts` (2/2).
+- [ ] Deploy the current sync changes. Production preflight is blocked because the guarded updater
+      expects Compose project `codexsun-billing` / service `platform-api`, while the live API is
+      owned by project `codexsun` / service `codexsun-api`; the checked-in updater's deployment
+      environment also does not match the active release. Preflight stopped before backup or
+      container changes. CXApp and all current application containers remained running.
 - [ ] Preserve exact Frappe creation/modified timestamps and comment timestamps when importing or
       reconciling enquiries. Incrementally receive Frappe changes and post CRM enquiry creates and
       updates to the verified linked Frappe document through the live queue.

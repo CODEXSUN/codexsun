@@ -9,6 +9,7 @@ import { env } from "../../env.js";
 import { getTenantDatabase } from "../../database/tenant-database.js";
 import { TenantRepository } from "../tenant/tenant.repository.js";
 import type { QueueManagerService } from "./queue-manager.service.js";
+import { approvedFrappeAutomaticExports } from "./frappe-live-sync.policy.js";
 
 // Replaying a day protects inbound delivery when queue retries or a scheduler pass is delayed.
 // The importer skips enquiries already synced at an equal or newer Frappe modified timestamp.
@@ -27,7 +28,8 @@ export function startFrappeLiveSyncScheduler(queue: QueueManagerService) {
           const liveSync = new FrappeLiveSyncService(database);
           const previous = await liveSync.settings();
           const kinds = await liveSync.dueKinds();
-          for (const kind of kinds) await enqueue(queue, tenant.uuid, tenant.dbName, kind);
+          for (const kind of approvedFrappeAutomaticExports(kinds))
+            await enqueue(queue, tenant.uuid, tenant.dbName, kind);
           if (kinds.includes("enquiries")) {
             const connection = await new FrappeConnectionAccess(database, env.JWT_SECRET, {
               baseUrl: env.CODEXSUN_FRAPPE_BASE_URL,

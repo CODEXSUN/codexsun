@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.18
+Current version: 1.1.19
 
-Release tag: v-1.1.18
+Release tag: v-1.1.19
 
-Changelog label: v 1.1.18
+Changelog label: v 1.1.19
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,22 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.19
+
+### [v 1.1.19] 2026-10-18 8:38 pm - Restrict automatic Frappe exports to enquiries
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.19.
+- Restrict scheduled Frappe exports to Enquiries; Contacts, Activities, and Call Logs are excluded until their outbound scope is approved.
+- Add regression coverage for the automatic-export allowlist and document its policy in the Frappe component guide.
+- Production rollout remains pending: the guarded updater expects Docker project `codexsun-billing` / service `platform-api`, while the live API is owned by project `codexsun` / service `codexsun-api`. Preflight stopped before creating a backup or changing containers.
+- Validation: automatic-export policy tests, all 102 CRM/Frappe unit tests, CRM Duties E2E, Mobile Contact Customer E2E, CRM contact-upsert E2E, Platform API typecheck/lint, Frappe boundaries, version check, and component documentation check pass.
 
 ## v-1.1.18
 
