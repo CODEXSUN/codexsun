@@ -116,14 +116,20 @@ export class EnquiryService {
       });
       prepared = { ...prepared, contactId: contact.id, capturedName: contact.name };
     }
-    const record = await this.repository.create(
-      prepared,
-      actor,
-      source.externalCustomer && this.relations.resolveExternalCustomer
-        ? undefined
-        : (transaction) => this.resolveContact(prepared, transaction),
-      source
-    );
+    let record: EnquiryRecord | null;
+    try {
+      record = await this.repository.create(
+        prepared,
+        actor,
+        source.externalCustomer && this.relations.resolveExternalCustomer
+          ? undefined
+          : (transaction) => this.resolveContact(prepared, transaction),
+        source
+      );
+    } catch (error) {
+      if (source.externalCustomer || !isAmbiguousContactMatch(error)) throw error;
+      record = await this.repository.create(prepared, actor, undefined, source);
+    }
     if (!record) throw AppError.notFound("Enquiry could not be created.");
     return this.withContact(record);
   }
@@ -379,4 +385,14 @@ function titleFromMessage(message: string | null) {
   return Array.from((message ?? "").replace(/\s+/gu, " ").trim())
     .slice(0, 100)
     .join("");
+}
+
+function isAmbiguousContactMatch(error: unknown) {
+  if (!(error instanceof AppError) || error.code !== "CONFLICT") return false;
+  return (
+    typeof error.details === "object" &&
+    error.details !== null &&
+    "reason" in error.details &&
+    error.details.reason === "ambiguous-mobile-match"
+  );
 }

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { EnquiryService, type EnquiryRelations } from "./enquiry.service.js";
+import { AppError } from "@codexsun/framework/errors";
 import type { EnquiryRepository } from "./enquiry.repository.js";
 import type { EnquiryInput, EnquiryListOptions, EnquiryRecord } from "./enquiry.types.js";
 
@@ -252,4 +253,55 @@ test("Frappe imports preserve closed status while local updates still require ap
     service.updateProperties(7, { statusId: 5, closedReason: "Finished" }, "creator@example.com"),
     /closure approval workflow/i
   );
+});
+
+test("Frappe import keeps ambiguous contacts on the enquiry snapshot without linking arbitrarily", async () => {
+  let createCount = 0;
+  const repository = {
+    create: async (
+      input: EnquiryInput,
+      _actor: string,
+      resolveContact?: (transaction: never) => Promise<EnquiryInput>
+    ) => {
+      createCount += 1;
+      if (resolveContact)
+        await resolveContact({} as never).then(() => {
+          throw new Error("Expected an ambiguous contact match.");
+        });
+      return { ...record(), ...input } as EnquiryRecord;
+    }
+  } as unknown as EnquiryRepository;
+  const service = new EnquiryService(
+    repository,
+    {
+      ...relations,
+      resolveOrCreateCustomer: async () => {
+        throw AppError.conflict("Ambiguous contact match.", {
+          reason: "ambiguous-mobile-match"
+        });
+      }
+    },
+    { actorEmail: "system:frappe-import", actorUserId: null, canViewAll: true }
+  );
+
+  const result = await service.createImported(
+    {
+      ...record(),
+      contactId: null,
+      source: "frappe",
+      sourceReference: "ENQ650",
+      capturedPhone: "9994885548"
+    },
+    "system:frappe-import",
+    {
+      enquiryNo: 650,
+      createdAt: "2026-10-06T10:00:00.000Z",
+      updatedAt: "2026-10-07T11:30:00.000Z",
+      createdBy: "creator@example.com"
+    }
+  );
+
+  assert.equal(createCount, 2);
+  assert.equal(result.contactId, null);
+  assert.equal(result.capturedPhone, "9994885548");
 });

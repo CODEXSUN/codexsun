@@ -39,7 +39,8 @@ export class ContactService {
       const matches = await this.repository.findByMobile(phone);
       if (matches.length > 1) {
         throw AppError.conflict(
-          "More than one Core contact uses this mobile number. Select a customer."
+          "More than one Core contact uses this mobile number. Select a customer.",
+          { reason: "ambiguous-mobile-match" }
         );
       }
       const match = matches[0];

@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.14
+Current version: 1.1.15
 
-Release tag: v-1.1.14
+Release tag: v-1.1.15
 
-Changelog label: v 1.1.14
+Changelog label: v 1.1.15
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,20 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.15
+
+### [v 1.1.15] 2026-10-18 7:12 pm - Frappe import ambiguous contact recovery
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.15.
+- Preserve imported enquiries and Frappe history without attaching an arbitrary Core contact when a mobile number matches multiple contacts and Frappe has no Customer identity.
+- Keep local contact creation and closure approval rules unchanged; focused CRM/Frappe tests pass. Live retry and reconciliation are pending deployment.
 
 ## v-1.1.14
 
