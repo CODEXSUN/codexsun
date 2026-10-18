@@ -103,7 +103,9 @@ export class FrappeEnquirySyncService {
       for (const name of names) {
         progress.scanned += 1;
         try {
-          const result = await this.pullWithSettings(name, settings);
+          // A bulk import is explicitly source-directed: Frappe values, including
+          // modified timestamps, are authoritative for this reconciliation pass.
+          const result = await this.pullWithSettings(name, settings, true);
           if (result.status === "updated") progress.skipped += 1;
           else progress.created += 1;
         } catch (error) {
@@ -143,7 +145,11 @@ export class FrappeEnquirySyncService {
     return this.pullWithSettings(remoteName, settings);
   }
 
-  private async pullWithSettings(remoteName: string, settings: FrappeSettings) {
+  private async pullWithSettings(
+    remoteName: string,
+    settings: FrappeSettings,
+    allowSourceOverwrite = false
+  ) {
     const response = await requestFrappe<{ data?: RemoteEnquiry }>(
       `/api/resource/Enquiry/${encodeURIComponent(remoteName)}?fields=${encodeURIComponent(JSON.stringify(detailFields))}`,
       "GET",
@@ -182,7 +188,11 @@ export class FrappeEnquirySyncService {
     }
     if (linked && linked.source !== "frappe")
       throw AppError.conflict("This enquiry originated locally. Post its changes to Frappe.");
-    if (linked && utcMillis(linked.updatedAt) > utcMillis(linked.syncedAt))
+    if (
+      linked &&
+      !allowSourceOverwrite &&
+      utcMillis(linked.updatedAt) > utcMillis(linked.syncedAt)
+    )
       throw AppError.conflict(
         "The local enquiry changed after its last sync. Review it before pulling."
       );

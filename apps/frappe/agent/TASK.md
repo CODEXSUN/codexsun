@@ -4,6 +4,8 @@
 
 - [ ] Deploy and verify TECHMEDIA Frappe enquiry import with source serials, creation/modified dates, mapped owner/assignee, site-scoped Customer identity, comments, audit history, and live Redis/BullMQ batches. Begin with a small selected-row test, then continue the queue until all 1,983 source enquiries are accounted for. Do not touch other tenant databases.
 
+  Live progress: selected-row import verified ENQ1–ENQ5. Queue job 14 on Redis/BullMQ scanned 1,984 source rows and exposed 16 ambiguous-mobile rows; release 1.1.15 imported them without arbitrary Core contact links. A second ordered pass (job 19) scanned 1,984 and found 15 local-newer conflicts, so release 1.1.16 now lets only the explicit bulk import reconcile Frappe source metadata over those local timestamps. Deploy/retry and full parity checks remain pending; only `techmedia_db` has been used, with no backup or schema migration.
+
 - [x] Separate Frappe-to-CRM imports from CRM-to-Frappe exports in the API and web labels.
 - [x] Report connection usability and queue-worker availability to the web client.
 - [x] Reject queued import and export jobs when the background worker is disabled.

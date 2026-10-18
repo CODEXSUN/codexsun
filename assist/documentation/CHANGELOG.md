@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.15
+Current version: 1.1.16
 
-Release tag: v-1.1.15
+Release tag: v-1.1.16
 
-Changelog label: v 1.1.15
+Changelog label: v 1.1.16
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,18 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.16
+
+### [v 1.1.16] 2026-10-18 7:28 pm - Frappe bulk import conflict recovery
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.16.
 
 ## v-1.1.15
 

@@ -209,6 +209,65 @@ test("imports unlinked enquiries across multiple remote batches", async () => {
   assert.deepEqual(created, names);
 });
 
+test("bulk import reconciles source values over newer local timestamps", async () => {
+  const scope = database({
+    enquiryId: 42,
+    syncedAt: "2026-10-18 10:00:00",
+    updatedAt: "2026-10-18 17:05:00",
+    source: "frappe",
+    contactId: null,
+    assignedUserId: null,
+    listInId: null
+  });
+  const updated: Array<{ createdAt: string; updatedAt: string; createdBy: string }> = [];
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/Enquiry"))
+      return Response.json({ data: [{ name: "ENQ27" }] });
+    if (url.pathname.endsWith("/get_count")) return Response.json({ message: 1 });
+    return Response.json({
+      data: {
+        name: "ENQ27",
+        creation: "2026-10-06 10:00:00",
+        modified: "2026-10-18 17:05:00",
+        owner: "agent@example.com",
+        title: "Machine issue",
+        enquiry_details: "Machine stopped",
+        mobile: "9994885548",
+        date: "2026-10-06",
+        status: "New",
+        priority: "Normal"
+      }
+    });
+  };
+  const service = new FrappeEnquirySyncService(
+    {
+      database: scope.value,
+      createEnquiry: async () => {
+        throw new Error("Unexpected create");
+      },
+      updateEnquiry: async () => {
+        throw new Error("Unexpected local update");
+      },
+      updateImportedEnquiry: async (_id, _input, source) => {
+        updated.push(source);
+        return { id: 42 } as EnquiryRecord;
+      },
+      localUserForEmployee: async () => null,
+      listInForName: async () => null
+    },
+    defaults,
+    "secret"
+  );
+
+  const result = await service.importUnlinked(async () => {});
+
+  assert.equal(result.scanned, 1);
+  assert.equal(result.failed, 0);
+  assert.equal(result.skipped, 1);
+  assert.equal(updated[0]?.updatedAt, "2026-10-18T17:05:00.000Z");
+});
+
 test("queued import stops when the Frappe connection has changed", async () => {
   const scope = database();
   globalThis.fetch = async () => {
