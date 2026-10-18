@@ -108,7 +108,7 @@ export class EnquiryService {
     if (input.capturedPhone?.trim() && !/^\d{10}$/.test(input.capturedPhone.trim())) {
       throw AppError.validation("Enter a 10-digit mobile number.");
     }
-    let prepared = await this.prepare(input, null);
+    let prepared = await this.prepare(input, null, true);
     if (source.externalCustomer && this.relations.resolveExternalCustomer) {
       const contact = await this.relations.resolveExternalCustomer({
         ...source.externalCustomer,
@@ -161,7 +161,17 @@ export class EnquiryService {
             externalCode: source.externalCustomer.code
           })
         : null;
-    const record = await this.update(id, input, actor, externalContact?.id ?? null);
+    const current = await this.get(id);
+    const prepared = await this.prepare(input, current, true);
+    const record = await this.repository.update(
+      id,
+      prepared,
+      actor,
+      "Enquiry updated from Frappe",
+      current.statusId,
+      async () => ({ ...prepared, contactId: externalContact?.id ?? null })
+    );
+    if (!record) throw AppError.notFound("Enquiry was not found.");
     const metadata = {
       createdAt: source.createdAt,
       updatedAt: source.updatedAt,
@@ -282,7 +292,11 @@ export class EnquiryService {
     return this.repository.addComment(id, parentId, text, bodyFormat, actor, requestId);
   }
 
-  private async prepare(input: EnquiryInput, current: EnquiryRecord | null): Promise<EnquiryInput> {
+  private async prepare(
+    input: EnquiryInput,
+    current: EnquiryRecord | null,
+    imported = false
+  ): Promise<EnquiryInput> {
     if (
       !this.viewer.canViewAll &&
       (current
@@ -308,11 +322,11 @@ export class EnquiryService {
     if (!status) {
       throw AppError.validation("Select an active enquiry status.");
     }
-    if (status.code === "closed" && current?.status !== "closed") {
+    if (!imported && status.code === "closed" && current?.status !== "closed") {
       throw AppError.validation("Enquiries must be closed through the closure approval workflow.");
     }
     const terminal = new Set(["won", "lost", "closed"]);
-    if (current && current.status !== status.code) {
+    if (!imported && current && current.status !== status.code) {
       if (terminal.has(current.status) && status.code !== "reopen") {
         throw AppError.validation("Re-open this enquiry before changing its status.");
       }

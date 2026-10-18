@@ -104,7 +104,7 @@ export class FrappeEnquirySyncService {
         progress.scanned += 1;
         try {
           const result = await this.pullWithSettings(name, settings);
-          if (result.status === "linked") progress.skipped += 1;
+          if (result.status === "updated") progress.skipped += 1;
           else progress.created += 1;
         } catch (error) {
           progress.failed += 1;
@@ -152,17 +152,32 @@ export class FrappeEnquirySyncService {
     const remote = response.data;
     if (!remote || remote.name !== remoteName)
       throw AppError.validation("The selected Frappe enquiry could not be found.");
-    const linked = await this.repository.byRemoteName(remoteName);
+    let linked = await this.repository.byRemoteName(remoteName);
     if (!linked) {
       const existing = await this.context.database
         .selectFrom("crm_enquiries")
-        .select("id")
+        .select([
+          "id",
+          "source",
+          "updated_at as updatedAt",
+          "contact_id as contactId",
+          "assigned_user_id as assignedUserId",
+          "list_in_id as listInId"
+        ])
         .where("source", "=", "frappe")
         .where("source_reference", "=", remoteName)
         .executeTakeFirst();
       if (existing) {
         await this.repository.save(existing.id, remoteName);
-        return { remoteName, enquiryId: existing.id, status: "linked" as const };
+        linked = {
+          enquiryId: existing.id,
+          source: existing.source,
+          updatedAt: existing.updatedAt,
+          contactId: existing.contactId,
+          assignedUserId: existing.assignedUserId,
+          listInId: existing.listInId,
+          syncedAt: new Date().toISOString()
+        };
       }
     }
     if (linked && linked.source !== "frappe")

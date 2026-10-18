@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.13
+Current version: 1.1.14
 
-Release tag: v-1.1.13
+Release tag: v-1.1.14
 
-Changelog label: v 1.1.13
+Changelog label: v 1.1.14
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,21 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.14
+
+### [v 1.1.14] 2026-10-18 6:58 pm - Frappe enquiry import recovery
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.14.
+- Persist Frappe sync timestamps in MariaDB `DATETIME` format and make retries repair already-created enquiries, source links, contacts, and comments.
+- Preserve closed Frappe statuses through the import-only CRM path while keeping local closure approval checks enforced.
+- Validation: CRM/Frappe unit and isolated API tests pass; the live TECHMEDIA import is paused for this fix and still needs a resumed queue run and reconciliation.
 
 ## v-1.1.13
 

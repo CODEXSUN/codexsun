@@ -27,7 +27,15 @@ function database(
     assignedUserId: number | null;
     listInId: number | null;
   },
-  lookups: string[] = []
+  lookups: string[] = [],
+  existing?: {
+    id: number;
+    source: string;
+    updatedAt: string;
+    contactId: number | null;
+    assignedUserId: number | null;
+    listInId: number | null;
+  }
 ) {
   let saved = false;
   const query = (table: string) => {
@@ -47,6 +55,7 @@ function database(
       executeTakeFirst: async () => {
         if (table === "frappe_connection_settings") return null;
         if (table === "frappe_enquiry_sync as sync") return link ?? null;
+        if (table === "crm_enquiries") return existing ?? null;
         if (table === "crm_enquiry_statuses") return { id: 2, code: "new" };
         if (table === "crm_enquiry_priorities") return { id: 3 };
         return null;
@@ -292,6 +301,81 @@ test("pull creates a local enquiry and records the remote identity", async () =>
   assert.equal(created[0]?.statusId, 2);
   assert.equal(created[0]?.assignedUserId, 7);
   assert.equal(created[0]?.listInId, 9);
+  assert.equal(scope.wasSaved(), true);
+});
+
+test("pull repairs an imported enquiry missing its Frappe link and resumes comments", async () => {
+  const scope = database(undefined, [], {
+    id: 42,
+    source: "frappe",
+    updatedAt: "2026-10-07 11:30:00",
+    contactId: 12,
+    assignedUserId: 7,
+    listInId: 9
+  });
+  let updated = false;
+  const importedComments: string[] = [];
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/Comment"))
+      return Response.json({
+        data: [
+          {
+            name: "COMM-1",
+            content: "Followed up",
+            owner: "agent@example.com",
+            creation: "2026-10-07 12:30:00",
+            comment_type: "Comment"
+          }
+        ]
+      });
+    return Response.json({
+      data: {
+        name: "ENQ27",
+        creation: "2026-10-06 10:00:00",
+        modified: "2026-10-07 11:30:00",
+        owner: "agent@example.com",
+        title: "Machine issue",
+        mobile: "9994885548",
+        date: "2026-10-06",
+        status: "New",
+        priority: "Normal"
+      }
+    });
+  };
+  const service = new FrappeEnquirySyncService(
+    {
+      database: scope.value,
+      createEnquiry: async () => {
+        throw new Error("Unexpected create");
+      },
+      updateImportedEnquiry: async (id, input, source) => {
+        assert.equal(id, 42);
+        assert.equal(input.sourceReference, "ENQ27");
+        assert.equal(source.createdAt, "2026-10-06T10:00:00.000Z");
+        updated = true;
+        return { id } as EnquiryRecord;
+      },
+      updateEnquiry: async () => {
+        throw new Error("Unexpected legacy update");
+      },
+      importComment: async (_id, comment) => {
+        importedComments.push(comment.id);
+      },
+      localUserForEmployee: async () => null,
+      listInForName: async () => null
+    },
+    defaults,
+    "secret"
+  );
+
+  assert.deepEqual(await service.pull("ENQ27"), {
+    remoteName: "ENQ27",
+    enquiryId: 42,
+    status: "updated"
+  });
+  assert.equal(updated, true);
+  assert.deepEqual(importedComments, ["COMM-1"]);
   assert.equal(scope.wasSaved(), true);
 });
 

@@ -158,10 +158,11 @@ export class FrappeConnectionRepository {
   }
 
   async save(enquiryId: number, remoteName: string) {
+    const syncedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
     await this.database
       .insertInto("frappe_enquiry_sync")
       .values({ enquiry_id: enquiryId, remote_name: remoteName })
-      .onDuplicateKeyUpdate({ remote_name: remoteName, synced_at: new Date().toISOString() })
+      .onDuplicateKeyUpdate({ remote_name: remoteName, synced_at: syncedAt })
       .execute();
   }
 

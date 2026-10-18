@@ -214,3 +214,42 @@ test("closed status is applied only by closure approval", async () => {
     /closure approval workflow/i
   );
 });
+
+test("Frappe imports preserve closed status while local updates still require approval", async () => {
+  const current = record();
+  let saved: EnquiryInput | undefined;
+  let sourceMetadataSaved = false;
+  const repository = {
+    get: async () => current,
+    update: async (_id: number, input: EnquiryInput) => {
+      saved = input;
+      return { ...current, ...input, status: "closed" } as EnquiryRecord;
+    },
+    setImportedSourceMetadata: async () => {
+      sourceMetadataSaved = true;
+    }
+  } as unknown as EnquiryRepository;
+  const service = new EnquiryService(repository, relations, {
+    actorEmail: "system:frappe-import",
+    actorUserId: null,
+    canViewAll: true
+  });
+
+  await service.updateImported(
+    7,
+    { ...record(5), source: "frappe", sourceReference: "ENQ7", closedReason: "Closed in Frappe" },
+    "system:frappe-import",
+    {
+      createdAt: "2026-10-06T10:00:00.000Z",
+      updatedAt: "2026-10-07T11:30:00.000Z",
+      createdBy: "creator@example.com"
+    }
+  );
+
+  assert.equal(saved?.statusId, 5);
+  assert.equal(sourceMetadataSaved, true);
+  await assert.rejects(
+    service.updateProperties(7, { statusId: 5, closedReason: "Finished" }, "creator@example.com"),
+    /closure approval workflow/i
+  );
+});
