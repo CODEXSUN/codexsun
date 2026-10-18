@@ -19,6 +19,11 @@
 
 ## Enquiry live sync and source timestamps - 2026-10-18
 
+- [x] Enforce the approved outbound scope at the Frappe export service boundary: enquiries may be
+      exported; contacts, activities, and call logs are blocked for both manual and queued requests.
+      Verification remains available for every kind. Imports and stored data are unchanged.
+      Regression: `export.policy.test.ts`.
+
 - [x] Limit scheduled CRM-to-Frappe exports to Enquiries; do not automatically export Contacts,
       Activities, or Call Logs without separate approval. Regression:
       `frappe-live-sync.policy.test.ts` (2/2).

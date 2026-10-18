@@ -49,12 +49,11 @@ the Frappe comment identity. A saved verified connection must be able to read En
 Comment resources. If any source record cannot be read or mapped, that row is reported as failed and
 must be resolved before declaring the import complete.
 
-CRM-to-Frappe has separate controls. The Live Sync page schedules contacts, enquiries, activities,
-and call logs. Automatic scheduled export is restricted to enquiries; contacts, activities, and
-call logs are not automatically exported because their outbound scope is not approved. Contact
-export is restricted to a verified Customer/Supplier document ID and a Mobile Contact containing
-only the local mobile number. Other outbound modules remain governed by their documented scope.
-CRM also has an approved automatic outbox for SOP items, duty assignments, and duty reports.
+CRM-to-Frappe has separate controls. The Live Sync page may verify contacts, enquiries, activities,
+and call logs, but outbound export is restricted to enquiries at the Frappe service boundary for
+both manual requests and queued jobs. Contacts, activities, and call logs remain blocked until their
+outbound scope is approved. Imports are unchanged. CRM also has an approved automatic outbox for SOP
+items, duty assignments, and duty reports.
 
 The connection API reports whether the connection is usable and whether background workers are
 enabled. Queued imports and exports reject new jobs when workers are disabled. Direct selected-row

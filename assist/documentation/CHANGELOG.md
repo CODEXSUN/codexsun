@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.19
+Current version: 1.1.20
 
-Release tag: v-1.1.19
+Release tag: v-1.1.20
 
-Changelog label: v 1.1.19
+Changelog label: v 1.1.20
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,20 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.20
+
+### [v 1.1.20] 2026-10-18 - Enforce Frappe outbound scope
+
+#### Database Changes
+
+- Database update: No (auto-check).
+
+#### App Codebase Changes
+
+- Restrict Frappe outbound export to enquiries at the shared service boundary, covering manual and queued requests.
+- Keep verification for all export kinds and leave Frappe imports, CRM data, and database schema unchanged.
+- Verify with the focused policy regression plus Frappe API typecheck, lint, build, and component-doc checks.
 
 ## v-1.1.19
 

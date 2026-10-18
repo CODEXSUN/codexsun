@@ -4,6 +4,7 @@ import { FrappeConnectionAccess, requestFrappe } from "../connection/index.js";
 import type { FrappeDatabase, FrappeSettings } from "../connection/index.js";
 import { mappedEmployeeCodeForLocalUser } from "../user-mapping/index.js";
 import type { FrappeUserMappingDatabase } from "../user-mapping/index.js";
+import { assertFrappeExportAllowed } from "./export.policy.js";
 import type {
   ExportKind,
   ExportMode,
@@ -46,6 +47,7 @@ export class FrappeExportService {
     expectedBaseUrl: string,
     report: (progress: ExportProgress) => Promise<void>
   ) {
+    assertFrappeExportAllowed(kind, mode);
     const progress: ExportProgress = {
       scanned: 0,
       exported: 0,
