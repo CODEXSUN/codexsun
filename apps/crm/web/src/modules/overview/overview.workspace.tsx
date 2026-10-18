@@ -141,6 +141,7 @@ export function CrmOverviewWorkspace({
         <SummaryCard
           icon={BriefcaseBusiness}
           title="Enquiries"
+          accentClassName="border-l-sky-400"
           total={enquiries.data?.allCount}
           detail={`${enquiries.data?.all.active ?? 0} active · ${enquiries.data?.all.attention ?? 0} need attention`}
           onOpen={() => onOpenPage("crm.enquiries")}
@@ -148,6 +149,7 @@ export function CrmOverviewWorkspace({
         <SummaryCard
           icon={ClipboardList}
           title="Tasks"
+          accentClassName="border-l-violet-400"
           total={tasks.data?.total}
           detail={`${activeTasks} active · ${countCode(tasks.data?.statusCounts ?? [], "new")} new`}
           onOpen={() => onOpenPage("crm.tasks")}
@@ -155,6 +157,7 @@ export function CrmOverviewWorkspace({
         <SummaryCard
           icon={PhoneCall}
           title="Call logs"
+          accentClassName="border-l-emerald-400"
           total={calls.data?.total}
           detail={`${openCalls} in progress · ${completedCalls} completed`}
           onOpen={() => onOpenPage("crm.call-logs")}
@@ -162,6 +165,7 @@ export function CrmOverviewWorkspace({
         <SummaryCard
           icon={Activity}
           title="Activities"
+          accentClassName="border-l-amber-400"
           total={activities.data?.total}
           detail="Enquiry activity records"
           onOpen={() => onOpenPage("crm.activities")}
@@ -169,6 +173,7 @@ export function CrmOverviewWorkspace({
         <SummaryCard
           icon={ClipboardCheck}
           title="SOPs"
+          accentClassName="border-l-rose-400"
           total={sops.data?.length}
           detail={`${(sops.data ?? []).filter((sop) => sop.status === "active").length} active · ${sopItems.data?.length ?? 0} steps`}
           onOpen={() => onOpenPage("crm.sops")}
@@ -176,6 +181,7 @@ export function CrmOverviewWorkspace({
         <SummaryCard
           icon={Users}
           title="Duties"
+          accentClassName="border-l-cyan-400"
           total={duties.data?.length}
           detail={`${activeDuties} active assignments`}
           onOpen={() => onOpenPage("crm.duties")}
@@ -184,6 +190,7 @@ export function CrmOverviewWorkspace({
           <SummaryCard
             icon={ClipboardCheck}
             title="Duty reports"
+            accentClassName="border-l-indigo-400"
             total={reports.data?.total}
             detail={`${blockedReports.data?.total ?? 0} blocked today`}
             onOpen={() => onOpenPage("crm.duty-reporting")}
@@ -279,34 +286,41 @@ export function CrmOverviewWorkspace({
 function SummaryCard({
   icon: Icon,
   title,
+  accentClassName,
   total,
   detail,
   onOpen
 }: {
   icon: typeof Activity;
   title: string;
+  accentClassName: string;
   total: number | undefined;
   detail: string;
   onOpen: () => void;
 }) {
   return (
-    <Card className="flex min-h-32 flex-col justify-between p-4">
+    <Card className={`border-l-4 ${accentClassName} p-4`}>
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <Icon className="size-4" />
         {title}
       </div>
       <div className="mt-2 flex items-end justify-between gap-2">
         <div>
-          <strong className="text-2xl">{total === undefined ? "—" : total}</strong>
+          <p className="text-3xl font-semibold tabular-nums">
+            {total === undefined ? "—" : total}
+          </p>
           <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
         </div>
-        <button
-          className="mb-1 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="mb-1 shrink-0 text-muted-foreground"
           aria-label={`Open ${title}`}
           onClick={onOpen}
         >
           <ArrowRight className="size-4" />
-        </button>
+        </Button>
       </div>
     </Card>
   );
