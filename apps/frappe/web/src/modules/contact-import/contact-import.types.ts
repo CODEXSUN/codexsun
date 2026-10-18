@@ -5,6 +5,8 @@ export type FrappeContact = {
   email: string | null;
   phone: string | null;
   localContactId: number | null;
+  localContactCode: string | null;
+  identityStatus: "new" | "matched" | "mismatch";
 };
 
 export type FrappeContactPage = {

@@ -6,6 +6,7 @@ import { Button } from "@codexsun/ui/components/button";
 import { Checkbox } from "@codexsun/ui/components/checkbox";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
+import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
@@ -223,15 +224,40 @@ function ExportPage({
       )
     },
     { accessorKey: "id", header: "LOCAL ID" },
+    ...(recordName === "contacts"
+      ? [{ accessorKey: "code", header: "FRAPPE ID" } as ColumnDef<LocalExportRow>]
+      : []),
     { accessorKey: "label", header: "RECORD" },
     { accessorKey: "detail", header: "DETAILS" },
     {
       id: "verification",
       header: "VERIFICATION",
-      cell: ({ row }) =>
-        verification[row.original.id]?.message ||
-        verification[row.original.id]?.outcome ||
-        "Not checked"
+      cell: ({ row }) => {
+        const result = verification[row.original.id];
+        if (!result) return "Not checked";
+        const matched = result.outcome === "linked" || result.outcome === "matched";
+        const mismatch = result.outcome === "mismatch" || result.outcome === "blocked";
+        const createsMobileContact = recordName === "contacts" && result.outcome === "new";
+        return (
+          <div className="flex flex-col items-start gap-1">
+            <WorkspaceStatusBadge
+              label={
+                matched
+                  ? "Matched"
+                  : mismatch
+                    ? "Mismatch"
+                    : createsMobileContact
+                      ? "Create Mobile Contact"
+                      : result.outcome
+              }
+              tone={matched ? "success" : mismatch ? "danger" : "neutral"}
+            />
+            {result.message ? (
+              <span className="max-w-sm text-xs text-muted-foreground">{result.message}</span>
+            ) : null}
+          </div>
+        );
+      }
     },
     {
       id: "frappe",
@@ -246,9 +272,11 @@ function ExportPage({
         row.original.dependency ||
         (verification[row.original.id]?.outcome === "blocked"
           ? "Blocked"
-          : verified(row.original.id)
-            ? "Ready"
-            : "Not checked")
+          : recordName === "contacts" && verification[row.original.id]?.outcome === "new"
+            ? "Ready · mobile number only"
+            : verified(row.original.id)
+              ? "Ready"
+              : "Not checked")
     },
     {
       id: "action",

@@ -10,7 +10,9 @@ export {
 export { coreApiModuleKeys, registerCoreApi, type CoreApiDependencies } from "./app.js";
 export {
   getActiveContactForDatabase,
-  resolveExternalCustomerForDatabase,
+  findContactIdentityForDatabase,
+  findContactIdentityByIdForDatabase,
+  resolveExternalContactForDatabase,
   resolveOrCreateCustomerForDatabase
 } from "./modules/master/contact/index.js";
 export {

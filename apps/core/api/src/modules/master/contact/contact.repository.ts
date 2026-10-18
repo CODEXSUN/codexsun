@@ -26,11 +26,47 @@ export class ContactRepository {
     const result = await sql<{
       id: number;
       uuid: string;
+      code: string;
+      type_name: string | null;
       status: string;
       deleted_at: Date | string | null;
-    }>`SELECT id,uuid,status,deleted_at FROM core_contacts WHERE code=${code} FOR UPDATE`.execute(
+    }>`SELECT id,uuid,code,type_name,status,deleted_at FROM core_contacts WHERE code=${code} FOR UPDATE`.execute(
       getCoreDatabase()
     );
+    return result.rows[0] ?? null;
+  }
+
+  async lockExternalCustomerById(id: number) {
+    const result = await sql<{
+      id: number;
+      uuid: string;
+      code: string;
+      type_name: string | null;
+      status: string;
+      deleted_at: Date | string | null;
+    }>`SELECT id,uuid,code,type_name,status,deleted_at FROM core_contacts WHERE id=${id} FOR UPDATE`.execute(
+      getCoreDatabase()
+    );
+    return result.rows[0] ?? null;
+  }
+
+  async updateExternalCustomerCode(id: number, oldCode: string, code: string) {
+    await sql`UPDATE core_contacts SET code=${code} WHERE id=${id} AND code=${oldCode}`.execute(
+      getCoreDatabase()
+    );
+  }
+
+  async findIdentityByCode(code: string) {
+    const result = await sql<{ id: number; code: string }>`
+      SELECT id,code FROM core_contacts WHERE code=${code} AND deleted_at IS NULL LIMIT 1
+    `.execute(getCoreDatabase());
+    return result.rows[0] ?? null;
+  }
+
+  async findIdentityById(id: number) {
+    const result = await sql<{ id: number; code: string }>`
+      SELECT id,code FROM core_contacts WHERE id=${id} AND deleted_at IS NULL LIMIT 1
+    `.execute(getCoreDatabase());
     return result.rows[0] ?? null;
   }
 

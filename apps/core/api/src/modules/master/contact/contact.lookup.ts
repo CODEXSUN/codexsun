@@ -6,6 +6,7 @@ import {
   type CoreDatabase
 } from "../../../database/core-database.js";
 import { ContactService } from "./contact.service.js";
+import { ContactRepository } from "./contact.repository.js";
 
 export async function getActiveContactForDatabase(databaseName: string, id: number) {
   const result = await sql<{ name: string }>`
@@ -25,9 +26,16 @@ export function resolveOrCreateCustomerForDatabase(
     : runWithCoreDatabase(databaseName, resolve);
 }
 
-export async function resolveExternalCustomerForDatabase(
+export async function resolveExternalContactForDatabase(
   databaseName: string,
-  input: { externalKey: string; name: string; mobile: string }
+  input: {
+    externalKey: string;
+    externalCode: string;
+    name: string;
+    mobile: string;
+    contactType?: "Customer" | "Supplier";
+    existingContactId?: number;
+  }
 ) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -35,10 +43,13 @@ export async function resolveExternalCustomerForDatabase(
         .transaction()
         .execute((transaction) =>
           runWithCoreTransaction(databaseName, transaction, () =>
-            new ContactService().resolveExternalCustomer(
+            new ContactService().resolveExternalContact(
               input.externalKey,
+              input.externalCode,
               input.name,
-              input.mobile
+              input.mobile,
+              input.contactType,
+              input.existingContactId
             )
           )
         );
@@ -57,4 +68,12 @@ export async function resolveExternalCustomerForDatabase(
     }
   }
   throw new Error("External customer resolution failed.");
+}
+
+export async function findContactIdentityForDatabase(databaseName: string, code: string) {
+  return runWithCoreDatabase(databaseName, () => new ContactRepository().findIdentityByCode(code));
+}
+
+export async function findContactIdentityByIdForDatabase(databaseName: string, id: number) {
+  return runWithCoreDatabase(databaseName, () => new ContactRepository().findIdentityById(id));
 }

@@ -3,7 +3,7 @@ import type { FrappeDatabase } from "../connection/index.js";
 
 export type ExportKind = "contacts" | "enquiries" | "activities" | "call-logs";
 export type ExportMode = "verify" | "export";
-export type ExportOutcome = "linked" | "matched" | "new" | "blocked" | "exported";
+export type ExportOutcome = "linked" | "matched" | "mismatch" | "new" | "blocked" | "exported";
 
 export type ExportContext = {
   database: Kysely<FrappeDatabase>;
@@ -15,6 +15,7 @@ export type ExportRow = {
   label: string;
   detail: string | null;
   remoteName: string | null;
+  code: string | null;
   dependency: string | null;
 };
 

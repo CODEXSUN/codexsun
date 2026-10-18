@@ -9,6 +9,7 @@ const rowSchema = z.object({
   label: z.string(),
   detail: z.string().nullable(),
   remoteName: z.string().nullable(),
+  code: z.string().nullable(),
   dependency: z.string().nullable()
 });
 const progressSchema = z.object({
@@ -19,7 +20,7 @@ const progressSchema = z.object({
   results: z.array(
     z.object({
       id: z.number().int().positive(),
-      outcome: z.enum(["linked", "matched", "new", "blocked", "exported"]),
+      outcome: z.enum(["linked", "matched", "mismatch", "new", "blocked", "exported"]),
       remoteName: z.string().nullable(),
       message: z.string().nullable()
     })

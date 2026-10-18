@@ -9,9 +9,17 @@
       Evidence: `sync-readiness.test.ts`, `npm run test:crm-frappe`, and Frappe/Platform typechecks.
 - [ ] Resolve the CRM policy for automatic Contact, Enquiry, Activity, and Call Log exports.
       CRM documentation approves automatic outbound transfer only for SOP and Duty records.
-- [x] Verify both Contact directions against the live Frappe site.
-      Evidence: `npm run test:e2e:frappe-contacts-live` on `logicx.tmnext.in` imported a live Mobile Contact Customer into a disposable local Core database, confirmed retry identity and read-only outbound matching, then created, fetched, updated, and deleted a unique Frappe Mobile Contact. The local test database and remote fixture were verified removed.
-      Outbound sends only the 10-digit Mobile Contact identity. Multiple local contacts can link to one shared Frappe mobile identity; imported association links remain separate. The additive link-table migration was applied to the configured local tenant. Queue relay scheduling and browser acceptance were not part of this direct-service test.
+- [x] Verify both Contact directions and the queued CRM-to-Frappe export through the browser.
+      Evidence: `npm run test:e2e:frappe-contacts-live` on `logicx.tmnext.in` imported Customer `C9138` into disposable local Core storage, confirmed the same local ID on retry, then created and read back one unique Mobile Contact using only `mobile_number`; repeat export updated that same document and cleanup deleted it. The mismatch path remained blocked.
+      The local browser export page verified Customer `C9138`, showed “Create Mobile Contact” and “Ready · mobile number only”, queued the export, and completed with 1 exported and 0 failed. Remote readback confirmed the Mobile Contact ID and `mobile_number` were `6886246988`; the exact remote test document and local CRM fixture were then removed and absence verified. CRM did not create another Frappe Customer or Supplier. This was a local browser/API queue test against the live Frappe site, not a production deployment.
+
+## Frappe contact document identity - 2026-10-18
+
+- [x] Store the actual Frappe Customer document name as the Core contact code and keep site-scoped identity links separately.
+- [x] Convert a legacy `EXT-<hash>` code in place when its existing imported Frappe association is re-imported; preserve the local contact ID and linked data.
+- [x] Show identity status on import and export, reject cross-site or Customer/Supplier code mismatches, and block export when that parent identity is not exact.
+- [x] Verify `C9138` live with outbound match and mobile-only post/readback; `npm run test:e2e:frappe-mobile-customers` covers legacy identity correction, repeat imports, and source collisions.
+      API/web typechecks and lint, Core/Frappe boundary checks, and component docs validation passed. The tenant migration is part of the local migration path; no production migration or deployment was run.
 
 ## Mobile customer source, 17-10-2026
 

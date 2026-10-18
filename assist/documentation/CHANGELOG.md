@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.10
+Current version: 1.1.11
 
-Release tag: v-1.1.10
+Release tag: v-1.1.11
 
-Changelog label: v 1.1.10
+Changelog label: v 1.1.11
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,26 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.11
+
+### [v 1.1.11] 2026-10-18 4:48 pm - Frappe contact identity and queue verification
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Add a tenant-scoped Frappe Customer identity table keyed by source site and remote Customer document ID. Migration `1.0.87` preserves existing import links and stores stable local contact associations.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.11.
+- Store the actual Frappe Customer or Supplier document ID as the Core contact code, mark import/export matches and mismatches, and block mismatches before any remote contact write.
+- Restrict Frappe Mobile Contact writes to the mobile number after the matching Customer or Supplier is verified; live test on `logicx.tmnext.in` confirmed Customer `C9138`, import retry identity, mobile-only post/readback, repeat export, mismatch blocking, and fixture cleanup.
+- Calculate queue verification age from the queue database clock to avoid host/database timezone drift.
+- Extend the queue live E2E to exercise automatic runtime pickup for database and Redis backends plus the reports artifact queue. All three completed; Redis was required for the test and the temporary container was removed.
+- Pass `npm run check`, `npm run test:crm-frappe` (95 unit tests and three database E2Es), `npm run test:e2e:frappe-contacts-live`, `npm run test:queue-live`, and `npm run check:versions`.
+- CRM Enquiry-to-Frappe automatic export remains stopped pending approval of the documented outbound-sync scope; this release does not claim Enquiry delivery.
+- The standard clean build hit Windows `ENOTEMPTY` while clearing shared `dist`. A no-clean retry built 45 tasks but the Sites clients build stopped because the authenticated `CODEXSUN_SITES_TIRUPURCONNECT_SNAPSHOT` input was unavailable. Relevant Core, Frappe, CRM, and Platform package typechecks passed; the full build is not claimed.
 
 ## v-1.1.10
 

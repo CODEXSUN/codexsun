@@ -60,11 +60,18 @@ export class FrappeExportService {
       try {
         const existing = await this.verifyExisting(kind, id, settings);
         if (mode === "verify") {
-          progress.results.push({ id, ...existing, message: null });
+          progress.results.push({ id, ...existing, message: existing.message ?? null });
         } else {
+          if (kind === "contacts" && existing.outcome === "mismatch")
+            throw AppError.conflict(existing.message ?? "Frappe contact identity does not match.");
           let remoteName = "";
           if (kind === "contacts")
-            remoteName = await this.exportContact(id, settings, existing.remoteName);
+            remoteName = await this.exportContact(
+              id,
+              settings,
+              existing.remoteName,
+              existing.outcome === "new"
+            );
           if (kind === "enquiries")
             remoteName = await this.exportEnquiry(id, settings, existing.remoteName);
           if (kind === "activities")
@@ -116,7 +123,7 @@ export class FrappeExportService {
     kind: ExportKind,
     id: number,
     settings: FrappeSettings
-  ): Promise<{ outcome: ExportOutcome; remoteName: string | null }> {
+  ): Promise<{ outcome: ExportOutcome; remoteName: string | null; message?: string | null }> {
     if (kind === "contacts") return this.verifyContact(id, settings);
     if (kind === "enquiries") return this.verifyEnquiry(id, settings);
     if (kind === "activities") return this.verifyActivity(id, settings);
@@ -125,7 +132,7 @@ export class FrappeExportService {
 
   private async list(kind: ExportKind, offset: number) {
     if (kind === "contacts") {
-      const rows = await sql<ExportRow>`SELECT c.id, c.name AS label,
+      const rows = await sql<ExportRow>`SELECT c.id, c.name AS label, c.code,
         COALESCE(c.primary_phone, c.primary_email) AS detail,
         link.remote_name AS remoteName,
         CASE WHEN REGEXP_REPLACE(COALESCE(c.primary_phone,''),'[^0-9]','') REGEXP '^[0-9]{10}$'
@@ -142,7 +149,7 @@ export class FrappeExportService {
       return { items: rows.rows, total: Number(count.rows[0]?.total ?? 0) };
     }
     if (kind === "enquiries") {
-      const rows = await sql<ExportRow>`SELECT e.id, e.title AS label,
+      const rows = await sql<ExportRow>`SELECT e.id, e.title AS label, NULL AS code,
         CONCAT('#', e.enquiry_no, ' · ', e.status) AS detail,
         link.remote_name AS remoteName, NULL AS dependency
         FROM crm_enquiries e
@@ -154,7 +161,7 @@ export class FrappeExportService {
       return { items: rows.rows, total: Number(count.rows[0]?.total ?? 0) };
     }
     if (kind === "activities") {
-      const rows = await sql<ExportRow>`SELECT activity.id, activity.action AS label,
+      const rows = await sql<ExportRow>`SELECT activity.id, activity.action AS label, NULL AS code,
         LEFT(activity.details, 160) AS detail,
         link.remote_name AS remoteName,
         CASE WHEN enquiry.remote_name IS NULL THEN 'Export enquiry first' ELSE NULL END AS dependency
@@ -167,7 +174,8 @@ export class FrappeExportService {
       }>`SELECT COUNT(*) AS total FROM crm_enquiry_activity`.execute(this.database);
       return { items: rows.rows, total: Number(count.rows[0]?.total ?? 0) };
     }
-    const rows = await sql<ExportRow>`SELECT id, CONCAT(from_number, ' → ', to_number) AS label,
+    const rows =
+      await sql<ExportRow>`SELECT id, CONCAT(from_number, ' → ', to_number) AS label, NULL AS code,
       CONCAT(direction, ' · ', call_status) AS detail,
       remote_name AS remoteName, NULL AS dependency
       FROM crm_call_logs ORDER BY id ASC LIMIT ${pageSize} OFFSET ${offset}`.execute(this.database);
@@ -203,16 +211,45 @@ export class FrappeExportService {
 
   private async verifyContact(id: number, settings: FrappeSettings) {
     const result = await sql<{
+      code: string;
+      name: string;
+      type_name: string | null;
       primary_phone: string | null;
       remote_name: string | null;
-    }>`SELECT c.primary_phone, link.remote_name
+    }>`SELECT c.code,c.name,c.type_name,c.primary_phone,link.remote_name
       FROM core_contacts c LEFT JOIN frappe_contact_exports link ON link.local_contact_id=c.id
       WHERE c.id=${id} AND c.deleted_at IS NULL LIMIT 1`.execute(this.database);
     const contact = result.rows[0];
     if (!contact) throw AppError.notFound("Contact was not found.");
+    const contactType = contact.type_name?.trim().toLowerCase();
+    const doctype =
+      contactType === "supplier" ? "Supplier" : contactType === "customer" ? "Customer" : null;
+    const nameField = doctype === "Supplier" ? "supplier_name" : "customer_name";
+    if (!doctype)
+      return {
+        outcome: "mismatch" as const,
+        remoteName: null,
+        message: "Set this contact type to Customer or Supplier before verifying its Frappe ID."
+      };
+    const sourceRecords = await this.findRemote<{ name: string; [key: string]: unknown }>(
+      doctype,
+      ["name", nameField],
+      [["name", "=", contact.code]],
+      settings
+    );
+    if (sourceRecords.length !== 1 || sourceRecords[0]?.name !== contact.code)
+      return {
+        outcome: "mismatch" as const,
+        remoteName: null,
+        message: `Frappe ${doctype} ${contact.code} was not found. No new Frappe record will be created.`
+      };
     const mobile = contact.primary_phone?.replace(/\D/gu, "") ?? "";
     if (!/^\d{10}$/u.test(mobile)) {
-      throw AppError.conflict("Add a 10-digit mobile number before exporting this contact to Frappe.");
+      return {
+        outcome: "mismatch" as const,
+        remoteName: null,
+        message: "Add a 10-digit mobile number before verifying this Frappe contact."
+      };
     }
     if (contact.remote_name) {
       const remote = await requestFrappe<{ data?: { name?: string; mobile_number?: string } }>(
@@ -220,15 +257,20 @@ export class FrappeExportService {
         "GET",
         settings
       );
-      if (
-        remote.data?.name !== contact.remote_name
-      ) {
-        throw AppError.conflict(
-          "The linked Frappe Mobile Contact is missing. Review the link before exporting."
-        );
+      if (remote.data?.name !== contact.remote_name) {
+        return {
+          outcome: "mismatch" as const,
+          remoteName: null,
+          message:
+            "The linked Frappe Mobile Contact is missing. No replacement record will be created."
+        };
       }
       if (remote.data.mobile_number?.replace(/\D/gu, "") !== mobile)
-        return { outcome: "new" as const, remoteName: null };
+        return {
+          outcome: "mismatch" as const,
+          remoteName: null,
+          message: "The local mobile does not match the linked Frappe Mobile Contact."
+        };
       return { outcome: "linked" as const, remoteName: contact.remote_name };
     }
     const candidates = await this.findRemote<{ name: string; mobile_number?: string }>(
@@ -238,11 +280,20 @@ export class FrappeExportService {
       settings
     );
     if (candidates.length > 1)
-      throw AppError.conflict("Multiple Frappe Mobile Contacts use this number. Review them before export.");
+      return {
+        outcome: "mismatch" as const,
+        remoteName: null,
+        message:
+          "Multiple Frappe Mobile Contacts use this number. Review the records before export."
+      };
     if (candidates.length === 1) {
       return { outcome: "matched" as const, remoteName: candidates[0]!.name };
     }
-    return { outcome: "new" as const, remoteName: null };
+    return {
+      outcome: "new" as const,
+      remoteName: null,
+      message: `A Mobile Contact will be created with only the mobile number for Frappe ${doctype} ${contact.code}.`
+    };
   }
 
   private async verifyEnquiry(id: number, settings: FrappeSettings) {
@@ -469,7 +520,8 @@ export class FrappeExportService {
   private async exportContact(
     id: number,
     settings: FrappeSettings,
-    verifiedRemoteName: string | null
+    verifiedRemoteName: string | null,
+    createIfMissing: boolean
   ) {
     const result = await sql<{
       primary_phone: string | null;
@@ -481,11 +533,19 @@ export class FrappeExportService {
     const contact = result.rows[0];
     if (!contact) throw AppError.notFound("Contact was not found.");
     const linkedName = verifiedRemoteName;
+    if (!linkedName && !createIfMissing)
+      throw AppError.conflict(
+        "No matching Frappe Mobile Contact was verified. Verify it again before export."
+      );
     const mobile = contact.primary_phone?.replace(/\D/gu, "") ?? "";
     if (!/^\d{10}$/u.test(mobile)) {
-      throw AppError.conflict("Add a 10-digit mobile number before exporting this contact to Frappe.");
+      throw AppError.conflict(
+        "Add a 10-digit mobile number before exporting this contact to Frappe."
+      );
     }
-    const response = await requestFrappe<{ data?: { name?: string } }>(
+    const response = await requestFrappe<{
+      data?: { name?: string; mobile_number?: string };
+    }>(
       linkedName
         ? `/api/resource/Mobile Contact/${encodeURIComponent(linkedName)}`
         : "/api/resource/Mobile Contact",
@@ -496,6 +556,8 @@ export class FrappeExportService {
     );
     const remoteName = response.data?.name || linkedName;
     if (!remoteName) throw AppError.conflict("Frappe did not return the contact ID.");
+    if (response.data?.mobile_number && response.data.mobile_number !== mobile)
+      throw AppError.conflict("Frappe returned a different mobile number than requested.");
     await sql`INSERT INTO frappe_contact_exports (remote_name, local_contact_id)
       VALUES (${remoteName}, ${id}) ON DUPLICATE KEY UPDATE remote_name=VALUES(remote_name)`.execute(
       this.database

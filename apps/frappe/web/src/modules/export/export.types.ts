@@ -3,6 +3,7 @@ export type LocalExportRow = {
   label: string;
   detail: string | null;
   remoteName: string | null;
+  code: string | null;
   dependency: string | null;
 };
 
@@ -23,7 +24,7 @@ export type ExportJob = {
     failures: Array<{ id: number; message: string }>;
     results: Array<{
       id: number;
-      outcome: "linked" | "matched" | "new" | "blocked" | "exported";
+      outcome: "linked" | "matched" | "mismatch" | "new" | "blocked" | "exported";
       remoteName: string | null;
       message: string | null;
     }>;

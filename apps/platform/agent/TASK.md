@@ -26,6 +26,13 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Queue worker automatic pickup, 18-10-2026
+
+- `npm run test:queue-live` enabled the actual Queue Manager runtime and verified database jobs and a reports artifact complete without manual worker calls.
+- The same runtime switched to BullMQ/Redis and completed a persisted queue job. Redis was required for the test; its temporary local container was removed afterward.
+- The local environment uses the database backend with `CODEXSUN_QUEUE_WORKER_ENABLED=1` and a configured Redis URL for the alternative backend.
+- This verifies generic queue delivery only. CRM Enquiry-to-Frappe remains deliberately stopped pending approval of the outbound-sync scope; the configured tenant DB also lacks `crm_enquiries`, so the separate CRM outbox E2E could not run here.
+
 ### Existing tenant administrator access, 17-10-2026
 
 - User-role seeding assigns Admin to every active legacy Admin, rather than only the first matching account. Inactive users are excluded.
@@ -339,7 +346,12 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - Public web and shop frontend assets and health endpoints returned 200. Shop bootstrap returned 404 because its domain binding remains disabled and unverified.
 - Full repository check, Platform API typecheck, lint, and module boundaries passed. Tenant role and data-backed workspace checks remain deferred.
 
-
 ## 2026-10-17: Live CRM workspace acceptance
 
 Verified live Techmedia and Rainbow Application overview access. Login/session role display uses active persisted role assignments. Task permission classification delegates to the CRM Task owner, including normal-user closure requests.
+
+## Queue verification age boundary - 2026-10-18
+
+- Queue verification age is calculated by the Platform queue database using its own timestamp, avoiding timezone reinterpretation between SQL `DATETIME` values and the API host clock.
+- Browser CRM-to-Frappe Contact export completed one queued job with 1 exported and 0 failed after this change; live Mobile Contact readback and fixture cleanup passed.
+- Platform API typecheck, lint, and production build remain required for final validation.

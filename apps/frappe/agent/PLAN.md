@@ -3,7 +3,7 @@
 ## Scope
 
 Customer import now sources `Mobile Contact Customer` and validates its `Mobile Contact` and `Customer` references.
-Customer identity is connection-scoped, not phone-scoped. Core owns persistence through `resolveExternalCustomerForDatabase`.
+Customer identity is connection-scoped, not phone-scoped. Core stores the Frappe document name as the contact code through `resolveExternalContactForDatabase`; Frappe stores the connection-scoped source mapping separately.
 See the README for source fields, existing-data compatibility, and test commands.
 
 Verified external connections, user mappings, imports, exports, and approved CRM integration workers.

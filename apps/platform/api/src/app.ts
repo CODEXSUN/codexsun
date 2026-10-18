@@ -48,8 +48,10 @@ import {
   registerCoreApi,
   registerCoreTenantDatabaseConnection,
   getActiveContactForDatabase,
+  findContactIdentityForDatabase,
+  findContactIdentityByIdForDatabase,
   resolveOrCreateCustomerForDatabase,
-  resolveExternalCustomerForDatabase
+  resolveExternalContactForDatabase
 } from "@codexsun/core-api";
 import {
   enquiryModule,
@@ -963,7 +965,7 @@ export async function createApp() {
     preview: async (request, kind, page) => {
       const context = tenantAccessContext(request);
       await context.authorize("frappe.connection.manage");
-      await context.authorize("crm.enquiry.view-all");
+      await context.authorize(kind === "contacts" ? "crm.contact.view" : "crm.enquiry.view-all");
       return new FrappeExportService(
         context.database as unknown as import("kysely").Kysely<FrappeDatabase>,
         env.JWT_SECRET,
@@ -973,8 +975,10 @@ export async function createApp() {
     enqueue: async (request, kind, ids, mode, verifiedJobId) => {
       const context = tenantAccessContext(request);
       await context.authorize("frappe.connection.manage");
-      await context.authorize("crm.enquiry.view-all");
-      if (mode === "export") await context.authorize("crm.enquiry.update");
+      await context.authorize(kind === "contacts" ? "crm.contact.view" : "crm.enquiry.view-all");
+      if (mode === "export") {
+        await context.authorize(kind === "contacts" ? "crm.contact.update" : "crm.enquiry.update");
+      }
       assertFrappeQueueWorkerEnabled(env.CODEXSUN_QUEUE_WORKER_ENABLED === "1");
       const enabled = await context.database
         .selectFrom("app_module_settings")
@@ -993,7 +997,7 @@ export async function createApp() {
       if (mode === "export") {
         const verification = await queueService.findJob(verifiedJobId!);
         const verificationAge = verification
-          ? Date.now() - new Date(verification.createdAt).getTime()
+          ? ((await queueService.ageMilliseconds(verification.id)) ?? Number.NaN)
           : Number.NaN;
         const results = verification?.result?.results;
         const allowed = new Set(
@@ -1165,13 +1169,23 @@ export async function createApp() {
     async (request) => {
       const context = tenantAccessContext(request);
       await context.authorize("frappe.connection.manage");
+      await context.authorize(
+        request.method === "POST" ? "crm.contact.create" : "crm.contact.view"
+      );
       await ensureFrappeImportOpen(
         context.database as unknown as import("kysely").Kysely<FrappeDatabase>
       );
       return {
         database: context.database as unknown as import("kysely").Kysely<FrappeDatabase>,
-        resolveContact: async (input: { externalKey: string; name: string; mobile: string }) => {
-          const customer = await resolveExternalCustomerForDatabase(context.tenantDatabase, input);
+        resolveContact: async (input: {
+          externalKey: string;
+          externalCode: string;
+          name: string;
+          mobile: string;
+          contactType?: "Customer" | "Supplier";
+          existingContactId?: number;
+        }) => {
+          const customer = await resolveExternalContactForDatabase(context.tenantDatabase, input);
           await recordTenantAccessAudit({
             action: "imported",
             actorEmail: context.actorEmail,
@@ -1182,7 +1196,11 @@ export async function createApp() {
             tenantId: context.tenantId
           });
           return customer;
-        }
+        },
+        findContactByCode: (code: string) =>
+          findContactIdentityForDatabase(context.tenantDatabase, code),
+        findContactById: (id: number) =>
+          findContactIdentityByIdForDatabase(context.tenantDatabase, id)
       };
     },
     frappeSettings,

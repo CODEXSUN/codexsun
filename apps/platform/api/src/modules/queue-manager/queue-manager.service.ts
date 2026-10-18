@@ -28,6 +28,10 @@ export class QueueManagerService {
     return this.repository.find(id);
   }
 
+  ageMilliseconds(id: number) {
+    return this.repository.ageMilliseconds(id);
+  }
+
   runtimeSettings() {
     return this.repository.settings();
   }

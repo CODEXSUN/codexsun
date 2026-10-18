@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { Checkbox } from "@codexsun/ui/components/checkbox";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
+import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { useFrappeConnectionSettings } from "../connection/connection.hooks";
@@ -54,7 +55,7 @@ export function FrappeContactImportWorkspace() {
     }
   });
   const records = preview.data?.items ?? [];
-  const eligible = records.filter((item) => !item.localContactId);
+  const eligible = records.filter((item) => item.identityStatus !== "matched");
   const columns: ColumnDef<FrappeContact>[] = [
     {
       id: "select",
@@ -72,7 +73,11 @@ export function FrappeContactImportWorkspace() {
         <Checkbox
           aria-label={`Select ${row.original.displayName}`}
           checked={selected.has(row.original.name)}
-          disabled={!!row.original.localContactId || importSelected.isPending || !connectionUsable}
+          disabled={
+            row.original.identityStatus === "matched" ||
+            importSelected.isPending ||
+            !connectionUsable
+          }
           onCheckedChange={(checked) =>
             setSelected((current) => {
               const next = new Set(current);
@@ -90,8 +95,31 @@ export function FrappeContactImportWorkspace() {
     {
       id: "local",
       header: "LOCAL CONTACT",
-      cell: ({ row }) =>
-        row.original.localContactId ? `#${row.original.localContactId}` : "Not imported"
+      cell: ({ row }) => {
+        const { identityStatus, localContactCode, localContactId } = row.original;
+        const tone =
+          identityStatus === "matched"
+            ? "success"
+            : identityStatus === "mismatch"
+              ? "danger"
+              : "neutral";
+        const label =
+          identityStatus === "matched"
+            ? "Matched"
+            : identityStatus === "mismatch"
+              ? "Mismatch"
+              : "New";
+        return (
+          <div className="flex flex-col items-start gap-1">
+            <span>
+              {localContactId
+                ? `${localContactCode ?? "Code missing"} · #${localContactId}`
+                : "Not imported"}
+            </span>
+            <WorkspaceStatusBadge label={label} tone={tone} />
+          </div>
+        );
+      }
     },
     {
       id: "action",
@@ -100,7 +128,11 @@ export function FrappeContactImportWorkspace() {
         <Button
           size="sm"
           variant="outline"
-          disabled={importSelected.isPending || !!row.original.localContactId || !connectionUsable}
+          disabled={
+            importSelected.isPending ||
+            row.original.identityStatus === "matched" ||
+            !connectionUsable
+          }
           onClick={() => importSelected.mutate([row.original.name])}
         >
           Import
@@ -153,7 +185,7 @@ export function FrappeContactImportWorkspace() {
         data={records}
         isLoading={preview.isLoading}
         emptyState="No Frappe mobile/customer associations found."
-        minWidth="900px"
+        minWidth="1000px"
       />
       <div className="flex items-center justify-end gap-2">
         <span className="text-sm">Page {page}</span>

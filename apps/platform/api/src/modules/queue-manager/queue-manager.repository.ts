@@ -117,6 +117,15 @@ export class QueueManagerRepository {
     return row ? toQueueJob(row) : null;
   }
 
+  async ageMilliseconds(id: number) {
+    const result = await sql<{ age_milliseconds: number | string }>`
+      SELECT TIMESTAMPDIFF(MICROSECOND, created_at, CURRENT_TIMESTAMP) / 1000 AS age_milliseconds
+      FROM queue_jobs WHERE id=${id} LIMIT 1
+    `.execute(getPlatformDatabase());
+    const age = result.rows[0]?.age_milliseconds;
+    return age === undefined ? null : Number(age);
+  }
+
   async expireRunningJobs(jobNames: string[], olderThan: Date) {
     if (!jobNames.length) return 0;
     const result = await getPlatformDatabase()

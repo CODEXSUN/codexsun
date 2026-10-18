@@ -9,7 +9,7 @@ import type { FrappeDatabase } from "./connection.types.js";
 export const frappeTenantMigrationBatch: MigrationBatch<FrappeDatabase> = {
   batch: 1,
   scope: "frappe.connection",
-  version: "1.0.86",
+  version: "1.0.87",
   description: "Adopt Frappe integration tables and standardize their audit columns.",
   steps: [
     {
@@ -50,7 +50,8 @@ export const frappeTenantMigrationBatch: MigrationBatch<FrappeDatabase> = {
     {
       name: "frappe.connection.contact-exports-v6",
       checksum: "frappe.connection.contact-exports-v6",
-      description: "Keep outbound Mobile Contact links separate from imported customer associations.",
+      description:
+        "Keep outbound Mobile Contact links separate from imported customer associations.",
       version: 6,
       up: addContactExports
     },
@@ -60,6 +61,13 @@ export const frappeTenantMigrationBatch: MigrationBatch<FrappeDatabase> = {
       description: "Allow multiple local contacts to share one Frappe Mobile Contact identity.",
       version: 7,
       up: allowSharedMobileContactExports
+    },
+    {
+      name: "frappe.connection.customer-identities-v8",
+      checksum: "frappe.connection.customer-identities-v8",
+      description: "Scope Frappe customer document identity links to their source site.",
+      version: 8,
+      up: addCustomerIdentityLinks
     }
   ]
 };
@@ -182,6 +190,23 @@ async function allowSharedMobileContactExports(database: Kysely<FrappeDatabase>)
   await sql
     .raw(
       "ALTER TABLE frappe_contact_exports DROP INDEX remote_name, ADD INDEX frappe_contact_exports_remote (remote_name)"
+    )
+    .execute(database);
+}
+
+async function addCustomerIdentityLinks(database: Kysely<FrappeDatabase>) {
+  await sql
+    .raw(
+      `CREATE TABLE IF NOT EXISTS frappe_contact_customer_identity (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    source_key CHAR(64) NOT NULL UNIQUE,
+    remote_name VARCHAR(191) NOT NULL,
+    local_contact_id INT NOT NULL UNIQUE,
+    created_by VARCHAR(191) NOT NULL DEFAULT 'system:frappe-import',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX frappe_contact_customer_identity_remote (remote_name)
+  ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
     )
     .execute(database);
 }

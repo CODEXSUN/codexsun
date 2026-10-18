@@ -60,40 +60,69 @@ export class ContactService {
     return { id: created.id, name: created.name };
   }
 
-  async resolveExternalCustomer(externalKey: string, name: string, mobile: string) {
-    if (!/^[a-f0-9]{64}$/.test(externalKey) || !name.trim() || !/^\d{10}$/.test(mobile))
+  async resolveExternalContact(
+    externalKey: string,
+    externalCode: string,
+    name: string,
+    mobile: string,
+    contactType: "Customer" | "Supplier" = "Customer",
+    existingContactId?: number
+  ) {
+    const code = externalCode.trim();
+    if (
+      !/^[a-f0-9]{64}$/iu.test(externalKey) ||
+      !code ||
+      code.length > 80 ||
+      !name.trim() ||
+      !/^\d{10}$/u.test(mobile)
+    )
       throw AppError.validation(
-        "External customer identity, name, and a 10-digit mobile are required."
+        "Frappe customer ID, source identity, name, and a 10-digit mobile are required."
       );
-    const code = `EXT-${externalKey.toUpperCase()}`;
-    const existing = await this.repository.lockExternalCustomer(code);
+    const legacyCode = `EXT-${externalKey.toUpperCase()}`;
+    const existing = existingContactId
+      ? await this.repository.lockExternalCustomerById(existingContactId)
+      : ((await this.repository.lockExternalCustomer(code)) ??
+        (await this.repository.lockExternalCustomer(legacyCode)));
     if (existing) {
       if (existing.status !== "active" || existing.deleted_at)
         throw AppError.conflict(
           "The linked Core customer is inactive or deleted. Restore it before importing."
         );
+      if (existing.type_name?.trim().toLowerCase() !== contactType.toLowerCase())
+        throw AppError.conflict(
+          `The Frappe ${contactType.toLowerCase()} ID is already used by a different contact type.`
+        );
+      if (existing.code !== code) {
+        if (existing.code !== legacyCode)
+          throw AppError.conflict(
+            "The linked Core contact code does not match this Frappe customer. Resolve the mismatch before importing."
+          );
+        await this.ensureUniqueCode(code, existing.id);
+        await this.repository.updateExternalCustomerCode(existing.id, existing.code, code);
+      }
       await this.repository.attachExternalCustomerPhone(existing.id, mobile);
-      return { id: existing.id, uuid: existing.uuid };
+      return { id: existing.id, uuid: existing.uuid, code };
     }
-    const type = await this.repository.findContactTypeByName("Customer");
-    if (!type) throw AppError.validation("Active Customer contact type is required.");
+    const type = await this.repository.findContactTypeByName(contactType);
+    if (!type) throw AppError.validation(`Active ${contactType} contact type is required.`);
     const created = await this.create({
       code,
       name: name.trim(),
       typeId: type.id,
       phones: [{ phone: mobile, phoneType: "Mobile", isPrimary: true }]
     });
-    return { id: created.id, uuid: created.uuid };
+    return { id: created.id, uuid: created.uuid, code };
   }
 
   async update(id: string, input: ContactSaveInput) {
     const contact = await this.mutable(id);
     if (
-      /^EXT-[a-f0-9]{64}$/i.test(contact.code) &&
+      (/^EXT-[a-f0-9]{64}$/iu.test(contact.code) || isFrappeDocumentCode(contact.code)) &&
       input.code !== undefined &&
       input.code.trim().toUpperCase() !== contact.code.toUpperCase()
     )
-      throw AppError.conflict("An externally linked customer code cannot change.");
+      throw AppError.conflict("An externally linked contact code cannot change.");
     const normalized = await this.validateAndEnrich(input);
     await this.ensureUniqueCode(normalized.code ?? "", contact.id);
     return this.save(async () => {
@@ -345,6 +374,10 @@ function normalizeCode(code: string | undefined, name: string) {
     .slice(0, 80);
   if (!value) throw AppError.validation("Contact code is required.", { field: "code" });
   return value;
+}
+
+function isFrappeDocumentCode(code: string) {
+  return /^(?:C\d{2,}|SUPP[-_]?[A-Z0-9]+)$/iu.test(code.trim());
 }
 
 function isDuplicate(error: unknown): error is { code: string } {

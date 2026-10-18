@@ -57,6 +57,14 @@ export type FrappeDatabase = EnquiryDatabase & {
     created_at: string;
     updated_at: string;
   };
+  frappe_contact_customer_identity: {
+    id: number;
+    source_key: string;
+    remote_name: string;
+    local_contact_id: number;
+    created_at: string;
+    updated_at: string;
+  };
   frappe_activity_imports: {
     id: number;
     remote_name: string;

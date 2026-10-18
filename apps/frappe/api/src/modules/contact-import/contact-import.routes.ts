@@ -14,7 +14,15 @@ export function registerFrappeContactImportRoutes(
 ) {
   const service = async (request: FastifyRequest) => {
     const scope = await context(request);
-    return new FrappeContactImportService(scope.database, secret, defaults, scope.resolveContact);
+    return {
+      scope,
+      service: new FrappeContactImportService(
+        scope.database,
+        secret,
+        defaults,
+        scope.resolveContact
+      )
+    };
   };
   registerContractRoute(app, {
     method: "GET",
@@ -33,12 +41,17 @@ export function registerFrappeContactImportRoutes(
             displayName: z.string(),
             email: z.string().nullable(),
             phone: z.string().nullable(),
-            localContactId: z.number().nullable()
+            localContactId: z.number().nullable(),
+            localContactCode: z.string().nullable(),
+            identityStatus: z.enum(["new", "matched", "mismatch"])
           })
         )
       })
     },
-    handler: async ({ request, query }) => (await service(request)).preview(query.page)
+    handler: async ({ request, query }) => {
+      const { scope, service: contactImport } = await service(request);
+      return contactImport.preview(query.page, scope);
+    }
   });
   registerContractRoute(app, {
     method: "POST",
@@ -48,9 +61,13 @@ export function registerFrappeContactImportRoutes(
       response: z.object({
         remoteName: z.string(),
         localId: z.number(),
+        localCode: z.string(),
         status: z.enum(["created", "linked"])
       })
     },
-    handler: async ({ request, body }) => (await service(request)).pull(body.remoteName)
+    handler: async ({ request, body }) => {
+      const { scope, service: contactImport } = await service(request);
+      return contactImport.pull(body.remoteName, scope.findContactById);
+    }
   });
 }

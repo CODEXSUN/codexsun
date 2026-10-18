@@ -20,6 +20,13 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Frappe contact document identity, 18-10-2026
+
+- Core resolves Frappe Customer records using the actual document name as contact code and preserves the local identity when correcting a legacy `EXT-<hash>` code.
+- Repeat import, shared mobile, and source-site collision behavior pass in `npm run test:e2e:frappe-mobile-customers`.
+- Live LogicX verification confirmed Customer `C9138` is stored as the local code and repeat import keeps the same local ID. Frappe export match/mismatch verification was read-only; mismatch export is blocked without remote record creation.
+- Core and Platform API typechecks, Core lint, and Core/Frappe boundary checks passed. Core has no contact-specific unit test files; the contact persistence E2E is the targeted behavioral test.
+
 ### External customer resolution, 17-10-2026
 
 - Added public `resolveExternalCustomerForDatabase` for stable external identities and multiple phone associations.
@@ -65,7 +72,6 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - Local browser evidence: submitting sundar with 9655227738 was rejected with the duplicate message.
 - Core API typecheck, lint, build, Core/CRM boundaries, formatting, and component documentation checks passed.
 - Regression evidence: 90 CRM/Frappe unit tests and both contact database E2E tests passed.
-
 
 ## 2026-10-17: Live CRM workspace acceptance
 
