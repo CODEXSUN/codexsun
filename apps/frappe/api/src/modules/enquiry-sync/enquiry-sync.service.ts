@@ -123,13 +123,139 @@ export class FrappeEnquirySyncService {
     return progress;
   }
 
-  private async listRemote(settings: FrappeSettings, start: number, size: number) {
+  async importModifiedSince(
+    modifiedAfter: string,
+    report: (progress: ImportProgress) => Promise<void>,
+    expectedBaseUrl?: string
+  ) {
+    const settings = await this.settings();
+    if (expectedBaseUrl && settings.baseUrl !== expectedBaseUrl)
+      throw AppError.conflict("The Frappe connection changed before live import started.");
+    const progress: ImportProgress = {
+      scanned: 0,
+      created: 0,
+      skipped: 0,
+      failed: 0,
+      failures: []
+    };
+    const processed = new Set<string>();
+    for (let start = 0; ; start += pageSize) {
+      if ((await this.settings()).baseUrl !== settings.baseUrl)
+        throw AppError.conflict("The Frappe connection changed during live import.");
+      const page = await this.listRemote(settings, start, pageSize, modifiedAfter);
+      for (const remote of page) {
+        if (!remote.name?.trim()) continue;
+        processed.add(remote.name);
+        progress.scanned += 1;
+        try {
+          const linked = await this.repository.byRemoteName(remote.name);
+          const sourceModified = normalizeSourceDateTime(remote.modified, remote.name, "modified");
+          if (linked && utcMillis(linked.syncedAt) >= utcMillis(sourceModified)) {
+            progress.skipped += 1;
+          } else {
+            const result = await this.pullWithSettings(remote.name, settings);
+            if (result.status === "created") progress.created += 1;
+            else progress.skipped += 1;
+          }
+        } catch (error) {
+          progress.failed += 1;
+          if (progress.failures.length < 100)
+            progress.failures.push({
+              name: remote.name,
+              message: error instanceof Error ? error.message : "Live import failed."
+            });
+        }
+      }
+      await report(progress);
+      if (page.length < pageSize) break;
+    }
+    await this.importChangedCommentParents(settings, modifiedAfter, processed, progress);
+    await report(progress);
+    return progress;
+  }
+
+  private async importChangedCommentParents(
+    settings: FrappeSettings,
+    modifiedAfter: string,
+    processed: Set<string>,
+    progress: ImportProgress
+  ) {
+    const filters = JSON.stringify([
+      ["Comment", "reference_doctype", "=", "Enquiry"],
+      ["Comment", "modified", ">", frappeLocalDateTime(modifiedAfter)]
+    ]);
+    const names = new Set<string>();
+    for (let start = 0; ; start += 500) {
+      const query = new URLSearchParams({
+        filters,
+        fields: JSON.stringify(["reference_name"]),
+        order_by: "modified asc",
+        limit_start: String(start),
+        limit_page_length: "500"
+      });
+      const response = await requestFrappe<{
+        data?: Array<{ reference_name?: string | null }>;
+      }>(`/api/resource/Comment?${query}`, "GET", settings);
+      if (!Array.isArray(response.data))
+        throw AppError.validation("Frappe returned an invalid live comment list.");
+      for (const comment of response.data) {
+        if (comment.reference_name && !processed.has(comment.reference_name))
+          names.add(comment.reference_name);
+      }
+      if (response.data.length < 500) break;
+    }
+    for (const remoteName of names) {
+      progress.scanned += 1;
+      try {
+        const linked = await this.repository.byRemoteName(remoteName);
+        if (!linked) {
+          await this.pullWithSettings(remoteName, settings);
+          progress.created += 1;
+          continue;
+        }
+        const response = await requestFrappe<{ data?: RemoteEnquiry }>(
+          `/api/resource/Enquiry/${encodeURIComponent(remoteName)}?fields=${encodeURIComponent(JSON.stringify(detailFields))}`,
+          "GET",
+          settings
+        );
+        if (!response.data || response.data.name !== remoteName)
+          throw AppError.validation(`Frappe enquiry ${remoteName} could not be read.`);
+        await this.importEnquiryMessages(
+          linked.enquiryId,
+          response.data.enquiry_messages ?? [],
+          settings
+        );
+        await this.importComments(linked.enquiryId, remoteName, settings);
+        progress.skipped += 1;
+      } catch (error) {
+        progress.failed += 1;
+        if (progress.failures.length < 100)
+          progress.failures.push({
+            name: remoteName,
+            message: error instanceof Error ? error.message : "Live comment import failed."
+          });
+      }
+    }
+  }
+
+  private async listRemote(
+    settings: FrappeSettings,
+    start: number,
+    size: number,
+    modifiedAfter?: string
+  ) {
     const query = new URLSearchParams({
       fields: JSON.stringify(previewFields),
       limit_start: String(start),
       limit_page_length: String(size),
       order_by: "creation asc"
     });
+    if (modifiedAfter) {
+      query.set(
+        "filters",
+        JSON.stringify([["Enquiry", "modified", ">", frappeLocalDateTime(modifiedAfter)]])
+      );
+    }
     const response = await requestFrappe<{ data?: RemoteEnquiry[] }>(
       `/api/resource/Enquiry?${query}`,
       "GET",
@@ -188,11 +314,7 @@ export class FrappeEnquirySyncService {
     }
     if (linked && linked.source !== "frappe")
       throw AppError.conflict("This enquiry originated locally. Post its changes to Frappe.");
-    if (
-      linked &&
-      !allowSourceOverwrite &&
-      utcMillis(linked.updatedAt) > utcMillis(linked.syncedAt)
-    )
+    if (linked && !allowSourceOverwrite && utcMillis(linked.updatedAt) > utcMillis(linked.syncedAt))
       throw AppError.conflict(
         "The local enquiry changed after its last sync. Review it before pulling."
       );
@@ -433,6 +555,21 @@ function utcMillis(value: string | Date) {
   return timestamp;
 }
 
+function frappeLocalDateTime(value: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date(value));
+  const field = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${field("year")}-${field("month")}-${field("day")} ${field("hour")}:${field("minute")}:${field("second")}`;
+}
+
 function localStatusName(value: string | null | undefined) {
   const name = value?.trim() || "New";
   const aliases: Record<string, string> = { pending: "Open", hold: "Long Hold" };
@@ -462,7 +599,9 @@ function normalizeSourceDateTime(
   field: string
 ) {
   const normalized = value?.trim().replace(" ", "T");
-  if (!normalized || Number.isNaN(Date.parse(normalized)))
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/iu.test(normalized ?? "");
+  const sourceDateTime = normalized && !hasTimezone ? `${normalized}+05:30` : normalized;
+  if (!sourceDateTime || Number.isNaN(Date.parse(sourceDateTime)))
     throw AppError.validation(`Frappe enquiry ${remoteName} has an invalid ${field} timestamp.`);
-  return new Date(normalized.endsWith("Z") ? normalized : `${normalized}Z`).toISOString();
+  return new Date(sourceDateTime).toISOString();
 }

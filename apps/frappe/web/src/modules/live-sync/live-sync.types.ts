@@ -12,8 +12,15 @@ export type LiveSyncSettings = {
 export type LiveSyncJob = {
   id: number;
   kind: LiveSyncKind;
+  direction: "inbound" | "outbound";
   status: string;
   createdAt: string;
   errorMessage: string | null;
-  progress: { scanned: number; exported: number; failed: number } | null;
+  progress: {
+    scanned: number;
+    exported?: number;
+    created?: number;
+    skipped?: number;
+    failed: number;
+  } | null;
 };

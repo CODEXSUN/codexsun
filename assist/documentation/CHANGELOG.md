@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.17
+Current version: 1.1.18
 
-Release tag: v-1.1.17
+Release tag: v-1.1.18
 
-Changelog label: v 1.1.17
+Changelog label: v 1.1.18
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -20,6 +20,22 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.1.18
+
+### [v 1.1.18] 2026-10-18 8:21 pm - Frappe bidirectional enquiry sync
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.18.
+- Correct timezone-less Frappe creation and modification dates to Asia/Kolkata, and refresh imported comment timestamps on source retries.
+- Poll Frappe enquiry and comment changes incrementally with a 24-hour replay window; label inbound and outbound queue results separately.
+- Remove captured display names from the Frappe Customer Link payload on enquiry updates, preventing the HTTP 417 error.
+- Validation: CRM/Frappe tests and E2E, API typechecks/lint/builds, module boundaries, component-doc checks, and dependency layout checks pass. Production deployment and readback are pending.
+
 ## v-1.1.17
 
 ### [v 1.1.17] 2026-10-18 7:38 pm - Import Frappe enquiry message history
@@ -31,6 +47,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 #### App Codebase Changes
 
 - Bumped workspace version to 1.1.17.
+- Interpret timezone-less Frappe creation and modification timestamps as Asia/Kolkata before storing them in UTC, and refresh timestamps on already imported comments during source-directed retries.
+- Validation: focused CRM/Frappe tests, API typechecks, lint, builds, and module-boundary checks pass. TECHMEDIA production timestamps were inspected; a deployed source re-import is still required to reconcile existing rows.
 
 ## v-1.1.16
 
@@ -190,7 +208,6 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Verify the existing CODEXSUN shop domain through its public DNS TXT token. Keep the existing Ecommerce entitlement unchanged.
 - Require a verified database backup and retain the previous API, web, and shop images before rollout.
 - Migration CLI skips only unprovisioned non-active tenants. Invalid active or configured targets still block release. Registry read failures no longer become an empty migration target list. Two target-selection tests pass.
-
 
 #### App Codebase Changes
 

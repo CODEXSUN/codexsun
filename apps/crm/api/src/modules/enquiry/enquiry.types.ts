@@ -202,8 +202,8 @@ export type EnquiryCommentRow = {
   body_format: Generated<"plain" | "html">;
   status: "active";
   created_by: string;
-  created_at: ColumnType<string, string | undefined, never>;
-  updated_at: ColumnType<string, string | undefined, never>;
+  created_at: ColumnType<string, string | undefined, string>;
+  updated_at: ColumnType<string, string | undefined, string>;
 };
 
 export type EnquiryComment = {

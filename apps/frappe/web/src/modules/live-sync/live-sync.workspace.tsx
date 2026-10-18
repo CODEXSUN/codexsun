@@ -45,7 +45,7 @@ export function FrappeLiveSyncWorkspace() {
     return (
       <WorkspacePage
         title="Live sync"
-        description="CRM → Frappe scheduled delivery."
+        description="Scheduled enquiry sync between CRM and the connected Frappe site."
         technicalName="page.frappe.live-sync"
       >
         <p className="text-sm text-muted-foreground">Loading live sync…</p>
@@ -63,20 +63,21 @@ export function FrappeLiveSyncWorkspace() {
   return (
     <WorkspacePage
       title="Live sync"
-      description="CRM → Frappe only. Scheduled exports send local CRM records to the connected Frappe site."
+      description="Enquiries sync in both directions. Other enabled modules continue to send CRM changes to Frappe."
       technicalName="page.frappe.live-sync"
     >
       <Card className="space-y-4 p-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="font-semibold">CRM → Frappe scheduled delivery</h2>
+            <h2 className="font-semibold">Scheduled CRM and Frappe sync</h2>
             <p className="text-sm text-muted-foreground">
-              The queue sends local changes in batches of 50.
+              Enquiries are checked in both directions. Other module changes are sent to Frappe in
+              batches of 50.
             </p>
           </div>
           <WorkspaceSwitchCard
             label="Live sync enabled"
-            description="Allows scheduled Frappe delivery."
+            description="Allows scheduled enquiry sync in both directions."
             checked={draft.enabled}
             disabled={save.isPending}
             onCheckedChange={(enabled) => commit({ ...draft, enabled })}
@@ -126,7 +127,11 @@ export function FrappeLiveSyncWorkspace() {
             <WorkspaceSwitchCard
               key={kind}
               label={labels[kind]}
-              description="Include changed records in scheduled sync."
+              description={
+                kind === "enquiries"
+                  ? "Send CRM changes and check Frappe for new or updated enquiries."
+                  : "Include changed records in scheduled CRM-to-Frappe sync."
+              }
               checked={draft.modules[kind]}
               disabled={save.isPending || !draft.enabled}
               onCheckedChange={(checked) =>
@@ -180,7 +185,9 @@ export function FrappeLiveSyncQueueWorkspace() {
       header: "RESULT",
       cell: ({ row }) =>
         row.original.progress
-          ? `${row.original.progress.exported} sent · ${row.original.progress.failed} failed`
+          ? row.original.direction === "inbound"
+            ? `${row.original.progress.created ?? 0} imported · ${row.original.progress.skipped ?? 0} unchanged · ${row.original.progress.failed} failed`
+            : `${row.original.progress.exported ?? 0} sent · ${row.original.progress.failed} failed`
           : row.original.errorMessage || "Waiting"
     },
     {

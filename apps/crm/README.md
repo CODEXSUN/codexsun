@@ -5,7 +5,7 @@
 Use [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git) for custom Frappe schemas and functions.
 Read the [CRM comparison](agent/FRAPPE-COMPARISON.md) and
 [complete DocType catalogue](../frappe/agent/LOGICX-CRM-REFERENCE.md) for the reviewed source snapshot.
-CRM remains locally authoritative. Reference parity does not authorize additional outbound integration.
+CRM remains locally authoritative for normal enquiries. Frappe-imported enquiries preserve their source timestamps and comments, and the approved Frappe live-sync path posts CRM enquiry changes back to the linked Frappe record. Reference parity does not authorize additional outbound integration beyond this explicit enquiry sync contract.
 See the [implemented Duty bindings](../frappe/agent/CRM-DUTY-FIELD-MAPPING.md) for frequency, Department, Employee, and report fields.
 Run `npm run test:crm-frappe` for CRM/Frappe unit tests and isolated Duty API/database E2E.
 
@@ -54,7 +54,7 @@ It does not certify browser interaction or deployment.
 
 Local enquiries, contact activity, follow-up tasks, SOPs, duty assignments, and duty reporting across web and mobile.
 
-Core owns contact identity. Local CRM records remain authoritative after an explicit import from the tenant's verified Frappe connection. Imported enquiries preserve serials, dates, mapped user identity, comments, and site-scoped Customer identity. Do not add automatic enquiry export. Only the approved SOP and Duty outbox transfers CRM-owned records to Frappe. Preserve assignment scope and activity history.
+Core owns contact identity. Local CRM records remain authoritative after an import from the tenant's verified Frappe connection. Imported enquiries preserve serials, source creation and modified timestamps, mapped user identity, comments, and site-scoped Customer identity. Frappe live sync incrementally imports remote changes and posts new or changed CRM enquiries to their verified linked Frappe records. Preserve assignment scope and activity history. SOP and Duty outbox transfers remain separately approved.
 
 - [TASK.md](agent/TASK.md): work items and acceptance evidence.
 - [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.

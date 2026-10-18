@@ -27,9 +27,13 @@
 
 ## Frappe reference review
 
-- [ ] Resolve the outbound scope conflict found on 2026-10-18. Frappe exposes manual and scheduled
-      exports for Contacts, Enquiries, Activities, and Call Logs. This CRM plan approves only SOP and
-      Duty outbound sync. See [Frappe sync direction contract](../../frappe/README.md#sync-direction-contract).
+- [ ] Implement and verify the explicitly requested enquiry live-sync contract in both directions:
+      preserve exact Frappe enquiry/comment source timestamps on import; post local new/changed
+      enquiries to their verified linked Frappe record; and poll remote changes incrementally. Do not
+      broaden this approval to Contacts, Activities, or Call Logs. Keep live deployment evidence open
+      until the production queue and remote readback pass.
+- [ ] Resolve the remaining outbound scope conflict for Contacts, Activities, and Call Logs. The
+      explicit enquiry authorization does not approve those other outbound transfers.
 
 - [x] Collect the supplied LogicX HR DocType schemas and functions and compare them with CRM.
       Evidence: [comparison](FRAPPE-COMPARISON.md) and [25-DocType catalogue](../../frappe/agent/LOGICX-CRM-REFERENCE.md), reviewed on 17-10-2026.
@@ -494,14 +498,12 @@ browser, mobile, and end-to-end results separately.
       CRM API/web typecheck, lint, boundaries, and expanded Duty E2E passed locally.
       Deployment and global web-login restrictions are outside this report-page change.
 
-
 ## 2026-10-17: Shared mobile action drawer
 
 - Enquiries, Tasks, and Duties use one drawer layout: Action dropdown, input form, Cancel, and Confirm & sync. Separate enquiry/task Actions navigation was removed.
 - Failed submissions preserve input. Duty edits preserve the original report date and outcome. Record history refreshes after submission.
 - Flutter analysis and 26 tests passed. Android emulator enquiry checkout through the new drawer appeared in the open web Actions tab without reload, with GPS and accuracy. The saved emulator session is an administrator; normal-user ownership is covered by API integration tests.
 - Earlier local checks passed work-report, duty, task-contact, and closure integration flows. Production deployment and live Frappe verification were not repeated for this change.
-
 
 ## 2026-10-17: Home card and badge acceptance
 
@@ -512,7 +514,6 @@ browser, mobile, and end-to-end results separately.
 - Added Home navigation/count-refresh, unread-snapshot, and visible-thread read tests. All 29 mobile tests pass. The work-report database E2E also checks assignment unread counts, same-second messages, read clearing, and stale cursor protection.
 - Emulator testing uses the saved administrator session and labeled local fixtures. User assignment isolation is covered by the isolated API E2E. No production or live Frappe change is claimed.
 
-
 ## 2026-10-17: Live Techmedia and Rainbow acceptance
 
 - Connected TECHMEDIA to `techmedia_db` and RAINBOW to `rainbow_db`. Verified backups and preserved existing users.
@@ -522,7 +523,6 @@ browser, mobile, and end-to-end results separately.
 - Reconciled workspace read permissions and verified both live Application overview pages.
 - Evidence and verification limits: [LIVE-VERIFICATION-2026-10-17.md](LIVE-VERIFICATION-2026-10-17.md).
 
-
 ## 2026-10-17: Admin and Manager role acceptance and client APKs
 
 - Verified exact Admin and Manager sessions in both live tenants. All 88 API reads and 60 browser page checks passed.
@@ -531,7 +531,6 @@ browser, mobile, and end-to-end results separately.
 - Regression checks preserve denied Contact/SOP/Duty/Core writes for Manager. The database E2E passed.
 - Built separate Techmedia and Rainbow APKs, version 1.1.6, with distinct app IDs and tenant defaults.
 - Evidence: [LIVE-VERIFICATION-2026-10-17.md](LIVE-VERIFICATION-2026-10-17.md).
-
 
 ## 2026-10-18: Combined Actions window
 
@@ -543,7 +542,6 @@ browser, mobile, and end-to-end results separately.
 - CRM API build, API/web lint, web typecheck, boundaries, and the isolated work-report database E2E passed locally. No deployment or mobile rebuild was performed.
 - Task comments support threaded replies. Tasks remain independent of Enquiries, so task creation appears in that task's own history.
 
-
 ## 2026-10-18: Persisted enquiry WhatsApp history
 
 - Added the Enquiry WhatsApp leaf with tracked migration `crm.enquiry-whatsapp.messages-v1`. Applied and verified `crm_enquiry_whatsapp_messages` in local `codexsun_db`.
@@ -552,7 +550,6 @@ browser, mobile, and end-to-end results separately.
 - The WhatsApp tab saves the handoff before opening WhatsApp and refreshes its history table. History records message handoff, not confirmed transmission or delivery.
 - A database E2E verifies repeated migration, persistence, names, encoded message, retry reuse/conflict, missing recipient, and denied reads/writes.
 - CRM API build, API/web lint, web typecheck, and CRM boundary checks passed. Live databases and APKs were not changed.
-
 
 ## 2026-10-18: Actions and focused-tab refresh wiring
 

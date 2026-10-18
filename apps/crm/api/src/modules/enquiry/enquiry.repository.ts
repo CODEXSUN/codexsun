@@ -622,6 +622,14 @@ export class EnquiryRepository {
             throw AppError.conflict(
               "This comment retry key was already used for different content."
             );
+          if (sourceCreatedAt) {
+            const sourceTimestamp = utcDateTime(sourceCreatedAt);
+            await transaction
+              .updateTable("crm_enquiry_comments")
+              .set({ created_at: sourceTimestamp, updated_at: sourceTimestamp })
+              .where("id", "=", existing.id)
+              .execute();
+          }
           return { insertId: BigInt(existing.id) };
         }
       }

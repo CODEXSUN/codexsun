@@ -24,6 +24,7 @@ const settingsSchema = z.object({
 const jobSchema = z.object({
   id: z.number().int().positive(),
   kind,
+  direction: z.enum(["inbound", "outbound"]),
   status: z.string(),
   createdAt: z.string(),
   errorMessage: z.string().nullable(),

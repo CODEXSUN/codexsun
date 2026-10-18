@@ -38,7 +38,9 @@ Contact export requires an exact existing Frappe Customer/Supplier ID. If its 10
 
 Frappe-to-CRM imports copy selected Frappe records into local tenant databases. Mobile customers,
 enquiries, activities, and call logs use direct selected-row imports. Enquiry and call-log bulk imports
-use background jobs. These imports do not make Frappe the source of truth for CRM records.
+use background jobs. Enquiry live sync polls Frappe changes incrementally and updates linked local
+enquiries and comments while preserving Frappe creation, modified, and comment timestamps. CRM remains
+the write interface for local operations; imported records remain linked to their Frappe identity.
 
 Enquiry imports preserve numeric `ENQ` serials, Frappe creation and modified timestamps, mapped
 owners/assignees, the current Customer display name and mobile, and Comment/Info timeline entries.

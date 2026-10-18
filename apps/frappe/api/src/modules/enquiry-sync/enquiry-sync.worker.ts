@@ -9,10 +9,11 @@ export async function processFrappeEnquiryImportJob(
   defaults: FrappeSettings,
   encryptionSecret: string,
   expectedBaseUrl: string,
+  modifiedAfter: string | undefined,
   report: (progress: ImportProgress) => Promise<void>
 ) {
-  return new FrappeEnquirySyncService(context, defaults, encryptionSecret).importUnlinked(
-    report,
-    expectedBaseUrl
-  );
+  const service = new FrappeEnquirySyncService(context, defaults, encryptionSecret);
+  return modifiedAfter
+    ? service.importModifiedSince(modifiedAfter, report, expectedBaseUrl)
+    : service.importUnlinked(report, expectedBaseUrl);
 }

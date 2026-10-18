@@ -17,6 +17,16 @@
       Evidence: `npm run test:e2e:frappe-contacts-live` on `logicx.tmnext.in` imported Customer `C9138` into disposable local Core storage, confirmed the same local ID on retry, then created and read back one unique Mobile Contact using only `mobile_number`; repeat export updated that same document and cleanup deleted it. The mismatch path remained blocked.
       The local browser export page verified Customer `C9138`, showed “Create Mobile Contact” and “Ready · mobile number only”, queued the export, and completed with 1 exported and 0 failed. Remote readback confirmed the Mobile Contact ID and `mobile_number` were `6886246988`; the exact remote test document and local CRM fixture were then removed and absence verified. CRM did not create another Frappe Customer or Supplier. This was a local browser/API queue test against the live Frappe site, not a production deployment.
 
+## Enquiry live sync and source timestamps - 2026-10-18
+
+- [ ] Preserve exact Frappe creation/modified timestamps and comment timestamps when importing or
+      reconciling enquiries. Incrementally receive Frappe changes and post CRM enquiry creates and
+      updates to the verified linked Frappe document through the live queue.
+- [ ] Verify queue worker operation, one safe live create/update/readback, and inbound reconciliation
+      on the configured tenant. Record production evidence only after remote and local values match.
+      Frappe system `creation` is server-generated on a new remote document; CRM business date maps
+      to the Enquiry `date` field.
+
 ## Frappe contact document identity - 2026-10-18
 
 - [x] Store the actual Frappe Customer document name as the Core contact code and keep site-scoped identity links separately.

@@ -222,8 +222,7 @@ test("bulk import reconciles source values over newer local timestamps", async (
   const updated: Array<{ createdAt: string; updatedAt: string; createdBy: string }> = [];
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
-    if (url.pathname.endsWith("/Enquiry"))
-      return Response.json({ data: [{ name: "ENQ27" }] });
+    if (url.pathname.endsWith("/Enquiry")) return Response.json({ data: [{ name: "ENQ27" }] });
     if (url.pathname.endsWith("/get_count")) return Response.json({ message: 1 });
     return Response.json({
       data: {
@@ -265,7 +264,7 @@ test("bulk import reconciles source values over newer local timestamps", async (
   assert.equal(result.scanned, 1);
   assert.equal(result.failed, 0);
   assert.equal(result.skipped, 1);
-  assert.equal(updated[0]?.updatedAt, "2026-10-18T17:05:00.000Z");
+  assert.equal(updated[0]?.updatedAt, "2026-10-18T11:35:00.000Z");
 });
 
 test("queued import stops when the Frappe connection has changed", async () => {
@@ -325,8 +324,8 @@ test("pull creates a local enquiry and records the remote identity", async () =>
         created.push(input);
         assert.deepEqual(source, {
           enquiryNo: 27,
-          createdAt: "2026-10-06T10:00:00.000Z",
-          updatedAt: "2026-10-07T11:30:00.000Z",
+          createdAt: "2026-10-06T04:30:00.000Z",
+          updatedAt: "2026-10-07T06:00:00.000Z",
           createdBy: "agent@example.com"
         });
         return { id: 42 } as EnquiryRecord;
@@ -411,7 +410,7 @@ test("pull repairs an imported enquiry missing its Frappe link and resumes comme
       updateImportedEnquiry: async (id, input, source) => {
         assert.equal(id, 42);
         assert.equal(input.sourceReference, "ENQ27");
-        assert.equal(source.createdAt, "2026-10-06T10:00:00.000Z");
+        assert.equal(source.createdAt, "2026-10-06T04:30:00.000Z");
         updated = true;
         return { id } as EnquiryRecord;
       },
@@ -550,7 +549,7 @@ test("pull imports Frappe comments with mapped author and source timestamp", asy
         id: "MESSAGE-1",
         content: "Source enquiry message",
         author: "local-agent@example.com",
-        createdAt: "2026-10-06T10:30:00.000Z"
+        createdAt: "2026-10-06T05:00:00.000Z"
       }
     },
     {
@@ -559,10 +558,70 @@ test("pull imports Frappe comments with mapped author and source timestamp", asy
         id: "COMM-1",
         content: "Followed up",
         author: "local-agent@example.com",
-        createdAt: "2026-10-07T12:30:00.000Z"
+        createdAt: "2026-10-07T07:00:00.000Z"
       }
     }
   ]);
+});
+
+test("live import filters by the Frappe-local modified time and preserves source dates", async () => {
+  const scope = database();
+  let listFilters: unknown;
+  let importedAt = "";
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/Comment")) return Response.json({ data: [] });
+    if (url.pathname.endsWith("/Enquiry") && !url.pathname.endsWith("/ENQ27")) {
+      listFilters = JSON.parse(url.searchParams.get("filters") ?? "null");
+      return Response.json({
+        data:
+          url.searchParams.get("limit_start") === "0"
+            ? [{ name: "ENQ27", modified: "2026-10-18 19:00:00" }]
+            : []
+      });
+    }
+    return Response.json({
+      data: {
+        name: "ENQ27",
+        creation: "2026-05-28 18:53:48",
+        modified: "2026-10-18 19:00:00",
+        owner: "agent@example.com",
+        title: "Machine issue",
+        mobile: "9994885548",
+        date: "2026-05-28",
+        status: "New",
+        priority: "Normal"
+      }
+    });
+  };
+  const service = new FrappeEnquirySyncService(
+    {
+      database: scope.value,
+      createEnquiry: async () => ({ id: 42 }) as EnquiryRecord,
+      createImportedEnquiry: async (_input, source) => {
+        importedAt = source.createdAt;
+        return { id: 42 } as EnquiryRecord;
+      },
+      updateEnquiry: async () => {
+        throw new Error("Unexpected local update");
+      },
+      localUserForEmployee: async () => null,
+      listInForName: async () => null
+    },
+    defaults,
+    "secret"
+  );
+
+  const result = await service.importModifiedSince(
+    "2026-10-18T13:25:00.000Z",
+    async () => {},
+    defaults.baseUrl
+  );
+
+  assert.deepEqual(listFilters, [["Enquiry", "modified", ">", "2026-10-18 18:55:00"]]);
+  assert.equal(importedAt, "2026-05-28T13:23:48.000Z");
+  assert.equal(result.created, 1);
+  assert.equal(result.failed, 0);
 });
 
 test("pull rejects a linked enquiry with newer local edits", async () => {

@@ -603,7 +603,6 @@ export class FrappeExportService {
       due_date: enquiry.due_date ? dateOnly(enquiry.due_date) : undefined,
       priority: titleCase(enquiry.priority),
       status: frappeStatus(enquiry.status),
-      customer: enquiry.source === "frappe" ? enquiry.captured_name || undefined : undefined,
       user_employee: creator
     };
     const response = await requestFrappe<{ data?: { name?: string } }>(

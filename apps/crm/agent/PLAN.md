@@ -45,7 +45,9 @@ CRM writes must stay in the tenant database. The mobile app sends records to the
 CRM API, which saves them locally. Enquiries may be explicitly imported from the
 tenant's verified Frappe connection into local CRM; the import preserves source
 serials, timestamps, mapped users, comments, and identity links. After import,
-local CRM remains authoritative and no automatic enquiry export is allowed.
+local CRM remains authoritative for CRM operations. The separately requested enquiry live-sync
+contract imports remote Frappe changes and posts local enquiry creates/updates to the verified linked
+record. It does not authorize other CRM outbound transfers.
 Call Logs remain outside this import scope. Published SOP Items, Duty Assignments,
 and Duty Reports use the approved outbound queue described in
 [DUTIES-SOP-PLAN.md](./DUTIES-SOP-PLAN.md). CRM reads these records locally.

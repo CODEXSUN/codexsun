@@ -1159,12 +1159,19 @@ export async function createApp() {
       return (await queueService.listJobs({ tenantId: context.tenantId, queueName: "reports" }))
         .filter(
           (job) =>
-            job.jobName === "frappe.live-sync" &&
+            ["frappe.live-sync", frappeEnquiryImportJobName].includes(job.jobName) &&
             job.payload.tenantDatabase === context.tenantDatabase
         )
         .map((job) => ({
           id: job.id,
-          kind: job.payload.kind as ExportKind,
+          kind:
+            job.jobName === frappeEnquiryImportJobName
+              ? ("enquiries" as const)
+              : (job.payload.kind as ExportKind),
+          direction:
+            job.jobName === frappeEnquiryImportJobName
+              ? ("inbound" as const)
+              : ("outbound" as const),
           status: job.status,
           createdAt: job.createdAt,
           errorMessage: job.errorMessage,
@@ -1548,7 +1555,15 @@ export async function createApp() {
     )
       throw new Error("The Frappe enquiry backfill tenant or connection is no longer valid.");
     const database = getTenantDatabase(tenant);
-    await ensureFrappeImportOpen(database as unknown as import("kysely").Kysely<FrappeDatabase>);
+    if (typeof job.payload.modifiedAfter !== "string")
+      await ensureFrappeImportOpen(database as unknown as import("kysely").Kysely<FrappeDatabase>);
+    else {
+      const liveSync = await new FrappeLiveSyncService(
+        database as unknown as import("kysely").Kysely<FrappeDatabase>
+      ).settings();
+      if (!liveSync.enabled || liveSync.paused || !liveSync.modules.enquiries)
+        return { scanned: 0, created: 0, skipped: 0, failed: 0, failures: [] };
+    }
     const enabled = await database
       .selectFrom("app_module_settings")
       .select("module_key")
@@ -1601,6 +1616,7 @@ export async function createApp() {
       frappeSettings,
       env.JWT_SECRET,
       job.payload.baseUrl,
+      typeof job.payload.modifiedAfter === "string" ? job.payload.modifiedAfter : undefined,
       report
     );
   });
