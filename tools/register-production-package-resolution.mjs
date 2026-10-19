@@ -29,6 +29,20 @@ const apiPackages = new Map([
   ["@codexsun/zuno-api", "zuno"],
   ["@codexsun/mail-api", "mail"]
 ]);
+const productionApiAliases = new Map([
+  [
+    "@codexsun/data-migration-api",
+    resolve(root, "dist", "devkits", "data-migration", "api", "index.js")
+  ],
+  [
+    "@codexsun/sportsclub-api/migration",
+    resolve(root, "dist", "apps", "sportsclub", "api", "sportsclub.migration.js")
+  ],
+  [
+    "@codexsun/sportsclub-api/seed",
+    resolve(root, "dist", "apps", "sportsclub", "api", "sportsclub.seed.js")
+  ]
+]);
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -39,6 +53,14 @@ registerHooks({
 });
 
 function productionApiTarget(specifier) {
+  const alias = productionApiAliases.get(specifier);
+  if (alias) {
+    if (!existsSync(alias)) {
+      throw new Error(`Production build output is missing for ${specifier}. Run npm run build.`);
+    }
+    return alias;
+  }
+
   if (specifier.startsWith("@codexsun/qcafe-api/src/")) {
     const source = resolve(
       root,

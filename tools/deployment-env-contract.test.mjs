@@ -103,4 +103,12 @@ test("composed API image builds every first-party package used by its production
   );
   for (const name of packages)
     assert.ok(dockerfile.includes(`npm run build -w ${name}`), `Missing container build: ${name}`);
+  assert.match(dockerfile, /npm run build -w @codexsun\/data-migration-api/u);
+  for (const name of [
+    "@codexsun/data-migration-api",
+    "@codexsun/sportsclub-api/migration",
+    "@codexsun/sportsclub-api/seed"
+  ]) {
+    assert.ok(resolver.includes(`"${name}"`), `Missing production resolution: ${name}`);
+  }
 });

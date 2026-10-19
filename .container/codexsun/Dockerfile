@@ -22,6 +22,7 @@ RUN npm run build -w @codexsun/framework \
   && npm run build -w @codexsun/codexsun-api \
   && npm run build -w @codexsun/core-api \
   && npm run build -w @codexsun/crm-api \
+  && npm run build -w @codexsun/data-migration-api \
   && npm run build -w @codexsun/docs-api \
   && npm run build -w @codexsun/ecommerce-api \
   && npm run build -w @codexsun/frappe-api \

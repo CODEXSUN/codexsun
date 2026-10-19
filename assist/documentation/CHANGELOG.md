@@ -36,6 +36,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Refined CRM mobile navigation, role-scoped workspaces, activity date limits, enquiry/task forms, comments, job timers, check-in/out, charge flows, and call-log layouts; removed rich-text markup from mobile cards and activity details.
 - Improved responsive CRM enquiry/task lists and show pages, work-report charge fields, activity visibility, task date handling, and API read paths.
 - Registered the Sportsclub app in Platform and added the Super Admin Data Migration DevKit integration.
+- Added production package resolution for the Data Migration runtime and Sportsclub migration/seed exports in the composed API image.
 - Updated shared tab and table styling and added developer references for Sportsclub and Data Migration modules.
 - Updated the CODEXSUN mobile build version to 1.1.25 (build 125).
 
