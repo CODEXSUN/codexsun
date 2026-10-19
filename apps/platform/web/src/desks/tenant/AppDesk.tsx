@@ -1,4 +1,5 @@
 import { tconnectGateway } from "../../modules/tconnect/tconnect-host";
+import { sportsclubGateway } from "../../modules/sportsclub/sportsclub-host";
 import { QCafeAppearance } from "./QCafeAppearance";
 import { WorkspaceNavigationProvider } from "@codexsun/ui/workspace/navigation";
 import { ApplicationOverview } from "./application-overview";
@@ -113,6 +114,9 @@ function lazyWorkspace<Props>(loader: () => Promise<ComponentType<Props>>) {
 
 const TconnectWorkspace = lazyWorkspace(() =>
   import("@codexsun/tconnect-web").then((module) => module.TconnectWorkspace)
+);
+const SportsclubWorkspace = lazyWorkspace(() =>
+  import("@codexsun/sportsclub-web").then((module) => module.SportsclubWorkspace)
 );
 const HrmsOverviewWorkspace = lazyWorkspace(() =>
   import("@codexsun/hrms-web/modules/overview").then((module) => module.HrmsOverviewWorkspace)
@@ -606,6 +610,7 @@ type AppPage =
   | "auditor.overview"
   | "auditor.clients"
   | "tconnect.overview"
+  | "sportsclub.overview"
   | "ecommerce.overview"
   | "ecommerce.categories"
   | "ecommerce.products"
@@ -828,6 +833,8 @@ export function AppDesk() {
   const appSafePage =
     page.startsWith("tconnect.") && !switchableApps.includes("tconnect")
       ? pageForApp(landingApp)
+      : page.startsWith("sportsclub.") && !switchableApps.includes("sportsclub")
+        ? pageForApp(landingApp)
       : page.startsWith("devkit") || page.startsWith("project-manager")
         ? pageForApp(landingApp)
         : page.startsWith("hrms.") && !switchableApps.includes("hrms")
@@ -1611,6 +1618,9 @@ export function AppDesk() {
             {safePage === "tconnect.overview" ? (
               <TconnectWorkspace gateway={tconnectGateway} />
             ) : null}
+            {safePage === "sportsclub.overview" ? (
+              <SportsclubWorkspace gateway={sportsclubGateway} />
+            ) : null}
             {safePage === "ecommerce.overview" ? (
               <EcommerceOverviewWorkspace gateway={ecommerceOverviewGateway} />
             ) : null}
@@ -2122,6 +2132,7 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     key === "auditor.overview" ||
     key === "auditor.clients" ||
     key === "tconnect.overview" ||
+    key === "sportsclub.overview" ||
     key === "ecommerce.overview" ||
     key === "qcafe.dashboard" ||
     key === "qcafe.overview" ||
@@ -2613,6 +2624,7 @@ function titleForPage(page: AppPage) {
     "auditor.overview": "Overview",
     "auditor.clients": "Clients",
     "tconnect.overview": "Business network",
+    "sportsclub.overview": "Sports Club",
     "ecommerce.overview": "Overview",
     "ecommerce.catalog": "Catalog",
     "ecommerce.storefront": "Storefront",
@@ -2807,6 +2819,8 @@ function appFromPage(
   if (page.startsWith("auditor")) return enabledApps.includes("auditor") ? "auditor" : landingApp;
   if (page.startsWith("tconnect"))
     return enabledApps.includes("tconnect") ? "tconnect" : landingApp;
+  if (page.startsWith("sportsclub"))
+    return enabledApps.includes("sportsclub") ? "sportsclub" : landingApp;
   if (page.startsWith("ecommerce"))
     return enabledApps.includes("ecommerce") ? "ecommerce" : landingApp;
   if (page.startsWith("logicx-erp"))

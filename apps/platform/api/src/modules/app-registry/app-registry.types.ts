@@ -21,7 +21,8 @@ export type PlatformAppId =
   | "docs"
   | "himsx"
   | "codexsun"
-  | "sites";
+  | "sites"
+  | "sportsclub";
 
 export type PlatformAppDefinition = {
   alwaysEnabled: boolean;
@@ -54,7 +55,8 @@ export type PlatformAppDefinition = {
     | "docs"
     | "himsx"
     | "codexsun"
-    | "sites";
+    | "sites"
+    | "sportsclub";
   uuid: string;
 };
 

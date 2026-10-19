@@ -26,6 +26,7 @@ export type Tenant = {
     | "zetro"
     | "logicx-erp"
     | "tconnect"
+    | "sportsclub"
     | "ecommerce"
     | "qcafe"
     | "hrms"

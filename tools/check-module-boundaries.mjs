@@ -11,6 +11,7 @@ const moduleRoots = [
   { app: "docs-api", path: join(process.cwd(), "apps", "docs", "api", "src", "modules") },
   { app: "himsx-api", path: join(process.cwd(), "apps", "himsx", "api", "src", "modules") },
   { app: "sites-api", path: join(process.cwd(), "apps", "sites", "api", "src", "modules") },
+  { app: "sportsclub-api", path: join(process.cwd(), "apps", "sportsclub", "api", "src", "modules") },
 
   {
     app: "auditor-api",
@@ -122,6 +123,14 @@ const capabilityBackendRoles = new Map([
     "quotation",
     "credential"
   ].map((key) => [`tconnect-api/${key}`, reducedBackendRoles]),
+    ["sportsclub-api/attendance", reducedBackendRoles],
+  ["sportsclub-api/enquiry", reducedBackendRoles],
+  ["sportsclub-api/event", reducedBackendRoles],
+  ["sportsclub-api/master", reducedBackendRoles],
+  ["sportsclub-api/member", reducedBackendRoles],
+  ["sportsclub-api/program", reducedBackendRoles],
+  ["sportsclub-api/progress", reducedBackendRoles],
+  ["sportsclub-api/session", reducedBackendRoles],
   ["qcafe-api/menu", reducedBackendRoles],
   ["qcafe-api/pos", reducedBackendRoles],
   ["qcafe-api/order", reducedBackendRoles],
@@ -218,6 +227,7 @@ const webModuleRoots = [
   { app: "docs-web", path: join(process.cwd(), "apps", "docs", "web", "src", "modules") },
   { app: "himsx-web", path: join(process.cwd(), "apps", "himsx", "web", "src", "modules") },
   { app: "sites-web", path: join(process.cwd(), "apps", "sites", "web", "src", "modules") },
+  { app: "sportsclub-web", path: join(process.cwd(), "apps", "sportsclub", "web", "src", "modules") },
 
   {
     app: "ecommerce-storefront",
@@ -291,6 +301,7 @@ const capabilityFrontendRoles = new Map([
   ["docs-web/overview", ["workspace", "services", "hooks", "types"]],
   ["himsx-web/overview", ["workspace", "services", "hooks", "types"]],
   ["sites-web/overview", ["workspace", "services", "hooks", "types"]],
+  ["sportsclub-web/overview", ["workspace", "services", "hooks", "types"]],
   ["ecommerce-web/overview", ["workspace", "services", "hooks", "types"]],
   ["ecommerce-web/storefront", ["page", "services", "types"]],
   [

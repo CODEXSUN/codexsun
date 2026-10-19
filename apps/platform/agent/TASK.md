@@ -1,5 +1,16 @@
 # Platform tasks
 
+## Sports Club multi-tenant composition & Tenkasi Sports integration — October 19, 2026
+
+- Composed `@codexsun/sportsclub-api` and `@codexsun/sportsclub-web` in Platform runtime.
+- Removed synthetic domain verification in `tenkasisports-tenant.ts`; domain mapping strictly requires real ownership evidence (`domainVerificationTokens`).
+- Replaced dynamic import error swallowing in `tenant-app-database.ts` with direct, fail-closed invocations of `migrateSportsclubDatabase` and `seedSportsclubDatabase`.
+- Bound sportsclub routes and public Cloudflare Worker portal prefix `/public/portals/tenkasisports` in `sportsclub-host.ts`.
+- Enforced single database transaction (`db.transaction().execute`) on `/public/sportsclub/registration`, requiring student-selected passwords and stripping credentials before member enrollment.
+- Explicitly restricted inconsistent public aliases (`/student/register`, `/sportsclub/public/enroll`, `/sportsclub/public/registration`) to fail closed with 403 Forbidden.
+- Conducted read-only release audit: verified unprovisioned local `TENKASISPORTS` tenant, uncreated `codexsun_sportsclub_tenkasisports` DB, unseeded roles, and live 404 health status. Blocked deployment due to dirty concurrent working tree.
+- Verified gates: `typecheck` (API + Web), `lint` (API + Web), 12 focused platform tests in `sportsclub-platform.test.ts`, and module boundaries.
+
 ## TConnect public discovery composition — October 17, 2026
 
 - Added fixed credential list/create/update adapters to the TConnect gateway and composed its app-owned staff Credentials tab.
@@ -25,6 +36,19 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 - [ ] Record exact checks and unresolved limitations. Update the existing plan only from evidence.
 
 ## Acceptance evidence
+
+### Tenkasi Sports targeted local provisioning and registration hardening, 19-10-2026
+
+- Hardened canonical `/public/sportsclub/registration` to use a single tenant database transaction (`db.transaction().execute`) for both `services.member.enroll` and `context.provisionStudentIdentity`, failing closed with internal error if `db.transaction` is unavailable.
+- Required a student-selected password (12–128 characters, trimmed) via `publicStudentRegistrationSchema`, stripped `password` prior to member enrollment, and eliminated random password fallback from `resolveContext`.
+- Restricted inconsistent public aliases: `/student/register`, `/sportsclub/public/enroll`, and root `app` direct member enrollment fail closed with `AppError.forbidden` (HTTP 403).
+- Completed safe targeted local provisioning for `TENKASISPORTS`:
+  - Tenant registry: `id: 2`, `corporateId: "TENKASISPORTS"`, `slug: "tenkasisports"`, `status: "active"`, `enabledModuleKeys: ["platform.application", "sportsclub"]`, with `CODEXSUN` (`id: 1`, `codexsun_db`) fully preserved.
+  - Dedicated database: created and migrated `codexsun_sportsclub_tenkasisports` with all sportsclub tables (`sportsclub_members`, `sportsclub_programs`, `sportsclub_events`, `sportsclub_sessions`, `sportsclub_masters`, `sportsclub_enquiries`, `sportsclub_activity`, `sportsclub_progress`, `sportsclub_attendance`) and tenant runtime tables.
+  - Roles & Auth: seeded active roles `portal.sportsclub-student` (self-scoped, 0 backoffice perms), `sportsclub.master`, and `sportsclub.admin`. Direct portal identity creation and credential hashing verified on tenant DB.
+  - Domain mapping: `tenkasisports.com` mapped to tenant in pending verification status; real token evidence required before production ownership activation.
+  - Deployment limits: shared workspace contains uncommitted, concurrent changes across `devkits/data-migration/`, `data-migration-host.ts`, `apps/crm/**`, and `apps/sites/**`; no live deployment to VPS or mixed file staging was performed. Live `https://codexsun.com/api/platform/public/portals/tenkasisports/health` remains HTTP 404 until coordinated release.
+- Quality gates: 12 focused platform unit tests passed in `sportsclub-platform.test.ts`, `lint` (API + Web), `typecheck` (API + Web), and module boundaries passed.
 
 ### Queue worker automatic pickup, 18-10-2026
 

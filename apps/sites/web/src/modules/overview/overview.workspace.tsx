@@ -20,7 +20,11 @@ import type { SitesOverviewGateway } from "./overview.services.js";
 
 type SitesView = "guide" | "portfolios" | "studio";
 
-export function SitesOverviewWorkspace({
+export function SitesOverviewWorkspace(props: Parameters<typeof StudioWorkspace>[0]) {
+  return <StudioWorkspace {...props} />;
+}
+
+function StudioWorkspace({
   gateway,
   guide = false,
   siteGateway,
@@ -55,6 +59,7 @@ export function SitesOverviewWorkspace({
     }
   }
   const managedSite = sites.records.find((site) => site.uuid === managedUuid);
+
 
   if (managedSite && overview.isSuccess) {
     return (

@@ -6,7 +6,7 @@ import { AppError } from "@codexsun/framework/errors";
 import type { CmsSite } from "./site.types.js";
 
 export type SiteRuntime = { port: number; state: "running"; url: string };
-const supported = new Set(["logicx", "ramutex", "tirupurconnect"]);
+const supported = new Set(["logicx", "ramutex", "tirupurconnect", "tenkasisports"]);
 
 export class SiteRuntimeService {
   constructor(private readonly options: { dataRoot?: string } = {}) {}

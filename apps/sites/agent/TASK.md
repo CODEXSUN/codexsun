@@ -1,5 +1,46 @@
 # Site Studio task and working rules
 
+## Tenkasi Sports public client and Cloudflare delivery — October 19, 2026
+
+- **Scope & Ownership**: AGR-4 owns the public frontend, Cloudflare Worker proxy/delivery configuration, static prerendering, and minimal Sites CMS publication registration for **Veerathamilan Traditional Sivakalai Gurukulam / Tenkasi Sports** (`tenkasisports.com`).
+- **Client & Port**: Named Sites client slug `tenkasisports`, template `portfolio-sportsclub`, pinned site UUID `c0de0006`, local port `7134`, database `codexsun_sportsclub_tenkasisports`.
+- **Worker & Routing**:
+  - Apex domain `tenkasisports.com` with `www.tenkasisports.com` redirected to apex via 308.
+  - Wrangler config `apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc` targeted to Cloudflare zone `f7c324e9ca4cac54047f84f591cb54e4` (zone existence verified via authenticated Cloudflare API; see audit results below). Removed plaintext `CODEXSUN_SITES_TENKASISPORTS_SITE_KEY` from `vars` (fails closed with 503 if unconfigured; managed via Wrangler encrypted secret bindings).
+  - Upstream fixed backend `https://codexsun.com`.
+  - Live tenant health check against `${backend}/api/platform/public/portals/tenkasisports/health`; fails closed (503 `TENANT_SETUP_PENDING`) if backend is offline or corporate ID does not match `TENKASISPORTS`.
+  - Canonical platform proxy routes: `/public/sportsclub/registration`, `/public/sportsclub/enquiry`, `/public/sportsclub/programs`, `/public/sportsclub/masters`, `/public/sportsclub/classes`, `/public/sportsclub/events`, `/public/sportsclub/club-profile`, and `/health`.
+  - Removed fallback to legacy `/student/register` (fails closed on 404 to avoid orphan identities).
+  - Same-origin enforced on POST, client cookies and tenant headers stripped, HMAC verification headers (`x-codexsun-public-client`, `x-codexsun-client-time`, `x-codexsun-client-signature`) attached on upstream forwards.
+- **Frontend & Content**:
+  - Authentic Tamil/English handbook content and syllabus from Veerathamilan Traditional Sivakalai Gurukulam.
+  - Exact logo and book imagery preserved without fabrication of awards, fees, or medical claims.
+  - Responsive public routes: Home, About, Programs (Silambam), Masters, Classes, Events, Gallery, Join (Student Registration), Contact (Public Enquiry), Privacy, Terms, and 404.
+  - Forms validate strictly against Platform public schemas (`studentEnrollmentSchema`, `publicEnquirySubmissionSchema`):
+    - Removed synthetic email creation, fake references, and client-side fake success.
+    - Added student-selected password and confirmation (min 12 chars) for portal account creation; never displayed or persisted in UI.
+    - Replaced dropped fields (`age`, `category`, `level`) with genuine schema persistence fields (`dateOfBirth`, `emergencyContact`, `guardianPhone`, `guardianName`, `medicalNotes`, `address`).
+    - Contact form requires explicit opt-in privacy consent checkbox matching `publicEnquirySubmissionSchema` (`consent: true`).
+    - Actionable error and retry display on network or validation failures; success receipt displayed only upon confirmed backend response.
+  - Portal link configured to authenticated tenant desk: `https://app.codexsun.com/login?desk=tenant&app=sportsclub&corporateId=TENKASISPORTS`.
+- **Verification Gates**:
+  - `node --import tsx --test apps/sites/clients/cloudflare/tenkasisports.worker.test.ts`: 8/8 passed (including missing secret fail-closed, backend error propagation, and duplicate conflict tests).
+  - `node --import tsx --test apps/platform/api/src/sportsclub-platform.test.ts`: 11/11 passed.
+  - `npm run typecheck -w @codexsun/sites-clients`: 0 errors.
+  - `npm run lint -w @codexsun/sites-clients`: 0 warnings, 0 errors.
+  - `npm run typecheck -w @codexsun/sites-api`: 0 errors.
+  - `npm run typecheck -w @codexsun/sites-web`: 0 errors.
+  - `npm run build:tenkasisports -w @codexsun/sites-clients`: Built cleanly.
+  - `node tools/check-module-boundaries.mjs sites`: Passed.
+  - Cloudflare deployment remains pending backend deployment and coordinator instruction.
+- **Cloudflare Live Audit Evidence (October 19, 2026)**:
+  - **Account & Zone Verification**: Authenticated Cloudflare API (`GET /client/v4/zones?name=tenkasisports.com`) and `wrangler whoami` confirmed zone `tenkasisports.com` exists with ID `f7c324e9ca4cac54047f84f591cb54e4` in account `a68cf61bf5bae3f83ddb7765dc29a835` (`Codexsun@gmail.com's Account`). Zone status is `active` on the `Free Website` plan using nameservers `evan.ns.cloudflare.com` and `sara.ns.cloudflare.com`.
+  - **D1 Database Audit & Provisioning**: Initially absent from the account. On user instruction (October 19, 2026), dedicated D1 database `codexsun-tenkasisports-content` was created in region APAC with confirmed UUID `1fff5450-d9a8-473c-8b11-45ecad357a60`. `wrangler.tenkasisports.jsonc` was updated with this actual ID. Content schema (`apps/sites/clients/cloudflare/tenkasisports.content.sql`) was applied via `wrangler d1 execute --remote`, successfully creating `sites_live_publications` and `sites_publication_history` tables. Read-back verification confirmed both tables present and healthy (0 live, 0 history records).
+  - **Worker Script & Route Audit**: Worker script `codexsun-tenkasisports` **does NOT exist** on Cloudflare (`GET /client/v4/accounts/.../workers/scripts` lists 7 scripts; `wrangler deployments list -c apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc` returns error code 10007). Zone `f7c324e9ca4cac54047f84f591cb54e4` has **no Worker routes bound** (`GET /client/v4/zones/.../workers/routes` returns `[]`).
+  - **Live Apex & WWW Traffic**: Direct HTTP probes to `https://tenkasisports.com` and `https://www.tenkasisports.com` return HTTP 200 with Hostinger default/parking page title (`Default page`) and favicon (`hpanel.hostinger.com/favicons/hostinger.png`). No Worker is intercepting or proxying live traffic.
+  - **Public DNS Resolution & What Could NOT Be Verified**: Public DNS resolution confirms `tenkasisports.com` currently resolves to Cloudflare Anycast proxy addresses `172.67.164.163` and `104.21.74.238`. This demonstrates traffic is currently proxied through Cloudflare edge network, which will support Worker route interception as soon as routes are bound. Authenticated inspection of individual DNS origin records in Cloudflare dashboard could not be audited via `GET /client/v4/zones/.../dns_records` because the CLI OAuth token has `zone (read)` but lacks `dns_records (read)` scope (returns code 10000 Authentication error).
+  - **Deployment Gate**: Deployment remains strictly blocked until the Platform backend health endpoint on `codexsun.com` is operational, Worker secrets (`CODEXSUN_SITES_PUBLISH_SECRET`, `CODEXSUN_SITES_TENKASISPORTS_SITE_KEY`) are set via Wrangler secrets, and coordinator explicitly approves. Worker deployment and route binding were NOT executed.
+
 ## Tirupur Connect content management — October 17, 2026
 
 Verified: local authenticated draft/publication persistence and export sequence 24; six publication/Worker checks; six runtime checks; Sites CMS checks (13 passed, one opt-in MariaDB check skipped); affected TypeScript, lint, module boundaries and dependency layout. Deployed the latest public frontend as Worker version `0665e060-cb68-4195-a145-c509f7edec05`. Live content matches the approved Sites export; all 14 public routes passed at 1440, 768, 390 and 320px without runtime exceptions. The separate remote Studio/VPS release was not performed.

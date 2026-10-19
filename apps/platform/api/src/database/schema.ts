@@ -83,6 +83,7 @@ export type PlatformAppsTable = {
     | "zetro"
     | "logicx-erp"
     | "tconnect"
+    | "sportsclub"
     | "ecommerce"
     | "qcafe"
     | "hrms"

@@ -119,6 +119,12 @@ Project Manager owns Platform Registry and Ideas and is composed by Platform thr
 - Platform supplies the authenticated request database and actor. Project Manager does not resolve tenant identity from
   browser input and uses the existing HttpOnly CODEXSUN session cookie.
 
+### Sports Club
+
+- `apps/sportsclub/api` owns multi-tenant sports academy and club management, student enrollments, batches, training programs, sessions, attendance, progress, events, and enquiries. Its migration runs against tenant databases under `sportsclub`.
+- `apps/sportsclub/web` owns the Sports Club overview and entity workspaces (`program`, `master`, `member`, `session`, `attendance`, `progress`, `event`, `enquiry`), composed through Platform's `AppDesk` and the dedicated `SportsclubStudentDesk`.
+- Platform supplies tenant routing (`TENKASISPORTS`), role grants, and authenticated sessions. Public marketing and Cloudflare proxying are owned by `apps/sites` for `tenkasisports.com`.
+
 ### Auditor
 
 - `apps/auditor/api` owns the client directory, portal credential migration, permission seed, and `/auditor/clients` routes. The Platform API composes it using the existing desk user session.

@@ -15,7 +15,7 @@ export function SiteRuntimeControls({
   const local = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
   const supported =
     site.themeKey === "portfolio-standard" ||
-    (["logicx", "ramutex", "tirupurconnect"].includes(site.slug) && site.themeKey === `portfolio-${site.slug}`);
+    (["logicx", "ramutex", "tirupurconnect", "tenkasisports"].includes(site.slug) && site.themeKey === `portfolio-${site.slug}`);
   const canStart =
     local && supported && site.status === "active" && Boolean(site.port && gateway?.start);
 

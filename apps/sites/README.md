@@ -52,6 +52,22 @@ Live delivery uses an authenticated publication export, not a development API or
 
 No SQL column migration is required for the optional textile content field. Existing publications remain valid. Existing Tirupur Connect generic drafts need approved content initialized before export. The local CMS integration check verifies draft isolation, publish, stale saves, unsafe-image rejection and export. Unit checks cover deployment identity and safe embedding. VPS configuration and a remote Studio registry remain separate.
 
+## Tenkasi Sports client
+
+Tenkasi Sports (Veerathamilan Traditional Sivakalai Gurukulam) is a named Sites client with slug `tenkasisports`, template `portfolio-sportsclub`, and local port 7134.
+Its public UI lives in `clients/src/clients/tenkasisports`. Public assets and authentic handbook media live in `clients/public/tenkasisports`.
+The local Studio registry contains this client with pinned site UUID `c0de0006`. Studio Start verifies its identity before opening port 7134.
+Its layout is code-owned and responsive across mobile (320px, 390px, 430px) and desktop viewports with authentic Tamil and English content from the handbook.
+Public registration, enquiry, masters, classes, and programs submit through the same-origin Cloudflare Worker proxy forwarding strictly to Platform public endpoints.
+
+The public site is `https://tenkasisports.com` (redirecting `www.tenkasisports.com` via 308). Its Worker lives in `clients/cloudflare/tenkasisports.mjs`.
+Wrangler configuration lives in `apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc` in Cloudflare zone `f7c324e9ca4cac54047f84f591cb54e4`.
+Build with `npm run build:tenkasisports -w @codexsun/sites-clients`. Output stays under root `dist/apps/sites/clients/tenkasisports`.
+
+Public sports club data must come from Corporate ID `TENKASISPORTS`. The fixed upstream is `https://codexsun.com`.
+The Worker performs live health checks against `/api/platform/public/portals/tenkasisports/health` and fails closed (503 TENANT_SETUP_PENDING) if the backend is offline or corporate ID mismatches.
+Same-origin is enforced on POST requests; caller cookies and tenant headers are stripped, and outbound HMAC signature headers (`x-codexsun-public-client`, `x-codexsun-client-time`, `x-codexsun-client-signature`) are attached for canonical registration and enquiry forwarding.
+
 ## Client workspaces
 
 - Manage opens the selected client's profile, Pages, and Blogs editors.
@@ -59,7 +75,7 @@ No SQL column migration is required for the optional textile content field. Exis
 - Add Portfolio opens the creation form and proposes the next available registered port.
 - Creating a portfolio saves its site and initial website draft in one tenant database transaction.
 - New clients use `portfolio-standard`. They start with empty service, contact, and blog records where details are unknown.
-- LogicX uses `portfolio-logicx` on port 7131. Ramu Tex uses `portfolio-ramutex` on port 7132.
+- LogicX uses `portfolio-logicx` on port 7131. Ramu Tex uses `portfolio-ramutex` on port 7132. Tenkasi Sports uses `portfolio-sportsclub` on port 7134.
 - Start launches the selected template on its saved port. Open visits that local website.
 
 The current public routes are `/`, `/about`, `/services`, `/contact`, `/blogs`, `/privacy`, and `/blogs/:slug`.

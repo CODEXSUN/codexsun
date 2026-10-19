@@ -25,10 +25,22 @@ export const defaultTenantModuleKeys = [
   "docs",
   "himsx",
   "codexsun",
-  "sites"
+  "sites",
+  "sportsclub"
 ] as const;
 
 export const platformAppRegistry: PlatformAppDefinition[] = [
+  {
+    appId: "sportsclub",
+    id: 0,
+    uuid: "",
+    label: "Sports Club",
+    moduleKey: "sportsclub",
+    stack: "sportsclub",
+    alwaysEnabled: false,
+    defaultLanding: false,
+    description: "Multi-tenant sports academy and club management with student, master and club admin portals."
+  },
   {
     appId: "tconnect",
     id: 0,

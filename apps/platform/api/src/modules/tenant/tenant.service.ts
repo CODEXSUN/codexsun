@@ -395,16 +395,25 @@ export async function resolvePublicStorefrontTenant(value: string): Promise<Tena
 }
 export async function resolvePublicApplicationTenant(
   value: string,
-  moduleKey: "ecommerce" | "tconnect"
+  moduleKey: "ecommerce" | "tconnect" | "sportsclub"
 ): Promise<Tenant> {
   const host = normalizeTenantDomain(value);
   const repository = new TenantRepository();
-  const canonicalTconnect = moduleKey === "tconnect" &&
-    host === new URL(env.PLATFORM_WEB_ORIGIN).hostname && Boolean(env.DEFAULT_TENANT_CORPORATE_ID.trim());
+  const canonicalTconnect =
+    moduleKey === "tconnect" &&
+    host === new URL(env.PLATFORM_WEB_ORIGIN).hostname &&
+    Boolean(env.DEFAULT_TENANT_CORPORATE_ID.trim());
+  const canonicalSportsclub =
+    moduleKey === "sportsclub" &&
+    (host === "tenkasisports.com" ||
+      (env.NODE_ENV === "development" &&
+        (host === "tenkasisports.localhost" || host === "localhost" || host === "127.0.0.1")));
   const tenant = isSingleTenantMode()
     ? await configuredSingleTenant(repository).catch(() => null)
     : canonicalTconnect
       ? await repository.findByCorporateId(env.DEFAULT_TENANT_CORPORATE_ID)
+    : canonicalSportsclub
+      ? (await repository.findByDomain(host)) ?? (await repository.findByCorporateId("TENKASISPORTS"))
     : env.NODE_ENV === "development" &&
         Boolean(env.DEFAULT_TENANT_CORPORATE_ID.trim()) &&
         (host === "localhost" || host === "127.0.0.1")

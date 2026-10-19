@@ -1,0 +1,41 @@
+{
+  "name": "codexsun-tenkasisports",
+  "account_id": "a68cf61bf5bae3f83ddb7765dc29a835",
+  "main": "tenkasisports.mjs",
+  "compatibility_date": "2026-10-17",
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "CODEXSUN_SPORTSCLUB_API_ORIGIN": "https://codexsun.com",
+    "CODEXSUN_SPORTSCLUB_CORPORATE_ID": "TENKASISPORTS",
+    "CODEXSUN_SITES_TENKASISPORTS_SITE_UUID": "c0de0006"
+  },
+  "routes": [
+    {
+      "pattern": "tenkasisports.com/*",
+      "zone_id": "f7c324e9ca4cac54047f84f591cb54e4"
+    },
+    {
+      "pattern": "www.tenkasisports.com/*",
+      "zone_id": "f7c324e9ca4cac54047f84f591cb54e4"
+    }
+  ],
+  "assets": {
+    "directory": "../../../../dist/apps/sites/clients/tenkasisports",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "none",
+    "not_found_handling": "none"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  },
+  "d1_databases": [
+    {
+      "binding": "CODEXSUN_TENKASISPORTS_CONTENT",
+      "database_name": "codexsun-tenkasisports-content",
+      "database_id": "1fff5450-d9a8-473c-8b11-45ecad357a60"
+    }
+  ]
+}

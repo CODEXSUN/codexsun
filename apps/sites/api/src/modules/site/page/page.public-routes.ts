@@ -10,6 +10,22 @@ export function sitePublicPaths(
   content: PageContent,
   blogs: { slug: string }[] = []
 ) {
+  if (slug === "tenkasisports")
+    return [
+      "/",
+      "/about",
+      "/programs",
+      "/silambam",
+      "/sports",
+      "/classes",
+      "/masters",
+      "/events",
+      "/gallery",
+      "/join",
+      "/contact",
+      "/privacy",
+      "/terms"
+    ];
   if (slug === "tirupurconnect")
     return [
       "/",

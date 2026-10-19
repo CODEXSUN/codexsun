@@ -91,6 +91,11 @@ const TconnectMemberDesk = lazy(() =>
     default: module.TconnectMemberDesk
   }))
 );
+const SportsclubStudentDesk = lazy(() =>
+  import("../desks/tenant/SportsclubStudentDesk").then((module) => ({
+    default: module.SportsclubStudentDesk
+  }))
+);
 const LoginPage = lazy(() =>
   import("../public/login/LoginPage").then((module) => ({ default: module.LoginPage }))
 );
@@ -190,6 +195,11 @@ const tconnectMemberRoute = createRoute({
   component: TconnectMemberDesk,
   getParentRoute: () => rootRoute,
   path: "/app/tconnect/member"
+});
+const sportsclubStudentRoute = createRoute({
+  component: SportsclubStudentDesk,
+  getParentRoute: () => rootRoute,
+  path: "/app/sportsclub/student"
 });
 const tenantLoginRoute = createRoute({
   component: () => <LoginPage desk="tenant" title="App Login" />,
@@ -365,6 +375,7 @@ const routeTree = rootRoute.addChildren([
   termsRoute,
   healthRoute,
   tconnectMemberRoute,
+  sportsclubStudentRoute,
   tconnectBuyerRoute,
   tenantLoginRoute,
   saLoginRoute,

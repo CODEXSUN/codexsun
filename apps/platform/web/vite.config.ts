@@ -52,6 +52,7 @@ export default defineConfig(({ command, mode }) => {
       exclude: [
         "@codexsun/ui",
         "@codexsun/tconnect-web",
+        "@codexsun/sportsclub-web",
         "@codexsun/qcafe-web",
         "@codexsun/qcafe-web/web",
         "@codexsun/codexsun-web",
@@ -184,6 +185,7 @@ export default defineConfig(({ command, mode }) => {
           "../../../packages/ui/src/workspace/row-actions.tsx"
         ),
         "@codexsun/tconnect-web": resolve(configDir, "../../tconnect/web/src/index.ts"),
+        "@codexsun/sportsclub-web": resolve(configDir, "../../sportsclub/web/src/index.ts"),
         "@codexsun/codexsun-web": resolve(configDir, "../../codexsun/web/src/index.ts"),
         "@codexsun/docs-web/modules/overview/gateway": resolve(
           configDir,

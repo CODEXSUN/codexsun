@@ -329,6 +329,8 @@ Do not put unstable business rules in the shared kernel.
 | `apps/mail/web`               | Mail frontend module              | Mailboxes, rich compose, provider settings, message reader, and public Billing document-mail integration                                                   |
 | `devkits/project-manager/api` | Project Manager backend module    | Master/tenant Platform Registry hierarchy, JSON registry seed, and registry audit activity                                                                 |
 | `devkits/project-manager/web` | Project Manager frontend module   | Super Admin Platform Registry workspace composed through the public Project Manager web bundle                                                             |
+| `apps/sportsclub/api`         | Sportsclub backend module         | Multi-tenant sports academy administration, member lifecycles, programs, sessions, progress, and public portal contracts |
+| `apps/sportsclub/web`         | Sportsclub frontend module        | Sportsclub overview and 8 entity workspaces composed inside Platform AppDesk and Student portal                           |
 | `apps/platform/api`           | API gateway + platform routes     | Route registration, guard functions (session, tenant, feature, permission), migration runner, DB bootstrap                                                 |
 | `apps/platform/web`           | Platform shell and React composer | Login, SA desk, Admin desk, Tenant desk shell, design system pages, route/menu composition, API client integration                                         |
 

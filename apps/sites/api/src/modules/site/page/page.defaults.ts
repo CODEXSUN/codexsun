@@ -1,9 +1,11 @@
 import { tirupurConnectPage } from "./page.textile-content.js";
+import { initialTenkasiSportsPage } from "./page.sports-content.js";
 import { initialRamuTexPage, initialLogicxPage } from "./page.content.js";
 import type { PageContent } from "./page.schema.js";
 import type { PageOwner } from "./page.types.js";
 
 export function initialSitePage(site: PageOwner): PageContent {
+  if (site.slug === "tenkasisports") return structuredClone(initialTenkasiSportsPage);
   if (site.slug === "ramutex") return structuredClone(initialRamuTexPage);
   if (site.slug === "logicx") return structuredClone(initialLogicxPage);
   const name = site.name ?? site.slug;

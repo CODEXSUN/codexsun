@@ -9,6 +9,7 @@ import {
 } from "@codexsun/crm-api";
 import { writeWorkMessage } from "@codexsun/chat-api";
 import { registerTconnectHost } from "./tconnect-host.js";
+import { registerSportsclubHost } from "./sportsclub-host.js";
 import { registerBillingComplianceHost } from "./billing-compliance-host.js";
 import { codexsunApiModuleKeys } from "@codexsun/codexsun-api";
 import {
@@ -2225,6 +2226,7 @@ export async function createApp() {
   await registerAccountsApi(app);
   console.info("[platform.routes] Accounts package ready");
   await registerTconnectHost(app);
+  await registerSportsclubHost(app);
   await registerPlatformAddons(app);
   console.info("[platform.routes] add-on packages ready");
   await registerModules(

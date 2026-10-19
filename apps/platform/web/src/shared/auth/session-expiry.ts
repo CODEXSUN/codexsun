@@ -50,7 +50,9 @@ export function redirectForExpiredSession(desk?: Desk): boolean {
   window.location.replace(
     activeDesk === "tenant" && window.location.pathname.startsWith("/app/tconnect/")
       ? `${loginPath}&app=tconnect${window.location.pathname.startsWith("/app/tconnect/buyer") ? "&account=buyer" : ""}`
-      : loginPath
+      : activeDesk === "tenant" && window.location.pathname.startsWith("/app/sportsclub")
+        ? `${loginPath}&app=sportsclub`
+        : loginPath
   );
   return true;
 }

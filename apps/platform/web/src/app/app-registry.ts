@@ -37,6 +37,7 @@ import {
   ShieldCheckIcon,
   SparklesIcon,
   Trash2Icon,
+  TrophyIcon,
   type LucideIcon
 } from "lucide-react";
 import { CrmBrandIcon } from "./crm-brand-icon";
@@ -62,6 +63,7 @@ export type PlatformAppId =
   | "zetro"
   | "logicx-erp"
   | "tconnect"
+  | "sportsclub"
   | "ecommerce"
   | "qcafe"
   | "hrms"
@@ -89,6 +91,7 @@ export type PlatformAppRootPage =
   | "zetro.chat"
   | "logicx-erp.overview"
   | "tconnect.overview"
+  | "sportsclub.overview"
   | "ecommerce.overview"
   | "qcafe.dashboard"
   | "qcafe.overview"
@@ -150,6 +153,7 @@ export type PlatformAppDefinition = {
     | "zetro"
     | "logicx-erp"
     | "tconnect"
+    | "sportsclub"
     | "ecommerce"
     | "qcafe"
     | "hrms"
@@ -173,6 +177,7 @@ export const defaultTenantModuleKeys = [
   "zetro",
   "logicx-erp",
   "tconnect",
+  "sportsclub",
   "ecommerce",
   "qcafe",
   "hrms",
@@ -261,6 +266,17 @@ export const platformAppRegistry: PlatformAppDefinition[] = [
     alwaysEnabled: false,
     defaultLanding: false,
     description: "Business discovery and association communities."
+  },
+  {
+    id: "sportsclub",
+    label: "Sports Club",
+    moduleKey: "sportsclub",
+    stack: "sportsclub",
+    icon: TrophyIcon,
+    accentClass: "bg-orange-700",
+    alwaysEnabled: false,
+    defaultLanding: false,
+    description: "Sports club management, student enrollments, batches, and training programs."
   },
   {
     id: "ecommerce",
@@ -513,6 +529,7 @@ export function appRootPage(appId: PlatformAppId): PlatformAppRootPage {
   if (appId === "hrms") return "hrms.overview";
   if (appId === "qcafe") return "qcafe.overview";
   if (appId === "tconnect") return "tconnect.overview";
+  if (appId === "sportsclub") return "sportsclub.overview";
   if (appId === "ecommerce") return "ecommerce.overview";
   if (appId === "logicx-erp") return "logicx-erp.overview";
   if (appId === "zetro") return "zetro.chat";
@@ -711,6 +728,20 @@ export function appMenuFor(
           title: "Business network",
           isActive: activePage === "tconnect.overview",
           onSelect: () => onSelect("tconnect.overview")
+        }
+      ]
+    };
+  if (appId === "sportsclub")
+    return {
+      icon: TrophyIcon,
+      title: "Sports Club",
+      isActive: activePage.startsWith("sportsclub."),
+      items: [
+        {
+          icon: TrophyIcon,
+          title: "Overview",
+          isActive: activePage === "sportsclub.overview",
+          onSelect: () => onSelect("sportsclub.overview")
         }
       ]
     };
@@ -1313,6 +1344,15 @@ export function appMenuItemsFor(
         title: "Business network",
         isActive: activePage === "tconnect.overview",
         onSelect: () => onSelect("tconnect.overview")
+      }
+    ];
+  if (appId === "sportsclub")
+    return [
+      {
+        icon: TrophyIcon,
+        title: "Overview",
+        isActive: activePage === "sportsclub.overview",
+        onSelect: () => onSelect("sportsclub.overview")
       }
     ];
   if (appId === "ecommerce") {

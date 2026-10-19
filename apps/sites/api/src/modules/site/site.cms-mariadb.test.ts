@@ -55,7 +55,7 @@ test(
         .execute();
       assert.deepEqual(
         sites.map((row) => row.slug),
-        ["logicx", "ramutex"]
+        ["logicx", "ramutex", "tenkasisports", "tirupurconnect"]
       );
       const ramu = sites.find((row) => row.slug === "ramutex")!;
       const other = sites.find((row) => row.slug === "logicx")!;
