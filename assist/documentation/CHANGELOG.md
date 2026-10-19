@@ -37,6 +37,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Deploy Worker version `f56a1289-844e-4c9c-acb8-112545a084f0`. Verify both language modes on Students and Alumni, the six public sample records, and the WebP image on the live domain.
 - Replace the old Jawaharlal Siruvar Mandram instructor label on Masters with Sivakalai Gurukulam in Tamil and English. Emphasize the association name and deploy Worker version `4bc19ec2-ceb4-49a9-a68d-970a76c8dd1e`.
 - Center the shared page-loading overlay in the viewport and enlarge the revolving staff area to 300px. Keep inline form loaders small and respect reduced-motion settings. Deploy Worker version `13868a18-b67c-4381-818e-6f137a1a6bcb`.
+- Refine Tenkasi mobile spacing and wrapping across public pages. Keep the phone number, icon-only language switch, and icon-only member portal on one row below 480px, and retain the selected language during page navigation. Verify both languages at 320px, 390px, and 430px, then deploy Worker version `2daabd91-9ffd-42ad-804e-54b1f6058468`.
 
 ## v-1.1.23
 

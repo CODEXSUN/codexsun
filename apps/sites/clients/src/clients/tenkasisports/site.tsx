@@ -6,7 +6,8 @@ import {
   Shield,
   Award,
   BookOpen,
-  Globe
+  Globe,
+  UserRound
 } from "lucide-react";
 import { initialSitePage } from "@codexsun/sites-api/page-defaults";
 import { useSitePublication } from "../../shared/useSitePublication";
@@ -34,19 +35,24 @@ const siteDescription =
 export function TenkasiSportsSite() {
   const { content } = useSitePublication("tenkasisports", fallback);
   const [open, setOpen] = useState(false);
-  const [lang, setLang] = useState<"ta" | "en">("ta");
+  const [lang, setLang] = useState<"ta" | "en">(() => {
+    if (typeof window === "undefined") return "ta";
+    try {
+      const queryLanguage = new URLSearchParams(window.location.search).get("lang");
+      if (queryLanguage === "en" || queryLanguage === "ta") return queryLanguage;
+      return window.sessionStorage.getItem("tenkasisports-language") === "en" ? "en" : "ta";
+    } catch {
+      return "ta";
+    }
+  });
 
-  // Read initial language from query param if provided
   useEffect(() => {
     try {
-      const q = new URLSearchParams(window.location.search).get("lang");
-      if (q === "en" || q === "ta") {
-        setLang(q);
-      }
+      window.sessionStorage.setItem("tenkasisports-language", lang);
     } catch {
-      // safe in non-browser context
+      // Storage may be unavailable in restricted browser contexts.
     }
-  }, []);
+  }, [lang]);
 
   const path = sitePathname().replace(/\/$/, "") || "/";
   const isTa = lang === "ta";
@@ -89,7 +95,6 @@ export function TenkasiSportsSite() {
       <div className="ts-topline">
         <div className="ts-wrap ts-topline-inner">
           <div className="ts-topline-phone">
-            <span>{isTa ? "தொடர்புக்கு" : "Call us"}</span>
             <a href="tel:+919843930300">9843930300</a>
           </div>
           <div className="ts-topline-actions">
@@ -99,11 +104,13 @@ export function TenkasiSportsSite() {
               onClick={() => setLang(isTa ? "en" : "ta")}
               aria-label={isTa ? "Switch to English" : "தமிழுக்கு மாற்றவும்"}
             >
-              <Globe size={15} />
+              <Globe size={17} aria-hidden="true" />
               <span>{isTa ? "English" : "தமிழ்"}</span>
             </button>
-            <a href={sportsPortalUrl} className="ts-portal-link" target="_blank" rel="noreferrer">
-              {isTa ? "உறுப்பினர் போர்ட்டல்" : "Member Portal"} <ArrowUpRight size={14} />
+            <a href={sportsPortalUrl} className="ts-portal-link" target="_blank" rel="noreferrer" aria-label={isTa ? "உறுப்பினர் போர்ட்டல்" : "Member Portal"}>
+              <UserRound size={17} className="ts-portal-icon" aria-hidden="true" />
+              <span>{isTa ? "உறுப்பினர் போர்ட்டல்" : "Member Portal"}</span>
+              <ArrowUpRight size={14} className="ts-portal-arrow" aria-hidden="true" />
             </a>
           </div>
         </div>
