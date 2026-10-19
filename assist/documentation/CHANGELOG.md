@@ -35,6 +35,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Add mobile hero swipes and a scrollable gallery. Improve small-screen menus, layouts, and touch targets across public pages.
 - Serve smaller WebP images, split inner-page JavaScript, preload route assets, and cache versioned Worker assets.
 - Verify the Tenkasi build, mobile layouts, page navigation, and Worker cache behavior.
+- Deploy Cloudflare Worker version `fbb52e2f-cfd7-48ff-92a3-6306dc8183e3`. Confirm 16 public routes, canonical URLs, the live article, asset cache headers, and the TENKASISPORTS health response.
 
 ## v-1.1.22
 
