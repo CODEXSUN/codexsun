@@ -30,6 +30,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added an additive `amount` column migration for CRM work reports so charge and collection values persist as structured amounts.
 - Added tenant-scoped Sportsclub migrations and repeatable seed registration, plus Platform storage for Data Migration source connections and run history.
 - Granted the tenant `user` role read access to Core application records for the Application Overview and CRM workspaces.
+- Applied the forward migrations and repeatable seeders across all five active tenants without a database backup, as requested.
 
 #### App Codebase Changes
 
@@ -39,6 +40,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added production package resolution for the Data Migration runtime and Sportsclub migration/seed exports in the composed API image.
 - Updated shared tab and table styling and added developer references for Sportsclub and Data Migration modules.
 - Updated the CODEXSUN mobile build version to 1.1.25 (build 125).
+- Deployed API, web, and shop images on Hostinger from code commit `7f534691`; all containers are healthy and the public API, Application Overview route, and shop host returned HTTP 200.
+- Verified the User read grant and CRM work-report amount column in all five active tenant databases: CODEXSUN, RAINBOW, TECHMEDIA, TENKASISPORTS, and TIRUPURCONNECT.
 
 ### [v 1.1.25] 2026-10-19 11:41 pm - Release Tenkasi mobile layout
 
