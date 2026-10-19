@@ -15,7 +15,7 @@ export const initialSportsclubMasters: (MasterPayload & { uuid: string })[] = [
       "Founder of Veerathamilan Traditional Sivakalai Gurukulam. Kalaichudarmani awardee with over 6000 students trained across traditional Silambam, Varma Kalai, and Tamil martial arts heritage.",
     privateNotes: "Head Master & Founder.",
     experienceYears: 30,
-    isApprovedPublic: true,
+    isApprovedPublic: false,
     status: "active",
     sortOrder: 1,
     revision: 0

@@ -13,7 +13,7 @@ export const initialSportsclubEvents: (EventPayload & { uuid: string })[] = [
     eventDate: "2026-12-25 09:00",
     endDate: "2026-12-25 13:00",
     location: "Tenkasi Sports Ground, Tenkasi",
-    isApprovedPublic: true,
+    isApprovedPublic: false,
     status: "upcoming",
     revision: 0
   }

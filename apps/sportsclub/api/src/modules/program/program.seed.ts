@@ -13,7 +13,7 @@ export const initialSportsclubPrograms: (ProgramPayload & { uuid: string })[] = 
       "Traditional martial art and self-defense curriculum of Tamil Nadu, covering fundamental footwork, single stick rotations (Nedunkambu), sparring techniques, and discipline.",
     level: "all_levels",
     ageGroup: "Age 6+",
-    isApprovedPublic: true,
+    isApprovedPublic: false,
     status: "active",
     sortOrder: 1,
     revision: 0
@@ -27,7 +27,7 @@ export const initialSportsclubPrograms: (ProgramPayload & { uuid: string })[] = 
       "Ancient vital pressure point principles, structural balance, traditional conditioning, and ethical self-defense under experienced master supervision.",
     level: "intermediate",
     ageGroup: "Teens & Adults",
-    isApprovedPublic: true,
+    isApprovedPublic: false,
     status: "active",
     sortOrder: 2,
     revision: 0
@@ -41,7 +41,7 @@ export const initialSportsclubPrograms: (ProgramPayload & { uuid: string })[] = 
       "Advanced traditional weapons training including Surul Vaal (flexible sword), Vaal Veechu (single/double sword), Maduvu (deer horn), and traditional forms.",
     level: "advanced",
     ageGroup: "Teens & Adults",
-    isApprovedPublic: true,
+    isApprovedPublic: false,
     status: "active",
     sortOrder: 3,
     revision: 0

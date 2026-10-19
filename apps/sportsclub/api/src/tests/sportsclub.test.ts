@@ -69,7 +69,7 @@ function createServices(
   };
 }
 
-test("sportsclub: migrations and seeds run idempotently and populate approved Silambam defaults", async () => {
+test("sportsclub: migrations and seeds run idempotently without publishing unverified defaults", async () => {
   const db = createInMemoryDatabase();
   try {
     // 1. Initial migration and seed
@@ -81,19 +81,22 @@ test("sportsclub: migrations and seeds run idempotently and populate approved Si
     await seedSportsclubDatabase(db);
 
     const programRepo = new ProgramRepository(db);
-    const programs = await programRepo.listApprovedPublic();
+    const programs = await programRepo.list();
     assert.equal(programs.length, 3);
     assert.equal(programs[0]?.code, "SILAMBAM");
     assert.equal(programs[0]?.name, "Veerathamilan Traditional Silambam");
     assert.equal(programs[0]?.discipline, "Silambam");
+    assert.deepEqual(await programRepo.listApprovedPublic(), []);
 
     const masterRepo = new MasterRepository(db);
-    const masters = await masterRepo.listApprovedPublic();
+    const masters = await masterRepo.list();
     assert.equal(masters.length, 1);
     assert.equal(masters[0]?.name, "Asan Thiru. Veerapandian");
     assert.equal(masters[0]?.title, "Silambam & Varma Asan");
     assert.equal(masters[0]?.primaryDiscipline, "Silambam");
-    assert.equal((masters[0] as unknown as { phone?: string }).phone, undefined);
+    assert.deepEqual(await masterRepo.listApprovedPublic(), []);
+    assert.deepEqual(await new SessionRepository(db).listApprovedPublic(), []);
+    assert.deepEqual(await new EventRepository(db).listApprovedPublic(), []);
 
     const memberRepo = new MemberRepository(db);
     const members = await memberRepo.list();
@@ -408,16 +411,15 @@ test("sportsclub: Fastify contract routes enforce authentication, authorization,
     // 1. Public endpoints work without auth headers
     const publicPrograms = await app.inject({ method: "GET", url: "/sportsclub/public/programs" });
     assert.equal(publicPrograms.statusCode, 200);
-    assert.equal(publicPrograms.json().data.length, 3);
+    assert.equal(publicPrograms.json().data.length, 0);
 
     const publicMasters = await app.inject({ method: "GET", url: "/sportsclub/public/masters" });
     assert.equal(publicMasters.statusCode, 200);
-    assert.equal(publicMasters.json().data.length, 1);
-    assert.equal(publicMasters.json().data[0].phone, undefined);
+    assert.equal(publicMasters.json().data.length, 0);
 
     const publicEvents = await app.inject({ method: "GET", url: "/sportsclub/public/events" });
     assert.equal(publicEvents.statusCode, 200);
-    assert.equal(publicEvents.json().data.length, 1);
+    assert.equal(publicEvents.json().data.length, 0);
 
     // 2. Public enquiry submission succeeds with consent
     const enquiryRes = await app.inject({

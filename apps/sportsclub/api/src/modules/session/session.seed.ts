@@ -14,7 +14,7 @@ export const initialSportsclubSessions: (SessionPayload & { uuid: string })[] = 
     endTime: "07:30",
     venue: "Tenkasi Gurukulam Grounds",
     maxCapacity: 30,
-    isApprovedPublic: true,
+    isApprovedPublic: false,
     status: "active",
     revision: 0
   },
@@ -28,7 +28,7 @@ export const initialSportsclubSessions: (SessionPayload & { uuid: string })[] = 
     endTime: "19:00",
     venue: "Tenkasi Gurukulam Grounds",
     maxCapacity: 30,
-    isApprovedPublic: true,
+    isApprovedPublic: false,
     status: "active",
     revision: 0
   }
