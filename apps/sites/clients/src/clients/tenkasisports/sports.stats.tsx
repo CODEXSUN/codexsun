@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 
 const stats = [
-  { value: 6000, suffix: "+", ta: "பயின்ற மாணவர்கள்", en: "Students trained" },
-  { value: 2006, suffix: "", ta: "பயிற்சி தொடங்கிய ஆண்டு", en: "Training since" },
-  { value: 3, suffix: "", ta: "பாடத்திட்ட நிலைகள்", en: "Syllabus levels" },
-  { value: 108, suffix: "", ta: "வர்மப் புள்ளிகள்", en: "Varmam points" }
+  { value: 12000, suffix: "+", ta: "பயின்ற மாணவர்கள்", en: "Students trained" },
+  { value: 2000, suffix: "", ta: "பயிற்சி தொடங்கிய ஆண்டு", en: "Training since" },
+  { value: 64, suffix: "+", ta: "பாடத்திட்டக் கூறுகள்", en: "Syllabus topics" },
+  { value: 132, suffix: "", ta: "தனித்துவமான நுட்பங்கள்", en: "Unique techniques" }
 ] as const;
 
 function formatStat(value: number, target: number) {
   const rounded = Math.round(value);
-  return target === 2006 ? String(rounded) : rounded.toLocaleString("en-IN");
+  return target === 2000 ? String(rounded) : rounded.toLocaleString("en-IN");
 }
 
 function AnimatedStat({ stat, index, visible, isTa }: {

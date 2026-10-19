@@ -16,6 +16,7 @@ import { SportsHero } from "./sports.hero";
 import { SportsStats } from "./sports.stats";
 import { SportsBlogPreview, sportsArticles } from "./sports.blogs";
 import { sportsPortalUrl } from "./sports.links";
+import { headquartersAddress, officeAddress } from "./sports.locations";
 import "./sports.css";
 
 const SportsPages = lazy(() => import("./sports.pages").then((module) => ({ default: module.SportsPages })));
@@ -204,8 +205,8 @@ export function TenkasiSportsSite() {
               </div>
               <p className="ts-footer-desc">
                 {isTa
-                  ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன் அவர்களின் தலைமையில் 6,000-க்கும் மேற்பட்ட மாணாக்கர்களை உருவாக்கிய பாரம்பரிய தற்காப்புக் கலைக்கூடம்."
-                  : "Guided by Kalaisudarmani Asan T. Veerapandian, preserving ancient Tamil martial arts and grooming noble warriors since 2006."}
+                  ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன் அவர்களின் தலைமையில் 12,000-க்கும் மேற்பட்ட மாணாக்கர்களை உருவாக்கிய பாரம்பரிய தற்காப்புக் கலைக்கூடம்."
+                  : "Guided by Kalaisudarmani Asan T. Veerapandian, preserving ancient Tamil martial arts and grooming noble warriors since 2000."}
               </p>
             </div>
             <div className="ts-footer-cta-box">
@@ -248,12 +249,10 @@ export function TenkasiSportsSite() {
               </ul>
             </div>
             <div>
-              <h4>{isTa ? "கள முகவரி" : "Headquarters"}</h4>
-              <p className="ts-foot-addr">
-                {isTa
-                  ? "ஜவஹர்லால் சிறுவர் மன்றம், தென்காசி வளர்ச்சி மாவட்டம், தமிழ்நாடு."
-                  : "Jawaharlal Siruvar Mandram, Tenkasi District, Tamil Nadu, India."}
-              </p>
+              <h4>{isTa ? "தலைமையகம்" : "Headquarters"}</h4>
+              <p className="ts-foot-addr">{headquartersAddress}</p>
+              <h4 className="ts-foot-office-label">{isTa ? "அலுவலகம்" : "Office"}</h4>
+              <p className="ts-foot-addr">{officeAddress}</p>
               <span className="ts-reg-pill">
                 {isTa ? "தமிழ்நாடு அரசு பதிவு பெற்றது" : "Tamil Nadu Govt. Registered"}
               </span>
@@ -420,7 +419,7 @@ function HomeView({ isTa }: { isTa: boolean }) {
             <p>
               {isTa
                 ? "நாட்டு எல்லையைக் காத்த ராணுவ வீரரான தந்தை திரு. திரவிய முருகன் மற்றும் பாரம்பரிய நாட்டு வைத்தியரான தாத்தாவின் ஊக்கத்தால், தனது 12 வயது முதல் சண்முக ஆசான், கிருஷ்ணா வாத்தியார், சிவகுரு ஆசான் ஆகியோரின் அருளால் சிலம்பக் கலையில் தேர்ச்சி பெற்றவர்."
-                : "Carrying forward the discipline of his military veteran father Thiraviya Murugan and native healer grandfather, Master Veerapandian trained under legendary masters from age 12, going on to mentor over 6,000 students and train dozens of certified masters."}
+                : "Carrying forward the discipline of his military veteran father Thiraviya Murugan and native healer grandfather, Master Veerapandian trained under legendary masters from age 12, going on to mentor over 12,000 students and train dozens of certified masters."}
             </p>
             <div className="ts-highlight-quote">
               {isTa

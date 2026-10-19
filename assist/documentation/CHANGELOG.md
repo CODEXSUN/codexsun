@@ -36,6 +36,9 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Serve smaller WebP images, split inner-page JavaScript, preload route assets, and cache versioned Worker assets.
 - Verify the Tenkasi build, mobile layouts, page navigation, and Worker cache behavior.
 - Deploy Cloudflare Worker version `fbb52e2f-cfd7-48ff-92a3-6306dc8183e3`. Confirm 16 public routes, canonical URLs, the live article, asset cache headers, and the TENKASISPORTS health response.
+- Update Tenkasi Sports facts to 12,000 students, training since 2000, 64+ syllabus topics, and 132 techniques across the site and page metadata.
+- Replace training-level card figures with rotating Silambam staff watermarks. Stop the rotation when reduced motion is selected.
+- Show the Shengottai headquarters and Tirupur office addresses in the shared footer and Contact page in both language modes.
 
 ## v-1.1.22
 

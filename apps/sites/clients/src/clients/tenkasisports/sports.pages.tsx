@@ -15,6 +15,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { sportsPortalUrl } from "./sports.links";
+import { headquartersAddress, officeAddress } from "./sports.locations";
 import { AlumniPage, StudentsPage } from "./sports.community";
 import { SportsBlogPages, sportsArticles } from "./sports.blogs";
 
@@ -516,15 +517,15 @@ function MastersPage({ isTa }: { isTa: boolean; content: PageContent }) {
           </p>
           <p>
             {isTa
-              ? "சண்முக ஆசான், கிருஷ்ணா வாத்தியார், சிவகுரு ஆசான் மற்றும் கடேபாகத்தி ஆசான் ஆகியோரின் அருளால் கலையில் தேர்ச்சி பெற்று, இதுவரை சுமார் 6,000-க்கும் மேற்பட்ட மாணவ, மாணவிகளுக்கு சிலம்பக் கலையை முறைப்படி பயிற்றுவித்து, எண்ணற்ற சிறந்த ஆசான்மார்களை உலகிற்கு உருவாக்கித் தந்துள்ளார்."
-              : "Under the direct tutelage of Shanmuga Asan, Krishna Vathiyar, Sivaguru Asan, and Kadayabogathi Asan, he attained mastery and has trained over 6,000 students across Tamil Nadu, developing dozens of certified instructors."}
+              ? "சண்முக ஆசான், கிருஷ்ணா வாத்தியார், சிவகுரு ஆசான் மற்றும் கடேபாகத்தி ஆசான் ஆகியோரின் அருளால் கலையில் தேர்ச்சி பெற்று, இதுவரை 12,000-க்கும் மேற்பட்ட மாணவ, மாணவிகளுக்கு சிலம்பக் கலையை முறைப்படி பயிற்றுவித்து, எண்ணற்ற சிறந்த ஆசான்மார்களை உலகிற்கு உருவாக்கித் தந்துள்ளார்."
+              : "Under the direct tutelage of Shanmuga Asan, Krishna Vathiyar, Sivaguru Asan, and Kadayabogathi Asan, he attained mastery and has trained over 12,000 students across Tamil Nadu, developing dozens of certified instructors."}
           </p>
           <div className="ts-stat-chips">
             <span className="ts-chip">
               <Award size={18} /> {isTa ? "கலைச்சுடர்மணி விருது" : "Kalaisudarmani Title"}
             </span>
             <span className="ts-chip">
-              <Users size={18} /> {isTa ? "6,000+ பயின்ற மாணவர்கள்" : "6,000+ Students Guided"}
+              <Users size={18} /> {isTa ? "12,000+ பயின்ற மாணவர்கள்" : "12,000+ Students Guided"}
             </span>
             <span className="ts-chip">
               <BookOpen size={18} /> {isTa ? "பாடநூல் ஆசிரியர் (2026)" : "Handbook Author (2026)"}
@@ -1193,12 +1194,15 @@ function ContactPage({ isTa }: { isTa: boolean; content: PageContent }) {
           <div className="ts-info-item">
             <MapPin size={24} />
             <div>
-              <h3>{isTa ? "கள முகவரி & மாவட்டம்" : "Training Location"}</h3>
-              <p>
-                {isTa
-                  ? "வீரத்தமிழன் பாரம்பரிய சிவகலை குருகுலம்\nஜவஹர்லால் சிறுவர் மன்றம், தென்காசி வளர்ச்சி மாவட்டம்\nதமிழ்நாடு, இந்தியா."
-                  : "Veerathamilan Traditional Sivakalai Gurukulam\nJawaharlal Siruvar Mandram, Tenkasi District\nTamil Nadu, India."}
-              </p>
+              <h3>{isTa ? "தலைமையகம்" : "Headquarters"}</h3>
+              <p>{headquartersAddress}</p>
+            </div>
+          </div>
+          <div className="ts-info-item">
+            <MapPin size={24} />
+            <div>
+              <h3>{isTa ? "அலுவலகம்" : "Office"}</h3>
+              <p>{officeAddress}</p>
             </div>
           </div>
           <div className="ts-info-item">
