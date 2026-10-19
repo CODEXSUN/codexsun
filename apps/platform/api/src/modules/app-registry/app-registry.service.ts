@@ -25,8 +25,7 @@ export const defaultTenantModuleKeys = [
   "docs",
   "himsx",
   "codexsun",
-  "sites",
-  "sportsclub"
+  "sites"
 ] as const;
 
 export const platformAppRegistry: PlatformAppDefinition[] = [

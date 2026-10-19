@@ -177,7 +177,6 @@ export const defaultTenantModuleKeys = [
   "zetro",
   "logicx-erp",
   "tconnect",
-  "sportsclub",
   "ecommerce",
   "qcafe",
   "hrms",

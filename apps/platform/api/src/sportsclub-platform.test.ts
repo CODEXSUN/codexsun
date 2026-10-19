@@ -20,6 +20,10 @@ import {
 } from "./sportsclub-host.js";
 import { AppError } from "@codexsun/framework/errors";
 import {
+  defaultTenantModuleKeys,
+  platformAppRegistry
+} from "./modules/app-registry/app-registry.service.js";
+import {
   studentEnrollmentSchema,
   publicEnquirySubmissionSchema,
   migrateSportsclubDatabase,
@@ -32,6 +36,11 @@ test("Tenkasi Sports tenant constants adhere to strict platform requirements", (
   assert.equal(TENKASISPORTS_CORPORATE_ID, "TENKASISPORTS");
   assert.equal(TENKASISPORTS_DOMAIN, "tenkasisports.com");
   assert.equal(TENKASISPORTS_DB_NAME, "codexsun_sportsclub_tenkasisports");
+});
+
+test("Sports Club is catalogued without enabling it for other tenants by default", () => {
+  assert.equal(platformAppRegistry.find((app) => app.appId === "sportsclub")?.moduleKey, "sportsclub");
+  assert.equal(new Set<string>(defaultTenantModuleKeys).has("sportsclub"), false);
 });
 
 test("verifiedSportsclubPortalClient HMAC verification", () => {

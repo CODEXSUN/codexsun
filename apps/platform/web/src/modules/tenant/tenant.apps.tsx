@@ -109,7 +109,7 @@ export function TenantAppConnections({
           const enabled = locked || enabledKeys.includes(app.moduleKey);
           return (
             <TenantAppSelectionCard
-              key={app.id}
+              key={app.moduleKey}
               alwaysEnabled={locked}
               appId={app.appId}
               checked={enabled}
