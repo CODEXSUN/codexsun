@@ -33,6 +33,15 @@ const ZunoWorkspace = lazyWorkspace(() =>
 const ProjectManagerWorkspaceHost = lazyWorkspace(() =>
   import("@codexsun/project-manager-web").then((module) => module.ProjectManagerWorkspaceHost)
 );
+const DataMigrationOverview = lazyWorkspace(() =>
+  import("@codexsun/data-migration-web").then((module) => module.DataMigrationOverview)
+);
+const DataMigrationWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-migration-web").then((module) => module.DataMigrationWorkspace)
+);
+const DataMigrationSettings = lazyWorkspace(() =>
+  import("@codexsun/data-migration-web").then((module) => module.DataMigrationSettings)
+);
 const ZetroAdminWorkspace = lazyWorkspace(() =>
   import("@codexsun/zetro-web/modules/admin").then((module) => module.ZetroAdminWorkspace)
 );
@@ -118,6 +127,9 @@ type SaPage =
   | "task-manager"
   | "project-manager-registry"
   | "project-manager-ideas"
+  | "data-migration-overview"
+  | "data-migration-run"
+  | "data-migration-settings"
   | "zuno"
   | SaZetroPage
   | "tenants"
@@ -185,6 +197,10 @@ export function SaDesk() {
   }
 
   function openAppOperations(appId: string) {
+    if (appId === "data-migration") {
+      selectPage("data-migration-overview");
+      return;
+    }
     void navigate({
       params: { _splat: "app-operations" },
       search: { app: appId },
@@ -357,8 +373,24 @@ export function SaDesk() {
         page === "master-backups" ||
         page === "tenant-database" ||
         page === "tenant-backups" ||
-        page === "storage-manager",
+        page === "storage-manager" ||
+        page.startsWith("data-migration-"),
       items: [
+        {
+          title: "Migration Overview",
+          isActive: page === "data-migration-overview",
+          onSelect: () => selectPage("data-migration-overview")
+        },
+        {
+          title: "Migration",
+          isActive: page === "data-migration-run",
+          onSelect: () => selectPage("data-migration-run")
+        },
+        {
+          title: "Migration Settings",
+          isActive: page === "data-migration-settings",
+          onSelect: () => selectPage("data-migration-settings")
+        },
         {
           title: "Master Database",
           isActive: page === "master-database",
@@ -444,6 +476,17 @@ export function SaDesk() {
             {page.startsWith("project-manager-") ? (
               <ProjectManagerWorkspaceHost workspaceId={page.slice("project-manager-".length)} />
             ) : null}
+            {page === "data-migration-overview" ? (
+              <DataMigrationOverview onOpenMigration={() => selectPage("data-migration-run")} />
+            ) : null}
+            {page === "data-migration-run" ? (
+              <DataMigrationWorkspace
+                onOpenSettings={() => selectPage("data-migration-settings")}
+              />
+            ) : null}
+            {page === "data-migration-settings" ? (
+              <DataMigrationSettings onOpenMigration={() => selectPage("data-migration-run")} />
+            ) : null}
             {page === "tenants" ? <TenantList onBack={() => selectPage("overview")} /> : null}
             {page === "domains" ? <TenantDomainList /> : null}
             {page === "plans" ? <PlanWorkspace /> : null}
@@ -486,6 +529,9 @@ function pageFromUrl(pathname: string): SaPage {
     page === "task-manager" ||
     page === "project-manager-registry" ||
     page === "project-manager-ideas" ||
+    page === "data-migration-overview" ||
+    page === "data-migration-run" ||
+    page === "data-migration-settings" ||
     page === "zuno" ||
     page === "tenants" ||
     page === "domains" ||

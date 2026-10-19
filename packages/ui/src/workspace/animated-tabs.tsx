@@ -42,7 +42,7 @@ export function WorkspaceAnimatedTabs({
     >
       <TabsList
         className={cn(
-          "relative h-auto w-full flex-nowrap justify-start overflow-x-auto overflow-y-hidden rounded-none border-0 border-b border-border/70 bg-card p-0 shadow-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          "workspace-scroll relative h-auto w-full flex-nowrap justify-start overflow-x-auto overflow-y-hidden rounded-none border-0 border-b border-border/70 bg-card p-0 shadow-none md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden",
           listClassName
         )}
       >

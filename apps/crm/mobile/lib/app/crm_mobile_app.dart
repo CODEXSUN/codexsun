@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/api/crm_mobile_api.dart';
 import '../core/auth/secure_session_store.dart';
@@ -381,8 +382,133 @@ class _CrmMobileAppState extends State<CrmMobileApp>
       debugShowCheckedModeBanner: false,
       title: AppConfig.brandName,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF662C90)),
-        scaffoldBackgroundColor: const Color(0xFFF9F7FC),
+        colorScheme:
+            ColorScheme.fromSeed(
+              seedColor: _brandPurple,
+              brightness: Brightness.light,
+            ).copyWith(
+              primary: _brandPurple,
+              onPrimary: Colors.white,
+              secondary: _brandPurple,
+              onSecondary: Colors.white,
+              surface: Colors.white,
+              onSurface: const Color(0xFF241D2A),
+              surfaceContainerLowest: Colors.white,
+              surfaceContainerLow: Colors.white,
+              surfaceContainer: Colors.white,
+              surfaceContainerHigh: Colors.white,
+              surfaceContainerHighest: Colors.white,
+              outline: const Color(0xFFD8D2DE),
+              outlineVariant: const Color(0xFFE8E4EB),
+            ),
+        scaffoldBackgroundColor: Colors.white,
+        canvasColor: Colors.white,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Color(0xFF241D2A),
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: Colors.white,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+            systemNavigationBarColor: Colors.white,
+            systemNavigationBarIconBrightness: Brightness.dark,
+            systemNavigationBarDividerColor: Colors.white,
+          ),
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          elevation: 2,
+          shadowColor: const Color(0x24140D1B),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Color(0xFFE1DCE6)),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: _brandPurple,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            minimumSize: const Size(44, 44),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _brandPurple,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            minimumSize: const Size(44, 44),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _brandPurple,
+            side: const BorderSide(color: _brandPurple),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            minimumSize: const Size(44, 44),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(foregroundColor: _brandPurple),
+        ),
+        iconButtonTheme: IconButtonThemeData(
+          style: IconButton.styleFrom(foregroundColor: _brandPurple),
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: _brandPurple,
+          foregroundColor: Colors.white,
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        switchTheme: SwitchThemeData(
+          thumbColor: const WidgetStatePropertyAll(Colors.white),
+          trackColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? _brandPurple
+                : const Color(0xFFE6E1EA),
+          ),
+          trackOutlineColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? _brandPurple
+                : const Color(0xFFCEC8D4),
+          ),
+        ),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: _brandPurple,
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFD8D2DE)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFD8D2DE)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: _brandPurple, width: 1.5),
+          ),
+        ),
+        dividerTheme: const DividerThemeData(color: Color(0xFFE8E4EB)),
+        dialogTheme: const DialogThemeData(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+        ),
         useMaterial3: true,
       ),
       builder: (context, child) {
@@ -440,6 +566,8 @@ class _CrmMobileAppState extends State<CrmMobileApp>
   }
 }
 
+const _brandPurple = Color(0xFF662C90);
+
 enum _AuthStage { loading, login, setupPin, unlock, dashboard }
 
 class _AuthenticatedAppShell extends StatelessWidget {
@@ -479,7 +607,6 @@ class _AuthenticatedAppShell extends StatelessWidget {
                   child: AppFooterDock(
                     selectedIndex: navigation.selectedIndex,
                     jobBadgeCount: navigation.jobBadgeCount,
-                    chatBadgeCount: navigation.chatBadgeCount,
                     onDestinationSelected: (index) {
                       navigatorKey.currentState?.popUntil(
                         (route) => route.isFirst,

@@ -57,6 +57,10 @@ const moduleRoots = [
     path: join(process.cwd(), "devkits", "project-manager", "api", "src", "modules")
   },
   {
+    app: "data-migration-api",
+    path: join(process.cwd(), "devkits", "data-migration", "api", "src", "modules")
+  },
+  {
     app: "zuno-api",
     path: join(process.cwd(), "devkits", "zuno", "api", "src", "modules")
   }
@@ -164,6 +168,10 @@ const capabilityBackendRoles = new Map([
   ["logicx-erp-api/overview", ["module", "service", "routes", "seed", "types"]],
   ["logicx-erp-api/scheme", reducedBackendRoles],
   ["project-manager-api/platform-registry", reducedBackendRoles],
+  [
+    "data-migration-api/migration",
+    ["module", "service", "repository", "routes", "migration", "types", "secrets"]
+  ],
   ["zuno-api/diagnostics", ["module", "service", "repository", "routes", "types"]],
   ["zuno-api/cases", ["module", "service", "repository", "routes", "migration", "types"]],
   ["zuno-api/watch", ["module", "service", "repository", "routes", "types"]],
@@ -268,6 +276,10 @@ const webModuleRoots = [
     path: join(process.cwd(), "devkits", "project-manager", "web", "src", "modules")
   },
   {
+    app: "data-migration-web",
+    path: join(process.cwd(), "devkits", "data-migration", "web", "src", "modules")
+  },
+  {
     app: "zuno-web",
     path: join(process.cwd(), "devkits", "zuno", "web", "src", "modules")
   }
@@ -288,6 +300,8 @@ const capabilityFrontendRoles = new Map([
   ["codexsun-web/devices", ["workspace", "list", "services", "hooks", "types"]],
   ["auditor-web/overview", ["workspace"]],
   ["hrms-web/overview", ["workspace", "services", "hooks", "types"]],
+  ["data-migration-web/overview", ["workspace"]],
+  ["data-migration-web/migration", ["workspace", "settings", "list", "form", "services", "types", "schema"]],
   ["docs-web/overview", ["workspace", "services", "hooks", "types"]],
   ["himsx-web/overview", ["workspace", "services", "hooks", "types"]],
   ["sites-web/overview", ["workspace", "services", "hooks", "types"]],
@@ -468,6 +482,7 @@ for (const root of webModuleRoots) {
         "list",
         "show",
         "workspace",
+        "settings",
         "page",
         "registration",
         "review",

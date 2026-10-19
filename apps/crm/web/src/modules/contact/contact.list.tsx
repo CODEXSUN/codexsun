@@ -52,7 +52,7 @@ export function CrmContactList({
   const shownColumns = columns.filter((column) => visibleColumns[column.id] !== false);
   return (
     <WorkspaceTablePanel>
-      <div className="overflow-x-auto">
+      <div className="workspace-scroll overflow-x-auto">
         <table className="w-full min-w-[800px] text-sm">
           <thead>
             <tr>

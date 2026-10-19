@@ -110,6 +110,10 @@ See all tasks opens the unfiltered task list. Record rows open their exact saved
 Both panels refresh every 15 seconds while visible and provide a Refresh button and loading/error states.
 Closure requests show an orange Closure pending badge.
 
+Enquiry and Task lists switch from the full sortable table to compact record cards on narrow screens.
+The cards retain the primary record link, status, priority, customer/contact, due date, assignee, closure badge, and available row actions.
+Enquiry and Task detail summaries hide desktop column sizing on phones so labels and values keep readable widths.
+
 ## SOP workspace
 
 SOPs show only the LogicX SOP Item content: SOP name, Department, Frequency, and Steps.
@@ -195,3 +199,11 @@ The server records the signed-in author, UTC time, recipient, and message before
 The history does not confirm external sending or delivery. Existing tenants need the tracked CRM migration.
 Enquiry permissions and record visibility protect both reads and writes. Retry keys prevent duplicate handoffs.
 Run `npm exec tsx -- --test tools/e2e/crm-whatsapp.e2e.ts` for database acceptance.
+
+### Work charges
+
+Enquiry and task show pages include a Charges tab for initiating charges and recording collections. These operational CRM records are not invoices or payments in Billing. Collections cannot exceed the remaining initiated amount. The `crm.work-report.charges-v1` migration adds a nullable decimal amount to existing work-report rows without changing prior history.
+
+## Mobile user record scope
+
+Mobile enquiry lists request assigned records; task and activity lists accept `scope=mine`, which restricts results to records assigned to or created by the authenticated user even when that user's role has wider web visibility. The default `scope=visible` behavior remains unchanged for web consumers. Mobile activity lists use a server-side seven-day date bound. The mobile Reports screen summarizes submitted reports for the user's assigned duties; enquiry/task work reports remain under their parent records.

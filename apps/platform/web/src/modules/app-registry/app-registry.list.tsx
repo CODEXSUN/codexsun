@@ -27,7 +27,8 @@ export const appRegistryFields: RegistryField<PlatformApp>[] = [
       { label: "Project Manager", value: "project-manager" },
       { label: "Mail", value: "mail" },
       { label: "Notes", value: "notes" },
-      { label: "Chat", value: "chat" }
+      { label: "Chat", value: "chat" },
+      { label: "Sports Club", value: "sportsclub" }
     ]
   },
   {

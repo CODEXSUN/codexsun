@@ -184,7 +184,7 @@ export function Contact360Workspace() {
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
-          <div className="max-h-[68vh] space-y-1 overflow-y-auto">
+          <div className="workspace-scroll max-h-[68vh] space-y-1 overflow-y-auto">
             {customers.isLoading ? (
               <p className="px-2 text-sm text-muted-foreground">Loading contacts…</p>
             ) : null}

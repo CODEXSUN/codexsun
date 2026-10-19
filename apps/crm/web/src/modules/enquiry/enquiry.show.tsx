@@ -1,6 +1,6 @@
 import { EnquiryWhatsAppWorkspace } from "../enquiry-whatsapp";
 import { useWhatsAppMessages } from "../enquiry-whatsapp/enquiry-whatsapp.hooks";
-import { WorkReportWorkspace } from "../work-report/index";
+import { WorkChargesWorkspace, WorkReportWorkspace } from "../work-report/index";
 import { useWorkReports } from "../work-report/work-report.hooks";
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -49,6 +49,7 @@ type EnquiryTab =
   | "estimate"
   | "actions"
   | "checkpoints"
+  | "charges"
   | "properties"
   | "closure"
   | "customer"
@@ -80,7 +81,8 @@ export function EnquiryShow({
   const estimates = useEnquiryEstimates(id);
   const workTarget = { enquiryId: Number(id), taskId: null };
   const actions = useWorkReports(workTarget);
-  const checkpoints = useWorkReports(workTarget, 1, true);
+  const checkpoints = useWorkReports(workTarget, 1, "checkpoints");
+  const charges = useWorkReports(workTarget, 1, "charges");
   const whatsApp = useWhatsAppMessages(Number(id));
   const record = enquiry.data;
   const contact = contacts.find((item) => item.id === record?.contactId);
@@ -179,6 +181,17 @@ export function EnquiryShow({
           onStop={(jobId) => jobAction.mutate(jobId)}
         />
       )
+    },
+    {
+      value: "charges",
+      label: (
+        <TabLabel
+          icon={<ReceiptText className="size-4" />}
+          label="Charges"
+          count={charges.data?.total ?? 0}
+        />
+      ),
+      content: <WorkChargesWorkspace target={{ enquiryId: Number(id), taskId: null }} />
     },
     {
       value: "properties",
@@ -330,7 +343,7 @@ function EnquirySummary({
   const description = enquiryTableText(record.description);
   return (
     <section
-      className={`rounded-md border border-border/70 bg-card px-4 py-4 shadow-sm ring-2 ${statusRing(record.status)}`}
+      className={`rounded-xl border border-border/70 bg-card px-3 py-3 shadow-sm ring-2 sm:rounded-md sm:px-4 sm:py-4 ${statusRing(record.status)}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -351,9 +364,40 @@ function EnquirySummary({
           {closurePending ? <ClosurePendingBadge /> : null}
         </div>
       </div>
-      <div className="mt-4 overflow-hidden rounded-md border border-border/60">
+      <div className="mt-3 grid gap-2 sm:hidden">
+        <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+          <p className="mb-1 text-xs font-medium text-muted-foreground">Enquiry message</p>
+          <p className="whitespace-pre-wrap break-words text-sm font-semibold [overflow-wrap:anywhere]">
+            {description || title || "—"}
+          </p>
+          {description && title && description !== title ? (
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
+              {title}
+            </p>
+          ) : null}
+        </div>
+        <dl className="grid min-w-0 grid-cols-2 gap-2">
+          <MobileSummaryField label="Customer" value={customer} />
+          <MobileSummaryField label="Mobile" value={mobile || "—"} />
+          <MobileSummaryField label="Assigned to" value={record.assignedToName || "Unassigned"} />
+          <MobileSummaryField
+            label="Due date"
+            value={record.dueDate ? formatDate(record.dueDate) : "—"}
+          />
+          <MobileSummaryField label="Created by" value={creatorName} />
+          <MobileSummaryField
+            label="Created"
+            value={
+              <time dateTime={record.createdAt} title={formatCreatedAt(record.createdAt)}>
+                {createdAge(record.createdAt, now)}
+              </time>
+            }
+          />
+        </dl>
+      </div>
+      <div className="mt-4 hidden overflow-hidden rounded-md border border-border/60 sm:block">
         <table aria-label="Enquiry details" className="w-full table-fixed text-sm">
-          <colgroup>
+          <colgroup className="hidden sm:table-column-group">
             <col className="w-[12%]" />
             <col className="w-[38%]" />
             <col className="w-[12%]" />
@@ -402,6 +446,17 @@ function EnquirySummary({
   );
 }
 
+function MobileSummaryField({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+      <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="mt-1 break-words text-sm text-foreground [overflow-wrap:anywhere]">{value}</dd>
+    </div>
+  );
+}
+
 function SummaryDetail({
   leftLabel,
   leftValue,
@@ -414,23 +469,23 @@ function SummaryDetail({
   rightValue: ReactNode;
 }) {
   return (
-    <tr className="grid grid-cols-[minmax(6rem,1fr)_minmax(0,2fr)] sm:table-row">
+    <tr className="grid min-w-0 grid-cols-[minmax(6rem,0.85fr)_minmax(0,1.55fr)] sm:table-row">
       <th
         scope="row"
-        className="border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground"
+        className="min-w-0 break-words border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground [overflow-wrap:anywhere]"
       >
         {leftLabel}
       </th>
-      <td className="break-words bg-muted/30 px-3 py-2 align-top text-muted-foreground">
+      <td className="min-w-0 break-words bg-muted/30 px-3 py-2 align-top text-muted-foreground [overflow-wrap:anywhere]">
         {leftValue}
       </td>
       <th
         scope="row"
-        className="border-t border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground sm:border-t-0 sm:border-l"
+        className="min-w-0 break-words border-t border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground [overflow-wrap:anywhere] sm:border-t-0 sm:border-l"
       >
         {rightLabel}
       </th>
-      <td className="break-words border-t border-border/60 bg-muted/30 px-3 py-2 align-top text-muted-foreground sm:border-t-0">
+      <td className="min-w-0 break-words border-t border-border/60 bg-muted/30 px-3 py-2 align-top text-muted-foreground [overflow-wrap:anywhere] sm:border-t-0">
         {rightValue}
       </td>
     </tr>

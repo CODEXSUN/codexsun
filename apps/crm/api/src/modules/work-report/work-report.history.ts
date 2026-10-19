@@ -1,16 +1,29 @@
 import { sql, type Kysely, type Selectable } from "kysely";
-import type { WorkReportDatabase, WorkReportRow, WorkReportTarget } from "./work-report.types.js";
+import type {
+  WorkReportDatabase,
+  WorkReportHistoryFilter,
+  WorkReportRow,
+  WorkReportTarget
+} from "./work-report.types.js";
 type HistoryRow = Selectable<WorkReportRow> & {
   created_by_name: string;
   comment_id: number | null;
 };
 export class WorkReportHistory {
   constructor(private readonly database: Kysely<WorkReportDatabase>) {}
-  async page(target: WorkReportTarget, page: number, pageSize: number, checkpoints = false) {
+  async page(
+    target: WorkReportTarget,
+    page: number,
+    pageSize: number,
+    filter: WorkReportHistoryFilter = "all"
+  ) {
     const all = this.source(target);
-    const source = checkpoints
-      ? sql`SELECT * FROM (${all}) checkpoints WHERE action IN ('check-in','check-out')`
-      : all;
+    const source =
+      filter === "checkpoints"
+        ? sql`SELECT * FROM (${all}) checkpoints WHERE action IN ('check-in','check-out')`
+        : filter === "charges"
+          ? sql`SELECT * FROM (${all}) charges WHERE action IN ('charge','collection')`
+          : sql`SELECT * FROM (${all}) actions WHERE action NOT IN ('charge','collection')`;
     const count = await sql<{
       total: number | string;
     }>`SELECT COUNT(*) AS total FROM (${source}) history`.execute(this.database);
@@ -19,7 +32,23 @@ export class WorkReportHistory {
       FROM (${source}) history LEFT JOIN app_users u ON u.email=history.created_by
       ORDER BY history.created_at DESC, history.source_order DESC, history.id DESC, history.uuid DESC
       LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`.execute(this.database);
-    return { items: result.rows, total: Number(count.rows[0]?.total ?? 0), page, pageSize };
+    const id = target.enquiryId ?? target.taskId!;
+    const totals = await sql<{ charges: number | string; collections: number | string }>`
+      SELECT COALESCE(SUM(CASE WHEN action='charge' THEN amount ELSE 0 END),0) AS charges,
+        COALESCE(SUM(CASE WHEN action='collection' THEN amount ELSE 0 END),0) AS collections
+      FROM crm_work_reports
+      WHERE ${target.enquiryId !== null ? sql`enquiry_id=${id}` : sql`task_id=${id}`} AND status='active'
+    `.execute(this.database);
+    return {
+      items: result.rows,
+      total: Number(count.rows[0]?.total ?? 0),
+      page,
+      pageSize,
+      amounts: {
+        charges: Number(totals.rows[0]?.charges ?? 0),
+        collections: Number(totals.rows[0]?.collections ?? 0)
+      }
+    };
   }
   private source(target: WorkReportTarget) {
     const enquiry = target.enquiryId !== null;
@@ -36,7 +65,7 @@ export class WorkReportHistory {
     const reportsWhere = enquiry ? sql`enquiry_id=${id}` : sql`task_id=${id}`;
     const whatsapp = enquiry
       ? sql`UNION ALL SELECT id,CONCAT('whatsapp-',id),'whatsapp-handoff',message,created_by,created_at,created_at,'active',
-      ${target.enquiryId},NULL,CONCAT('whatsapp-',id),NULL,NULL,NULL,NULL,NULL,4
+      ${target.enquiryId},NULL,CONCAT('whatsapp-',id),NULL,NULL,NULL,NULL,NULL,NULL,4
       FROM crm_enquiry_whatsapp_messages WHERE enquiry_id=${id}`
       : sql``;
     return sql`
@@ -44,16 +73,16 @@ export class WorkReportHistory {
         CASE WHEN action='report' THEN 'comment-added' ELSE action END AS action,
         CASE WHEN action='report' AND body LIKE 'comment:%' THEN TRIM(SUBSTRING(body,9)) ELSE body END AS body,
         created_by,created_at,updated_at,status,
-        enquiry_id,task_id,request_id,latitude,longitude,accuracy_meters,captured_at,NULL AS comment_id,3 AS source_order
+        enquiry_id,task_id,request_id,latitude,longitude,accuracy_meters,captured_at,amount,NULL AS comment_id,3 AS source_order
       FROM crm_work_reports WHERE ${reportsWhere} AND status='active'
         AND action NOT IN ('comment','comment-added','reply-added')
       UNION ALL
       SELECT id,CONCAT('activity-',uuid),action,body,created_by,created_at,updated_at,status,
-        ${target.enquiryId},${target.taskId},CONCAT('activity-',uuid),NULL,NULL,NULL,NULL,NULL,1
+        ${target.enquiryId},${target.taskId},CONCAT('activity-',uuid),NULL,NULL,NULL,NULL,NULL,NULL,1
       FROM (${activities}) activity WHERE status='active' AND action IN ('created','updated')
       UNION ALL
       SELECT id,CONCAT('comment-',uuid),action,body,created_by,created_at,updated_at,status,
-        ${target.enquiryId},${target.taskId},CONCAT('comment-',uuid),NULL,NULL,NULL,NULL,id,2
+        ${target.enquiryId},${target.taskId},CONCAT('comment-',uuid),NULL,NULL,NULL,NULL,NULL,id,2
       FROM (${comments}) comments WHERE status='active'
       ${whatsapp}`;
   }

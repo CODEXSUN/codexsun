@@ -114,6 +114,57 @@ function lazyWorkspace<Props>(loader: () => Promise<ComponentType<Props>>) {
 const TconnectWorkspace = lazyWorkspace(() =>
   import("@codexsun/tconnect-web").then((module) => module.TconnectWorkspace)
 );
+export type SportsclubRouteMode = "list" | "new" | "view" | "edit";
+
+export type SportsclubWorkspaceRouteProps = {
+  mode?: SportsclubRouteMode | undefined;
+  uuid?: string | undefined;
+  onNavigate?: ((options: { mode?: SportsclubRouteMode | undefined; uuid?: string | undefined }) => void) | undefined;
+};
+
+const SportsclubOverviewWorkspace = lazyWorkspace(() =>
+  import("@codexsun/sportsclub-web").then((module) => module.SportsclubOverviewWorkspace)
+);
+const SportsclubMemberWorkspace = lazyWorkspace<SportsclubWorkspaceRouteProps>(() =>
+  import("@codexsun/sportsclub-web").then(
+    (module) => module.MemberWorkspace as unknown as ComponentType<SportsclubWorkspaceRouteProps>
+  )
+);
+const SportsclubMasterWorkspace = lazyWorkspace<SportsclubWorkspaceRouteProps>(() =>
+  import("@codexsun/sportsclub-web").then(
+    (module) => module.MasterWorkspace as unknown as ComponentType<SportsclubWorkspaceRouteProps>
+  )
+);
+const SportsclubProgramWorkspace = lazyWorkspace<SportsclubWorkspaceRouteProps>(() =>
+  import("@codexsun/sportsclub-web").then(
+    (module) => module.ProgramWorkspace as unknown as ComponentType<SportsclubWorkspaceRouteProps>
+  )
+);
+const SportsclubSessionWorkspace = lazyWorkspace<SportsclubWorkspaceRouteProps>(() =>
+  import("@codexsun/sportsclub-web").then(
+    (module) => module.SessionWorkspace as unknown as ComponentType<SportsclubWorkspaceRouteProps>
+  )
+);
+const SportsclubAttendanceWorkspace = lazyWorkspace<SportsclubWorkspaceRouteProps>(() =>
+  import("@codexsun/sportsclub-web").then(
+    (module) => module.AttendanceWorkspace as unknown as ComponentType<SportsclubWorkspaceRouteProps>
+  )
+);
+const SportsclubProgressWorkspace = lazyWorkspace<SportsclubWorkspaceRouteProps>(() =>
+  import("@codexsun/sportsclub-web").then(
+    (module) => module.ProgressWorkspace as unknown as ComponentType<SportsclubWorkspaceRouteProps>
+  )
+);
+const SportsclubEventWorkspace = lazyWorkspace<SportsclubWorkspaceRouteProps>(() =>
+  import("@codexsun/sportsclub-web").then(
+    (module) => module.EventWorkspace as unknown as ComponentType<SportsclubWorkspaceRouteProps>
+  )
+);
+const SportsclubEnquiryWorkspace = lazyWorkspace<SportsclubWorkspaceRouteProps>(() =>
+  import("@codexsun/sportsclub-web").then(
+    (module) => module.EnquiryWorkspace as unknown as ComponentType<SportsclubWorkspaceRouteProps>
+  )
+);
 const HrmsOverviewWorkspace = lazyWorkspace(() =>
   import("@codexsun/hrms-web/modules/overview").then((module) => module.HrmsOverviewWorkspace)
 );
@@ -606,6 +657,15 @@ type AppPage =
   | "auditor.overview"
   | "auditor.clients"
   | "tconnect.overview"
+  | "sportsclub.overview"
+  | "sportsclub.members"
+  | "sportsclub.masters"
+  | "sportsclub.programs"
+  | "sportsclub.sessions"
+  | "sportsclub.attendance"
+  | "sportsclub.progress"
+  | "sportsclub.events"
+  | "sportsclub.enquiries"
   | "ecommerce.overview"
   | "ecommerce.categories"
   | "ecommerce.products"
@@ -735,6 +795,175 @@ type AppPage =
   | "core.master.product"
   | "core.master.work-order"
   | `core.common.${"accounts" | "contacts" | "others" | "products" | "workorder"}.${string}`;
+
+function renderSportsclubHeaderAction(
+  safePage: AppPage,
+  pathname: string,
+  onNavigate: (to: string) => void
+) {
+  const entityMap: Record<string, { label: string; formId: string }> = {
+    "sportsclub.members": { label: "student", formId: "sportsclub-member-form" },
+    "sportsclub.masters": { label: "master", formId: "sportsclub-master-form" },
+    "sportsclub.programs": { label: "curriculum", formId: "sportsclub-program-form" },
+    "sportsclub.sessions": { label: "batch", formId: "sportsclub-session-form" },
+    "sportsclub.attendance": { label: "attendance", formId: "sportsclub-attendance-form" },
+    "sportsclub.progress": { label: "assessment", formId: "sportsclub-progress-form" },
+    "sportsclub.events": { label: "event", formId: "sportsclub-event-form" },
+    "sportsclub.enquiries": { label: "admission", formId: "sportsclub-enquiry-form" }
+  };
+
+  const config = entityMap[safePage];
+  if (!config) return null;
+
+  const entityPath = `/app/${safePage.replace(".", "/")}`;
+  const isNew = pathname === `${entityPath}/new` || pathname.endsWith("/new");
+  const isEdit = pathname.endsWith("/edit");
+  const isShow = pathname.startsWith(`${entityPath}/`) && !isNew && !isEdit;
+
+  if (isNew) {
+    return (
+      <Button
+        key={`save-${config.label}`}
+        size="sm"
+        className="h-7 px-3"
+        type="submit"
+        form={config.formId}
+        aria-keyshortcuts="Control+S"
+      >
+        Save {config.label}
+        <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
+          Ctrl S
+        </kbd>
+      </Button>
+    );
+  }
+
+  if (isEdit) {
+    return (
+      <Button
+        key={`update-${config.label}`}
+        size="sm"
+        className="h-7 px-3"
+        type="submit"
+        form={config.formId}
+        aria-keyshortcuts="Control+S"
+      >
+        Update {config.label}
+        <kbd className="ml-1 rounded bg-background/15 px-1.5 py-0.5 text-[10px] font-medium text-background/75">
+          Ctrl S
+        </kbd>
+      </Button>
+    );
+  }
+
+  if (isShow) {
+    return (
+      <Button
+        key={`edit-${config.label}`}
+        size="sm"
+        className="h-7 px-3"
+        type="button"
+        onClick={() => onNavigate(`${pathname}/edit`)}
+      >
+        Edit
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      key={`new-${config.label}`}
+      size="sm"
+      className="h-7 px-3"
+      type="button"
+      onClick={() => onNavigate(`${entityPath}/new`)}
+    >
+      <PlusIcon className="size-4" />
+      New {config.label}
+    </Button>
+  );
+}
+
+function sportsclubPageTitle(safePage: AppPage, pathname: string): string | null {
+  if (!safePage.startsWith("sportsclub.")) return null;
+  const entityMap: Record<string, string> = {
+    "sportsclub.members": "student",
+    "sportsclub.masters": "master",
+    "sportsclub.programs": "curriculum",
+    "sportsclub.sessions": "batch",
+    "sportsclub.attendance": "attendance",
+    "sportsclub.progress": "assessment",
+    "sportsclub.events": "event",
+    "sportsclub.enquiries": "admission"
+  };
+  const label = entityMap[safePage];
+  if (!label) return null;
+  if (pathname.endsWith("/new")) {
+    return `New ${label}`;
+  }
+  if (pathname.endsWith("/edit")) {
+    return `Edit ${label}`;
+  }
+  return null;
+}
+
+function getSportsclubRouteProps(
+  safePage: AppPage,
+  pathname: string,
+  onNavigate: (to: string) => void
+): SportsclubWorkspaceRouteProps {
+  const entity = safePage.startsWith("sportsclub.")
+    ? safePage.slice("sportsclub.".length)
+    : "";
+  const prefix = `/app/sportsclub/${entity}`;
+  const cleanPath = pathname.replace(/\/+$/, "");
+
+  let mode: SportsclubRouteMode = "list";
+  let uuid: string | undefined = undefined;
+
+  if (cleanPath === `${prefix}/new`) {
+    mode = "new";
+  } else if (cleanPath.startsWith(`${prefix}/`)) {
+    const segments = cleanPath.slice(`${prefix}/`.length).split("/");
+    if (segments.length === 2 && segments[1] === "edit") {
+      mode = "edit";
+      uuid = segments[0];
+    } else if (segments.length === 1 && segments[0]) {
+      if (segments[0] === "new") {
+        mode = "new";
+      } else {
+        mode = "view";
+        uuid = segments[0];
+      }
+    }
+  }
+
+  const navigateHandler = (
+    options: { mode?: SportsclubRouteMode | undefined; uuid?: string | undefined } | string
+  ) => {
+    if (typeof options === "string") {
+      onNavigate(options);
+      return;
+    }
+    const targetMode = options.mode ?? "list";
+    if (targetMode === "new") {
+      onNavigate(`${prefix}/new`);
+    } else if (targetMode === "edit" && options.uuid) {
+      onNavigate(`${prefix}/${options.uuid}/edit`);
+    } else if (targetMode === "view" && options.uuid) {
+      onNavigate(`${prefix}/${options.uuid}`);
+    } else {
+      onNavigate(prefix);
+    }
+  };
+
+  return {
+    mode,
+    uuid,
+    onNavigate: navigateHandler
+  };
+}
+
 export function AppDesk() {
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -828,6 +1057,8 @@ export function AppDesk() {
   const appSafePage =
     page.startsWith("tconnect.") && !switchableApps.includes("tconnect")
       ? pageForApp(landingApp)
+      : page.startsWith("sportsclub.") && !switchableApps.includes("sportsclub")
+        ? pageForApp(landingApp)
       : page.startsWith("devkit") || page.startsWith("project-manager")
         ? pageForApp(landingApp)
         : page.startsWith("hrms.") && !switchableApps.includes("hrms")
@@ -879,8 +1110,10 @@ export function AppDesk() {
                                                 ? pageForApp(landingApp)
                                                 : page;
   const safePage = resolveBillingFeaturePage(appSafePage, billingSettingsQuery.data?.features);
+  const sportsclubTitle = sportsclubPageTitle(safePage, location.pathname);
   const activePageTitle =
-    safePage === "hrms.employees" && location.pathname.endsWith("/new")
+    sportsclubTitle ??
+    (safePage === "hrms.employees" && location.pathname.endsWith("/new")
       ? "New employee"
       : safePage === "hrms.employees" && location.pathname.endsWith("/edit")
         ? "Edit employee"
@@ -890,7 +1123,11 @@ export function AppDesk() {
             ? "Enquiries"
             : safePage === "crm.tasks" && location.pathname === "/app/crm/tasks/new"
               ? "New task"
-              : titleForPage(safePage);
+              : titleForPage(safePage));
+  const handleSportsclubNavigate = (to: string) => {
+    const splat = to.startsWith("/app/") ? to.replace(/^\/app\//, "") : to;
+    void navigate({ to: "/app/$", params: { _splat: splat } });
+  };
   const accountingYear = selectedFinancialYear?.name ?? "Accounting year";
   const defaultSelectionMutation = useMutation({
     mutationFn: saveDefaultCompany,
@@ -1449,6 +1686,8 @@ export function AppDesk() {
                   Ctrl S
                 </kbd>
               </Button>
+            ) : safePage.startsWith("sportsclub.") ? (
+              renderSportsclubHeaderAction(safePage, location.pathname, handleSportsclubNavigate)
             ) : null}
             <div
               ref={setApplicationHeaderTarget}
@@ -1462,7 +1701,8 @@ export function AppDesk() {
           activeApp === "crm" ||
           activeApp === "hrms" ||
           activeApp === "chat" ||
-          activeApp === "frappe"
+          activeApp === "frappe" ||
+          activeApp === "sportsclub"
         }
         homeHref={telegramWorkspace ? "/app/chat/telegram" : appRootUrl(activeApp)}
         menuItems={menuItems}
@@ -1610,6 +1850,55 @@ export function AppDesk() {
             ) : null}
             {safePage === "tconnect.overview" ? (
               <TconnectWorkspace gateway={tconnectGateway} />
+            ) : null}
+            {safePage === "sportsclub.overview" ? (
+              <SportsclubOverviewWorkspace
+                userRole="admin"
+                currentUserName={signedInUser.name || "Club Administrator"}
+                onOpenWorkspace={(tab) => {
+                  requestListNavigation(`sportsclub.${tab}` as AppPage);
+                }}
+              />
+            ) : null}
+            {safePage === "sportsclub.members" ? (
+              <SportsclubMemberWorkspace
+                {...getSportsclubRouteProps(safePage, location.pathname, handleSportsclubNavigate)}
+              />
+            ) : null}
+            {safePage === "sportsclub.masters" ? (
+              <SportsclubMasterWorkspace
+                {...getSportsclubRouteProps(safePage, location.pathname, handleSportsclubNavigate)}
+              />
+            ) : null}
+            {safePage === "sportsclub.programs" ? (
+              <SportsclubProgramWorkspace
+                {...getSportsclubRouteProps(safePage, location.pathname, handleSportsclubNavigate)}
+              />
+            ) : null}
+            {safePage === "sportsclub.sessions" ? (
+              <SportsclubSessionWorkspace
+                {...getSportsclubRouteProps(safePage, location.pathname, handleSportsclubNavigate)}
+              />
+            ) : null}
+            {safePage === "sportsclub.attendance" ? (
+              <SportsclubAttendanceWorkspace
+                {...getSportsclubRouteProps(safePage, location.pathname, handleSportsclubNavigate)}
+              />
+            ) : null}
+            {safePage === "sportsclub.progress" ? (
+              <SportsclubProgressWorkspace
+                {...getSportsclubRouteProps(safePage, location.pathname, handleSportsclubNavigate)}
+              />
+            ) : null}
+            {safePage === "sportsclub.events" ? (
+              <SportsclubEventWorkspace
+                {...getSportsclubRouteProps(safePage, location.pathname, handleSportsclubNavigate)}
+              />
+            ) : null}
+            {safePage === "sportsclub.enquiries" ? (
+              <SportsclubEnquiryWorkspace
+                {...getSportsclubRouteProps(safePage, location.pathname, handleSportsclubNavigate)}
+              />
             ) : null}
             {safePage === "ecommerce.overview" ? (
               <EcommerceOverviewWorkspace gateway={ecommerceOverviewGateway} />
@@ -2086,6 +2375,26 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     }
   }
 
+  if (app === "sportsclub") {
+    const entity = children[0];
+    if (
+      entity &&
+      [
+        "members",
+        "masters",
+        "programs",
+        "sessions",
+        "attendance",
+        "progress",
+        "events",
+        "enquiries"
+      ].includes(entity)
+    ) {
+      return `sportsclub.${entity}` as AppPage;
+    }
+    return "sportsclub.overview";
+  }
+
   const key = `${app}.${children.filter(Boolean).join(".") || "overview"}`;
   if (
     key === "hrms.overview" ||
@@ -2122,6 +2431,7 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     key === "auditor.overview" ||
     key === "auditor.clients" ||
     key === "tconnect.overview" ||
+    key.startsWith("sportsclub.") ||
     key === "ecommerce.overview" ||
     key === "qcafe.dashboard" ||
     key === "qcafe.overview" ||
@@ -2232,6 +2542,17 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
 }
 
 function tenantPathMatchesPage(pathname: string, page: AppPage): boolean {
+  if (page.startsWith("sportsclub.")) {
+    if (
+      page === "sportsclub.overview" &&
+      (pathname === "/app/sportsclub" || pathname === "/app/sportsclub/overview")
+    ) {
+      return true;
+    }
+    const entity = page.slice("sportsclub.".length);
+    const regex = new RegExp(`^/app/sportsclub/${entity}(?:/new|/[^/]+(?:/edit)?)?$`);
+    return regex.test(pathname);
+  }
   if (page === "hrms.employees")
     return /^\/app\/hrms\/employees(?:\/new|\/[^/]+\/edit)?$/.test(pathname);
   if (page === "ecommerce.overview" && pathname === "/app/ecommerce") return true;
@@ -2613,6 +2934,15 @@ function titleForPage(page: AppPage) {
     "auditor.overview": "Overview",
     "auditor.clients": "Clients",
     "tconnect.overview": "Business network",
+    "sportsclub.overview": "Sports Club",
+    "sportsclub.members": "Students",
+    "sportsclub.masters": "Masters",
+    "sportsclub.programs": "Curriculum",
+    "sportsclub.sessions": "Batches",
+    "sportsclub.attendance": "Attendance",
+    "sportsclub.progress": "Assessments",
+    "sportsclub.events": "Events",
+    "sportsclub.enquiries": "Admissions",
     "ecommerce.overview": "Overview",
     "ecommerce.catalog": "Catalog",
     "ecommerce.storefront": "Storefront",
@@ -2807,6 +3137,8 @@ function appFromPage(
   if (page.startsWith("auditor")) return enabledApps.includes("auditor") ? "auditor" : landingApp;
   if (page.startsWith("tconnect"))
     return enabledApps.includes("tconnect") ? "tconnect" : landingApp;
+  if (page.startsWith("sportsclub"))
+    return enabledApps.includes("sportsclub") ? "sportsclub" : landingApp;
   if (page.startsWith("ecommerce"))
     return enabledApps.includes("ecommerce") ? "ecommerce" : landingApp;
   if (page.startsWith("logicx-erp"))

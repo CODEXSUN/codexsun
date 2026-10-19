@@ -139,7 +139,7 @@ export function EnquiryClosureCard({
 
 function ClosureRequestTable({ request }: { request: ClosureRequest }) {
   return (
-    <div className="overflow-x-auto rounded-md border border-border/70">
+    <div className="workspace-scroll overflow-x-auto rounded-md border border-border/70">
       <table className="w-full text-left text-sm">
         <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
           <tr>

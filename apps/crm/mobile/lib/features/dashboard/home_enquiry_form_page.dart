@@ -27,11 +27,15 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
   final _customer = TextEditingController();
   final _mobile = TextEditingController();
   final _message = TextEditingController();
+  final _mobileFocus = FocusNode();
   final _messageFocus = FocusNode();
   late Future<CrmCallEnquiryFormData> _formData;
   String? _group;
   String? _assignee;
   String? _customerId;
+  String? _statusId;
+  String? _priorityId;
+  DateTime? _dueDate;
   String? _matchedPartyName;
   var _isSaving = false;
   var _focusRequested = false;
@@ -40,9 +44,6 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
   void initState() {
     super.initState();
     _customer.text = widget.initialCustomer;
-    _matchedPartyName = widget.initialCustomer.trim().isEmpty
-        ? null
-        : widget.initialCustomer.trim();
     _mobile.text = widget.initialMobile;
     _message.text = widget.initialMessage;
     _formData = _loadFormData();
@@ -53,6 +54,7 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
     _customer.dispose();
     _mobile.dispose();
     _message.dispose();
+    _mobileFocus.dispose();
     _messageFocus.dispose();
     super.dispose();
   }
@@ -93,16 +95,40 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
         }
         final formData = snapshot.data!;
         _group ??= formData.groups.firstOrNull?.value;
+        _statusId ??= _preferredStatus(formData.statuses, 'new')?.id;
+        _priorityId ??= _preferredPriority(formData.priorities, 'normal')?.id;
         _focusMessage();
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
           children: [
             TextField(
+              key: const ValueKey('enquiry-mobile'),
               controller: _mobile,
+              focusNode: _mobileFocus,
               keyboardType: TextInputType.phone,
+              maxLength: 10,
               onChanged: _clearMatchedParty,
               decoration: InputDecoration(
-                labelText: 'Phone number',
+                labelText: 'Mobile number',
+                counterText: '',
+                helperText: 'Use the 10-digit customer mobile number.',
+              ),
+            ),
+            if (_matchedPartyName case final name?) ...[
+              const SizedBox(height: 6),
+              _MatchedPartyLabel(name: name),
+            ],
+            const SizedBox(height: 14),
+            TextField(
+              key: const ValueKey('enquiry-customer-name'),
+              controller: _customer,
+              textCapitalization: TextCapitalization.words,
+              onChanged: (_) => setState(() {
+                _customerId = null;
+                _matchedPartyName = null;
+              }),
+              decoration: InputDecoration(
+                labelText: 'Customer name',
                 suffixIcon: IconButton(
                   tooltip: 'Find contact for this phone number',
                   onPressed: _lookupContact,
@@ -110,10 +136,6 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
                 ),
               ),
             ),
-            if (_matchedPartyName case final name?) ...[
-              const SizedBox(height: 6),
-              _MatchedPartyLabel(name: name),
-            ],
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               initialValue: _group,
@@ -134,8 +156,60 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
               value: _assignee,
               onChanged: (value) => setState(() => _assignee = value),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _priorityId,
+              decoration: const InputDecoration(labelText: 'Priority'),
+              items: formData.priorities
+                  .map(
+                    (priority) => DropdownMenuItem(
+                      value: priority.id,
+                      child: Text(priority.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => _priorityId = value),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _statusId,
+              decoration: const InputDecoration(labelText: 'Status'),
+              items: formData.statuses
+                  .map(
+                    (status) => DropdownMenuItem(
+                      value: status.id,
+                      child: Text(status.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => _statusId = value),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Due date'),
+              subtitle: Text(
+                _dueDate == null ? 'Not set' : _displayDate(_dueDate!),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_dueDate != null)
+                    IconButton(
+                      tooltip: 'Clear due date',
+                      onPressed: () => setState(() => _dueDate = null),
+                      icon: const Icon(Icons.clear),
+                    ),
+                  IconButton(
+                    tooltip: 'Choose due date',
+                    onPressed: _chooseDueDate,
+                    icon: const Icon(Icons.calendar_month_outlined),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
             TextField(
+              key: const ValueKey('enquiry-message'),
               controller: _message,
               focusNode: _messageFocus,
               minLines: 5,
@@ -144,7 +218,7 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
               decoration: const InputDecoration(
                 alignLabelWithHint: true,
                 border: OutlineInputBorder(),
-                labelText: 'Message',
+                labelText: 'Enquiry message',
               ),
             ),
           ],
@@ -156,6 +230,36 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
   Future<CrmCallEnquiryFormData> _loadFormData() =>
       widget.api.callEnquiryFormData(widget.session.accessToken);
 
+  Future<void> _chooseDueDate() async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _dueDate ?? now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 10),
+    );
+    if (selected != null) setState(() => _dueDate = selected);
+  }
+
+  static CrmCallEnquiryStatus? _preferredStatus(
+    List<CrmCallEnquiryStatus> statuses,
+    String code,
+  ) =>
+      statuses.where((status) => status.code.toLowerCase() == code).firstOrNull;
+
+  static CrmCallEnquiryPriority? _preferredPriority(
+    List<CrmCallEnquiryPriority> priorities,
+    String code,
+  ) => priorities
+      .where((priority) => priority.code.toLowerCase() == code)
+      .firstOrNull;
+
+  static String _date(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  static String _displayDate(DateTime date) =>
+      '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}';
+
   void _reload() => setState(() {
     _focusRequested = false;
     _formData = _loadFormData();
@@ -165,7 +269,12 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
     if (_focusRequested) return;
     _focusRequested = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _messageFocus.requestFocus();
+      if (!mounted) return;
+      if (widget.initialMobile.trim().isEmpty) {
+        _mobileFocus.requestFocus();
+      } else {
+        _messageFocus.requestFocus();
+      }
     });
   }
 
@@ -173,8 +282,16 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
     final message = _message.text.trim();
     final customer = _customer.text.trim();
     final mobile = _mobile.text.replaceAll(RegExp(r'\D'), '');
-    if (message.isEmpty || mobile.length != 10 || _group == null) {
-      _showMessage('Add a message, 10-digit mobile number, and list.');
+    if (message.isEmpty || _group == null || _group!.isEmpty) {
+      _showMessage('Add an enquiry message and choose a list.');
+      return;
+    }
+    if (_customerId == null && customer.isEmpty && mobile.isEmpty) {
+      _showMessage('Enter a customer name or mobile number.');
+      return;
+    }
+    if (mobile.isNotEmpty && mobile.length != 10) {
+      _showMessage('Enter a 10-digit mobile number.');
       return;
     }
     setState(() => _isSaving = true);
@@ -187,6 +304,9 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
         enquiryGroup: _group!,
         assignedToUserId: _assignee,
         message: message,
+        statusId: _statusId,
+        priorityId: _priorityId,
+        dueDate: _dueDate == null ? null : _date(_dueDate!),
       );
       if (mounted) Navigator.pop(context, job);
     } on CrmMobileApiException catch (error) {
@@ -201,7 +321,6 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
     setState(() {
       _customerId = null;
       _matchedPartyName = null;
-      _customer.clear();
     });
   }
 
@@ -262,12 +381,8 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
                         onPressed: () {
                           setState(() {
                             _matchedPartyName = party.name;
-                            _customer.text = party.type == 'Customer'
-                                ? party.name
-                                : '';
-                            _customerId = party.type == 'Customer'
-                                ? party.id
-                                : null;
+                            _customer.text = party.name;
+                            _customerId = party.id;
                           });
                           Navigator.pop(context);
                         },

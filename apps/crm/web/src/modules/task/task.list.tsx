@@ -1,6 +1,7 @@
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
+import { formatDate as formatWorkspaceDate } from "@codexsun/ui/workspace/utils";
 import { CrmStatusBadge } from "../../crm-colors";
 import { TaskInlineFilter } from "./task.inline-filter";
 import type { TaskColumnFilters, TaskRecord } from "./task.types";
@@ -84,7 +85,7 @@ export function TaskList({
       id: "due",
       accessorKey: "dueDate",
       header: "Due date",
-      cell: ({ row }) => formatDate(row.original.dueDate)
+      cell: ({ row }) => (row.original.dueDate ? formatWorkspaceDate(row.original.dueDate) : "—")
     },
     {
       id: "priority",
@@ -155,6 +156,74 @@ export function TaskList({
       emptyState="No tasks found."
       isLoading={loading}
       minWidth="1020px"
+      mobileRow={(item) => (
+        <article className="grid min-w-0 gap-2.5 rounded-xl border border-border/70 bg-card p-3 shadow-sm">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <button
+              className="shrink-0 font-medium text-foreground hover:underline"
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpen(item);
+              }}
+            >
+              #{item.id}
+            </button>
+            <CrmStatusBadge code={item.status} label={item.statusName} />
+            <span className="inline-flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+              <span className={`size-2 shrink-0 rounded-full ${priorityTone(item.priority)}`} />
+              <span className="truncate">{item.priorityName}</span>
+            </span>
+            <span className="max-w-28 truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              {item.assignedTo || "Unassigned"}
+            </span>
+            <div
+              className="ml-auto shrink-0"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
+              <WorkspaceRowActions
+                title={`Task ${item.title}`}
+                onView={() => onOpen(item)}
+                {...(canEdit ? { onEdit: () => onEdit(item) } : {})}
+              />
+            </div>
+          </div>
+          <div className="min-w-0">
+            <button
+              className="block max-w-full break-words text-left font-medium text-foreground hover:underline [overflow-wrap:anywhere]"
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpen(item);
+              }}
+            >
+              {item.title || "Untitled task"}
+            </button>
+            {item.description ? (
+              <p className="mt-0.5 break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                {item.description}
+              </p>
+            ) : null}
+            <p className="mt-0.5 break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
+              {item.contactName || "No contact"}
+              {item.contactPhone ? ` · ${item.contactPhone}` : ""}
+            </p>
+          </div>
+          <p className="truncate text-xs text-muted-foreground">
+            Created by {item.creatorName || item.createdBy} · {formatWorkspaceDate(item.createdAt)}
+          </p>
+          <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 border-t border-border/70 pt-2 text-xs text-muted-foreground">
+            <span>List in · {item.listIn || "Unlisted"}</span>
+            <span>Due · {item.dueDate ? formatWorkspaceDate(item.dueDate) : "—"}</span>
+          </div>
+          {item.closurePending ? (
+            <span className="w-fit rounded-full border border-orange-300 bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-900">
+              Closure pending
+            </span>
+          ) : null}
+        </article>
+      )}
       onRowClick={onOpen}
     />
   );
@@ -165,9 +234,4 @@ function priorityTone(code: string) {
     : code === "low"
       ? "bg-sky-500"
       : "bg-teal-500";
-}
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  const [year, month, day] = value.slice(0, 10).split("-");
-  return `${day}-${month}-${year}`;
 }

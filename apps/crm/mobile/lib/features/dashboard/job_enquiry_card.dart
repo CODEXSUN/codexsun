@@ -77,74 +77,66 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
     return Card(
       margin: EdgeInsets.zero,
       color: Colors.white,
-      elevation: 5,
-      shadowColor: const Color(0x4A251B2A),
+      elevation: 2,
+      shadowColor: const Color(0x24140D1B),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFFC5BEC9), width: 1.1),
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFE1DCE6)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Container(
-        margin: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: const Color(0xFFEDE9EF)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => _openDetail(context, enquiry),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(11, 10, 8, 7),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _JobCardHeader(
-                  enquiry: enquiry,
-                  running: running,
-                  runningDuration: running
-                      ? formatJobDuration(_runningJob!)
-                      : null,
-                  updating: _updating,
-                  onChanged: _toggleJob,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _openDetail(context, enquiry),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 11, 10, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _JobCardHeader(
+                enquiry: enquiry,
+                running: running,
+                runningDuration: running
+                    ? formatJobDuration(_runningJob!)
+                    : null,
+                updating: _updating,
+                onChanged: _toggleJob,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                enquiry.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w800, height: 1.2),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                enquiry.customer,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: const Color(0xFF6E6872)),
+              ),
+              const SizedBox(height: 22),
+              Text(
+                'Created by ${enquiry.createdBy} · ${enquiry.createdDate} | ${enquiry.createdAgo}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFF6D6870),
+                  fontWeight: FontWeight.w500,
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  enquiry.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w800, height: 1.2),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  enquiry.customer,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: const Color(0xFF6E6872)),
-                ),
-                const SizedBox(height: 22),
-                Text(
-                  'Created by ${enquiry.createdBy} · ${enquiry.createdDate} | ${enquiry.createdAgo}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF6D6870),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                const Divider(height: 1),
-                const SizedBox(height: 5),
-                _JobCardFooter(
-                  onMore: _runMoreAction,
-                  onWhatsApp: _openWhatsApp,
-                  onCall: () => _runContactAction('Call', MobileActions.call),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 7),
+              const Divider(height: 1),
+              const SizedBox(height: 5),
+              _JobCardFooter(
+                onMore: _runMoreAction,
+                onWhatsApp: _openWhatsApp,
+                onCall: () => _runContactAction('Call', MobileActions.call),
+              ),
+            ],
           ),
         ),
       ),
@@ -273,7 +265,7 @@ class _JobCardHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.fromLTRB(7, 5, 9, 5),
           decoration: BoxDecoration(
-            color: const Color(0xFF4F7FC8),
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(

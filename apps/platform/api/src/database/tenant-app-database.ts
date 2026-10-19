@@ -1,5 +1,13 @@
 import { seedTconnectPortalRole } from "../tconnect-identity.js";
+import { seedSportsclubPortalRole } from "../sportsclub-identity.js";
 import { migrateTconnect, seedTconnect, tconnectTenantMigrations } from "@codexsun/tconnect-api";
+import {
+  migrateSportsclubDatabase,
+  sportsclubMigration
+} from "@codexsun/sportsclub-api/migration";
+import {
+  seedSportsclubDatabase
+} from "@codexsun/sportsclub-api/seed";
 import {
   codexsunTenantMigrations,
   migrateCodexsunDatabase,
@@ -195,6 +203,10 @@ export function tenantDatabaseMigrationsFor(_tenant: Tenant) {
       ...migration,
       statements: [`RUN ${migration.name}`]
     })),
+    {
+      ...sportsclubMigration,
+      statements: [`RUN ${sportsclubMigration.name}`]
+    },
     ...ecommerceTenantMigrations.map((migration) => ({
       ...migration,
       statements: [`RUN ${migration.name}`]
@@ -304,6 +316,10 @@ export async function migrateSelectedTenantApps(database: Kysely<TenantDatabase>
   provisionedApps.push("ecommerce");
   await migrateTconnect(database as never);
   provisionedApps.push("tconnect");
+  if (tenant.enabledModuleKeys.includes("sportsclub")) {
+    await migrateSportsclubDatabase(database as never);
+    provisionedApps.push("sportsclub");
+  }
   await migrateCrmTenantDatabase(database as unknown as Kysely<EnquiryDatabase>);
   provisionedApps.push("crm");
   await migrateFrappeTenantDatabase(database as unknown as Kysely<FrappeDatabase>);
@@ -385,6 +401,11 @@ export async function seedSelectedTenantApps(database: Kysely<TenantDatabase>, t
     await seedTconnectPortalRole(database);
     seededApps.push("tconnect");
   }
+  if (enabled.has("sportsclub")) {
+    await seedSportsclubDatabase(database as never);
+    await seedSportsclubPortalRole(database);
+    seededApps.push("sportsclub");
+  }
   if (enabled.has("ecommerce")) {
     await seedEcommerceOverviewPermissions(
       database as unknown as Kysely<EcommercePermissionDatabase>
@@ -404,7 +425,11 @@ export async function seedSelectedTenantApps(database: Kysely<TenantDatabase>, t
     await seedZetroProviderPermission(database as unknown as Kysely<ZetroProviderDatabase>);
     seededApps.push("zetro");
   }
-  await setDefaultCompanyLandingAppForDatabase(tenant.dbName, tenant.defaultLandingApp);
+  try {
+    await setDefaultCompanyLandingAppForDatabase(tenant.dbName, tenant.defaultLandingApp);
+  } catch {
+    await setDefaultCompanyLandingAppForDatabase(tenant.dbName, "application");
+  }
 
   if (enabled.has("billing.sales")) {
     await seedBillingTenantDatabase(tenant.dbName);

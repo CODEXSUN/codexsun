@@ -1,0 +1,3 @@
+# Data Migration working rules
+
+Read this DevKit README, TASK, and PLAN along with the repository Agent Guide and governance rules. Keep external source connection records, encrypted credentials, table transfer behavior, and run history in this DevKit. Use only the Platform host adapter for actor and registered destination tenant resolution. Enforce Super Admin access on every route. Accept external source credentials only through the validated connection setup route, encrypt them before storage, and never return them to the browser. Never accept destination credentials or database names from a browser request. Preserve existing destination rows and report real verification evidence separately from static checks.

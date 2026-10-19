@@ -1,5 +1,16 @@
 # Platform tasks
 
+## Sports Club multi-tenant composition & Tenkasi Sports integration — October 19, 2026
+
+- Composed `@codexsun/sportsclub-api` and `@codexsun/sportsclub-web` in Platform runtime.
+- Removed synthetic domain verification in `tenkasisports-tenant.ts`; domain mapping strictly requires real ownership evidence (`domainVerificationTokens`).
+- Replaced dynamic import error swallowing in `tenant-app-database.ts` with direct, fail-closed invocations of `migrateSportsclubDatabase` and `seedSportsclubDatabase`.
+- Bound sportsclub routes and public Cloudflare Worker portal prefix `/public/portals/tenkasisports` in `sportsclub-host.ts`.
+- Enforced single database transaction (`db.transaction().execute`) on `/public/sportsclub/registration`, requiring student-selected passwords and stripping credentials before member enrollment.
+- Explicitly restricted inconsistent public aliases (`/student/register`, `/sportsclub/public/enroll`, `/sportsclub/public/registration`) to fail closed with 403 Forbidden.
+- Conducted read-only release audit: verified unprovisioned local `TENKASISPORTS` tenant, uncreated `codexsun_sportsclub_tenkasisports` DB, unseeded roles, and live 404 health status. Blocked deployment due to dirty concurrent working tree.
+- Verified gates: `typecheck` (API + Web), `lint` (API + Web), 12 focused platform tests in `sportsclub-platform.test.ts`, and module boundaries.
+
 ## TConnect public discovery composition — October 17, 2026
 
 - Added fixed credential list/create/update adapters to the TConnect gateway and composed its app-owned staff Credentials tab.
@@ -25,6 +36,27 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 - [ ] Record exact checks and unresolved limitations. Update the existing plan only from evidence.
 
 ## Acceptance evidence
+
+### Tenkasi Sports targeted local provisioning and registration hardening, 19-10-2026
+
+- Hardened canonical `/public/sportsclub/registration` to use a single tenant database transaction (`db.transaction().execute`) for both `services.member.enroll` and `context.provisionStudentIdentity`, failing closed with internal error if `db.transaction` is unavailable.
+- Required a student-selected password (12–128 characters, trimmed) via `publicStudentRegistrationSchema`, stripped `password` prior to member enrollment, and eliminated random password fallback from `resolveContext`.
+- Restricted inconsistent public aliases: `/student/register`, `/sportsclub/public/enroll`, and root `app` direct member enrollment fail closed with `AppError.forbidden` (HTTP 403).
+- Completed safe targeted local provisioning for `TENKASISPORTS`:
+  - Tenant registry: `id: 2`, `corporateId: "TENKASISPORTS"`, `slug: "tenkasisports"`, `status: "active"`, `enabledModuleKeys: ["platform.application", "sportsclub"]`, with `CODEXSUN` (`id: 1`, `codexsun_db`) fully preserved.
+  - Dedicated database: created and migrated `codexsun_sportsclub_tenkasisports` with all sportsclub tables (`sportsclub_members`, `sportsclub_programs`, `sportsclub_events`, `sportsclub_sessions`, `sportsclub_masters`, `sportsclub_enquiries`, `sportsclub_activity`, `sportsclub_progress`, `sportsclub_attendance`) and tenant runtime tables.
+  - Roles & Auth: seeded active roles `portal.sportsclub-student` (self-scoped, 0 backoffice perms), `sportsclub.master`, and `sportsclub.admin`. Direct portal identity creation and credential hashing verified on tenant DB.
+  - Domain mapping: `tenkasisports.com` mapped to tenant in pending verification status; real token evidence required before production ownership activation.
+- Canonical Fastify host & real tenant DB registration verified:
+  - Injected `POST /public/portals/tenkasisports/public/sportsclub/registration` via in-process Fastify host with full student payload (name, email, phone, dateOfBirth, gender, address, emergencyContact, medicalNotes, password).
+  - Reached actual Fastify handler and returned HTTP 200 with `{ corporateId: "TENKASISPORTS", userUuid, memberUuid }`.
+  - Verified real DB read-back in `codexsun_sportsclub_tenkasisports`:
+    - `sportsclub_members`: row persisted with `role: "student"`, `status: "pending"`, matching full student profile.
+    - `app_users`: row persisted with `status: "active"` and `password_hash` encoded as standard PBKDF2 hash scheme; plain text password confirmed absent; `verifyPassword` verified hash validity.
+    - `app_user_roles`: row persisted with `role_key: "portal.sportsclub-student"` and `status: "active"`.
+  - Duplicate registration injection returned HTTP 409 Conflict ("You already have a club membership.") with full transactional rollback (zero partial rows created).
+  - Provenance audit & fixture cleanup: confirmed baseline records (1 seeded user `admin@tenant.com`, 1 seeded member `kabilan@tenkasisports.test` from `member.seed.ts`, and 1 seeded user role) were preserved intact; carefully deleted only the test student fixture; read-back verified exactly 0 stray test records remain in `app_users`, `app_user_roles`, or `sportsclub_members`.
+- Quality gates: 12 focused platform unit tests passed in `sportsclub-platform.test.ts`, `lint` (API + Web), `typecheck` (API + Web), and module boundaries passed.
 
 ### Queue worker automatic pickup, 18-10-2026
 
@@ -355,3 +387,67 @@ Verified live Techmedia and Rainbow Application overview access. Login/session r
 - Queue verification age is calculated by the Platform queue database using its own timestamp, avoiding timezone reinterpretation between SQL `DATETIME` values and the API host clock.
 - Browser CRM-to-Frappe Contact export completed one queued job with 1 exported and 0 failed after this change; live Mobile Contact readback and fixture cleanup passed.
 - Platform API typecheck, lint, and production build remain required for final validation.
+
+## Sportsclub multi-entity navigation, app catalog wiring, and tenant isolation evidence — October 19, 2026
+
+### Follow-up: launcher and legacy tenant app editing
+- Sports Club stays opt-in per tenant. An existing tenant with `sportsclub` in its enabled module keys receives the launcher tile at `/app/sportsclub/overview`; a tenant without the key does not.
+- The Platform web app-registry stack type, validation schema, and editor options now accept `sportsclub`, so an existing registered app can be edited without a frontend validation failure.
+- Platform bootstrap seeds the Sportsclub registry row into an existing master database through the idempotent app-registry seeder. This is local source verification; no cloud seed or deployment was run.
+- Focused launcher policy test, Platform web typecheck, and Platform web lint passed locally. Authenticated browser review remains open.
+- Platform web production build and Platform module boundary check passed. `dependencies:check` is blocked by existing generated artifacts under `apps/sites/clients/dist` and `apps/sites/clients/cloudflare/dist`; this task did not remove those Sites files.
+- The older Sportsclub API compilation blocker recorded below was resolved in the preceding local build and test pass. It does not describe the current local state.
+
+### App Catalog & Super Admin Connections Wiring
+- Verified global `platformAppRegistry` in both `apps/platform/api/src/modules/app-registry/app-registry.service.ts` and `apps/platform/web/src/app/app-registry.ts` includes `sportsclub` with `TrophyIcon`, `bg-orange-700` accent, and multi-tenant academy description.
+- Guaranteed resilient rendering in Super Admin `/sa/tenants -> [TENANT] -> App connections` (`tenant.apps.tsx`) and `SaAppCatalog` (`sa-app-catalog.tsx`) by merging missing entries from `platformAppRegistry` into query results, ensuring connection toggles and catalog cards appear even before asynchronous database sync.
+
+### Default Module Keys & Tenant Isolation
+- Removed `sportsclub` from `defaultTenantModuleKeys` in both `apps/platform/api` and `apps/platform/web`. This ensures Sportsclub is NOT default-enabled for new or seeded tenants.
+- Executed database persistence readback across all master database tenants:
+  - `TENKASISPORTS` (`id: 2`, dedicated `codexsun_sportsclub_tenkasisports` DB): `hasSportsclubInKeys: true`, `sportsclubResolvedEnabled: true`, status `active`.
+  - `CODEXSUN` (`id: 1`, `codexsun_db`): `hasSportsclubInKeys: false`, `sportsclubResolvedEnabled: false` (preserved untouched).
+  - `SUKRAA` (`id: 3`, `sukraa_local_db`): `hasSportsclubInKeys: false`, `sportsclubResolvedEnabled: false` (preserved untouched).
+
+### Sportsclub CRM-Style Desk Tone & Multi-Entity Navigation
+- Registered all 8 Sports Club entities plus Overview in `PlatformAppRootPage` and `AppPage`:
+  1. `sportsclub.overview` ("Sports Club" / "Overview" - `LayoutDashboardIcon`)
+  2. `sportsclub.members` ("Students" - `UsersIcon`)
+  3. `sportsclub.masters` ("Masters" - `ContactRoundIcon`)
+  4. `sportsclub.programs` ("Curriculum" - `NotebookPenIcon`)
+  5. `sportsclub.sessions` ("Batches" - `CalendarDaysIcon`)
+  6. `sportsclub.attendance` ("Attendance" - `ClipboardListIcon`)
+  7. `sportsclub.progress` ("Assessments" - `SparklesIcon`)
+  8. `sportsclub.events` ("Events" - `TrophyIcon`)
+  9. `sportsclub.enquiries` ("Admissions" - `MessageCircleIcon`)
+- Side menu (`sidemenuForApp` and `appMenuItemsFor`) renders each entity as an individual direct navigation item.
+- Shared App Header (`TenantMainLayout` header) carries the active page title ("Students", "Curriculum", etc.) and mounts top action buttons (`Enroll Student`, `New Master`, etc.) with form submission binding (`form="sportsclub-*-form"`).
+- Desk tone: Added `activeApp === "sportsclub"` to `hideSidebarBrand` in `AppDesk.tsx`, achieving the clean CRM-style desk tone without redundant sidebar company branding headers.
+- Duplicate heading/description prevention: Wrapped leaf views in `.sportsclub-desk-view` with CSS rules `[&_.flex-col.gap-3:has(.min-w-0)]:hidden` and `[&_.min-w-0>h1.text-2xl]:hidden` to suppress duplicate body headings, letting the shared AppDesk header own page title and actions.
+
+### Contract Coordination with AGR-2 (Sportsclub Owner)
+- Platform preserves strict modular monolith boundaries: Platform owns composition, desk layout, navigation routing, and role gating. Sportsclub owns leaf CRUD and form logic.
+- Stable Form ID Contract:
+  - Student enrollment / edit: `sportsclub-member-form`
+  - Master upsert: `sportsclub-master-form`
+  - Program upsert: `sportsclub-program-form`
+  - Session upsert: `sportsclub-session-form`
+  - Event upsert: `sportsclub-event-form`
+  - Enquiry upsert: `sportsclub-enquiry-form`
+- AGR-2 workspace contract: Workspaces should adopt `variant="list" title=""` on `WorkspacePage` to leverage native `WorkspaceHeaderActions` portal into `applicationHeaderTarget`.
+
+### Quality Gates & Verification
+- `npm run lint -w @codexsun/platform-web`: PASSED (0 warnings, 0 errors across 304 files).
+- `npm run typecheck -w @codexsun/platform-web`: PASSED (0 errors).
+- `npm run lint -w @codexsun/platform-api`: PASSED (0 warnings, 0 errors across 286 files).
+- `node tools/check-module-boundaries.mjs platform`: PASSED.
+- `node --import tsx --test apps/platform/api/src/sportsclub-platform.test.ts`: PASSED (13/13 tests passing).
+- Git diff whitespace check: `git diff --check apps/platform` returned 0 errors.
+
+### Deployment Status & Technical Blockers for Live codexsun.com
+- **Deployment Status**: Not deployed to live `codexsun.com`. All changes built, tested, and reviewed LOCALLY per explicit user instruction.
+- **Repeatable Technical Blockers Identified**:
+  1. **Working Tree Isolation**: Repository contains uncommitted concurrent changes across `apps/crm/`, `devkits/data-migration/`, `apps/sites/`, and `apps/billing/` that cannot be built into production images without risking regressions.
+  2. **Upstream API Compilation Errors in Sportsclub**: `apps/sportsclub/api` has compile errors in AGR-2 owned files (`projectColumns` missing from `sportsclub.pagination.ts`, and `member.service.ts` query page type mismatch). Because Platform is forbidden from modifying Sportsclub files, AGR-2 must resolve these compilation blockers before `@codexsun/sportsclub-api` can build into Docker release images.
+  3. **Master DB Tenant Provisioning on VPS**: Remote VPS (`69.62.81.166` / `srv914719`) currently has 15 tenants where `id: 2` is `TECHMEDIA`. `TENKASISPORTS` and `codexsun_sportsclub_tenkasisports` do not exist on the VPS master database yet. Safe cloud release requires an audited tenant provisioning script keyed strictly by `corporate_id = "TENKASISPORTS"`.
+  4. **Explicit Release Hold**: Per user rule, cloud/VPS release is held awaiting explicit user review and confirmation of local preview evidence.

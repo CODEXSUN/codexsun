@@ -28,6 +28,34 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.workspace-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 32%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+.workspace-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.workspace-scroll::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--muted-foreground) 32%, transparent);
+}
+
+.workspace-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (max-width: 639px) {
+  .workspace-scroll::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);

@@ -30,6 +30,7 @@ export function WorkspaceTable<T extends RowData>({
   filterRow,
   isLoading,
   minWidth = "640px",
+  mobileRow,
   panelClassName,
   onRowClick
 }: {
@@ -39,6 +40,7 @@ export function WorkspaceTable<T extends RowData>({
   filterRow?: (columnId: string) => ReactNode;
   isLoading?: boolean;
   minWidth?: string;
+  mobileRow?: (record: T) => ReactNode;
   panelClassName?: string;
   onRowClick?: (row: T) => void;
 }) {
@@ -56,10 +58,38 @@ export function WorkspaceTable<T extends RowData>({
     onSortingChange: setSorting,
     state: { sorting }
   });
+  const mobileFilters = filterRow
+    ? table
+        .getVisibleLeafColumns()
+        .map((column) => ({ id: column.id, content: filterRow(column.id) }))
+        .filter(({ content }) => content !== null && content !== undefined && content !== false)
+    : [];
 
   return (
     <WorkspaceTablePanel {...(panelClassName ? { className: panelClassName } : {})}>
-      <div className="overflow-x-auto">
+      {mobileRow ? (
+        <div className="grid gap-3 p-3 md:hidden">
+          {mobileFilters.length ? (
+            <div className="grid gap-2 rounded-xl border border-border/70 bg-card p-3 shadow-sm">
+              {mobileFilters.map((filter) => (
+                <div key={filter.id}>{filter.content}</div>
+              ))}
+            </div>
+          ) : null}
+          {table.getRowModel().rows.length === 0 ? (
+            isLoading ? (
+              <WorkspaceTableLoadingState />
+            ) : (
+              <WorkspaceTableEmptyState>{emptyState ?? "No records found."}</WorkspaceTableEmptyState>
+            )
+          ) : (
+            table.getRowModel().rows.map((row) => (
+              <div key={row.id}>{mobileRow(row.original)}</div>
+            ))
+          )}
+        </div>
+      ) : null}
+      <div className={cn("workspace-scroll overflow-x-auto", mobileRow && "hidden md:block")}>
         <table className="w-full border-collapse text-sm" style={{ minWidth }}>
           <thead className="bg-muted/50">
             {table.getHeaderGroups().map((headerGroup) => (

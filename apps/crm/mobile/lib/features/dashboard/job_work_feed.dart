@@ -65,9 +65,9 @@ class _WorkFeedEntry {
           icon: report['latitude'] == null
               ? Icons.task_alt
               : Icons.location_on_outlined,
-          title: '${report['action']}'.replaceAll('-', ' '),
+          title: normalizeCrmText('${report['action']}').replaceAll('-', ' '),
           detail:
-              '${report['body']}${report['latitude'] == null ? '' : '\nGPS: ${report['latitude']}, ${report['longitude']} · ${report['accuracy_meters']} m'}',
+              '${normalizeCrmText('${report['body'] ?? ''}')}${report['latitude'] == null ? '' : '\nGPS: ${report['latitude']}, ${report['longitude']} · ${report['accuracy_meters']} m'}',
           author: _author('${report['created_by']}', session),
           createdAt: DateTime.parse('${report['created_at']}'),
           onTap: report['latitude'] == null

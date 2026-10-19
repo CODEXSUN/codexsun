@@ -14,26 +14,23 @@ class DashboardStats extends StatefulWidget {
     required this.jobCount,
     required this.onOpenList,
     required this.onOpenActions,
-    this.unreadChatCount = 0,
+    required this.onOpenReports,
     this.assignmentCount = 0,
-    this.taskUnreadCount = 0,
-    this.dutyUnreadCount = 0,
     super.key,
   });
   final CrmMobileApi api;
   final UserSession session;
   final int jobCount;
-  final int unreadChatCount;
   final int assignmentCount;
-  final int taskUnreadCount;
-  final int dutyUnreadCount;
   final ValueChanged<int> onOpenList;
   final Future<void> Function() onOpenActions;
+  final Future<void> Function() onOpenReports;
   @override
   State<DashboardStats> createState() => _DashboardStatsState();
 }
 
-class _DashboardStatsState extends State<DashboardStats> {
+class _DashboardStatsState extends State<DashboardStats>
+    with WidgetsBindingObserver {
   final Map<String, int> _counts = {};
   final Set<String> _errors = {};
   Timer? _timer;
@@ -41,8 +38,9 @@ class _DashboardStatsState extends State<DashboardStats> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _refresh();
-    _timer = Timer.periodic(const Duration(seconds: 20), (_) => _refresh());
+    _startPolling();
   }
 
   @override
@@ -54,30 +52,56 @@ class _DashboardStatsState extends State<DashboardStats> {
     }
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+      _refresh();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _timer?.cancel();
+      _timer = null;
+    }
+  }
+
+  void _startPolling() {
+    _timer ??= Timer.periodic(const Duration(seconds: 20), (_) => _refresh());
+  }
+
   Future<void> _refresh() async {
     if (_loading) return;
     _loading = true;
     final token = widget.session.accessToken;
     await Future.wait([
-      if (isCallLogAdministrator(widget.session.profile.role))
-        _load('Call logs', () async {
-          if (!await MobileActions.hasCallLogAccess())
-            throw StateError('Permission required');
-          return (await MobileActions.callLogs()).length;
-        }, token),
+      _load('Call logs', () async {
+        if (!await MobileActions.hasCallLogAccess())
+          throw StateError('Permission required');
+        return (await MobileActions.callLogs()).length;
+      }, token),
       _load('Tasks', () => widget.api.tasksCount(token), token),
-      _load('Duty', () async => (await widget.api.duties(token)).length, token),
+      _loadDutyAndReportCounts(token),
       _load('Activities', () => widget.api.activitiesCount(token), token),
-      _load(
-        'Chat',
-        () async => (await widget.api.conversations(
-          accessToken: token,
-          currentEmail: widget.session.profile.email,
-        )).length,
-        token,
-      ),
     ]);
     _loading = false;
+  }
+
+  Future<void> _loadDutyAndReportCounts(String token) async {
+    try {
+      final duties = await widget.api.duties(token);
+      if (!mounted || token != widget.session.accessToken) return;
+      setState(() {
+        _counts['Duty'] = duties.length;
+        _counts['Reports'] = duties.fold<int>(
+          0,
+          (total, duty) => total + duty.reports.length,
+        );
+        _errors.removeAll(['Duty', 'Reports']);
+      });
+    } catch (_) {
+      if (mounted && token == widget.session.accessToken) {
+        setState(() => _errors.addAll(['Duty', 'Reports']));
+      }
+    }
   }
 
   Future<void> _load(
@@ -100,6 +124,7 @@ class _DashboardStatsState extends State<DashboardStats> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
   }
@@ -110,6 +135,7 @@ class _DashboardStatsState extends State<DashboardStats> {
     VoidCallback open, {
     int? count,
     int badge = 0,
+    String? caption,
   }) => _StatCard(
     icon: icon,
     label: label,
@@ -122,6 +148,7 @@ class _DashboardStatsState extends State<DashboardStats> {
         : '…',
     onTap: open,
     badgeCount: badge,
+    caption: caption,
   );
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -146,32 +173,31 @@ class _DashboardStatsState extends State<DashboardStats> {
               ),
             );
             _refresh();
-          }, badge: widget.taskUnreadCount),
+          }),
           _card(
             'Duty',
             Icons.calendar_month_outlined,
             () => widget.onOpenList(2),
-            badge: widget.dutyUnreadCount,
           ),
-          _card('Activities', Icons.bolt_outlined, widget.onOpenActions),
           _card(
-            'Chat',
-            Icons.chat_bubble_outline,
-            () => widget.onOpenList(3),
-            badge: widget.unreadChatCount,
+            'Activities',
+            Icons.bolt_outlined,
+            widget.onOpenActions,
+            caption: 'Last 7 days',
           ),
-          if (isCallLogAdministrator(widget.session.profile.role))
-            _card('Call logs', Icons.call_outlined, () async {
-              await Navigator.of(context).push<void>(
-                MaterialPageRoute(
-                  builder: (_) => AdminCallLogPage(
-                    api: widget.api,
-                    session: widget.session,
-                  ),
-                ),
-              );
-              _refresh();
-            }),
+          _card('Call logs', Icons.call_outlined, () async {
+            await Navigator.of(context).push<void>(
+              MaterialPageRoute(
+                builder: (_) =>
+                    AdminCallLogPage(api: widget.api, session: widget.session),
+              ),
+            );
+            _refresh();
+          }),
+          _card('Reports', Icons.description_outlined, () async {
+            await widget.onOpenReports();
+            _refresh();
+          }),
         ].map((card) => SizedBox(width: width, child: card)).toList(),
       );
     },
@@ -185,6 +211,7 @@ class _StatCard extends StatelessWidget {
     required this.value,
     required this.onTap,
     this.badgeCount = 0,
+    this.caption,
   });
 
   final IconData icon;
@@ -192,23 +219,31 @@ class _StatCard extends StatelessWidget {
   final String value;
   final VoidCallback onTap;
   final int badgeCount;
+  final String? caption;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Semantics(
       button: true,
-      label: 'Open $label list',
+      label: 'Open $label list${caption == null ? '' : ', $caption'}',
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Ink(
           height: 96,
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE9E1EE)),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE1DCE6)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1A140D1B),
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,6 +258,13 @@ class _StatCard extends StatelessWidget {
               const Spacer(),
               Text(value, style: theme.textTheme.titleMedium),
               Text(label, style: theme.textTheme.labelMedium),
+              if (caption != null)
+                Text(
+                  caption!,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
             ],
           ),
         ),

@@ -20,6 +20,12 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Core workspace read access for User role, 19-10-2026
+
+- The repeatable Core permission seed grants `core.application.records.view` to Admin, Super Admin, Manager, and User roles.
+- The User role receives no Core create, update, delete, or lifecycle permission from this grant.
+- `npm run test:e2e:crm-work-reports` verifies the grants on an isolated tenant database and confirms CRM enquiry view remains separately permission-scoped.
+
 ### Frappe contact document identity, 18-10-2026
 
 - Core resolves Frappe Customer records using the actual document name as contact code and preserves the local identity when correcting a legacy `EXT-<hash>` code.

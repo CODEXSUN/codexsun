@@ -5,6 +5,7 @@ import { AppError } from "@codexsun/framework/errors";
 import type {
   WorkReportDatabase,
   WorkReportInput,
+  WorkReportHistoryFilter,
   WorkReportTarget,
   WorkReportContext
 } from "./work-report.types.js";
@@ -44,8 +45,13 @@ export class WorkReportRepository {
   async list(target: WorkReportTarget) {
     return (await this.history(target, 1, 200)).items;
   }
-  history(target: WorkReportTarget, page: number, pageSize: number, checkpoints = false) {
-    return new WorkReportHistory(this.db).page(target, page, pageSize, checkpoints);
+  history(
+    target: WorkReportTarget,
+    page: number,
+    pageSize: number,
+    filter: WorkReportHistoryFilter = "all"
+  ) {
+    return new WorkReportHistory(this.db).page(target, page, pageSize, filter);
   }
   async create(input: WorkReportInput, context: WorkReportContext) {
     return this.db.transaction().execute(async (trx) => this.insert(trx, input, context, true));
@@ -77,6 +83,7 @@ export class WorkReportRepository {
         prior.task_id !== input.taskId ||
         prior.action !== input.action ||
         prior.body !== input.body ||
+        (prior.amount === null ? null : Number(prior.amount)) !== input.amount ||
         (prior.latitude === null ? null : Number(prior.latitude)) !== input.latitude ||
         (prior.longitude === null ? null : Number(prior.longitude)) !== input.longitude ||
         (prior.accuracy_meters === null ? null : Number(prior.accuracy_meters)) !==
@@ -85,6 +92,26 @@ export class WorkReportRepository {
       )
         throw AppError.conflict("This action retry key was already used for another report.");
       return prior;
+    }
+    if (input.action === "charge" || input.action === "collection") {
+      if (input.amount === null || input.amount <= 0)
+        throw AppError.validation("Enter an amount greater than zero.");
+      if (input.action === "collection") {
+        const id = input.enquiryId ?? input.taskId!;
+        const totals = await sql<{ charges: number | string; collections: number | string }>`
+          SELECT COALESCE(SUM(CASE WHEN action='charge' THEN amount ELSE 0 END),0) AS charges,
+            COALESCE(SUM(CASE WHEN action='collection' THEN amount ELSE 0 END),0) AS collections
+          FROM crm_work_reports
+          WHERE ${input.enquiryId !== null ? sql`enquiry_id=${id}` : sql`task_id=${id}`}
+            AND status='active'
+        `.execute(trx);
+        const outstanding =
+          Number(totals.rows[0]?.charges ?? 0) - Number(totals.rows[0]?.collections ?? 0);
+        if (input.amount > outstanding + 0.00001)
+          throw AppError.conflict(
+            `Collection exceeds the outstanding amount of ${outstanding.toFixed(2)}.`
+          );
+      }
     }
     if (input.action === "check-in" || input.action === "check-out") {
       const status = await trx
@@ -125,6 +152,7 @@ export class WorkReportRepository {
         task_id: input.taskId,
         action: input.action,
         body: input.body,
+        amount: input.amount === null ? null : String(input.amount),
         request_id: input.requestId,
         latitude: input.latitude === null ? null : String(input.latitude),
         longitude: input.longitude === null ? null : String(input.longitude),

@@ -19,6 +19,7 @@ export async function recordWorkEvent(
       ...target,
       action: action === "comment" ? "comment-added" : action,
       body,
+      amount: null,
       requestId: randomBytes(16).toString("hex"),
       latitude: null,
       longitude: null,

@@ -5,6 +5,7 @@ export type WorkReport = {
   action: string;
   comment_id?: number | null;
   body: string;
+  amount: string | number | null;
   latitude: string | null;
   longitude: string | null;
   accuracy_meters: string | null;
@@ -14,11 +15,20 @@ export type WorkReport = {
   created_at: string;
 };
 export type WorkReportPayload = WorkReportTarget & {
-  action: "report" | "check-in" | "check-out";
+  action: "report" | "check-in" | "check-out" | "charge" | "collection";
   body: string;
+  amount: number | null;
   requestId: string;
   latitude: number | null;
   longitude: number | null;
   accuracyMeters: number | null;
   capturedAt: string | null;
+};
+export type WorkReportHistoryFilter = "all" | "checkpoints" | "charges";
+export type WorkReportHistory = {
+  items: WorkReport[];
+  total: number;
+  page: number;
+  pageSize: number;
+  amounts: { charges: number; collections: number };
 };

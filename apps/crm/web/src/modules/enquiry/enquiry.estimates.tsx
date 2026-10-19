@@ -56,7 +56,7 @@ export function EnquiryEstimates({
         </Button>
       </div>
       {loading ? <p className="text-sm text-muted-foreground">Loading estimates…</p> : null}
-      <div className="overflow-x-auto rounded-md border border-border/70">
+      <div className="workspace-scroll overflow-x-auto rounded-md border border-border/70">
         <table className="w-full min-w-[600px] text-left text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr>

@@ -223,7 +223,7 @@ function ContactActivities({
   if (error) return <RelatedError message={error.message} />;
   return (
     <WorkspaceTablePanel className="rounded-t-none">
-      <div className="overflow-x-auto">
+      <div className="workspace-scroll overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr>

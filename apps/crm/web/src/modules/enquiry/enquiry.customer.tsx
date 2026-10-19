@@ -57,7 +57,7 @@ function CustomerTasks({ contactId }: { contactId: number | null }) {
     enabled: contactId !== null,
     refetchInterval: 10000
   });
-  const pages = Math.max(1, Math.ceil((tasks.data?.total ?? 0) / 10));
+  const pages = Math.max(1, Math.ceil((tasks.data?.total ?? 0) / 100));
   return (
     <WorkspaceShowCard title={`Existing tasks${tasks.data ? ` · ${tasks.data.total}` : ""}`}>
       {!contactId ? (
@@ -151,14 +151,14 @@ function CustomerEnquiries({ contactId }: { contactId: number | null }) {
         contactId: contactId!,
         scope: "all",
         page,
-        pageSize: 10,
+        pageSize: 100,
         search: "",
         filter: "all"
       }),
     enabled: contactId !== null,
     refetchInterval: 10000
   });
-  const pages = Math.max(1, Math.ceil((enquiries.data?.total ?? 0) / 10));
+  const pages = Math.max(1, Math.ceil((enquiries.data?.total ?? 0) / 100));
   return (
     <WorkspaceShowCard
       title={`Existing enquiries${enquiries.data ? ` · ${enquiries.data.total}` : ""}`}
@@ -176,7 +176,7 @@ function CustomerEnquiries({ contactId }: { contactId: number | null }) {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-md border border-border/70">
+          <div className="workspace-scroll overflow-x-auto rounded-md border border-border/70">
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>

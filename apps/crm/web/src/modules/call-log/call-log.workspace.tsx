@@ -16,7 +16,7 @@ export function CallLogWorkspace() {
   const client = useQueryClient();
   const [filters, setFilters] = useState<CallLogFilters>({
     page: 1,
-    pageSize: 50,
+    pageSize: 100,
     search: "",
     type: "",
     status: ""

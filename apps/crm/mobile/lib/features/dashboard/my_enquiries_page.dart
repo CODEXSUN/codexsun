@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/crm_mobile_api.dart';
-import 'admin_call_log_page.dart';
 import 'dashboard_list_page.dart';
 import 'home_enquiry_form_page.dart';
 import 'job_enquiry_card.dart';
@@ -26,11 +25,12 @@ class MyEnquiriesPage extends StatefulWidget {
 
 class MyEnquiriesPageState extends State<MyEnquiriesPage> {
   final _searchController = TextEditingController();
-  late Future<List<CrmJob>> _enquiries;
+  late Future<CrmPage<CrmJob>> _enquiries;
   late Future<CrmCallEnquiryFormData> _formData;
   var _listFilter = '';
   var _statusFilter = '';
   var _searchQuery = '';
+  var _page = 1;
 
   @override
   void initState() {
@@ -57,6 +57,7 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
       ),
       onSelected: (value) => setState(() {
         _listFilter = value;
+        _page = 1;
         _enquiries = _load();
       }),
       itemBuilder: (context) => [
@@ -78,6 +79,7 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
       icon: Icon(_statusFilter.isEmpty ? Icons.flag_outlined : Icons.flag),
       onSelected: (value) => setState(() {
         _statusFilter = value;
+        _page = 1;
         _enquiries = _load();
       }),
       itemBuilder: (context) => [
@@ -110,6 +112,7 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
                               _searchController.clear();
                               setState(() {
                                 _searchQuery = '';
+                                _page = 1;
                                 _enquiries = _load();
                               });
                             },
@@ -133,6 +136,7 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
                   onSubmitted: (value) {
                     setState(() {
                       _searchQuery = value.trim();
+                      _page = 1;
                       _enquiries = _load();
                     });
                   },
@@ -147,16 +151,24 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
           ),
         ),
         Expanded(
-          child: FutureBuilder<List<CrmJob>>(
+          child: FutureBuilder<CrmPage<CrmJob>>(
             future: _enquiries,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
               }
               if (snapshot.hasError) return _LoadError(onRetry: refresh);
-              final allEnquiries = snapshot.data ?? const <CrmJob>[];
+              final result =
+                  snapshot.data ??
+                  const CrmPage<CrmJob>(
+                    items: [],
+                    page: 1,
+                    pageSize: 100,
+                    total: 0,
+                  );
+              final allEnquiries = result.items;
               final enquiries = _filter(allEnquiries);
-              if (enquiries.isEmpty) {
+              if (enquiries.isEmpty && result.total == 0) {
                 return Center(
                   child: Text(
                     allEnquiries.isEmpty
@@ -167,22 +179,47 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
               }
               return RefreshIndicator(
                 onRefresh: refresh,
-                child: ListView.separated(
+                child: ListView(
                   padding: EdgeInsets.fromLTRB(
                     16,
                     6,
                     16,
                     widget.embedded ? 84 : 28,
                   ),
-                  itemCount: enquiries.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 14),
-                  itemBuilder: (context, index) => JobEnquiryCard(
-                    api: widget.api,
-                    session: widget.session,
-                    enquiry: DashboardListItem.fromCrmJob(enquiries[index]),
-                    job: enquiries[index],
-                    onJobChanged: refresh,
-                  ),
+                  children: [
+                    if (enquiries.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(
+                          child: Text('No enquiries are in this list.'),
+                        ),
+                      ),
+                    ...enquiries.map(
+                      (enquiry) => Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: JobEnquiryCard(
+                          api: widget.api,
+                          session: widget.session,
+                          enquiry: DashboardListItem.fromCrmJob(enquiry),
+                          job: enquiry,
+                          onJobChanged: refresh,
+                        ),
+                      ),
+                    ),
+                    if (result.total > 100)
+                      _CrmPageControls(
+                        page: result.page,
+                        pageCount: result.pageCount,
+                        total: result.total,
+                        label: 'enquiries',
+                        onPrevious: result.hasPrevious
+                            ? () => _changePage(result.page - 1)
+                            : null,
+                        onNext: result.hasNext
+                            ? () => _changePage(result.page + 1)
+                            : null,
+                      ),
+                  ],
                 ),
               );
             },
@@ -199,12 +236,6 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
       appBar: AppBar(
         title: const Text('Enquiries'),
         actions: [
-          if (isCallLogAdministrator(widget.session.profile.role))
-            IconButton(
-              tooltip: 'Call Logs',
-              onPressed: _openCallLogs,
-              icon: const Icon(Icons.call_outlined),
-            ),
           IconButton(
             tooltip: 'New enquiry',
             onPressed: _openNewEnquiry,
@@ -247,19 +278,22 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
     );
   }
 
-  Future<List<CrmJob>> _load() async {
+  Future<CrmPage<CrmJob>> _load() async {
     final token = widget.session.accessToken;
     final listId = _listFilter.isNotEmpty ? _listFilter : null;
     try {
-      return await widget.api.enquiries(
+      return await widget.api.enquiriesPage(
         accessToken: token,
         scope: 'assigned',
         filter: 'active',
         search: _searchQuery,
         listInId: listId,
+        page: _page,
+        pageSize: 100,
       );
     } on CrmMobileApiException {
-      return widget.api.assignedJobs(token);
+      final items = await widget.api.assignedJobs(token);
+      return CrmPage(items: items, page: 1, pageSize: 100, total: items.length);
     }
   }
 
@@ -274,6 +308,13 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
       _enquiries = enquiries;
     });
     await enquiries;
+  }
+
+  void _changePage(int page) {
+    setState(() {
+      _page = page;
+      _enquiries = _load();
+    });
   }
 
   List<CrmJob> _filter(List<CrmJob> enquiries) {
@@ -318,15 +359,6 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
     );
     if (created != null && mounted) await _refresh();
   }
-
-  Future<void> _openCallLogs() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (context) =>
-            AdminCallLogPage(api: widget.api, session: widget.session),
-      ),
-    );
-  }
 }
 
 class _LoadError extends StatelessWidget {
@@ -339,6 +371,44 @@ class _LoadError extends StatelessWidget {
     child: FilledButton.tonal(
       onPressed: onRetry,
       child: const Text('Could not load your enquiries. Retry'),
+    ),
+  );
+}
+
+class _CrmPageControls extends StatelessWidget {
+  const _CrmPageControls({
+    required this.page,
+    required this.pageCount,
+    required this.total,
+    required this.label,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final int page;
+  final int pageCount;
+  final int total;
+  final String label;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      children: [
+        Expanded(child: Text('$total $label · Page $page of $pageCount')),
+        IconButton(
+          tooltip: 'Previous page',
+          onPressed: onPrevious,
+          icon: const Icon(Icons.chevron_left),
+        ),
+        IconButton(
+          tooltip: 'Next page',
+          onPressed: onNext,
+          icon: const Icon(Icons.chevron_right),
+        ),
+      ],
     ),
   );
 }

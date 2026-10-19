@@ -39,7 +39,11 @@ export function WorkReportWorkspace({
   const commentRetry = useRef<{ body: string; id: string } | null>(null);
   const client = useQueryClient();
   const [page, setPage] = useState(1);
-  const reports = useWorkReports(target, page, actionFilter === "checkpoints");
+  const reports = useWorkReports(
+    target,
+    page,
+    actionFilter === "checkpoints" ? "checkpoints" : "all"
+  );
   const checkpoint = useQuery({
     queryKey: [...workReportKey(target), "checkpoint"],
     queryFn: () => getWorkCheckpoint(target),
@@ -64,6 +68,7 @@ export function WorkReportWorkspace({
           ...target,
           action,
           body,
+          amount: null,
           requestId: crypto.randomUUID(),
           latitude: position?.coords.latitude ?? null,
           longitude: position?.coords.longitude ?? null,
@@ -172,9 +177,9 @@ export function WorkReportWorkspace({
           <WorkReportList
             items={reports.data?.items ?? []}
             total={reports.data?.total}
-            offset={(page - 1) * 25}
+            offset={(page - 1) * 100}
           />
-          {(reports.data?.total ?? 0) > 25 ? (
+          {(reports.data?.total ?? 0) > 100 ? (
             <div className="flex items-center justify-end gap-3 text-sm">
               <Button
                 size="sm"
@@ -185,12 +190,12 @@ export function WorkReportWorkspace({
                 Previous
               </Button>
               <span>
-                Page {page} of {Math.ceil((reports.data?.total ?? 0) / 25)}
+                Page {page} of {Math.ceil((reports.data?.total ?? 0) / 100)}
               </span>
               <Button
                 size="sm"
                 variant="outline"
-                disabled={page * 25 >= (reports.data?.total ?? 0)}
+                disabled={page * 100 >= (reports.data?.total ?? 0)}
                 onClick={() => setPage(page + 1)}
               >
                 Next

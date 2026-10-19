@@ -33,6 +33,24 @@ export const workReportMigrationBatch: MigrationBatch<WorkReportDatabase> = {
           )
           .execute(database);
       }
+    },
+    {
+      name: "crm.work-report.charges-v1",
+      checksum: "crm.work-report.charges-v1:v1",
+      version: 2,
+      description: "Store structured charge and collection amounts for enquiry and task work.",
+      up: async (database) => {
+        const existing = await sql<{ total: number | string }>`SELECT COUNT(*) AS total
+          FROM information_schema.COLUMNS
+          WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='crm_work_reports' AND COLUMN_NAME='amount'`.execute(
+          database
+        );
+        if (Number(existing.rows[0]?.total ?? 0) === 0) {
+          await sql`ALTER TABLE crm_work_reports ADD COLUMN amount DECIMAL(14,2) NULL AFTER body`.execute(
+            database
+          );
+        }
+      }
     }
   ]
 };

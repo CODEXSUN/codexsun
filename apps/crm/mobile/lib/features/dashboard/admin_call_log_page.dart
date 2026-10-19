@@ -280,66 +280,122 @@ class _CallLogCard extends StatelessWidget {
         onTap: onOpen,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 10, 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: entry.color.withValues(alpha: 0.13),
-                foregroundColor: entry.color,
-                child: Icon(entry.icon, size: 21),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.contactTitle,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 2),
-                    if (entry.hasSavedName) Text(entry.number),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        Text(entry.displayTime),
-                        const SizedBox(width: 8),
-                        _DurationBadge(label: entry.durationLabel),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 430;
+              final details = _CallLogDetails(entry: entry);
+              final actions = _CallLogActions(
+                entry: entry,
+                onSync: onSync,
+                onCreateEnquiry: onCreateEnquiry,
+                onCall: onCall,
+              );
+              final summary = Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _CallLogActionButton(
-                    tooltip: 'Sync this call to CRM',
-                    onTap: onSync,
-                    icon: Icons.cloud_upload_outlined,
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: entry.color.withValues(alpha: 0.13),
+                    foregroundColor: entry.color,
+                    child: Icon(entry.icon, size: 21),
                   ),
-                  const SizedBox(width: 4),
-                  if (onCreateEnquiry case final onCreateEnquiry?)
-                    _CallLogActionButton(
-                      tooltip: 'Create enquiry for ${entry.displayName}',
-                      onTap: onCreateEnquiry,
-                      icon: Icons.add_rounded,
-                    ),
-                  if (onCreateEnquiry != null) const SizedBox(width: 4),
-                  _CallLogActionButton(
-                    tooltip: 'Call ${entry.displayName}',
-                    onTap: onCall,
-                    icon: Icons.call_rounded,
-                  ),
+                  const SizedBox(width: 11),
+                  Expanded(child: details),
+                  if (!compact) ...[const SizedBox(width: 8), actions],
                 ],
-              ),
-            ],
+              );
+
+              if (!compact) return summary;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  summary,
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerRight, child: actions),
+                ],
+              );
+            },
           ),
         ),
       ),
     );
   }
+}
+
+class _CallLogDetails extends StatelessWidget {
+  const _CallLogDetails({required this.entry});
+
+  final CallLogEntry entry;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        entry.contactTitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 2),
+      if (entry.hasSavedName)
+        Text(entry.number, maxLines: 1, overflow: TextOverflow.ellipsis),
+      const SizedBox(height: 5),
+      Row(
+        children: [
+          Flexible(
+            child: Text(
+              entry.displayTime,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 6),
+          _DurationBadge(label: entry.durationLabel),
+        ],
+      ),
+    ],
+  );
+}
+
+class _CallLogActions extends StatelessWidget {
+  const _CallLogActions({
+    required this.entry,
+    required this.onSync,
+    required this.onCreateEnquiry,
+    required this.onCall,
+  });
+
+  final CallLogEntry entry;
+  final VoidCallback onSync;
+  final VoidCallback? onCreateEnquiry;
+  final VoidCallback onCall;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _CallLogActionButton(
+        tooltip: 'Sync this call to CRM',
+        onTap: onSync,
+        icon: Icons.cloud_upload_outlined,
+      ),
+      const SizedBox(width: 4),
+      if (onCreateEnquiry case final createEnquiry?) ...[
+        _CallLogActionButton(
+          tooltip: 'Create enquiry for ${entry.displayName}',
+          onTap: createEnquiry,
+          icon: Icons.add_rounded,
+        ),
+        const SizedBox(width: 4),
+      ],
+      _CallLogActionButton(
+        tooltip: 'Call ${entry.displayName}',
+        onTap: onCall,
+        icon: Icons.call_rounded,
+      ),
+    ],
+  );
 }
 
 class _CallLogActionButton extends StatelessWidget {

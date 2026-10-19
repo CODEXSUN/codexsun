@@ -1,0 +1,21 @@
+{
+  "name": "@codexsun/data-migration-api",
+  "version": "1.1.25",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/framework": "^1.1.25",
+    "fastify": "^5.12.5",
+    "kysely": "^0.29.6",
+    "mysql2": "^3.24.5",
+    "zod": "^4.6.5"
+  }
+}

@@ -108,11 +108,34 @@ class CrmMobileApi {
     int page = 1,
     int pageSize = 100,
   }) async {
+    final result = await enquiriesPage(
+      accessToken: accessToken,
+      scope: scope,
+      filter: filter,
+      search: search,
+      listInId: listInId,
+      page: page,
+      pageSize: pageSize,
+    );
+    return result.items;
+  }
+
+  Future<CrmPage<CrmJob>> enquiriesPage({
+    required String accessToken,
+    String scope = 'all',
+    String filter = 'all',
+    String search = '',
+    String? listInId,
+    int page = 1,
+    int pageSize = 100,
+  }) async {
+    final safePage = page < 1 ? 1 : page;
+    final safePageSize = pageSize.clamp(1, 100).toInt();
     final query = <String, String>{
       'scope': scope,
       'filter': filter,
-      'page': '$page',
-      'pageSize': '$pageSize',
+      'page': '$safePage',
+      'pageSize': '$safePageSize',
       if (search.trim().isNotEmpty) 'search': search.trim(),
       if (listInId != null && listInId.isNotEmpty) 'listInId': listInId,
     };
@@ -124,10 +147,16 @@ class CrmMobileApi {
     if (data is! Map<String, dynamic> || data['items'] is! List) {
       throw const CrmMobileApiException('Unexpected enquiries response.');
     }
-    return (data['items'] as List)
+    final items = (data['items'] as List)
         .whereType<Map<String, dynamic>>()
         .map(CrmJob.fromJson)
         .toList();
+    return CrmPage<CrmJob>(
+      items: items,
+      page: (data['page'] as num?)?.toInt() ?? safePage,
+      pageSize: (data['pageSize'] as num?)?.toInt() ?? safePageSize,
+      total: (data['total'] as num?)?.toInt() ?? items.length,
+    );
   }
 
   Future<List<CrmJob>> createdEnquiries(String accessToken) async {
@@ -160,22 +189,46 @@ class CrmMobileApi {
   }
 
   Future<int> activitiesCount(String accessToken) async {
-    final jobs = await activityJobs(accessToken);
-    final now = DateTime.now();
-    return jobs.fold<int>(
-      0,
-      (count, job) =>
-          count +
-          job.activities
-              .where(
-                (item) => now.difference(item.createdAt.toLocal()).inDays < 3,
-              )
-              .length +
-          job.jobs
-              .where(
-                (item) => now.difference(item.createdAt.toLocal()).inDays < 3,
-              )
-              .length,
+    final page = await activitiesPage(
+      accessToken: accessToken,
+      pageSize: 1,
+      createdAfter: DateTime.now().subtract(const Duration(days: 7)).toUtc(),
+    );
+    return page.total;
+  }
+
+  Future<CrmPage<CrmActivityRecord>> activitiesPage({
+    required String accessToken,
+    int page = 1,
+    int pageSize = 100,
+    DateTime? createdAfter,
+  }) async {
+    final safePage = page < 1 ? 1 : page;
+    final safePageSize = pageSize.clamp(1, 100).toInt();
+    final query = <String, String>{
+      'scope': 'mine',
+      'page': '$safePage',
+      'pageSize': '$safePageSize',
+      if (createdAfter != null)
+        'createdAfter': createdAfter.toUtc().toIso8601String(),
+    };
+    final data = await _request(
+      '/crm/activities',
+      accessToken: accessToken,
+      query: query,
+    );
+    if (data is! Map<String, dynamic> || data['items'] is! List) {
+      throw const CrmMobileApiException('Unexpected activities response.');
+    }
+    final items = (data['items'] as List)
+        .whereType<Map<String, dynamic>>()
+        .map(CrmActivityRecord.fromJson)
+        .toList();
+    return CrmPage(
+      items: items,
+      page: safePage,
+      pageSize: safePageSize,
+      total: (data['total'] as num?)?.toInt() ?? items.length,
     );
   }
 
@@ -243,11 +296,27 @@ class CrmMobileApi {
     );
   }
 
+  Future<bool> workCheckpoint(
+    String accessToken, {
+    int? enquiryId,
+    int? taskId,
+  }) async {
+    final result = await _request(
+      '/crm/work-reports/checkpoint',
+      accessToken: accessToken,
+      query: {
+        if (enquiryId != null) 'enquiryId': '$enquiryId',
+        if (taskId != null) 'taskId': '$taskId',
+      },
+    ) as Map<String, dynamic>;
+    return result['checkedIn'] == true;
+  }
+
   Future<int> tasksCount(String accessToken) async {
     final data = await _request(
       '/crm/tasks',
       accessToken: accessToken,
-      query: {'filter': 'active', 'pageSize': '1'},
+      query: {'scope': 'mine', 'filter': 'active', 'pageSize': '1'},
     ) as Map<String, dynamic>;
     return (data['total'] as num).toInt();
   }
@@ -255,18 +324,65 @@ class CrmMobileApi {
   Future<List<Map<String, dynamic>>> tasks(
     String accessToken, {
     String filter = "active",
+    int page = 1,
+    int pageSize = 100,
+    String scope = 'mine',
   }) async {
+    final result = await tasksPage(
+      accessToken,
+      filter: filter,
+      page: page,
+      pageSize: pageSize,
+      scope: scope,
+    );
+    return result.items;
+  }
+
+  Future<CrmPage<Map<String, dynamic>>> tasksPage(
+    String accessToken, {
+    String filter = 'active',
+    int page = 1,
+    int pageSize = 100,
+    String scope = 'mine',
+  }) async {
+    final safePage = page < 1 ? 1 : page;
+    final safePageSize = pageSize.clamp(1, 100).toInt();
     final data = await _request(
       '/crm/tasks',
       accessToken: accessToken,
-      query: {'filter': filter, 'pageSize': '200'},
+      query: {
+        'scope': scope,
+        'filter': filter,
+        'page': '$safePage',
+        'pageSize': '$safePageSize',
+      },
     ) as Map<String, dynamic>;
-    return (data['items'] as List).cast<Map<String, dynamic>>();
+    final items = (data['items'] as List).cast<Map<String, dynamic>>();
+    return CrmPage<Map<String, dynamic>>(
+      items: items,
+      page: (data['page'] as num?)?.toInt() ?? safePage,
+      pageSize: (data['pageSize'] as num?)?.toInt() ?? safePageSize,
+      total: (data['total'] as num?)?.toInt() ?? items.length,
+    );
   }
 
   Future<Map<String, dynamic>> task(String accessToken, int id) async =>
       await _request('/crm/tasks/$id', accessToken: accessToken)
           as Map<String, dynamic>;
+
+  Future<Map<String, dynamic>> taskOptions(String accessToken) async =>
+      await _request('/crm/tasks/options', accessToken: accessToken)
+          as Map<String, dynamic>;
+
+  Future<Map<String, dynamic>> createTask(
+    String accessToken,
+    Map<String, dynamic> payload,
+  ) async => await _request(
+    '/crm/tasks',
+    accessToken: accessToken,
+    method: 'POST',
+    body: payload,
+  ) as Map<String, dynamic>;
 
   Future<List<Map<String, dynamic>>> taskComments(
     String accessToken,
@@ -287,6 +403,20 @@ class CrmMobileApi {
   Future<List<Map<String, dynamic>>> taskJobs(String token, int id) async =>
       (await _request('/crm/tasks/$id/jobs', accessToken: token) as List)
           .cast<Map<String, dynamic>>();
+
+  Future<void> addTaskComment(
+    String accessToken,
+    int id,
+    String comment,
+  ) async {
+    await _request(
+      '/crm/tasks/$id/comments',
+      accessToken: accessToken,
+      method: 'POST',
+      body: {'body': comment, 'parentId': null},
+    );
+  }
+
   Future<void> startTaskJob(String token, int id) async {
     await _request(
       '/crm/tasks/$id/jobs/start',
@@ -580,6 +710,9 @@ class CrmMobileApi {
     required String enquiryGroup,
     required String? assignedToUserId,
     required String message,
+    String? statusId,
+    String? priorityId,
+    String? dueDate,
   }) async {
     final options = await _request(
       '/crm/enquiries/options',
@@ -590,11 +723,15 @@ class CrmMobileApi {
     final priorities = (options['priorities'] as List)
         .whereType<Map<String, dynamic>>();
     final status = statuses.firstWhere(
-      (item) => (item['code'] as String? ?? '').toLowerCase() == 'new',
+      (item) => statusId != null
+          ? item['id']?.toString() == statusId
+          : (item['code'] as String? ?? '').toLowerCase() == 'new',
       orElse: () => statuses.first,
     );
     final priority = priorities.firstWhere(
-      (item) => (item['code'] as String? ?? '').toLowerCase() == 'normal',
+      (item) => priorityId != null
+          ? item['id']?.toString() == priorityId
+          : (item['code'] as String? ?? '').toLowerCase() == 'normal',
       orElse: () => priorities.first,
     );
     final data = await _request(
@@ -615,7 +752,7 @@ class CrmMobileApi {
         'priorityId': priority['id'],
         'assignedUserId': assignedToUserId,
         'enquiredAt': DateTime.now().toUtc().toIso8601String(),
-        'dueDate': null,
+        'dueDate': dueDate,
         'closedReason': null,
       },
     );
@@ -953,6 +1090,24 @@ class CrmMobileApi {
   }
 }
 
+class CrmPage<T> {
+  const CrmPage({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  });
+
+  final List<T> items;
+  final int page;
+  final int pageSize;
+  final int total;
+
+  int get pageCount => total == 0 ? 1 : (total + pageSize - 1) ~/ pageSize;
+  bool get hasPrevious => page > 1;
+  bool get hasNext => page < pageCount;
+}
+
 class ApiHealth {
   const ApiHealth({required this.isHealthy});
 
@@ -1189,7 +1344,7 @@ class CrmMobileEnquiryMatch {
       CrmMobileEnquiryMatch(
         enquiryId: json['id']?.toString() ?? '',
         number: int.tryParse((json['enquiryNo'] ?? json['id']).toString()) ?? 0,
-        title: json['title'] as String? ?? 'Untitled enquiry',
+        title: normalizeCrmText(json['title'] as String? ?? 'Untitled enquiry'),
         status: json['status'] as String? ?? 'Open',
         createdAt:
             DateTime.tryParse(json['createdAt'] as String? ?? '') ??
@@ -1222,7 +1377,7 @@ class CrmCallLogComment {
   factory CrmCallLogComment.fromJson(Map<String, dynamic> json) =>
       CrmCallLogComment(
         id: (json['id'] as num?)?.toInt() ?? 0,
-        body: _plainTextComment(json['body'] as String? ?? ''),
+        body: normalizeCrmText(json['body'] as String? ?? ''),
         createdAt:
             DateTime.tryParse(json['createdAt'] as String? ?? '') ??
             DateTime.fromMillisecondsSinceEpoch(0),
@@ -1295,39 +1450,47 @@ class CrmJob {
         RegExp(r'[^0-9]'),
         '',
       ),
-      title: json['title'] as String? ?? 'Untitled enquiry',
-      customer: customerName.isNotEmpty
-          ? customerName
-          : json['customer'] as String? ?? 'Customer',
+      title: normalizeCrmText(json['title'] as String? ?? 'Untitled enquiry'),
+      customer: normalizeCrmText(
+        customerName.isNotEmpty
+            ? customerName
+            : json['customer'] as String? ?? 'Customer',
+      ),
       mobile:
           json['capturedPhone'] as String? ?? json['mobile'] as String? ?? '',
-      assignedTo:
-          json['assignedToName'] as String? ??
-          _assignedToName(json['assignedTo']),
-      list:
-          json['listIn'] as String? ??
-          json['enquiryGroup'] as String? ??
-          'General',
+      assignedTo: normalizeCrmText(
+        json['assignedToName'] as String? ??
+            _assignedToName(json['assignedTo']),
+      ),
+      list: normalizeCrmText(
+        json['listIn'] as String? ??
+            json['enquiryGroup'] as String? ??
+            'General',
+      ),
       dueDate: _dateLabel(
         json['dueDate'] as String? ??
             (schedule.isEmpty
                 ? null
                 : schedule.first['scheduledOn'] as String?),
       ),
-      createdBy: json['createdBy'] is Map<String, dynamic>
-          ? (json['createdBy'] as Map<String, dynamic>)['name'] as String? ??
-                AppConfig.brandName
-          : json['createdBy'] as String? ?? AppConfig.brandName,
+      createdBy: normalizeCrmText(
+        json['createdBy'] is Map<String, dynamic>
+            ? (json['createdBy'] as Map<String, dynamic>)['name'] as String? ??
+                  AppConfig.brandName
+            : json['createdBy'] as String? ?? AppConfig.brandName,
+      ),
       createdAt:
           DateTime.tryParse(
             json['createdAt'] as String? ?? json['enquiredAt'] as String? ?? '',
           ) ??
           DateTime.now(),
-      lastAction: comments.isEmpty
-          ? (json['description'] as String? ?? 'No recent activity')
-          : comments.last['comment'] as String? ??
-                comments.last['body'] as String? ??
-                'No recent activity',
+      lastAction: normalizeCrmText(
+        comments.isEmpty
+            ? (json['description'] as String? ?? 'No recent activity')
+            : comments.last['comment'] as String? ??
+                  comments.last['body'] as String? ??
+                  'No recent activity',
+      ),
       status:
           json['statusName'] as String? ?? json['status'] as String? ?? 'open',
       priority:
@@ -1375,7 +1538,7 @@ class CrmDuty {
     assignmentId: json['id'] is int
         ? json['id'] as int
         : int.tryParse(json['sopItem'] as String? ?? '') ?? 0,
-    department: json['department'] as String? ?? '',
+    department: normalizeCrmText(json['department'] as String? ?? ''),
     frequency: json['frequency'] as String? ?? 'Daily',
     index: json['index'] as int? ?? 0,
     reports: (json['reports'] as List? ?? [])
@@ -1383,10 +1546,12 @@ class CrmDuty {
         .map(CrmDutyReport.fromJson)
         .toList(),
     sopItem: (json['sopItemId'] ?? json['sopItem'] ?? '').toString(),
-    sopName: json['itemTitle'] is String
-        ? '${json['sopTitle'] ?? 'SOP'} · ${json['itemTitle']}'
-        : json['sopName'] as String? ?? '',
-    steps: _plainTextComment(
+    sopName: normalizeCrmText(
+      json['itemTitle'] is String
+          ? '${json['sopTitle'] ?? 'SOP'} · ${json['itemTitle']}'
+          : json['sopName'] as String? ?? '',
+    ),
+    steps: normalizeCrmText(
       json['instructions'] as String? ?? json['steps'] as String? ?? '',
     ),
   );
@@ -1416,11 +1581,11 @@ class CrmDutyReport {
   };
 
   factory CrmDutyReport.fromJson(Map<String, dynamic> json) => CrmDutyReport(
-    actions: _plainTextComment(json['actions'] as String? ?? ''),
+    actions: normalizeCrmText(json['actions'] as String? ?? ''),
     createdAt:
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     date: json['performedDate'] as String? ?? json['date'] as String? ?? '',
-    name: (json['name'] ?? json['id'] ?? '').toString(),
+    name: normalizeCrmText((json['name'] ?? json['id'] ?? '').toString()),
     assignmentId: json['assignmentId'] is int
         ? json['assignmentId'] as int
         : int.tryParse('${json['assignmentId']}') ?? -1,
@@ -1502,11 +1667,47 @@ class CrmActivity {
   factory CrmActivity.fromJson(Map<String, dynamic> json) => CrmActivity(
     id: json['uuid']?.toString() ?? json['id']?.toString() ?? '',
     action: json['action'] as String? ?? 'updated',
-    details: _plainTextComment(json['details'] as String? ?? ''),
+    details: normalizeCrmText(json['details'] as String? ?? ''),
     createdAt:
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     createdBy: json['createdBy'] as String? ?? '',
   );
+}
+
+class CrmActivityRecord {
+  const CrmActivityRecord({
+    required this.id,
+    required this.enquiryId,
+    required this.enquiryNumber,
+    required this.contact,
+    required this.action,
+    required this.details,
+    required this.actor,
+    required this.createdAt,
+  });
+
+  final int id;
+  final int enquiryId;
+  final int enquiryNumber;
+  final String contact;
+  final String action;
+  final String details;
+  final String actor;
+  final DateTime createdAt;
+
+  factory CrmActivityRecord.fromJson(Map<String, dynamic> json) =>
+      CrmActivityRecord(
+        id: (json['id'] as num?)?.toInt() ?? 0,
+        enquiryId: (json['enquiryId'] as num?)?.toInt() ?? 0,
+        enquiryNumber: (json['enquiryNo'] as num?)?.toInt() ?? 0,
+        contact: normalizeCrmText(json['contact'] as String? ?? '—'),
+        action: normalizeCrmText(json['action'] as String? ?? 'updated'),
+        details: normalizeCrmText(json['details'] as String? ?? ''),
+        actor: json['actor'] as String? ?? '',
+        createdAt:
+            DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+            DateTime.now(),
+      );
 }
 
 class CrmComment {
@@ -1524,7 +1725,7 @@ class CrmComment {
 
   factory CrmComment.fromJson(Map<String, dynamic> json) => CrmComment(
     id: json['id']?.toString() ?? '',
-    comment: _plainTextComment(
+    comment: normalizeCrmText(
       json['comment'] as String? ?? json['body'] as String? ?? '',
     ),
     createdAt:
@@ -1536,8 +1737,8 @@ class CrmComment {
   );
 }
 
-String _plainTextComment(String value) {
-  var text = value
+String normalizeCrmText(String value) {
+  var text = _decodeHtmlEntities(value)
       .replaceAll(
         RegExp(
           r'<(?:script|style)\b[^>]*>.*?</(?:script|style)>',
@@ -1551,42 +1752,57 @@ String _plainTextComment(String value) {
       .replaceAll(RegExp(r'<li\b[^>]*>', caseSensitive: false), '• ')
       .replaceAll(RegExp(r'<[^>]+>'), '');
 
-  text = text.replaceAllMapped(RegExp(r'&#(?:x([0-9a-fA-F]+)|(\d+));'), (
-    match,
-  ) {
-    final hexadecimal = match.group(1);
-    final codePoint = int.tryParse(
-      hexadecimal ?? match.group(2)!,
-      radix: hexadecimal == null ? 10 : 16,
-    );
-    if (codePoint == null ||
-        codePoint < 0 ||
-        codePoint > 0x10FFFF ||
-        (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
-      return '';
-    }
-    return String.fromCharCode(codePoint);
-  });
-
-  const entities = {
-    '&nbsp;': ' ',
-    '&quot;': '"',
-    '&#39;': "'",
-    '&apos;': "'",
-    '&lt;': '<',
-    '&gt;': '>',
-    '&amp;': '&',
-  };
-  for (final entry in entities.entries) {
-    text = text.replaceAll(entry.key, entry.value);
-  }
-
   return text
       .split('\n')
       .map((line) => line.replaceAll(RegExp(r'[ \t]+'), ' ').trim())
       .where((line) => line.isNotEmpty)
       .join('\n')
       .trim();
+}
+
+String _decodeHtmlEntities(String value) {
+  const entities = {
+    'amp': '&',
+    'apos': "'",
+    'nbsp': ' ',
+    'quot': '"',
+    'lt': '<',
+    'gt': '>',
+    'ndash': '–',
+    'mdash': '—',
+    'lsquo': '‘',
+    'rsquo': '’',
+    'ldquo': '“',
+    'rdquo': '”',
+    'copy': '©',
+    'reg': '®',
+    'trade': '™',
+  };
+  var text = value;
+  // Frappe may store rich text escaped once or twice. Decode before stripping
+  // tags so encoded Quill wrappers cannot leak into mobile labels or history.
+  for (var pass = 0; pass < 2; pass++) {
+    text = text.replaceAllMapped(
+      RegExp(r'&(#(?:x[0-9a-fA-F]+|\d+)|[a-zA-Z][a-zA-Z0-9]+);'),
+      (match) {
+        final entity = match.group(1)!;
+        if (!entity.startsWith('#')) return entities[entity] ?? match[0]!;
+        final hexadecimal =
+            entity.length > 1 &&
+            entity.substring(1).toLowerCase().startsWith('x');
+        final digits = entity.substring(hexadecimal ? 2 : 1);
+        final codePoint = int.tryParse(digits, radix: hexadecimal ? 16 : 10);
+        if (codePoint == null ||
+            codePoint <= 0 ||
+            codePoint > 0x10FFFF ||
+            (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
+          return '';
+        }
+        return String.fromCharCode(codePoint);
+      },
+    );
+  }
+  return text;
 }
 
 class MessagingConversation {

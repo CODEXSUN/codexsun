@@ -23,7 +23,8 @@ const appId = z.enum([
   "docs",
   "himsx",
   "codexsun",
-  "sites"
+  "sites",
+  "sportsclub"
 ]);
 const stack = z.enum([
   "platform",
@@ -48,7 +49,8 @@ const stack = z.enum([
   "docs",
   "himsx",
   "codexsun",
-  "sites"
+  "sites",
+  "sportsclub"
 ]);
 
 export const platformAppSaveSchema = z

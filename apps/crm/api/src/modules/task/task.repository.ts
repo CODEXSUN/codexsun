@@ -62,18 +62,11 @@ export class TaskRepository {
     pageSize: number,
     filter: string,
     columnFilters: TaskColumnFilters,
-    contactId?: number
+    contactId?: number,
+    scope: "visible" | "mine" = "visible"
   ) {
-    let q = this.query();
+    let q = this.listQuery(canViewAll, email, userId, scope);
     if (contactId !== undefined) q = q.where("t.contact_id", "=", contactId);
-    if (!canViewAll) {
-      q = q.where((eb) =>
-        eb.or([
-          ...(userId === null ? [] : [eb("t.assigned_user_id", "=", userId)]),
-          eb("t.created_by", "=", email)
-        ])
-      );
-    }
     if (search)
       q = q.where((eb) =>
         eb.or([
@@ -148,6 +141,24 @@ export class TaskRepository {
       statusCounts: statusCounts.map((row) => ({ code: row.code, count: Number(row.count) })),
       total: Number(count.total)
     };
+  }
+
+  private listQuery(
+    canViewAll: boolean,
+    email: string,
+    userId: number | null,
+    scope: "visible" | "mine"
+  ) {
+    const query = this.query();
+    if (scope === "mine" || !canViewAll) {
+      return query.where((eb) =>
+        eb.or([
+          ...(userId === null ? [] : [eb("t.assigned_user_id", "=", userId)]),
+          eb("t.created_by", "=", email)
+        ])
+      );
+    }
+    return query;
   }
   async get(id: number, canViewAll: boolean, email: string, userId: number | null) {
     let q = this.query().where("t.id", "=", id);
@@ -244,9 +255,7 @@ export class TaskRepository {
           ...(patch.listInId !== undefined ? { list_in_id: patch.listInId } : {}),
           ...(patch.priorityId !== undefined ? { priority_id: patch.priorityId } : {}),
           ...(patch.statusId !== undefined ? { status_id: patch.statusId } : {}),
-          ...(patch.assignedUserId !== undefined
-            ? { assigned_user_id: patch.assignedUserId }
-            : {}),
+          ...(patch.assignedUserId !== undefined ? { assigned_user_id: patch.assignedUserId } : {}),
           ...(patch.dueDate !== undefined ? { due_date: patch.dueDate } : {})
         })
         .where("id", "=", id)
@@ -559,12 +568,29 @@ export class TaskRepository {
         .forUpdate()
         .executeTakeFirst();
       if (!request) return false;
-      await trx
+      const task = await trx
         .selectFrom("crm_tasks")
         .select("id")
         .where("id", "=", request.task_id)
         .forUpdate()
         .executeTakeFirst();
+      if (!task) throw AppError.notFound("Task not found.");
+      if (decision === "approved") {
+        const runningJob = await trx
+          .selectFrom("crm_task_jobs")
+          .select("id")
+          .where("task_id", "=", request.task_id)
+          .where("stopped_at", "is", null)
+          .executeTakeFirst();
+        if (runningJob) throw AppError.conflict("Stop all running jobs before approving closure.");
+        const checkpoint = await sql<{ id: number }>`SELECT w.id FROM crm_work_reports w
+          WHERE w.task_id=${request.task_id} AND w.action='check-in'
+          AND NOT EXISTS (SELECT 1 FROM crm_work_reports later WHERE later.task_id=w.task_id
+            AND later.created_by=w.created_by AND later.action IN ('check-in','check-out') AND later.id>w.id)
+          LIMIT 1`.execute(trx);
+        if (checkpoint.rows.length)
+          throw AppError.conflict("Check out all checked-in users before approving closure.");
+      }
       const closed =
         decision === "approved"
           ? await trx
@@ -623,7 +649,7 @@ export class TaskRepository {
       status_name: string;
       assigned_user_id: number | null;
       assigned_to: string | null;
-      due_date: string | null;
+      due_date: string | Date | null;
       created_by: string;
       creator_name: string | null;
       created_at: string;
@@ -649,7 +675,12 @@ export class TaskRepository {
       statusName: row.status_name,
       assignedUserId: row.assigned_user_id === null ? null : Number(row.assigned_user_id),
       assignedTo: row.assigned_to,
-      dueDate: row.due_date === null ? null : String(row.due_date).slice(0, 10),
+      dueDate:
+        row.due_date === null
+          ? null
+          : row.due_date instanceof Date
+            ? row.due_date.toISOString().slice(0, 10)
+            : String(row.due_date).slice(0, 10),
       createdBy: row.created_by,
       creatorName: row.creator_name ?? row.created_by,
       createdAt: new Date(row.created_at).toISOString(),

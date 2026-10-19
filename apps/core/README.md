@@ -22,6 +22,8 @@ Distinct external source identities that collide locally are rejected rather tha
 
 Shared tenant masters, contact and product identity, organization records, and geographic relationships.
 
+The tenant `User` role receives `core.application.records.view` for Application Overview and CRM screens that read Core-owned setup or contact data. This read grant does not add Core create, update, delete, or lifecycle access.
+
 A concrete leaf owns its schema, repository, validation, routes, seeds, and UI. Other apps use public lookup contracts rather than private Core implementations.
 
 The public `getOrganisationOptionsForDatabase` contract supplies active company and financial-year options plus the tenant Default Company. Ecommerce uses this read contract for its own storefront organisation settings. It does not change Core defaults.

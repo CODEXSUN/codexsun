@@ -26,9 +26,15 @@ class _DutyPageState extends State<DutyPage> {
   Future<List<CrmDuty>> _load() =>
       widget.api.duties(widget.session.accessToken);
 
-  void _refresh() => setState(() {
-    _duties = _load();
-  });
+  Future<void> _refresh() async {
+    final duties = _load();
+    setState(() => _duties = duties);
+    try {
+      await duties;
+    } catch (_) {
+      // FutureBuilder renders the retry state for the failed request.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +65,7 @@ class _DutyPageState extends State<DutyPage> {
         return RefreshIndicator(
           onRefresh: () async => _refresh(),
           child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
             itemCount: duties.length,
             separatorBuilder: (_, _) => const SizedBox(height: 12),

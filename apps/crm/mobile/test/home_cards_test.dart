@@ -32,7 +32,19 @@ class HomeApi extends CrmMobileApi {
   Future<List<Map<String, dynamic>>> tasks(
     String token, {
     String filter = 'active',
+    int page = 1,
+    int pageSize = 100,
+    String scope = 'mine',
   }) async => [];
+  @override
+  Future<CrmPage<Map<String, dynamic>>> tasksPage(
+    String token, {
+    String filter = 'active',
+    int page = 1,
+    int pageSize = 100,
+    String scope = 'mine',
+  }) async =>
+      CrmPage(items: const [], page: page, pageSize: pageSize, total: 0);
   @override
   Future<List<MessagingConversation>> conversations({
     required String accessToken,
@@ -93,6 +105,7 @@ void main() {
     final api = HomeApi();
     final destinations = <int>[];
     var actions = 0;
+    var reportsOpened = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -104,6 +117,9 @@ void main() {
             onOpenActions: () async {
               actions++;
             },
+            onOpenReports: () async {
+              reportsOpened++;
+            },
           ),
         ),
       ),
@@ -111,10 +127,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Enquiries'));
     await tester.tap(find.text('Duty'));
-    await tester.tap(find.text('Chat'));
     await tester.tap(find.text('Activities'));
-    expect(destinations, [1, 2, 3]);
+    expect(destinations, [1, 2]);
     expect(actions, 1);
+    expect(find.text('Last 7 days'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
     api.taskCount = 7;
     api.activityCount = 9;
@@ -130,6 +146,10 @@ void main() {
     await tester.tap(find.text('Call logs'));
     await tester.pumpAndSettle();
     expect(find.text('Call Logs'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reports'));
+    expect(reportsOpened, 1);
     await tester.pumpWidget(const SizedBox());
   });
   test('assignment and message unread snapshots clear after reading', () async {

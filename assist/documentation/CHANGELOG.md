@@ -22,6 +22,23 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 ## v-1.1.25
 
+### [v 1.1.25] 2026-10-20 12:00 am - CRM mobile and platform module release
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Added an additive `amount` column migration for CRM work reports so charge and collection values persist as structured amounts.
+- Added tenant-scoped Sportsclub migrations and repeatable seed registration, plus Platform storage for Data Migration source connections and run history.
+- Granted the tenant `user` role read access to Core application records for the Application Overview and CRM workspaces.
+
+#### App Codebase Changes
+
+- Refined CRM mobile navigation, role-scoped workspaces, activity date limits, enquiry/task forms, comments, job timers, check-in/out, charge flows, and call-log layouts; removed rich-text markup from mobile cards and activity details.
+- Improved responsive CRM enquiry/task lists and show pages, work-report charge fields, activity visibility, task date handling, and API read paths.
+- Registered the Sportsclub app in Platform and added the Super Admin Data Migration DevKit integration.
+- Updated shared tab and table styling and added developer references for Sportsclub and Data Migration modules.
+- Updated the CODEXSUN mobile build version to 1.1.25 (build 125).
+
 ### [v 1.1.25] 2026-10-19 11:41 pm - Release Tenkasi mobile layout
 
 #### Database Changes
@@ -115,7 +132,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 #### App Codebase Changes
 
 - Release the Frappe export policy from 1.1.20: only Enquiries may be exported, while verification remains available for every export kind.
-- No schema, seed, tenant-database, or import changes are included in this release.
+- Grant the tenant User role Core read access required by Application Overview and CRM Core-backed reads; keep all Core write and lifecycle permissions restricted.
+- No schema migration is required. The Core tenant permission seeder reconciles the new read grant on Core database bootstrap.
 
 ## v-1.1.20
 

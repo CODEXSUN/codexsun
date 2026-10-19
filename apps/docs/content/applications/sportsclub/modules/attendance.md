@@ -1,0 +1,5 @@
+# Sportsclub Attendance
+
+Records attendance for a member at a scheduled session.
+
+The Sportsclub application owns this module's tenant-scoped records, API behavior, validation, and desk workspace. Platform supplies the authenticated tenant context and permission checks.

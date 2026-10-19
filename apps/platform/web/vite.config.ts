@@ -52,6 +52,8 @@ export default defineConfig(({ command, mode }) => {
       exclude: [
         "@codexsun/ui",
         "@codexsun/tconnect-web",
+        "@codexsun/data-migration-web",
+        "@codexsun/sportsclub-web",
         "@codexsun/qcafe-web",
         "@codexsun/qcafe-web/web",
         "@codexsun/codexsun-web",
@@ -184,6 +186,11 @@ export default defineConfig(({ command, mode }) => {
           "../../../packages/ui/src/workspace/row-actions.tsx"
         ),
         "@codexsun/tconnect-web": resolve(configDir, "../../tconnect/web/src/index.ts"),
+        "@codexsun/data-migration-web": resolve(
+          configDir,
+          "../../../devkits/data-migration/web/src/index.ts"
+        ),
+        "@codexsun/sportsclub-web": resolve(configDir, "../../sportsclub/web/src/index.ts"),
         "@codexsun/codexsun-web": resolve(configDir, "../../codexsun/web/src/index.ts"),
         "@codexsun/docs-web/modules/overview/gateway": resolve(
           configDir,
@@ -359,6 +366,7 @@ function platformDevelopmentServer(runtimeEnv: Record<string, string | undefined
         rewrite: (path: string) =>
           `/project-manager${path.replace(/^\/api\/project-manager/u, "") || "/"}`
       },
+      "/api/data-migration": proxy,
       "/api/zuno": {
         ...proxy,
         rewrite: (path: string) => `/zuno${path.replace(/^\/api\/zuno/u, "") || "/"}`

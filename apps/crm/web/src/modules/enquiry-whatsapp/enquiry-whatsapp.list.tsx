@@ -3,7 +3,7 @@ import { WorkspaceTableEmptyState } from "@codexsun/ui/workspace/table";
 import type { WhatsAppMessage } from "./enquiry-whatsapp.types";
 export function EnquiryWhatsAppList({ items }: { items: WhatsAppMessage[] }) {
   return (
-    <div className="overflow-x-auto rounded-md border border-border/70">
+    <div className="workspace-scroll overflow-x-auto rounded-md border border-border/70">
       <table className="w-full text-left text-sm">
         <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
           <tr>

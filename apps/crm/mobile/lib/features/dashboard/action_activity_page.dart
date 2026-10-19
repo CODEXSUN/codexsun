@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/crm_mobile_api.dart';
 import 'action_quick_action_sheet.dart';
-import 'job_duration.dart';
+import 'dashboard_list_page.dart';
+import 'job_detail_page.dart';
 
 class ActionActivityPage extends StatefulWidget {
   const ActionActivityPage({
@@ -19,75 +20,204 @@ class ActionActivityPage extends StatefulWidget {
 }
 
 class _ActionActivityPageState extends State<ActionActivityPage> {
-  var _period = _ActionPeriod.threeDays;
-  late Future<List<CrmJob>> _jobs = _loadJobs();
+  var _page = 1;
+  var _days = 7;
+  var _openingActions = false;
+  int? _openingEnquiryId;
+  late Future<CrmPage<CrmActivityRecord>> _activities = _loadActivities();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Actions')),
-      floatingActionButton: _EmbossedActionButton(onPressed: _openQuickActions),
-      body: FutureBuilder<List<CrmJob>>(
-        future: _jobs,
+      appBar: AppBar(
+        title: const Text('Activities'),
+        actions: [
+          PopupMenuButton<int>(
+            key: const ValueKey('activity-window-menu'),
+            tooltip: 'Activity period',
+            initialValue: _days,
+            onSelected: _setWindow,
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 7, child: Text('Last 7 days')),
+              PopupMenuItem(value: 30, child: Text('Last 30 days')),
+            ],
+            icon: const Icon(Icons.calendar_month_outlined),
+          ),
+          IconButton(
+            tooltip: 'Refresh activities',
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
+      floatingActionButton: _EmbossedActionButton(
+        onPressed: _openingActions ? null : _openQuickActions,
+      ),
+      body: FutureBuilder<CrmPage<CrmActivityRecord>>(
+        future: _activities,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text('Could not load live actions.'));
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Could not load live activities.'),
+                  const SizedBox(height: 8),
+                  FilledButton.tonalIcon(
+                    onPressed: _reload,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
           }
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          final actions =
-              snapshot.data!
-                  .expand(_LiveAction.fromJob)
-                  .where((action) => _period.includes(action.createdAt))
-                  .toList()
-                ..sort(
-                  (left, right) => right.createdAt.compareTo(left.createdAt),
+          final page = snapshot.data!;
+          final actions = page.items.map(_LiveAction.fromRecord).toList();
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+              itemCount: actions.isEmpty ? 3 : actions.length + 3,
+              separatorBuilder: (context, index) =>
+                  SizedBox(height: index == 0 ? 14 : 8),
+              itemBuilder: (context, index) {
+                if (index == 0) return _ActionHeader(days: _days);
+                if (index == 1)
+                  return _ActionSummary(count: page.total, days: _days);
+                if (actions.isEmpty && index == 2) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: Text('No activities in this period.')),
+                  );
+                }
+                if (index == actions.length + 2) {
+                  return _ActivityPager(
+                    page: page,
+                    onPrevious: () => _setPage(_page - 1),
+                    onNext: () => _setPage(_page + 1),
+                  );
+                }
+                final action = actions[index - 2];
+                return _ActionCard(
+                  action: action,
+                  busy: _openingEnquiryId == action.enquiryId,
+                  onTap: () => _openEnquiry(action.enquiryId),
                 );
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-            itemCount: actions.length + 2,
-            separatorBuilder: (context, index) =>
-                SizedBox(height: index == 0 ? 14 : 8),
-            itemBuilder: (context, index) {
-              if (index == 0) return _ActionHeader(onChanged: _setPeriod);
-              if (index == 1)
-                return _ActionSummary(count: actions.length, period: _period);
-              return _ActionCard(action: actions[index - 2]);
-            },
+              },
+            ),
           );
         },
       ),
     );
   }
 
-  void _setPeriod(_ActionPeriod period) => setState(() {
-    _period = period;
+  void _setPage(int page) => setState(() {
+    _page = page;
+    _activities = _loadActivities();
   });
 
-  Future<List<CrmJob>> _loadJobs() =>
-      widget.api.activityJobs(widget.session.accessToken);
+  void _setWindow(int days) => setState(() {
+    _days = days.clamp(7, 30).toInt();
+    _page = 1;
+    _activities = _loadActivities();
+  });
+
+  Future<CrmPage<CrmActivityRecord>> _loadActivities() =>
+      widget.api.activitiesPage(
+        accessToken: widget.session.accessToken,
+        page: _page,
+        createdAfter: DateTime.now().subtract(Duration(days: _days)).toUtc(),
+      );
+
+  Future<void> _refresh() async {
+    final activities = _loadActivities();
+    setState(() => _activities = activities);
+    try {
+      await activities;
+    } catch (_) {
+      // FutureBuilder renders the retry state for the failed request.
+    }
+  }
+
+  void _reload() => setState(() => _activities = _loadActivities());
+
+  Future<void> _openEnquiry(int enquiryId) async {
+    if (enquiryId <= 0 || _openingEnquiryId != null) return;
+    setState(() => _openingEnquiryId = enquiryId);
+    try {
+      final job = await widget.api.job(
+        widget.session.accessToken,
+        '$enquiryId',
+      );
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => JobDetailPage(
+            api: widget.api,
+            session: widget.session,
+            enquiry: DashboardListItem.fromCrmJob(job),
+            initialJob: job,
+            onJobChanged: _reload,
+          ),
+        ),
+      );
+      if (mounted) _reload();
+    } on CrmMobileApiException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Could not open activity actions.')),
+          );
+      }
+    } finally {
+      if (mounted) setState(() => _openingEnquiryId = null);
+    }
+  }
 
   Future<void> _openQuickActions() async {
-    final jobs = await _jobs;
-    if (!mounted) return;
-    final changed = await showActionQuickActionSheet(
-      context: context,
-      api: widget.api,
-      session: widget.session,
-      jobs: jobs,
-    );
-    if (changed && mounted)
-      setState(() {
-        _jobs = _loadJobs();
-      });
+    setState(() => _openingActions = true);
+    try {
+      final jobs = await widget.api.assignedJobDetails(
+        widget.session.accessToken,
+      );
+      if (!mounted) return;
+      final changed = await showActionQuickActionSheet(
+        context: context,
+        api: widget.api,
+        session: widget.session,
+        jobs: jobs,
+      );
+      if (changed && mounted) {
+        setState(() => _activities = _loadActivities());
+      }
+    } on CrmMobileApiException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _openingActions = false);
+    }
   }
 }
 
 class _EmbossedActionButton extends StatelessWidget {
   const _EmbossedActionButton({required this.onPressed});
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -120,37 +250,21 @@ class _EmbossedActionButton extends StatelessWidget {
 }
 
 class _ActionHeader extends StatelessWidget {
-  const _ActionHeader({required this.onChanged});
+  const _ActionHeader({required this.days});
 
-  final ValueChanged<_ActionPeriod> onChanged;
+  final int days;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Actions',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            PopupMenuButton<_ActionPeriod>(
-              tooltip: 'Filter actions',
-              onSelected: onChanged,
-              itemBuilder: (context) => _ActionPeriod.values
-                  .map(
-                    (item) => PopupMenuItem(
-                      value: item,
-                      child: _PeriodMenuItem(period: item),
-                    ),
-                  )
-                  .toList(),
-              child: const _FilterButton(),
-            ),
-          ],
+        Text('Activities', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 3),
+        Text(
+          'Activity from the last $days days.',
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: const Color(0xFF665E6C)),
         ),
         const SizedBox(height: 3),
         Text(
@@ -166,16 +280,14 @@ class _ActionHeader extends StatelessWidget {
 }
 
 class _ActionSummary extends StatelessWidget {
-  const _ActionSummary({required this.count, required this.period});
+  const _ActionSummary({required this.count, required this.days});
 
   final int count;
-  final _ActionPeriod period;
+  final int days;
 
   @override
   Widget build(BuildContext context) {
-    final summary = period == _ActionPeriod.threeDays
-        ? '$count actions performed today.'
-        : '$count actions performed ${period.summary}.';
+    final summary = '$count actions performed in the last $days days.';
     return Text(
       summary,
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -187,9 +299,15 @@ class _ActionSummary extends StatelessWidget {
 }
 
 class _ActionCard extends StatelessWidget {
-  const _ActionCard({required this.action});
+  const _ActionCard({
+    required this.action,
+    required this.onTap,
+    this.busy = false,
+  });
 
   final _LiveAction action;
+  final VoidCallback onTap;
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +318,7 @@ class _ActionCard extends StatelessWidget {
       shadowColor: const Color(0x160F0B14),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () {},
+        onTap: busy ? null : onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
           child: Row(
@@ -245,7 +363,13 @@ class _ActionCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: 3),
-              const Icon(Icons.chevron_right, color: Color(0xFF81788A)),
+              if (busy)
+                const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                const Icon(Icons.chevron_right, color: Color(0xFF81788A)),
             ],
           ),
         ),
@@ -254,98 +378,59 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
-class _FilterButton extends StatelessWidget {
-  const _FilterButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5EFF8),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          children: [
-            Icon(Icons.filter_list, size: 18, color: Color(0xFF662C90)),
-            SizedBox(width: 5),
-            Text(
-              'Filter',
-              style: TextStyle(
-                color: Color(0xFF662C90),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PeriodMenuItem extends StatelessWidget {
-  const _PeriodMenuItem({required this.period});
-
-  final _ActionPeriod period;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(period.label),
-        const Spacer(),
-        Text(period.label, style: const TextStyle(fontWeight: FontWeight.w800)),
-      ],
-    );
-  }
-}
-
-enum _ActionPeriod {
-  threeDays('3 Days', 3, 'in the last 3 days'),
-  sevenDays('7 Days', 7, 'in the last 7 days'),
-  month('Month', 30, 'this month');
-
-  const _ActionPeriod(this.label, this.days, this.summary);
-
-  final String label;
-  final int days;
-  final String summary;
-
-  bool includes(DateTime value) =>
-      DateTime.now().difference(value.toLocal()).inDays < days;
-}
-
 class _LiveAction {
   const _LiveAction({
+    required this.enquiryId,
     required this.title,
     required this.detail,
     required this.time,
     required this.createdAt,
   });
+  final int enquiryId;
   final String title;
   final String detail;
   final String time;
   final DateTime createdAt;
 
-  static Iterable<_LiveAction> fromJob(CrmJob job) sync* {
-    for (final activity in job.activities) {
-      yield _LiveAction(
-        title: '${activity.action} · #${job.number}',
-        detail: '${job.title} · ${activity.details}',
-        time: _relativeTime(activity.createdAt),
-        createdAt: activity.createdAt,
-      );
-    }
-    for (final execution in job.jobs) {
-      yield _LiveAction(
-        title: '${execution.status} job · #${job.number}',
-        detail:
-            '${job.title} · ${execution.employee} · ${formatJobDuration(execution)}',
-        time: _relativeTime(execution.createdAt),
-        createdAt: execution.createdAt,
-      );
-    }
+  factory _LiveAction.fromRecord(CrmActivityRecord record) => _LiveAction(
+    enquiryId: record.enquiryId,
+    title: '${record.action} · #${record.enquiryNumber}',
+    detail: '${record.contact} · ${record.details}',
+    time: _relativeTime(record.createdAt),
+    createdAt: record.createdAt,
+  );
+}
+
+class _ActivityPager extends StatelessWidget {
+  const _ActivityPager({
+    required this.page,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final CrmPage<CrmActivityRecord> page;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    if (page.total <= page.pageSize) return const SizedBox.shrink();
+    return Row(
+      children: [
+        Text('${page.total} actions · Page ${page.page} of ${page.pageCount}'),
+        const Spacer(),
+        IconButton(
+          tooltip: 'Previous page',
+          onPressed: page.hasPrevious ? onPrevious : null,
+          icon: const Icon(Icons.chevron_left),
+        ),
+        IconButton(
+          tooltip: 'Next page',
+          onPressed: page.hasNext ? onNext : null,
+          icon: const Icon(Icons.chevron_right),
+        ),
+      ],
+    );
   }
 }
 

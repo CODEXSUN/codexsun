@@ -16,6 +16,8 @@ export type ActivityFilters = {
   status: string;
   action: string;
   actor: string;
+  scope?: "visible" | "mine";
+  createdAfter?: string | undefined;
   actorEmail: string;
   actorUserId: number | null;
   canViewAll: boolean;

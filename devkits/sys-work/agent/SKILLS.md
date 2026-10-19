@@ -1,0 +1,3 @@
+# Sys Work working rules
+
+Read this DevKit README, TASK, and PLAN with the repository Agent Guide and governance rules. Keep cleanup rules on the backend. Never accept a browser path, wildcard, or command to execute. Bind only to loopback. Show scan details and require explicit confirmation. Skip links and files that changed after a scan. Limit paths outside the user profile to the exact Windows Temp directory. Mark Codex history, OpenCode data, installed WebStorm agents, Android SDK and emulator user data, Chrome profiles, and Windows package data as inventory-only, and enforce that restriction on the backend. Use root npm dependencies and root `dist`. A passing unit test or build does not prove native cleanup or browser behavior.

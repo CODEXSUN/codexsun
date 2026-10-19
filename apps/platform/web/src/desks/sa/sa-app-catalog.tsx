@@ -1,4 +1,4 @@
-import { AppWindowIcon } from "lucide-react";
+import { AppWindowIcon, DatabaseZapIcon } from "lucide-react";
 import { GlobalLoader } from "@codexsun/ui/components/global-loader";
 import { deskAddonAppIds, platformAppRegistry } from "../../app/app-registry";
 import { usePlatformAppsQuery } from "../../modules/app-registry/app-registry.hooks";
@@ -21,6 +21,22 @@ export function SaAppCatalog({ onOpenApp }: { onOpenApp: (appId: string) => void
     <>
       <CatalogGrid title="Apps" apps={apps.filter((app) => !isAddon(app))} onSelect={onOpenApp} />
       <CatalogGrid title="Add-ons" apps={apps.filter(isAddon)} onSelect={onOpenApp} />
+      <section className="rounded-lg border bg-card p-4 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold">Super Admin tools</h2>
+        <button
+          type="button"
+          onClick={() => onOpenApp("data-migration")}
+          className="flex min-h-40 w-full max-w-md cursor-pointer flex-col items-start rounded-lg border border-border bg-muted/20 p-4 text-left transition-colors hover:bg-muted/35"
+        >
+          <span className="flex size-10 items-center justify-center rounded-md bg-primary text-white">
+            <DatabaseZapIcon aria-hidden="true" className="size-5" />
+          </span>
+          <span className="mt-4 text-base font-semibold">Data Migration</span>
+          <span className="mt-1 text-sm leading-6 text-muted-foreground">
+            Preview and copy external MariaDB tables into CODEXSUN with an audited run history.
+          </span>
+        </button>
+      </section>
     </>
   );
 }

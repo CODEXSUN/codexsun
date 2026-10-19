@@ -13,8 +13,9 @@ export const workReportInput = z
   .object({
     enquiryId: z.number().int().positive().nullable(),
     taskId: z.number().int().positive().nullable(),
-    action: z.enum(["check-in", "check-out", "report"]),
+    action: z.enum(["check-in", "check-out", "report", "charge", "collection"]),
     body: z.string().trim().max(10000).default(""),
+    amount: z.number().finite().positive().max(999999999999.99).nullable().default(null),
     requestId: z.string().min(8).max(80),
     latitude: z.number().finite().min(-90).max(90).nullable().default(null),
     longitude: z.number().finite().min(-180).max(180).nullable().default(null),
@@ -26,9 +27,14 @@ export const workReportInput = z
   .refine(
     (v) =>
       v.action === "report"
-        ? v.body.length > 0
-        : v.latitude !== null && v.longitude !== null && v.capturedAt !== null,
-    "A report needs actions; check-in and check-out require a captured GPS location."
+        ? v.body.length > 0 && v.amount === null
+        : v.action === "charge" || v.action === "collection"
+          ? v.amount !== null && v.latitude === null && v.longitude === null
+          : v.amount === null &&
+            v.latitude !== null &&
+            v.longitude !== null &&
+            v.capturedAt !== null,
+    "Reports need text, charges need a positive amount, and check-in/out need a captured GPS location."
   );
 const row = z.object({
   id: z.number(),
@@ -38,6 +44,7 @@ const row = z.object({
   action: z.string(),
   comment_id: z.number().nullable().optional(),
   body: z.string(),
+  amount: z.union([z.string(), z.number()]).nullable(),
   request_id: z.string(),
   latitude: z.union([z.string(), z.number()]).nullable(),
   longitude: z.union([z.string(), z.number()]).nullable(),
@@ -75,8 +82,8 @@ export function registerWorkReportRoutes(
           enquiryId: z.coerce.number().int().positive().nullable().default(null),
           taskId: z.coerce.number().int().positive().nullable().default(null),
           page: z.coerce.number().int().positive().default(1),
-          pageSize: z.coerce.number().int().min(1).max(200).default(25),
-          filter: z.enum(["all", "checkpoints"]).default("all")
+          pageSize: z.coerce.number().int().min(1).max(100).default(100),
+          filter: z.enum(["all", "checkpoints", "charges"]).default("all")
         })
         .refine(
           (v) => (v.enquiryId === null) !== (v.taskId === null),
@@ -86,7 +93,8 @@ export function registerWorkReportRoutes(
         items: z.array(row),
         total: z.number(),
         page: z.number(),
-        pageSize: z.number()
+        pageSize: z.number(),
+        amounts: z.object({ charges: z.number(), collections: z.number() })
       })
     },
     handler: async ({ request, query }) =>
@@ -94,7 +102,7 @@ export function registerWorkReportRoutes(
         query,
         query.page,
         query.pageSize,
-        query.filter === "checkpoints"
+        query.filter
       )
   });
   registerContractRoute(app, {

@@ -16,7 +16,7 @@ export function WorkReportList({
       <p className="mb-3 text-xs text-muted-foreground">
         {total ?? items.length} {(total ?? items.length) === 1 ? "record" : "records"}
       </p>
-      <div className="overflow-x-auto rounded-md border border-border/70">
+      <div className="workspace-scroll overflow-x-auto rounded-md border border-border/70">
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr>

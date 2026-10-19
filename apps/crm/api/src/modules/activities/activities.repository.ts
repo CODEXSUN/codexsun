@@ -71,7 +71,7 @@ export class ActivitiesRepository {
       .leftJoin("app_users as assignee", "assignee.id", "enquiry.assigned_user_id")
       .leftJoin("app_users as actor_user", "actor_user.email", "activity.created_by")
       .where("activity.status", "=", "active");
-    if (!filters.canViewAll)
+    if (filters.scope === "mine" || !filters.canViewAll)
       query = query.where((eb) =>
         eb.or([
           eb("enquiry.assigned_user_id", "=", filters.actorUserId ?? -1),
@@ -116,6 +116,8 @@ export class ActivitiesRepository {
       query = query.where("assignee.name", "like", like(filters.allocatedTo));
     if (filters.listIn) query = query.where("list.name", "like", like(filters.listIn));
     if (filters.status) query = query.where("status.code", "=", filters.status);
+    if (filters.createdAfter)
+      query = query.where("activity.created_at", ">=", filters.createdAfter);
     if (filters.action) query = query.where("activity.action", "like", like(filters.action));
     if (filters.actor)
       query = query.where((eb) =>

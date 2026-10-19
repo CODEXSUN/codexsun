@@ -5,11 +5,13 @@ import {
   migrateCoreTenantDatabase,
   seedCoreTenantDatabase,
   runWithCoreDatabase,
+  getCoreDatabase,
   closeCoreDatabase
 } from "../../apps/core/api/src/database/core-database.js";
 import { migrateTenantRuntimeModule } from "../../apps/platform/api/src/modules/tenant/tenant.migration.js";
 import { seedStatusMaster } from "../../apps/crm/api/src/modules/status/index.js";
 import { seedPriorityMaster } from "../../apps/crm/api/src/modules/priority/index.js";
+import { TaskRepository } from "../../apps/crm/api/src/modules/task/task.repository.js";
 import { test } from "node:test";
 import Fastify from "fastify";
 import { Kysely, MysqlDialect, sql } from "kysely";
@@ -17,6 +19,7 @@ import { createPool } from "mysql2";
 import { env } from "../../apps/platform/api/src/env.js";
 import { migrateCrmTenantDatabase } from "../../apps/crm/api/src/crm.migration.js";
 import {
+  callLogModule,
   closureModule,
   enquiryModule,
   type ClosureDatabase
@@ -156,12 +159,30 @@ test("closure requests await web approval before changing enquiry status", async
       priority: async () => ({ name: "Normal" })
     }
   }));
+  await callLogModule.register(app, async () => ({
+    database,
+    actorEmail: actor.email
+  }));
   await app.ready();
 
   const customer = await runWithCoreDatabase(databaseName, async () => {
     const { ContactService } =
       await import("../../apps/core/api/src/modules/master/contact/contact.service.js");
     return new ContactService().resolveOrCreateCustomer("Closure linked customer", "9876543210");
+  });
+  const supplier = await runWithCoreDatabase(databaseName, async () => {
+    const supplierType = await getCoreDatabase()
+      .selectFrom("core_contact_types")
+      .select(["id", "name"])
+      .where("name", "=", "Supplier")
+      .where("status", "=", "active")
+      .executeTakeFirstOrThrow();
+    const result = await sql`
+      INSERT INTO core_contacts (uuid,code,name,type_id,type_name,status)
+      VALUES (${randomUUID().replaceAll("-", "").slice(0, 8)},
+        ${`SUP-${randomUUID().slice(0, 8)}`},'CRM estimate vendor',${supplierType.id},${supplierType.name},'active')
+    `.execute(getCoreDatabase());
+    return Number(result.insertId);
   });
   async function makeEnquiry(title: string, statusId = newStatus.id) {
     const sourceReference = `closure-e2e-${Date.now()}-${Math.random()}`;
@@ -412,4 +433,172 @@ test("closure requests await web approval before changing enquiry status", async
     .where("enquiry_id", "=", wonEnquiryId)
     .execute();
   assert.equal(statusComments.length, 0, "Status changes are Actions, not user comments.");
+
+  const workEnquiryId = await makeEnquiry("Jobs and estimates e2e", openStatus.id);
+  const startedJob = await app.inject({
+    method: "POST",
+    url: `/crm/enquiries/${workEnquiryId}/jobs/start`
+  });
+  assert.equal(startedJob.statusCode, 200, startedJob.body);
+  assert.equal(startedJob.json().data.status, "running");
+  const runningJobs = await app.inject({
+    method: "GET",
+    url: `/crm/enquiries/${workEnquiryId}/jobs`
+  });
+  assert.equal(runningJobs.statusCode, 200, runningJobs.body);
+  assert.equal(runningJobs.json().data.length, 1);
+  const stoppedJob = await app.inject({
+    method: "POST",
+    url: `/crm/enquiries/${workEnquiryId}/jobs/${startedJob.json().data.id}/stop`
+  });
+  assert.equal(stoppedJob.statusCode, 200, stoppedJob.body);
+  assert.equal(stoppedJob.json().data.status, "completed");
+
+  const estimateInput = {
+    date: "2026-10-19",
+    itemName: "Replacement filter",
+    supplierContactId: String(supplier),
+    price: 2400.5
+  };
+  const savedEstimate = await app.inject({
+    method: "POST",
+    url: `/crm/enquiries/${workEnquiryId}/estimates`,
+    payload: estimateInput
+  });
+  assert.equal(savedEstimate.statusCode, 200, savedEstimate.body);
+  assert.equal(savedEstimate.json().data.supplierName, "CRM estimate vendor");
+  assert.equal(Number(savedEstimate.json().data.price), estimateInput.price);
+  const estimates = await app.inject({
+    method: "GET",
+    url: `/crm/enquiries/${workEnquiryId}/estimates`
+  });
+  assert.equal(estimates.statusCode, 200, estimates.body);
+  assert.equal(estimates.json().data.length, 1);
+  const updatedEstimate = await app.inject({
+    method: "PUT",
+    url: `/crm/enquiries/${workEnquiryId}/estimates/${savedEstimate.json().data.id}`,
+    payload: { ...estimateInput, itemName: "Replacement filter and seal", price: 2600 }
+  });
+  assert.equal(updatedEstimate.statusCode, 200, updatedEstimate.body);
+  assert.equal(updatedEstimate.json().data.itemName, "Replacement filter and seal");
+  const invalidEstimate = await app.inject({
+    method: "POST",
+    url: `/crm/enquiries/${workEnquiryId}/estimates`,
+    payload: { ...estimateInput, supplierContactId: "99999999" }
+  });
+  assert.equal(invalidEstimate.statusCode, 400, invalidEstimate.body);
+
+  const task = await database
+    .insertInto("crm_tasks")
+    .values({
+      uuid: randomUUID().replaceAll("-", "").slice(0, 8),
+      title: "Task closure guards e2e",
+      description: "Task closure guard verification",
+      list_in_id: null,
+      priority_id: priority.id,
+      status_id: openStatus.id,
+      assigned_user_id: actor.id,
+      due_date: null,
+      created_by: actor.email
+    })
+    .executeTakeFirstOrThrow();
+  const taskId = Number(task.insertId);
+  const closure = await database
+    .insertInto("crm_task_closure_requests")
+    .values({
+      uuid: randomUUID().replaceAll("-", "").slice(0, 8),
+      task_id: taskId,
+      requested_by: actor.email,
+      created_by: actor.email,
+      reason: "Task closure guard verification",
+      status: "pending",
+      reviewed_by: null,
+      review_note: null
+    })
+    .executeTakeFirstOrThrow();
+  const taskClosureId = Number(closure.insertId);
+  const taskRepository = new TaskRepository(database as never);
+  const activeJob = await database
+    .insertInto("crm_task_jobs")
+    .values({
+      uuid: randomUUID().replaceAll("-", "").slice(0, 8),
+      task_id: taskId,
+      started_by: actor.email,
+      created_by: actor.email,
+      stopped_at: null
+    })
+    .executeTakeFirstOrThrow();
+  await assert.rejects(
+    taskRepository.reviewClosure(taskClosureId, actor.email, "approved", ""),
+    /Stop all running jobs before approving closure/u
+  );
+  await database
+    .updateTable("crm_task_jobs")
+    .set({ stopped_at: sql`UTC_TIMESTAMP()` })
+    .where("id", "=", Number(activeJob.insertId))
+    .execute();
+  await database
+    .insertInto("crm_work_reports")
+    .values({
+      enquiry_id: null,
+      task_id: taskId,
+      action: "check-in",
+      body: "",
+      request_id: `task-closure-check-in-${taskId}`,
+      latitude: "1.2345678",
+      longitude: "2.3456789",
+      accuracy_meters: "5.00",
+      captured_at: sql`UTC_TIMESTAMP()`,
+      created_by: actor.email
+    })
+    .execute();
+  await assert.rejects(
+    taskRepository.reviewClosure(taskClosureId, actor.email, "approved", ""),
+    /Check out all checked-in users before approving closure/u
+  );
+  await database
+    .insertInto("crm_work_reports")
+    .values({
+      enquiry_id: null,
+      task_id: taskId,
+      action: "check-out",
+      body: "",
+      request_id: `task-closure-check-out-${taskId}`,
+      latitude: "1.2345678",
+      longitude: "2.3456789",
+      accuracy_meters: "5.00",
+      captured_at: sql`UTC_TIMESTAMP()`,
+      created_by: actor.email
+    })
+    .execute();
+  assert.equal(await taskRepository.reviewClosure(taskClosureId, actor.email, "approved", ""), true);
+  const closedTask = await database
+    .selectFrom("crm_tasks")
+    .innerJoin("crm_enquiry_statuses", "crm_enquiry_statuses.id", "crm_tasks.status_id")
+    .select("crm_enquiry_statuses.code as code")
+    .where("crm_tasks.id", "=", taskId)
+    .executeTakeFirstOrThrow();
+  assert.equal(closedTask.code, "closed");
+
+  const mobileCallLogInput = {
+    type: "Incoming",
+    from: "9990000019",
+    to: "9990000019",
+    status: "Completed",
+    duration: 17,
+    user: null,
+    sourceReference: `mobile-call-log-${randomUUID()}`,
+    occurredAt: "2026-10-19T16:45:00.000Z"
+  };
+  const mobileCallLogRequests = await Promise.all([
+    app.inject({ method: "POST", url: "/crm/mobile/call-logs", payload: mobileCallLogInput }),
+    app.inject({ method: "POST", url: "/crm/mobile/call-logs", payload: mobileCallLogInput })
+  ]);
+  for (const response of mobileCallLogRequests)
+    assert.equal(response.statusCode, 200, response.body);
+  const callLogName = mobileCallLogRequests[0]!.json().data.name;
+  assert.equal(mobileCallLogRequests[1]!.json().data.name, callLogName);
+  const mobileCallLogRows = await sql<{ total: number }>`SELECT COUNT(*) AS total
+    FROM crm_call_logs WHERE source_reference=${mobileCallLogInput.sourceReference}`.execute(database);
+  assert.equal(Number(mobileCallLogRows.rows[0]?.total), 1);
 });

@@ -89,7 +89,8 @@ export class CallLogRepository {
     return this.database.transaction().execute(async (transaction) => {
       const insert = await sql`INSERT INTO crm_call_logs
         (direction, from_number, to_number, call_status, duration_seconds, user_email, source_reference, started_at, created_by)
-        VALUES (${input.type}, ${input.from.trim()}, ${input.to.trim()}, ${input.status}, ${input.duration}, ${input.user}, ${input.sourceReference ?? null}, ${startedAt}, ${actorEmail})`.execute(
+        VALUES (${input.type}, ${input.from.trim()}, ${input.to.trim()}, ${input.status}, ${input.duration}, ${input.user}, ${input.sourceReference ?? null}, ${startedAt}, ${actorEmail})
+        ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)`.execute(
         transaction
       );
       const id = Number(insert.insertId);

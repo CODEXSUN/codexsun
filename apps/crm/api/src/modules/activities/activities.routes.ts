@@ -8,8 +8,9 @@ import type { ActivitiesDatabase } from "./activities.types.js";
 
 const textFilter = z.string().trim().max(191).default("");
 const querySchema = z.object({
+  scope: z.enum(["visible", "mine"]).default("visible"),
   page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(50),
+  pageSize: z.coerce.number().int().min(1).max(100).default(100),
   search: textFilter,
   contact: textFilter,
   enquiry: textFilter,
@@ -17,7 +18,8 @@ const querySchema = z.object({
   listIn: textFilter,
   status: textFilter,
   action: textFilter,
-  actor: textFilter
+  actor: textFilter,
+  createdAfter: z.string().datetime().optional()
 });
 const itemSchema = z.object({
   id: z.number().int().positive(),

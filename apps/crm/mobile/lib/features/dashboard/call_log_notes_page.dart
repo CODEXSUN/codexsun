@@ -28,6 +28,7 @@ class _CallLogNotesPageState extends State<CallLogNotesPage> {
   List<CrmCallLogComment> _notes = const [];
   var _isLoading = true;
   var _isSaving = false;
+  String? _loadError;
 
   @override
   void initState() {
@@ -57,6 +58,19 @@ class _CallLogNotesPageState extends State<CallLogNotesPage> {
                     children: [
                       _ContactSummary(entry: widget.entry),
                       const SizedBox(height: 22),
+                      if (_loadError != null) ...[
+                        MaterialBanner(
+                          content: Text(_loadError!),
+                          leading: const Icon(Icons.cloud_off_outlined),
+                          actions: [
+                            TextButton(
+                              onPressed: _isLoading ? null : _load,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       Text(
                         'Saved comments',
                         style: Theme.of(context).textTheme.titleMedium,
@@ -82,7 +96,10 @@ class _CallLogNotesPageState extends State<CallLogNotesPage> {
                     controller: _controller,
                     focusNode: _composerFocus,
                     isSaving: _isSaving,
-                    onCreateEnquiry: () => _openEnquiry(_notes.firstOrNull),
+                    onCreateEnquiry:
+                        isCallLogAdministrator(widget.session.profile.role)
+                        ? () => _openEnquiry(_notes.firstOrNull)
+                        : null,
                     onSave: _saveNote,
                   ),
                 ),
@@ -92,13 +109,27 @@ class _CallLogNotesPageState extends State<CallLogNotesPage> {
   );
 
   Future<void> _load() async {
-    final notes = await widget.api.callLogComments(
-      accessToken: widget.session.accessToken,
-      callLogName: widget.callLogName,
-    );
-    if (mounted) setState(() => _notes = notes);
-    if (mounted) setState(() => _isLoading = false);
-    if (mounted) _focusComposer();
+    if (mounted) setState(() => _isLoading = true);
+    try {
+      final notes = await widget.api.callLogComments(
+        accessToken: widget.session.accessToken,
+        callLogName: widget.callLogName,
+      );
+      if (mounted) {
+        setState(() {
+          _notes = notes;
+          _loadError = null;
+        });
+      }
+      if (mounted) _focusComposer();
+    } on CrmMobileApiException catch (error) {
+      if (mounted) setState(() => _loadError = error.message);
+    } catch (_) {
+      if (mounted)
+        setState(() => _loadError = 'Could not load saved comments.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _focusComposer() {
@@ -171,14 +202,14 @@ class _CommentComposer extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.isSaving,
-    required this.onCreateEnquiry,
+    this.onCreateEnquiry,
     required this.onSave,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool isSaving;
-  final VoidCallback onCreateEnquiry;
+  final VoidCallback? onCreateEnquiry;
   final VoidCallback onSave;
 
   @override
@@ -191,16 +222,18 @@ class _CommentComposer extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Transform.translate(
-              offset: const Offset(0, -8),
-              child: FloatingActionButton.small(
-                elevation: 4,
-                tooltip: 'Create enquiry',
-                onPressed: onCreateEnquiry,
-                child: const Icon(Icons.add_rounded),
+            if (onCreateEnquiry != null) ...[
+              Transform.translate(
+                offset: const Offset(0, -8),
+                child: FloatingActionButton.small(
+                  elevation: 4,
+                  tooltip: 'Create enquiry',
+                  onPressed: onCreateEnquiry,
+                  child: const Icon(Icons.add_rounded),
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
+              const SizedBox(height: 2),
+            ],
             Row(
               children: [
                 Expanded(

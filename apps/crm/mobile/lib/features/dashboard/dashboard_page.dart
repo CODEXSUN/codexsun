@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../core/api/crm_mobile_api.dart';
 import '../../core/config/app_config.dart';
 import '../../core/presentation/app_brand_logo.dart';
-import '../../core/messaging/live_message_notifications.dart';
 import '../../core/notifications/mobile_notification_service.dart';
 import '../../app/dashboard_navigation.dart';
 import 'action_activity_page.dart';
@@ -15,9 +14,9 @@ import 'dashboard_jobs_feed.dart';
 import 'dashboard_list_page.dart';
 import 'duty_page.dart';
 import 'tasks_page.dart';
-import 'messages_sample_page.dart';
 import 'my_enquiries_page.dart';
 import 'home_enquiry_form_page.dart';
+import 'my_reports_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({
@@ -49,9 +48,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   var _homeRefreshKey = 0;
-  final _messagesPageKey = GlobalKey<MessagesPageState>();
   final _myEnquiriesKey = GlobalKey<MyEnquiriesPageState>();
-  late final LiveMessageNotifications _messageNotifications;
   late final MobileNotificationService _mobileNotifications;
   late final DashboardJobsFeed _jobsFeed;
 
@@ -62,19 +59,11 @@ class _DashboardPageState extends State<DashboardPage> {
       api: widget.api,
       session: widget.session,
     );
-    _messageNotifications = LiveMessageNotifications(
-      api: widget.api,
-      session: widget.session,
-      onNewUnreadMessages: (count) =>
-          unawaited(_mobileNotifications.showChatAlert(count)),
-    );
     _jobsFeed = DashboardJobsFeed(api: widget.api, session: widget.session)
       ..start();
     widget.navigation.addListener(_onNavigationChanged);
-    _messageNotifications.addListener(_updateBadges);
     _mobileNotifications.addListener(_updateBadges);
     if (widget.enableLiveNotifications) {
-      unawaited(_messageNotifications.start());
       unawaited(_mobileNotifications.start());
     }
   }
@@ -82,9 +71,7 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void dispose() {
     widget.navigation.removeListener(_onNavigationChanged);
-    _messageNotifications.removeListener(_updateBadges);
     _mobileNotifications.removeListener(_updateBadges);
-    _messageNotifications.dispose();
     _mobileNotifications.dispose();
     _jobsFeed.dispose();
     super.dispose();
@@ -95,17 +82,13 @@ class _DashboardPageState extends State<DashboardPage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.session.accessToken == widget.session.accessToken) return;
     _jobsFeed.updateSession(widget.session);
-    _messageNotifications.updateSession(widget.session);
     _mobileNotifications.updateSession(widget.session);
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge([
-        _messageNotifications,
-        _mobileNotifications,
-      ]),
+      animation: _mobileNotifications,
       builder: (context, _) => Scaffold(
         appBar: AppBar(
           toolbarHeight: 56,
@@ -115,12 +98,12 @@ class _DashboardPageState extends State<DashboardPage> {
               const AppBrandLogo(height: 28, width: 34),
               const SizedBox(width: 9),
               Text(AppConfig.brandName),
-              if (_selectedIndex == 1 || _selectedIndex == 3) ...[
+              if (_selectedIndex == 1 || _selectedIndex == 2) ...[
                 const SizedBox(width: 12),
                 Container(height: 28, width: 1, color: const Color(0xFFD7D1DA)),
                 const SizedBox(width: 12),
                 Text(
-                  _selectedIndex == 1 ? 'Enquiries' : 'Chat',
+                  _selectedIndex == 1 ? 'Enquiries' : 'Duty',
                   style: Theme.of(context).textTheme.titleLarge
                       ?.copyWith(fontWeight: FontWeight.w600),
                 ),
@@ -129,15 +112,6 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           actions: switch (_selectedIndex) {
             0 => [
-              IconButton(
-                tooltip: 'Notifications',
-                onPressed: _showNotifications,
-                icon: Badge.count(
-                  count: _messageNotifications.unreadCount,
-                  isLabelVisible: _messageNotifications.unreadCount > 0,
-                  child: const Icon(Icons.notifications_outlined),
-                ),
-              ),
               PopupMenuButton<_HomeMenuAction>(
                 tooltip: 'Account options',
                 icon: const Icon(Icons.more_vert_rounded),
@@ -187,21 +161,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ],
               ),
             ],
-            1 => [
-              if (isCallLogAdministrator(widget.session.profile.role))
-                IconButton(
-                  tooltip: 'Call Logs',
-                  onPressed: _openCallLogs,
-                  icon: const Icon(Icons.call_outlined),
-                ),
-            ],
-            3 => [
-              IconButton(
-                tooltip: 'New chat',
-                onPressed: () => _messagesPageKey.currentState?.openNewChat(),
-                icon: const Icon(Icons.add_rounded),
-              ),
-            ],
+            1 => const [],
             _ => const [],
           },
         ),
@@ -232,12 +192,10 @@ class _DashboardPageState extends State<DashboardPage> {
         api: widget.api,
         session: widget.session,
         jobsFeed: _jobsFeed,
-        unreadChatCount: _messageNotifications.unreadCount,
-        assignmentCount: _messageNotifications.unreadFor("Enquiry:"),
-        taskUnreadCount: _messageNotifications.unreadFor("Task:"),
-        dutyUnreadCount: _messageNotifications.unreadFor("Duty:"),
+        assignmentCount: _mobileNotifications.assignmentCount,
         onOpenList: _selectDestination,
         onOpenActions: _openActions,
+        onOpenReports: _openReports,
         onReauthenticate: widget.onReauthenticate,
       );
     }
@@ -251,15 +209,6 @@ class _DashboardPageState extends State<DashboardPage> {
     }
     if (_selectedIndex == 2) {
       return DutyPage(api: widget.api, session: widget.session);
-    }
-    if (_selectedIndex == 3) {
-      return MessagesPage(
-        key: _messagesPageKey,
-        api: widget.api,
-        session: widget.session,
-        embedded: true,
-        onRead: () => unawaited(_messageNotifications.refresh()),
-      );
     }
     return DashboardListPage(
       api: widget.api,
@@ -280,8 +229,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _updateBadges() => widget.navigation.updateBadges(
-    jobs: _messageNotifications.unreadFor("Enquiry:"),
-    chat: _messageNotifications.unreadCount,
+    jobs: _mobileNotifications.assignmentCount,
   );
 
   void _selectDestination(int index) => widget.navigation.selectContent(index);
@@ -300,6 +248,15 @@ class _DashboardPageState extends State<DashboardPage> {
       MaterialPageRoute(
         builder: (context) =>
             ActionActivityPage(api: widget.api, session: widget.session),
+      ),
+    );
+  }
+
+  Future<void> _openReports() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) =>
+            MyReportsPage(api: widget.api, session: widget.session),
       ),
     );
   }
@@ -360,45 +317,6 @@ class _DashboardPageState extends State<DashboardPage> {
     if (task != null) unawaited(task());
   }
 
-  void _showNotifications() {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListenableBuilder(
-          listenable: _messageNotifications,
-          builder: (context, _) => ListView(
-            shrinkWrap: true,
-            children: [
-              const ListTile(title: Text('Notifications')),
-              if (_messageNotifications.unreadConversations.isEmpty)
-                const ListTile(title: Text('No notifications')),
-              for (final item in _messageNotifications.unreadConversations)
-                ListTile(
-                  leading: const Icon(Icons.notifications_outlined),
-                  title: Text(item.title),
-                  subtitle: Text(item.preview),
-                  onTap: () {
-                    Navigator.pop(context);
-                    unawaited(
-                      openMessagingConversation(
-                        context: this.context,
-                        api: widget.api,
-                        session: widget.session,
-                        conversation: item,
-                        onRead: () =>
-                            unawaited(_messageNotifications.refresh()),
-                      ),
-                    );
-                  },
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void _showMenu() {
     showModalBottomSheet<void>(
       context: context,
@@ -412,16 +330,6 @@ class _DashboardPageState extends State<DashboardPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_month_outlined),
-                  title: const Text('Duty'),
-                  subtitle: const Text('View duty schedule and reminders.'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _selectDestination(2);
-                  },
-                ),
-                ListTile(
                   leading: const Icon(Icons.task_alt),
                   title: const Text('Tasks'),
                   onTap: () {
@@ -434,25 +342,40 @@ class _DashboardPageState extends State<DashboardPage> {
                     );
                   },
                 ),
-                if (_canViewCallLogs)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.call_outlined),
-                    title: const Text('Call logs'),
-                    subtitle: const Text('Admin device calls and CRM logging.'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _openCallLogs();
-                    },
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.call_outlined),
+                  title: const Text('Call logs'),
+                  subtitle: const Text(
+                    'Your device call history and CRM notes.',
                   ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openCallLogs();
+                  },
+                ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.bolt_outlined),
-                  title: const Text('Actions'),
-                  subtitle: const Text('View enquiry activity and follow-ups.'),
+                  title: const Text('Activities'),
+                  subtitle: const Text(
+                    'Your enquiry activity from the last 7 days.',
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                     _openActions();
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.description_outlined),
+                  title: const Text('Reports'),
+                  subtitle: const Text(
+                    'Review reports from your assigned duties.',
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openReports();
                   },
                 ),
               ],
@@ -462,9 +385,6 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
-
-  bool get _canViewCallLogs =>
-      isCallLogAdministrator(widget.session.profile.role);
 }
 
 enum _HomeMenuAction { resetPin, changePassword, checkForUpdates, signOut }

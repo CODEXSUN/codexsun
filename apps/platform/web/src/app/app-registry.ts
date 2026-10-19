@@ -37,6 +37,7 @@ import {
   ShieldCheckIcon,
   SparklesIcon,
   Trash2Icon,
+  TrophyIcon,
   type LucideIcon
 } from "lucide-react";
 import { CrmBrandIcon } from "./crm-brand-icon";
@@ -62,6 +63,7 @@ export type PlatformAppId =
   | "zetro"
   | "logicx-erp"
   | "tconnect"
+  | "sportsclub"
   | "ecommerce"
   | "qcafe"
   | "hrms"
@@ -89,6 +91,15 @@ export type PlatformAppRootPage =
   | "zetro.chat"
   | "logicx-erp.overview"
   | "tconnect.overview"
+  | "sportsclub.overview"
+  | "sportsclub.members"
+  | "sportsclub.masters"
+  | "sportsclub.programs"
+  | "sportsclub.sessions"
+  | "sportsclub.attendance"
+  | "sportsclub.progress"
+  | "sportsclub.events"
+  | "sportsclub.enquiries"
   | "ecommerce.overview"
   | "qcafe.dashboard"
   | "qcafe.overview"
@@ -150,6 +161,7 @@ export type PlatformAppDefinition = {
     | "zetro"
     | "logicx-erp"
     | "tconnect"
+    | "sportsclub"
     | "ecommerce"
     | "qcafe"
     | "hrms"
@@ -261,6 +273,17 @@ export const platformAppRegistry: PlatformAppDefinition[] = [
     alwaysEnabled: false,
     defaultLanding: false,
     description: "Business discovery and association communities."
+  },
+  {
+    id: "sportsclub",
+    label: "Sports Club",
+    moduleKey: "sportsclub",
+    stack: "sportsclub",
+    icon: TrophyIcon,
+    accentClass: "bg-orange-700",
+    alwaysEnabled: false,
+    defaultLanding: false,
+    description: "Sports club management, student enrollments, batches, and training programs."
   },
   {
     id: "ecommerce",
@@ -513,6 +536,7 @@ export function appRootPage(appId: PlatformAppId): PlatformAppRootPage {
   if (appId === "hrms") return "hrms.overview";
   if (appId === "qcafe") return "qcafe.overview";
   if (appId === "tconnect") return "tconnect.overview";
+  if (appId === "sportsclub") return "sportsclub.overview";
   if (appId === "ecommerce") return "ecommerce.overview";
   if (appId === "logicx-erp") return "logicx-erp.overview";
   if (appId === "zetro") return "zetro.chat";
@@ -711,6 +735,68 @@ export function appMenuFor(
           title: "Business network",
           isActive: activePage === "tconnect.overview",
           onSelect: () => onSelect("tconnect.overview")
+        }
+      ]
+    };
+  if (appId === "sportsclub")
+    return {
+      icon: TrophyIcon,
+      title: "Sports Club",
+      isActive: activePage.startsWith("sportsclub."),
+      items: [
+        {
+          icon: LayoutDashboardIcon,
+          title: "Overview",
+          isActive: activePage === "sportsclub.overview",
+          onSelect: () => onSelect("sportsclub.overview")
+        },
+        {
+          icon: UsersIcon,
+          title: "Students",
+          isActive: activePage === "sportsclub.members",
+          onSelect: () => onSelect("sportsclub.members")
+        },
+        {
+          icon: ContactRoundIcon,
+          title: "Masters",
+          isActive: activePage === "sportsclub.masters",
+          onSelect: () => onSelect("sportsclub.masters")
+        },
+        {
+          icon: NotebookPenIcon,
+          title: "Curriculum",
+          isActive: activePage === "sportsclub.programs",
+          onSelect: () => onSelect("sportsclub.programs")
+        },
+        {
+          icon: CalendarDaysIcon,
+          title: "Batches",
+          isActive: activePage === "sportsclub.sessions",
+          onSelect: () => onSelect("sportsclub.sessions")
+        },
+        {
+          icon: ClipboardListIcon,
+          title: "Attendance",
+          isActive: activePage === "sportsclub.attendance",
+          onSelect: () => onSelect("sportsclub.attendance")
+        },
+        {
+          icon: SparklesIcon,
+          title: "Assessments",
+          isActive: activePage === "sportsclub.progress",
+          onSelect: () => onSelect("sportsclub.progress")
+        },
+        {
+          icon: TrophyIcon,
+          title: "Events",
+          isActive: activePage === "sportsclub.events",
+          onSelect: () => onSelect("sportsclub.events")
+        },
+        {
+          icon: MessageCircleIcon,
+          title: "Admissions",
+          isActive: activePage === "sportsclub.enquiries",
+          onSelect: () => onSelect("sportsclub.enquiries")
         }
       ]
     };
@@ -1313,6 +1399,63 @@ export function appMenuItemsFor(
         title: "Business network",
         isActive: activePage === "tconnect.overview",
         onSelect: () => onSelect("tconnect.overview")
+      }
+    ];
+  if (appId === "sportsclub")
+    return [
+      {
+        icon: LayoutDashboardIcon,
+        title: "Overview",
+        isActive: activePage === "sportsclub.overview",
+        onSelect: () => onSelect("sportsclub.overview")
+      },
+      {
+        icon: UsersIcon,
+        title: "Students",
+        isActive: activePage === "sportsclub.members",
+        onSelect: () => onSelect("sportsclub.members")
+      },
+      {
+        icon: ContactRoundIcon,
+        title: "Masters",
+        isActive: activePage === "sportsclub.masters",
+        onSelect: () => onSelect("sportsclub.masters")
+      },
+      {
+        icon: NotebookPenIcon,
+        title: "Curriculum",
+        isActive: activePage === "sportsclub.programs",
+        onSelect: () => onSelect("sportsclub.programs")
+      },
+      {
+        icon: CalendarDaysIcon,
+        title: "Batches",
+        isActive: activePage === "sportsclub.sessions",
+        onSelect: () => onSelect("sportsclub.sessions")
+      },
+      {
+        icon: ClipboardListIcon,
+        title: "Attendance",
+        isActive: activePage === "sportsclub.attendance",
+        onSelect: () => onSelect("sportsclub.attendance")
+      },
+      {
+        icon: SparklesIcon,
+        title: "Assessments",
+        isActive: activePage === "sportsclub.progress",
+        onSelect: () => onSelect("sportsclub.progress")
+      },
+      {
+        icon: TrophyIcon,
+        title: "Events",
+        isActive: activePage === "sportsclub.events",
+        onSelect: () => onSelect("sportsclub.events")
+      },
+      {
+        icon: MessageCircleIcon,
+        title: "Admissions",
+        isActive: activePage === "sportsclub.enquiries",
+        onSelect: () => onSelect("sportsclub.enquiries")
       }
     ];
   if (appId === "ecommerce") {

@@ -34,7 +34,7 @@ export function TaskJobsPanel({
         ) : null}
       </div>
       {loading ? <p className="text-sm text-muted-foreground">Loading jobs…</p> : null}
-      <div className="overflow-x-auto rounded-md border border-border/70">
+      <div className="workspace-scroll overflow-x-auto rounded-md border border-border/70">
         <table className="w-full min-w-[750px] text-left text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr>
@@ -139,7 +139,7 @@ export function TaskClosurePanel({
           <p className="text-sm text-muted-foreground">No closure request has been made.</p>
         ) : null}
         {requests.length ? (
-          <div className="overflow-x-auto rounded-md border border-border/70">
+          <div className="workspace-scroll overflow-x-auto rounded-md border border-border/70">
             <table className="w-full min-w-[820px] text-left text-sm">
               <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>

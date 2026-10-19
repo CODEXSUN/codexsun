@@ -81,7 +81,7 @@ test(
     }>`SELECT r.\`key\` AS role,p.\`key\` AS permission FROM app_role_permissions rp JOIN app_roles r ON r.id=rp.role_id JOIN app_permissions p ON p.id=rp.permission_id WHERE p.\`key\` LIKE 'core.application.records.%' AND rp.status='active'`.execute(
       database
     );
-    for (const role of ["super-admin", "manager"]) {
+    for (const role of ["super-admin", "manager", "user"]) {
       assert.ok(
         coreGrants.rows.some(
           (g) => g.role === role && g.permission === "core.application.records.view"
@@ -92,7 +92,7 @@ test(
           (g) => g.role === role && g.permission !== "core.application.records.view"
         ).length,
         0,
-        "workspace read access must not grant master writes"
+        "Core read access must not grant master writes"
       );
     }
     await seedEnquiryModule(database as never);
@@ -228,7 +228,7 @@ test(
       }
     }));
     const send = async (
-      method: "GET" | "POST" | "PUT",
+      method: "GET" | "POST" | "PUT" | "PATCH",
       url: string,
       payload?: unknown,
       statusCode = 200
@@ -271,12 +271,26 @@ test(
       assignedUserId: field.id,
       dueDate: null
     });
+    const openStatus = await database
+      .selectFrom("crm_enquiry_statuses")
+      .select("id")
+      .where("code", "=", "open")
+      .executeTakeFirstOrThrow();
+    const taskProperties = await send("PATCH", `/crm/tasks/${task.id}/properties`, {
+      priorityId: priority.id,
+      statusId: openStatus.id,
+      dueDate: "2026-10-20"
+    });
+    assert.equal(taskProperties.status, "open");
+    assert.equal(taskProperties.dueDate, "2026-10-20");
     const events = await send("GET", `/crm/work-reports?taskId=${task.id}`);
-    assert.equal(events.length, 2);
+    assert.equal(events.length, 3);
     assert.ok(events.some((event: { action: string }) => event.action === "created"));
-    assert.equal(events[0].action, "assigned");
-    assert.equal(events[0].created_by_name, "Task tester");
-    assert.equal(events[0].body, "Deliver to linked customer");
+    assert.ok(events.some((event: { action: string }) => event.action === "properties-updated"));
+    const assignmentEvent = events.find((event: { action: string }) => event.action === "assigned");
+    assert.ok(assignmentEvent);
+    assert.equal(assignmentEvent.created_by_name, "Task tester");
+    assert.equal(assignmentEvent.body, "Deliver to linked customer");
     await send("POST", `/crm/tasks/${task.id}/comments`, { body: "Bill acknowledged" });
     await send("POST", `/crm/tasks/${task.id}/jobs/start`);
     await send("POST", `/crm/tasks/${task.id}/jobs/stop`);
@@ -384,7 +398,7 @@ test(
     assert.equal(Number(checkout.longitude), 80.2707);
     const userChannels = await chat.listChannels(chatContext(), {});
     const userChat = await chat.channelDetail(chatContext(), userChannels[0]!.uuid);
-    assert.equal(userChat.messages.length, 7);
+    assert.equal(userChat.messages.length, 8);
     assert.ok(
       userChat.messages.some(
         (message) => message.body.includes("Delivered bill") && message.body.includes("GPS:")
@@ -392,7 +406,7 @@ test(
     );
     const channelId = userChannels[0]!.uuid;
     const reader = chatContext();
-    assert.equal((await chat.listChannels(reader, {}))[0]!.unreadCount, 4);
+    assert.equal((await chat.listChannels(reader, {}))[0]!.unreadCount, 5);
     const seen = userChat.messages.at(-1)!.id;
     await chat.markRead(reader, channelId, seen);
     assert.equal((await chat.listChannels(reader, {}))[0]!.unreadCount, 0);
@@ -426,7 +440,7 @@ test(
     actorId = actor.id;
     manager = true;
     const adminReports = await send("GET", `/crm/work-reports?taskId=${task.id}`);
-    assert.equal(adminReports.length, 8);
+    assert.equal(adminReports.length, 9);
     assert.ok(adminReports.some((row: { uuid: string }) => row.uuid.endsWith(checkout.uuid)));
     await sql`INSERT INTO crm_enquiries (title,description,enquired_at,created_by,status_id,priority_id,assigned_user_id,enquiry_no) VALUES ('Site visit','Visit customer',UTC_TIMESTAMP(),'task@example.test',${status.id},${priority.id},${field.id},1)`.execute(
       database
@@ -512,6 +526,16 @@ test(
       reason: "Field work completed"
     });
     assert.equal(completion.status, "pending");
+    const completionRows = await send("GET", `/crm/tasks/${task.id}/closure-requests`);
+    assert.equal(completionRows[0].id, completion.id);
+    manager = true;
+    const reviewed = await send("POST", `/crm/tasks/closure-requests/${completion.id}/review`, {
+      decision: "approved",
+      note: "Verified in the task workflow."
+    });
+    assert.equal(reviewed.reviewed, true);
+    const closedTask = await send("GET", `/crm/tasks/${task.id}`);
+    assert.equal(closedTask.status, "closed");
     // Failed chat delivery must roll back the action report as well.
     const before = (await send("GET", `/crm/work-reports?enquiryId=${enquiryId}`)).length;
     const failing = workContext();

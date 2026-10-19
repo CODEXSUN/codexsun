@@ -4,8 +4,9 @@ import type { EnquiryDatabase } from "../enquiry/index.js";
 export type WorkReportInput = {
   enquiryId: number | null;
   taskId: number | null;
-  action: "check-in" | "check-out" | "report" | "assigned";
+  action: "check-in" | "check-out" | "report" | "charge" | "collection" | "assigned";
   body: string;
+  amount: number | null;
   requestId: string;
   latitude: number | null;
   longitude: number | null;
@@ -19,6 +20,7 @@ export type WorkReportRow = {
   task_id: number | null;
   action: string;
   body: string;
+  amount: string | null;
   request_id: string;
   latitude: string | null;
   longitude: string | null;
@@ -49,3 +51,4 @@ export type WorkReportContext = {
   ) => Promise<void>;
 };
 export type WorkReportTarget = { enquiryId: number | null; taskId: number | null };
+export type WorkReportHistoryFilter = "all" | "checkpoints" | "charges";

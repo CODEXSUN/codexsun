@@ -1,6 +1,11 @@
 import { AppError } from "@codexsun/framework/errors";
 import { WorkReportRepository } from "./work-report.repository.js";
-import type { WorkReportContext, WorkReportInput, WorkReportTarget } from "./work-report.types.js";
+import type {
+  WorkReportContext,
+  WorkReportHistoryFilter,
+  WorkReportInput,
+  WorkReportTarget
+} from "./work-report.types.js";
 export class WorkReportService {
   private readonly repository: WorkReportRepository;
   constructor(private readonly context: WorkReportContext) {
@@ -10,9 +15,14 @@ export class WorkReportService {
     await this.access(target, false);
     return this.repository.list(target);
   }
-  async history(target: WorkReportTarget, page: number, pageSize: number, checkpoints = false) {
+  async history(
+    target: WorkReportTarget,
+    page: number,
+    pageSize: number,
+    filter: WorkReportHistoryFilter = "all"
+  ) {
     await this.access(target, false);
-    return this.repository.history(target, page, pageSize, checkpoints);
+    return this.repository.history(target, page, pageSize, filter);
   }
   async checkpoint(target: WorkReportTarget) {
     await this.access(target, false);
@@ -23,10 +33,12 @@ export class WorkReportService {
       ...input,
       latitude: input.latitude === null ? null : Number(input.latitude.toFixed(7)),
       longitude: input.longitude === null ? null : Number(input.longitude.toFixed(7)),
-      accuracyMeters: input.accuracyMeters === null ? null : Number(input.accuracyMeters.toFixed(2))
+      accuracyMeters:
+        input.accuracyMeters === null ? null : Number(input.accuracyMeters.toFixed(2)),
+      amount: input.amount === null ? null : Number(input.amount.toFixed(2))
     };
     await this.access(input, true);
-    if (!["report", "check-in", "check-out"].includes(input.action))
+    if (!["report", "check-in", "check-out", "charge", "collection"].includes(input.action))
       throw AppError.forbidden("Workflow events must use their owning operation.");
     return this.repository.create(input, this.context);
   }

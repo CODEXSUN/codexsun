@@ -4,16 +4,12 @@ class DashboardNavigation extends ChangeNotifier {
   int _selectedIndex = 0;
   var _menuRequested = false;
   var _jobBadgeCount = 0;
-  var _chatBadgeCount = 0;
 
   int get selectedIndex => _selectedIndex;
   int get jobBadgeCount => _jobBadgeCount;
-  int get chatBadgeCount => _chatBadgeCount;
-
-  void updateBadges({required int jobs, required int chat}) {
-    if (_jobBadgeCount == jobs && _chatBadgeCount == chat) return;
+  void updateBadges({required int jobs}) {
+    if (_jobBadgeCount == jobs) return;
     _jobBadgeCount = jobs;
-    _chatBadgeCount = chat;
     notifyListeners();
   }
 
@@ -29,7 +25,7 @@ class DashboardNavigation extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    selectContent(index == 2 ? 3 : index);
+    selectContent(index);
   }
 
   bool takeMenuRequest() {

@@ -17,10 +17,8 @@ class DashboardHome extends StatelessWidget {
     required this.onOpenActions,
     required this.jobsFeed,
     this.onReauthenticate,
-    this.unreadChatCount = 0,
     this.assignmentCount = 0,
-    this.taskUnreadCount = 0,
-    this.dutyUnreadCount = 0,
+    required this.onOpenReports,
     super.key,
   });
 
@@ -30,10 +28,8 @@ class DashboardHome extends StatelessWidget {
   final Future<void> Function() onOpenActions;
   final DashboardJobsFeed jobsFeed;
   final VoidCallback? onReauthenticate;
-  final int unreadChatCount;
   final int assignmentCount;
-  final int taskUnreadCount;
-  final int dutyUnreadCount;
+  final Future<void> Function() onOpenReports;
 
   @override
   Widget build(BuildContext context) {
@@ -111,14 +107,12 @@ class DashboardHome extends StatelessWidget {
             const SizedBox(height: 24),
             DashboardStats(
               jobCount: jobs.length,
-              unreadChatCount: unreadChatCount,
               assignmentCount: assignmentCount,
-              taskUnreadCount: taskUnreadCount,
-              dutyUnreadCount: dutyUnreadCount,
               onOpenList: onOpenList,
               api: api,
               session: session,
               onOpenActions: onOpenActions,
+              onOpenReports: onOpenReports,
             ),
             if (runningJob != null) ...[
               const SizedBox(height: 18),
@@ -192,14 +186,21 @@ class _RunningJobCardState extends State<_RunningJobCard> {
       button: true,
       label: 'Open running job ${widget.job.title}',
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         onTap: widget.onOpenJob,
         child: Ink(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFCF9FD),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFD6B5E8)),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE1DCE6)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1A140D1B),
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: [

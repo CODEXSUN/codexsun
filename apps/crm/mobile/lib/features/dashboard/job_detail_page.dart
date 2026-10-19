@@ -40,6 +40,7 @@ class _JobDetailPageState extends State<JobDetailPage>
   ClosureRequest? _closureRequest;
   List<CrmEnquiryLocation> _locations = const [];
   List<Map<String, dynamic>> _workReports = [];
+  bool _checkedIn = false;
   var _isLoading = false;
   var _isSending = false;
   Timer? _runningTimer;
@@ -155,6 +156,10 @@ class _JobDetailPageState extends State<JobDetailPage>
           accessToken: widget.session.accessToken,
           enquiryId: widget.initialJob.sourceId,
         ),
+        widget.api.workCheckpoint(
+          widget.session.accessToken,
+          enquiryId: widget.initialJob.id,
+        ),
       ]);
       final job = results[0] as CrmJob;
       if (mounted) {
@@ -163,6 +168,7 @@ class _JobDetailPageState extends State<JobDetailPage>
           _closureRequest = results[1] as ClosureRequest?;
           _workReports = results[2] as List<Map<String, dynamic>>;
           _locations = results[3] as List<CrmEnquiryLocation>;
+          _checkedIn = results[4] as bool;
         });
         _syncRunningTimer();
         widget.onJobChanged?.call();
@@ -180,6 +186,7 @@ class _JobDetailPageState extends State<JobDetailPage>
       api: widget.api,
       session: widget.session,
       enquiries: [_job],
+      checkedIn: _checkedIn,
       closurePending: _closureRequest?.status == 'pending',
       closed: _closureRequest?.status == 'approved',
       capturePosition: widget.capturePosition,
@@ -215,71 +222,6 @@ class _JobDetailPageState extends State<JobDetailPage>
     }
   }
 
-  void _logActionLocation() {
-    () async {
-      try {
-        final position =
-            await (widget.capturePosition ?? _captureDevicePosition)();
-        final saved = await widget.api.logEnquiryLocation(
-          accessToken: widget.session.accessToken,
-          enquiryId: widget.initialJob.sourceId,
-          latitude: position.latitude,
-          longitude: position.longitude,
-          accuracyMeters: position.accuracy.isFinite ? position.accuracy : null,
-          capturedAt: position.timestamp,
-        );
-        if (mounted) {
-          setState(() => _locations = [saved, ..._locations]);
-        }
-      } catch (_) {
-        // Non-blocking background location capture for CRM action
-      }
-    }();
-  }
-
-  Future<Position> _captureDevicePosition() async {
-    if (!await Geolocator.isLocationServiceEnabled()) {
-      throw const CrmMobileApiException(
-        'Turn on device location and try again.',
-      );
-    }
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      throw const CrmMobileApiException(
-        'Allow location access to log this enquiry location.',
-      );
-    }
-
-    try {
-      final lastKnown = await Geolocator.getLastKnownPosition();
-      if (lastKnown != null) {
-        final age = DateTime.now().difference(lastKnown.timestamp);
-        if (age < const Duration(minutes: 5)) {
-          return lastKnown;
-        }
-      }
-    } catch (_) {}
-
-    try {
-      return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 4),
-        ),
-      );
-    } catch (_) {
-      final fallback = await Geolocator.getLastKnownPosition();
-      if (fallback != null) {
-        return fallback;
-      }
-      rethrow;
-    }
-  }
-
   Future<void> _openNewCall() async {
     setState(() => _isSending = true);
     try {
@@ -291,7 +233,6 @@ class _JobDetailPageState extends State<JobDetailPage>
         setState(() => _job = updated);
         _syncRunningTimer();
         widget.onJobChanged?.call();
-        _logActionLocation();
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
@@ -396,7 +337,6 @@ class _JobDetailPageState extends State<JobDetailPage>
           setState(() => _job = updated);
           _syncRunningTimer();
           widget.onJobChanged?.call();
-          _logActionLocation();
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(

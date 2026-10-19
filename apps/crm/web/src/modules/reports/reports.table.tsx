@@ -34,7 +34,7 @@ export function ReportsTable({
     onOpenEnquiries(reportDrilldown(view, key, filters, status));
   return (
     <WorkspaceTablePanel>
-      <div className="overflow-x-auto">
+      <div className="workspace-scroll overflow-x-auto">
         <table className="w-full min-w-[680px] border-collapse text-sm">
           <thead className="bg-muted/50">
             <tr>

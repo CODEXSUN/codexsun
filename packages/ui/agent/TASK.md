@@ -56,3 +56,9 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - Passed UI typecheck, lint, and build. The Platform browser checks exercised these controls across 41 lists and verified refresh persistence and draft navigation.
 
 - TConnect source is included in shared Tailwind scanning for its Platform buyer and member workspaces.
+
+### Optional responsive table rows, 19-10-2026
+
+- `WorkspaceTable` accepts an owner-rendered `mobileRow`; narrow screens show those rows and applicable inline filters while retaining the existing sortable table at wider widths.
+- Empty and loading states remain visible in both presentations. No list-specific fields or actions were added to the shared package.
+- UI typecheck, lint, and build passed. Local browser visual verification remains open.

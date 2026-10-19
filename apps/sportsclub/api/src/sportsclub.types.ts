@@ -1,0 +1,154 @@
+import type { Generated } from "kysely";
+
+export type SportsclubRole = "student" | "master" | "club_admin" | "super_admin" | "anonymous" | "unregistered";
+
+export type SportsclubContext = {
+  actorEmail?: string | undefined;
+  actorRole: SportsclubRole;
+  isClubAdmin: boolean;
+  isSuperAdmin: boolean;
+};
+
+export type SportsclubDatabase = {
+  sportsclub_programs: {
+    id: Generated<number>;
+    uuid: string;
+    code: string;
+    name: string;
+    discipline: string;
+    description: string;
+    level: "beginner" | "intermediate" | "advanced" | "all_levels";
+    age_group: string;
+    is_approved_public: number;
+    status: "active" | "inactive";
+    sort_order: number;
+    revision: number;
+    created_at: string;
+    updated_at: string;
+  };
+  sportsclub_masters: {
+    id: Generated<number>;
+    uuid: string;
+    email: string;
+    name: string;
+    phone: string;
+    title: string;
+    primary_discipline: string;
+    public_bio: string;
+    private_notes: string;
+    experience_years: number;
+    is_approved_public: number;
+    status: "active" | "suspended";
+    sort_order: number;
+    revision: number;
+    created_at: string;
+    updated_at: string;
+  };
+  sportsclub_members: {
+    id: Generated<number>;
+    uuid: string;
+    email: string;
+    name: string;
+    phone: string;
+    date_of_birth: string | null;
+    gender: string | null;
+    guardian_name: string | null;
+    guardian_phone: string | null;
+    emergency_contact: string | null;
+    medical_notes: string;
+    address: string;
+    program_uuid: string | null;
+    master_uuid: string | null;
+    role: "student" | "master";
+    status: "pending" | "active" | "suspended" | "graduated";
+    progress_note: string;
+    revision: number;
+    created_at: string;
+    updated_at: string;
+  };
+  sportsclub_sessions: {
+    id: Generated<number>;
+    uuid: string;
+    title: string;
+    program_uuid: string;
+    master_uuid: string | null;
+    days_of_week: string;
+    start_time: string;
+    end_time: string;
+    venue: string;
+    max_capacity: number;
+    is_approved_public: number;
+    status: "active" | "cancelled";
+    revision: number;
+    created_at: string;
+    updated_at: string;
+  };
+  sportsclub_attendance: {
+    id: Generated<number>;
+    uuid: string;
+    session_uuid: string;
+    member_uuid: string;
+    attendance_date: string;
+    status: "present" | "absent" | "excused" | "late";
+    remarks: string;
+    recorded_by: string;
+    created_at: string;
+    updated_at: string;
+  };
+  sportsclub_progress: {
+    id: Generated<number>;
+    uuid: string;
+    member_uuid: string;
+    master_uuid: string;
+    program_uuid: string | null;
+    stage_level: string;
+    score: number | null;
+    assessment: string;
+    private_notes: string;
+    status: "in_progress" | "passed" | "recommended";
+    graded_at: string;
+    revision: number;
+    created_at: string;
+    updated_at: string;
+  };
+  sportsclub_events: {
+    id: Generated<number>;
+    uuid: string;
+    title: string;
+    event_type: "demonstration" | "tournament" | "workshop" | "camp";
+    description: string;
+    event_date: string;
+    end_date: string | null;
+    location: string;
+    is_approved_public: number;
+    status: "upcoming" | "ongoing" | "completed" | "cancelled";
+    revision: number;
+    created_at: string;
+    updated_at: string;
+  };
+  sportsclub_enquiries: {
+    id: Generated<number>;
+    uuid: string;
+    name: string;
+    email: string;
+    phone: string;
+    interest: string;
+    message: string;
+    consent: number;
+    status: "new" | "in_progress" | "resolved" | "spam" | "trash";
+    notes: string;
+    revision: number;
+    created_at: string;
+    updated_at: string;
+  };
+  sportsclub_activity: {
+    id: Generated<number>;
+    uuid: string;
+    entity_type: string;
+    entity_uuid: string;
+    actor: string;
+    action: string;
+    details: string;
+    created_at: string;
+  };
+};

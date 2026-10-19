@@ -551,6 +551,12 @@ browser, mobile, and end-to-end results separately.
 - A database E2E verifies repeated migration, persistence, names, encoded message, retry reuse/conflict, missing recipient, and denied reads/writes.
 - CRM API build, API/web lint, web typecheck, and CRM boundary checks passed. Live databases and APKs were not changed.
 
+## 2026-10-19: Responsive Enquiry and Task web views
+
+- Enquiry and Task lists use compact cards below the medium breakpoint and keep the sortable table on wider screens. Mobile cards retain status, priority, primary details, customer/contact, due date, assignee, closure state, and available actions.
+- Enquiry and Task show summaries remove desktop column widths on small screens and allow long values to wrap within readable columns.
+- UI and CRM web typecheck, lint, and build passed. The live site was not published; browser visual verification of the local source remains open.
+
 ## 2026-10-18: Actions and focused-tab refresh wiring
 
 - Comments, job edits, estimates, properties, WhatsApp handoffs, and closure request/review now invalidate the combined Actions history immediately. Actions uses the same owning comment/job/checkpoint operations as focused tabs.

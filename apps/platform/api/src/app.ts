@@ -9,6 +9,7 @@ import {
 } from "@codexsun/crm-api";
 import { writeWorkMessage } from "@codexsun/chat-api";
 import { registerTconnectHost } from "./tconnect-host.js";
+import { registerSportsclubHost } from "./sportsclub-host.js";
 import { registerBillingComplianceHost } from "./billing-compliance-host.js";
 import { codexsunApiModuleKeys } from "@codexsun/codexsun-api";
 import {
@@ -193,6 +194,7 @@ import { closeAllTenantDatabases } from "./database/tenant-database.js";
 import { registerAuthRequestContext } from "./auth/auth-request-context.js";
 import { TenantDomainRepository } from "./modules/tenant-domain/tenant-domain.repository.js";
 import { registerProjectManagerHost } from "./project-manager-host.js";
+import { registerDataMigrationHost } from "./data-migration-host.js";
 import { registerZunoHost } from "./zuno-host.js";
 import { registerCodexsunHost } from "./codexsun-host.js";
 import { resolvePlatformApiUrl } from "./api-url.js";
@@ -245,6 +247,7 @@ export async function createApp() {
   registerBillingComplianceHost(app, queueService);
   registerAuthRequestContext(app);
   await registerProjectManagerHost(app);
+  await registerDataMigrationHost(app);
   await registerZunoHost(app);
   await registerCodexsunHost(app);
   console.info("[platform.routes] Project Manager package ready");
@@ -2225,6 +2228,7 @@ export async function createApp() {
   await registerAccountsApi(app);
   console.info("[platform.routes] Accounts package ready");
   await registerTconnectHost(app);
+  await registerSportsclubHost(app);
   await registerPlatformAddons(app);
   console.info("[platform.routes] add-on packages ready");
   await registerModules(

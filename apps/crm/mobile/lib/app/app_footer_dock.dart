@@ -5,14 +5,12 @@ class AppFooterDock extends StatelessWidget {
     required this.selectedIndex,
     required this.onDestinationSelected,
     this.jobBadgeCount = 0,
-    this.chatBadgeCount = 0,
     super.key,
   });
 
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
   final int jobBadgeCount;
-  final int chatBadgeCount;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -34,11 +32,7 @@ class AppFooterDock extends StatelessWidget {
                 destination: _destinations[index],
                 isSelected: index == _selectedDockIndex,
                 onTap: () => onDestinationSelected(index),
-                badgeCount: switch (index) {
-                  1 => jobBadgeCount,
-                  2 => chatBadgeCount,
-                  _ => 0,
-                },
+                badgeCount: index == 1 ? jobBadgeCount : 0,
               ),
             ),
           ),
@@ -47,7 +41,7 @@ class AppFooterDock extends StatelessWidget {
     ),
   );
 
-  int get _selectedDockIndex => selectedIndex == 3 ? 2 : selectedIndex;
+  int get _selectedDockIndex => selectedIndex;
 }
 
 class _DockItem extends StatelessWidget {
@@ -176,9 +170,9 @@ const _destinations = [
     selectedIcon: Icons.assignment,
   ),
   _Destination(
-    label: 'Chat',
-    icon: Icons.forum_outlined,
-    selectedIcon: Icons.forum,
+    label: 'Duty',
+    icon: Icons.calendar_month_outlined,
+    selectedIcon: Icons.calendar_month,
   ),
   _Destination(label: 'Menu', icon: Icons.menu, selectedIcon: Icons.menu),
 ];

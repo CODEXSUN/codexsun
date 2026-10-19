@@ -12,10 +12,14 @@ import 'package:codexsun_crm_mobile/features/auth/pin_auth_pages.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/dashboard_list_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/dashboard_jobs_feed.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/dashboard_page.dart';
+import 'package:codexsun_crm_mobile/features/dashboard/admin_call_log_page.dart';
+import 'package:codexsun_crm_mobile/features/dashboard/call_log_notes_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/job_detail_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/job_duration.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/messages_sample_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/my_enquiries_page.dart';
+import 'package:codexsun_crm_mobile/features/dashboard/home_enquiry_form_page.dart';
+import 'package:codexsun_crm_mobile/features/dashboard/task_form_page.dart';
 
 void main() {
   test(
@@ -202,6 +206,28 @@ void main() {
     expect(enquiry.jobs.single.hours, closeTo(5 / 60, 0.0001));
   });
 
+  test('normalizes escaped Frappe rich text for enquiry and comment display', () {
+    const frappeText =
+        '&lt;div class=&quot;ql-editor read-mode&quot;&gt;&lt;p&gt;Ledger issue &lt;/p&gt;&lt;/div&gt;';
+    expect(normalizeCrmText(frappeText), 'Ledger issue');
+
+    final enquiry = CrmJob.fromJson({
+      'id': '35',
+      'title': frappeText,
+      'messages': [
+        {
+          'id': '1',
+          'body': frappeText,
+          'createdAt': '2026-10-12T09:00:00.000Z',
+        },
+      ],
+      'jobs': [],
+      'activities': [],
+    });
+    expect(enquiry.title, 'Ledger issue');
+    expect(enquiry.comments.single.comment, 'Ledger issue');
+  });
+
   test('maps live SOP duties and reporting for mobile', () {
     final duty = CrmDuty.fromJson({
       'department': 'Stores - TMR',
@@ -365,23 +391,23 @@ void main() {
 
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Enquiries'), findsNWidgets(2));
-    expect(find.text('Chat'), findsNWidgets(2));
     expect(find.text('Menu'), findsOneWidget);
-    expect(find.text('Duty'), findsOneWidget);
+    expect(find.text('Duty'), findsNWidgets(2));
     expect(find.text('Tasks'), findsOneWidget);
     expect(find.text('Activities'), findsOneWidget);
     expect(find.text('Call logs'), findsOneWidget);
-    expect(find.byTooltip('Notifications'), findsOneWidget);
+    expect(find.text('Reports'), findsOneWidget);
+    expect(find.byTooltip('Notifications'), findsNothing);
     expect(find.text('3'), findsOneWidget);
 
     await tester.tap(find.text('Menu'));
     await tester.pumpAndSettle();
     expect(find.text('Duty'), findsNWidgets(2));
     expect(find.text('Call logs'), findsNWidgets(2));
-    expect(find.text('Actions'), findsOneWidget);
-    Navigator.of(tester.element(find.text('Call logs').last)).pop();
+    expect(find.text('Activities'), findsNWidgets(2));
+    expect(find.text('Reports'), findsNWidgets(2));
+    Navigator.of(tester.element(find.text('Activities').last)).pop();
     await tester.pumpAndSettle();
-
     await tester.tap(find.byTooltip('Account options'));
     await tester.pumpAndSettle();
     expect(find.text('Account'), findsOneWidget);
@@ -450,65 +476,33 @@ void main() {
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
-    expect(find.text('Scan document'), findsNothing);
-    expect(find.text('Take photo'), findsNothing);
-    expect(find.text('Log location'), findsOneWidget);
-    expect(find.text('Mark completed'), findsOneWidget);
-    expect(find.text('Charges'), findsOneWidget);
-    expect(find.text('Collected Rs.'), findsOneWidget);
-    await tester.ensureVisible(find.text('Log location').last);
-    await tester.tap(find.text('Log location').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Confirm'));
-    await tester.pumpAndSettle();
-    expect(fakeApi.postedComments, contains('Location logged from mobile.'));
-    expect(fakeApi.loggedLocations, isNotEmpty);
-    expect(fakeApi.loggedLocations.first.latitude, 13.0827);
-    expect(fakeApi.loggedLocations.first.longitude, 80.2707);
-
-    await tester.tap(find.byTooltip('Add action'));
-    await tester.pumpAndSettle();
-    await chooseDrawerAction(tester, 'Charges');
-    await tester.pumpAndSettle();
+    expect(find.text('Report actions'), findsNothing);
+    expect(find.text('Log location'), findsNothing);
+    expect(find.text('Charges'), findsNothing);
+    expect(find.text('Collected Rs.'), findsNothing);
     await tester.enterText(
       find.byWidgetPredicate(
         (widget) =>
-            widget is TextField && widget.decoration?.labelText == 'Amount',
+            widget is TextField &&
+            widget.decoration?.hintText == 'Write a comment…',
       ),
-      '1250',
+      'Mobile action comment',
     );
-    await tester.tap(find.text('Confirm'));
+    await tester.tap(find.text('Comment'));
     await tester.pumpAndSettle();
-    expect(fakeApi.postedComments, contains('Charges: ₹1250'));
-
-    await tester.tap(find.byTooltip('Add action'));
+    expect(fakeApi.postedComments, contains('Mobile action comment'));
+    await tester.tap(find.text('Check in'));
     await tester.pumpAndSettle();
-    await chooseDrawerAction(tester, 'Collected Rs.');
+    expect(find.text('Check out'), findsOneWidget);
+    await tester.tap(find.text('Request closure'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is TextField && widget.decoration?.labelText == 'Amount',
-      ),
-      '500',
-    );
-    await tester.tap(find.text('Confirm'));
-    await tester.pumpAndSettle();
-    expect(fakeApi.postedComments, contains('Collected: ₹500'));
-
-    await tester.tap(find.byTooltip('Add action'));
-    await tester.pumpAndSettle();
-    await chooseDrawerAction(tester, 'Mark completed');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Confirm'));
+    await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
     expect(
       find.text('Completion sent. Waiting for web approval.'),
       findsOneWidget,
     );
-    expect(fakeApi.loggedLocations, isNotEmpty);
+    expect(fakeApi.loggedLocations, isEmpty);
 
     await tester.enterText(
       find.byType(TextField),
@@ -555,9 +549,10 @@ void main() {
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
-    await chooseDrawerAction(tester, 'Start job');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Confirm'));
+    await tester.tap(find.text('Start job'));
+    await tester.pump();
+    expect(find.textContaining('Job running ·'), findsOneWidget);
+    await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
     expect(api.startJobCalls, 1);
@@ -565,9 +560,9 @@ void main() {
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
-    await chooseDrawerAction(tester, 'Stop job');
+    await tester.tap(find.text('Stop job'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Confirm'));
+    await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
     expect(api.stopJobCalls, 1);
@@ -633,6 +628,140 @@ void main() {
     await tester.enterText(searchField, 'ROG');
     await tester.pumpAndSettle();
     expect(find.text('ROG Asus Adopter 240W'), findsOneWidget);
+  });
+
+  testWidgets(
+    'shows native enquiry pagination only when more than 100 rows exist',
+    (WidgetTester tester) async {
+      final fakeApi = _FakeCrmMobileApi()..enquiryTotal = 250;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MyEnquiriesPage(
+            api: fakeApi,
+            session: const UserSession(
+              accessToken: 'test-token',
+              profile: UserProfile(
+                email: 'vijay@example.com',
+                name: 'Vijay Anand',
+                role: 'user',
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('250 enquiries · Page 1 of 3'), findsOneWidget);
+      await tester.tap(find.byTooltip('Next page'));
+      await tester.pumpAndSettle();
+      expect(fakeApi.requestedEnquiryPages, [1, 2]);
+      expect(find.text('250 enquiries · Page 2 of 3'), findsOneWidget);
+    },
+  );
+
+  testWidgets('creates a task with the live status and priority selections', (
+    WidgetTester tester,
+  ) async {
+    final fakeApi = _FakeCrmMobileApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TaskFormPage(
+          api: fakeApi,
+          session: const UserSession(
+            accessToken: 'test-token',
+            profile: UserProfile(
+              email: 'vijay@example.com',
+              name: 'Vijay Anand',
+              role: 'user',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).first, 'Follow up');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(fakeApi.createdTaskPayload?['priorityId'], 2);
+    expect(fakeApi.createdTaskPayload?['statusId'], 1);
+    expect(fakeApi.createdTaskPayload?['title'], 'Follow up');
+  });
+
+  testWidgets('creates an enquiry with customer and selected option fields', (
+    WidgetTester tester,
+  ) async {
+    final fakeApi = _FakeCrmMobileApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeEnquiryFormPage(
+          api: fakeApi,
+          session: const UserSession(
+            accessToken: 'test-token',
+            profile: UserProfile(
+              email: 'vijay@example.com',
+              name: 'Vijay Anand',
+              role: 'user',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('enquiry-mobile')),
+      '9655227767',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('enquiry-customer-name')),
+      'Sundar',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('enquiry-message')),
+      'Repair request',
+    );
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(fakeApi.createdEnquiryPayload?['customer'], 'Sundar');
+    expect(fakeApi.createdEnquiryPayload?['mobile'], '9655227767');
+    expect(fakeApi.createdEnquiryPayload?['enquiryGroup'], '7');
+    expect(fakeApi.createdEnquiryPayload?['statusId'], 'st-new');
+    expect(fakeApi.createdEnquiryPayload?['priorityId'], 'pr-1');
+  });
+
+  testWidgets('keeps call-log enquiry creation administrator-only', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CallLogNotesPage(
+          api: _FakeCrmMobileApi(),
+          session: const UserSession(
+            accessToken: 'test-token',
+            profile: UserProfile(
+              email: 'user@example.com',
+              name: 'Mobile User',
+              role: 'user',
+            ),
+          ),
+          entry: CallLogEntry(
+            name: 'Customer',
+            number: '9655227767',
+            type: 1,
+            timestamp: DateTime(2026, 10, 19),
+            durationSeconds: 30,
+          ),
+          callLogName: 'CL-1',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Create enquiry'), findsNothing);
+    expect(find.text('Write a comment only'), findsOneWidget);
   });
 
   testWidgets('loads only assigned enquiries for the home dashboard', (
@@ -797,9 +926,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Add action'));
       await tester.pumpAndSettle();
-      await chooseDrawerAction(tester, 'Mark completed');
+      await tester.tap(find.text('Request closure'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Confirm'));
+      await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
       expect(
         find.text('Completion sent. Waiting for web approval.'),
@@ -847,10 +976,8 @@ void main() {
       }
       await tester.tap(find.byTooltip('Add action'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
-      await tester.pumpAndSettle();
       expect(
-        find.text('Mark completed'),
+        find.text('Request closure'),
         decision == 'approved' ? findsNothing : findsOneWidget,
       );
       await tester.pumpWidget(const SizedBox.shrink());
@@ -897,6 +1024,63 @@ class _FakeCrmMobileApi extends CrmMobileApi {
   String? requestedEnquiryScope;
   String? requestedEnquiryFilter;
   String? lastEnquiriesAccessToken;
+  int enquiryTotal = 1;
+  final List<int> requestedEnquiryPages = [];
+  Map<String, dynamic>? createdTaskPayload;
+  Map<String, dynamic>? createdEnquiryPayload;
+
+  @override
+  Future<Map<String, dynamic>> taskOptions(String accessToken) async => {
+    'lists': [
+      {'id': 7, 'name': 'Accounts'},
+    ],
+    'priorities': [
+      {'id': 2, 'name': 'Normal', 'code': 'normal'},
+    ],
+    'statuses': [
+      {'id': 1, 'name': 'New', 'code': 'new'},
+    ],
+    'users': [
+      {'id': 3, 'name': 'Vijay Anand', 'email': 'vijay@example.com'},
+    ],
+    'capabilities': {'create': true},
+  };
+
+  @override
+  Future<Map<String, dynamic>> createTask(
+    String accessToken,
+    Map<String, dynamic> payload,
+  ) async {
+    createdTaskPayload = payload;
+    return payload;
+  }
+
+  @override
+  Future<CrmJob> createEnquiry({
+    required String accessToken,
+    required String customer,
+    required String mobile,
+    required String title,
+    required String enquiryGroup,
+    required String? assignedToUserId,
+    required String message,
+    String? statusId,
+    String? priorityId,
+    String? dueDate,
+  }) async {
+    createdEnquiryPayload = {
+      'customer': customer,
+      'mobile': mobile,
+      'title': title,
+      'enquiryGroup': enquiryGroup,
+      'assignedToUserId': assignedToUserId,
+      'message': message,
+      'statusId': statusId,
+      'priorityId': priorityId,
+      'dueDate': dueDate,
+    };
+    return _job;
+  }
 
   @override
   Future<List<CrmJob>> assignedJobs(String accessToken) async => [_job];
@@ -927,6 +1111,27 @@ class _FakeCrmMobileApi extends CrmMobileApi {
     requestedEnquiryFilter = filter;
     lastEnquiriesAccessToken = accessToken;
     return [_job];
+  }
+
+  @override
+  Future<CrmPage<CrmJob>> enquiriesPage({
+    required String accessToken,
+    String scope = 'all',
+    String filter = 'all',
+    String search = '',
+    String? listInId,
+    int page = 1,
+    int pageSize = 100,
+  }) async {
+    requestedEnquiryScope = scope;
+    requestedEnquiryFilter = filter;
+    requestedEnquiryPages.add(page);
+    return CrmPage(
+      items: [_job],
+      page: page,
+      pageSize: pageSize,
+      total: enquiryTotal,
+    );
   }
 
   @override
@@ -1006,9 +1211,10 @@ class _FakeCrmMobileApi extends CrmMobileApi {
   Future<CrmCallEnquiryFormData> callEnquiryFormData(
     String accessToken,
   ) async => const CrmCallEnquiryFormData(
-    groups: [],
+    groups: [CrmCallEnquiryGroup(label: 'Accounts', value: '7')],
     assignees: [],
     statuses: [
+      CrmCallEnquiryStatus(id: 'st-new', name: 'New', code: 'new'),
       CrmCallEnquiryStatus(id: 'st-1', name: 'Open', code: 'OPEN'),
       CrmCallEnquiryStatus(
         id: 'st-2',
@@ -1019,8 +1225,15 @@ class _FakeCrmMobileApi extends CrmMobileApi {
     ],
     priorities: [
       CrmCallEnquiryPriority(id: 'pr-1', name: 'Normal', code: 'NORMAL'),
+      CrmCallEnquiryPriority(id: 'pr-2', name: 'High', code: 'HIGH'),
     ],
   );
+
+  @override
+  Future<List<CrmCallLogComment>> callLogComments({
+    required String accessToken,
+    required String callLogName,
+  }) async => [];
 
   @override
   Future<CrmJob> job(String accessToken, String id) async => _job;
@@ -1123,6 +1336,15 @@ class _FakeCrmMobileApi extends CrmMobileApi {
   );
 
   final workUpdates = <Map<String, dynamic>>[];
+  bool checkpointCheckedIn = false;
+
+  @override
+  Future<bool> workCheckpoint(
+    String accessToken, {
+    int? enquiryId,
+    int? taskId,
+  }) async => checkpointCheckedIn;
+
   @override
   Future<List<Map<String, dynamic>>> workReports(
     String accessToken, {
@@ -1134,21 +1356,12 @@ class _FakeCrmMobileApi extends CrmMobileApi {
     String accessToken,
     Map<String, dynamic> payload,
   ) async {
-    postedComments.add('${payload['body']}');
+    checkpointCheckedIn = payload['action'] == 'check-in';
     workUpdates.add({
       ...payload,
       'created_by': 'vijay@example.com',
       'created_at': DateTime.now().toUtc().toIso8601String(),
     });
-    if (payload['latitude'] != null)
-      await logEnquiryLocation(
-        accessToken: accessToken,
-        enquiryId: '${payload['enquiryId']}',
-        latitude: payload['latitude'] as double,
-        longitude: payload['longitude'] as double,
-        accuracyMeters: payload['accuracyMeters'] as double?,
-        capturedAt: DateTime.parse('${payload['capturedAt']}'),
-      );
   }
 
   var loggedLocations = <CrmEnquiryLocation>[];
@@ -1234,12 +1447,4 @@ class _FakeCrmMobileApi extends CrmMobileApi {
     );
     return _job;
   }
-}
-
-Future<void> chooseDrawerAction(WidgetTester tester, String label) async {
-  await tester.tap(find.byType(DropdownButtonFormField<String>).first);
-  await tester.pumpAndSettle();
-  await tester.ensureVisible(find.text(label).last);
-  await tester.tap(find.text(label).last);
-  await tester.pumpAndSettle();
 }

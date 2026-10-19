@@ -46,6 +46,8 @@ This owner declares no internal workspace dependency in its package manifests.
 `workspace/list-tools` supplies column search controls and visibility state. Owning modules supply their column labels and record projections. It contains no business CRUD or permission decisions.
 With an application header target, `WorkspaceUpsertDialog` renders a form panel in the workspace. Other hosts retain the existing dialog behavior.
 
+`WorkspaceTable` accepts an optional `mobileRow` renderer for owner-provided compact records on narrow screens. When supplied, the mobile rows and any inline filters appear below the medium breakpoint; the sortable table remains available at wider widths. Record fields and actions stay with the owning module.
+
 ### Startup loader
 
 The global loader uses CSS ring animations and respects reduced-motion preferences.

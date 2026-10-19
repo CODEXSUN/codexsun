@@ -37,6 +37,8 @@
     "@codexsun/codexsun-api": "^1.1.25",
     "@codexsun/qcafe-api": "^1.1.25",
     "@codexsun/sites-api": "^1.1.25",
-    "@codexsun/tconnect-api": "^1.1.25"
+    "@codexsun/tconnect-api": "^1.1.25",
+    "@codexsun/data-migration-api": "^1.1.25",
+    "@codexsun/sportsclub-api": "^1.1.25"
   }
 }

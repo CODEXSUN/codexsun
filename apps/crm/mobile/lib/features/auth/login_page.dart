@@ -17,7 +17,8 @@ class LoginPage extends StatefulWidget {
     UserSession session, {
     String? password,
     String? corporateId,
-  }) onSignedIn;
+  })
+  onSignedIn;
   final String initialEmail;
 
   @override
@@ -60,16 +61,14 @@ class _LoginPageState extends State<LoginPage> {
         password: password,
         corporateId: corporateId,
       );
-      widget.onSignedIn(
-        session,
-        password: password,
-        corporateId: corporateId,
-      );
+      widget.onSignedIn(session, password: password, corporateId: corporateId);
     } on CrmMobileApiException catch (error) {
       setState(() => _error = error.message);
     } catch (error, stack) {
       debugPrint('[login error] $error\n$stack');
-      setState(() => _error = 'Could not connect to ${AppConfig.brandName}: $error');
+      setState(
+        () => _error = 'Could not connect to ${AppConfig.brandName}: $error',
+      );
     } finally {
       if (mounted) setState(() => _isSigningIn = false);
     }
@@ -99,13 +98,8 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Center(
-                        child: AppBrandLogo(
-                          width: 72,
-                          height: 68,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
+                      Center(child: AppBrandLogo(width: 48, height: 48)),
+                      const SizedBox(height: 14),
                       Text(
                         'Welcome',
                         textAlign: TextAlign.center,
@@ -114,20 +108,15 @@ class _LoginPageState extends State<LoginPage> {
                           color: const Color(0xFF2C2434),
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Sign in to your ${AppConfig.brandName} workspace',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF756F7A),
-                        ),
-                      ),
                       const SizedBox(height: 24),
                       TextField(
                         controller: _corporateId,
                         textCapitalization: TextCapitalization.characters,
                         decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.business_outlined, size: 20),
+                          prefixIcon: const Icon(
+                            Icons.business_outlined,
+                            size: 20,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -140,7 +129,10 @@ class _LoginPageState extends State<LoginPage> {
                         controller: _email,
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                          prefixIcon: const Icon(
+                            Icons.email_outlined,
+                            size: 20,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

@@ -119,6 +119,12 @@ Project Manager owns Platform Registry and Ideas and is composed by Platform thr
 - Platform supplies the authenticated request database and actor. Project Manager does not resolve tenant identity from
   browser input and uses the existing HttpOnly CODEXSUN session cookie.
 
+### Data Migration
+
+- `devkits/data-migration/api` owns encrypted external MariaDB source connections, table previews, copy transactions, and the `data_migration_sources` and `data_migration_runs` Platform master tables. Its migration is recorded in `migration_schema` under the `data-migration` scope.
+- `devkits/data-migration/web` owns the Super Admin Overview, Migration, and Migration Settings pages. Migration Settings manages external source host, port, database, user, TLS, and encrypted password changes. Platform composes the public packages, enforces Super Admin access, and resolves only registered destination tenant databases and the encryption key.
+- A transfer copies one compatible table into an empty destination table, with a 10,000 row limit and persisted run result. Schema creation and ongoing synchronization are outside the current contract.
+
 ### Auditor
 
 - `apps/auditor/api` owns the client directory, portal credential migration, permission seed, and `/auditor/clients` routes. The Platform API composes it using the existing desk user session.

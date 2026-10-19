@@ -27,7 +27,8 @@ export type PlatformApp = {
     | "docs"
     | "himsx"
     | "codexsun"
-    | "sites";
+    | "sites"
+    | "sportsclub";
   uuid: string;
 };
 export type PlatformAppSavePayload = Omit<PlatformApp, "id" | "uuid">;

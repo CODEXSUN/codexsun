@@ -33,7 +33,8 @@ export class TaskService {
     pageSize: number,
     filter: string,
     columnFilters: TaskColumnFilters,
-    contactId?: number
+    contactId?: number,
+    scope: "visible" | "mine" = "visible"
   ) {
     return this.repo.list(
       this.ctx.canViewAll,
@@ -44,7 +45,8 @@ export class TaskService {
       pageSize,
       filter,
       columnFilters,
-      contactId
+      contactId,
+      scope
     );
   }
   async get(id: number) {

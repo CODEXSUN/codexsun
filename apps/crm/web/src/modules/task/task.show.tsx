@@ -1,14 +1,22 @@
 import { ClosurePendingBadge } from "../closure";
-import { WorkReportWorkspace } from "../work-report/index";
+import { WorkChargesWorkspace, WorkReportWorkspace } from "../work-report/index";
 import { TaskComments } from "./task.comments";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, BellRing, LogIn, MessageSquare, Settings2, Timer } from "lucide-react";
+import {
+  Activity,
+  BellRing,
+  LogIn,
+  MessageSquare,
+  ReceiptText,
+  Settings2,
+  Timer
+} from "lucide-react";
 import { toast } from "sonner";
 import { WorkspaceAnimatedTabs } from "@codexsun/ui/workspace/animated-tabs";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
-import { formatDateTime } from "@codexsun/ui/workspace/utils";
+import { formatDate as formatWorkspaceDate, formatDateTime } from "@codexsun/ui/workspace/utils";
 import { CrmColorLabel, CrmStatusBadge, statusRing } from "../../crm-colors";
 import { useWorkReports } from "../work-report/work-report.hooks";
 import { TaskPropertiesPanel } from "./task.properties";
@@ -28,7 +36,7 @@ import {
 } from "./task.services";
 import type { TaskRecord } from "./task.types";
 
-type Tab = "actions" | "comments" | "checkpoints" | "jobs" | "properties" | "closure";
+type Tab = "actions" | "comments" | "checkpoints" | "jobs" | "charges" | "properties" | "closure";
 
 export function TaskShow({
   id,
@@ -52,7 +60,8 @@ export function TaskShow({
   const key = Number(id);
   const workTarget = { enquiryId: null, taskId: key };
   const actions = useWorkReports(workTarget);
-  const checkpoints = useWorkReports(workTarget, 1, true);
+  const checkpoints = useWorkReports(workTarget, 1, "checkpoints");
+  const charges = useWorkReports(workTarget, 1, "charges");
   const comments = useQuery({
     queryKey: ["crm", "tasks", key, "comments"],
     queryFn: () => getTaskComments(key),
@@ -239,6 +248,17 @@ export function TaskShow({
       )
     },
     {
+      value: "charges",
+      label: (
+        <Label
+          icon={<ReceiptText className="size-4" />}
+          text="Charges"
+          count={charges.data?.total ?? 0}
+        />
+      ),
+      content: <WorkChargesWorkspace target={{ enquiryId: null, taskId: key }} />
+    },
+    {
       value: "properties",
       label: <Label icon={<Settings2 className="size-4" />} text="Properties" />,
       content: (
@@ -281,7 +301,7 @@ export function TaskShow({
   return (
     <WorkspacePage title="" technicalName="page.crm.tasks.show">
       <section
-        className={`rounded-md border border-border/70 bg-card px-4 py-4 shadow-sm ring-2 ${statusRing(row.status)}`}
+        className={`rounded-xl border border-border/70 bg-card px-3 py-3 shadow-sm ring-2 sm:rounded-md sm:px-4 sm:py-4 ${statusRing(row.status)}`}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="min-w-0 flex-1 break-words text-lg font-semibold">
@@ -300,9 +320,47 @@ export function TaskShow({
             {row.closurePending ? <ClosurePendingBadge /> : null}
           </div>
         </div>
-        <div className="mt-4 overflow-hidden rounded-md border border-border/60">
+        <div className="mt-3 grid gap-2 sm:hidden">
+          <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Task details</p>
+            <p className="whitespace-pre-wrap break-words text-sm font-semibold [overflow-wrap:anywhere]">
+              {row.description || row.title || "—"}
+            </p>
+            {row.description && row.title && row.description !== row.title ? (
+              <p className="mt-1 break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                {row.title}
+              </p>
+            ) : null}
+          </div>
+          <dl className="grid min-w-0 grid-cols-2 gap-2">
+            <MobileSummaryField
+              label="Contact"
+              value={
+                row.contactId ? (
+                  <a
+                    className="font-medium text-primary hover:underline"
+                    href={`/app/crm/contacts/${row.contactId}/show`}
+                  >
+                    {row.contactName || "Open contact"}
+                  </a>
+                ) : (
+                  "—"
+                )
+              }
+            />
+            <MobileSummaryField label="Mobile" value={row.contactPhone || "—"} />
+            <MobileSummaryField label="Assigned to" value={row.assignedTo || "Unassigned"} />
+            <MobileSummaryField
+              label="Due date"
+              value={row.dueDate ? formatWorkspaceDate(row.dueDate) : "—"}
+            />
+            <MobileSummaryField label="Created by" value={row.creatorName || row.createdBy} />
+            <MobileSummaryField label="Created" value={<CreatedAge value={row.createdAt} />} />
+          </dl>
+        </div>
+        <div className="mt-4 hidden overflow-hidden rounded-md border border-border/60 sm:block">
           <table aria-label="Task details" className="w-full table-fixed text-sm">
-            <colgroup>
+            <colgroup className="hidden sm:table-column-group">
               <col className="w-[12%]" />
               <col className="w-[38%]" />
               <col className="w-[12%]" />
@@ -341,7 +399,7 @@ export function TaskShow({
                 leftLabel="Assigned to"
                 leftValue={row.assignedTo || "Unassigned"}
                 rightLabel="Due date"
-                rightValue={row.dueDate ? formatDate(row.dueDate) : "—"}
+                rightValue={row.dueDate ? formatWorkspaceDate(row.dueDate) : "—"}
               />
               <SummaryDetail
                 leftLabel="Created by"
@@ -365,6 +423,17 @@ export function TaskShow({
   );
 }
 
+function MobileSummaryField({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+      <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="mt-1 break-words text-sm text-foreground [overflow-wrap:anywhere]">{value}</dd>
+    </div>
+  );
+}
+
 function Label({ icon, text, count }: { icon: ReactNode; text: string; count?: number }) {
   return (
     <span className="inline-flex items-center gap-2">
@@ -375,11 +444,6 @@ function Label({ icon, text, count }: { icon: ReactNode; text: string; count?: n
       ) : null}
     </span>
   );
-}
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  const [year, month, day] = value.slice(0, 10).split("-");
-  return `${day}-${month}-${year}`;
 }
 function SummaryDetail({
   leftLabel,
@@ -393,23 +457,23 @@ function SummaryDetail({
   rightValue: ReactNode;
 }) {
   return (
-    <tr className="grid grid-cols-[minmax(6rem,1fr)_minmax(0,2fr)] sm:table-row">
+    <tr className="grid min-w-0 grid-cols-[minmax(6rem,0.85fr)_minmax(0,1.55fr)] sm:table-row">
       <th
         scope="row"
-        className="border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground"
+        className="min-w-0 break-words border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground [overflow-wrap:anywhere]"
       >
         {leftLabel}
       </th>
-      <td className="break-words bg-muted/30 px-3 py-2 align-top text-muted-foreground">
+      <td className="min-w-0 break-words bg-muted/30 px-3 py-2 align-top text-muted-foreground [overflow-wrap:anywhere]">
         {leftValue}
       </td>
       <th
         scope="row"
-        className="border-t border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground sm:border-t-0 sm:border-l"
+        className="min-w-0 break-words border-t border-r border-border/60 bg-muted/40 px-3 py-2 text-left align-top font-medium text-muted-foreground [overflow-wrap:anywhere] sm:border-t-0 sm:border-l"
       >
         {rightLabel}
       </th>
-      <td className="break-words border-t border-border/60 bg-muted/30 px-3 py-2 align-top text-muted-foreground sm:border-t-0">
+      <td className="min-w-0 break-words border-t border-border/60 bg-muted/30 px-3 py-2 align-top text-muted-foreground [overflow-wrap:anywhere] sm:border-t-0">
         {rightValue}
       </td>
     </tr>

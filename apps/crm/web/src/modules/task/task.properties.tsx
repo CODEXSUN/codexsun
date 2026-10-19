@@ -6,7 +6,7 @@ import { WorkspaceDatePicker } from "@codexsun/ui/workspace/date-picker";
 import { WorkspaceLookup } from "@codexsun/ui/workspace/lookup";
 import { WorkspaceDetailTable, WorkspaceShowCard } from "@codexsun/ui/workspace/show";
 import { CrmColorLabel, prioritySwatch, statusIcon } from "../../crm-colors";
-import { formatDateTime } from "@codexsun/ui/workspace/utils";
+import { formatDate as formatWorkspaceDate, formatDateTime } from "@codexsun/ui/workspace/utils";
 import type { TaskOptions, TaskRecord } from "./task.types";
 
 type TaskPropertyPatch = {
@@ -93,7 +93,9 @@ export function TaskPropertiesPanel({
         </EditableRow>
         <EditableRow
           label="Priority"
-          value={<CrmColorLabel kind="priority" code={record.priority} label={record.priorityName} />}
+          value={
+            <CrmColorLabel kind="priority" code={record.priority} label={record.priorityName} />
+          }
           canEdit={canEdit}
           editing={editing === "priorityId"}
           loading={loading}
@@ -138,14 +140,12 @@ export function TaskPropertiesPanel({
             }))}
             placeholder="Unassigned"
             value={draft.assignedUserId ? String(draft.assignedUserId) : ""}
-            onValueChange={(value) =>
-              setDraft({ assignedUserId: value ? Number(value) : null })
-            }
+            onValueChange={(value) => setDraft({ assignedUserId: value ? Number(value) : null })}
           />
         </EditableRow>
         <EditableRow
           label="Due date"
-          value={record.dueDate ? formatDate(record.dueDate) : "—"}
+          value={record.dueDate ? formatWorkspaceDate(record.dueDate) : "—"}
           canEdit={canEdit}
           editing={editing === "dueDate"}
           loading={loading}
@@ -163,7 +163,9 @@ export function TaskPropertiesPanel({
         <EditableRow
           label="Status"
           value={<CrmColorLabel kind="status" code={record.status} label={record.statusName} />}
-          canEdit={canEdit && (record.status !== "closed" || Boolean(options?.capabilities.reopenClosed))}
+          canEdit={
+            canEdit && (record.status !== "closed" || Boolean(options?.capabilities.reopenClosed))
+          }
           editing={editing === "statusId"}
           loading={loading}
           onEdit={() => edit("statusId")}
@@ -175,10 +177,10 @@ export function TaskPropertiesPanel({
             clearable={false}
             showAllOptionsOnFocus
             options={statusOptions.map((item) => ({
-                label: item.name,
-                value: String(item.id),
-                leadingIcon: statusIcon(item.code ?? "")
-              }))}
+              label: item.name,
+              value: String(item.id),
+              leadingIcon: statusIcon(item.code ?? "")
+            }))}
             value={draft.statusId ? String(draft.statusId) : ""}
             onValueChange={(value) => {
               if (value) setDraft({ statusId: Number(value) });
@@ -269,9 +271,4 @@ function EditableRow({
       </div>
     </div>
   );
-}
-
-function formatDate(value: string) {
-  const [year, month, day] = value.slice(0, 10).split("-");
-  return `${day}-${month}-${year}`;
 }
