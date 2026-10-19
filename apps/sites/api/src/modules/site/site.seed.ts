@@ -8,6 +8,7 @@ export const siteSeed = {
 };
 
 const defaultPortfolios = [
+  { description: "Sports club based at Sivakalai Gurukulam, with student and master portals on Platform.", name: "Tenkasi District Sports Club", port: 7134, primaryDomain: "tenkasisports.localhost", publishedPages: 0, slug: "tenkasisports", status: "active" as const, themeKey: "portfolio-tenkasisports", uuid: "c0de0006" },
   {description:"Textile business discovery and association communities, connected to the Tirupur Connect tenant.",name:"Tirupur Connect",port:7040,primaryDomain:"tirupurconnect.com",publishedPages:0,slug:"tirupurconnect",status:"active" as const,themeKey:"portfolio-tirupurconnect",uuid:"c0de0005"},
   {
     description:
@@ -63,7 +64,7 @@ export async function seedSiteModule(database: Kysely<SitesDatabase>) {
   const clients = await database
     .selectFrom("sites_portfolio_sites")
     .select(["id", "slug"])
-    .where("slug", "in", ["ramutex", "logicx"])
+    .where("slug", "in", ["ramutex", "logicx", "tenkasisports"])
     .execute();
   for (const client of clients) await seedPageModule(database, client.id, client.slug);
 }

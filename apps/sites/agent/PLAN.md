@@ -1,5 +1,25 @@
 # Site Studio plan
 
+## Tenkasi Sports public client and Cloudflare delivery — October 19, 2026
+
+- **Ownership Boundaries**:
+  - AGR-4 owns `apps/sites/clients/**` (Tenkasi Sports public frontend and Cloudflare Worker) and minimal Sites CMS publication registration.
+  - AGR-1 owns `apps/sportsclub` (member API, business models, private administration).
+  - AGR-3 owns `apps/platform` (identity provisioning, tenant routing, host proxy, auth desks).
+  - Cross-component coordination is conducted strictly via typed public schemas and HTTP API contracts.
+- **Delivery & Architecture**:
+  - Cloudflare Worker (`apps/sites/clients/cloudflare/tenkasisports.mjs`) handles apex/www routing, public asset delivery, and proxying.
+  - Fail-closed tenant context validation against Platform `GET /api/platform/public/portals/tenkasisports/health`. Returns 503 `TENANT_SETUP_PENDING` if backend is unreachable or corporate ID is not `TENKASISPORTS`.
+  - Same-origin POST enforcement with caller cookie stripping. Outbound requests sign HMAC headers (`x-codexsun-public-client`, `x-codexsun-client-time`, `x-codexsun-client-signature`) verified by Platform `verifiedSportsclubPortalClient`.
+  - Canonical forwarding directly to `/public/sportsclub/registration` and `/public/sportsclub/enquiry`. No fallback to legacy `/student/register` (strictly returns 404 on missing routes).
+- **Execution Gates**:
+  1. Unit and worker proxy tests: `tenkasisports.worker.test.ts` (signed delivery, idempotent updates, fail-closed guards, same-origin, HMAC client headers).
+  2. Platform integration tests: `sportsclub-platform.test.ts` (tenant isolation, role checks, schema validation).
+  3. Static typing and linting: `@codexsun/sites-clients`, `@codexsun/sites-api`, `@codexsun/sites-web`.
+  4. Module boundaries check: `node tools/check-module-boundaries.mjs sites`.
+  5. Static build: `npm run build:tenkasisports -w @codexsun/sites-clients`.
+  6. Coordinator gate: Await backend deployment on `codexsun.com` before Cloudflare Worker production deployment.
+
 ## Tirupur Connect content management — October 17, 2026
 
 Open Sites → Tirupur Connect → Manage. Client details edits branding and public contacts. Pages → Textile edits hero imagery, category copy and images, directory and community headings, the sourcing guide, the closing banner, pending-state copy and public page introductions. Hero, Page & SEO, and Footer have their own sections. Individual category images use full crops. Image sheets use a 3 by 2 crop. Use deployed local image paths or public HTTPS JPG, PNG or WebP URLs. File upload is not included.

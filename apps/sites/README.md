@@ -52,6 +52,31 @@ Live delivery uses an authenticated publication export, not a development API or
 
 No SQL column migration is required for the optional textile content field. Existing publications remain valid. Existing Tirupur Connect generic drafts need approved content initialized before export. The local CMS integration check verifies draft isolation, publish, stale saves, unsafe-image rejection and export. Unit checks cover deployment identity and safe embedding. VPS configuration and a remote Studio registry remain separate.
 
+## Tenkasi District Sports Club client
+
+Tenkasi District Sports Club is the public brand for the named Sites client `tenkasisports`. Sivakalai Gurukulam is its home association. The local port is 7134.
+Its public UI lives in `clients/src/clients/tenkasisports`. Public assets and authentic handbook media live in `clients/public/tenkasisports`.
+The local Studio registry contains this client with pinned site UUID `c0de0006`. Studio Start verifies its identity before opening port 7134.
+Its layout is code-owned and responsive across mobile (320px, 390px, 430px) and desktop viewports with authentic Tamil and English content from the handbook.
+The sticky header shows the club name and links to Home, About, Syllabus, Classes, Masters, Gallery, Contact, Students, and Alumni.
+The top banner shows `9843930300` as a call link on the left. The language switch and member portal link sit on the right.
+The header, footer, and gallery use the supplied club logo from `clients/public/tenkasisports/club-logo.jpg`.
+The home page uses a three-slide, two-column hero modeled on the Platform static page: bilingual copy, local training photos, arrow and dot controls, smooth Framer Motion crossfades, and automatic rotation that pauses during interaction. The previous handbook image is no longer in the home hero.
+The four club facts below the hero count up and enter with a short stagger when scrolled into view, while reduced-motion users see their final values immediately.
+The three home introduction cards link to the syllabus page; the section label and heading have extra breathing room above the cards.
+The Students page links to the existing admission and member portal flows. The Alumni page links to Contact and Gallery. The `/programs` path remains an alias for `/syllabus`.
+These page and brand changes are local source changes. They have not been deployed to the live Worker or published from Studio.
+Public registration, enquiry, masters, classes, and programs submit through the same-origin Cloudflare Worker proxy forwarding strictly to Platform public endpoints.
+
+The public site is `https://tenkasisports.com` (redirecting `www.tenkasisports.com` via 308). Its Worker lives in `clients/cloudflare/tenkasisports.mjs`.
+Deployed as Cloudflare Worker `codexsun-tenkasisports` (version `1ded24cb-a4fa-4291-a95a-a948f85755c5`) in zone `f7c324e9ca4cac54047f84f591cb54e4` with D1 database `codexsun-tenkasisports-content` (`1fff5450-d9a8-473c-8b11-45ecad357a60`).
+Wrangler configuration lives in `apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc`.
+Build with `npm run build:tenkasisports -w @codexsun/sites-clients`. Output stays under root `dist/apps/sites/clients/tenkasisports`.
+
+Public sports club data must come from Corporate ID `TENKASISPORTS`. The fixed upstream is `https://codexsun.com`.
+The Worker performs live health checks against `/api/platform/public/portals/tenkasisports/health` and fails closed (503 TENANT_SETUP_PENDING) if the backend is offline or corporate ID mismatches.
+Same-origin is enforced on POST requests; caller cookies and tenant headers are stripped, and outbound HMAC signature headers (`x-codexsun-public-client`, `x-codexsun-client-time`, `x-codexsun-client-signature`) are attached for canonical registration and enquiry forwarding.
+
 ## Client workspaces
 
 - Manage opens the selected client's profile, Pages, and Blogs editors.
@@ -59,7 +84,7 @@ No SQL column migration is required for the optional textile content field. Exis
 - Add Portfolio opens the creation form and proposes the next available registered port.
 - Creating a portfolio saves its site and initial website draft in one tenant database transaction.
 - New clients use `portfolio-standard`. They start with empty service, contact, and blog records where details are unknown.
-- LogicX uses `portfolio-logicx` on port 7131. Ramu Tex uses `portfolio-ramutex` on port 7132.
+- LogicX uses `portfolio-logicx` on port 7131. Ramu Tex uses `portfolio-ramutex` on port 7132. Tenkasi Sports uses `portfolio-sportsclub` on port 7134.
 - Start launches the selected template on its saved port. Open visits that local website.
 
 The current public routes are `/`, `/about`, `/services`, `/contact`, `/blogs`, `/privacy`, and `/blogs/:slug`.

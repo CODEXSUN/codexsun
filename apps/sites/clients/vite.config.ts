@@ -9,6 +9,11 @@ const webDirectory = import.meta.dirname;
 const repositoryDirectory = resolve(webDirectory, "../../..");
 
 const surfaces = {
+  tenkasisports: {
+    defaultPort: 7134,
+    entry: "src/clients/tenkasisports/site.tsx",
+    envKey: "CODEXSUN_SITES_TENKASISPORTS_PORT"
+  },
   logicx: {
     defaultPort: 7131,
     entry: "src/clients/logicx/site.tsx",

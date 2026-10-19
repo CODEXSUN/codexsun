@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.21
+Current version: 1.1.22
 
-Release tag: v-1.1.21
+Release tag: v-1.1.22
 
-Changelog label: v 1.1.21
+Changelog label: v 1.1.22
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,21 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.22
+
+### [v 1.1.22] 2026-10-19 8:54 pm - Publish Tenkasi District Sports Club site
+
+#### Database Changes
+
+- Database update: Yes (manual). Add the Tenkasi Sites D1 publication tables; they already exist in the live D1 database.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.22.
+- Add the Tenkasi District Sports Club public client, its Cloudflare Worker, published-content reader, and separate Home, About, Syllabus, Classes, Masters, Gallery, Contact, Students, and Alumni routes.
+- Use the supplied club logo and phone number. Add a bilingual rotating hero, scroll-triggered club facts, and syllabus links on the home cards.
+- Register the named client with Sites Studio and add its public page paths. Keep the member portal and language controls in the sticky header.
 
 ## v-1.1.21
 

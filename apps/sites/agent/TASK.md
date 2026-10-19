@@ -1,5 +1,72 @@
 # Site Studio task and working rules
 
+## Tenkasi District Sports Club page refinement — October 19, 2026
+
+- [x] Set Tenkasi District Sports Club as the public brand. Keep Sivakalai Gurukulam in the home page content.
+- [x] Simplify the sticky header to the club title and controls. Remove the subtitle.
+- [x] Restore the supplied Tenkasi District Sports Club logo in the header, footer, and gallery without changing the image bytes.
+- [x] Show `9843930300` as a call link on the left of the top banner. Keep the language switch and member portal link on its right.
+- [x] Link Home, About, Syllabus, Classes, Masters, Gallery, Contact, Students, and Alumni from the shared header.
+- [x] Add Students and Alumni pages. Keep admission and member access in their existing flows.
+- [x] Build separate HTML entry files for the new routes. Keep `/programs` as an alias for `/syllabus`.
+- [x] Pass Sites client typecheck, lint, Worker tests (8/8), Sites API typecheck, module boundary check, and local build.
+- [x] Inspect Home, Students, and Alumni in a local browser preview on port 7135.
+- [x] Replace the home hero handbook image with a three-slide hero based on the Platform static page layout and controls; use local training and master photos.
+- [x] Smooth the hero's copy and image transitions with overlapping Framer Motion crossfades, and reset the automatic timer after slide changes.
+- [x] Animate the four home stats once as they enter the viewport, with reduced-motion support.
+- [x] Add spacing around the home tradition heading and make its three cards full-card links to `/syllabus`.
+- [ ] Deploy the new build and publish the updated site profile. The live Worker still serves the prior release.
+
+## Tenkasi Sports public client and Cloudflare delivery — October 19, 2026
+
+- **Scope & Ownership**: AGR-4 owns the public frontend, Cloudflare Worker proxy/delivery configuration, static prerendering, and minimal Sites CMS publication registration for **Veerathamilan Traditional Sivakalai Gurukulam / Tenkasi Sports** (`tenkasisports.com`).
+- **Client & Port**: Named Sites client slug `tenkasisports`, template `portfolio-sportsclub`, pinned site UUID `c0de0006`, local port `7134`, database `codexsun_sportsclub_tenkasisports`.
+- **Worker & Routing**:
+  - Apex domain `tenkasisports.com` with `www.tenkasisports.com` redirected to apex via 308.
+  - Wrangler config `apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc` targeted to Cloudflare zone `f7c324e9ca4cac54047f84f591cb54e4` (zone existence verified via authenticated Cloudflare API; see audit results below). Removed plaintext `CODEXSUN_SITES_TENKASISPORTS_SITE_KEY` from `vars` (fails closed with 503 if unconfigured; managed via Wrangler encrypted secret bindings).
+  - Upstream fixed backend `https://codexsun.com`.
+  - Live tenant health check against `${backend}/api/platform/public/portals/tenkasisports/health`; fails closed (503 `TENANT_SETUP_PENDING`) if backend is offline or corporate ID does not match `TENKASISPORTS`.
+  - Canonical platform proxy routes: `/public/sportsclub/registration`, `/public/sportsclub/enquiry`, `/public/sportsclub/programs`, `/public/sportsclub/masters`, `/public/sportsclub/classes`, `/public/sportsclub/events`, `/public/sportsclub/club-profile`, and `/health`.
+  - Removed fallback to legacy `/student/register` (fails closed on 404 to avoid orphan identities).
+  - Same-origin enforced on POST, client cookies and tenant headers stripped, HMAC verification headers (`x-codexsun-public-client`, `x-codexsun-client-time`, `x-codexsun-client-signature`) attached on upstream forwards.
+- **Frontend & Content**:
+  - Authentic Tamil/English handbook content and syllabus from Veerathamilan Traditional Sivakalai Gurukulam.
+  - Exact logo and book imagery preserved without fabrication of awards, fees, or medical claims.
+  - Responsive public routes: Home, About, Programs (Silambam), Masters, Classes, Events, Gallery, Join (Student Registration), Contact (Public Enquiry), Privacy, Terms, and 404.
+  - Forms validate strictly against Platform public schemas (`studentEnrollmentSchema`, `publicEnquirySubmissionSchema`):
+    - Removed synthetic email creation, fake references, and client-side fake success.
+    - Added student-selected password and confirmation (min 12 chars) for portal account creation; never displayed or persisted in UI.
+    - Replaced dropped fields (`age`, `category`, `level`) with genuine schema persistence fields (`dateOfBirth`, `emergencyContact`, `guardianPhone`, `guardianName`, `medicalNotes`, `address`).
+    - Contact form requires explicit opt-in privacy consent checkbox matching `publicEnquirySubmissionSchema` (`consent: true`).
+    - Actionable error and retry display on network or validation failures; success receipt displayed only upon confirmed backend response.
+  - Portal link configured to authenticated tenant desk: `https://app.codexsun.com/login?desk=tenant&app=sportsclub&corporateId=TENKASISPORTS`.
+- **Verification Gates**:
+  - `node --import tsx --test apps/sites/clients/cloudflare/tenkasisports.worker.test.ts`: 8/8 passed (including missing secret fail-closed, backend error propagation, and duplicate conflict tests).
+  - `node --import tsx --test apps/platform/api/src/sportsclub-platform.test.ts`: 11/11 passed.
+  - `npm run typecheck -w @codexsun/sites-clients`: 0 errors.
+  - `npm run lint -w @codexsun/sites-clients`: 0 warnings, 0 errors.
+  - `npm run typecheck -w @codexsun/sites-api`: 0 errors.
+  - `npm run typecheck -w @codexsun/sites-web`: 0 errors.
+  - `npm run build:tenkasisports -w @codexsun/sites-clients`: Built cleanly.
+  - `node tools/check-module-boundaries.mjs sites`: Passed.
+  - Cloudflare deployment authorized by user and completed on October 19, 2026.
+- **Cloudflare Live Deployment & Audit Evidence (October 19, 2026)**:
+  - **Account & Zone**: Authenticated Cloudflare API (`GET /client/v4/zones?name=tenkasisports.com`) and `wrangler whoami` confirmed zone `tenkasisports.com` exists with ID `f7c324e9ca4cac54047f84f591cb54e4` in account `a68cf61bf5bae3f83ddb7765dc29a835` (`Codexsun@gmail.com's Account`). Status is `active` on `Free Website` plan using nameservers `evan.ns.cloudflare.com` and `sara.ns.cloudflare.com`. Public DNS resolves to Cloudflare proxy Anycast IPs `172.67.164.163` and `104.21.74.238`.
+  - **D1 Content Database**: Dedicated D1 database `codexsun-tenkasisports-content` created in APAC region with UUID `1fff5450-d9a8-473c-8b11-45ecad357a60`. Applied content schema (`apps/sites/clients/cloudflare/tenkasisports.content.sql`) and seeded initial authentic handbook publication (version 1, checksum `87c2a114c05b925d107eb6e834ea033ab9c7cf8652884a6815f1495aaeeb6807`). Live `GET /__sites-version` and `GET /__sites-content` return 200 with live publication payload.
+  - **Worker Deployment**: Worker script `codexsun-tenkasisports` deployed via `wrangler deploy -c apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc`. Current live Version ID: `1ded24cb-a4fa-4291-a95a-a948f85755c5` (initial version: `5c98545a-ccb8-457e-a406-0b98fc62b99e`). Triggers deployed: `tenkasisports.com/*` and `www.tenkasisports.com/*`.
+  - **Live Traffic & Routes Verification**:
+    - Apex `https://tenkasisports.com/`: 200 OK, title `வீரத்தமிழன் பாரம்பரிய சிவகலை குருகுலம் | Tenkasi Sports`, ~7.1 KB HTML, `X-Codexsun-Publication: 1`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`.
+    - WWW `https://www.tenkasisports.com/*`: 308 Permanent Redirect to canonical apex `https://tenkasisports.com/*`.
+    - 10 Public Page Routes (`/about`, `/programs`, `/masters`, `/classes`, `/events`, `/gallery`, `/join`, `/contact`, `/privacy`, `/terms`): All return 200 OK with distinct authentic Tamil/English titles, OpenGraph metadata, canonical links, and ~7KB prerendered HTML.
+    - Nonexistent routes (`/nonexistent-route`): Return HTTP 404 Not Found with 404 title and description.
+    - Static Assets (`/favicon.svg`, `/assets/index-*.js`, `/assets/index-*.css`, `/fonts/geist-latin.woff2`, `/logo.png`, `/logo.jpeg`, `/asan-portrait.jpg`, `/asan-temple-staff.jpg`, `/gallery-stance-*.jpg`): 200 OK with accurate MIME types.
+  - **Backend Limitation & Fail-Closed Guard**:
+    - Sportsclub backend API on `codexsun.com` (`/api/platform/public/portals/tenkasisports/health`) is still pending deployment by coordinator/AGR-3.
+    - Worker health and admission endpoints (`/api/sportsclub/health`, `POST /api/sportsclub/registration`, `POST /api/sportsclub/enquiry`) fail closed with HTTP 503 `TENANT_SETUP_PENDING` (`"The Tenkasi Sports workspace is being prepared. Please check back shortly."`).
+    - Cross-origin POSTs are rejected with HTTP 403 `A same-origin request is required.`
+    - Forms visibly display network error messages and prevent submitting until Platform API is deployed.
+    - No secrets or credentials were hardcoded in repository files. Secrets remain configured via encrypted bindings.
+
 ## Tirupur Connect content management — October 17, 2026
 
 Verified: local authenticated draft/publication persistence and export sequence 24; six publication/Worker checks; six runtime checks; Sites CMS checks (13 passed, one opt-in MariaDB check skipped); affected TypeScript, lint, module boundaries and dependency layout. Deployed the latest public frontend as Worker version `0665e060-cb68-4195-a145-c509f7edec05`. Live content matches the approved Sites export; all 14 public routes passed at 1440, 768, 390 and 320px without runtime exceptions. The separate remote Studio/VPS release was not performed.

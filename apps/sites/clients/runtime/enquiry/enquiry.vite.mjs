@@ -6,7 +6,7 @@ export function clientEnquiryPlugin(root, slug, uuid, dataDirectory) {
   return {
     name: "codexsun-sites-local-enquiries",
     configureServer(server) {
-      const identity = uuid || { logicx: "c0de0002", ramutex: "c0de0004" }[slug];
+      const identity = uuid || { logicx: "c0de0002", ramutex: "c0de0004", tenkasisports: "c0de0006" }[slug];
       if (!identity) return;
       const directory = dataDirectory || resolve(root, "storage/sites-data/manual", slug, identity);
       mkdirSync(directory, { recursive: true });

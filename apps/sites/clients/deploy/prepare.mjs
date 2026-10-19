@@ -18,7 +18,7 @@ if (!args.includes("--snapshot") || !snapshotFile)
 const raw = JSON.parse(await readFile(resolve(snapshotFile), "utf8"));
 const snapshot = verifyPublication(raw.success ? raw.data : raw);
 const slug = snapshot.siteSlug;
-const named = ["logicx", "ramutex"].includes(slug);
+const named = ["logicx", "ramutex", "tenkasisports"].includes(slug);
 const originIndex = args.indexOf("--origin");
 const origin =
   originIndex >= 0 ? args[originIndex + 1] : `https://${snapshot.content.profile.domain}`;
@@ -92,7 +92,7 @@ for (const name of ["robots.txt", "robo.txt"])
 await cp(resolve(clientRoot, "deploy/manage.mjs"), resolve(output, "runtime/manage.mjs"));
 for (const file of ["Dockerfile", "nginx.conf", "compose.yaml", ".env.example"])
   await cp(resolve(clientRoot, "deploy", file), resolve(output, file));
-const hostPort = slug === "logicx" ? 7131 : slug === "ramutex" ? 7132 : 8080;
+const hostPort = slug === "logicx" ? 7131 : slug === "ramutex" ? 7132 : slug === "tenkasisports" ? 7134 : 8080;
 const hostname = new URL(origin).hostname;
 const unit = (await readFile(resolve(clientRoot, "deploy/site.service"), "utf8"))
   .replaceAll("client-slug", slug)
