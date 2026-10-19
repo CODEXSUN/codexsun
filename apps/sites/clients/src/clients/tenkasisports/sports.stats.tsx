@@ -4,7 +4,7 @@ const stats = [
   { value: 12000, suffix: "+", ta: "பயின்ற மாணவர்கள்", en: "Students trained" },
   { value: 2000, suffix: "", ta: "பயிற்சி தொடங்கிய ஆண்டு", en: "Training since" },
   { value: 64, suffix: "+", ta: "பாடத்திட்டக் கூறுகள்", en: "Syllabus topics" },
-  { value: 132, suffix: "", ta: "தனித்துவமான நுட்பங்கள்", en: "Unique techniques" }
+  { value: 132, suffix: "+", ta: "தனித்துவமான நுட்பங்கள்", en: "Unique techniques" }
 ] as const;
 
 function formatStat(value: number, target: number) {

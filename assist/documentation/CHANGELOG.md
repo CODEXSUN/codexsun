@@ -40,6 +40,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Replace training-level card figures with rotating Silambam staff watermarks. Stop the rotation when reduced motion is selected.
 - Show the Shengottai headquarters and Tirupur office addresses in the shared footer and Contact page in both language modes.
 - Deploy Cloudflare Worker version `6c93dfac-7f6e-4811-978f-c39f4cbadfc9`. Verify the live Contact page, both addresses, mobile width, new staff asset, tenant health, and `www` redirect.
+- Show 132+ for Unique techniques in the Tenkasi home stats and accessible label.
 
 ## v-1.1.22
 
