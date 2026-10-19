@@ -1,4 +1,12 @@
 export * from "./sportsclub-request";
+export type {
+  SportsclubGateway,
+  SportsclubStudentTab,
+  SportsclubWebModule
+} from "./sportsclub-contract";
+export * from "./sportsclub.workspace";
+export * from "./sportsclub-student.workspace";
+
 export * from "./modules/overview/index";
 export * from "./modules/member/index";
 export * from "./modules/master/index";
