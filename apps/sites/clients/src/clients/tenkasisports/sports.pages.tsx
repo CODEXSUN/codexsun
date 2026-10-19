@@ -508,8 +508,8 @@ function MastersPage({ isTa }: { isTa: boolean; content: PageContent }) {
           <h2>{isTa ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்" : "Kalaisudarmani Asan T. Veerapandian"}</h2>
           <p className="ts-subtitle">
             {isTa
-              ? "வாழ்க்கலை ஆசான் · தென்காசி வளர்ச்சி மாவட்டம் · ஜவஹர்லால் சிறுவர் மன்றம் சிலம்பு ஆசிரியர்"
-              : "Silambam Master, Tenkasi District, Jawaharlal Siruvar Mandram Instructor"}
+              ? <>வாழ்க்கலை ஆசான் · தென்காசி வளர்ச்சி மாவட்டம் · <strong>சிவகலை குருகுலம்</strong> சிலம்பு ஆசிரியர்</>
+              : <>Silambam Master, Tenkasi District, <strong>Sivakalai Gurukulam</strong> Silambam Instructor</>}
           </p>
           <p>
             {isTa

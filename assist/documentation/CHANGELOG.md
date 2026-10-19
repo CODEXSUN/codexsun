@@ -35,6 +35,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Release the Students and Alumni photo grids with three illustrative child learners and three illustrative adult alumni. Both languages identify every profile as a sample.
 - Serve the profiles from the public Tenkasi Worker D1 showcase API without exposing private member records.
 - Deploy Worker version `f56a1289-844e-4c9c-acb8-112545a084f0`. Verify both language modes on Students and Alumni, the six public sample records, and the WebP image on the live domain.
+- Replace the old Jawaharlal Siruvar Mandram instructor label on Masters with Sivakalai Gurukulam in Tamil and English. Emphasize the association name and deploy Worker version `4bc19ec2-ceb4-49a9-a68d-970a76c8dd1e`.
 
 ## v-1.1.23
 
