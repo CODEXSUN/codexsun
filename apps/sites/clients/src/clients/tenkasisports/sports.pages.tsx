@@ -882,6 +882,9 @@ function JoinPage({ isTa }: { isTa: boolean; content: PageContent }) {
       <div className="ts-grid ts-2col ts-join-layout">
         <form className="ts-form-card" onSubmit={handleSubmit}>
           <h2>{isTa ? "மாணவர் சேர்க்கை விண்ணப்பப் படிவம்" : "Membership Application Form"}</h2>
+          <p className="ts-form-intro">
+            {isTa ? "* குறியிட்ட விவரங்கள் கட்டாயம்." : "Fields marked * are required."}
+          </p>
 
           {errorMessage ? (
             <div className="ts-form-error" role="alert">
@@ -889,6 +892,7 @@ function JoinPage({ isTa }: { isTa: boolean; content: PageContent }) {
             </div>
           ) : null}
 
+          <h3 className="ts-form-section-title">{isTa ? "மாணவர் மற்றும் பாதுகாவலர் விவரங்கள்" : "Student and guardian details"}</h3>
           <div className="ts-field">
             <label htmlFor="name">{isTa ? "மாணவர் முழுப்பெயர் *" : "Student Full Name *"}</label>
             <input
@@ -952,6 +956,7 @@ function JoinPage({ isTa }: { isTa: boolean; content: PageContent }) {
             </div>
           </div>
 
+          <h3 className="ts-form-section-title">{isTa ? "தொடர்பு விவரங்கள்" : "Contact details"}</h3>
           <div className="ts-field-row">
             <div className="ts-field">
               <label htmlFor="phone">{isTa ? "கைபேசி எண் (WhatsApp) *" : "Phone / WhatsApp *"}</label>
@@ -977,6 +982,7 @@ function JoinPage({ isTa }: { isTa: boolean; content: PageContent }) {
             </div>
           </div>
 
+          <h3 className="ts-form-section-title">{isTa ? "மாணவர் போர்டல் அணுகல்" : "Student portal access"}</h3>
           <div className="ts-field-row">
             <div className="ts-field">
               <label htmlFor="password">
@@ -1010,6 +1016,7 @@ function JoinPage({ isTa }: { isTa: boolean; content: PageContent }) {
             </div>
           </div>
 
+          <h3 className="ts-form-section-title">{isTa ? "கூடுதல் விவரங்கள்" : "Additional details"}</h3>
           <div className="ts-field">
             <label htmlFor="location">{isTa ? "வசிக்கும் ஊர் / முகவரி *" : "Residence / Address in Tenkasi District *"}</label>
             <input
