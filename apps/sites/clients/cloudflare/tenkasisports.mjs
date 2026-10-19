@@ -4,6 +4,7 @@ import {
   publicationEnvelope,
   liveHtml
 } from "./tenkasisports.content.mjs";
+import { communityShowcase } from "./tenkasisports.showcase.mjs";
 
 const backend = "https://codexsun.com";
 const publicRoutes = new Map([
@@ -75,6 +76,7 @@ export default {
       return new Response("Not found", { status: 404 });
     }
 
+    if (url.pathname === "/api/community/showcase") return communityShowcase(request, url, env);
     if (url.pathname.startsWith("/api/")) return proxyPublic(request, url, env, isLocal);
 
     if (!["GET", "HEAD"].includes(request.method)) {

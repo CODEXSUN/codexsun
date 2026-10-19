@@ -17,11 +17,13 @@ class D1Test {
   db = new DatabaseSync(":memory:");
   constructor() {
     this.db.exec(readFileSync(new URL("./tenkasisports.content.sql", import.meta.url), "utf8"));
+    this.db.exec(readFileSync(new URL("./tenkasisports.showcase.sql", import.meta.url), "utf8"));
   }
   prepare(sql: string) {
     const execute = (values: unknown[] = []) => ({
       bind: (...next: unknown[]) => execute(next),
       first: async () => this.db.prepare(sql).get(...(values as never[])),
+      all: async () => ({ results: this.db.prepare(sql).all(...(values as never[])) }),
       run: async () => this.db.prepare(sql).run(...(values as never[]))
     });
     return execute();
@@ -37,6 +39,30 @@ class D1Test {
     }
   }
 }
+
+test("public community showcase returns only published sample portraits for each audience", async () => {
+  const env = environment();
+  try {
+    const students = await worker.fetch(new Request("https://tenkasisports.com/api/community/showcase?audience=students"), env);
+    const studentBody = await students.json() as { data: Array<{ profile_id: string; image_panel: number }> };
+    assert.equal(students.status, 200);
+    assert.equal(studentBody.data.length, 3);
+    assert.ok(studentBody.data.every((profile) => profile.profile_id.startsWith("sample-student") && profile.image_panel < 3));
+    assert.ok(!JSON.stringify(studentBody).includes("guardian"));
+
+    env.CODEXSUN_TENKASISPORTS_CONTENT.db.prepare("UPDATE sites_community_showcase SET published = 0 WHERE profile_id = 'sample-alumni-02'").run();
+    const alumni = await worker.fetch(new Request("https://tenkasisports.com/api/community/showcase?audience=alumni"), env);
+    const alumniBody = await alumni.json() as { data: Array<{ profile_id: string }> };
+    assert.equal(alumni.status, 200);
+    assert.equal(alumniBody.data.length, 2);
+    assert.ok(alumniBody.data.every((profile) => profile.profile_id.startsWith("sample-alumni")));
+
+    assert.equal((await worker.fetch(new Request("https://tenkasisports.com/api/community/showcase?audience=members"), env)).status, 400);
+    assert.equal((await worker.fetch(new Request("https://tenkasisports.com/api/community/showcase?audience=students", { method: "POST" }), env)).status, 405);
+  } finally {
+    env.CODEXSUN_TENKASISPORTS_CONTENT.db.close();
+  }
+});
 
 const secret = "test-only-publish-secret";
 const siteUuid = "c0de0006";

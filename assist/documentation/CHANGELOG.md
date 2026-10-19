@@ -27,10 +27,12 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 #### Database Changes
 
 - Database update: No (manual).
+- Add an isolated public Tenkasi community showcase table in Worker D1 with six fictional sample profiles; keep member records private.
 
 #### App Codebase Changes
 
 - Bumped workspace version to 1.1.23.
+- Add responsive Students and Alumni photo grids backed by the public showcase API, with illustrative child learners and adult alumni clearly labeled as samples in Tamil and English.
 - Add five Tenkasi training articles with a blog index and article routes. Add a linked home gallery and syllabus training cards.
 - Add mobile hero swipes and a scrollable gallery. Improve small-screen menus, layouts, and touch targets across public pages.
 - Serve smaller WebP images, split inner-page JavaScript, preload route assets, and cache versioned Worker assets.

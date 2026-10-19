@@ -229,6 +229,23 @@ body {
 .ts-community-access { margin-top: 24px; background: var(--ts-surface-warm); }
 .ts-community-access .ts-button { color: #fff; text-decoration: none; }
 .ts-community-secondary { margin-top: 24px; }
+.ts-showcase { margin-top: 56px; }
+.ts-showcase-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
+.ts-showcase-heading h2 { margin: 12px 0 0; }
+.ts-showcase-heading p { max-width: 42ch; margin: 0; color: var(--ts-muted); }
+.ts-showcase-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.ts-showcase-card { overflow: hidden; border: 1px solid var(--ts-border); border-radius: 14px; background: var(--ts-surface); }
+.ts-showcase-photo { aspect-ratio: 1; background-image: url('/community-showcase.webp'); background-size: 300% 200%; background-repeat: no-repeat; background-color: var(--ts-surface-warm); }
+.ts-showcase-panel-0 { background-position: 0% 0%; }
+.ts-showcase-panel-1 { background-position: 50% 0%; }
+.ts-showcase-panel-2 { background-position: 100% 0%; }
+.ts-showcase-panel-3 { background-position: 0% 100%; }
+.ts-showcase-panel-4 { background-position: 50% 100%; }
+.ts-showcase-panel-5 { background-position: 100% 100%; }
+.ts-showcase-card-body { padding: 18px 20px 22px; }
+.ts-showcase-card-body span { color: var(--ts-maroon); font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.ts-showcase-card-body h3 { margin: 8px 0 4px; }
+.ts-showcase-card-body p { margin: 0; color: var(--ts-muted); }
 
 /* BUTTONS */
 .ts-button {
@@ -1735,6 +1752,8 @@ body {
   .ts-nav.ts-open { display: flex; }
   .ts-nav a { width: 100%; min-height: 44px; padding: 10px 0; }
   .ts-community-grid { grid-template-columns: 1fr; }
+  .ts-showcase-heading { align-items: start; flex-direction: column; gap: 8px; }
+  .ts-showcase-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ts-hero {
     grid-template-columns: 1fr;
     gap: 36px;
@@ -1874,6 +1893,7 @@ body {
   .ts-form-card,
   .ts-community-card,
   .ts-community-access { padding: 20px; }
+  .ts-showcase-grid { grid-template-columns: 1fr; }
 }
 
 /* Reduced Motion Support */
