@@ -623,7 +623,7 @@ body {
   border-radius: 50%;
 }
 .ts-tier-item::before {
-  background-image: url("/tier-staff.svg");
+  background-image: url("/tier-staff-plain.svg");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
