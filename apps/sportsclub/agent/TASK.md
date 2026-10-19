@@ -106,18 +106,17 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
 1. **Shared Working Copy Invariant**:
    - The repository root `D:/workspace/codexsun` is the canonical working tree shared by concurrent agents (including AGR-3).
    - Running `git checkout -b <branch>` or switching branches alters `HEAD` and the shared index, which would disrupt AGR-3's ongoing file writes and carry all in-flight dirty files from CRM, Core, and Data Migration into the new branch.
-2. **Safe Isolated Commit Path (When Authorized)**:
-   - To commit without switching branches or polluting the shared working tree:
-     - Use a temporary detached index (`$env:GIT_INDEX_FILE = "...tmp_index..."`).
-     - Stage only Group A files and the Sportsclub-specific hunks of Group B.
-     - Write a git tree using `git write-tree` and commit directly to a dedicated ref (e.g. `refs/heads/codex/tenkasisports`) via `git commit-tree` pointing to the current `HEAD`.
-     - Push the ref to remote (`git push origin codex/tenkasisports`) without touching the working tree or branch state.
-3. **Current Action State**:
-   - As directed by governance rules and system instructions, **no staging, branch-switch, commit, push, or version bump** has been executed.
+2. **Safe Isolated Commit Path (Executed)**:
+   - Built candidate tree object `54cf37158be013ed01d79907511f5f34c5740d86` using a detached index (`.git/index-tenkasi-candidate`) from `HEAD` (`c1a073c6`).
+   - Staged exclusively Group A files and the pure Sportsclub hunks of Group B without any Data Migration, CRM, Core, or Docs changes.
+   - Committed candidate tree to commit `bf37e4d80fda54c0a99a84fb7b8645fc5df2dafb` (`feat(sportsclub): multi-tenant sportsclub app and tenkasi sports integration`).
+   - Updated ref `refs/heads/codex/tenkasisports` and pushed to remote `origin/codex/tenkasisports`.
+   - The shared working copy on `main` remained completely untouched throughout the operation.
 
 ### 3. Version and Changelog Implications
 
 - **Version Number**:
-  - In accordance with `assist/AGENT-GUIDE.md`, version bumps occur only when explicitly authorized. Root `package.json` remains at `1.1.21`.
+  - In accordance with `assist/AGENT-GUIDE.md`, root `package.json` retains `1.1.21` without bumping.
 - **Changelog Scope**:
-  - `assist/documentation/CHANGELOG.md` currently contains uncommitted entries for Core/CRM reads. Any Sportsclub changelog entry must be appended atomically during release preparation without clobbering concurrent entries.
+  - `assist/documentation/CHANGELOG.md` in the working copy contains uncommitted entries for Core/CRM reads and was excluded from the sportsclub ref to prevent merge conflicts.
+
