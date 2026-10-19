@@ -466,4 +466,3 @@ test("canonical registration route ensures fail-closed transactional execution a
   assert.equal(transactionExecuted, true);
   assert.equal(rolledBack, true);
 });
-

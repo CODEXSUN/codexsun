@@ -119,4 +119,3 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
   - In accordance with `assist/AGENT-GUIDE.md`, root `package.json` retains `1.1.21` without bumping.
 - **Changelog Scope**:
   - `assist/documentation/CHANGELOG.md` in the working copy contains uncommitted entries for Core/CRM reads and was excluded from the sportsclub ref to prevent merge conflicts.
-
