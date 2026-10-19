@@ -976,11 +976,18 @@ body {
   padding-bottom: 72px;
 }
 .ts-page-loading {
-  min-height: 65vh;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: clamp(96px, 15vh, 170px);
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 20px;
+  background: var(--ts-bg);
 }
 .ts-loader {
   display: inline-flex;
@@ -995,15 +1002,15 @@ body {
 .ts-loader-mark {
   display: grid;
   place-items: center;
-  width: 76px;
-  height: 76px;
+  width: min(300px, calc(100vw - 40px), calc(100dvh - 80px));
+  aspect-ratio: 1;
   flex: none;
   animation: ts-loader-revolve 1.8s linear infinite;
 }
 .ts-loader-staff {
   display: block;
-  width: 72px;
-  height: 24px;
+  width: 100%;
+  height: auto;
 }
 .ts-loader-inline {
   flex-direction: row;

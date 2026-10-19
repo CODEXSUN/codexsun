@@ -71,7 +71,7 @@ These page and brand changes are deployed to the live Worker. The existing Sites
 Public registration, enquiry, masters, classes, and programs submit through the same-origin Cloudflare Worker proxy forwarding strictly to Platform public endpoints.
 
 The public site is `https://tenkasisports.com` (redirecting `www.tenkasisports.com` via 308). Its Worker lives in `clients/cloudflare/tenkasisports.mjs`.
-Deployed as Cloudflare Worker `codexsun-tenkasisports` (version `4bc19ec2-ceb4-49a9-a68d-970a76c8dd1e`) in zone `f7c324e9ca4cac54047f84f591cb54e4` with D1 database `codexsun-tenkasisports-content` (`1fff5450-d9a8-473c-8b11-45ecad357a60`).
+Deployed as Cloudflare Worker `codexsun-tenkasisports` (version `13868a18-b67c-4381-818e-6f137a1a6bcb`) in zone `f7c324e9ca4cac54047f84f591cb54e4` with D1 database `codexsun-tenkasisports-content` (`1fff5450-d9a8-473c-8b11-45ecad357a60`).
 Wrangler configuration lives in `apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc`.
 Build with `npm run build:tenkasisports -w @codexsun/sites-clients`. Output stays under root `dist/apps/sites/clients/tenkasisports`.
 
