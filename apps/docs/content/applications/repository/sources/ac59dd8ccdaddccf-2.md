@@ -2,14 +2,98 @@
 
 Repository source: `apps/sites/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `caadb4b6d0a7db78520425f1ab5f284fa7345348eba3c0cad7c1d0a8f7082841`
+Source SHA-256 (LF line endings): `0bbe3c65732c2cc21ed46a1884c712ec0cc2a692db042953ed293666e44db66b`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
 Historical notes and unchecked plans retain their original status.
 
 ```markdown
-s. Unmapped technology names display text only. Typecheck, lint, deployment build and packaged browser checks passed for all six loaded logos and mobile overflow.
+daries, root dependency layout, generic template build with an explicit client slug, and Platform Web build passed.
+- The repository-wide component documentation check is blocked by missing documentation in unrelated apps/tconnect. Sites retains exactly its four required Markdown files.
+- Docker, nginx, systemd, public DNS/TLS, and external hosting remain unverified.
+
+## Client enquiries and LogicX software site — 2026-10-17
+
+Implemented inside Sites:
+
+- A private Enquiries tab for each saved client, connected to its tenant/site-specific SQLite store.
+- Search, status filters, pagination, detailed view, status editing, trash, restore, and actor activity.
+- Live per-action permission checks, exact storage namespace checks, revision conflicts, and private responses.
+- One shared enquiry persistence owner, a transactional SQLite v2 upgrade, and retention of existing visitor messages.
+- A new LogicX theme with software, Frappe/ERPNext, React, mobile, automation, integration, website, and support services.
+- Eight service detail pages, a support page, and 23 editable application descriptions and detail pages.
+- Application search and category filters, prefilled enquiries, Platform sign-in links, and shared route/sitemap coverage.
+- The local LogicX page is saved and published with 39 routes. Ramu Tex retains its six standard routes.
+- Repeated Start handles a busy dependency build. Source previews load the shared TypeScript enquiry runtime.
+
+Verification evidence:
+
+- Seventeen API CMS, identity, publication, enquiry, startup, and isolated MariaDB tests passed without skips.
+- Five SQLite submission and delivery tests passed. The packaged HTTP integration test passed.
+- Browser verification submitted an enquiry to each live client and checked its own Studio inbox, view, status, trash, and restore.
+- Cross-client detail access returned 404. Saved status and activity were checked through the protected API.
+- Only verification enquiries were removed after the live checks. Existing client enquiries were preserved.
+- All 39 LogicX and six Ramu Tex routes passed rendered HTML, canonical metadata, sitemap, hydration, and mobile-width checks.
+- Application search and Finance filtering passed. An unknown production application path returned 404.
+- Sites builds, type checks, lint, module boundaries, dependency layout, component documentation checks, and documentation tests passed.
+
+The Studio inbox supports local or attached SQLite data directories. Remote-host transport and Cloudflare D1 are not implemented.
+No app entitlements, production DNS, certificates, or external deployment were changed.
+
+Final presentation checks: Platform Web production build passed. LogicX registry details now use LogicX Software.
+The Enquiries controls use Sites-scoped theme colors for readable search, filters, and pagination.
+The workspace test command loads the root environment so opt-in MariaDB tests also run through npm workspaces.
+Both local previews remain on 7131 and 7132. Updated release archives are under root dist.
+
+2026-10-17: Restyled all LogicX pages with white and green sections, outlined service cards, original laptop artwork, a company approach band, and a charcoal footer. Verified 39 routes on desktop and mobile, successful contact submission, and no browser errors. Client typecheck, lint, production packaging, and both-client packaged HTTP/SQLite checks passed.
+
+2026-10-17: Replaced LogicX service cards with spacious minimal portfolio rows on Home and Services. Original local software previews appear on hover and keyboard focus, remain visible on touch screens, and respect reduced motion. Service content and detail links remain connected to the published page data.
+Verification: client typecheck, lint, production build, and packaging passed. Browser checks passed for all eight service links, hidden/revealed previews, keyboard focus, loaded images, mobile preview visibility, overflow, and browser errors.
+
+2026-10-17: Added eight distinct local SVG service illustrations and smoother eased fade/slide previews. Expanded the LogicX homepage with a workflow consultation banner, three engagement options, four industry use cases, an application discovery banner, and five native expandable FAQs. Enquiry calls to action prefill the existing contact form. These new marketing sections are template content; existing service and application data still comes from the published Studio projection. Verified loaded images, hover/focus, responsive widths, reduced motion, FAQ expansion, CTA prefilling, typecheck, lint, and production packaging.
+
+2026-10-17: Fixed local client preview HTTP 431 errors by setting a bounded 256 KiB Node header limit in the LogicX, Ramu Tex, and standard portfolio dev scripts and Studio runtime launch. All five runtime tests passed, including a real request with a 32 KiB cookie header.
+
+
+2026-10-17: Completed the corrected abstract green LogicX design and replaced the masterplan reference image.
+All implementation remains inside Sites. The design includes a tilted software panel, curved service carousel, dark approach section, catalogue, workflow examples, industries, engagement options, FAQ, CTA, and footer.
+All new marketing sections now use an optional typed Page content field and a matching Studio editor.
+Existing service descriptions, applications, profile, hero, approach, blogs, and contact data retain their Page and Blog owners.
+No SQL alteration is required. Legacy content without marketing fields remains valid.
+
+Verification:
+
+- Sites API, Web, and Clients type checks and lint passed. API and Web builds passed.
+- The composed Platform Web production build passed without Platform source changes.
+- Fourteen CMS, identity, publication, enquiry, schema, and isolated MariaDB tests passed without skips.
+- Five client startup tests and five client SQLite tests passed. Both-client packaged HTTP integration passed.
+- All 39 LogicX routes passed rendered browser checks. Homepage overflow checks passed at 360, 390, 768, 1024, and 1440 px.
+- Carousel controls, mobile navigation Escape behavior, public form submission, and prefilled enquiry passed.
+- Live Studio editing, save, publish, public client delivery, original heading restoration, and reload persistence passed.
+- A live form enquiry reached its own SQLite inbox. Status update, trash, and wrong-client 404 passed.
+- Only the verification enquiry was trashed. Ramu Tex page data remained unchanged.
+- Module boundaries and component documentation passed.
+
+The dependency-layout check remains blocked by pre-existing `apps/sites/clients/dist`, `apps/sites/web/dist`, and `apps/tconnect/web/dist` folders.
+Formal field performance and external deployment checks were not run.
+The prior LogicX release archive was preserved under root dist for rollback.
+Final Studio polish: image and service controls show friendly choices. Browser selection and restoration passed. The composed production build passed again after this editor change. The package uses the latest exported publication, and the live 7131 reader returned its published marketing content.
+
+2026-10-17: Integrated the user-supplied LogicX SVG mark from logo 2.svg. Preserved its three paths and navy/blue colors. Added branded header and footer lockups, a light footer variant, dashboard mark, favicons, app icons, and sharing image. The deploy asset generator reads the Sites-owned vector source so builds retain it. Client typecheck, lint, packaging, and desktop/mobile browser branding checks passed. No page content or enquiry data changed.
+
+### 2026-10-17 — LogicX logo palette
+- Applied approved forest green (#004632) and mint (#60DFA0) to generated logos, marks, favicons, app icons and sharing image. Original SVG geometry and master remain preserved.
+- Verified deployment build, all branding assets, desktop/mobile rendering and browser errors with the packaged runtime.
+
+
+2026-10-17: Matched Platform public-page interaction tone in LogicX. Hero text cycles through the saved hero and first two service descriptions while visual and CTAs stay fixed. Trusted technologies now uses a full-width labelled marquee from saved marketing data. Added slide selection, pause, focus/hover pause and reduced-motion support. Client typecheck/lint and packaged desktop/mobile checks passed, including slide selection and reduced-motion marquee behaviour. All source changes remain in apps/sites.
+
+
+2026-10-17: Removed shared title-row spacing from hero slides. Each description follows its own heading with a consistent 20px gap; overlaid slides retain stable overall height. Updated hero headings to Segoe UI Display with medium weight and balanced wrapping. Packaged browser checks verified all three slides at 1280, 768 and 390px: stable CTA position, consistent heading/description gaps, two-line descriptions and no horizontal overflow. Screenshots reviewed locally.
+
+
+2026-10-17: Replaced positional technology symbols with explicit name-to-logo mapping for Frappe, ERPNext, React, Tailwind CSS, Python and Node.js. Vendor SVGs are stored locally in public/logicx/technologies; sources.json records official upstream URLs. Unmapped technology names display text only. Typecheck, lint, deployment build and packaged browser checks passed for all six loaded logos and mobile overflow.
 
 
 2026-10-17: Services carousel shows four full cards and 20 percent of the fifth on desktop. At the end it shows the previous card peek on the left, with boundary arrows disabled correctly. Replaced positional service icons with name-based mappings and official Frappe, ERPNext and React assets. Packaged browser geometry checks, logo loading, desktop screenshot and mobile overflow checks passed; typecheck and lint passed.
@@ -125,45 +209,5 @@ The local Studio content API on 7010 was unavailable during these checks. Previe
 - Live verification passed all 45 routes, 25 homepage assets, canonical metadata, sitemap, robots, health, 404, and rejected cross-origin/invalid enquiries.
 - A Ramu Tex browser enquiry returned `85d55516-7225-4f5e-99fa-056a8ba1edc4`. Remote D1 confirmed storage, and LogicX contained zero records with that reference.
 - Only that synthetic enquiry was marked spam and moved to recoverable trash.
-- Both sites rendered in Chrome with no captured browser errors. Screenshots are under `dist/apps/sites/cloudflare`.
-- Sites API/Web/Clients typechecks and lint, module boundaries, two Worker transport tests, three D1 tests, and component documentation checks/tests passed.
-- Dependency-layout validation still reports the pre-existing `apps/tconnect/web/dist` directory.
-- Ramu Tex Studio domain metadata could not be updated: local API port 7010 stopped responding after export, and the web proxy returned 502.
-- The Cloudflare custom domain and site are live. Remote inbox integration and automatic Studio-to-Worker deployment remain planned.
-
-### 2026-10-17 — Hosiery and polyester sports fabric guide
-
-- Added two fabric stories on Home and a detailed guide on Services.
-- Covered single jersey, rib, interlock, piqué, French terry, fleece, polyester sports jersey, mesh, stretch blends, and jacquard sports knits.
-- Added garment application imagery, sample-brief details, four quality checkpoints, four FAQs, and textile reference links.
-- Added a Contact briefing panel and ten fabric-specific enquiry links. Existing public enquiry submission behavior is unchanged.
-- Added accessible native detail panels and reduced-motion support.
-- Fixed direct fragment links after the client mounts, including /services#hosiery and /services#sports-fabrics.
-- Generated four original images with the built-in image tool. Stored local WebP variants at 1200px and 640px.
-- New 1200px image files total 644720 bytes. The four 640px files total 172934 bytes.
-- Fabric descriptions are educational template content. Existing published company facts remain unchanged. No migration or CMS write was required.
-- Checked Home, Services, and Contact at 320, 390, 430, 768, and 1440px. No horizontal overflow or wide fabric panels appeared.
-- Verified ten detail panels, four FAQs, keyboard enquiry navigation, fabric prefilling, direct section links, and four loaded mobile images.
-- Verified all six production routes at 390 and 1440px. No development controls or captured warning/error logs appeared.
-- Reduced-motion emulation produced zero-duration image transitions.
-- Clients, API, and Web typechecks passed. Client lint and the Ramu Tex production build passed.
-- Sites module boundaries, root dependency layout, and component documentation checks/tests passed.
-- Saved local desktop and mobile screenshots. This content update was not deployed externally.
-
-## Live fabric release and mobile verification - 17-10-2026
-
-- Deployed Ramu Tex to https://ramutex.codexsun.com from current source and authenticated publication export sequence 21.
-- Active Worker version: `477f103f-db36-4110-9e58-373ff6fb77d4`.
-- Included the hosiery and polyester sports fabric guide, ten construction panels, four FAQs, garment applications, contact briefing, and ten fabric enquiry links.
-- Uploaded all four new original fabric images in full-size and 640px WebP versions. All eight live URLs returned 200 image/webp.
-- Verified all six live routes, ten homepage assets, sitemap, robots, canonical URLs, health, 404, and invalid/cross-origin enquiry rejection.
-- Checked all six live pages at 320, 390, and 430px browser viewport widths. Each had one main heading and one main region, no horizontal overflow, and no broken visible images.
-- At 390px, all four new fabric images loaded their 640px variants. Verified mobile menu open/Escape closure and expandable fabric details.
-- A Single jersey enquiry link opened Contact with the correct prefilled requirement.
-- A mobile form submission returned reference `5374d2a0-c2ec-4f5d-841b-d6e4c78dbf95`. Remote D1 confirmed persistence. Only this synthetic record was marked spam and moved to recoverable trash.
-- No browser warning/error logs were captured. Saved mobile evidence at `dist/apps/sites/cloudflare/ramutex-fabrics-live-mobile.png` and reset the browser viewport.
-- These were desktop Chrome viewport checks, not a physical mobile-device test.
-- Client typecheck, lint, production packaging, module boundaries, and component documentation checks/tests passed.
-- Root dependency layout remains blocked by the existing `apps/tconnect/web/dist` directory.
-- The Studio API is available again. Its Ramu Tex domain was updated successfully to `ramutex.codexsun.com`, resolving the prior metadata blocker.
+- Both sites rendered in Chrome with no captured browser error
 ```

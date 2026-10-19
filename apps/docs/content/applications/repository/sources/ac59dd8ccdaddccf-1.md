@@ -2,7 +2,7 @@
 
 Repository source: `apps/sites/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `caadb4b6d0a7db78520425f1ab5f284fa7345348eba3c0cad7c1d0a8f7082841`
+Source SHA-256 (LF line endings): `0bbe3c65732c2cc21ed46a1884c712ec0cc2a692db042953ed293666e44db66b`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -10,6 +10,74 @@ Historical notes and unchecked plans retain their original status.
 
 ```markdown
 # Site Studio task and working rules
+
+## Tenkasi District Sports Club page refinement — October 19, 2026
+
+- [x] Set Tenkasi District Sports Club as the public brand. Keep Sivakalai Gurukulam in the home page content.
+- [x] Simplify the sticky header to the club title and controls. Remove the subtitle.
+- [x] Restore the supplied Tenkasi District Sports Club logo in the header, footer, and gallery without changing the image bytes.
+- [x] Show `9843930300` as a call link on the left of the top banner. Keep the language switch and member portal link on its right.
+- [x] Link Home, About, Syllabus, Classes, Masters, Gallery, Contact, Students, and Alumni from the shared header.
+- [x] Add Students and Alumni pages. Keep admission and member access in their existing flows.
+- [x] Build separate HTML entry files for the new routes. Keep `/programs` as an alias for `/syllabus`.
+- [x] Pass Sites client typecheck, lint, Worker tests (8/8), Sites API typecheck, module boundary check, and local build.
+- [x] Inspect Home, Students, and Alumni in a local browser preview on port 7135.
+- [x] Replace the home hero handbook image with a three-slide hero based on the Platform static page layout and controls; use local training and master photos.
+- [x] Smooth the hero's copy and image transitions with overlapping Framer Motion crossfades, and reset the automatic timer after slide changes.
+- [x] Animate the four home stats once as they enter the viewport, with reduced-motion support.
+- [x] Add spacing around the home tradition heading and make its three cards full-card links to `/syllabus`.
+- [x] Deploy the new build to the live Cloudflare Worker and verify Home, Syllabus, Students, Alumni, the JS asset, and sports club health return 200. Live Worker version: `50735ab2-d02c-448b-a244-7e1991916307`.
+- [ ] Publish an updated Sites Studio content revision. D1 still serves publication version 1; code-owned club branding and home metadata are live.
+
+## Tenkasi Sports public client and Cloudflare delivery — October 19, 2026
+
+- **Scope & Ownership**: AGR-4 owns the public frontend, Cloudflare Worker proxy/delivery configuration, static prerendering, and minimal Sites CMS publication registration for **Veerathamilan Traditional Sivakalai Gurukulam / Tenkasi Sports** (`tenkasisports.com`).
+- **Client & Port**: Named Sites client slug `tenkasisports`, template `portfolio-sportsclub`, pinned site UUID `c0de0006`, local port `7134`, database `codexsun_sportsclub_tenkasisports`.
+- **Worker & Routing**:
+  - Apex domain `tenkasisports.com` with `www.tenkasisports.com` redirected to apex via 308.
+  - Wrangler config `apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc` targeted to Cloudflare zone `f7c324e9ca4cac54047f84f591cb54e4` (zone existence verified via authenticated Cloudflare API; see audit results below). Removed plaintext `CODEXSUN_SITES_TENKASISPORTS_SITE_KEY` from `vars` (fails closed with 503 if unconfigured; managed via Wrangler encrypted secret bindings).
+  - Upstream fixed backend `https://codexsun.com`.
+  - Live tenant health check against `${backend}/api/platform/public/portals/tenkasisports/health`; fails closed (503 `TENANT_SETUP_PENDING`) if backend is offline or corporate ID does not match `TENKASISPORTS`.
+  - Canonical platform proxy routes: `/public/sportsclub/registration`, `/public/sportsclub/enquiry`, `/public/sportsclub/programs`, `/public/sportsclub/masters`, `/public/sportsclub/classes`, `/public/sportsclub/events`, `/public/sportsclub/club-profile`, and `/health`.
+  - Removed fallback to legacy `/student/register` (fails closed on 404 to avoid orphan identities).
+  - Same-origin enforced on POST, client cookies and tenant headers stripped, HMAC verification headers (`x-codexsun-public-client`, `x-codexsun-client-time`, `x-codexsun-client-signature`) attached on upstream forwards.
+- **Frontend & Content**:
+  - Authentic Tamil/English handbook content and syllabus from Veerathamilan Traditional Sivakalai Gurukulam.
+  - Exact logo and book imagery preserved without fabrication of awards, fees, or medical claims.
+  - Responsive public routes: Home, About, Programs (Silambam), Masters, Classes, Events, Gallery, Join (Student Registration), Contact (Public Enquiry), Privacy, Terms, and 404.
+  - Forms validate strictly against Platform public schemas (`studentEnrollmentSchema`, `publicEnquirySubmissionSchema`):
+    - Removed synthetic email creation, fake references, and client-side fake success.
+    - Added student-selected password and confirmation (min 12 chars) for portal account creation; never displayed or persisted in UI.
+    - Replaced dropped fields (`age`, `category`, `level`) with genuine schema persistence fields (`dateOfBirth`, `emergencyContact`, `guardianPhone`, `guardianName`, `medicalNotes`, `address`).
+    - Contact form requires explicit opt-in privacy consent checkbox matching `publicEnquirySubmissionSchema` (`consent: true`).
+    - Actionable error and retry display on network or validation failures; success receipt displayed only upon confirmed backend response.
+  - Portal link configured to authenticated tenant desk: `https://app.codexsun.com/login?desk=tenant&app=sportsclub&corporateId=TENKASISPORTS`.
+- **Verification Gates**:
+  - `node --import tsx --test apps/sites/clients/cloudflare/tenkasisports.worker.test.ts`: 8/8 passed (including missing secret fail-closed, backend error propagation, and duplicate conflict tests).
+  - `node --import tsx --test apps/platform/api/src/sportsclub-platform.test.ts`: 11/11 passed.
+  - `npm run typecheck -w @codexsun/sites-clients`: 0 errors.
+  - `npm run lint -w @codexsun/sites-clients`: 0 warnings, 0 errors.
+  - `npm run typecheck -w @codexsun/sites-api`: 0 errors.
+  - `npm run typecheck -w @codexsun/sites-web`: 0 errors.
+  - `npm run build:tenkasisports -w @codexsun/sites-clients`: Built cleanly.
+  - `node tools/check-module-boundaries.mjs sites`: Passed.
+  - Cloudflare deployment authorized by user and completed on October 19, 2026.
+- **Cloudflare Live Deployment & Audit Evidence (October 19, 2026)**:
+  - **Account & Zone**: Authenticated Cloudflare API (`GET /client/v4/zones?name=tenkasisports.com`) and `wrangler whoami` confirmed zone `tenkasisports.com` exists with ID `f7c324e9ca4cac54047f84f591cb54e4` in account `a68cf61bf5bae3f83ddb7765dc29a835` (`Codexsun@gmail.com's Account`). Status is `active` on `Free Website` plan using nameservers `evan.ns.cloudflare.com` and `sara.ns.cloudflare.com`. Public DNS resolves to Cloudflare proxy Anycast IPs `172.67.164.163` and `104.21.74.238`.
+  - **D1 Content Database**: Dedicated D1 database `codexsun-tenkasisports-content` created in APAC region with UUID `1fff5450-d9a8-473c-8b11-45ecad357a60`. Applied content schema (`apps/sites/clients/cloudflare/tenkasisports.content.sql`) and seeded initial authentic handbook publication (version 1, checksum `87c2a114c05b925d107eb6e834ea033ab9c7cf8652884a6815f1495aaeeb6807`). Live `GET /__sites-version` and `GET /__sites-content` return 200 with live publication payload.
+  - **Worker Deployment**: Worker script `codexsun-tenkasisports` deployed via `wrangler deploy -c apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc`. Current live Version ID: `1ded24cb-a4fa-4291-a95a-a948f85755c5` (initial version: `5c98545a-ccb8-457e-a406-0b98fc62b99e`). Triggers deployed: `tenkasisports.com/*` and `www.tenkasisports.com/*`.
+  - **Live Traffic & Routes Verification**:
+    - Apex `https://tenkasisports.com/`: 200 OK, title `வீரத்தமிழன் பாரம்பரிய சிவகலை குருகுலம் | Tenkasi Sports`, ~7.1 KB HTML, `X-Codexsun-Publication: 1`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`.
+    - WWW `https://www.tenkasisports.com/*`: 308 Permanent Redirect to canonical apex `https://tenkasisports.com/*`.
+    - 10 Public Page Routes (`/about`, `/programs`, `/masters`, `/classes`, `/events`, `/gallery`, `/join`, `/contact`, `/privacy`, `/terms`): All return 200 OK with distinct authentic Tamil/English titles, OpenGraph metadata, canonical links, and ~7KB prerendered HTML.
+    - Nonexistent routes (`/nonexistent-route`): Return HTTP 404 Not Found with 404 title and description.
+    - Static Assets (`/favicon.svg`, `/assets/index-*.js`, `/assets/index-*.css`, `/fonts/geist-latin.woff2`, `/logo.png`, `/logo.jpeg`, `/asan-portrait.jpg`, `/asan-temple-staff.jpg`, `/gallery-stance-*.jpg`): 200 OK with accurate MIME types.
+  - **Backend Limitation & Fail-Closed Guard**:
+    - Sportsclub backend API on `codexsun.com` (`/api/platform/public/portals/tenkasisports/health`) is still pending deployment by coordinator/AGR-3.
+    - Worker health and admission endpoints (`/api/sportsclub/health`, `POST /api/sportsclub/registration`, `POST /api/sportsclub/enquiry`) fail closed with HTTP 503 `TENANT_SETUP_PENDING` (`"The Tenkasi Sports workspace is being prepared. Please check back shortly."`).
+    - Cross-origin POSTs are rejected with HTTP 403 `A same-origin request is required.`
+    - Forms visibly display network error messages and prevent submitting until Platform API is deployed.
+    - No secrets or credentials were hardcoded in repository files. Secrets remain configured via encrypted bindings.
 
 ## Tirupur Connect content management — October 17, 2026
 
@@ -186,89 +254,5 @@ Final verification for this preparation:
 - Five SQLite unit tests and the packaged HTTP integration test passed.
 - Both packaged sites passed six-page mobile browser checks, hydration, contact saving, and WhatsApp link checks. Production pages exclude development controls.
 - Private status, enquiry listing, and SQLite backup commands passed against temporary databases.
-- Sites type checks and lint, Sites module boundaries, root dependency layout, generic template build with an explicit client slug, and Platform Web build passed.
-- The repository-wide component documentation check is blocked by missing documentation in unrelated apps/tconnect. Sites retains exactly its four required Markdown files.
-- Docker, nginx, systemd, public DNS/TLS, and external hosting remain unverified.
-
-## Client enquiries and LogicX software site — 2026-10-17
-
-Implemented inside Sites:
-
-- A private Enquiries tab for each saved client, connected to its tenant/site-specific SQLite store.
-- Search, status filters, pagination, detailed view, status editing, trash, restore, and actor activity.
-- Live per-action permission checks, exact storage namespace checks, revision conflicts, and private responses.
-- One shared enquiry persistence owner, a transactional SQLite v2 upgrade, and retention of existing visitor messages.
-- A new LogicX theme with software, Frappe/ERPNext, React, mobile, automation, integration, website, and support services.
-- Eight service detail pages, a support page, and 23 editable application descriptions and detail pages.
-- Application search and category filters, prefilled enquiries, Platform sign-in links, and shared route/sitemap coverage.
-- The local LogicX page is saved and published with 39 routes. Ramu Tex retains its six standard routes.
-- Repeated Start handles a busy dependency build. Source previews load the shared TypeScript enquiry runtime.
-
-Verification evidence:
-
-- Seventeen API CMS, identity, publication, enquiry, startup, and isolated MariaDB tests passed without skips.
-- Five SQLite submission and delivery tests passed. The packaged HTTP integration test passed.
-- Browser verification submitted an enquiry to each live client and checked its own Studio inbox, view, status, trash, and restore.
-- Cross-client detail access returned 404. Saved status and activity were checked through the protected API.
-- Only verification enquiries were removed after the live checks. Existing client enquiries were preserved.
-- All 39 LogicX and six Ramu Tex routes passed rendered HTML, canonical metadata, sitemap, hydration, and mobile-width checks.
-- Application search and Finance filtering passed. An unknown production application path returned 404.
-- Sites builds, type checks, lint, module boundaries, dependency layout, component documentation checks, and documentation tests passed.
-
-The Studio inbox supports local or attached SQLite data directories. Remote-host transport and Cloudflare D1 are not implemented.
-No app entitlements, production DNS, certificates, or external deployment were changed.
-
-Final presentation checks: Platform Web production build passed. LogicX registry details now use LogicX Software.
-The Enquiries controls use Sites-scoped theme colors for readable search, filters, and pagination.
-The workspace test command loads the root environment so opt-in MariaDB tests also run through npm workspaces.
-Both local previews remain on 7131 and 7132. Updated release archives are under root dist.
-
-2026-10-17: Restyled all LogicX pages with white and green sections, outlined service cards, original laptop artwork, a company approach band, and a charcoal footer. Verified 39 routes on desktop and mobile, successful contact submission, and no browser errors. Client typecheck, lint, production packaging, and both-client packaged HTTP/SQLite checks passed.
-
-2026-10-17: Replaced LogicX service cards with spacious minimal portfolio rows on Home and Services. Original local software previews appear on hover and keyboard focus, remain visible on touch screens, and respect reduced motion. Service content and detail links remain connected to the published page data.
-Verification: client typecheck, lint, production build, and packaging passed. Browser checks passed for all eight service links, hidden/revealed previews, keyboard focus, loaded images, mobile preview visibility, overflow, and browser errors.
-
-2026-10-17: Added eight distinct local SVG service illustrations and smoother eased fade/slide previews. Expanded the LogicX homepage with a workflow consultation banner, three engagement options, four industry use cases, an application discovery banner, and five native expandable FAQs. Enquiry calls to action prefill the existing contact form. These new marketing sections are template content; existing service and application data still comes from the published Studio projection. Verified loaded images, hover/focus, responsive widths, reduced motion, FAQ expansion, CTA prefilling, typecheck, lint, and production packaging.
-
-2026-10-17: Fixed local client preview HTTP 431 errors by setting a bounded 256 KiB Node header limit in the LogicX, Ramu Tex, and standard portfolio dev scripts and Studio runtime launch. All five runtime tests passed, including a real request with a 32 KiB cookie header.
-
-
-2026-10-17: Completed the corrected abstract green LogicX design and replaced the masterplan reference image.
-All implementation remains inside Sites. The design includes a tilted software panel, curved service carousel, dark approach section, catalogue, workflow examples, industries, engagement options, FAQ, CTA, and footer.
-All new marketing sections now use an optional typed Page content field and a matching Studio editor.
-Existing service descriptions, applications, profile, hero, approach, blogs, and contact data retain their Page and Blog owners.
-No SQL alteration is required. Legacy content without marketing fields remains valid.
-
-Verification:
-
-- Sites API, Web, and Clients type checks and lint passed. API and Web builds passed.
-- The composed Platform Web production build passed without Platform source changes.
-- Fourteen CMS, identity, publication, enquiry, schema, and isolated MariaDB tests passed without skips.
-- Five client startup tests and five client SQLite tests passed. Both-client packaged HTTP integration passed.
-- All 39 LogicX routes passed rendered browser checks. Homepage overflow checks passed at 360, 390, 768, 1024, and 1440 px.
-- Carousel controls, mobile navigation Escape behavior, public form submission, and prefilled enquiry passed.
-- Live Studio editing, save, publish, public client delivery, original heading restoration, and reload persistence passed.
-- A live form enquiry reached its own SQLite inbox. Status update, trash, and wrong-client 404 passed.
-- Only the verification enquiry was trashed. Ramu Tex page data remained unchanged.
-- Module boundaries and component documentation passed.
-
-The dependency-layout check remains blocked by pre-existing `apps/sites/clients/dist`, `apps/sites/web/dist`, and `apps/tconnect/web/dist` folders.
-Formal field performance and external deployment checks were not run.
-The prior LogicX release archive was preserved under root dist for rollback.
-Final Studio polish: image and service controls show friendly choices. Browser selection and restoration passed. The composed production build passed again after this editor change. The package uses the latest exported publication, and the live 7131 reader returned its published marketing content.
-
-2026-10-17: Integrated the user-supplied LogicX SVG mark from logo 2.svg. Preserved its three paths and navy/blue colors. Added branded header and footer lockups, a light footer variant, dashboard mark, favicons, app icons, and sharing image. The deploy asset generator reads the Sites-owned vector source so builds retain it. Client typecheck, lint, packaging, and desktop/mobile browser branding checks passed. No page content or enquiry data changed.
-
-### 2026-10-17 — LogicX logo palette
-- Applied approved forest green (#004632) and mint (#60DFA0) to generated logos, marks, favicons, app icons and sharing image. Original SVG geometry and master remain preserved.
-- Verified deployment build, all branding assets, desktop/mobile rendering and browser errors with the packaged runtime.
-
-
-2026-10-17: Matched Platform public-page interaction tone in LogicX. Hero text cycles through the saved hero and first two service descriptions while visual and CTAs stay fixed. Trusted technologies now uses a full-width labelled marquee from saved marketing data. Added slide selection, pause, focus/hover pause and reduced-motion support. Client typecheck/lint and packaged desktop/mobile checks passed, including slide selection and reduced-motion marquee behaviour. All source changes remain in apps/sites.
-
-
-2026-10-17: Removed shared title-row spacing from hero slides. Each description follows its own heading with a consistent 20px gap; overlaid slides retain stable overall height. Updated hero headings to Segoe UI Display with medium weight and balanced wrapping. Packaged browser checks verified all three slides at 1280, 768 and 390px: stable CTA position, consistent heading/description gaps, two-line descriptions and no horizontal overflow. Screenshots reviewed locally.
-
-
-2026-10-17: Replaced positional technology symbols with explicit name-to-logo mapping for Frappe, ERPNext, React, Tailwind CSS, Python and Node.js. Vendor SVGs are stored locally in public/logicx/technologies; sources.json records official upstream URL
+- Sites type checks and lint, Sites module boun
 ```

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import {
   ArrowUpRight,
   Menu,
@@ -12,11 +12,13 @@ import { initialSitePage } from "@codexsun/sites-api/page-defaults";
 import { useSitePublication } from "../../shared/useSitePublication";
 import { useClientDocument } from "../../shared/useClientDocument";
 import { sitePathname } from "../../shared/sitePathname";
-import { SportsPages } from "./sports.pages";
 import { SportsHero } from "./sports.hero";
 import { SportsStats } from "./sports.stats";
+import { SportsBlogPreview, sportsArticles } from "./sports.blogs";
 import { sportsPortalUrl } from "./sports.links";
 import "./sports.css";
+
+const SportsPages = lazy(() => import("./sports.pages").then((module) => ({ default: module.SportsPages })));
 
 const fallback = initialSitePage({
   id: 0,
@@ -46,12 +48,17 @@ export function TenkasiSportsSite() {
 
   const path = sitePathname().replace(/\/$/, "") || "/";
   const isTa = lang === "ta";
+  const article = sportsArticles.find((item) => path === `/blogs/${item.slug}`);
 
   const title =
     path === "/"
       ? isTa
         ? "தென்காசி மாவட்ட விளையாட்டுக் கழகம் | சிவகலை குருகுலம்"
         : "Tenkasi District Sports Club | Sivakalai Gurukulam"
+      : article
+        ? `${isTa ? article.titleTa : article.titleEn} | Tenkasi District Sports Club`
+        : path === "/blogs"
+          ? `${isTa ? "பயிற்சிக் கட்டுரைகள்" : "Training Articles"} | Tenkasi District Sports Club`
       : `${path.slice(1).replaceAll("-", " ").toUpperCase()} | ${
           isTa ? "தென்காசி மாவட்ட விளையாட்டுக் கழகம்" : "Tenkasi District Sports Club"
         }`;
@@ -65,6 +72,7 @@ export function TenkasiSportsSite() {
     ["/classes", isTa ? "வகுப்புகள்" : "Classes"],
     ["/masters", isTa ? "ஆசான்கள்" : "Masters"],
     ["/gallery", isTa ? "படங்கள்" : "Gallery"],
+    ["/blogs", isTa ? "கட்டுரைகள்" : "Articles"],
     ["/contact", isTa ? "தொடர்பு" : "Contact"],
     ["/students", isTa ? "மாணவர்கள்" : "Students"],
     ["/alumni", isTa ? "முன்னாள் மாணவர்கள்" : "Alumni"]
@@ -103,9 +111,10 @@ export function TenkasiSportsSite() {
         <div className="ts-header-inner ts-wrap">
           <a className="ts-brand" href="/" aria-label="Tenkasi District Sports Club Home">
             <img
-              src="/club-logo.jpg"
+              src="/club-logo-128.webp"
               alt="Tenkasi District Sports Club logo"
               className="ts-logo-img"
+              decoding="async"
               width={52}
               height={52}
             />
@@ -159,7 +168,9 @@ export function TenkasiSportsSite() {
         {path === "/" ? (
           <HomeView isTa={isTa} />
         ) : (
-          <SportsPages path={path} content={content} lang={lang} />
+          <Suspense fallback={<div className="ts-page ts-page-loading ts-wrap" role="status">{isTa ? "பக்கம் ஏற்றப்படுகிறது…" : "Loading page…"}</div>}>
+            <SportsPages path={path} content={content} lang={lang} />
+          </Suspense>
         )}
       </main>
 
@@ -170,12 +181,13 @@ export function TenkasiSportsSite() {
             <div className="ts-footer-brand-box">
               <div className="ts-footer-logo-row">
                 <img
-                  src="/club-logo.jpg"
+                  src="/club-logo-128.webp"
                   alt="Tenkasi District Sports Club logo"
                   width={64}
                   height={64}
                   className="ts-footer-logo"
                   loading="lazy"
+                  decoding="async"
                 />
                 <div>
                   <h2>
@@ -220,6 +232,7 @@ export function TenkasiSportsSite() {
               <ul>
                 <li><a href="/events">{isTa ? "போட்டிகளும் நிகழ்வுகளும்" : "Events & Competitions"}</a></li>
                 <li><a href="/gallery">{isTa ? "களப் படத்தொகுப்பு" : "Photo Gallery"}</a></li>
+                <li><a href="/blogs">{isTa ? "பயிற்சிக் கட்டுரைகள்" : "Training Articles"}</a></li>
                 <li><a href="/join">{isTa ? "மாணவர் சேர்க்கை 2026" : "Admissions 2026"}</a></li>
                 <li><a href="/contact">{isTa ? "தொடர்பு & முகவரி" : "Contact & Grounds"}</a></li>
                 <li><a href="/students">{isTa ? "மாணவர்கள்" : "Students"}</a></li>
@@ -346,7 +359,7 @@ function HomeView({ isTa }: { isTa: boolean }) {
         </div>
 
         <div className="ts-grid ts-3col">
-          <div className="ts-card ts-tier-item">
+          <a className="ts-card ts-tier-item" href="/syllabus#level-1">
             <span className="ts-tier-num">01</span>
             <h3>{isTa ? "நிலை 1: ஆரம்ப நிலை" : "Level 1: Beginner"}</h3>
             <p className="ts-tier-sub">{isTa ? "அடிப்படை நிலைகளும் சாண் பிடியும்" : "Foundations & Hand-Span Grip"}</p>
@@ -355,10 +368,10 @@ function HomeView({ isTa }: { isTa: boolean }) {
               <li>{isTa ? "சாண் பிடி முறை & கம்பு அளவுகள்" : "Saan Pidi (span measurement)"}</li>
               <li>{isTa ? "முன்வீச்சு, வெட்டு & வாரல் முறைகள்" : "Forward cuts and basic sweeps"}</li>
             </ul>
-            <a className="ts-arrow-link" href="/syllabus">{isTa ? "விவரங்கள்" : "Learn more"} →</a>
-          </div>
+            <span className="ts-arrow-link">{isTa ? "விவரங்கள்" : "Learn more"} →</span>
+          </a>
 
-          <div className="ts-card ts-tier-item">
+          <a className="ts-card ts-tier-item" href="/syllabus#level-2">
             <span className="ts-tier-num">02</span>
             <h3>{isTa ? "நிலை 2: இடைநிலை" : "Level 2: Intermediate"}</h3>
             <p className="ts-tier-sub">{isTa ? "சுவடு முறைகள் & தீச்சிலம்பம்" : "Combat Footwork & Fire Staff"}</p>
@@ -367,10 +380,10 @@ function HomeView({ isTa }: { isTa: boolean }) {
               <li>{isTa ? "சதுரச் சுவடி (X பெருக்கல்) & சவுக்கு" : "Sadura Suvadi (X-pattern) & whip strikes"}</li>
               <li>{isTa ? "அலங்காரச் சிலம்பம் & தீச்சிலம்பம்" : "Festival forms & Fire Silambam"}</li>
             </ul>
-            <a className="ts-arrow-link" href="/syllabus">{isTa ? "விவரங்கள்" : "Learn more"} →</a>
-          </div>
+            <span className="ts-arrow-link">{isTa ? "விவரங்கள்" : "Learn more"} →</span>
+          </a>
 
-          <div className="ts-card ts-tier-item ts-gold-card">
+          <a className="ts-card ts-tier-item ts-gold-card" href="/syllabus#level-3">
             <span className="ts-tier-num ts-badge-gold">03</span>
             <h3>{isTa ? "நிலை 3: உயர் நிலை" : "Level 3: Master"}</h3>
             <p className="ts-tier-sub">{isTa ? "வர்மக்கலை & இரட்டை வாள்" : "Varmam Vital Points & Dual Sword"}</p>
@@ -379,8 +392,8 @@ function HomeView({ isTa }: { isTa: boolean }) {
               <li>{isTa ? "108 போர்க்கள வர்மப் புள்ளிகள் & முதலுதவி" : "108 battlefield Varmam nodes & first aid"}</li>
               <li>{isTa ? "செடிக்குச்சி & இரட்டை வாள் வீச்சு" : "Sedikkuchi & Double Sword combat"}</li>
             </ul>
-            <a className="ts-arrow-link" href="/syllabus">{isTa ? "விவரங்கள்" : "Learn more"} →</a>
-          </div>
+            <span className="ts-arrow-link">{isTa ? "விவரங்கள்" : "Learn more"} →</span>
+          </a>
         </div>
       </section>
 
@@ -389,7 +402,7 @@ function HomeView({ isTa }: { isTa: boolean }) {
         <div className="ts-grid ts-2col ts-master-highlight-card">
           <div className="ts-master-highlight-photo">
             <img
-              src="/asan-portrait.jpg"
+              src="/asan-portrait.webp"
               alt="Kalaisudarmani Asan T. Veerapandian"
               loading="lazy"
               width={480}
@@ -433,30 +446,22 @@ function HomeView({ isTa }: { isTa: boolean }) {
             {isTa ? "அனைத்து படங்களையும் காண்க" : "View Complete Gallery"} <ArrowUpRight size={18} />
           </a>
         </div>
-        <div className="ts-grid ts-4col ts-strip-grid">
-          <div className="ts-strip-photo">
-            <img src="/lineage-training.jpg" alt="Lineage training" loading="lazy" />
-            <span>{isTa ? "பாரம்பரிய ஆயுதங்கள்" : "Lineage Weapons"}</span>
-          </div>
-          <div className="ts-strip-photo">
-            <img src="/gallery-stance-1.jpg" alt="Samanilai" loading="lazy" />
-            <span>{isTa ? "சமநிலை & சாண் பிடி" : "Samanilai Stance"}</span>
-          </div>
-          <div className="ts-strip-photo">
-            <img src="/gallery-stance-2.jpg" alt="Pirivu Nilai" loading="lazy" />
-            <span>{isTa ? "பிரிவு நிலை" : "Pirivu Nilai"}</span>
-          </div>
-          <div className="ts-strip-photo">
-            <img src="/gallery-stance-4.jpg" alt="Combat ready" loading="lazy" />
-            <span>{isTa ? "தயார் நிலை & வீச்சு" : "Combat Ready"}</span>
-          </div>
+        <div className="ts-gallery-bento">
+          {galleryHighlights.map((image) => (
+            <a className="ts-strip-photo" href={image.href} key={image.src}>
+              <img src={image.src} alt="" loading="lazy" decoding="async" />
+              <span>{isTa ? image.ta : image.en} <ArrowUpRight size={16} aria-hidden="true" /></span>
+            </a>
+          ))}
         </div>
       </section>
+
+      <SportsBlogPreview isTa={isTa} />
 
       {/* CALL TO ACTION */}
       <section className="ts-section ts-wrap ts-cta-section">
         <div className="ts-cta-card">
-          <span className="ts-eyebrow ts-badge-gold">05 / {isTa ? "மாணவர் சேர்க்கை" : "Admissions Open"}</span>
+          <span className="ts-eyebrow ts-badge-gold">06 / {isTa ? "மாணவர் சேர்க்கை" : "Admissions Open"}</span>
           <h2>
             {isTa ? "தென்காசி மண்ணில்" : "In Tenkasi District"}
             <br />
@@ -483,3 +488,11 @@ function HomeView({ isTa }: { isTa: boolean }) {
 }
 
 export default TenkasiSportsSite;
+
+const galleryHighlights = [
+  { src: "/lineage-training.webp", href: "/gallery#gallery-4", ta: "பாரம்பரிய ஆயுதங்கள்", en: "Lineage Weapons" },
+  { src: "/gallery-stance-1.webp", href: "/gallery#gallery-5", ta: "சமநிலை & சாண் பிடி", en: "Samanilai Stance" },
+  { src: "/gallery-stance-2.webp", href: "/gallery#gallery-6", ta: "பிரிவு நிலை", en: "Pirivu Nilai" },
+  { src: "/gallery-stance-4.webp", href: "/gallery#gallery-7", ta: "தயார் நிலை & வீச்சு", en: "Combat Ready" },
+  { src: "/gallery-stance-5.webp", href: "/gallery#gallery-8", ta: "களப் பயிற்சி", en: "Open Ground Practice" }
+];

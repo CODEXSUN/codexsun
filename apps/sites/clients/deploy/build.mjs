@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { routeMetadata, notFoundMetadata } from "../cloudflare/tenkasisports.content.mjs";
 
 process.env.NODE_ENV = "production";
@@ -15,10 +15,13 @@ for (const mode of process.argv.slice(2)) {
     const outDir = resolve(import.meta.dirname, "../../../../dist/apps/sites/clients/tenkasisports");
     const templatePath = resolve(outDir, "index.html");
     const sourceHtml = await readFile(templatePath, "utf8");
+    const pageChunk = (await readdir(resolve(outDir, "assets"))).find((file) => /^sports\.pages-.*\.js$/.test(file));
 
     const renderPage = (path, meta) => {
       const canonical = `https://tenkasisports.com${path === "/" ? "" : path}`;
       const seoTags = [
+        ...(path === "/" ? ['<link rel="preload" as="image" href="/gallery-stance-4.webp" type="image/webp" />'] : []),
+        ...(path !== "/" && pageChunk ? [`<link rel="modulepreload" crossorigin href="/assets/${pageChunk}" />`] : []),
         `<meta name="description" content="${meta.description}" />`,
         `<meta property="og:title" content="${meta.title}" />`,
         `<meta property="og:description" content="${meta.description}" />`,

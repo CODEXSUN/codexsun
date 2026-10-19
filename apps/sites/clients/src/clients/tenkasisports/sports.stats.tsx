@@ -1,5 +1,4 @@
-import { animate, motion, useInView, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const stats = [
   { value: 6000, suffix: "+", ta: "பயின்ற மாணவர்கள்", en: "Students trained" },
@@ -19,43 +18,59 @@ function AnimatedStat({ stat, index, visible, isTa }: {
   visible: boolean;
   isTa: boolean;
 }) {
-  const count = useMotionValue(0);
-  const display = useTransform(count, (value) => formatStat(value, stat.value));
-  const reduceMotion = useReducedMotion();
+  const [value, setValue] = useState(0);
 
   useEffect(() => {
-    if (reduceMotion) {
-      count.set(stat.value);
+    if (!visible) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setValue(stat.value);
       return;
     }
-    if (!visible) return;
 
-    const animation = animate(count, stat.value, {
-      duration: 1.8,
-      delay: index * 0.14,
-      ease: [0.22, 1, 0.36, 1]
-    });
-    return () => animation.stop();
-  }, [count, index, reduceMotion, stat.value, visible]);
+    let frame = 0;
+    const duration = 1400;
+    const delay = window.setTimeout(() => {
+      const start = performance.now();
+      const tick = (now: number) => {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setValue(Math.round(stat.value * eased));
+        if (progress < 1) frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+    }, index * 120);
+    return () => {
+      window.clearTimeout(delay);
+      cancelAnimationFrame(frame);
+    };
+  }, [index, stat.value, visible]);
 
   return (
-    <motion.div
-      className="ts-stat-item"
-      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-      animate={visible ? { opacity: 1, y: 0 } : false}
-      transition={{ duration: reduceMotion ? 0 : 0.55, delay: index * 0.12 }}
-    >
+    <div className="ts-stat-item">
       <strong aria-label={`${formatStat(stat.value, stat.value)}${stat.suffix}`}>
-        <motion.span aria-hidden="true">{display}</motion.span><span aria-hidden="true">{stat.suffix}</span>
+        <span aria-hidden="true">{formatStat(value, stat.value)}{stat.suffix}</span>
       </strong>
       <span>{isTa ? stat.ta : stat.en}</span>
-    </motion.div>
+    </div>
   );
 }
 
 export function SportsStats({ isTa }: { isTa: boolean }) {
   const ref = useRef<HTMLElement>(null);
-  const visible = useInView(ref, { once: true, amount: 0.35 });
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) {
+        setVisible(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.2 });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <section ref={ref} className="ts-hero-facts ts-wrap" aria-label={isTa ? "கழகத் தகவல்கள்" : "Club facts"}>

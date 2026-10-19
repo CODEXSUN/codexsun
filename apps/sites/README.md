@@ -58,18 +58,20 @@ Tenkasi District Sports Club is the public brand for the named Sites client `ten
 Its public UI lives in `clients/src/clients/tenkasisports`. Public assets and authentic handbook media live in `clients/public/tenkasisports`.
 The local Studio registry contains this client with pinned site UUID `c0de0006`. Studio Start verifies its identity before opening port 7134.
 Its layout is code-owned and responsive across mobile (320px, 390px, 430px) and desktop viewports with authentic Tamil and English content from the handbook.
-The sticky header shows the club name and links to Home, About, Syllabus, Classes, Masters, Gallery, Contact, Students, and Alumni.
+The sticky header shows the club name and links to Home, About, Syllabus, Classes, Masters, Gallery, Articles, Contact, Students, and Alumni.
 The top banner shows `9843930300` as a call link on the left. The language switch and member portal link sit on the right.
-The header, footer, and gallery use the supplied club logo from `clients/public/tenkasisports/club-logo.jpg`.
-The home page uses a three-slide, two-column hero modeled on the Platform static page: bilingual copy, local training photos, arrow and dot controls, smooth Framer Motion crossfades, and automatic rotation that pauses during interaction. The previous handbook image is no longer in the home hero.
+The header, footer, and gallery use optimized WebP sizes of the supplied club logo from `clients/public/tenkasisports/club-logo.jpg`.
+The home page uses a three-slide, two-column hero modeled on the Platform static page: bilingual copy, local training photos, arrow and dot controls, touch swipes, smooth CSS transitions, and automatic rotation that pauses during interaction. The previous handbook image is no longer in the home hero.
 The four club facts below the hero count up and enter with a short stagger when scrolled into view, while reduced-motion users see their final values immediately.
 The three home introduction cards link to the syllabus page; the section label and heading have extra breathing room above the cards.
+The three training-level cards link to their matching syllabus sections. The home page includes a five-photo gallery that scrolls horizontally on phones and five linked article cards. Article list and detail pages use code-owned Tamil and English content.
+The public client uses responsive WebP images, loads inner-page JavaScript on demand, and preloads the first hero image or inner-page chunk. The Worker caches versioned JavaScript and CSS while keeping HTML fresh.
 The Students page links to the existing admission and member portal flows. The Alumni page links to Contact and Gallery. The `/programs` path remains an alias for `/syllabus`.
 These page and brand changes are deployed to the live Worker. The existing Sites Studio publication remains at version 1; the club name and home metadata are owned by the client code.
 Public registration, enquiry, masters, classes, and programs submit through the same-origin Cloudflare Worker proxy forwarding strictly to Platform public endpoints.
 
 The public site is `https://tenkasisports.com` (redirecting `www.tenkasisports.com` via 308). Its Worker lives in `clients/cloudflare/tenkasisports.mjs`.
-Deployed as Cloudflare Worker `codexsun-tenkasisports` (version `50735ab2-d02c-448b-a244-7e1991916307`) in zone `f7c324e9ca4cac54047f84f591cb54e4` with D1 database `codexsun-tenkasisports-content` (`1fff5450-d9a8-473c-8b11-45ecad357a60`).
+Deployed as Cloudflare Worker `codexsun-tenkasisports` in zone `f7c324e9ca4cac54047f84f591cb54e4` with D1 database `codexsun-tenkasisports-content` (`1fff5450-d9a8-473c-8b11-45ecad357a60`).
 Wrangler configuration lives in `apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc`.
 Build with `npm run build:tenkasisports -w @codexsun/sites-clients`. Output stays under root `dist/apps/sites/clients/tenkasisports`.
 

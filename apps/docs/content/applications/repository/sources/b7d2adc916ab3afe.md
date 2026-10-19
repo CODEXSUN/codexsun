@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/SKILLS.md`
 
-Source SHA-256 (LF line endings): `01e18470435b809a5ad98c3024a2f085d499453f22a9c974cdd23dc5dd1d45ff`
+Source SHA-256 (LF line endings): `dd39b8ef2569ac3c5bab35a717820b97e8b8e46fc9f88865a7e86472417719ad`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -21,12 +21,12 @@ This file is component guidance. It does not install a global Codex skill or gra
 
 Local enquiries, contact activity, follow-up tasks, SOPs, duty assignments, and duty reporting across web and mobile.
 
-Core owns contact identity. Local CRM records remain authoritative after explicit imports from the tenant's verified Frappe connection. Imported enquiries retain source serials, timestamps, mapped user identity, comments, and source links. Do not add automatic enquiry export. Only the approved SOP and Duty outbox transfers CRM-owned records to Frappe. Preserve assignment scope and activity history.
+Core owns contact identity. Local CRM records remain authoritative for CRM operations. Imported enquiries retain source serials, timestamps, mapped user identity, comments, and source links. The explicitly approved enquiry live-sync contract posts local enquiry creates and updates to their verified Frappe links and imports remote changes. This approval does not extend to other CRM outbound transfers. Preserve assignment scope and activity history.
 
 ## Implementation rules
 
 - For custom Frappe contracts, refer to [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git).
-- Read [the Frappe comparison](FRAPPE-COMPARISON.md) before changing CRM transfer contracts. Frappe-to-CRM enquiry import is explicit and one-way; this does not approve outbound enquiry sync.
+- Read [the Frappe comparison](FRAPPE-COMPARISON.md) before changing CRM transfer contracts. Enquiry transfer uses the tenant's verified site and must preserve source timestamps, identity links, queue idempotency, and conflict checks.
 
 - Inspect the affected source and public contracts before editing.
 - Keep concrete business behavior in its owning leaf or package.

@@ -4262,7 +4262,7 @@
       "title": "apps/crm/agent/PLAN.md (part 1/2)",
       "summary": "Global Sales and Service CRM Plan — apps/crm/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/167e7e387badeaec-1.md",
-      "sourceHash": "2b813d3a5ed10d5b0d1d0e32d2deb193bbaac6612160b3ba5be10c5a4ece4b29",
+      "sourceHash": "f2adaf188ed7bb71365a1f32e96f6b586b449dc9f35539550d6bae581d0972e4",
       "sortOrder": 4100
     },
     {
@@ -4275,7 +4275,7 @@
       "title": "apps/crm/agent/PLAN.md (part 2/2)",
       "summary": "Global Sales and Service CRM Plan — apps/crm/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/167e7e387badeaec-2.md",
-      "sourceHash": "f0d4786e9fac7227a92443fed23da31efa2f4ca7ccc0fcd8672b76ad2149b4cc",
+      "sourceHash": "a508e93fcd0254349821254044283f9956e193c13d4e62fd5077d6893221d6b1",
       "sortOrder": 4101
     },
     {
@@ -4288,7 +4288,7 @@
       "title": "apps/crm/agent/SKILLS.md",
       "summary": "CRM working skills — apps/crm/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/b7d2adc916ab3afe.md",
-      "sourceHash": "c88ae4db8cd437fb961efea65bd849e5d2179a8d5f4c7498e69925725e0d3e05",
+      "sourceHash": "81e32fcd9dd8dc0dc93e2f11553933c9c714c807b0c63fb73d76937a39dfee4e",
       "sortOrder": 4200
     },
     {
@@ -4301,7 +4301,7 @@
       "title": "apps/crm/agent/TASK.md (part 1/2)",
       "summary": "CRM Delivery Tasks — apps/crm/agent/TASK.md",
       "sourcePath": "applications/repository/sources/190edf653cf55c8f-1.md",
-      "sourceHash": "e8b14b616593ed0bb21b07455897e356cf8367f089298ded23a21ad197000b68",
+      "sourceHash": "08de6e4e1ca90263335661043231e24c6948d13822752be257c0d8836b4a42ae",
       "sortOrder": 4300
     },
     {
@@ -4314,7 +4314,7 @@
       "title": "apps/crm/agent/TASK.md (part 2/2)",
       "summary": "CRM Delivery Tasks — apps/crm/agent/TASK.md",
       "sourcePath": "applications/repository/sources/190edf653cf55c8f-2.md",
-      "sourceHash": "338c66a29ced95310cc4970ff2cc551213cdc1bdf941ea489471fb9db7912447",
+      "sourceHash": "344ecf9403a3c3141a39a1e0d2561a890256935efe5b89127321fd96e7782f36",
       "sortOrder": 4301
     },
     {
@@ -4418,7 +4418,7 @@
       "title": "apps/crm/README.md",
       "summary": "CRM — apps/crm/README.md",
       "sourcePath": "applications/repository/sources/9d12b67de5811df0.md",
-      "sourceHash": "c2b5400516fc7a4b9174a4899b3b5c110dd886c84a66375062a986de798ca568",
+      "sourceHash": "012d756df85467af5275d9780b0ceccc33245a1b61fd577b557f185ac05782a9",
       "sortOrder": 5100
     },
     {
@@ -4652,7 +4652,7 @@
       "title": "apps/frappe/agent/TASK.md",
       "summary": "Frappe tasks — apps/frappe/agent/TASK.md",
       "sourcePath": "applications/repository/sources/cceb4789abcaac9c.md",
-      "sourceHash": "9124a8361c2add592a97f53ae5ee1ca2eecfdc90805c1a80b651f074a4a8b23d",
+      "sourceHash": "5b90cc76a3c1cdda8430b0b99ae8d34347a3dad4a6d4a22cf1eac5b4d9c68087",
       "sortOrder": 6400
     },
     {
@@ -4665,7 +4665,7 @@
       "title": "apps/frappe/README.md",
       "summary": "Frappe — apps/frappe/README.md",
       "sourcePath": "applications/repository/sources/d621cdee198475a5.md",
-      "sourceHash": "a2baf1bb7811d68b5af4f4cdf5e791ba462d3210b882969d7af43a9a64747a21",
+      "sourceHash": "c7298d22ff9c17145b6a36f932828e238c472ae7486068d9e37a5cb0cfccd8f8",
       "sortOrder": 6500
     },
     {
@@ -5107,7 +5107,7 @@
       "title": "apps/sites/agent/PLAN.md (part 1/3)",
       "summary": "Site Studio plan — apps/sites/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/eae9c367a0d8c896-1.md",
-      "sourceHash": "a41875a1ebbde52757771b9e78bcec3921e692e1f47b9c710fa3b37e52db6758",
+      "sourceHash": "d56a2a2abd3dc616b8d023f120da818ae4c5254f3add7cb2c573206d3d409884",
       "sortOrder": 9800
     },
     {
@@ -5120,7 +5120,7 @@
       "title": "apps/sites/agent/PLAN.md (part 2/3)",
       "summary": "Site Studio plan — apps/sites/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/eae9c367a0d8c896-2.md",
-      "sourceHash": "6bf3c36e3757155687c52c085c76484d0e067ec3764449a17b9f3f86c2d66e15",
+      "sourceHash": "bbe7572469a4e00cba8238872f9d9cb658b6367713e92f0f2b2e4e3008b8244c",
       "sortOrder": 9801
     },
     {
@@ -5133,7 +5133,7 @@
       "title": "apps/sites/agent/PLAN.md (part 3/3)",
       "summary": "Site Studio plan — apps/sites/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/eae9c367a0d8c896-3.md",
-      "sourceHash": "d4f509d2e5ee438be46a1431b934f0ec355dff0b0a9b17fcddca3a69a655b7d9",
+      "sourceHash": "186b706d9f91e75ece7d552feacaa7293523d8b1747312755bf5238822b56c61",
       "sortOrder": 9802
     },
     {
@@ -5156,10 +5156,10 @@
       "groupKey": "repository",
       "groupLabel": "Repository references",
       "moduleKey": "",
-      "title": "apps/sites/agent/TASK.md (part 1/2)",
+      "title": "apps/sites/agent/TASK.md (part 1/3)",
       "summary": "Site Studio task and working rules — apps/sites/agent/TASK.md",
       "sourcePath": "applications/repository/sources/ac59dd8ccdaddccf-1.md",
-      "sourceHash": "4c0aaca39549d4afe0d4948625c760615af1f1055967999e9de86f00e7d4cc52",
+      "sourceHash": "2366d869f89c9dd78485cd67e13e5411b489801a8a735191ba7f7ec6719c03d9",
       "sortOrder": 10000
     },
     {
@@ -5169,11 +5169,24 @@
       "groupKey": "repository",
       "groupLabel": "Repository references",
       "moduleKey": "",
-      "title": "apps/sites/agent/TASK.md (part 2/2)",
+      "title": "apps/sites/agent/TASK.md (part 2/3)",
       "summary": "Site Studio task and working rules — apps/sites/agent/TASK.md",
       "sourcePath": "applications/repository/sources/ac59dd8ccdaddccf-2.md",
-      "sourceHash": "ab7d9d5df0bd40bf30ae9d7a98d5a00d8abaa6890c54ba3c0153e7edfa668fee",
+      "sourceHash": "cd969bd5482e800b55a4398be906671b777eec8a38f7a5cca6b2d57dc0995547",
       "sortOrder": 10001
+    },
+    {
+      "pageKey": "repository/sources/ac59dd8ccdaddccf-3",
+      "appKey": "repository",
+      "appLabel": "Repository",
+      "groupKey": "repository",
+      "groupLabel": "Repository references",
+      "moduleKey": "",
+      "title": "apps/sites/agent/TASK.md (part 3/3)",
+      "summary": "Site Studio task and working rules — apps/sites/agent/TASK.md",
+      "sourcePath": "applications/repository/sources/ac59dd8ccdaddccf-3.md",
+      "sourceHash": "1aeb11946a97c56707f081c7b938787ff2c3f40b5e543b3cb67d40054817a428",
+      "sortOrder": 10002
     },
     {
       "pageKey": "repository/sources/0bad0eba70674a24",
@@ -5211,7 +5224,7 @@
       "title": "apps/sites/README.md (part 1/2)",
       "summary": "Sites — Site Studio — apps/sites/README.md",
       "sourcePath": "applications/repository/sources/a88933b329243995-1.md",
-      "sourceHash": "3f76aa5e62da10f8ab7e75c3c3a2bb82bf9200929c45eb74c8db7ef3d62b8469",
+      "sourceHash": "2f5dfe6e9336b7d485edef8a1c0b880743c3f73a9d9dd067d5bdc13d1a75c9ef",
       "sortOrder": 10300
     },
     {
@@ -5224,7 +5237,7 @@
       "title": "apps/sites/README.md (part 2/2)",
       "summary": "Sites — Site Studio — apps/sites/README.md",
       "sourcePath": "applications/repository/sources/a88933b329243995-2.md",
-      "sourceHash": "4fcba213f3cdcb37bdf44f6a6f0324da94bf228a7bb777886afb8c73d2b293ee",
+      "sourceHash": "104e53cff451be63ffd737a34470e6960f48f86188172d20b55614a0dc0e9bee",
       "sortOrder": 10301
     },
     {
@@ -5510,7 +5523,7 @@
       "title": "assist/architecture/frappe-outbound-sync.md",
       "summary": "Frappe enquiry sync — assist/architecture/frappe-outbound-sync.md",
       "sourcePath": "applications/repository/sources/505ecbeb08dbb1bd.md",
-      "sourceHash": "1b7d04d4a99ed9dec89a8a60c693482c70cabcfb55c5afdcde888e4e005b2b3e",
+      "sourceHash": "3225edbce98532d3afa3db25887d359735113423399016840c008a6b87c9545d",
       "sortOrder": 12400
     },
     {
@@ -5744,7 +5757,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 1/9)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-1.md",
-      "sourceHash": "a873b2842d0983b626a2366fe175e806cd97da7d1b9036ee776f80cc872bd00b",
+      "sourceHash": "c720cf848f6b99cf1ab65c1413d9f1ec1f8d1c25d9e23d1975ddb30566e3c89d",
       "sortOrder": 14000
     },
     {
@@ -5757,7 +5770,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 2/9)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-2.md",
-      "sourceHash": "590443f9878877c8152bdd91348e83bdb39499feecaa485785672ca5352aa106",
+      "sourceHash": "cad588faa3db41444dc25668377dbf0387b4fe31b9afda9ae1acf7110c7116b2",
       "sortOrder": 14001
     },
     {
@@ -5770,7 +5783,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 3/9)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-3.md",
-      "sourceHash": "d1a084807ed097f8441c4a019cb27b48b63cb4c758084c1180a3c3f802257ed0",
+      "sourceHash": "de3324e710e40e4b55b45ede6fb5ed84958cd899d45beecb7c27a97da21793a7",
       "sortOrder": 14002
     },
     {
@@ -5783,7 +5796,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 4/9)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-4.md",
-      "sourceHash": "dad9a0eb9cbb0b6abf284aadbb21c207d3053297e917a27027d33f246c9e5dcc",
+      "sourceHash": "85d4b9e011d7bd905cb7233f00a4266a236949784d1a61436a8afe07223dd4e5",
       "sortOrder": 14003
     },
     {
@@ -5796,7 +5809,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 5/9)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-5.md",
-      "sourceHash": "fbf735d9f8edb6a1402375937b74e6e0ebb0f175fcd52612c43abee7dbe48dbf",
+      "sourceHash": "8549c1d007f726cf296e4865e888a382d61e5480856fb266bd972381a2c66aae",
       "sortOrder": 14004
     },
     {
@@ -5809,7 +5822,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 6/9)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-6.md",
-      "sourceHash": "247f5eb8c3bf34acd3a8e8bcc9916e946e383df7709e076fb21b44106307a8d1",
+      "sourceHash": "7af7f9aa42560bc096c528fb71784a13f192a1ba3b1966fabbf52da0ffc7123d",
       "sortOrder": 14005
     },
     {
@@ -5822,7 +5835,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 7/9)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-7.md",
-      "sourceHash": "158fe09c6c0a1f7809551474854090065756242d400fb50046c5b6675c5a7a6c",
+      "sourceHash": "861ed8ae0c16f506df95735d069106affc5711758c8083b44bb24955adb93983",
       "sortOrder": 14006
     },
     {
@@ -5835,7 +5848,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 8/9)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-8.md",
-      "sourceHash": "4713b9e41781f973ef5245871187b88595bce0abaef97bda915a24b88d9e0859",
+      "sourceHash": "76c9e280e046a0e1e507e98ef85d8eb349d2a7b54baedad28242326f165b9a28",
       "sortOrder": 14007
     },
     {
@@ -5848,7 +5861,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 9/9)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-9.md",
-      "sourceHash": "ba9a04ed8eb08f9d00e660e2387ffe861b8fbf265df475a9eb83b85dc325c62a",
+      "sourceHash": "0104d1303044e88addd032e4d3cd61d64d7d9f6c35a4116b1102242867b6cd7a",
       "sortOrder": 14008
     },
     {

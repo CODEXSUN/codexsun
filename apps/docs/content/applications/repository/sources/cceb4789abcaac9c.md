@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `5f300e986b377217b6d9b2220670e4c05155891791a6ba233a81d975c059c823`
+Source SHA-256 (LF line endings): `3e9d85a8789e63dcaf04ecfa11ded9fed974c537e72ee5ff946b71f1e48f12ba`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -13,7 +13,9 @@ Historical notes and unchecked plans retain their original status.
 
 ## Sync direction audit - 2026-10-18
 
-- [ ] Deploy and verify TECHMEDIA Frappe enquiry import with source serials, creation/modified dates, mapped owner/assignee, site-scoped Customer identity, comments, audit history, and live Redis/BullMQ batches. Begin with a small selected-row test, then continue the queue until all 1,983 source enquiries are accounted for. Do not touch other tenant databases.
+- [x] Deploy and verify TECHMEDIA Frappe enquiry import with source serials, creation/modified dates, mapped owner/assignee, site-scoped Customer identity, comments, audit history, and live Redis/BullMQ batches. Begin with a small selected-row test, then continue the queue until all current source enquiries are accounted for. Do not touch other tenant databases.
+
+  Live evidence: selected-row import verified ENQ1–ENQ5. Redis/BullMQ jobs 14, 24, and 29 ran in creation order over all 1,984 current Frappe enquiries; final job 29 completed with 1,984 scanned and zero failures. Reconciliation verified 1,984 unique source links and matching serials, creation timestamps, and modified timestamps to MariaDB second precision. All 14 of 15 distinct Frappe owners mapped; the remaining owner’s source email is preserved as `created_by`. All 18 distinct assigned employee codes mapped, and all 389 rows without a source assignee remain unassigned. All 575 source Customer rows have contact links; rows lacking a Frappe Customer were not linked by mobile alone. Frappe contained 4,066 embedded `enquiry_messages` and 69 standalone Enquiry comments; CRM contains 4,135 retry-keyed imported comments. Release 1.1.17 imports embedded messages with source author/time and stable retry keys. API, web, shop, and all CXApp containers report healthy; live CODEXSUN, shop, and API health routes passed. Only `techmedia_db` was used; no backup, schema migration, or tenant database creation occurred. Focused CRM/Frappe tests (101) and three isolated integration suites passed, as did Frappe API typecheck/lint/build, module boundaries, version consistency, and diff checks.
 
 - [x] Separate Frappe-to-CRM imports from CRM-to-Frappe exports in the API and web labels.
 - [x] Report connection usability and queue-worker availability to the web client.
@@ -25,6 +27,29 @@ Historical notes and unchecked plans retain their original status.
 - [x] Verify both Contact directions and the queued CRM-to-Frappe export through the browser.
       Evidence: `npm run test:e2e:frappe-contacts-live` on `logicx.tmnext.in` imported Customer `C9138` into disposable local Core storage, confirmed the same local ID on retry, then created and read back one unique Mobile Contact using only `mobile_number`; repeat export updated that same document and cleanup deleted it. The mismatch path remained blocked.
       The local browser export page verified Customer `C9138`, showed “Create Mobile Contact” and “Ready · mobile number only”, queued the export, and completed with 1 exported and 0 failed. Remote readback confirmed the Mobile Contact ID and `mobile_number` were `6886246988`; the exact remote test document and local CRM fixture were then removed and absence verified. CRM did not create another Frappe Customer or Supplier. This was a local browser/API queue test against the live Frappe site, not a production deployment.
+
+## Enquiry live sync and source timestamps - 2026-10-18
+
+- [x] Enforce the approved outbound scope at the Frappe export service boundary: enquiries may be
+      exported; contacts, activities, and call logs are blocked for both manual and queued requests.
+      Verification remains available for every kind. Imports and stored data are unchanged.
+      Regression: `export.policy.test.ts`.
+
+- [x] Limit scheduled CRM-to-Frappe exports to Enquiries; do not automatically export Contacts,
+      Activities, or Call Logs without separate approval. Regression:
+      `frappe-live-sync.policy.test.ts` (2/2).
+- [ ] Deploy the current sync changes. Production preflight is blocked because the guarded updater
+      expects Compose project `codexsun-billing` / service `platform-api`, while the live API is
+      owned by project `codexsun` / service `codexsun-api`; the checked-in updater's deployment
+      environment also does not match the active release. Preflight stopped before backup or
+      container changes. CXApp and all current application containers remained running.
+- [ ] Preserve exact Frappe creation/modified timestamps and comment timestamps when importing or
+      reconciling enquiries. Incrementally receive Frappe changes and post CRM enquiry creates and
+      updates to the verified linked Frappe document through the live queue.
+- [ ] Verify queue worker operation, one safe live create/update/readback, and inbound reconciliation
+      on the configured tenant. Record production evidence only after remote and local values match.
+      Frappe system `creation` is server-generated on a new remote document; CRM business date maps
+      to the Enquiry `date` field.
 
 ## Frappe contact document identity - 2026-10-18
 

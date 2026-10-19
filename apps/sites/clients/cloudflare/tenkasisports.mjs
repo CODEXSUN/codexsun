@@ -89,7 +89,7 @@ export default {
     const row = /\.[a-z0-9]+$/i.test(url.pathname) ? null : await readPublication(env);
     const asset = await env.ASSETS.fetch(request);
     if (asset.status !== 404 || /\.[a-z0-9]+$/i.test(url.pathname)) {
-      return secureResponse(liveHtml(asset, row, normalized));
+      return secureResponse(liveHtml(asset, row, normalized), url.pathname);
     }
 
     const routeAsset = new URL(`${normalized}/index.html`, url);
@@ -242,10 +242,15 @@ function tenantPending() {
   );
 }
 
-function secureResponse(response) {
+function secureResponse(response, pathname = "") {
   const result = new Response(response.body, response);
   result.headers.set("X-Content-Type-Options", "nosniff");
   result.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   result.headers.set("X-Frame-Options", "SAMEORIGIN");
+  if (result.ok && /^\/assets\/[^/]+-[a-z0-9_-]+\.(?:js|css)$/i.test(pathname)) {
+    result.headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  } else if (result.ok && /\.(?:avif|webp|jpe?g|png|svg|woff2)$/i.test(pathname)) {
+    result.headers.set("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+  }
   return result;
 }

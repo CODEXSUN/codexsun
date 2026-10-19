@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `3e3f7ebc875436204ea24a1f9187ad3f47d9f491135ce0167f8daf8fdbc6062f`
+Source SHA-256 (LF line endings): `42f0be00774dcdf5da132952d017314e6fffa17c2cd5faae1e44ebde472d5381`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -56,7 +56,9 @@ CRM writes must stay in the tenant database. The mobile app sends records to the
 CRM API, which saves them locally. Enquiries may be explicitly imported from the
 tenant's verified Frappe connection into local CRM; the import preserves source
 serials, timestamps, mapped users, comments, and identity links. After import,
-local CRM remains authoritative and no automatic enquiry export is allowed.
+local CRM remains authoritative for CRM operations. The separately requested enquiry live-sync
+contract imports remote Frappe changes and posts local enquiry creates/updates to the verified linked
+record. It does not authorize other CRM outbound transfers.
 Call Logs remain outside this import scope. Published SOP Items, Duty Assignments,
 and Duty Reports use the approved outbound queue described in
 [DUTIES-SOP-PLAN.md](./DUTIES-SOP-PLAN.md). CRM reads these records locally.
@@ -296,10 +298,4 @@ Service Request → Check Coverage and SLA → Diagnose
   not change historical commitments.
 - Recurring agreements create planned work from a versioned schedule. Each
   generated request or work item uses an idempotency key.
-
-### Scheduling and Work
-
-- Track resource skills, working hours, territory, leave, capacity, service
-  location, travel buffer, and customer time window.
-- Allow manual assignment f
 ````

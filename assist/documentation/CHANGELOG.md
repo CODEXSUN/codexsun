@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.22
+Current version: 1.1.23
 
-Release tag: v-1.1.22
+Release tag: v-1.1.23
 
-Changelog label: v 1.1.22
+Changelog label: v 1.1.23
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,22 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.23
+
+### [v 1.1.23] 2026-10-19 9:46 pm - Improve Tenkasi Sports mobile performance
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.23.
+- Add five Tenkasi training articles with a blog index and article routes. Add a linked home gallery and syllabus training cards.
+- Add mobile hero swipes and a scrollable gallery. Improve small-screen menus, layouts, and touch targets across public pages.
+- Serve smaller WebP images, split inner-page JavaScript, preload route assets, and cache versioned Worker assets.
+- Verify the Tenkasi build, mobile layouts, page navigation, and Worker cache behavior.
 
 ## v-1.1.22
 

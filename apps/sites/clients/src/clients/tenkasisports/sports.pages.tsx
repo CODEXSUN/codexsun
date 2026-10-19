@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { sportsPortalUrl } from "./sports.links";
 import { AlumniPage, StudentsPage } from "./sports.community";
+import { SportsBlogPages, sportsArticles } from "./sports.blogs";
 
 type Language = "ta" | "en";
 
@@ -31,6 +32,10 @@ export function SportsPages({ path, content, lang }: SportsPagesProps) {
   // Preserve existing syllabus and admission links.
   const effectivePath =
     path === "/silambam" || path === "/sports" || path === "/programs" ? "/syllabus" : path;
+
+  if (effectivePath === "/blogs" || sportsArticles.some((article) => effectivePath === `/blogs/${article.slug}`)) {
+    return <SportsBlogPages path={effectivePath} isTa={isTa} />;
+  }
 
   switch (effectivePath) {
     case "/about":
@@ -101,9 +106,12 @@ function AboutPage({ isTa }: { isTa: boolean; content: PageContent }) {
         </div>
         <div className="ts-image-frame">
           <img
-            src="/asan-temple-staff.jpg"
+            src="/asan-temple-staff.webp"
             alt={isTa ? "ஆசான் தி. வீரபாண்டியன் சிலம்பப் பார்வை" : "Master T. Veerapandian with Silambam Staff"}
             loading="lazy"
+            decoding="async"
+            width={960}
+            height={1364}
           />
           <div className="ts-caption">
             {isTa
@@ -222,7 +230,7 @@ function ProgramsPage({ isTa }: { isTa: boolean; content: PageContent }) {
 
       <div className="ts-syllabus-grid">
         {/* LEVEL 1 */}
-        <div className="ts-level-card">
+        <div className="ts-level-card" id="level-1">
           <div className="ts-level-head">
             <span className="ts-level-tag">{isTa ? "நிலை 1" : "Level 1"}</span>
             <h2>{isTa ? "ஆரம்ப நிலை (Beginner Level)" : "Beginner Foundations"}</h2>
@@ -253,7 +261,7 @@ function ProgramsPage({ isTa }: { isTa: boolean; content: PageContent }) {
         </div>
 
         {/* LEVEL 2 */}
-        <div className="ts-level-card">
+        <div className="ts-level-card" id="level-2">
           <div className="ts-level-head">
             <span className="ts-level-tag">{isTa ? "நிலை 2" : "Level 2"}</span>
             <h2>{isTa ? "இடைநிலை (Intermediate Level)" : "Intermediate Combat & Forms"}</h2>
@@ -284,7 +292,7 @@ function ProgramsPage({ isTa }: { isTa: boolean; content: PageContent }) {
         </div>
 
         {/* LEVEL 3 */}
-        <div className="ts-level-card ts-gold-card">
+        <div className="ts-level-card ts-gold-card" id="level-3">
           <div className="ts-level-head">
             <span className="ts-level-tag ts-badge-gold">{isTa ? "நிலை 3" : "Level 3"}</span>
             <h2>{isTa ? "உயர் நிலை & வர்மக்கலை (Master Level)" : "Advanced & Varmam Master Tier"}</h2>
@@ -485,9 +493,12 @@ function MastersPage({ isTa }: { isTa: boolean; content: PageContent }) {
       <div className="ts-grid ts-2col ts-master-spotlight">
         <div className="ts-master-img-wrapper">
           <img
-            src="/asan-portrait.jpg"
+            src="/asan-portrait.webp"
             alt={isTa ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்" : "Kalaisudarmani Asan T. Veerapandian"}
             loading="lazy"
+            decoding="async"
+            width={664}
+            height={1000}
           />
         </div>
         <div>
@@ -617,42 +628,42 @@ function EventsPage({ isTa }: { isTa: boolean; content: PageContent }) {
 function GalleryPage({ isTa }: { isTa: boolean; content: PageContent }) {
   const images = [
     {
-      src: "/asan-temple-staff.jpg",
+      src: "/asan-temple-staff.webp",
       title: isTa ? "ஆசான் தி. வீரபாண்டியன் - தற்காப்புக் களத் தோற்றம்" : "Master T. Veerapandian in Martial Stance",
       desc: isTa ? "மூங்கில் சிலம்பக் கம்புடன் கோவில் முற்றத்தில் கம்பீரத் தோற்றம்" : "Holding the bamboo staff in temple courtyard"
     },
     {
-      src: "/club-logo.jpg",
+      src: "/club-logo-640.webp",
       title: isTa ? "தென்காசி மாவட்ட விளையாட்டுக் கழக சின்னம்" : "Tenkasi District Sports Club logo",
       desc: isTa ? "கழகத்தின் அடையாளச் சின்னம்" : "The club's visual identity"
     },
     {
-      src: "/asan-portrait.jpg",
+      src: "/asan-portrait.webp",
       title: isTa ? "தலைமை ஆசான் உருவப்படம்" : "Chief Master Portrait",
       desc: isTa ? "கலைச்சுடர்மணி தி. வீரபாண்டியன் - வாழ்க்கலை ஆசான்" : "Kalaisudarmani T. Veerapandian"
     },
     {
-      src: "/lineage-training.jpg",
+      src: "/lineage-training.webp",
       title: isTa ? "பாரம்பரிய குருமார் & தற்காப்புக் களம்" : "Martial Lineage & Arena Ground",
       desc: isTa ? "பாரம்பரிய ஆயுதங்கள் மற்றும் களப் பயிற்சி மரபு" : "Traditional weapons arsenal and sparring ground"
     },
     {
-      src: "/gallery-stance-1.jpg",
+      src: "/gallery-stance-1.webp",
       title: isTa ? "சமநிலை & கம்பு அளவுகள்" : "Samanilai (Attention Stance)",
       desc: isTa ? "சாண் பிடி முறை மற்றும் உடலமைப்பிற்கு ஏற்ப கம்பு தேர்வு" : "Measuring staff proportions with hand-span rule"
     },
     {
-      src: "/gallery-stance-2.jpg",
+      src: "/gallery-stance-2.webp",
       title: isTa ? "பிரிவு நிலை / ஆயத்த நிலை" : "Pirivu Nilai (Ready Stance)",
       desc: isTa ? "களத்தை உற்று நோக்கும் தற்காப்புத் தயார் நிலை" : "Engaging ground rooting and visual focus"
     },
     {
-      src: "/gallery-stance-4.jpg",
+      src: "/gallery-stance-4.webp",
       title: isTa ? "தயார் நிலை & முன்வீச்சு" : "Combat Ready & Swing Stance",
       desc: isTa ? "கம்பை சுழற்றி எதிரியை எதிர்கொள்ளும் தற்காப்பு வீச்சு" : "Dynamic staff swing and defensive framing"
     },
     {
-      src: "/gallery-stance-5.jpg",
+      src: "/gallery-stance-5.webp",
       title: isTa ? "களப் பயிற்சி தருணம்" : "Open Ground Practice",
       desc: isTa ? "இயற்கையான திறந்தவெளிக் களத்தில் மாணாக்கரின் தீவிர பயிற்சி" : "Open air training ground in rural Tenkasi"
     }
@@ -672,8 +683,8 @@ function GalleryPage({ isTa }: { isTa: boolean; content: PageContent }) {
 
       <div className="ts-gallery-grid">
         {images.map((item, idx) => (
-          <div key={idx} className="ts-gallery-item">
-            <img src={item.src} alt={item.title} loading="lazy" />
+          <div key={idx} className="ts-gallery-item" id={`gallery-${idx + 1}`}>
+            <img src={item.src} alt={item.title} loading="lazy" decoding="async" />
             <div className="ts-gallery-meta">
               <h3>{item.title}</h3>
               <p>{item.desc}</p>

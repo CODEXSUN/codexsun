@@ -1,6 +1,5 @@
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ArrowUpRight, Shield } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const slides = [
   {
@@ -10,7 +9,7 @@ const slides = [
       ta: "சிலம்பம், ஒழுக்கம் மற்றும் தற்காப்பைப் படிப்படியாகக் கற்கும் பயிற்சிக் களம்.",
       en: "A place to learn Silambam, discipline, and self-defense through steady practice."
     },
-    image: "/gallery-stance-4.jpg",
+    image: "/gallery-stance-4.webp",
     imageAlt: { ta: "சிலம்பக் கம்புடன் பயிற்சி பெறும் மாணவி", en: "Student practicing with a Silambam staff" },
     caption: { ta: "சிலம்பப் பயிற்சி", en: "Silambam practice" },
     action: { href: "/join", ta: "பயிற்சியில் இணையுங்கள்", en: "Join training" }
@@ -22,7 +21,7 @@ const slides = [
       ta: "நிலைகள், கம்பு பிடிப்பு மற்றும் அசைவுகளை முறையாகக் கற்கும் பாடத்திட்டம்.",
       en: "Explore a syllabus that builds from stances and staff handling to confident movement."
     },
-    image: "/gallery-stance-5.jpg",
+    image: "/gallery-stance-5.webp",
     imageAlt: { ta: "சிலம்பப் பயிற்சியில் மாணவி", en: "Student holding a staff during Silambam practice" },
     caption: { ta: "படிப்படியான கற்றல்", en: "Progressive learning" },
     action: { href: "/syllabus", ta: "பாடத்திட்டம் காண்க", en: "View syllabus" }
@@ -34,7 +33,7 @@ const slides = [
       ta: "ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் குருகுல மரபை அறிந்து பயிற்சி பெறுங்கள்.",
       en: "Learn about the Gurukulam's teaching tradition and Master T. Veerapandian."
     },
-    image: "/asan-portrait.jpg",
+    image: "/asan-portrait.webp",
     imageAlt: { ta: "ஆசான் தி. வீரபாண்டியன் உருவப்படம்", en: "Portrait of Master T. Veerapandian" },
     caption: { ta: "ஆசான் தி. வீரபாண்டியன்", en: "Master T. Veerapandian" },
     action: { href: "/masters", ta: "ஆசான்களை அறிக", en: "Meet the masters" }
@@ -44,20 +43,43 @@ const slides = [
 export function SportsHero({ isTa }: { isTa: boolean }) {
   const [activeSlide, setActiveSlide] = useState(0);
   const [paused, setPaused] = useState(false);
-  const reduceMotion = useReducedMotion();
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [hasChanged, setHasChanged] = useState(false);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const slide = slides[activeSlide] ?? slides[0];
   const language = isTa ? "ta" : "en";
 
   useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduceMotion(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
     if (paused || reduceMotion) return;
     const timer = window.setTimeout(() => {
+      setHasChanged(true);
       setActiveSlide((current) => (current + 1) % slides.length);
     }, 6500);
     return () => window.clearTimeout(timer);
   }, [activeSlide, paused, reduceMotion]);
 
   function showRelativeSlide(offset: number) {
+    setHasChanged(true);
     setActiveSlide((current) => (current + offset + slides.length) % slides.length);
+  }
+
+  function finishTouch(x: number, y: number) {
+    const start = touchStart.current;
+    touchStart.current = null;
+    setPaused(false);
+    if (!start) return;
+    const deltaX = x - start.x;
+    const deltaY = y - start.y;
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+    showRelativeSlide(deltaX < 0 ? 1 : -1);
   }
 
   return (
@@ -71,17 +93,26 @@ export function SportsHero({ isTa }: { isTa: boolean }) {
       onFocus={() => setPaused(true)}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onTouchStart={(event) => {
+        const touch = event.touches.item(0);
+        if (!touch) return;
+        touchStart.current = { x: touch.clientX, y: touch.clientY };
+        setPaused(true);
+      }}
+      onTouchEnd={(event) => {
+        const touch = event.changedTouches.item(0);
+        if (touch) finishTouch(touch.clientX, touch.clientY);
+      }}
+      onTouchCancel={() => {
+        touchStart.current = null;
+        setPaused(false);
+      }}
     >
       <div className="ts-hero-copy">
         <div className="ts-hero-slide-copy" aria-live="polite" aria-atomic="true">
-          <AnimatePresence initial={false}>
-            <motion.div
-              className="ts-hero-message"
+            <div
+              className={hasChanged ? "ts-hero-message ts-slide-enter" : "ts-hero-message"}
               key={activeSlide}
-              initial={reduceMotion ? false : { opacity: 0, y: 22 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -18 }}
-              transition={{ duration: reduceMotion ? 0 : 0.62, ease: [0.22, 1, 0.36, 1] }}
             >
               <span className="ts-hero-badge"><Shield size={15} aria-hidden="true" /> {slide.eyebrow[language]}</span>
               <h1 className="ts-hero-title">{slide.title[language]}</h1>
@@ -92,8 +123,7 @@ export function SportsHero({ isTa }: { isTa: boolean }) {
                 </a>
                 <a className="ts-hero-secondary" href="/about">{isTa ? "கழகத்தைப் பற்றி" : "About the club"}</a>
               </div>
-            </motion.div>
-          </AnimatePresence>
+            </div>
         </div>
         <div className="ts-hero-footer">
           <div className="ts-hero-controls">
@@ -105,7 +135,10 @@ export function SportsHero({ isTa }: { isTa: boolean }) {
                   key={item.image}
                   aria-current={index === activeSlide ? "true" : undefined}
                   aria-label={`${isTa ? "காட்சி" : "Slide"} ${index + 1}: ${item.title[language]}`}
-                  onClick={() => setActiveSlide(index)}
+                  onClick={() => {
+                    setHasChanged(true);
+                    setActiveSlide(index);
+                  }}
                 />
               ))}
             </div>
@@ -114,19 +147,13 @@ export function SportsHero({ isTa }: { isTa: boolean }) {
         </div>
       </div>
       <div className="ts-hero-stage">
-        <AnimatePresence initial={false}>
-          <motion.figure
-            className="ts-hero-media"
+          <figure
+            className={hasChanged ? "ts-hero-media ts-slide-enter" : "ts-hero-media"}
             key={slide.image}
-            initial={reduceMotion ? false : { opacity: 0, scale: 1.045 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
-            transition={{ duration: reduceMotion ? 0 : 0.85, ease: [0.22, 1, 0.36, 1] }}
           >
-            <img src={slide.image} alt={slide.imageAlt[language]} fetchPriority={activeSlide === 0 ? "high" : undefined} />
+            <img src={slide.image} alt={slide.imageAlt[language]} fetchPriority={activeSlide === 0 ? "high" : undefined} decoding="async" />
             <figcaption>{slide.caption[language]}</figcaption>
-          </motion.figure>
-        </AnimatePresence>
+          </figure>
       </div>
     </section>
   );

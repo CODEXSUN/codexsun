@@ -197,6 +197,31 @@ test("tenkasisports worker redirects www to canonical apex domain", async () => 
   }
 });
 
+test("tenkasisports caches versioned assets while keeping page HTML fresh", async () => {
+  const env = {
+    ...environment(),
+    ASSETS: {
+      fetch: async (request: Request) => new Response(
+        new URL(request.url).pathname.endsWith(".js") ? "export {}" : "<!doctype html><title>Club</title>",
+        { headers: { "Content-Type": new URL(request.url).pathname.endsWith(".js") ? "text/javascript" : "text/html" } }
+      )
+    }
+  };
+  try {
+    const script = await worker.fetch(new Request("https://tenkasisports.com/assets/index-Ab12cd.js"), env);
+    assert.equal(script.headers.get("Cache-Control"), "public, max-age=31536000, immutable");
+    const image = await worker.fetch(new Request("https://tenkasisports.com/club-logo-128.webp"), {
+      ...env,
+      ASSETS: { fetch: async () => new Response("image", { headers: { "Content-Type": "image/webp" } }) }
+    });
+    assert.equal(image.headers.get("Cache-Control"), "public, max-age=86400, stale-while-revalidate=604800");
+    const page = await worker.fetch(new Request("https://tenkasisports.com/about"), env);
+    assert.equal(page.headers.get("Cache-Control"), "no-store");
+  } finally {
+    env.CODEXSUN_TENKASISPORTS_CONTENT.db.close();
+  }
+});
+
 test("tenkasisports worker routes forward to canonical platform endpoints with HMAC client headers", async () => {
   const env = environment();
   const originalFetch = globalThis.fetch;
