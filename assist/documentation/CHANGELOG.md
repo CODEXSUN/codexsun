@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.23
+Current version: 1.1.24
 
-Release tag: v-1.1.23
+Release tag: v-1.1.24
 
-Changelog label: v 1.1.23
+Changelog label: v 1.1.24
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,22 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.24
+
+### [v 1.1.24] 2026-10-19 11:10 pm - Publish Tenkasi student and alumni showcase
+
+#### Database Changes
+
+- Database update: No (manual).
+- The public showcase table and six fictional profiles were added in the preceding site commit. No new database change is needed for this version update.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.24.
+- Release the Students and Alumni photo grids with three illustrative child learners and three illustrative adult alumni. Both languages identify every profile as a sample.
+- Serve the profiles from the public Tenkasi Worker D1 showcase API without exposing private member records.
+- Deploy Worker version `f56a1289-844e-4c9c-acb8-112545a084f0`. Verify both language modes on Students and Alumni, the six public sample records, and the WebP image on the live domain.
 
 ## v-1.1.23
 

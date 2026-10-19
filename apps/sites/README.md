@@ -66,12 +66,12 @@ The four club facts below the hero count up and enter with a short stagger when 
 The three home introduction cards link to the syllabus page; the section label and heading have extra breathing room above the cards.
 The three training-level cards link to their matching syllabus sections. The home page includes a five-photo gallery that scrolls horizontally on phones and five linked article cards. Article list and detail pages use code-owned Tamil and English content.
 The public client uses responsive WebP images, loads inner-page JavaScript on demand, and preloads the first hero image or inner-page chunk. The Worker caches versioned JavaScript and CSS while keeping HTML fresh.
-The Students page links to the existing admission and member portal flows. The Alumni page links to Contact and Gallery. The `/programs` path remains an alias for `/syllabus`.
+The Students page links to the existing admission and member portal flows. The Alumni page links to Contact and Gallery. Both pages show bilingual photo grids from the public Worker D1 showcase API. Three fictional child learners and three fictional adult alumni use illustrative portraits and visible sample labels. Private member records are not part of this feed. The `/programs` path remains an alias for `/syllabus`.
 These page and brand changes are deployed to the live Worker. The existing Sites Studio publication remains at version 1; the club name and home metadata are owned by the client code.
 Public registration, enquiry, masters, classes, and programs submit through the same-origin Cloudflare Worker proxy forwarding strictly to Platform public endpoints.
 
 The public site is `https://tenkasisports.com` (redirecting `www.tenkasisports.com` via 308). Its Worker lives in `clients/cloudflare/tenkasisports.mjs`.
-Deployed as Cloudflare Worker `codexsun-tenkasisports` (version `fbb52e2f-cfd7-48ff-92a3-6306dc8183e3`) in zone `f7c324e9ca4cac54047f84f591cb54e4` with D1 database `codexsun-tenkasisports-content` (`1fff5450-d9a8-473c-8b11-45ecad357a60`).
+Deployed as Cloudflare Worker `codexsun-tenkasisports` (version `f56a1289-844e-4c9c-acb8-112545a084f0`) in zone `f7c324e9ca4cac54047f84f591cb54e4` with D1 database `codexsun-tenkasisports-content` (`1fff5450-d9a8-473c-8b11-45ecad357a60`).
 Wrangler configuration lives in `apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc`.
 Build with `npm run build:tenkasisports -w @codexsun/sites-clients`. Output stays under root `dist/apps/sites/clients/tenkasisports`.
 
