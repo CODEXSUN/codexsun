@@ -5159,7 +5159,7 @@
       "title": "apps/sites/agent/TASK.md (part 1/3)",
       "summary": "Site Studio task and working rules — apps/sites/agent/TASK.md",
       "sourcePath": "applications/repository/sources/ac59dd8ccdaddccf-1.md",
-      "sourceHash": "2366d869f89c9dd78485cd67e13e5411b489801a8a735191ba7f7ec6719c03d9",
+      "sourceHash": "010b6151d58dbfdd49daa41da3f2a9ec822d70179ad3394327db77fb16e0a83c",
       "sortOrder": 10000
     },
     {
@@ -5172,7 +5172,7 @@
       "title": "apps/sites/agent/TASK.md (part 2/3)",
       "summary": "Site Studio task and working rules — apps/sites/agent/TASK.md",
       "sourcePath": "applications/repository/sources/ac59dd8ccdaddccf-2.md",
-      "sourceHash": "cd969bd5482e800b55a4398be906671b777eec8a38f7a5cca6b2d57dc0995547",
+      "sourceHash": "74df5c5a94cc4adbf4143c18b0b00e11556fed12ac60e2ae08dc2f83dc989d14",
       "sortOrder": 10001
     },
     {
@@ -5185,7 +5185,7 @@
       "title": "apps/sites/agent/TASK.md (part 3/3)",
       "summary": "Site Studio task and working rules — apps/sites/agent/TASK.md",
       "sourcePath": "applications/repository/sources/ac59dd8ccdaddccf-3.md",
-      "sourceHash": "1aeb11946a97c56707f081c7b938787ff2c3f40b5e543b3cb67d40054817a428",
+      "sourceHash": "979e9d5a46f0a9070ec7b18968be629dafe65fc8593e0a88daa3a5893d1c0fd2",
       "sortOrder": 10002
     },
     {
@@ -5224,7 +5224,7 @@
       "title": "apps/sites/README.md (part 1/2)",
       "summary": "Sites — Site Studio — apps/sites/README.md",
       "sourcePath": "applications/repository/sources/a88933b329243995-1.md",
-      "sourceHash": "5eb494e3377324effd02843566b3dfaf3d0822fe74646704c743b6f5254b0b25",
+      "sourceHash": "771f217ff17c338d338d06d89cd835f9b2053bca19e2bbcaf132c2618cd53c62",
       "sortOrder": 10300
     },
     {
@@ -5237,7 +5237,7 @@
       "title": "apps/sites/README.md (part 2/2)",
       "summary": "Sites — Site Studio — apps/sites/README.md",
       "sourcePath": "applications/repository/sources/a88933b329243995-2.md",
-      "sourceHash": "0c11d59decabcf73af698ae1dd0757d2f56e9e24b173fe3b370aeb163051ef0f",
+      "sourceHash": "1508682f8f849c1a453a3e4fd0633223bc8da3bebcce802beb48a081fa714be0",
       "sortOrder": 10301
     },
     {
@@ -5754,10 +5754,10 @@
       "groupKey": "repository",
       "groupLabel": "Repository references",
       "moduleKey": "",
-      "title": "assist/documentation/CHANGELOG.md (part 1/9)",
+      "title": "assist/documentation/CHANGELOG.md (part 1/10)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-1.md",
-      "sourceHash": "071f846a42e4b3ae62370136aae2b6063e6bf7d26d7c1243d29677037b2666d6",
+      "sourceHash": "f4b04aa4cfff0698d0616011255781215d3dc4f86aa2ae860e6aa8c3757f5bbd",
       "sortOrder": 14000
     },
     {
@@ -5767,10 +5767,10 @@
       "groupKey": "repository",
       "groupLabel": "Repository references",
       "moduleKey": "",
-      "title": "assist/documentation/CHANGELOG.md (part 2/9)",
+      "title": "assist/documentation/CHANGELOG.md (part 2/10)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-2.md",
-      "sourceHash": "5ffe61ebd871e98915f11972819f73bf206bbda022f20d7f4dcb58068475e1b0",
+      "sourceHash": "4ff021aa3499a52413f09e3aa35f3a63e0700277243136c4d22df2d9c57c34b9",
       "sortOrder": 14001
     },
     {
@@ -5780,10 +5780,10 @@
       "groupKey": "repository",
       "groupLabel": "Repository references",
       "moduleKey": "",
-      "title": "assist/documentation/CHANGELOG.md (part 3/9)",
+      "title": "assist/documentation/CHANGELOG.md (part 3/10)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-3.md",
-      "sourceHash": "42fc194f4913e5b180e623091edef7c6d46b752552f20dbb2a8ea87fa0d6bb2c",
+      "sourceHash": "ece1849a09133cc1a18e814868b89f09deca8fff50aa3cb6c48e981dae9607d0",
       "sortOrder": 14002
     },
     {
@@ -5793,10 +5793,10 @@
       "groupKey": "repository",
       "groupLabel": "Repository references",
       "moduleKey": "",
-      "title": "assist/documentation/CHANGELOG.md (part 4/9)",
+      "title": "assist/documentation/CHANGELOG.md (part 4/10)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-4.md",
-      "sourceHash": "a5dcbc52b582bcdd48b06749eb3a1755757e37c2b1318e58d7db33ec91925056",
+      "sourceHash": "156b777c0ebca510015181a32399f4e8d079c1604a68d107561f56df06852549",
       "sortOrder": 14003
     },
     {
@@ -5806,10 +5806,10 @@
       "groupKey": "repository",
       "groupLabel": "Repository references",
       "moduleKey": "",
-      "title": "assist/documentation/CHANGELOG.md (part 5/9)",
+      "title": "assist/documentation/CHANGELOG.md (part 5/10)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-5.md",
-      "sourceHash": "45885ab39ee6f3dc3e2bfd32c0bb05d4ccbe08ed3b31ea475ea221d19a8e0683",
+      "sourceHash": "d41362c468315413ccb5b694f316010cb0f42b2c8b98a8c1f87160de7f403c15",
       "sortOrder": 14004
     },
     {
@@ -5819,10 +5819,10 @@
       "groupKey": "repository",
       "groupLabel": "Repository references",
       "moduleKey": "",
-      "title": "assist/documentation/CHANGELOG.md (part 6/9)",
+      "title": "assist/documentation/CHANGELOG.md (part 6/10)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-6.md",
-      "sourceHash": "eea3b3902ee72c3aa9a1b8a7b1b698aad47cef4f804962b7b2a520238bb68fd7",
+      "sourceHash": "de733c0d9f98a45fcb296f239d93e662fbf95f67693939a9901d4ea37d9e08d1",
       "sortOrder": 14005
     },
     {
@@ -5832,10 +5832,10 @@
       "groupKey": "repository",
       "groupLabel": "Repository references",
       "moduleKey": "",
-      "title": "assist/documentation/CHANGELOG.md (part 7/9)",
+      "title": "assist/documentation/CHANGELOG.md (part 7/10)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-7.md",
-      "sourceHash": "c0b587091e2d158bb9cc4b806deafa62b16e009a465db58dcc6eefacb9ff506e",
+      "sourceHash": "32be169e0611cb182c1d98d7f06cdae35fb245cb2e855cf57e26ba2915c04cb7",
       "sortOrder": 14006
     },
     {
@@ -5845,10 +5845,10 @@
       "groupKey": "repository",
       "groupLabel": "Repository references",
       "moduleKey": "",
-      "title": "assist/documentation/CHANGELOG.md (part 8/9)",
+      "title": "assist/documentation/CHANGELOG.md (part 8/10)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-8.md",
-      "sourceHash": "73e110aa55dd36571a3ea2f7d55fa83fbdbb7debcf3c9c3a6ae3696b2d330712",
+      "sourceHash": "588146d7094316de835781540e8e3687531f5cb6952f1c39caf7a6be05a46e8f",
       "sortOrder": 14007
     },
     {
@@ -5858,11 +5858,24 @@
       "groupKey": "repository",
       "groupLabel": "Repository references",
       "moduleKey": "",
-      "title": "assist/documentation/CHANGELOG.md (part 9/9)",
+      "title": "assist/documentation/CHANGELOG.md (part 9/10)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-9.md",
-      "sourceHash": "4f5bfe1633c5e00c51cfe7d0f1568ee56f144367792059de6ddf03437f2682eb",
+      "sourceHash": "eab7f165d7b5755e1f8e5b78a1b2cc32217c4876ff6262e3515340cf997bcb1a",
       "sortOrder": 14008
+    },
+    {
+      "pageKey": "repository/sources/c5dafc7c82bc2403-10",
+      "appKey": "repository",
+      "appLabel": "Repository",
+      "groupKey": "repository",
+      "groupLabel": "Repository references",
+      "moduleKey": "",
+      "title": "assist/documentation/CHANGELOG.md (part 10/10)",
+      "summary": "Changelog — assist/documentation/CHANGELOG.md",
+      "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-10.md",
+      "sourceHash": "a67f85e22a15a5bce273070497400aa8bc1a78cd4f93ad48a15d44294e62669c",
+      "sortOrder": 14009
     },
     {
       "pageKey": "repository/sources/b0ecc122aadc4e2e",

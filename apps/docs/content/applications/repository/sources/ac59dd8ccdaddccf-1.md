@@ -2,7 +2,7 @@
 
 Repository source: `apps/sites/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `0bbe3c65732c2cc21ed46a1884c712ec0cc2a692db042953ed293666e44db66b`
+Source SHA-256 (LF line endings): `50c2c4f22321c3d300050fbb929ed1fae80fe4d35bf99b0d91b4eb2e74ba0b17`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -26,7 +26,7 @@ Historical notes and unchecked plans retain their original status.
 - [x] Smooth the hero's copy and image transitions with overlapping Framer Motion crossfades, and reset the automatic timer after slide changes.
 - [x] Animate the four home stats once as they enter the viewport, with reduced-motion support.
 - [x] Add spacing around the home tradition heading and make its three cards full-card links to `/syllabus`.
-- [x] Deploy the new build to the live Cloudflare Worker and verify Home, Syllabus, Students, Alumni, the JS asset, and sports club health return 200. Live Worker version: `50735ab2-d02c-448b-a244-7e1991916307`.
+- [x] Deploy the new build to the live Cloudflare Worker and verify Home, Syllabus, Students, Alumni, the JS asset, and sports club health return 200. Current Worker version: `dca90858-da7e-406d-9ae4-e4d3d5154837`.
 - [ ] Publish an updated Sites Studio content revision. D1 still serves publication version 1; code-owned club branding and home metadata are live.
 
 ## Tenkasi Sports public client and Cloudflare delivery — October 19, 2026
@@ -254,5 +254,5 @@ Final verification for this preparation:
 - Five SQLite unit tests and the packaged HTTP integration test passed.
 - Both packaged sites passed six-page mobile browser checks, hydration, contact saving, and WhatsApp link checks. Production pages exclude development controls.
 - Private status, enquiry listing, and SQLite backup commands passed against temporary databases.
-- Sites type checks and lint, Sites module boun
+- Sites type checks and lint, Sites module b
 ```

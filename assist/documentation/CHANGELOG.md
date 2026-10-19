@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.24
+Current version: 1.1.25
 
-Release tag: v-1.1.24
+Release tag: v-1.1.25
 
-Changelog label: v 1.1.24
+Changelog label: v 1.1.25
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,21 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.25
+
+### [v 1.1.25] 2026-10-19 11:41 pm - Release Tenkasi mobile layout
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.25.
+- Released the Tenkasi mobile layout from commit `edefce4e`: one-row phone and icon controls below 480px, narrower card spacing, wrapped headings, and language persistence across pages.
+- Rebuilt the Tenkasi client, passed its typecheck, lint, and 10 Worker tests, and deployed Worker version `dca90858-da7e-406d-9ae4-e4d3d5154837` to `tenkasisports.com`.
+- Verified live Home, About, Classes, Students, Alumni, and sports club health responses. Cloudflare reused the unchanged static assets.
 
 ## v-1.1.24
 

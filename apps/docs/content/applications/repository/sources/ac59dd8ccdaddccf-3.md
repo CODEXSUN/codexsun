@@ -2,14 +2,14 @@
 
 Repository source: `apps/sites/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `0bbe3c65732c2cc21ed46a1884c712ec0cc2a692db042953ed293666e44db66b`
+Source SHA-256 (LF line endings): `50c2c4f22321c3d300050fbb929ed1fae80fe4d35bf99b0d91b4eb2e74ba0b17`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
 Historical notes and unchecked plans retain their original status.
 
 ```markdown
-s. Screenshots are under `dist/apps/sites/cloudflare`.
+rors. Screenshots are under `dist/apps/sites/cloudflare`.
 - Sites API/Web/Clients typechecks and lint, module boundaries, two Worker transport tests, three D1 tests, and component documentation checks/tests passed.
 - Dependency-layout validation still reports the pre-existing `apps/tconnect/web/dist` directory.
 - Ramu Tex Studio domain metadata could not be updated: local API port 7010 stopped responding after export, and the web proxy returned 502.

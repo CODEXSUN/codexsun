@@ -2,14 +2,14 @@
 
 Repository source: `apps/sites/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `0bbe3c65732c2cc21ed46a1884c712ec0cc2a692db042953ed293666e44db66b`
+Source SHA-256 (LF line endings): `50c2c4f22321c3d300050fbb929ed1fae80fe4d35bf99b0d91b4eb2e74ba0b17`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
 Historical notes and unchecked plans retain their original status.
 
 ```markdown
-daries, root dependency layout, generic template build with an explicit client slug, and Platform Web build passed.
+oundaries, root dependency layout, generic template build with an explicit client slug, and Platform Web build passed.
 - The repository-wide component documentation check is blocked by missing documentation in unrelated apps/tconnect. Sites retains exactly its four required Markdown files.
 - Docker, nginx, systemd, public DNS/TLS, and external hosting remain unverified.
 
@@ -209,5 +209,5 @@ The local Studio content API on 7010 was unavailable during these checks. Previe
 - Live verification passed all 45 routes, 25 homepage assets, canonical metadata, sitemap, robots, health, 404, and rejected cross-origin/invalid enquiries.
 - A Ramu Tex browser enquiry returned `85d55516-7225-4f5e-99fa-056a8ba1edc4`. Remote D1 confirmed storage, and LogicX contained zero records with that reference.
 - Only that synthetic enquiry was marked spam and moved to recoverable trash.
-- Both sites rendered in Chrome with no captured browser error
+- Both sites rendered in Chrome with no captured browser er
 ```
