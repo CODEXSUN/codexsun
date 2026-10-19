@@ -623,13 +623,12 @@ body {
   border-radius: 50%;
 }
 .ts-tier-item::before {
-  --ts-staff-angle: -35deg;
   background-image: url("/tier-staff.svg");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
   opacity: 0.28;
-  animation: ts-staff-rotate 11s linear infinite;
+  transform: rotate(-35deg);
 }
 .ts-tier-item::after {
   border: 2px dashed rgba(121, 27, 25, 0.13);
@@ -638,24 +637,18 @@ body {
   position: relative;
   z-index: 1;
 }
-.ts-tier-item:nth-child(1)::before {
-  --ts-staff-angle: -35deg;
-}
 .ts-tier-item:nth-child(2)::before {
-  --ts-staff-angle: 35deg;
-  animation-duration: 9s;
+  right: -60px;
+  bottom: -12px;
+  transform: rotate(38deg);
 }
 .ts-tier-item:nth-child(3)::before {
-  --ts-staff-angle: -65deg;
-  animation-duration: 13s;
-  animation-direction: reverse;
+  right: -8px;
+  bottom: -78px;
+  transform: rotate(-65deg);
 }
 .ts-tier-item:nth-child(3)::after {
   border-color: rgba(157, 99, 32, 0.18);
-}
-@keyframes ts-staff-rotate {
-  from { transform: rotate(var(--ts-staff-angle)); }
-  to { transform: rotate(calc(var(--ts-staff-angle) + 360deg)); }
 }
 .ts-tier-item:hover,
 .ts-tier-item:focus-visible {
@@ -670,10 +663,6 @@ body {
   .ts-tier-item { transition: none; }
   .ts-tier-item:hover,
   .ts-tier-item:focus-visible { transform: none; }
-  .ts-tier-item::before {
-    animation: none;
-    transform: rotate(var(--ts-staff-angle));
-  }
 }
 .ts-tier-num {
   font-size: 13px;
