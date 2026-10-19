@@ -17,6 +17,7 @@ import { SportsStats } from "./sports.stats";
 import { SportsBlogPreview, sportsArticles } from "./sports.blogs";
 import { sportsPortalUrl } from "./sports.links";
 import { headquartersAddress, officeAddress } from "./sports.locations";
+import { SportsLoader } from "./sports.loader";
 import "./sports.css";
 
 const SportsPages = lazy(() => import("./sports.pages").then((module) => ({ default: module.SportsPages })));
@@ -169,7 +170,7 @@ export function TenkasiSportsSite() {
         {path === "/" ? (
           <HomeView isTa={isTa} />
         ) : (
-          <Suspense fallback={<div className="ts-page ts-page-loading ts-wrap" role="status">{isTa ? "பக்கம் ஏற்றப்படுகிறது…" : "Loading page…"}</div>}>
+          <Suspense fallback={<div className="ts-page ts-page-loading ts-wrap"><SportsLoader isTa={isTa} /></div>}>
             <SportsPages path={path} content={content} lang={lang} />
           </Suspense>
         )}

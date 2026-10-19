@@ -45,6 +45,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Remove the two center marks from the shared Silambam staff watermark and give the cleaned asset a new URL.
 - Keep the chief master's initial and surname together when headings and copy wrap across Tenkasi pages in English and Tamil.
 - Set the Tenkasi student application to one full-width field per row, with bilingual section headings and clearer field spacing.
+- Add a shared Tenkasi staff loader with gold end rings to page loading and form submission states. Keep it still when reduced motion is selected.
 
 ## v-1.1.22
 

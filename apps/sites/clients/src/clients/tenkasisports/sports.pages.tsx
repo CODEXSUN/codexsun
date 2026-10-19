@@ -15,6 +15,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { sportsPortalUrl } from "./sports.links";
+import { SportsLoader } from "./sports.loader";
 import { headquartersAddress, officeAddress } from "./sports.locations";
 import { AlumniPage, StudentsPage } from "./sports.community";
 import { SportsBlogPages, sportsArticles } from "./sports.blogs";
@@ -1041,7 +1042,7 @@ function JoinPage({ isTa }: { isTa: boolean; content: PageContent }) {
           </div>
 
           <button type="submit" disabled={loading} className="ts-button ts-submit-btn">
-            {loading ? (isTa ? "பதிவு செய்யப்படுகிறது..." : "Submitting...") : (
+            {loading ? <SportsLoader isTa={isTa} inline label={isTa ? "பதிவு செய்யப்படுகிறது..." : "Submitting..."} /> : (
               <>
                 <Send size={18} /> {isTa ? "விண்ணப்பத்தைச் சமர்ப்பிக்கவும்" : "Submit Membership Application"}
               </>
@@ -1329,7 +1330,7 @@ function ContactPage({ isTa }: { isTa: boolean; content: PageContent }) {
               </div>
 
               <button type="submit" disabled={loading} className="ts-button ts-full-btn">
-                {loading ? (isTa ? "அனுப்பப்படுகிறது..." : "Sending...") : (isTa ? "செய்தியை அனுப்பவும்" : "Send Message")}
+                {loading ? <SportsLoader isTa={isTa} inline label={isTa ? "அனுப்பப்படுகிறது..." : "Sending..."} /> : (isTa ? "செய்தியை அனுப்பவும்" : "Send Message")}
               </button>
             </form>
           )}

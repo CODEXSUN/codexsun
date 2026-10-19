@@ -958,7 +958,48 @@ body {
   padding-top: 48px;
   padding-bottom: 72px;
 }
-.ts-page-loading { min-height: 65vh; }
+.ts-page-loading {
+  min-height: 65vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: clamp(96px, 15vh, 170px);
+}
+.ts-loader {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--ts-maroon);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+}
+.ts-loader-staff {
+  display: block;
+  width: 112px;
+  height: 36px;
+  transform-origin: center;
+  animation: ts-loader-sway 1.2s ease-in-out infinite alternate;
+}
+.ts-loader-inline {
+  flex-direction: row;
+  justify-content: center;
+  gap: 7px;
+  color: inherit;
+  font: inherit;
+}
+.ts-loader-inline .ts-loader-staff {
+  width: 42px;
+  height: 18px;
+}
+@keyframes ts-loader-sway {
+  from { transform: rotate(-5deg) translateY(2px); }
+  to { transform: rotate(5deg) translateY(-2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ts-loader-staff { animation: none; }
+}
 .ts-page-header {
   margin-bottom: 40px;
   text-align: center;
