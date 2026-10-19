@@ -1042,7 +1042,7 @@ function JoinPage({ isTa }: { isTa: boolean; content: PageContent }) {
           </div>
 
           <button type="submit" disabled={loading} className="ts-button ts-submit-btn">
-            {loading ? <SportsLoader isTa={isTa} inline label={isTa ? "பதிவு செய்யப்படுகிறது..." : "Submitting..."} /> : (
+            {loading ? <SportsLoader inline label="Submitting your application…" /> : (
               <>
                 <Send size={18} /> {isTa ? "விண்ணப்பத்தைச் சமர்ப்பிக்கவும்" : "Submit Membership Application"}
               </>
@@ -1330,7 +1330,7 @@ function ContactPage({ isTa }: { isTa: boolean; content: PageContent }) {
               </div>
 
               <button type="submit" disabled={loading} className="ts-button ts-full-btn">
-                {loading ? <SportsLoader isTa={isTa} inline label={isTa ? "அனுப்பப்படுகிறது..." : "Sending..."} /> : (isTa ? "செய்தியை அனுப்பவும்" : "Send Message")}
+                {loading ? <SportsLoader inline label="Sending your message…" /> : (isTa ? "செய்தியை அனுப்பவும்" : "Send Message")}
               </button>
             </form>
           )}

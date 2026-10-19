@@ -975,12 +975,18 @@ body {
   font-weight: 600;
   text-align: center;
 }
+.ts-loader-mark {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  flex: none;
+  animation: ts-loader-revolve 1.8s linear infinite;
+}
 .ts-loader-staff {
   display: block;
-  width: 112px;
-  height: 36px;
-  transform-origin: center;
-  animation: ts-loader-sway 1.2s ease-in-out infinite alternate;
+  width: 72px;
+  height: 24px;
 }
 .ts-loader-inline {
   flex-direction: row;
@@ -989,16 +995,19 @@ body {
   color: inherit;
   font: inherit;
 }
-.ts-loader-inline .ts-loader-staff {
-  width: 42px;
-  height: 18px;
+.ts-loader-inline .ts-loader-mark {
+  width: 30px;
+  height: 30px;
 }
-@keyframes ts-loader-sway {
-  from { transform: rotate(-5deg) translateY(2px); }
-  to { transform: rotate(5deg) translateY(-2px); }
+.ts-loader-inline .ts-loader-staff {
+  width: 30px;
+  height: 10px;
+}
+@keyframes ts-loader-revolve {
+  to { transform: rotate(360deg); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ts-loader-staff { animation: none; }
+  .ts-loader-mark { animation: none; }
 }
 .ts-page-header {
   margin-bottom: 40px;

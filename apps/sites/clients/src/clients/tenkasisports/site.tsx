@@ -170,7 +170,7 @@ export function TenkasiSportsSite() {
         {path === "/" ? (
           <HomeView isTa={isTa} />
         ) : (
-          <Suspense fallback={<div className="ts-page ts-page-loading ts-wrap"><SportsLoader isTa={isTa} /></div>}>
+          <Suspense fallback={<div className="ts-page ts-page-loading ts-wrap"><SportsLoader /></div>}>
             <SportsPages path={path} content={content} lang={lang} />
           </Suspense>
         )}
