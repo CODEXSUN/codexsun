@@ -42,6 +42,10 @@ export default {
       return Response.redirect(`https://tenkasisports.com${url.pathname}${url.search}`, 308);
     }
 
+    if (url.pathname === "/site.xml") {
+      return Response.redirect("https://tenkasisports.com/sitemap.xml", 308);
+    }
+
     if (url.pathname === "/__sites-publish") return receivePublication(request, env);
 
     if (url.pathname === "/__sites-version") {

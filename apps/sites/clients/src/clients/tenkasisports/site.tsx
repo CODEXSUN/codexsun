@@ -47,6 +47,7 @@ export function TenkasiSportsSite() {
   });
 
   useEffect(() => {
+    document.documentElement.lang = lang;
     try {
       window.sessionStorage.setItem("tenkasisports-language", lang);
     } catch {
@@ -95,7 +96,8 @@ export function TenkasiSportsSite() {
       <div className="ts-topline">
         <div className="ts-wrap ts-topline-inner">
           <div className="ts-topline-phone">
-            <a href="tel:+919843930300">9843930300</a>
+            <span className="ts-topline-call-label">Call us</span>
+            <a href="tel:+919843930300" aria-label="Call us at 9843930300">9843930300</a>
           </div>
           <div className="ts-topline-actions">
             <button

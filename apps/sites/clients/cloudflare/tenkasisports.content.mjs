@@ -255,6 +255,7 @@ export function liveHtml(response, row, path = "/", statusCode = 200) {
   const title = meta.title;
   const description = meta.description;
   const serialized = publication ? JSON.stringify(publication).replaceAll("<", "\\u003c") : "";
+  const canonical = `https://tenkasisports.com${normalizedPath === "/" ? "" : normalizedPath}`;
 
   if (typeof HTMLRewriter === "undefined") {
     const result = new Response(response.body, {
@@ -288,6 +289,16 @@ export function liveHtml(response, row, path = "/", statusCode = 200) {
         element.setAttribute("content", description);
       }
     })
+    .on('meta[property="og:url"]', {
+      element(element) {
+        element.setAttribute("content", canonical);
+      }
+    })
+    .on('link[rel="canonical"]', {
+      element(element) {
+        element.setAttribute("href", canonical);
+      }
+    })
     .on("script#codexsun-sites-publication", {
       element(element) {
         if (serialized) element.setInnerContent(serialized, { html: true });
@@ -295,13 +306,7 @@ export function liveHtml(response, row, path = "/", statusCode = 200) {
     })
     .on("head", {
       element(element) {
-        element.append(
-          `<meta property="og:url" content="https://tenkasisports.com${path === "/" ? "" : path}">` +
-            `<meta property="og:type" content="website">` +
-            `<meta property="og:site_name" content="Tenkasi District Sports Club">` +
-            `<link rel="canonical" href="https://tenkasisports.com${path === "/" ? "" : path}">`,
-          { html: true }
-        );
+        if (!isKnown) element.append('<meta name="robots" content="noindex, follow">', { html: true });
         if (serialized) {
           element.append(
             `<script id="codexsun-sites-publication" type="application/json">${serialized}</script>`,

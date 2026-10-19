@@ -1881,6 +1881,7 @@ body {
   .ts-wrap { padding-left: 16px; padding-right: 16px; }
   .ts-topline-inner { flex-wrap: nowrap; gap: 8px; min-height: 56px; }
   .ts-topline-phone { white-space: nowrap; font-size: 13px; }
+  .ts-topline-call-label { display: none; }
   .ts-topline-actions { gap: 8px; flex: none; }
   .ts-topline .ts-lang-toggle,
   .ts-topline .ts-portal-link {

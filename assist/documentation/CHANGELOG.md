@@ -34,6 +34,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Released the Tenkasi mobile layout from commit `edefce4e`: one-row phone and icon controls below 480px, narrower card spacing, wrapped headings, and language persistence across pages.
 - Rebuilt the Tenkasi client, passed its typecheck, lint, and 10 Worker tests, and deployed Worker version `dca90858-da7e-406d-9ae4-e4d3d5154837` to `tenkasisports.com`.
 - Verified live Home, About, Classes, Students, Alumni, and sports club health responses. Cloudflare reused the unchanged static assets.
+- Added a canonical 19-route XML sitemap, crawler rules, one canonical link per page, social preview metadata, and home page organization data. The requested `/site.xml` address redirects to `/sitemap.xml`; unknown pages are marked noindex.
+- Updated the desktop Tenkasi top bar to show `Call us` with the phone number while keeping only the number on narrow mobile screens. Deployed Worker version `dd4b96f6-d22d-49c7-9619-0a5b0c2dca0d` and verified the sitemap, robots file, alias redirect, page canonical, and home page organization data on the live domain.
 
 ## v-1.1.24
 
