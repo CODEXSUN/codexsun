@@ -18,7 +18,7 @@ export const listReports = (
   to: string,
   filters: DutyReportDrilldown = {}
 ) => {
-  const query = new URLSearchParams({ search, page: String(page), pageSize: "25", scope: "all" });
+  const query = new URLSearchParams({ search, page: String(page), pageSize: "100", scope: "all" });
   if (from) query.set("from", from);
   if (to) query.set("to", to);
   for (const [key, value] of Object.entries(filters))

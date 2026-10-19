@@ -137,7 +137,7 @@ export function registerDutyReportRoutes(
       frequency: z.enum(sopFrequencies).optional(),
       result: z.enum(["completed", "blocked"]).optional(),
       page: z.coerce.number().int().positive().default(1),
-      pageSize: z.coerce.number().int().min(1).max(100).default(25)
+      pageSize: z.coerce.number().int().min(1).max(100).default(100)
     })
     .strict();
   const reportResponse = z.object({

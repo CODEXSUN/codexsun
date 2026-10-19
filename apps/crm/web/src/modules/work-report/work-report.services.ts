@@ -10,5 +10,5 @@ export const getWorkCheckpoint = (target: WorkReportTarget) =>
 
 export const listWorkHistory = (target: WorkReportTarget, page: number, checkpoints: boolean) =>
   crmRequest<{ items: WorkReport[]; total: number; page: number; pageSize: number }>(
-    `/crm/work-reports/history?${target.enquiryId !== null ? `enquiryId=${target.enquiryId}` : `taskId=${target.taskId}`}&page=${page}&pageSize=25&filter=${checkpoints ? "checkpoints" : "all"}`
+    `/crm/work-reports/history?${target.enquiryId !== null ? `enquiryId=${target.enquiryId}` : `taskId=${target.taskId}`}&page=${page}&pageSize=100&filter=${checkpoints ? "checkpoints" : "all"}`
   );

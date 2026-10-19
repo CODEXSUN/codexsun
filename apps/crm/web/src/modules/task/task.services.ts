@@ -84,5 +84,5 @@ export const reviewTaskClosure = (id: number, decision: "approved" | "rejected",
 
 export const listCustomerTasks = (contactId: number, page: number) =>
   crmRequest<{ items: TaskRecord[]; total: number }>(
-    `/crm/tasks?contactId=${contactId}&page=${page}&pageSize=10&filter=all`
+    `/crm/tasks?contactId=${contactId}&page=${page}&pageSize=100&filter=all`
   );

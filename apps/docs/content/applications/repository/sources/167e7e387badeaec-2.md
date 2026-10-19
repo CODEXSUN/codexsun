@@ -2,14 +2,18 @@
 
 Repository source: `apps/crm/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `3e3f7ebc875436204ea24a1f9187ad3f47d9f491135ce0167f8daf8fdbc6062f`
+Source SHA-256 (LF line endings): `42f0be00774dcdf5da132952d017314e6fffa17c2cd5faae1e44ebde472d5381`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
 Historical notes and unchecked plans retain their original status.
 
 ```markdown
-irst. Add optimization only after schedule data proves
+### Scheduling and Work
+
+- Track resource skills, working hours, territory, leave, capacity, service
+  location, travel buffer, and customer time window.
+- Allow manual assignment first. Add optimization only after schedule data proves
   accurate.
 - Keep resource booking state separate from work-order state.
 - Record schedule changes, dispatch, start, pause, completion, cancellation, and

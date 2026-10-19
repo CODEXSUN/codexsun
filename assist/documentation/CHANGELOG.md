@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.21
+Current version: 1.1.22
 
-Release tag: v-1.1.21
+Release tag: v-1.1.22
 
-Changelog label: v 1.1.21
+Changelog label: v 1.1.22
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,23 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.22
+
+### [v 1.1.22] 2026-10-19 4:20 pm - Align Core read access and CRM list defaults
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- The repeatable Core permission seed grants `core.application.records.view` to the tenant User role. It does not grant Core write or lifecycle permissions.
+- Existing tenant databases need the Core permission seed rerun to receive the grant. No table migration is required.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.22.
+- Set CRM activity, call log, task, duty report, and work report list defaults to 100 rows. Align customer detail lists and pagination with the same limit.
+- Document the Core read grant and check its scope in the isolated CRM work-report database test.
+- Verified Core and CRM lint and TypeScript checks, plus the CRM work-report database test. Sportsclub, Sites, and Platform work remains outside this release branch.
 
 ## v-1.1.21
 

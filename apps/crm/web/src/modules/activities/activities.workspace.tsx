@@ -12,7 +12,7 @@ import type { ActivityColumnFilter, ActivityFilters } from "./activities.types";
 export function ActivitiesWorkspace({ onOpenEnquiry }: { onOpenEnquiry: (id: number) => void }) {
   const [filters, setFilters] = useState<ActivityFilters>({
     page: 1,
-    pageSize: 50,
+    pageSize: 100,
     search: "",
     contact: "",
     enquiry: "",

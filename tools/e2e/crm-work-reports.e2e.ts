@@ -81,7 +81,7 @@ test(
     }>`SELECT r.\`key\` AS role,p.\`key\` AS permission FROM app_role_permissions rp JOIN app_roles r ON r.id=rp.role_id JOIN app_permissions p ON p.id=rp.permission_id WHERE p.\`key\` LIKE 'core.application.records.%' AND rp.status='active'`.execute(
       database
     );
-    for (const role of ["super-admin", "manager"]) {
+    for (const role of ["super-admin", "manager", "user"]) {
       assert.ok(
         coreGrants.rows.some(
           (g) => g.role === role && g.permission === "core.application.records.view"
@@ -92,7 +92,7 @@ test(
           (g) => g.role === role && g.permission !== "core.application.records.view"
         ).length,
         0,
-        "workspace read access must not grant master writes"
+        "Core read access must not grant master writes"
       );
     }
     await seedEnquiryModule(database as never);

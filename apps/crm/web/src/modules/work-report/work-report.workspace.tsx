@@ -172,9 +172,9 @@ export function WorkReportWorkspace({
           <WorkReportList
             items={reports.data?.items ?? []}
             total={reports.data?.total}
-            offset={(page - 1) * 25}
+            offset={(page - 1) * 100}
           />
-          {(reports.data?.total ?? 0) > 25 ? (
+          {(reports.data?.total ?? 0) > 100 ? (
             <div className="flex items-center justify-end gap-3 text-sm">
               <Button
                 size="sm"
@@ -185,12 +185,12 @@ export function WorkReportWorkspace({
                 Previous
               </Button>
               <span>
-                Page {page} of {Math.ceil((reports.data?.total ?? 0) / 25)}
+                Page {page} of {Math.ceil((reports.data?.total ?? 0) / 100)}
               </span>
               <Button
                 size="sm"
                 variant="outline"
-                disabled={page * 25 >= (reports.data?.total ?? 0)}
+                disabled={page * 100 >= (reports.data?.total ?? 0)}
                 onClick={() => setPage(page + 1)}
               >
                 Next

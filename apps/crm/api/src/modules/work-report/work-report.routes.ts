@@ -75,7 +75,7 @@ export function registerWorkReportRoutes(
           enquiryId: z.coerce.number().int().positive().nullable().default(null),
           taskId: z.coerce.number().int().positive().nullable().default(null),
           page: z.coerce.number().int().positive().default(1),
-          pageSize: z.coerce.number().int().min(1).max(200).default(25),
+          pageSize: z.coerce.number().int().min(1).max(100).default(100),
           filter: z.enum(["all", "checkpoints"]).default("all")
         })
         .refine(

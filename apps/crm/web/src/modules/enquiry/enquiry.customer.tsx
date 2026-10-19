@@ -57,7 +57,7 @@ function CustomerTasks({ contactId }: { contactId: number | null }) {
     enabled: contactId !== null,
     refetchInterval: 10000
   });
-  const pages = Math.max(1, Math.ceil((tasks.data?.total ?? 0) / 10));
+  const pages = Math.max(1, Math.ceil((tasks.data?.total ?? 0) / 100));
   return (
     <WorkspaceShowCard title={`Existing tasks${tasks.data ? ` · ${tasks.data.total}` : ""}`}>
       {!contactId ? (
@@ -151,14 +151,14 @@ function CustomerEnquiries({ contactId }: { contactId: number | null }) {
         contactId: contactId!,
         scope: "all",
         page,
-        pageSize: 10,
+        pageSize: 100,
         search: "",
         filter: "all"
       }),
     enabled: contactId !== null,
     refetchInterval: 10000
   });
-  const pages = Math.max(1, Math.ceil((enquiries.data?.total ?? 0) / 10));
+  const pages = Math.max(1, Math.ceil((enquiries.data?.total ?? 0) / 100));
   return (
     <WorkspaceShowCard
       title={`Existing enquiries${enquiries.data ? ` · ${enquiries.data.total}` : ""}`}

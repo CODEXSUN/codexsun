@@ -91,7 +91,7 @@ export function DutyReportWorkspace() {
       />
     );
   const total = query.data?.total ?? 0;
-  const pages = Math.max(1, Math.ceil(total / 25));
+  const pages = Math.max(1, Math.ceil(total / 100));
   return (
     <WorkspacePage
       title="Duty Reporting"
@@ -173,12 +173,12 @@ export function DutyReportWorkspace() {
       />
       <WorkspacePagination
         page={page}
-        rowsPerPage={25}
-        rowsPerPageOptions={[25]}
+        rowsPerPage={100}
+        rowsPerPageOptions={[100]}
         totalCount={total}
         totalPages={pages}
         singularLabel="report"
-        showingLabel={buildShowingLabel(page, 25, total)}
+        showingLabel={buildShowingLabel(page, 100, total)}
         onPageChange={setPage}
         onNextPage={() => setPage(Math.min(pages, page + 1))}
         onPreviousPage={() => setPage(Math.max(1, page - 1))}

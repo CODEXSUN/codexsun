@@ -24,7 +24,9 @@ export async function seedCoreTenantPermissions(database: Kysely<unknown>) {
         label=VALUES(label), description=VALUES(description), status='active', is_protected=TRUE
     `.execute(database);
     const roles =
-      key === "core.application.records.view" ? ["admin", "super-admin", "manager"] : ["admin"];
+      key === "core.application.records.view"
+        ? ["admin", "super-admin", "manager", "user"]
+        : ["admin"];
     for (const roleKey of roles) {
       await sql`
         INSERT INTO app_role_permissions (uuid, role_id, permission_id, status, is_protected)

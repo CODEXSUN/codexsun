@@ -7,7 +7,7 @@ import { CallLogRepository } from "./call-log.repository.js";
 
 const querySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(50),
+  pageSize: z.coerce.number().int().min(1).max(100).default(100),
   search: z.string().trim().max(100).default(""),
   type: z.union([z.enum(callTypes), z.literal("")]).default(""),
   status: z.union([z.enum(callStatuses), z.literal("")]).default("")

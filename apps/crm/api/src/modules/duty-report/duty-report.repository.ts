@@ -82,7 +82,7 @@ export class DutyReportRepository {
       return query;
     };
     const page = filters.page ?? 1;
-    const pageSize = filters.pageSize ?? 25;
+    const pageSize = filters.pageSize ?? 100;
     const [rows, total, summary] = await Promise.all([
       applyFilters(this.query())
         .orderBy("report.performed_date", "desc")
