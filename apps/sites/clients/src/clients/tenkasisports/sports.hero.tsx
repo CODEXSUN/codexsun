@@ -30,12 +30,12 @@ const slides = [
     eyebrow: { ta: "ஆசான் வழிகாட்டல்", en: "Guided by the master" },
     title: { ta: "மரபுடன் தொடரும் பயிற்சி", en: "Training rooted in tradition" },
     description: {
-      ta: "ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் குருகுல மரபை அறிந்து பயிற்சி பெறுங்கள்.",
-      en: "Learn about the Gurukulam's teaching tradition and Master T. Veerapandian."
+      ta: "ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் குருகுல மரபை அறிந்து பயிற்சி பெறுங்கள்.",
+      en: "Learn about the Gurukulam's teaching tradition and Master T. Veerapandian."
     },
     image: "/asan-portrait.webp",
-    imageAlt: { ta: "ஆசான் தி. வீரபாண்டியன் உருவப்படம்", en: "Portrait of Master T. Veerapandian" },
-    caption: { ta: "ஆசான் தி. வீரபாண்டியன்", en: "Master T. Veerapandian" },
+    imageAlt: { ta: "ஆசான் தி. வீரபாண்டியன் உருவப்படம்", en: "Portrait of Master T. Veerapandian" },
+    caption: { ta: "ஆசான் தி. வீரபாண்டியன்", en: "Master T. Veerapandian" },
     action: { href: "/masters", ta: "ஆசான்களை அறிக", en: "Meet the masters" }
   }
 ] as const;

@@ -56,7 +56,7 @@ export const sportsArticles: SportsArticle[] = [
   {
     slug: "guru-student-tradition",
     image: "/asan-temple-staff.webp",
-    imageAlt: "Master T. Veerapandian holding a Silambam staff",
+    imageAlt: "Master T. Veerapandian holding a Silambam staff",
     categoryTa: "மரபு",
     categoryEn: "Tradition",
     titleTa: "ஆசான் வழியில் தொடரும் கலை",

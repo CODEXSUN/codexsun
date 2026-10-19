@@ -28,7 +28,7 @@ const fallback = initialSitePage({
   status: "active"
 });
 const siteDescription =
-  "தென்காசி மாவட்ட விளையாட்டுக் கழகம் · தாயகம் சிவகலை குருகுலம். ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் சிலம்பம், வர்மக்கலை மற்றும் தற்காப்புப் பயிற்சி.";
+  "தென்காசி மாவட்ட விளையாட்டுக் கழகம் · தாயகம் சிவகலை குருகுலம். ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் சிலம்பம், வர்மக்கலை மற்றும் தற்காப்புப் பயிற்சி.";
 
 export function TenkasiSportsSite() {
   const { content } = useSitePublication("tenkasisports", fallback);
@@ -205,8 +205,8 @@ export function TenkasiSportsSite() {
               </div>
               <p className="ts-footer-desc">
                 {isTa
-                  ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன் அவர்களின் தலைமையில் 12,000-க்கும் மேற்பட்ட மாணாக்கர்களை உருவாக்கிய பாரம்பரிய தற்காப்புக் கலைக்கூடம்."
-                  : "Guided by Kalaisudarmani Asan T. Veerapandian, preserving ancient Tamil martial arts and grooming noble warriors since 2000."}
+                  ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன் அவர்களின் தலைமையில் 12,000-க்கும் மேற்பட்ட மாணாக்கர்களை உருவாக்கிய பாரம்பரிய தற்காப்புக் கலைக்கூடம்."
+                  : "Guided by Kalaisudarmani Asan T. Veerapandian, preserving ancient Tamil martial arts and grooming noble warriors since 2000."}
               </p>
             </div>
             <div className="ts-footer-cta-box">
@@ -402,7 +402,7 @@ function HomeView({ isTa }: { isTa: boolean }) {
           <div className="ts-master-highlight-photo">
             <img
               src="/asan-portrait.webp"
-              alt="Kalaisudarmani Asan T. Veerapandian"
+              alt="Kalaisudarmani Asan T. Veerapandian"
               loading="lazy"
               width={480}
               height={560}
@@ -410,7 +410,7 @@ function HomeView({ isTa }: { isTa: boolean }) {
           </div>
           <div className="ts-master-highlight-copy">
             <span className="ts-eyebrow">03 / {isTa ? "தலைமை ஆசான்" : "Chief Master"}</span>
-            <h2>{isTa ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்" : "Kalaisudarmani Asan T. Veerapandian"}</h2>
+            <h2>{isTa ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்" : "Kalaisudarmani Asan T. Veerapandian"}</h2>
             <p className="ts-master-title">
               {isTa
                 ? "சிலம்ப வர்ம ஆசான் · வாழ்க்கலை ஆசான் · தென்காசி வளர்ச்சி மாவட்டம்"

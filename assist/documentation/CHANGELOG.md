@@ -43,6 +43,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Show 132+ for Unique techniques in the Tenkasi home stats and accessible label.
 - Set the three Silambam staff watermarks at different fixed angles and positions; remove their rotation animation.
 - Remove the two center marks from the shared Silambam staff watermark and give the cleaned asset a new URL.
+- Keep the chief master's initial and surname together when headings and copy wrap across Tenkasi pages in English and Tamil.
 
 ## v-1.1.22
 

@@ -108,7 +108,7 @@ function AboutPage({ isTa }: { isTa: boolean; content: PageContent }) {
         <div className="ts-image-frame">
           <img
             src="/asan-temple-staff.webp"
-            alt={isTa ? "ஆசான் தி. வீரபாண்டியன் சிலம்பப் பார்வை" : "Master T. Veerapandian with Silambam Staff"}
+            alt={isTa ? "ஆசான் தி. வீரபாண்டியன் சிலம்பப் பார்வை" : "Master T. Veerapandian with Silambam Staff"}
             loading="lazy"
             decoding="async"
             width={960}
@@ -116,8 +116,8 @@ function AboutPage({ isTa }: { isTa: boolean; content: PageContent }) {
           />
           <div className="ts-caption">
             {isTa
-              ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன் - கோயில் முற்றத்தில் கம்பு ஏந்திய தோற்றம்"
-              : "Kalaisudarmani Asan T. Veerapandian in the temple courtyard with staff"}
+              ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன் - கோயில் முற்றத்தில் கம்பு ஏந்திய தோற்றம்"
+              : "Kalaisudarmani Asan T. Veerapandian in the temple courtyard with staff"}
           </div>
         </div>
       </div>
@@ -495,7 +495,7 @@ function MastersPage({ isTa }: { isTa: boolean; content: PageContent }) {
         <div className="ts-master-img-wrapper">
           <img
             src="/asan-portrait.webp"
-            alt={isTa ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்" : "Kalaisudarmani Asan T. Veerapandian"}
+            alt={isTa ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்" : "Kalaisudarmani Asan T. Veerapandian"}
             loading="lazy"
             decoding="async"
             width={664}
@@ -504,7 +504,7 @@ function MastersPage({ isTa }: { isTa: boolean; content: PageContent }) {
         </div>
         <div>
           <span className="ts-pill">{isTa ? "தலைமை ஆசான் & நிறுவனர்" : "Chief Master & Founder"}</span>
-          <h2>{isTa ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்" : "Kalaisudarmani Asan T. Veerapandian"}</h2>
+          <h2>{isTa ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்" : "Kalaisudarmani Asan T. Veerapandian"}</h2>
           <p className="ts-subtitle">
             {isTa
               ? "வாழ்க்கலை ஆசான் · தென்காசி வளர்ச்சி மாவட்டம் · ஜவஹர்லால் சிறுவர் மன்றம் சிலம்பு ஆசிரியர்"
@@ -512,7 +512,7 @@ function MastersPage({ isTa }: { isTa: boolean; content: PageContent }) {
           </p>
           <p>
             {isTa
-              ? "நாட்டு எல்லையைக் காத்த ராணுவ வீரரான தந்தை திரு. திரவிய முருகன் மற்றும் பாரம்பரிய நாட்டு வைத்தியரான தாத்தாவின் ஊக்கத்தால், தனது 12 வயது முதல் சிலம்பக் கலையைத் தீவிரமாகக் கற்று வளர்ந்தவர் ஆசான் தி. வீரபாண்டியன்."
+              ? "நாட்டு எல்லையைக் காத்த ராணுவ வீரரான தந்தை திரு. திரவிய முருகன் மற்றும் பாரம்பரிய நாட்டு வைத்தியரான தாத்தாவின் ஊக்கத்தால், தனது 12 வயது முதல் சிலம்பக் கலையைத் தீவிரமாகக் கற்று வளர்ந்தவர் ஆசான் தி. வீரபாண்டியன்."
               : "Inspired by his father, soldier Thiraviya Murugan who defended India's frontiers, and his grandfather, an esteemed native herbal healer, Master Veerapandian immersed himself in Silambam from age 12."}
           </p>
           <p>
@@ -630,7 +630,7 @@ function GalleryPage({ isTa }: { isTa: boolean; content: PageContent }) {
   const images = [
     {
       src: "/asan-temple-staff.webp",
-      title: isTa ? "ஆசான் தி. வீரபாண்டியன் - தற்காப்புக் களத் தோற்றம்" : "Master T. Veerapandian in Martial Stance",
+      title: isTa ? "ஆசான் தி. வீரபாண்டியன் - தற்காப்புக் களத் தோற்றம்" : "Master T. Veerapandian in Martial Stance",
       desc: isTa ? "மூங்கில் சிலம்பக் கம்புடன் கோவில் முற்றத்தில் கம்பீரத் தோற்றம்" : "Holding the bamboo staff in temple courtyard"
     },
     {
@@ -641,7 +641,7 @@ function GalleryPage({ isTa }: { isTa: boolean; content: PageContent }) {
     {
       src: "/asan-portrait.webp",
       title: isTa ? "தலைமை ஆசான் உருவப்படம்" : "Chief Master Portrait",
-      desc: isTa ? "கலைச்சுடர்மணி தி. வீரபாண்டியன் - வாழ்க்கலை ஆசான்" : "Kalaisudarmani T. Veerapandian"
+      desc: isTa ? "கலைச்சுடர்மணி தி. வீரபாண்டியன் - வாழ்க்கலை ஆசான்" : "Kalaisudarmani T. Veerapandian"
     },
     {
       src: "/lineage-training.webp",
@@ -875,7 +875,7 @@ function JoinPage({ isTa }: { isTa: boolean; content: PageContent }) {
         <p className="ts-lead">
           {isTa
             ? "வீரத்தமிழன் பாரம்பரிய சிவகலை குருகுலத்தில் சிலம்பம், வர்மக்கலை கற்க உங்கள் விவரங்களைப் பதிவு செய்யவும்."
-            : "Enroll for traditional Silambam, martial footwork, and disciplined self-defense under Master T. Veerapandian."}
+            : "Enroll for traditional Silambam, martial footwork, and disciplined self-defense under Master T. Veerapandian."}
         </p>
       </div>
 
@@ -1222,8 +1222,8 @@ function ContactPage({ isTa }: { isTa: boolean; content: PageContent }) {
               <h3>{isTa ? "தலைமை ஆசான்" : "Chief Master"}</h3>
               <p>
                 {isTa
-                  ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்\n(சிலம்ப வர்ம ஆசான்)"
-                  : "Kalaisudarmani Asan T. Veerapandian\nMaster of Silambam & Varmam"}
+                  ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்\n(சிலம்ப வர்ம ஆசான்)"
+                  : "Kalaisudarmani Asan T. Veerapandian\nMaster of Silambam & Varmam"}
               </p>
             </div>
           </div>
