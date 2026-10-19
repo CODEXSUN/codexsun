@@ -65,11 +65,11 @@ The home page uses a three-slide, two-column hero modeled on the Platform static
 The four club facts below the hero count up and enter with a short stagger when scrolled into view, while reduced-motion users see their final values immediately.
 The three home introduction cards link to the syllabus page; the section label and heading have extra breathing room above the cards.
 The Students page links to the existing admission and member portal flows. The Alumni page links to Contact and Gallery. The `/programs` path remains an alias for `/syllabus`.
-These page and brand changes are local source changes. They have not been deployed to the live Worker or published from Studio.
+These page and brand changes are deployed to the live Worker. The existing Sites Studio publication remains at version 1; the club name and home metadata are owned by the client code.
 Public registration, enquiry, masters, classes, and programs submit through the same-origin Cloudflare Worker proxy forwarding strictly to Platform public endpoints.
 
 The public site is `https://tenkasisports.com` (redirecting `www.tenkasisports.com` via 308). Its Worker lives in `clients/cloudflare/tenkasisports.mjs`.
-Deployed as Cloudflare Worker `codexsun-tenkasisports` (version `1ded24cb-a4fa-4291-a95a-a948f85755c5`) in zone `f7c324e9ca4cac54047f84f591cb54e4` with D1 database `codexsun-tenkasisports-content` (`1fff5450-d9a8-473c-8b11-45ecad357a60`).
+Deployed as Cloudflare Worker `codexsun-tenkasisports` (version `50735ab2-d02c-448b-a244-7e1991916307`) in zone `f7c324e9ca4cac54047f84f591cb54e4` with D1 database `codexsun-tenkasisports-content` (`1fff5450-d9a8-473c-8b11-45ecad357a60`).
 Wrangler configuration lives in `apps/sites/clients/cloudflare/wrangler.tenkasisports.jsonc`.
 Build with `npm run build:tenkasisports -w @codexsun/sites-clients`. Output stays under root `dist/apps/sites/clients/tenkasisports`.
 

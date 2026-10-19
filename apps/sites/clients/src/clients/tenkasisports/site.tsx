@@ -24,6 +24,8 @@ const fallback = initialSitePage({
   slug: "tenkasisports",
   status: "active"
 });
+const siteDescription =
+  "தென்காசி மாவட்ட விளையாட்டுக் கழகம் · தாயகம் சிவகலை குருகுலம். ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் சிலம்பம், வர்மக்கலை மற்றும் தற்காப்புப் பயிற்சி.";
 
 export function TenkasiSportsSite() {
   const { content } = useSitePublication("tenkasisports", fallback);
@@ -54,7 +56,7 @@ export function TenkasiSportsSite() {
           isTa ? "தென்காசி மாவட்ட விளையாட்டுக் கழகம்" : "Tenkasi District Sports Club"
         }`;
 
-  useClientDocument(title, content.description, "#781714");
+  useClientDocument(title, siteDescription, "#781714");
 
   const navigation = [
     ["/", isTa ? "முகப்பு" : "Home"],

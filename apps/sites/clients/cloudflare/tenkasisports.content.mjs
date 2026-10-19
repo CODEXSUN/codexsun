@@ -116,7 +116,7 @@ export function publicationEnvelope(row) {
 export const routeMetadata = {
   "/": {
     title: "Tenkasi District Sports Club | Sivakalai Gurukulam",
-    description: "வீரத்தமிழன் பாரம்பரிய சிவகலை குருகுலம் - கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் பாரம்பரிய சிலம்பக் கலை, வர்மக்கலை & தற்காப்புப் பயிற்சி. பார்வை • இலக்கு • கவனம்.",
+    description: "தென்காசி மாவட்ட விளையாட்டுக் கழகம் · தாயகம் சிவகலை குருகுலம். ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் சிலம்பம், வர்மக்கலை மற்றும் தற்காப்புப் பயிற்சி.",
     h1: "Tenkasi District Sports Club",
     summary: "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் 6,000-க்கும் மேற்பட்ட மாணாக்கர்களை உருவாக்கிய பாரம்பரிய சிலம்பம், வர்மக்கலை மற்றும் தற்காப்புப் பயிற்சிக் களம்."
   },
@@ -216,9 +216,8 @@ export function liveHtml(response, row, path = "/", statusCode = 200) {
   const status = isKnown ? statusCode : 404;
 
   const publication = row ? JSON.parse(row.payload_json) : null;
-  const title = path === "/" && publication?.content?.pageTitle ? publication.content.pageTitle : meta.title;
-  const description =
-    path === "/" && publication?.content?.description ? publication.content.description : meta.description;
+  const title = meta.title;
+  const description = meta.description;
   const serialized = publication ? JSON.stringify(publication).replaceAll("<", "\\u003c") : "";
 
   if (typeof HTMLRewriter === "undefined") {

@@ -3,7 +3,7 @@ import type { PageContent } from "./page.schema.js";
 export const initialTenkasiSportsPage: PageContent = {
   pageTitle: "தென்காசி மாவட்ட விளையாட்டுக் கழகம் | சிவகலை குருகுலம்",
   description:
-    "வீரத்தமிழன் பாரம்பரிய சிவகலை குருகுலம் - கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் பாரம்பரிய சிலம்பக் கலை, வர்மக்கலை & தற்காப்புப் பயிற்சி. பார்வை • இலக்கு • கவனம்.",
+    "தென்காசி மாவட்ட விளையாட்டுக் கழகம் · தாயகம் சிவகலை குருகுலம். ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் சிலம்பம், வர்மக்கலை மற்றும் தற்காப்புப் பயிற்சி.",
   profile: {
     name: "Tenkasi District Sports Club",
     brand: "Sivakalai Gurukulam",

@@ -34,6 +34,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Add the Tenkasi District Sports Club public client, its Cloudflare Worker, published-content reader, and separate Home, About, Syllabus, Classes, Masters, Gallery, Contact, Students, and Alumni routes.
 - Use the supplied club logo and phone number. Add a bilingual rotating hero, scroll-triggered club facts, and syllabus links on the home cards.
 - Register the named client with Sites Studio and add its public page paths. Keep the member portal and language controls in the sticky header.
+- Deploy Worker version `50735ab2-d02c-448b-a244-7e1991916307` and its 44 static assets to `tenkasisports.com`. Verify the live club title, Home, Syllabus, Students, Alumni, asset delivery, and backend health.
+- Keep the Sites Studio D1 publication at version 1. Serve code-owned club metadata so its older publication title does not override the new public brand.
 
 ## v-1.1.21
 

@@ -15,7 +15,8 @@
 - [x] Smooth the hero's copy and image transitions with overlapping Framer Motion crossfades, and reset the automatic timer after slide changes.
 - [x] Animate the four home stats once as they enter the viewport, with reduced-motion support.
 - [x] Add spacing around the home tradition heading and make its three cards full-card links to `/syllabus`.
-- [ ] Deploy the new build and publish the updated site profile. The live Worker still serves the prior release.
+- [x] Deploy the new build to the live Cloudflare Worker and verify Home, Syllabus, Students, Alumni, the JS asset, and sports club health return 200. Live Worker version: `50735ab2-d02c-448b-a244-7e1991916307`.
+- [ ] Publish an updated Sites Studio content revision. D1 still serves publication version 1; code-owned club branding and home metadata are live.
 
 ## Tenkasi Sports public client and Cloudflare delivery — October 19, 2026
 
