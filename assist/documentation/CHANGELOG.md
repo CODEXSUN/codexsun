@@ -46,6 +46,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Keep the chief master's initial and surname together when headings and copy wrap across Tenkasi pages in English and Tamil.
 - Set the Tenkasi student application to one full-width field per row, with bilingual section headings and clearer field spacing.
 - Add a shared Tenkasi staff loader with gold end rings to page loading and form submission states. Keep it still when reduced motion is selected.
+- Show the complete original-logo handbook cover on the Tenkasi About page and use the tiger-stripes master stance on the Masters page.
 
 ## v-1.1.22
 

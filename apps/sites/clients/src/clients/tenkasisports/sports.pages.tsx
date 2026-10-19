@@ -108,17 +108,17 @@ function AboutPage({ isTa }: { isTa: boolean; content: PageContent }) {
         </div>
         <div className="ts-image-frame">
           <img
-            src="/asan-temple-staff.webp"
-            alt={isTa ? "ஆசான் தி. வீரபாண்டியன் சிலம்பப் பார்வை" : "Master T. Veerapandian with Silambam Staff"}
+            src="/handbook-front-cover.webp"
+            alt={isTa ? "சிவகலை குருகுலம் மாணவர் கையேட்டின் முழு முன் அட்டை" : "Complete front cover of the Sivakalai Gurukulam student handbook"}
             loading="lazy"
             decoding="async"
             width={960}
-            height={1364}
+            height={1365}
           />
           <div className="ts-caption">
             {isTa
-              ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன் - கோயில் முற்றத்தில் கம்பு ஏந்திய தோற்றம்"
-              : "Kalaisudarmani Asan T. Veerapandian in the temple courtyard with staff"}
+              ? "சிவகலை குருகுலம் மாணவர் கையேடு — அசல் சின்னத்துடன் முழு முன் அட்டை"
+              : "Sivakalai Gurukulam student handbook — complete front cover with the original emblem"}
           </div>
         </div>
       </div>
@@ -495,12 +495,12 @@ function MastersPage({ isTa }: { isTa: boolean; content: PageContent }) {
       <div className="ts-grid ts-2col ts-master-spotlight">
         <div className="ts-master-img-wrapper">
           <img
-            src="/asan-portrait.webp"
+            src="/master-tiger-stripes.webp"
             alt={isTa ? "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்" : "Kalaisudarmani Asan T. Veerapandian"}
             loading="lazy"
             decoding="async"
-            width={664}
-            height={1000}
+            width={960}
+            height={982}
           />
         </div>
         <div>
