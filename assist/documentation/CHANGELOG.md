@@ -32,6 +32,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 - Bumped workspace version to 1.1.27.
 - Made CRM overview summary cards keyboard-accessible links to their matching lists and available filters, with reduced-motion-aware hover feedback.
+- Deployed API, web, and shop as 1.1.27 from commit `e7798e39`; all containers passed health checks and the API, CRM overview, and shop routes returned HTTP 200. No migrations or seeders were required.
 
 ## v-1.1.26
 
