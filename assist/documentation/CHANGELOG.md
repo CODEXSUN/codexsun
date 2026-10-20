@@ -26,12 +26,16 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 #### Database Changes
 
-- Database update: No (manual).
+- Database update: Yes (manual, CODEXSUN-only rollout of the existing v1.1.29 CRM scheduler migration).
+- Verified the CODEXSUN tenant backup by restoring it to a temporary database and comparing all 273 tables before migration; backup checksum passed after rollout.
+- Applied the scheduler schema migration and permission seed to CODEXSUN only. TECHMEDIA and RAINBOW tenant databases were not modified.
 
 #### App Codebase Changes
 
 - Bumped workspace version to 1.1.30.
 - Added explicit Platform Vite aliases for the CRM scheduler module and service entry points, fixing unresolved imports in `npm run dev:web` and the production web bundle.
+- Deployed API, web, and shop images from commit `3d24d3ea` (`1.1.30`) to CODEXSUN; all three containers report healthy.
+- Verified live API health, Application Overview, and Shop routes return HTTP 200. Shared MariaDB, Redis, media, and Cloudflared services remained healthy and untouched.
 
 ## v-1.1.29
 
