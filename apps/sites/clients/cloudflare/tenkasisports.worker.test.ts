@@ -263,6 +263,7 @@ test("tenkasisports caches versioned assets while keeping page HTML fresh", asyn
     assert.equal(page.headers.get("Cache-Control"), "no-store");
     assert.equal(page.headers.get("Strict-Transport-Security"), "max-age=86400");
     assert.match(page.headers.get("Content-Security-Policy") ?? "", /script-src 'self'/);
+    assert.match(page.headers.get("Content-Security-Policy") ?? "", /https:\/\/static\.cloudflareinsights\.com/);
   } finally {
     env.CODEXSUN_TENKASISPORTS_CONTENT.db.close();
   }

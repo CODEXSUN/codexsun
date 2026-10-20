@@ -32,6 +32,7 @@ for (const mode of process.argv.slice(2)) {
       const englishUrl = `${siteUrl}/en${path === "/" ? "" : path}`;
       const canonical = language === "en" ? englishUrl : baseUrl;
       const seoTags = [
+        '<link rel="icon" type="image/svg+xml" href="/favicon.svg" />',
         ...(path === "/" ? ['<link rel="preload" as="image" href="/gallery-stance-4.webp" type="image/webp" />'] : []),
         ...(path !== "/" && pageChunk ? [`<link rel="modulepreload" crossorigin href="/assets/${pageChunk}" />`] : []),
         `<meta name="description" content="${escapeAttribute(meta.description)}" />`,
