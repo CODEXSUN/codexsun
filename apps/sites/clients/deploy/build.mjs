@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { routeMetadata, notFoundMetadata } from "../cloudflare/tenkasisports.content.mjs";
 import { englishRouteMetadata } from "../cloudflare/tenkasisports.seo.mjs";
+import { sportsSocialLinks } from "../src/clients/tenkasisports/sports.links.ts";
 
 process.env.NODE_ENV = "production";
 process.env.VITE_USER_NODE_ENV = "production";
@@ -129,6 +130,7 @@ function sportsStructuredData(path) {
     url: siteUrl,
     image: `${siteUrl}/club-logo.jpg`,
     logo: `${siteUrl}/club-logo.jpg`,
+    sameAs: sportsSocialLinks.map(({ href }) => href),
     telephone: "+91-9843930300",
     address,
     areaServed: { "@type": "AdministrativeArea", name: "Tenkasi District" },

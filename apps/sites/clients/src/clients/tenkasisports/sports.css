@@ -1734,6 +1734,43 @@ body {
   flex-wrap: wrap;
   gap: 12px;
 }
+.ts-footer-social {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ts-footer-social-label {
+  margin-right: 4px;
+  color: #e5ded7;
+  white-space: nowrap;
+}
+.ts-footer-social a {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.23);
+  border-radius: 50%;
+  color: #e5ded7;
+  text-decoration: none;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.ts-footer-social a:hover,
+.ts-footer-social a:focus-visible {
+  background: var(--ts-gold);
+  border-color: var(--ts-gold);
+  color: var(--ts-black);
+}
+.ts-footer-social a:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.ts-footer-social svg {
+  width: 20px;
+  height: 20px;
+}
 .ts-tag-pill {
   color: var(--ts-gold-light);
   font-weight: 700;

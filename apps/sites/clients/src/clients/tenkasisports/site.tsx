@@ -18,6 +18,7 @@ import { SportsHero } from "./sports.hero";
 import { SportsStats } from "./sports.stats";
 import { SportsBlogPreview, sportsArticles } from "./sports.blogs";
 import { sportsPortalUrl } from "./sports.links";
+import { SportsSocialLinks } from "./sports.social";
 import { headquartersAddress, officeAddress } from "./sports.locations";
 import { SportsLoader } from "./sports.loader";
 import { SportsLanguageProvider, SportsLink, sportsLocalizedHref } from "./sports.link";
@@ -280,6 +281,7 @@ export function TenkasiSportsSite({ prerenderPath, prerenderLanguage, prerenderP
             <span>
               © {new Date().getFullYear()} {isTa ? "தென்காசி மாவட்ட விளையாட்டுக் கழகம் · சிவகலை குருகுலம்" : "Tenkasi District Sports Club · Sivakalai Gurukulam"}. All rights reserved.
             </span>
+            <SportsSocialLinks isTa={isTa} />
             <span className="ts-tag-pill">
               {isTa ? "குருவே சரணம்! வீரமே தற்காப்பு!" : "Guruve Saranam! Veerame Tharkappu!"}
             </span>
