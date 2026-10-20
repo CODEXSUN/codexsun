@@ -5,6 +5,7 @@
 - Removed the separate CRM header bell and routed CRM due reminders into the Platform main-menu notification control.
 - Added a Platform notifications adapter that reads and acknowledges reminders through the CRM scheduler's public API; CRM remains the persisted source of truth.
 - Selecting a notification opens its linked CRM record or module. No separate notification store or external delivery channel is created.
+- Added explicit Platform Vite aliases for the CRM scheduler module and service public entries after `dev:web` exposed unresolved scheduler imports.
 - Checks passed: Platform, CRM, and UI typecheck/lint; Platform and CRM module boundaries; CRM scheduler and notification-link tests (6 passed).
 - Browser/runtime E2E verification was not run.
 

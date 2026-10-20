@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.29
+Current version: 1.1.30
 
-Release tag: v-1.1.29
+Release tag: v-1.1.30
 
-Changelog label: v 1.1.29
+Changelog label: v 1.1.30
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,19 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.30
+
+### [v 1.1.30] 2026-10-20 9:01 am - Fix CRM scheduler imports
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.30.
+- Added explicit Platform Vite aliases for the CRM scheduler module and service entry points, fixing unresolved imports in `npm run dev:web` and the production web bundle.
 
 ## v-1.1.29
 

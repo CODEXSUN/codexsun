@@ -221,6 +221,14 @@ export default defineConfig(({ command, mode }) => {
           configDir,
           "../../crm/web/src/modules/call-log/index.ts"
         ),
+        "@codexsun/crm-web/modules/scheduler/services": resolve(
+          configDir,
+          "../../crm/web/src/modules/scheduler/scheduler.services.ts"
+        ),
+        "@codexsun/crm-web/modules/scheduler": resolve(
+          configDir,
+          "../../crm/web/src/modules/scheduler/index.ts"
+        ),
         "@codexsun/ui/layouts/application-layout": resolve(
           configDir,
           "../../../packages/ui/src/layouts/application-layout.tsx"
