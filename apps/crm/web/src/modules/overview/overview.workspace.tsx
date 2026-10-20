@@ -299,29 +299,32 @@ function SummaryCard({
   onOpen: () => void;
 }) {
   return (
-    <Card className={`border-l-4 ${accentClassName} p-4`}>
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <Icon className="size-4" />
-        {title}
-      </div>
-      <div className="mt-2 flex items-end justify-between gap-2">
-        <div>
-          <p className="text-3xl font-semibold tabular-nums">
-            {total === undefined ? "—" : total}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+    <Card
+      className={`border-l-4 ${accentClassName} p-0 transition-[transform,box-shadow] duration-150 ease-out hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none`}
+    >
+      <button
+        type="button"
+        className="group block w-full rounded-[inherit] p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        aria-label={`Open ${title} list and filters`}
+        onClick={onOpen}
+      >
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Icon className="size-4" />
+          {title}
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="mb-1 shrink-0 text-muted-foreground"
-          aria-label={`Open ${title}`}
-          onClick={onOpen}
-        >
-          <ArrowRight className="size-4" />
-        </Button>
-      </div>
+        <div className="mt-2 flex items-end justify-between gap-2">
+          <div>
+            <p className="text-3xl font-semibold tabular-nums">
+              {total === undefined ? "—" : total}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+          </div>
+          <ArrowRight
+            className="mb-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 motion-reduce:transition-none"
+            aria-hidden="true"
+          />
+        </div>
+      </button>
     </Card>
   );
 }
