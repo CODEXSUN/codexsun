@@ -43,7 +43,12 @@ enquiries and comments while preserving Frappe creation, modified, and comment t
 the write interface for local operations; imported records remain linked to their Frappe identity.
 
 Enquiry imports preserve numeric `ENQ` serials, Frappe creation and modified timestamps, mapped
-owners/assignees, the current Customer display name and mobile, and Comment/Info timeline entries.
+creator and assignee, the current Customer display name and mobile, and Comment/Info timeline entries.
+The enquiry's read-only `user_employee` field is the business creator shown in CRM; it maps through
+the verified Employee-to-local-user mapping. Frappe's document `owner` is a fallback when that
+Employee has no unique local mapping. `assigned_to_employee` is authoritative: clearing it clears
+the local allocation, and an ambiguous or unmapped Employee is never substituted with a stale user.
+The identity audit flags one Employee code mapped to multiple local users.
 Imported comments retain their source timestamps and mapped author, and their retry key is scoped to
 the Frappe comment identity. A saved verified connection must be able to read Enquiry, Customer, and
 Comment resources. If any source record cannot be read or mapped, that row is reported as failed and

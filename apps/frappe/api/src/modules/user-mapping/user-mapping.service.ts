@@ -61,15 +61,21 @@ export class FrappeUserMappingService {
     const usersById = new Map(remoteUsers.map((user) => [normalize(user.name), user]));
     const employeesByCode = new Map<string, EmployeeRecord[]>();
     const employeesByUser = new Map<string, EmployeeRecord[]>();
+    const mappingsByEmployeeCode = new Map<string, Selectable<FrappeUserMappingRow>[]>();
     for (const employee of employees) {
       append(employeesByCode, normalize(employee.name), employee);
       if (employee.user_id) append(employeesByUser, normalize(employee.user_id), employee);
+    }
+    for (const row of rows) {
+      if (row.employee_code) append(mappingsByEmployeeCode, normalize(row.employee_code), row);
     }
     const linkedLocalIds = new Set(rows.map((row) => Number(row.local_user_id)));
     const audits = rows.map((row) => {
       const local = localById.get(Number(row.local_user_id));
       const remote = usersById.get(normalize(row.frappe_user_id));
       const employeeMatches = employeesByCode.get(normalize(row.employee_code ?? "")) ?? [];
+      const localMappingMatches =
+        mappingsByEmployeeCode.get(normalize(row.employee_code ?? "")) ?? [];
       const employee = employeeMatches[0];
       const employeeUserMatches = employeesByUser.get(normalize(row.frappe_email)) ?? [];
       const issues: string[] = [];
@@ -90,6 +96,8 @@ export class FrappeUserMappingService {
       if (employee && employee.status !== "Active")
         issues.push(`Mapped Employee is ${employee.status || "inactive"}.`);
       if (employeeMatches.length > 1) issues.push("Employee code resolves to multiple records.");
+      if (localMappingMatches.length > 1)
+        issues.push("Employee code is assigned to multiple local users.");
       if (employeeUserMatches.length > 1)
         issues.push("Frappe email resolves to multiple Employees.");
       return {

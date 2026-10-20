@@ -12,7 +12,16 @@ afterEach(() => {
 
 function auditService(
   remote: { users: unknown[]; employees: unknown[] },
-  mappingConnectionHash?: string
+  mappingConnectionHash?: string,
+  mappings?: Array<{
+    local_user_id: number;
+    frappe_user_id: string;
+    frappe_email: string;
+    employee_code: string;
+    connection_hash: string;
+    verified_at: Date;
+    updated_at: Date;
+  }>
 ) {
   const connection = {
     id: 1,
@@ -55,7 +64,7 @@ function auditService(
           return table === "frappe_connection_settings" ? connection : undefined;
         },
         async execute() {
-          return table === "frappe_user_mappings" ? [mapping] : [];
+          return table === "frappe_user_mappings" ? (mappings ?? [mapping]) : [];
         }
       };
       return builder;
@@ -134,4 +143,39 @@ test("identity audit reports disabled, changed-email, inactive-employee, and sta
   assert.ok(audit.mappings[0]?.issues.some((issue) => issue.includes("email")));
   assert.ok(audit.mappings[0]?.issues.some((issue) => issue.includes("Employee")));
   assert.ok(audit.mappings[0]?.issues.some((issue) => issue.includes("different Frappe site")));
+});
+
+test("identity audit rejects an Employee code mapped to multiple local users", async () => {
+  const duplicate = {
+    local_user_id: 8,
+    frappe_user_id: "vijay@example.test",
+    frappe_email: "vijay@example.test",
+    employee_code: "EMP-7",
+    connection_hash: "751510a574cdce20b55f300413c6390814d83ac7e1552525d93dc6778587a3f4",
+    verified_at: new Date(),
+    updated_at: new Date()
+  };
+  const original = { ...duplicate, local_user_id: 7 };
+  const audit = await auditService(
+    {
+      users: [
+        {
+          name: "vijay@example.test",
+          full_name: "Vijay Anand",
+          email: "vijay@example.test",
+          enabled: 1,
+          user_type: "System User"
+        }
+      ],
+      employees: [{ name: "EMP-7", user_id: "vijay@example.test", status: "Active" }]
+    },
+    undefined,
+    [original, duplicate]
+  ).audit();
+  assert.equal(audit.totals.mismatched, 2);
+  assert.ok(
+    audit.mappings.every((item) =>
+      item.issues.some((issue) => issue.includes("multiple local users"))
+    )
+  );
 });

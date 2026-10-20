@@ -326,14 +326,18 @@ test("pull creates a local enquiry and records the remote identity", async () =>
           enquiryNo: 27,
           createdAt: "2026-10-06T04:30:00.000Z",
           updatedAt: "2026-10-07T06:00:00.000Z",
-          createdBy: "agent@example.com"
+          createdBy: "mapped-employee@example.com"
         });
         return { id: 42 } as EnquiryRecord;
       },
       createEnquiry: async () => {
         throw new Error("Unexpected legacy create");
       },
-      localActorForFrappeUser: async () => null,
+      localActorForFrappeUser: async () => "mapped-owner@example.com",
+      localActorForEmployee: async (employeeCode) => {
+        assert.equal(employeeCode, "HR-EMP-00011");
+        return "mapped-employee@example.com";
+      },
       updateEnquiry: async () => {
         throw new Error("Unexpected update");
       },
@@ -393,6 +397,7 @@ test("pull repairs an imported enquiry missing its Frappe link and resumes comme
         creation: "2026-10-06 10:00:00",
         modified: "2026-10-07 11:30:00",
         owner: "agent@example.com",
+        assigned_to_employee: null,
         title: "Machine issue",
         mobile: "9994885548",
         date: "2026-10-06",
@@ -410,6 +415,7 @@ test("pull repairs an imported enquiry missing its Frappe link and resumes comme
       updateImportedEnquiry: async (id, input, source) => {
         assert.equal(id, 42);
         assert.equal(input.sourceReference, "ENQ27");
+        assert.equal(input.assignedUserId, null);
         assert.equal(source.createdAt, "2026-10-06T04:30:00.000Z");
         updated = true;
         return { id } as EnquiryRecord;

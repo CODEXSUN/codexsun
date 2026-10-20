@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.31
+Current version: 1.1.32
 
-Release tag: v-1.1.31
+Release tag: v-1.1.32
 
-Changelog label: v 1.1.31
+Changelog label: v 1.1.32
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,21 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.32
+
+### [v 1.1.32] 2026-10-20 7:07 pm - Correct Frappe enquiry actor and assignee mapping
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Resolve imported enquiry creators through the unique Employee-to-local-user mapping, using the Frappe owner as a fallback.
+- Treat Frappe's assigned Employee as authoritative, clear stale local assignments when the source is unassigned, and flag duplicate Employee mappings in the identity audit.
+- Show saved enquiry assignees by their tenant user name on the detail page.
+- Verified the CRM/Frappe regression suite (149 unit tests and three isolated database E2E tests), affected package typechecks, and module boundaries. Production rollout verification is pending.
 
 ## v-1.1.31
 

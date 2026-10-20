@@ -9,6 +9,13 @@
 - [x] Keep import-generated initial enquiry events attributed to the mapped enquiry creator while later sync updates remain system-attributed.
       Verification: 148 CRM/Frappe tests passed, including two identity-audit cases; local isolated CRM Duty, mobile customer, and Core contact-upsert E2E tests passed. API/web typechecks passed before final docs. Production/browser verification was not run.
 
+## Enquiry creator and assignee reconciliation — 2026-10-20
+
+- [x] Resolve imported enquiry creator from the source `user_employee` Employee mapping; fall back to the mapped Frappe document owner when no unique Employee mapping exists.
+- [x] Treat source `assigned_to_employee` as authoritative so removed, unmapped, or ambiguous assignments cannot leave a stale local assignee.
+- [x] Flag Employee codes assigned to multiple local users in the read-only identity audit.
+      Focused import and audit regression tests verify creator identity, unassignment, and ambiguous mapping detection.
+
 ## Sync direction audit - 2026-10-18
 
 - [x] Deploy and verify TECHMEDIA Frappe enquiry import with source serials, creation/modified dates, mapped owner/assignee, site-scoped Customer identity, comments, audit history, and live Redis/BullMQ batches. Begin with a small selected-row test, then continue the queue until all current source enquiries are accounted for. Do not touch other tenant databases.

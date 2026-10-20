@@ -7,6 +7,13 @@
 - [x] Preserve the Frappe source creator on initial import events; keep later sync updates attributed to the sync service.
       Verified by focused attribution tests and `npm run test:crm-frappe` (148 unit tests and three isolated E2E tests passed).
 
+## Enquiry identity reconciliation — 2026-10-20
+
+- [x] Resolve the source Employee creator through the verified unique local mapping, and use Frappe's document owner only as fallback.
+- [x] Clear saved local assignment when Frappe has no assignee, and flag duplicate Employee mappings in the Frappe identity audit.
+- [x] Display the stored assignee's tenant user name on the enquiry detail page when its denormalized name is absent.
+      Verified with TECHMEDIA enquiry ENQ2022 against its Frappe Employee records; the existing creator and assignee already matched, so no live tenant rows required correction. Regression: 149 CRM/Frappe unit tests and three isolated database E2E tests passed.
+
 ## Admin CRM overview
 
 - [x] Show permission-scoped totals and status summaries for enquiries, tasks, calls, activities, SOPs, duties, and duty reports.

@@ -365,6 +365,13 @@ function EnquirySummary({
   const creatorName =
     users.find((user) => user.email?.toLowerCase() === record.createdBy.toLowerCase())?.name ??
     record.createdBy;
+  const assigneeName =
+    record.assignedToName ??
+    (record.assignedUserId === null
+      ? null
+      : (users.find((user) => String(user.id) === record.assignedUserId)?.name ??
+        `User #${record.assignedUserId}`));
+  const assignedTo = assigneeName ?? "Unassigned";
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
@@ -411,7 +418,7 @@ function EnquirySummary({
         <dl className="grid min-w-0 grid-cols-2 gap-2">
           <MobileSummaryField label="Customer" value={customer} />
           <MobileSummaryField label="Mobile" value={mobile || "—"} />
-          <MobileSummaryField label="Assigned to" value={record.assignedToName || "Unassigned"} />
+          <MobileSummaryField label="Assigned to" value={assignedTo} />
           <MobileSummaryField
             label="Due date"
             value={record.dueDate ? formatDate(record.dueDate) : "—"}
@@ -457,7 +464,7 @@ function EnquirySummary({
             />
             <SummaryDetail
               leftLabel="Assigned to"
-              leftValue={record.assignedToName || "Unassigned"}
+              leftValue={assignedTo}
               rightLabel="Due date"
               rightValue={record.dueDate ? formatDate(record.dueDate) : "—"}
             />

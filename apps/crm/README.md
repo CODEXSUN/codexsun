@@ -130,6 +130,7 @@ Closure requests show an orange Closure pending badge.
 Enquiry and Task lists switch from the full sortable table to compact record cards on narrow screens.
 The cards retain the primary record link, status, priority, customer/contact, due date, assignee, closure badge, and available row actions.
 Enquiry and Task detail summaries hide desktop column sizing on phones so labels and values keep readable widths.
+Enquiry details resolve saved assignee IDs through the tenant user lookup, so existing allocations remain visible by name.
 
 ## SOP workspace
 

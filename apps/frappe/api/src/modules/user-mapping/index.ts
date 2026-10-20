@@ -2,6 +2,7 @@ export { frappeUserMappingModule } from "./user-mapping.module.js";
 export {
   mappedEmployeeCodeForLocalUser,
   mappedLocalUserForEmployeeCode,
+  mappedLocalActorForEmployeeCode,
   mappedLocalActorForFrappeUser
 } from "./user-mapping.repository.js";
 export {

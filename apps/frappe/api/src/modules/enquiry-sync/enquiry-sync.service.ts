@@ -362,10 +362,13 @@ export class FrappeEnquirySyncService {
       );
     const createdAt = normalizeSourceDateTime(remote.creation, remote.name, "creation");
     const updatedAt = normalizeSourceDateTime(remote.modified, remote.name, "modified");
-    const createdBy = remote.owner?.trim()
-      ? ((await this.context.localActorForFrappeUser?.(remote.owner.trim(), settings.baseUrl)) ??
-        remote.owner.trim())
-      : "frappe-import";
+    const employeeActor = remote.user_employee?.trim()
+      ? await this.context.localActorForEmployee?.(remote.user_employee.trim(), settings.baseUrl)
+      : null;
+    const ownerActor = remote.owner?.trim()
+      ? await this.context.localActorForFrappeUser?.(remote.owner.trim(), settings.baseUrl)
+      : null;
+    const createdBy = employeeActor ?? ownerActor ?? remote.owner?.trim() ?? "frappe-import";
     const customerId = remote.customer?.trim();
     const customerName = customerId ? await this.customerName(customerId, settings) : null;
     const mobile = normalizeMobile(remote.mobile, remote.name);
@@ -518,7 +521,9 @@ export class FrappeEnquirySyncService {
       listInId,
       statusId: status.id,
       priorityId: priority.id,
-      assignedUserId: mappedAssignee ?? linked?.assignedUserId ?? null,
+      // The source field is authoritative; retaining a previous assignee after an unassignment
+      // would make the local enquiry appear allocated to the wrong user.
+      assignedUserId: mappedAssignee,
       enquiredAt: `${date}T00:00:00.000Z`,
       dueDate,
       closedReason: ["won", "lost", "closed"].includes(status.code)

@@ -46,6 +46,7 @@ export {
   frappeUserMappingMigrationBatch,
   mappedEmployeeCodeForLocalUser,
   mappedLocalUserForEmployeeCode,
+  mappedLocalActorForEmployeeCode,
   mappedLocalActorForFrappeUser,
   frappeUserMappingMigrations,
   migrateFrappeUserMappingDatabase,

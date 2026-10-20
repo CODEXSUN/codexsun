@@ -68,6 +68,7 @@ export type EnquirySyncContext = {
     }
   ) => Promise<EnquiryRecord>;
   localActorForFrappeUser?: (remoteUser: string, baseUrl: string) => Promise<string | null>;
+  localActorForEmployee?: (employeeCode: string, baseUrl: string) => Promise<string | null>;
   importComment?: (
     enquiryId: number,
     comment: { id: string; content: string; author: string; createdAt: string }

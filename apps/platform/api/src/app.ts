@@ -124,6 +124,7 @@ import {
   frappeUserMappingModule,
   mappedEmployeeCodeForLocalUser,
   mappedLocalUserForEmployeeCode,
+  mappedLocalActorForEmployeeCode,
   mappedLocalActorForFrappeUser,
   frappeUserSyncModule,
   type FrappeDatabase,
@@ -1661,6 +1662,12 @@ export async function createApp() {
             remoteUser,
             baseUrl
           ),
+        localActorForEmployee: (employeeCode, baseUrl) =>
+          mappedLocalActorForEmployeeCode(
+            database as unknown as import("kysely").Kysely<FrappeUserMappingDatabase>,
+            employeeCode,
+            baseUrl
+          ),
         updateEnquiry: (id, input) =>
           enquiries.update(id, input, job.actorEmail ?? "system:frappe-import"),
         localUserForEmployee: (code, baseUrl) =>
@@ -1736,6 +1743,12 @@ export async function createApp() {
           mappedLocalActorForFrappeUser(
             context.database as unknown as import("kysely").Kysely<FrappeUserMappingDatabase>,
             remoteUser,
+            baseUrl
+          ),
+        localActorForEmployee: (employeeCode, baseUrl) =>
+          mappedLocalActorForEmployeeCode(
+            context.database as unknown as import("kysely").Kysely<FrappeUserMappingDatabase>,
+            employeeCode,
             baseUrl
           ),
         updateEnquiry: (id, input) => enquiries.update(id, input, context.actorEmail),

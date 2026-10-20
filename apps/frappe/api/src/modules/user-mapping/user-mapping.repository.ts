@@ -87,8 +87,23 @@ export async function mappedLocalUserForEmployeeCode(
     FROM frappe_user_mappings mapping
     INNER JOIN app_users local_user ON local_user.id=mapping.local_user_id
     WHERE mapping.employee_code=${employeeCode} AND local_user.status='active'
-      AND mapping.connection_hash=${hash} LIMIT 1`.execute(database);
-  return result.rows[0]?.local_user_id ?? null;
+      AND mapping.connection_hash=${hash} LIMIT 2`.execute(database);
+  return result.rows.length === 1 ? result.rows[0]!.local_user_id : null;
+}
+
+export async function mappedLocalActorForEmployeeCode(
+  database: Kysely<FrappeUserMappingDatabase>,
+  employeeCode: string,
+  baseUrl: string
+) {
+  if (!baseUrl || !employeeCode) return null;
+  const hash = createHash("sha256").update(new URL(baseUrl).origin.toLowerCase()).digest("hex");
+  const result = await sql<{ email: string }>`SELECT local_user.email
+    FROM frappe_user_mappings mapping
+    INNER JOIN app_users local_user ON local_user.id=mapping.local_user_id
+    WHERE mapping.employee_code=${employeeCode} AND local_user.status='active'
+      AND mapping.connection_hash=${hash} LIMIT 2`.execute(database);
+  return result.rows.length === 1 ? result.rows[0]!.email : null;
 }
 
 export async function mappedLocalActorForFrappeUser(
