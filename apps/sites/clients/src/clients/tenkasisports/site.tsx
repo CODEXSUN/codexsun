@@ -93,7 +93,7 @@ export function TenkasiSportsSite({ prerenderPath, prerenderLanguage, prerenderP
 
   return (
     <SportsLanguageProvider language={lang}>
-    <div className="ts-site">
+    <div className="ts-site notranslate" translate="no">
       <SportsLink className="ts-skip" href="#main">
         {isTa ? "முக்கிய பகுதிக்குச் செல்க (Skip to content)" : "Skip to main content"}
       </SportsLink>
@@ -117,6 +117,15 @@ export function TenkasiSportsSite({ prerenderPath, prerenderLanguage, prerenderP
               <Globe size={17} aria-hidden="true" />
               <span>{isTa ? "English" : "தமிழ்"}</span>
             </button>
+            <details className="ts-mobile-language">
+              <summary aria-label={isTa ? "மொழியைத் தேர்வு செய்க" : "Choose language"}>
+                <Globe size={17} aria-hidden="true" />
+              </summary>
+              <div className="ts-mobile-language-options">
+                <a href={sportsLocalizedHref(path, "ta")} lang="ta" aria-current={isTa ? "page" : undefined}>தமிழ்</a>
+                <a href={sportsLocalizedHref(path, "en")} lang="en" aria-current={!isTa ? "page" : undefined}>English</a>
+              </div>
+            </details>
             <SportsLink href={sportsPortalUrl} className="ts-portal-link" target="_blank" rel="noreferrer" aria-label={isTa ? "உறுப்பினர் போர்ட்டல்" : "Member Portal"}>
               <UserRound size={17} className="ts-portal-icon" aria-hidden="true" />
               <span>{isTa ? "உறுப்பினர் போர்ட்டல்" : "Member Portal"}</span>

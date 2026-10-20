@@ -115,6 +115,7 @@ body {
 .ts-lang-toggle:hover {
   background: var(--ts-surface-warm);
 }
+.ts-mobile-language { display: none; }
 .ts-portal-link {
   color: var(--ts-maroon);
   text-decoration: none;
@@ -1920,6 +1921,44 @@ body {
   .ts-topline-phone { white-space: nowrap; font-size: 13px; }
   .ts-topline-call-label { display: none; }
   .ts-topline-actions { gap: 8px; flex: none; }
+  .ts-topline .ts-lang-toggle { display: none; }
+  .ts-mobile-language { display: block; position: relative; z-index: 600; }
+  .ts-mobile-language summary {
+    display: flex;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    cursor: pointer;
+    list-style: none;
+  }
+  .ts-mobile-language summary::-webkit-details-marker { display: none; }
+  .ts-mobile-language summary:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .ts-mobile-language-options {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 144px;
+    padding: 4px;
+    border: 1px solid var(--ts-border);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  }
+  .ts-topline .ts-mobile-language-options a {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 5px;
+    color: var(--ts-maroon);
+    white-space: nowrap;
+  }
+  .ts-topline .ts-mobile-language-options a[aria-current="page"] { background: var(--ts-gold-soft); }
   .ts-topline .ts-lang-toggle,
   .ts-topline .ts-portal-link {
     width: 40px;
