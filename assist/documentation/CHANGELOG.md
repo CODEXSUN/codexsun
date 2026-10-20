@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.32
+Current version: 1.1.33
 
-Release tag: v-1.1.32
+Release tag: v-1.1.33
 
-Changelog label: v 1.1.32
+Changelog label: v 1.1.33
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,18 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.33
+
+### [v 1.1.33] 2026-10-20 7:15 pm - Show source creator in imported enquiry history
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.33.
 
 ## v-1.1.32
 

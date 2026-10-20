@@ -1,4 +1,5 @@
 import { sql, type Kysely, type Selectable } from "kysely";
+import { activityCreatorDisplay } from "../enquiry/index.js";
 import type {
   WorkReportDatabase,
   WorkReportHistoryFilter,
@@ -8,7 +9,27 @@ import type {
 type HistoryRow = Selectable<WorkReportRow> & {
   created_by_name: string;
   comment_id: number | null;
+  action: string;
+  enquiry_source: string | null;
+  source_creator_email: string | null;
+  source_creator_name: string | null;
+  activity_creator_name: string | null;
 };
+
+export function historyActorDisplay(record: {
+  action: string;
+  created_by: string;
+  enquiry_source: string | null;
+  source_creator_email: string | null;
+  source_creator_name: string | null;
+  activity_creator_name: string | null;
+}) {
+  return activityCreatorDisplay({
+    ...record,
+    enquiry_source: record.enquiry_source ?? ""
+  });
+}
+
 export class WorkReportHistory {
   constructor(private readonly database: Kysely<WorkReportDatabase>) {}
   async page(
@@ -27,9 +48,15 @@ export class WorkReportHistory {
     const count = await sql<{
       total: number | string;
     }>`SELECT COUNT(*) AS total FROM (${source}) history`.execute(this.database);
-    const result =
-      await sql<HistoryRow>`SELECT history.*, COALESCE(u.name,history.created_by) AS created_by_name
-      FROM (${source}) history LEFT JOIN app_users u ON u.email=history.created_by
+    const result = await sql<HistoryRow>`SELECT history.*,
+        enquiry.source AS enquiry_source,
+        enquiry.created_by AS source_creator_email,
+        source_creator.name AS source_creator_name,
+        activity_creator.name AS activity_creator_name
+      FROM (${source}) history
+      LEFT JOIN app_users AS activity_creator ON activity_creator.email=history.created_by
+      LEFT JOIN crm_enquiries AS enquiry ON enquiry.id=history.enquiry_id
+      LEFT JOIN app_users AS source_creator ON source_creator.email=enquiry.created_by
       ORDER BY history.created_at DESC, history.source_order DESC, history.id DESC, history.uuid DESC
       LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`.execute(this.database);
     const id = target.enquiryId ?? target.taskId!;
@@ -40,7 +67,10 @@ export class WorkReportHistory {
       WHERE ${target.enquiryId !== null ? sql`enquiry_id=${id}` : sql`task_id=${id}`} AND status='active'
     `.execute(this.database);
     return {
-      items: result.rows,
+      items: result.rows.map((row) => ({
+        ...row,
+        created_by_name: historyActorDisplay(row)
+      })),
       total: Number(count.rows[0]?.total ?? 0),
       page,
       pageSize,
