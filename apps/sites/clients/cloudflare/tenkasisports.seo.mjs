@@ -1,23 +1,23 @@
 export const englishRouteMetadata = {
   "/": {
-    title: "Tenkasi District Sports Club | Sivakalai Gurukulam",
-    description: "Learn traditional Silambam, Varmam and self-defense at Tenkasi District Sports Club, based at Sivakalai Gurukulam under Master T. Veerapandian."
+    title: "Silambam in Tenkasi | Tenkasi District Sports Club",
+    description: "Explore Silambam training in Tenkasi with Tenkasi District Sports Club and its home association, Sivakalai Gurukulam. Learn about classes, syllabus and admissions."
   },
   "/about": {
-    title: "About the Club and Gurukulam | Tenkasi District Sports Club",
-    description: "Explore the heritage of Sivakalai Gurukulam and the teaching tradition of Silambam master T. Veerapandian in Tenkasi."
+    title: "Sivakalai Gurukulam and Tenkasi Sports Club | About",
+    description: "Learn about Tenkasi District Sports Club, Sivakalai Gurukulam and the traditional Silambam teaching of Kalaisudarmani Asan T. Veerapandian."
   },
   "/syllabus": {
     title: "Silambam Syllabus and Training Levels | Tenkasi District Sports Club",
     description: "Explore beginner, intermediate and master Silambam training, including stances, footwork, staff practice and traditional martial arts."
   },
   "/classes": {
-    title: "Silambam Classes and Training | Tenkasi District Sports Club",
-    description: "Learn about Silambam classes, training batches and practice at Sivakalai Gurukulam in Tenkasi."
+    title: "Silambam Classes in Tenkasi | Tenkasi District Sports Club",
+    description: "Explore Silambam classes for children and adults at Tenkasi District Sports Club. Learn about training batches and ask about admission at Sivakalai Gurukulam."
   },
   "/masters": {
-    title: "Silambam Masters and Lineage | Tenkasi District Sports Club",
-    description: "Meet Master T. Veerapandian and learn about the teachers and lineage of Sivakalai Gurukulam."
+    title: "Kalaisudarmani Asan T. Veerapandian | Silambam Master",
+    description: "Meet Silambam master Kalaisudarmani Asan T. Veerapandian and learn about his teaching and the Sivakalai Gurukulam lineage in Tenkasi."
   },
   "/events": {
     title: "Silambam Events and Competitions | Tenkasi District Sports Club",
@@ -64,8 +64,8 @@ export const englishRouteMetadata = {
     description: "Apply for student admission and traditional Silambam training at Sivakalai Gurukulam in Tenkasi."
   },
   "/contact": {
-    title: "Contact and Locations | Tenkasi District Sports Club",
-    description: "Find the Sivakalai Gurukulam headquarters in Shengottai, the Tirupur office and club contact details."
+    title: "Contact Tenkasi District Sports Club | Shengottai",
+    description: "Find Tenkasi District Sports Club at Sivakalai Gurukulam in Melur, Shengottai, Tenkasi district. View the Tirupur office and contact the club."
   },
   "/privacy": {
     title: "Privacy Policy | Tenkasi District Sports Club",

@@ -46,23 +46,9 @@ for (const mode of process.argv.slice(2)) {
         `<meta property="og:image" content="${socialImage}" />`,
         '<meta name="twitter:card" content="summary" />',
         `<meta name="twitter:image" content="${socialImage}" />`,
-        ...(path === "/" ? [`<script type="application/ld+json">${JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          name: "Tenkasi District Sports Club",
-          alternateName: "Sivakalai Gurukulam",
-          url: siteUrl,
-          logo: socialImage,
-          telephone: "+91-9843930300",
-          address: {
-            "@type": "PostalAddress",
-            streetAddress: "8/18 Neerathilingam Street, Melur",
-            addressLocality: "Shengottai",
-            addressRegion: "Tamil Nadu",
-            postalCode: "627809",
-            addressCountry: "IN"
-          }
-        }).replaceAll("<", "\\u003c")}</script>`] : []),
+        ...(["/", "/masters", "/contact"].includes(path)
+          ? [`<script type="application/ld+json">${JSON.stringify(sportsStructuredData(path)).replaceAll("<", "\\u003c")}</script>`]
+          : []),
         ...(path === "/404" ? [] : [
           `<link rel="alternate" hreflang="ta-IN" href="${baseUrl}" />`,
           `<link rel="alternate" hreflang="en-IN" href="${englishUrl}" />`,
@@ -122,6 +108,56 @@ for (const mode of process.argv.slice(2)) {
       ""
     ].join("\n"), "utf8");
   }
+}
+
+function sportsStructuredData(path) {
+  const siteUrl = "https://tenkasisports.com";
+  const clubId = `${siteUrl}/#club`;
+  const address = {
+    "@type": "PostalAddress",
+    streetAddress: "8/18 Neerathilingam Street, Melur",
+    addressLocality: "Shengottai",
+    addressRegion: "Tamil Nadu",
+    postalCode: "627809",
+    addressCountry: "IN"
+  };
+  const club = {
+    "@type": "SportsActivityLocation",
+    "@id": clubId,
+    name: "Tenkasi District Sports Club",
+    alternateName: ["Tenkasi Sports Club", "தென்காசி மாவட்ட விளையாட்டுக் கழகம்"],
+    url: siteUrl,
+    image: `${siteUrl}/club-logo.jpg`,
+    logo: `${siteUrl}/club-logo.jpg`,
+    telephone: "+91-9843930300",
+    address,
+    areaServed: { "@type": "AdministrativeArea", name: "Tenkasi District" },
+    location: { "@type": "Place", name: "Sivakalai Gurukulam", address }
+  };
+  const nodes = [club];
+  if (path === "/") {
+    nodes.push({
+      "@type": "WebSite",
+      "@id": `${siteUrl}/#website`,
+      url: siteUrl,
+      name: "Tenkasi District Sports Club",
+      alternateName: "Tenkasi Sports Club",
+      publisher: { "@id": clubId },
+      inLanguage: ["ta-IN", "en-IN"]
+    });
+  }
+  if (path === "/masters") {
+    nodes.push({
+      "@type": "Person",
+      "@id": `${siteUrl}/masters#veerapandian`,
+      name: "T. Veerapandian",
+      alternateName: ["Kalaisudarmani Asan T. Veerapandian", "கலைச்சுடர்மணி ஆசான் தி. வீரபாண்டியன்"],
+      image: `${siteUrl}/asan-portrait.webp`,
+      affiliation: { "@id": clubId },
+      url: `${siteUrl}/masters`
+    });
+  }
+  return { "@context": "https://schema.org", "@graph": nodes };
 }
 
 async function buildSportsRenderer() {
