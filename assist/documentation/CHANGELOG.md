@@ -36,6 +36,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added Enquiry and Task date-range filters with manual `DD-MM-YYYY` input and server-side date filtering.
 - Made Enquiry and Task detail tabs fit narrow screens with icon-only controls and accessible labels.
 - Aligned optional charge details with the amount field and documented the CRM and Platform contracts.
+- Published the Tenkasi static frontend accessibility update from commit `b399848e` to Cloudflare Worker version `82c918ff-4eb5-4ff2-88f4-4eca4302af95`.
+- Verified live Tamil and English Home and Join routes, sitemap, robots file, and the updated CSS asset. Mobile Lighthouse scored 100 for accessibility and SEO on Home and Join.
 
 ## v-1.1.28
 
