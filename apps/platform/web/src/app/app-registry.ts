@@ -1596,7 +1596,8 @@ export function appMenuItemsFor(
           "frappe.enquiry-sync",
           "frappe.connection",
           "frappe.users",
-          "frappe.user-mapping"
+          "frappe.user-mapping",
+          "frappe.identity-audit"
         ].includes(activePage),
         title: "Frappe",
         items: [
@@ -1635,6 +1636,12 @@ export function appMenuItemsFor(
             isActive: activePage === "frappe.user-mapping",
             onSelect: () => onSelect("frappe.user-mapping"),
             title: "User mapping"
+          },
+          {
+            icon: ShieldCheckIcon,
+            isActive: activePage === "frappe.identity-audit",
+            onSelect: () => onSelect("frappe.identity-audit"),
+            title: "Identity audit"
           }
         ]
       }
@@ -1721,7 +1728,7 @@ export function appMenuItemsFor(
         isActive: activePage === "crm.duty-reporting",
         onSelect: () => onSelect("crm.duty-reporting"),
         title: "Duty Reporting"
-      },
+      }
     ];
   }
   if (appId === "auditor") {

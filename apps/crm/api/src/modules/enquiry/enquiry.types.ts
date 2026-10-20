@@ -143,6 +143,7 @@ export type EnquiryDatabase = ListInDatabase &
     crm_enquiry_estimates: EnquiryEstimateRow;
     crm_enquiry_activity: EnquiryActivityRow;
     crm_enquiry_alerts: EnquiryAlertRow;
+    app_users: { id: number; name: string; email: string; status: string };
   };
 
 export type EnquirySyncEventRow = {
@@ -193,6 +194,7 @@ export type EnquiryAlert = {
 };
 
 export type EnquiryCommentRow = {
+  created_by_name?: string | null;
   request_id: Generated<string | null>;
   id: Generated<number>;
   uuid: Generated<string>;
@@ -214,6 +216,7 @@ export type EnquiryComment = {
   body: string;
   bodyFormat: "plain" | "html";
   createdBy: string;
+  createdByName: string | null;
   createdAt: string;
 };
 

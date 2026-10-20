@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.30
+Current version: 1.1.31
 
-Release tag: v-1.1.30
+Release tag: v-1.1.31
 
-Changelog label: v 1.1.30
+Changelog label: v 1.1.31
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,22 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.31
+
+### [v 1.1.31] 2026-10-20 6:46 pm - Frappe identity audit and CRM actor attribution
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.31.
+- Added the tenant Frappe Identity audit page. Opening the page runs deterministic read-only checks against mapped Frappe Users and Employees and reports mismatched, duplicate, stale-site, inactive, and unmapped identities.
+- Mapped Frappe activity and call-log owners back to local CRM users during import, retaining the original Frappe owner when no local mapping exists.
+- Corrected CRM enquiry and task comment bylines to use mapped display names. Corrected initial imported enquiry activity attribution while keeping later sync updates identified as system events.
+- Verified 148 CRM/Frappe unit tests, three isolated database E2E tests, affected package typechecks and lint, CRM/Frappe boundaries, component docs, and production builds. No database migration or cloud deployment was performed.
 
 ## v-1.1.30
 

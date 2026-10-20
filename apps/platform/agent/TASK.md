@@ -1,5 +1,12 @@
 # Platform tasks
 
+## Frappe identity audit composition — October 20, 2026
+
+- [x] Expose the read-only Frappe identity audit through the tenant Frappe navigation and page registry.
+- [x] Retain the Frappe connection permission check and permit audits after the initial import lock without bypassing import restrictions on any other route.
+- [x] Keep audit calls tenant-scoped and use the saved verified connection; no secrets are exposed to the web client.
+      Local package typechecks and CRM/Frappe tests passed. Authenticated browser and production verification remain open.
+
 ## Main-menu CRM reminder notifications — October 20, 2026
 
 - Removed the separate CRM header bell and routed CRM due reminders into the Platform main-menu notification control.

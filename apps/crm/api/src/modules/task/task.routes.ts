@@ -59,6 +59,7 @@ const comment = z.object({
   parentId: z.number().nullable(),
   body: z.string(),
   createdBy: z.string(),
+  createdByName: z.string().nullable().optional(),
   createdAt: z.union([z.string(), z.date()])
 });
 const closure = z.object({

@@ -94,7 +94,7 @@ export function TaskComments({
                     </Button>
                   ) : null}
                   <span className="text-right">
-                    {formatByline(item.createdBy, item.createdAt, now)}
+                    {formatByline(item.createdBy, item.createdAt, now, item.createdByName)}
                   </span>
                 </div>
               </div>
@@ -148,8 +148,13 @@ function plainText(value: string) {
   );
 }
 
-function formatByline(author: string, createdAt: string | Date, now: number) {
-  const name = author.match(/@([^@.]+)(?:\.|$)/u)?.[1] || author;
+function formatByline(
+  author: string,
+  createdAt: string | Date,
+  now: number,
+  displayName?: string | null
+) {
+  const name = displayName?.trim() || author;
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return name;
   const elapsed = Math.trunc((now - date.getTime()) / 60_000);

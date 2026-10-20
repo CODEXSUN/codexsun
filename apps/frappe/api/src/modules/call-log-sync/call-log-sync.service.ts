@@ -15,6 +15,7 @@ type RemoteCall = {
   caller?: string | null;
   creation?: string | null;
   start_time?: string | null;
+  owner?: string | null;
 };
 const fields = [
   "name",
@@ -26,7 +27,8 @@ const fields = [
   "receiver",
   "caller",
   "creation",
-  "start_time"
+  "start_time",
+  "owner"
 ];
 
 export async function previewFrappeCallLogs(
@@ -76,7 +78,8 @@ export async function previewFrappeCallLogs(
 export async function pullFrappeCallLog(
   database: Kysely<FrappeDatabase>,
   secret: string,
-  remoteName: string
+  remoteName: string,
+  resolveActor: (remoteUser: string, baseUrl: string) => Promise<string | null> = async () => null
 ) {
   const existing = await sql<{
     id: number;
@@ -98,12 +101,13 @@ export async function pullFrappeCallLog(
   const started = call.start_time || call.creation;
   if (started && Number.isNaN(Date.parse(started)))
     throw AppError.validation("Frappe call log has an invalid date.");
+  const actor = call.owner ? await resolveActor(call.owner, credentials.settings.baseUrl) : null;
   await sql`INSERT INTO crm_call_logs
     (remote_name, direction, from_number, to_number, call_status, duration_seconds, user_email,
      started_at, created_by, created_at)
     VALUES (${call.name}, ${call.type}, ${call.from}, ${call.to}, ${call.status || "Initiated"},
       ${Math.max(0, Number(call.duration) || 0)}, ${call.type === "Incoming" ? call.receiver || null : call.caller || null},
-      ${started || sql`UTC_TIMESTAMP()`}, 'system:frappe-import', ${call.creation || sql`UTC_TIMESTAMP()`})
+      ${started || sql`UTC_TIMESTAMP()`}, ${actor || call.owner || "system:frappe-import"}, ${call.creation || sql`UTC_TIMESTAMP()`})
     ON DUPLICATE KEY UPDATE id=id`.execute(database);
   const found = await sql<{
     id: number;
@@ -115,7 +119,8 @@ export async function importFrappeCallLogs(
   database: Kysely<FrappeDatabase>,
   secret: string,
   expectedBaseUrl: string,
-  report: (progress: CallLogImportProgress) => Promise<void>
+  report: (progress: CallLogImportProgress) => Promise<void>,
+  resolveActor: (remoteUser: string, baseUrl: string) => Promise<string | null> = async () => null
 ) {
   const progress: CallLogImportProgress = {
     scanned: 0,
@@ -164,12 +169,15 @@ export async function importFrappeCallLogs(
         }
         const user = call.type === "Incoming" ? call.receiver : call.caller;
         const started = call.start_time || call.creation;
+        const actor = call.owner
+          ? await resolveActor(call.owner, credentials.settings.baseUrl)
+          : null;
         const result = await sql`INSERT INTO crm_call_logs
           (remote_name, direction, from_number, to_number, call_status, duration_seconds, user_email,
            started_at, created_by, created_at)
           VALUES (${call.name}, ${call.type}, ${call.from}, ${call.to}, ${call.status || "Initiated"},
             ${Math.max(0, Number(call.duration) || 0)}, ${user || null},
-            ${started || sql`UTC_TIMESTAMP()`}, 'system:frappe-import', ${call.creation || sql`UTC_TIMESTAMP()`})
+            ${started || sql`UTC_TIMESTAMP()`}, ${actor || call.owner || "system:frappe-import"}, ${call.creation || sql`UTC_TIMESTAMP()`})
           ON DUPLICATE KEY UPDATE id=id`.execute(database);
         if (Number(result.numAffectedRows) === 1) progress.created += 1;
         else progress.skipped += 1;

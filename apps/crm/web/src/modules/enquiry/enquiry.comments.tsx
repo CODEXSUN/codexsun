@@ -94,7 +94,12 @@ export function EnquiryComments({
                     </Button>
                   ) : null}
                   <span className="text-right">
-                    {formatCommentByline(comment.createdBy, comment.createdAt, now)}
+                    {formatCommentByline(
+                      comment.createdBy,
+                      comment.createdAt,
+                      now,
+                      comment.createdByName
+                    )}
                   </span>
                 </div>
               </div>

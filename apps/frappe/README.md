@@ -76,6 +76,21 @@ The disposable database was removed. No live Frappe records or existing tenant c
 
 Verified external connections, user mappings, imports, exports, and approved CRM integration workers.
 
+### Identity audit
+
+The Frappe Identity audit page automatically compares each saved user mapping with the connected Frappe `User` and
+`Employee` records. It reports local account state, Frappe account state and email, employee code,
+employee user ID and status, stale site mappings, duplicate employee matches, and unmapped local
+users. The audit is read-only and runs deterministic field checks in the Frappe API. It does not
+create, edit, or remove either local or Frappe users. The audit remains available after the initial
+Frappe import is locked, provided the Frappe connection is verified and the viewer has
+`frappe.connection.manage`.
+
+Frappe-imported comments and call logs resolve the remote owner through the saved identity mapping.
+When no mapping exists, the original Frappe owner is retained as the actor. Import-generated initial
+enquiry activity rows display the mapped enquiry creator; later synchronization updates remain
+attributed to the sync service.
+
 Use the public verified connection contract. Resolve tenant credentials server-side. Queue retryable transfers and preserve parent mapping, idempotency, and audit behavior.
 
 - [TASK.md](agent/TASK.md): work items and acceptance evidence.
@@ -84,8 +99,8 @@ Use the public verified connection contract. Resolve tenant credentials server-s
 
 ### Source inventory
 
-- `api/src/modules`: `activity-import`, `call-log-sync`, `connection`, `contact-import`, `crm-duty-sync`, `enquiry-sync`, `export`, `live-sync`, `user-mapping`, `user-sync`.
-- `web/src/modules`: `activity-import`, `call-log-import`, `connection`, `contact-import`, `data-source`, `enquiry-sync`, `export`, `live-sync`, `overview`, `user-mapping`, `user-sync`.
+- `api/src/modules`: `activity-import`, `call-log-sync`, `connection`, `contact-import`, `crm-duty-sync`, `enquiry-sync`, `export`, `live-sync`, `user-mapping` (including identity audit), `user-sync`.
+- `web/src/modules`: `activity-import`, `call-log-import`, `connection`, `contact-import`, `data-source`, `enquiry-sync`, `export`, `live-sync`, `overview`, `user-mapping` (including identity audit), `user-sync`.
 
 This inventory records source presence. It does not certify a deployed feature.
 

@@ -384,6 +384,8 @@ export class EnquiryRepository {
         })
         .executeTakeFirstOrThrow();
       const enquiryId = Number(result.insertId);
+      const sourceActor = source?.createdBy ?? actor;
+      const sourceTimestamp = source?.createdAt;
       if (prepared.assignedUserId) {
         await transaction
           .insertInto("crm_enquiry_alerts")
@@ -407,9 +409,9 @@ export class EnquiryRepository {
             parent_id: null,
             body: prepared.description.trim(),
             status: "active",
-            created_by: actor,
-            created_at: sql`UTC_TIMESTAMP()`,
-            updated_at: sql`UTC_TIMESTAMP()`
+            created_by: sourceActor,
+            created_at: sourceTimestamp ? utcDateTime(sourceTimestamp) : sql`UTC_TIMESTAMP()`,
+            updated_at: sourceTimestamp ? utcDateTime(sourceTimestamp) : sql`UTC_TIMESTAMP()`
           })
           .execute();
       }
@@ -418,7 +420,8 @@ export class EnquiryRepository {
         enquiryId,
         "created",
         `Enquiry #${enquiryNo} created`,
-        actor
+        sourceActor,
+        sourceTimestamp
       );
       await this.workEvent?.(
         transaction,
@@ -513,8 +516,10 @@ export class EnquiryRepository {
 
   async listComments(enquiryId: number): Promise<EnquiryComment[]> {
     const rows = await this.database
-      .selectFrom("crm_enquiry_comments")
-      .selectAll()
+      .selectFrom("crm_enquiry_comments as comment")
+      .leftJoin("app_users as author", "author.email", "comment.created_by")
+      .selectAll("comment")
+      .select("author.name as created_by_name")
       .where("enquiry_id", "=", enquiryId)
       .orderBy("created_at")
       .orderBy("id")
@@ -753,7 +758,8 @@ export async function insertEnquiryActivity(
   enquiryId: number,
   action: string,
   details: string,
-  actor: string
+  actor: string,
+  sourceCreatedAt?: string
 ) {
   await database
     .insertInto("crm_enquiry_activity")
@@ -763,8 +769,8 @@ export async function insertEnquiryActivity(
       details,
       status: "active",
       created_by: actor,
-      created_at: sql`UTC_TIMESTAMP()`,
-      updated_at: sql`UTC_TIMESTAMP()`
+      created_at: sourceCreatedAt ? utcDateTime(sourceCreatedAt) : sql`UTC_TIMESTAMP()`,
+      updated_at: sourceCreatedAt ? utcDateTime(sourceCreatedAt) : sql`UTC_TIMESTAMP()`
     })
     .execute();
 }
@@ -834,6 +840,7 @@ function toComment(row: Selectable<EnquiryCommentRow>): EnquiryComment {
     body: row.body_format === "html" ? sanitizeCommentHtml(row.body) : row.body,
     bodyFormat: row.body_format,
     createdBy: row.created_by,
+    createdByName: row.created_by_name ?? null,
     createdAt: toIso(row.created_at)
   };
 }

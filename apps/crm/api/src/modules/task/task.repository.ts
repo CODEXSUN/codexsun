@@ -384,18 +384,20 @@ export class TaskRepository {
   }
   async comments(taskId: number) {
     return this.db
-      .selectFrom("crm_task_comments")
+      .selectFrom("crm_task_comments as comment")
+      .leftJoin("app_users as author", "author.email", "comment.created_by")
       .select([
-        "id",
-        "uuid",
-        "task_id as taskId",
-        "parent_id as parentId",
-        "body",
-        "created_by as createdBy",
-        "created_at as createdAt"
+        "comment.id",
+        "comment.uuid",
+        "comment.task_id as taskId",
+        "comment.parent_id as parentId",
+        "comment.body",
+        "comment.created_by as createdBy",
+        "author.name as createdByName",
+        "comment.created_at as createdAt"
       ])
-      .where("task_id", "=", taskId)
-      .orderBy("id")
+      .where("comment.task_id", "=", taskId)
+      .orderBy("comment.id")
       .execute();
   }
   async startJob(taskId: number, actor: string) {

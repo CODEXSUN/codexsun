@@ -63,6 +63,7 @@ export type TaskComment = {
   parentId: number | null;
   body: string;
   createdBy: string;
+  createdByName?: string | null;
   createdAt: string | Date;
 };
 export type TaskJob = {

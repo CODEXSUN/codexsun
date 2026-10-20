@@ -21,9 +21,13 @@ export function formatDateTime(value: string) {
   return formatWorkspaceDateTime(value);
 }
 
-export function formatCommentByline(author: string, createdAt: string, now = Date.now()) {
-  const emailDomain = author.match(/@([^@.]+)(?:\.|$)/u)?.[1];
-  const name = emailDomain || author;
+export function formatCommentByline(
+  author: string,
+  createdAt: string,
+  now = Date.now(),
+  displayName?: string | null
+) {
+  const name = displayName?.trim() || author;
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return name;
 

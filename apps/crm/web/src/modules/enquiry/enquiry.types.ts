@@ -122,6 +122,7 @@ export type EnquiryComment = {
   body: string;
   bodyFormat: "plain" | "html";
   createdBy: string;
+  createdByName: string | null;
   createdAt: string;
 };
 

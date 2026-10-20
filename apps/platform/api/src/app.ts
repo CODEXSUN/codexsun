@@ -1240,7 +1240,15 @@ export async function createApp() {
       await ensureFrappeImportOpen(
         context.database as unknown as import("kysely").Kysely<FrappeDatabase>
       );
-      return context.database as unknown as import("kysely").Kysely<FrappeDatabase>;
+      return {
+        database: context.database as unknown as import("kysely").Kysely<FrappeDatabase>,
+        resolveActor: (remoteUser: string, baseUrl: string) =>
+          mappedLocalActorForFrappeUser(
+            context.database as unknown as import("kysely").Kysely<FrappeUserMappingDatabase>,
+            remoteUser,
+            baseUrl
+          )
+      };
     },
     frappeSettings,
     env.JWT_SECRET
@@ -1488,7 +1496,15 @@ export async function createApp() {
       getTenantDatabase(tenant) as unknown as import("kysely").Kysely<FrappeDatabase>,
       env.JWT_SECRET,
       job.payload.baseUrl,
-      report
+      report,
+      (remoteUser, baseUrl) =>
+        mappedLocalActorForFrappeUser(
+          getTenantDatabase(
+            tenant
+          ) as unknown as import("kysely").Kysely<FrappeUserMappingDatabase>,
+          remoteUser,
+          baseUrl
+        )
     );
   });
   frappeCallLogSyncModule.register(app, {
@@ -1515,7 +1531,13 @@ export async function createApp() {
       return pullFrappeCallLog(
         context.database as unknown as import("kysely").Kysely<FrappeDatabase>,
         env.JWT_SECRET,
-        remoteName
+        remoteName,
+        (remoteUser, baseUrl) =>
+          mappedLocalActorForFrappeUser(
+            context.database as unknown as import("kysely").Kysely<FrappeUserMappingDatabase>,
+            remoteUser,
+            baseUrl
+          )
       );
     },
     retry: async (request, eventId) => {
@@ -1822,9 +1844,10 @@ export async function createApp() {
         .executeTakeFirst();
       if (!enabled) throw AppError.forbidden("Frappe must be enabled for this tenant.");
       await context.authorize("frappe.connection.manage");
-      await ensureFrappeImportOpen(
-        context.database as unknown as import("kysely").Kysely<FrappeDatabase>
-      );
+      if (!request.url.split("?")[0]?.endsWith("/frappe/user-mappings/audit"))
+        await ensureFrappeImportOpen(
+          context.database as unknown as import("kysely").Kysely<FrappeDatabase>
+        );
       const users = new TenantUserService(context);
       return {
         database: context.database as unknown as import("kysely").Kysely<FrappeDatabase>,

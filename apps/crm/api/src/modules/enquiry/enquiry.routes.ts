@@ -172,6 +172,7 @@ const commentSchema = z.object({
   body: z.string(),
   bodyFormat: z.enum(["plain", "html"]),
   createdBy: z.string(),
+  createdByName: z.string().nullable(),
   createdAt: z.string()
 });
 const commentInputSchema = z.object({

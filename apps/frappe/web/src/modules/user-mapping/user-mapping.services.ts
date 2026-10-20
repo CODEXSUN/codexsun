@@ -31,9 +31,43 @@ async function request<T>(
 }
 
 export const getUserMappings = () => request<UserMappingOverview>("GET", "/frappe/user-mappings");
+export const getUserMappingAudit = () =>
+  request<UserMappingAudit>("GET", "/frappe/user-mappings/audit");
 export const getFrappeMappingUsers = () =>
   request<FrappeMappingUser[]>("GET", "/frappe/users/preview");
 export const saveUserMapping = (input: { localUserId: number; frappeUserId: string }) =>
   request<UserMapping>("PUT", "/frappe/user-mappings", saveUserMappingSchema.parse(input));
 export const removeUserMapping = (localUserId: number) =>
   request<{ localUserId: number }>("DELETE", `/frappe/user-mappings/${localUserId}`);
+
+export type UserMappingAudit = {
+  checkedAt: string;
+  totals: {
+    localUsers: number;
+    mapped: number;
+    matched: number;
+    mismatched: number;
+    unmapped: number;
+  };
+  mappings: Array<{
+    localUserId: number;
+    localName: string;
+    localEmail: string | null;
+    localStatus: string | null;
+    frappeUserId: string;
+    frappeName: string | null;
+    frappeEmail: string;
+    employeeCode: string | null;
+    employeeUserId: string | null;
+    employeeStatus: string | null;
+    connectionCurrent: boolean;
+    status: "matched" | "mismatch";
+    issues: string[];
+  }>;
+  unmapped: Array<{
+    localUserId: number;
+    localName: string;
+    localEmail: string;
+    localStatus: string;
+  }>;
+};

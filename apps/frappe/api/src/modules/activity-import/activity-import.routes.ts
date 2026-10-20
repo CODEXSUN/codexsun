@@ -1,13 +1,14 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import type { Kysely } from "kysely";
 import { z } from "zod";
 import { registerContractRoute } from "@codexsun/framework/http";
-import type { FrappeDatabase, FrappeSettings } from "../connection/index.js";
+import type { FrappeSettings } from "../connection/index.js";
 import { FrappeActivityImportService } from "./activity-import.service.js";
 
 export function registerFrappeActivityImportRoutes(
   app: FastifyInstance,
-  context: (request: FastifyRequest) => Promise<Kysely<FrappeDatabase>>,
+  context: (
+    request: FastifyRequest
+  ) => Promise<import("./activity-import.types.js").FrappeActivityImportContext>,
   defaults: FrappeSettings,
   secret: string
 ) {

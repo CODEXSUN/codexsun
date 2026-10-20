@@ -1,5 +1,6 @@
 import type { Kysely } from "kysely";
 import type { ActivitiesDatabase, ActivityFilters, ActivityPage } from "./activities.types.js";
+import { activityCreatorDisplay } from "../enquiry/index.js";
 
 export class ActivitiesRepository {
   constructor(private readonly database: Kysely<ActivitiesDatabase>) {}
@@ -30,6 +31,9 @@ export class ActivitiesRepository {
           "list.name as listIn",
           "assignee.name as allocatedTo",
           "actor_user.name as actorName",
+          "enquiry.source as enquirySource",
+          "enquiry.created_by as sourceCreatorEmail",
+          "source_creator.name as sourceCreatorName",
           "status.name as status",
           "status.code as statusCode"
         ])
@@ -51,7 +55,15 @@ export class ActivitiesRepository {
         contact: row.contactName ?? row.capturedName ?? row.capturedPhone ?? "—",
         action: row.action,
         details: row.details,
-        actor: row.actorName ?? row.actorEmail,
+        actor:
+          activityCreatorDisplay({
+            action: row.action.toLowerCase(),
+            created_by: row.actorEmail,
+            enquiry_source: row.enquirySource,
+            source_creator_email: row.sourceCreatorEmail,
+            source_creator_name: row.sourceCreatorName,
+            activity_creator_name: row.actorName
+          }) ?? row.actorEmail,
         allocatedTo: row.allocatedTo,
         listIn: row.listIn,
         status: row.status,
@@ -70,6 +82,7 @@ export class ActivitiesRepository {
       .leftJoin("crm_enquiry_lists as list", "list.id", "enquiry.list_in_id")
       .leftJoin("app_users as assignee", "assignee.id", "enquiry.assigned_user_id")
       .leftJoin("app_users as actor_user", "actor_user.email", "activity.created_by")
+      .leftJoin("app_users as source_creator", "source_creator.email", "enquiry.created_by")
       .where("activity.status", "=", "active");
     if (filters.scope === "mine" || !filters.canViewAll)
       query = query.where((eb) =>

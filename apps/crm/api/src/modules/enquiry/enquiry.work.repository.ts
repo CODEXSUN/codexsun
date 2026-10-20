@@ -234,13 +234,25 @@ export class EnquiryWorkRepository {
 
   async listActivity(enquiryId: number): Promise<EnquiryActivity[]> {
     const rows = await this.database
-      .selectFrom("crm_enquiry_activity")
-      .selectAll()
-      .where("enquiry_id", "=", enquiryId)
-      .orderBy("created_at", "desc")
-      .orderBy("id", "desc")
+      .selectFrom("crm_enquiry_activity as activity")
+      .innerJoin("crm_enquiries as enquiry", "enquiry.id", "activity.enquiry_id")
+      .leftJoin("app_users as activity_creator", "activity_creator.email", "activity.created_by")
+      .leftJoin("app_users as source_creator", "source_creator.email", "enquiry.created_by")
+      .selectAll("activity")
+      .select([
+        "enquiry.source as enquiry_source",
+        "enquiry.created_by as source_creator_email",
+        "source_creator.name as source_creator_name",
+        "activity_creator.name as activity_creator_name"
+      ])
+      .where("activity.enquiry_id", "=", enquiryId)
+      .orderBy("activity.created_at", "desc")
+      .orderBy("activity.id", "desc")
       .execute();
-    return rows.map(toActivity);
+    return rows.map((row) => ({
+      ...toActivity(row),
+      createdBy: activityCreatorDisplay(row)
+    }));
   }
 
   private async lockEnquiry(
@@ -278,6 +290,23 @@ export class EnquiryWorkRepository {
     if (await query.executeTakeFirst())
       throw AppError.conflict("A job is already running for this enquiry.");
   }
+}
+
+export function activityCreatorDisplay(record: {
+  action: string;
+  created_by: string;
+  enquiry_source: string;
+  source_creator_email: string | null;
+  source_creator_name: string | null;
+  activity_creator_name: string | null;
+}) {
+  const isImportedCreation =
+    record.enquiry_source === "frappe" &&
+    record.created_by.startsWith("system:frappe-") &&
+    (record.action === "created" || record.action === "comment-added");
+  if (isImportedCreation)
+    return record.source_creator_name ?? record.source_creator_email ?? record.created_by;
+  return record.activity_creator_name ?? record.created_by;
 }
 
 function jobTotals(startAt: string, stopAt: string | null, ratePerHour: number) {

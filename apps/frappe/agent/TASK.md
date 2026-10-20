@@ -1,5 +1,14 @@
 # Frappe tasks
 
+## Deterministic identity audit and actor attribution — 2026-10-20
+
+- [x] Add the Frappe Identity audit page and read-only API endpoint for local/Frappe User and Employee mapping fields.
+- [x] Report matched, mismatched, and unmapped users, including stale connection hashes, disabled or wrong-type Frappe users, email mismatches, inactive or duplicate Employees, and missing Employee references.
+- [x] Make imported activity and call-log creators resolve through saved mappings; preserve the remote owner if no local mapping exists.
+- [x] Correct CRM enquiry comments and task comments to show mapped user names instead of email-domain fragments.
+- [x] Keep import-generated initial enquiry events attributed to the mapped enquiry creator while later sync updates remain system-attributed.
+      Verification: 148 CRM/Frappe tests passed, including two identity-audit cases; local isolated CRM Duty, mobile customer, and Core contact-upsert E2E tests passed. API/web typechecks passed before final docs. Production/browser verification was not run.
+
 ## Sync direction audit - 2026-10-18
 
 - [x] Deploy and verify TECHMEDIA Frappe enquiry import with source serials, creation/modified dates, mapped owner/assignee, site-scoped Customer identity, comments, audit history, and live Redis/BullMQ batches. Begin with a small selected-row test, then continue the queue until all current source enquiries are accounted for. Do not touch other tenant databases.

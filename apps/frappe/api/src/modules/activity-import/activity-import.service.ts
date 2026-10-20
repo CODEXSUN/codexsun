@@ -1,7 +1,8 @@
-import { sql, type Kysely } from "kysely";
+import { sql } from "kysely";
 import { AppError } from "@codexsun/framework/errors";
 import { FrappeConnectionAccess, requestFrappe } from "../connection/index.js";
-import type { FrappeDatabase, FrappeSettings } from "../connection/index.js";
+import type { FrappeSettings } from "../connection/index.js";
+import type { FrappeActivityImportContext } from "./activity-import.types.js";
 
 type RemoteActivity = {
   name: string;
@@ -16,10 +17,14 @@ const pageSize = 50;
 
 export class FrappeActivityImportService {
   constructor(
-    private readonly database: Kysely<FrappeDatabase>,
+    private readonly context: FrappeActivityImportContext,
     private readonly secret: string,
     private readonly defaults: FrappeSettings
   ) {}
+
+  private get database() {
+    return this.context.database;
+  }
 
   async preview(page: number) {
     const settings = await this.settings();
@@ -89,10 +94,14 @@ export class FrappeActivityImportService {
       activity.creation && !Number.isNaN(Date.parse(activity.creation))
         ? new Date(activity.creation).toISOString().slice(0, 19).replace("T", " ")
         : null;
+    const actor =
+      activity.owner && this.context.resolveActor
+        ? await this.context.resolveActor(activity.owner, settings.baseUrl)
+        : null;
     const result = await sql`INSERT INTO crm_enquiry_activity
       (enquiry_id, action, details, created_by, created_at)
       VALUES (${enquiry.enquiry_id}, ${String(activity.mode || "Comment").slice(0, 80)}, ${details},
-      ${String(activity.owner || "system:frappe-import").slice(0, 191)}, ${createdAt || sql`UTC_TIMESTAMP()`})`.execute(
+      ${String(actor || activity.owner || "system:frappe-import").slice(0, 191)}, ${createdAt || sql`UTC_TIMESTAMP()`})`.execute(
       this.database
     );
     const localId = Number(result.insertId);

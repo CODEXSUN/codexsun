@@ -18,8 +18,8 @@ Keep business roles inside their owner and compose other components through publ
 
 ## Current source surfaces
 
-- `api/src/modules`: `activity-import`, `call-log-sync`, `connection`, `contact-import`, `crm-duty-sync`, `enquiry-sync`, `export`, `live-sync`, `user-mapping`, `user-sync`.
-- `web/src/modules`: `activity-import`, `call-log-import`, `connection`, `contact-import`, `data-source`, `enquiry-sync`, `export`, `live-sync`, `overview`, `user-mapping`, `user-sync`.
+- `api/src/modules`: `activity-import`, `call-log-sync`, `connection`, `contact-import`, `crm-duty-sync`, `enquiry-sync`, `export`, `live-sync`, `user-mapping` (including identity audit), `user-sync`.
+- `web/src/modules`: `activity-import`, `call-log-import`, `connection`, `contact-import`, `data-source`, `enquiry-sync`, `export`, `live-sync`, `overview`, `user-mapping` (including identity audit), `user-sync`.
 
 Source presence is not release evidence. Confirm executable behavior before describing a capability as complete.
 

@@ -39,6 +39,48 @@ export function registerFrappeUserMappingRoutes(
     handler: async ({ request }) => (await service(request)).list()
   });
   registerContractRoute(app, {
+    method: "GET",
+    url: "/frappe/user-mappings/audit",
+    schemas: {
+      response: z.object({
+        checkedAt: z.string(),
+        totals: z.object({
+          localUsers: z.number(),
+          mapped: z.number(),
+          matched: z.number(),
+          mismatched: z.number(),
+          unmapped: z.number()
+        }),
+        mappings: z.array(
+          z.object({
+            localUserId: z.number(),
+            localName: z.string(),
+            localEmail: z.string().nullable(),
+            localStatus: z.string().nullable(),
+            frappeUserId: z.string(),
+            frappeName: z.string().nullable(),
+            frappeEmail: z.string(),
+            employeeCode: z.string().nullable(),
+            employeeUserId: z.string().nullable(),
+            employeeStatus: z.string().nullable(),
+            connectionCurrent: z.boolean(),
+            status: z.enum(["matched", "mismatch"]),
+            issues: z.array(z.string())
+          })
+        ),
+        unmapped: z.array(
+          z.object({
+            localUserId: z.number(),
+            localName: z.string(),
+            localEmail: z.string(),
+            localStatus: z.string()
+          })
+        )
+      })
+    },
+    handler: async ({ request }) => (await service(request)).audit()
+  });
+  registerContractRoute(app, {
     method: "PUT",
     url: "/frappe/user-mappings",
     schemas: {

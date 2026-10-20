@@ -121,7 +121,9 @@ export type SportsclubRouteMode = "list" | "new" | "view" | "edit";
 export type SportsclubWorkspaceRouteProps = {
   mode?: SportsclubRouteMode | undefined;
   uuid?: string | undefined;
-  onNavigate?: ((options: { mode?: SportsclubRouteMode | undefined; uuid?: string | undefined }) => void) | undefined;
+  onNavigate?:
+    | ((options: { mode?: SportsclubRouteMode | undefined; uuid?: string | undefined }) => void)
+    | undefined;
 };
 
 const SportsclubOverviewWorkspace = lazyWorkspace(() =>
@@ -149,7 +151,8 @@ const SportsclubSessionWorkspace = lazyWorkspace<SportsclubWorkspaceRouteProps>(
 );
 const SportsclubAttendanceWorkspace = lazyWorkspace<SportsclubWorkspaceRouteProps>(() =>
   import("@codexsun/sportsclub-web").then(
-    (module) => module.AttendanceWorkspace as unknown as ComponentType<SportsclubWorkspaceRouteProps>
+    (module) =>
+      module.AttendanceWorkspace as unknown as ComponentType<SportsclubWorkspaceRouteProps>
   )
 );
 const SportsclubProgressWorkspace = lazyWorkspace<SportsclubWorkspaceRouteProps>(() =>
@@ -286,6 +289,11 @@ const FrappeUserSyncWorkspace = lazyWorkspace(() =>
 const FrappeUserMappingWorkspace = lazyWorkspace(() =>
   import("@codexsun/frappe-web/modules/user-mapping").then(
     (module) => module.FrappeUserMappingWorkspace
+  )
+);
+const FrappeIdentityAuditWorkspace = lazyWorkspace(() =>
+  import("@codexsun/frappe-web/modules/user-mapping").then(
+    (module) => module.FrappeIdentityAuditWorkspace
   )
 );
 const CrmReportsWorkspace = lazyWorkspace(() =>
@@ -656,6 +664,7 @@ type AppPage =
   | "frappe.connection"
   | "frappe.users"
   | "frappe.user-mapping"
+  | "frappe.identity-audit"
   | "auditor.overview"
   | "auditor.clients"
   | "tconnect.overview"
@@ -916,9 +925,7 @@ function getSportsclubRouteProps(
   pathname: string,
   onNavigate: (to: string) => void
 ): SportsclubWorkspaceRouteProps {
-  const entity = safePage.startsWith("sportsclub.")
-    ? safePage.slice("sportsclub.".length)
-    : "";
+  const entity = safePage.startsWith("sportsclub.") ? safePage.slice("sportsclub.".length) : "";
   const prefix = `/app/sportsclub/${entity}`;
   const cleanPath = pathname.replace(/\/+$/, "");
 
@@ -1096,11 +1103,14 @@ export function AppDesk() {
                                     ? pageForApp(landingApp)
                                     : page.startsWith("mail") && !switchableApps.includes("mail")
                                       ? pageForApp(landingApp)
-                                    : page.startsWith("notes") && !switchableApps.includes("notes")
+                                      : page.startsWith("notes") &&
+                                          !switchableApps.includes("notes")
                                         ? pageForApp(landingApp)
-                                      : page.startsWith("chat") && !switchableApps.includes("chat")
+                                        : page.startsWith("chat") &&
+                                            !switchableApps.includes("chat")
                                           ? pageForApp(landingApp)
-                                        : page.startsWith("crm") && !switchableApps.includes("crm")
+                                          : page.startsWith("crm") &&
+                                              !switchableApps.includes("crm")
                                             ? pageForApp(landingApp)
                                             : page.startsWith("blog") &&
                                                 !switchableApps.includes("blog")
@@ -1939,6 +1949,7 @@ export function AppDesk() {
             {safePage === "frappe.connection" ? <FrappeConnectionWorkspace /> : null}
             {safePage === "frappe.users" ? <FrappeUserSyncWorkspace /> : null}
             {safePage === "frappe.user-mapping" ? <FrappeUserMappingWorkspace /> : null}
+            {safePage === "frappe.identity-audit" ? <FrappeIdentityAuditWorkspace /> : null}
             {safePage === "auditor.clients" ? (
               <AuditorClientWorkspace
                 gateway={auditorClientGateway}
@@ -2446,6 +2457,7 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     key === "frappe.connection" ||
     key === "frappe.users" ||
     key === "frappe.user-mapping" ||
+    key === "frappe.identity-audit" ||
     key === "auditor.overview" ||
     key === "auditor.clients" ||
     key === "tconnect.overview" ||
@@ -2951,6 +2963,7 @@ function titleForPage(page: AppPage) {
     "frappe.connection": "Frappe connection",
     "frappe.users": "Frappe users",
     "frappe.user-mapping": "User mapping",
+    "frappe.identity-audit": "Identity audit",
     "auditor.overview": "Overview",
     "auditor.clients": "Clients",
     "tconnect.overview": "Business network",

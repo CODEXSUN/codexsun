@@ -1,5 +1,12 @@
 # CRM Delivery Tasks
 
+## Frappe creator attribution — 2026-10-20
+
+- [x] Display mapped app-user names for enquiry and task comments, not fragments derived from email domains.
+- [x] Use the same imported-creator attribution in the global Activities list and enquiry activity timeline.
+- [x] Preserve the Frappe source creator on initial import events; keep later sync updates attributed to the sync service.
+      Verified by focused attribution tests and `npm run test:crm-frappe` (148 unit tests and three isolated E2E tests passed).
+
 ## Admin CRM overview
 
 - [x] Show permission-scoped totals and status summaries for enquiries, tasks, calls, activities, SOPs, duties, and duty reports.
