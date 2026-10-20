@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.27
+Current version: 1.1.29
 
-Release tag: v-1.1.27
+Release tag: v-1.1.29
 
-Changelog label: v 1.1.27
+Changelog label: v 1.1.29
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,39 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.29
+
+### [v 1.1.29] 2026-10-20 8:42 am - Add CRM schedules and responsive details
+
+#### Database Changes
+
+- Database update: Yes (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.29.
+- Added CRM schedules with reminder acknowledgement, linked record actions, and contextual Enquiry, Task, Duty, and SOP entry points.
+- Routed due CRM reminders through the Platform notification menu while keeping schedule data and permissions in CRM.
+- Added Enquiry and Task date-range filters with manual `DD-MM-YYYY` input and server-side date filtering.
+- Made Enquiry and Task detail tabs fit narrow screens with icon-only controls and accessible labels.
+- Aligned optional charge details with the amount field and documented the CRM and Platform contracts.
+
+## v-1.1.28
+
+### [v 1.1.28] 2026-10-20 8:41 am - Improve Tenkasi frontend accessibility
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.28.
+- Kept the Tenkasi site release focused on static frontend content. No Sportsclub API or database behavior changed.
+- Gave the animated home page statistics stable screen reader text without invalid ARIA attributes.
+- Darkened gold text, badges, and buttons to improve contrast on light surfaces.
+- Passed Tenkasi client typecheck, lint, and production build. Mobile Lighthouse accessibility scored 100 on Home and Join in the local preview.
 
 ## v-1.1.27
 
@@ -49,6 +82,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added distinct `/en` URLs, localized navigation, legacy `?lang=` redirects, canonical and alternate language metadata, and 38 localized sitemap entries.
 - Added English page titles and descriptions, short HSTS and a restrictive HTML Content Security Policy to the Tenkasi Worker.
 - Verified the static build in a browser, language switching, client type checking and linting, and Worker route and security header tests.
+- Allowed the Cloudflare analytics beacon through the site CSP and declared the existing SVG favicon after live browser verification.
 
 ## v-1.1.25
 

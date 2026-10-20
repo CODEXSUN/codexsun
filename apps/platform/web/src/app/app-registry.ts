@@ -2,6 +2,7 @@ import {
   AlertTriangleIcon,
   ArchiveIcon,
   BadgePercentIcon,
+  BellIcon,
   BarChart3Icon,
   BoxesIcon,
   Building2Icon,
@@ -882,6 +883,22 @@ export function appMenuFor(
           onSelect: () => onSelect("crm.tasks")
         },
         {
+          title: "Scheduling",
+          isActive: activePage === "crm.schedules" || activePage === "crm.reminders",
+          items: [
+            {
+              title: "Schedules",
+              isActive: activePage === "crm.schedules",
+              onSelect: () => onSelect("crm.schedules")
+            },
+            {
+              title: "Reminders",
+              isActive: activePage === "crm.reminders",
+              onSelect: () => onSelect("crm.reminders")
+            }
+          ]
+        },
+        {
           title: "Call Logs",
           isActive: activePage === "crm.call-logs",
           onSelect: () => onSelect("crm.call-logs")
@@ -1650,6 +1667,24 @@ export function appMenuItemsFor(
         onSelect: () => onSelect("crm.tasks"),
         title: "Tasks",
         count: crmTaskCount
+      },
+      {
+        icon: BellIcon,
+        isActive: activePage === "crm.schedules" || activePage === "crm.reminders",
+        onSelect: () => onSelect("crm.schedules"),
+        title: "Scheduling",
+        items: [
+          {
+            title: "Schedules",
+            isActive: activePage === "crm.schedules",
+            onSelect: () => onSelect("crm.schedules")
+          },
+          {
+            title: "Reminders",
+            isActive: activePage === "crm.reminders",
+            onSelect: () => onSelect("crm.reminders")
+          }
+        ]
       },
       {
         icon: PhoneCallIcon,

@@ -99,8 +99,6 @@ export function TopMenu({
           <TopMenuNotifications
             notifications={notifications}
             {...(onNotificationDismiss ? { onDismiss: onNotificationDismiss } : {})}
-            user={user}
-            workspaceTitle={applicationName}
           />
           <TopMenuAppLauncher addonItems={addonItems} items={appItems} />
           <TopMenuUserMenu

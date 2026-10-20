@@ -31,3 +31,17 @@ test("visible task scope retains manager-wide access", () => {
   assert.doesNotMatch(query.sql, /`t`.`assigned_user_id` = \?/u);
   assert.doesNotMatch(query.sql, /`t`.`created_by` = \?/u);
 });
+
+test("task date ranges filter creation timestamps with an inclusive start and exclusive end", () => {
+  const query = new TaskRepository(database)
+    ["applyDateRange"](new TaskRepository(database)["query"](), {
+      fromAt: "2026-10-01T00:00:00.000Z",
+      toAt: "2026-10-02T00:00:00.000Z"
+    })
+    .select("t.id")
+    .compile();
+
+  assert.match(query.sql, /`t`.`created_at` >= \?/u);
+  assert.match(query.sql, /`t`.`created_at` < \?/u);
+  assert.deepEqual(query.parameters, ["2026-10-01 00:00:00", "2026-10-02 00:00:00"]);
+});

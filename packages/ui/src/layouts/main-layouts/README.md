@@ -42,6 +42,9 @@ from the host's list. Profile and sign-out actions use `profileHref`/`logoutHref
 or `onProfile`/`onLogout`. Search opens a command popup from the top menu or
 Ctrl/⌘ K.
 
+Top-menu notification items are supplied by the host. Items may include a selection
+callback to open their source record; dismissal is delegated to the owning application.
+
 New or updated post-auth desk shells must include all five regions. The UIUX
 gallery demonstrates the composition with its existing `AppSidebar` and live
 workspace. Existing desk layouts and `@codexsun/ui/layouts/app-layout` remain

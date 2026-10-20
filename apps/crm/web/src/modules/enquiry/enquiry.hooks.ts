@@ -48,6 +48,7 @@ export const useEnquiryPage = (options: {
   columnFilters?: EnquiryColumnFilters;
   filter: string;
   reportFilters?: EnquiryReportFilters | undefined;
+  dateRange?: { fromDate: string; toDate: string } | undefined;
 }) =>
   useQuery({
     queryKey: [
@@ -61,7 +62,8 @@ export const useEnquiryPage = (options: {
       options.contactId,
       options.columnFilters,
       options.filter,
-      options.reportFilters
+      options.reportFilters,
+      options.dateRange
     ],
     refetchInterval: 15000,
     queryFn: () => listEnquiryPage(options)

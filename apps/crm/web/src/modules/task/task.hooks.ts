@@ -8,11 +8,12 @@ export function useTasks(
   page: number,
   pageSize: number,
   filter: string,
-  columnFilters: TaskColumnFilters
+  columnFilters: TaskColumnFilters,
+  dateRange: { fromDate: string; toDate: string } = { fromDate: "", toDate: "" }
 ) {
   return useQuery({
-    queryKey: [...taskQueryKey, search, filter, columnFilters, page, pageSize],
-    queryFn: () => listTasks(search, page, pageSize, filter, columnFilters),
+    queryKey: [...taskQueryKey, search, filter, columnFilters, dateRange, page, pageSize],
+    queryFn: () => listTasks(search, page, pageSize, filter, columnFilters, dateRange),
     refetchInterval: 15000
   });
 }

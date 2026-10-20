@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   BellRing,
+  CalendarClock,
   LogIn,
   MessageSquare,
   ReceiptText,
@@ -39,6 +40,7 @@ import {
 import { EnquiryJobs } from "./enquiry.jobs";
 import { EnquiryProperties } from "./enquiry.properties";
 import { EnquiryCustomer } from "./enquiry.customer";
+import { ScheduleRecordButton, ScheduleRecordList, useRecordSchedules } from "../scheduler";
 import { createEnquiryComment, startEnquiryJob, stopEnquiryJob } from "./enquiry.services";
 import { enquiryTableText } from "./enquiry.table-text";
 import type { EnquiryLookup, EnquiryMasterLookup, EnquiryRecord } from "./enquiry.types";
@@ -53,7 +55,8 @@ type EnquiryTab =
   | "properties"
   | "closure"
   | "customer"
-  | "whatsapp";
+  | "whatsapp"
+  | "schedules";
 
 export function EnquiryShow({
   id,
@@ -84,6 +87,7 @@ export function EnquiryShow({
   const checkpoints = useWorkReports(workTarget, 1, "checkpoints");
   const charges = useWorkReports(workTarget, 1, "charges");
   const whatsApp = useWhatsAppMessages(Number(id));
+  const schedules = useRecordSchedules("enquiry", Number(id));
   const record = enquiry.data;
   const contact = contacts.find((item) => item.id === record?.contactId);
   const mobile = contact?.primaryPhone || record?.capturedPhone || null;
@@ -115,6 +119,15 @@ export function EnquiryShow({
           enquiryId={Number(id)}
           active={activeTab === "actions"}
           onWhatsApp={() => setActiveTab("whatsapp")}
+          afterWhatsApp={
+            record ? (
+              <ScheduleRecordButton
+                sourceType="enquiry"
+                sourceId={Number(record.id)}
+                sourceLabel={`Enquiry #${record.enquiryNo} · ${record.title}`}
+              />
+            ) : null
+          }
           onRequestClosure={() => setActiveTab("closure")}
           onComment={async (body, parentId, requestId) => {
             await createEnquiryComment(
@@ -198,6 +211,13 @@ export function EnquiryShow({
       label: <TabLabel icon={<Settings2 className="size-4" />} label="Properties" />,
       content: record ? (
         <div className="p-4">
+          <div className="mb-3 flex justify-end">
+            <ScheduleRecordButton
+              sourceType="enquiry"
+              sourceId={Number(record.id)}
+              sourceLabel={`Enquiry #${record.enquiryNo} · ${record.title}`}
+            />
+          </div>
           <EnquiryProperties
             record={record}
             mobile={mobile}
@@ -238,6 +258,17 @@ export function EnquiryShow({
         <TabLabel icon={<WhatsAppIcon />} label="WhatsApp" count={whatsApp.data?.length ?? 0} />
       ),
       content: <EnquiryWhatsAppWorkspace id={Number(id)} mobile={mobile} />
+    },
+    {
+      value: "schedules",
+      label: (
+        <TabLabel
+          icon={<CalendarClock className="size-4" />}
+          label="Schedules"
+          count={schedules.data?.length ?? 0}
+        />
+      ),
+      content: <ScheduleRecordList sourceType="enquiry" sourceId={Number(id)} />
     },
     {
       value: "closure",
@@ -310,7 +341,8 @@ export function EnquiryShow({
             tabs={tabs}
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as EnquiryTab)}
-            listClassName="border-b-0 bg-card px-3 shadow-none"
+            listClassName="justify-between border-b-0 bg-card px-1 shadow-none 2xl:px-2"
+            triggerClassName="px-1 py-2 2xl:px-2"
             contentClassName="mt-0 rounded-t-none bg-card pb-0 [&>*]:border-t-0 [&>*]:rounded-t-none"
           />
         </>
@@ -494,11 +526,26 @@ function SummaryDetail({
 
 function TabLabel({ icon, label, count }: { icon: ReactNode; label: string; count?: number }) {
   return (
-    <span className="inline-flex items-center gap-2">
-      {icon}
-      {label}
+    <span
+      className="inline-flex items-center gap-1 2xl:gap-1.5"
+      title={`${label}${count === undefined ? "" : ` · ${count}`}`}
+    >
+      <span aria-hidden="true" className="shrink-0">
+        {icon}
+      </span>
+      <span className="sr-only 2xl:not-sr-only">{label}</span>
       {count !== undefined ? (
-        <span className="rounded-full bg-muted px-1.5 text-xs text-foreground">{count}</span>
+        <>
+          <span
+            aria-hidden="true"
+            className="hidden rounded-full bg-muted px-1 text-xs text-foreground 2xl:inline-flex"
+          >
+            {count}
+          </span>
+          <span className="sr-only">
+            {count} {count === 1 ? "item" : "items"}
+          </span>
+        </>
       ) : null}
     </span>
   );

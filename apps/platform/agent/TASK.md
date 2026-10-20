@@ -1,5 +1,13 @@
 # Platform tasks
 
+## Main-menu CRM reminder notifications — October 20, 2026
+
+- Removed the separate CRM header bell and routed CRM due reminders into the Platform main-menu notification control.
+- Added a Platform notifications adapter that reads and acknowledges reminders through the CRM scheduler's public API; CRM remains the persisted source of truth.
+- Selecting a notification opens its linked CRM record or module. No separate notification store or external delivery channel is created.
+- Checks passed: Platform, CRM, and UI typecheck/lint; Platform and CRM module boundaries; CRM scheduler and notification-link tests (6 passed).
+- Browser/runtime E2E verification was not run.
+
 ## Sports Club multi-tenant composition & Tenkasi Sports integration — October 19, 2026
 
 - Composed `@codexsun/sportsclub-api` and `@codexsun/sportsclub-web` in Platform runtime.
@@ -391,6 +399,7 @@ Verified live Techmedia and Rainbow Application overview access. Login/session r
 ## Sportsclub multi-entity navigation, app catalog wiring, and tenant isolation evidence — October 19, 2026
 
 ### Follow-up: launcher and legacy tenant app editing
+
 - Sports Club stays opt-in per tenant. An existing tenant with `sportsclub` in its enabled module keys receives the launcher tile at `/app/sportsclub/overview`; a tenant without the key does not.
 - The Platform web app-registry stack type, validation schema, and editor options now accept `sportsclub`, so an existing registered app can be edited without a frontend validation failure.
 - Platform bootstrap seeds the Sportsclub registry row into an existing master database through the idempotent app-registry seeder. This is local source verification; no cloud seed or deployment was run.
@@ -399,10 +408,12 @@ Verified live Techmedia and Rainbow Application overview access. Login/session r
 - The older Sportsclub API compilation blocker recorded below was resolved in the preceding local build and test pass. It does not describe the current local state.
 
 ### App Catalog & Super Admin Connections Wiring
+
 - Verified global `platformAppRegistry` in both `apps/platform/api/src/modules/app-registry/app-registry.service.ts` and `apps/platform/web/src/app/app-registry.ts` includes `sportsclub` with `TrophyIcon`, `bg-orange-700` accent, and multi-tenant academy description.
 - Guaranteed resilient rendering in Super Admin `/sa/tenants -> [TENANT] -> App connections` (`tenant.apps.tsx`) and `SaAppCatalog` (`sa-app-catalog.tsx`) by merging missing entries from `platformAppRegistry` into query results, ensuring connection toggles and catalog cards appear even before asynchronous database sync.
 
 ### Default Module Keys & Tenant Isolation
+
 - Removed `sportsclub` from `defaultTenantModuleKeys` in both `apps/platform/api` and `apps/platform/web`. This ensures Sportsclub is NOT default-enabled for new or seeded tenants.
 - Executed database persistence readback across all master database tenants:
   - `TENKASISPORTS` (`id: 2`, dedicated `codexsun_sportsclub_tenkasisports` DB): `hasSportsclubInKeys: true`, `sportsclubResolvedEnabled: true`, status `active`.
@@ -410,6 +421,7 @@ Verified live Techmedia and Rainbow Application overview access. Login/session r
   - `SUKRAA` (`id: 3`, `sukraa_local_db`): `hasSportsclubInKeys: false`, `sportsclubResolvedEnabled: false` (preserved untouched).
 
 ### Sportsclub CRM-Style Desk Tone & Multi-Entity Navigation
+
 - Registered all 8 Sports Club entities plus Overview in `PlatformAppRootPage` and `AppPage`:
   1. `sportsclub.overview` ("Sports Club" / "Overview" - `LayoutDashboardIcon`)
   2. `sportsclub.members` ("Students" - `UsersIcon`)
@@ -426,6 +438,7 @@ Verified live Techmedia and Rainbow Application overview access. Login/session r
 - Duplicate heading/description prevention: Wrapped leaf views in `.sportsclub-desk-view` with CSS rules `[&_.flex-col.gap-3:has(.min-w-0)]:hidden` and `[&_.min-w-0>h1.text-2xl]:hidden` to suppress duplicate body headings, letting the shared AppDesk header own page title and actions.
 
 ### Contract Coordination with AGR-2 (Sportsclub Owner)
+
 - Platform preserves strict modular monolith boundaries: Platform owns composition, desk layout, navigation routing, and role gating. Sportsclub owns leaf CRUD and form logic.
 - Stable Form ID Contract:
   - Student enrollment / edit: `sportsclub-member-form`
@@ -437,6 +450,7 @@ Verified live Techmedia and Rainbow Application overview access. Login/session r
 - AGR-2 workspace contract: Workspaces should adopt `variant="list" title=""` on `WorkspacePage` to leverage native `WorkspaceHeaderActions` portal into `applicationHeaderTarget`.
 
 ### Quality Gates & Verification
+
 - `npm run lint -w @codexsun/platform-web`: PASSED (0 warnings, 0 errors across 304 files).
 - `npm run typecheck -w @codexsun/platform-web`: PASSED (0 errors).
 - `npm run lint -w @codexsun/platform-api`: PASSED (0 warnings, 0 errors across 286 files).
@@ -445,6 +459,7 @@ Verified live Techmedia and Rainbow Application overview access. Login/session r
 - Git diff whitespace check: `git diff --check apps/platform` returned 0 errors.
 
 ### Deployment Status & Technical Blockers for Live codexsun.com
+
 - **Deployment Status**: Not deployed to live `codexsun.com`. All changes built, tested, and reviewed LOCALLY per explicit user instruction.
 - **Repeatable Technical Blockers Identified**:
   1. **Working Tree Isolation**: Repository contains uncommitted concurrent changes across `apps/crm/`, `devkits/data-migration/`, `apps/sites/`, and `apps/billing/` that cannot be built into production images without risking regressions.

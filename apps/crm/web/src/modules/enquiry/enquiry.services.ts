@@ -29,6 +29,7 @@ export async function listEnquiryPage(options: {
   columnFilters?: EnquiryColumnFilters;
   filter: string;
   reportFilters?: EnquiryReportFilters | undefined;
+  dateRange?: { fromDate: string; toDate: string } | undefined;
 }) {
   const query = new URLSearchParams({
     scope: options.scope,
@@ -47,6 +48,7 @@ export async function listEnquiryPage(options: {
     if (value && !["filter", "fromDate", "toDate"].includes(key)) query.set(key, value);
   }
   addDateRange(query, options.reportFilters ?? {});
+  addDateRange(query, options.dateRange ?? {});
   return request<EnquiryPage>(`/crm/enquiries?${query}`);
 }
 

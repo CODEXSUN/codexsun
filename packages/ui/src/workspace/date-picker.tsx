@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import { addMonths, format, parseISO } from "date-fns";
+import { addMonths, format, isValid, parse, parseISO } from "date-fns";
 import { Button } from "../components/button";
 import { Calendar } from "../components/calendar";
+import { Input } from "../components/input";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/popover";
 import { WorkspaceLookup } from "./lookup";
 import { cn } from "../lib/utils";
@@ -22,11 +23,13 @@ const yearOptions = Array.from({ length: 51 }, (_, index) => {
 export function WorkspaceDatePicker({
   ariaLabel,
   onValueChange,
+  allowManualInput = false,
   placeholder = "Select date",
   required: _required,
   value
 }: {
   ariaLabel?: string;
+  allowManualInput?: boolean;
   onValueChange: (value: string) => void;
   placeholder?: string;
   required?: boolean;
@@ -39,27 +42,72 @@ export function WorkspaceDatePicker({
     return Number.isNaN(parsed.getTime()) ? undefined : parsed;
   }, [value]);
   const [displayMonth, setDisplayMonth] = useState(() => selectedDate ?? new Date());
+  const [manualValue, setManualValue] = useState(() =>
+    selectedDate ? format(selectedDate, "dd-MM-yyyy") : ""
+  );
 
   useEffect(() => {
-    if (selectedDate) setDisplayMonth(selectedDate);
+    if (!selectedDate) {
+      setManualValue("");
+      return;
+    }
+    setDisplayMonth(selectedDate);
+    setManualValue(format(selectedDate, "dd-MM-yyyy"));
   }, [selectedDate]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          aria-label={ariaLabel ?? placeholder}
-          type="button"
-          variant="outline"
-          className={cn(
-            "h-11 w-full justify-start rounded-md border-border/80 bg-white px-3 text-left text-sm font-normal shadow-sm hover:translate-y-0 hover:bg-white hover:shadow-sm active:translate-y-0 active:scale-100",
-            !selectedDate && "text-muted-foreground/60"
-          )}
-        >
-          <CalendarDays className="size-4 text-muted-foreground" />
-          <span>{selectedDate ? format(selectedDate, "dd MMM yyyy") : placeholder}</span>
-        </Button>
-      </PopoverTrigger>
+      {allowManualInput ? (
+        <div className="relative">
+          <Input
+            aria-label={ariaLabel ?? placeholder}
+            autoComplete="off"
+            className="h-11 rounded-md border-border/80 bg-white pr-11 text-sm shadow-sm"
+            inputMode="numeric"
+            maxLength={10}
+            placeholder="DD-MM-YYYY"
+            type="text"
+            value={manualValue}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setManualValue(nextValue);
+              const parsed = parseManualDate(nextValue);
+              if (parsed) onValueChange(format(parsed, "yyyy-MM-dd"));
+            }}
+            onBlur={() => {
+              if (manualValue && !parseManualDate(manualValue)) {
+                setManualValue(selectedDate ? format(selectedDate, "dd-MM-yyyy") : "");
+              }
+            }}
+          />
+          <PopoverTrigger asChild>
+            <Button
+              aria-label={`Open ${ariaLabel ?? placeholder} calendar`}
+              className="absolute right-1 top-1 size-9"
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <CalendarDays className="size-4 text-muted-foreground" />
+            </Button>
+          </PopoverTrigger>
+        </div>
+      ) : (
+        <PopoverTrigger asChild>
+          <Button
+            aria-label={ariaLabel ?? placeholder}
+            type="button"
+            variant="outline"
+            className={cn(
+              "h-11 w-full justify-start rounded-md border-border/80 bg-white px-3 text-left text-sm font-normal shadow-sm hover:translate-y-0 hover:bg-white hover:shadow-sm active:translate-y-0 active:scale-100",
+              !selectedDate && "text-muted-foreground/60"
+            )}
+          >
+            <CalendarDays className="size-4 text-muted-foreground" />
+            <span>{selectedDate ? format(selectedDate, "dd MMM yyyy") : placeholder}</span>
+          </Button>
+        </PopoverTrigger>
+      )}
       <PopoverContent
         align="start"
         className="z-[120] w-[21.5rem] rounded-md border-border/80 bg-popover p-3 shadow-xl"
@@ -156,10 +204,17 @@ export function WorkspaceDatePicker({
           onSelect={(date) => {
             if (!date) return;
             onValueChange(format(date, "yyyy-MM-dd"));
+            setManualValue(format(date, "dd-MM-yyyy"));
             setOpen(false);
           }}
         />
       </PopoverContent>
     </Popover>
   );
+}
+
+function parseManualDate(value: string) {
+  if (!/^\d{2}-\d{2}-\d{4}$/u.test(value)) return undefined;
+  const parsed = parse(value, "dd-MM-yyyy", new Date());
+  return isValid(parsed) && format(parsed, "dd-MM-yyyy") === value ? parsed : undefined;
 }

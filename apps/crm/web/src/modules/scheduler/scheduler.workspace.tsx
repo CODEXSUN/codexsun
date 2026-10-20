@@ -1,0 +1,331 @@
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { BellIcon, CalendarClockIcon, CircleCheckIcon, Clock3Icon, PlusIcon } from "lucide-react";
+import { Button } from "@codexsun/ui/components/button";
+import { Card } from "@codexsun/ui/components/card";
+import { Input } from "@codexsun/ui/components/input";
+import { Label } from "@codexsun/ui/components/label";
+import { toast } from "sonner";
+import {
+  acknowledgeReminder,
+  createSchedule,
+  listSchedules,
+  searchScheduleSources,
+  sourceLabels,
+  updateScheduleStatus,
+  type ScheduleRecord,
+  type ScheduleSourceType
+} from "./scheduler.services";
+
+export function SchedulerWorkspace({ view = "schedules" }: { view?: "schedules" | "reminders" }) {
+  const queryClient = useQueryClient();
+  const [sourceType, setSourceType] = useState<ScheduleSourceType>("enquiry");
+  const [sourceSearch, setSourceSearch] = useState("");
+  const [sourceId, setSourceId] = useState("");
+  const [title, setTitle] = useState("");
+  const [details, setDetails] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [reminderAt, setReminderAt] = useState("");
+  const schedules = useQuery({
+    queryKey: ["crm-schedules", view],
+    queryFn: () => listSchedules(view)
+  });
+  const sources = useQuery({
+    queryKey: ["crm-schedule-sources", sourceType, sourceSearch],
+    queryFn: () => searchScheduleSources(sourceType, sourceSearch),
+    enabled: sourceSearch.trim().length > 0
+  });
+  const refresh = async () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["crm-schedules"] }),
+      queryClient.invalidateQueries({ queryKey: ["crm-due-reminders"] })
+    ]);
+  const create = useMutation({
+    mutationFn: createSchedule,
+    onSuccess: async () => {
+      toast.success("Reminder scheduled");
+      setTitle("");
+      setDetails("");
+      setSourceId("");
+      setSourceSearch("");
+      setScheduledAt("");
+      setReminderAt("");
+      await refresh();
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Could not schedule reminder")
+  });
+  const changeStatus = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: "completed" | "cancelled" }) =>
+      updateScheduleStatus(id, status),
+    onSuccess: refresh,
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Could not update schedule")
+  });
+  const acknowledge = useMutation({
+    mutationFn: acknowledgeReminder,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["crm-schedules"] }),
+        queryClient.invalidateQueries({ queryKey: ["crm-due-reminders"] })
+      ]);
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Could not dismiss reminder")
+  });
+  const rows = schedules.data ?? [];
+  const activeCount = useMemo(
+    () => rows.filter((item) => item.status === "scheduled").length,
+    [rows]
+  );
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!title.trim() || !sourceId || !scheduledAt || !reminderAt) {
+      toast.error("Complete the title, linked record, schedule time, and reminder time.");
+      return;
+    }
+    create.mutate({
+      title: title.trim(),
+      details: details.trim(),
+      sourceType,
+      sourceId: Number(sourceId),
+      scheduledAt: new Date(scheduledAt).toISOString(),
+      reminderAt: new Date(reminderAt).toISOString()
+    });
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-5 sm:px-6">
+      <header className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-violet-200 bg-gradient-to-r from-violet-50 to-white px-5 py-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="grid size-11 place-items-center rounded-lg bg-violet-100 text-violet-700">
+            <BellIcon className="size-5" />
+          </span>
+          <div>
+            <h1 className="text-xl font-semibold text-slate-900">
+              {view === "reminders" ? "Reminders" : "Schedules"}
+            </h1>
+            <p className="text-sm text-slate-600">
+              Linked follow-ups for enquiries, tasks, calls, duties, and SOPs.
+            </p>
+          </div>
+        </div>
+        <div className="rounded-lg border bg-white px-3 py-2 text-sm text-slate-600">
+          <span className="font-semibold text-slate-900">{activeCount}</span> upcoming
+        </div>
+      </header>
+
+      {view === "schedules" && (
+        <Card className="p-5">
+          <div className="mb-4 flex items-center gap-2 font-semibold">
+            <PlusIcon className="size-4 text-violet-700" /> New schedule or reminder
+          </div>
+          <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={submit}>
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-title">Title</Label>
+              <Input
+                id="schedule-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Follow up with customer"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-source-type">Linked module</Label>
+              <select
+                id="schedule-source-type"
+                className="h-11 w-full rounded-md border bg-white px-3 text-sm"
+                value={sourceType}
+                onChange={(e) => {
+                  setSourceType(e.target.value as ScheduleSourceType);
+                  setSourceId("");
+                  setSourceSearch("");
+                }}
+              >
+                {Object.entries(sourceLabels).map(([key, label]) => (
+                  <option value={key} key={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-source">Find linked record</Label>
+              <Input
+                id="schedule-source"
+                value={sourceSearch}
+                onChange={(e) => {
+                  setSourceSearch(e.target.value);
+                  setSourceId("");
+                }}
+                placeholder={`Search ${sourceLabels[sourceType].toLowerCase()} records`}
+              />
+              {sources.data && (
+                <div className="max-h-36 overflow-auto rounded-md border bg-white shadow-sm">
+                  {sources.data.length ? (
+                    sources.data.map((source) => (
+                      <button
+                        type="button"
+                        key={source.id}
+                        className={`block w-full border-b px-3 py-2 text-left text-sm hover:bg-violet-50 ${sourceId === String(source.id) ? "bg-violet-50 text-violet-800" : ""}`}
+                        onClick={() => {
+                          setSourceId(String(source.id));
+                          setSourceSearch(source.label);
+                        }}
+                      >
+                        {source.label}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="p-3 text-sm text-slate-500">No matching records</p>
+                  )}
+                </div>
+              )}
+              {sourceId && (
+                <p className="text-xs text-emerald-700">
+                  Linked to selected {sourceLabels[sourceType].toLowerCase()}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-at">Scheduled for</Label>
+              <Input
+                id="schedule-at"
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => {
+                  setScheduledAt(e.target.value);
+                  if (!reminderAt) setReminderAt(e.target.value);
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="reminder-at">Remind me at</Label>
+              <Input
+                id="reminder-at"
+                type="datetime-local"
+                value={reminderAt}
+                onChange={(e) => setReminderAt(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5 xl:col-span-1">
+              <Label htmlFor="schedule-details">Details (optional)</Label>
+              <Input
+                id="schedule-details"
+                value={details}
+                onChange={(e) => setDetails(e.target.value)}
+                placeholder="Add context for this reminder"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="submit"
+                disabled={create.isPending || !sourceId}
+                className="bg-violet-700 hover:bg-violet-800"
+              >
+                <CalendarClockIcon className="mr-2 size-4" />
+                {create.isPending ? "Saving…" : "Save schedule"}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      <section className="space-y-3">
+        {schedules.isLoading ? (
+          <Card className="p-8 text-center text-sm text-slate-500">Loading schedules…</Card>
+        ) : schedules.isError ? (
+          <Card className="p-8 text-center text-sm text-red-600">
+            Schedules could not be loaded.
+          </Card>
+        ) : rows.length === 0 ? (
+          <Card className="p-10 text-center">
+            <BellIcon className="mx-auto mb-2 size-6 text-violet-400" />
+            <p className="font-medium">No {view === "reminders" ? "reminders" : "schedules"} yet</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Create a reminder linked to a CRM record to see it here.
+            </p>
+          </Card>
+        ) : (
+          rows.map((item) => (
+            <ScheduleCard
+              key={item.id}
+              item={item}
+              onStatus={(status) => changeStatus.mutate({ id: item.id, status })}
+              onAcknowledge={() => acknowledge.mutate(item.id)}
+            />
+          ))
+        )}
+      </section>
+    </div>
+  );
+}
+
+function ScheduleCard({
+  item,
+  onStatus,
+  onAcknowledge
+}: {
+  item: ScheduleRecord;
+  onStatus: (status: "completed" | "cancelled") => void;
+  onAcknowledge: () => void;
+}) {
+  const due = new Date(item.scheduledAt);
+  const href =
+    item.sourceType === "enquiry"
+      ? `/app/crm/enquiries/${item.sourceId}`
+      : item.sourceType === "task"
+        ? `/app/crm/tasks/${item.sourceId}`
+        : item.sourceType === "call-log"
+          ? "/app/crm/call-logs"
+          : item.sourceType === "duty"
+            ? "/app/crm/duties"
+            : "/app/crm/sops";
+  return (
+    <Card className="border-slate-200 p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-semibold text-slate-900">{item.title}</h2>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs ${item.status === "scheduled" ? "bg-violet-100 text-violet-800" : item.status === "completed" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}
+            >
+              {item.status}
+            </span>
+            {item.acknowledgedAt && (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                Reminder dismissed
+              </span>
+            )}
+          </div>
+          <a className="mt-1 inline-block text-sm text-violet-700 hover:underline" href={href}>
+            {sourceLabels[item.sourceType]} · {item.sourceLabel}
+          </a>
+          {item.details && (
+            <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{item.details}</p>
+          )}
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+            <Clock3Icon className="size-3.5" />
+            {due.toLocaleString()} · Reminder {new Date(item.reminderAt).toLocaleString()}
+          </p>
+        </div>
+        {item.status === "scheduled" && (
+          <div className="flex gap-2">
+            {!item.acknowledgedAt && (
+              <Button size="sm" variant="ghost" onClick={onAcknowledge}>
+                Dismiss reminder
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => onStatus("completed")}>
+              <CircleCheckIcon className="mr-1 size-4" />
+              Done
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onStatus("cancelled")}>
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}

@@ -71,6 +71,7 @@ import {
   dutyAssignmentModule,
   dutyReportModule,
   taskModule,
+  schedulerModule,
   CrmFrappeSyncRepository,
   crmDutySyncIdempotencyKey,
   getActiveListInForDatabase,
@@ -1324,6 +1325,42 @@ export async function createApp() {
   await sopItemModule.register(app, crmDutyContext);
   await dutyAssignmentModule.register(app, crmDutyContext);
   await dutyReportModule.register(app, crmDutyContext);
+  await schedulerModule.register(app, async (request) => {
+    const context = await tenantAccessContext(request);
+    const enabled = await context.database
+      .selectFrom("app_module_settings")
+      .select("id")
+      .where("module_key", "=", "crm")
+      .where("enabled", "=", true)
+      .where("status", "=", "active")
+      .executeTakeFirst();
+    if (!enabled) throw AppError.forbidden("CRM is not enabled for this tenant.");
+    const user = await context.database
+      .selectFrom("app_users")
+      .select("id")
+      .where("email", "=", context.actorEmail)
+      .where("status", "=", "active")
+      .executeTakeFirst();
+    if (!user) throw AppError.forbidden("An active CRM user is required.");
+    const hasPermission = async (permission: string) => {
+      try {
+        await context.authorize(permission);
+        return true;
+      } catch (error) {
+        if (!(error instanceof AppError) || error.code !== "FORBIDDEN") throw error;
+        return false;
+      }
+    };
+    return {
+      database: context.database as unknown as import("kysely").Kysely<
+        import("@codexsun/crm-api").SchedulerDatabase
+      >,
+      actorEmail: context.actorEmail,
+      actorUserId: Number(user.id),
+      authorize: context.authorize,
+      hasPermission
+    };
+  });
   await taskModule.register(app, async (request) => {
     const context = await crmAccess(request, "task", "/crm/tasks");
     const actor = await context.database

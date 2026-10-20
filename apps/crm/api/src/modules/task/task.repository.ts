@@ -63,10 +63,12 @@ export class TaskRepository {
     filter: string,
     columnFilters: TaskColumnFilters,
     contactId?: number,
-    scope: "visible" | "mine" = "visible"
+    scope: "visible" | "mine" = "visible",
+    dateRange: { fromAt?: string | undefined; toAt?: string | undefined } = {}
   ) {
     let q = this.listQuery(canViewAll, email, userId, scope);
     if (contactId !== undefined) q = q.where("t.contact_id", "=", contactId);
+    q = this.applyDateRange(q, dateRange);
     if (search)
       q = q.where((eb) =>
         eb.or([
@@ -160,6 +162,15 @@ export class TaskRepository {
     }
     return query;
   }
+  private applyDateRange(
+    query: ReturnType<TaskRepository["query"]>,
+    dateRange: { fromAt?: string | undefined; toAt?: string | undefined }
+  ) {
+    if (dateRange.fromAt) query = query.where("t.created_at", ">=", utcDateTime(dateRange.fromAt));
+    if (dateRange.toAt) query = query.where("t.created_at", "<", utcDateTime(dateRange.toAt));
+    return query;
+  }
+
   async get(id: number, canViewAll: boolean, email: string, userId: number | null) {
     let q = this.query().where("t.id", "=", id);
     if (!canViewAll) {
@@ -692,4 +703,8 @@ export class TaskRepository {
 
 function publicUuid() {
   return randomBytes(4).toString("hex");
+}
+
+function utcDateTime(value: string) {
+  return new Date(value).toISOString().slice(0, 19).replace("T", " ");
 }

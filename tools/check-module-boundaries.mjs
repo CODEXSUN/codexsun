@@ -183,6 +183,7 @@ const capabilityBackendRoles = new Map([
   ["billing-api/opening-balance", reducedBackendRoles],
   ["crm-api/enquiry", reducedBackendRoles],
   ["crm-api/task", reducedBackendRoles],
+  ["crm-api/scheduler", reducedBackendRoles],
   ["crm-api/sop", reducedBackendRoles],
   ["crm-api/sop-item", ["module", "service", "repository", "routes", "migration", "types"]],
   ["crm-api/duty-assignment", ["module", "service", "repository", "routes", "migration", "types"]],
@@ -328,6 +329,7 @@ const capabilityFrontendRoles = new Map([
     ["workspace", "list", "form", "show", "services", "hooks", "types", "schema"]
   ],
   ["crm-web/overview", ["workspace"]],
+  ["crm-web/scheduler", ["workspace", "services"]],
   ["crm-web/activities", ["workspace", "list", "services", "hooks", "types"]],
   ["crm-web/sop", ["workspace", "services"]],
   ["crm-web/duties", ["workspace", "services"]],
@@ -394,7 +396,8 @@ const declaredSynchronousModules = new Set([
   "hrms-api/designation",
   "hrms-api/employee",
   "docs-api/knowledge",
-  "sites-api/site"
+  "sites-api/site",
+  "crm-api/scheduler"
 ]);
 const missing = [];
 

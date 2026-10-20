@@ -92,3 +92,16 @@ export { recordWorkEvent } from "./modules/work-report/index.js";
 export { deliverDutyUpdate } from "./modules/duty-assignment/index.js";
 
 export { taskPermissionForRequest } from "./modules/task/index.js";
+export {
+  schedulerModule,
+  schedulerMigrationBatch,
+  migrateSchedulerModule,
+  seedSchedulerPermissions
+} from "./modules/scheduler/index.js";
+export type {
+  SchedulerContext,
+  SchedulerDatabase,
+  ScheduleRecord,
+  ScheduleSourceType,
+  ScheduleStatus
+} from "./modules/scheduler/index.js";

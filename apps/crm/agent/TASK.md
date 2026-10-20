@@ -10,6 +10,15 @@
       API and web type checks, lint, and CRM module-boundary checks passed on 18-10-2026.
       Browser verification remains open.
 
+## Scheduling and reminders
+
+- [ ] Add tenant-local schedules linked to permitted enquiries, tasks, call logs, duty assignments, and SOPs.
+- [ ] Add user-scoped schedules and due-reminder queries, acknowledgement, and completion routes.
+- [ ] Add CRM Scheduling navigation pages and a polling reminder bell in the app header.
+- [ ] Add contextual schedule buttons to enquiry/task Actions and Properties and to duties.
+- [ ] Verify schedule creation, source permissions, acknowledgement, and tenant isolation with API/database E2E.
+- [ ] Verify the reminder bell and schedule pages in an authenticated browser.
+
 ## Mobile customer upsert
 
 - [x] Show mobile number and customer name on the left, with code and contact type on the right.

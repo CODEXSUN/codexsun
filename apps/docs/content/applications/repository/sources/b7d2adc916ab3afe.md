@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/SKILLS.md`
 
-Source SHA-256 (LF line endings): `dd39b8ef2569ac3c5bab35a717820b97e8b8e46fc9f88865a7e86472417719ad`
+Source SHA-256 (LF line endings): `cbb8549c7e5e6491b3eb5e039dc7c4ffd4cd8afb61ec86bcdb3c57b17d2c549d`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -20,6 +20,8 @@ This file is component guidance. It does not install a global Codex skill or gra
 ## Domain responsibilities
 
 Local enquiries, contact activity, follow-up tasks, SOPs, duty assignments, and duty reporting across web and mobile.
+
+Scheduler owns CRM reminders and follow-up schedule records. Use typed links to source records and preserve each source module's read permissions. Platform composes due CRM reminders into its main-menu notification control; this is an in-app web surface and does not imply SMS, email, or operating-system push delivery.
 
 Core owns contact identity. Local CRM records remain authoritative for CRM operations. Imported enquiries retain source serials, timestamps, mapped user identity, comments, and source links. The explicitly approved enquiry live-sync contract posts local enquiry creates and updates to their verified Frappe links and imports remote changes. This approval does not extend to other CRM outbound transfers. Preserve assignment scope and activity history.
 

@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   BellRing,
+  CalendarClock,
   LogIn,
   MessageSquare,
   ReceiptText,
@@ -21,6 +22,7 @@ import { CrmColorLabel, CrmStatusBadge, statusRing } from "../../crm-colors";
 import { useWorkReports } from "../work-report/work-report.hooks";
 import { TaskPropertiesPanel } from "./task.properties";
 import { TaskClosurePanel, TaskJobsPanel } from "./task.tab-panels";
+import { ScheduleRecordButton, ScheduleRecordList, useRecordSchedules } from "../scheduler";
 import { useTaskOptions, taskQueryKey } from "./task.hooks";
 import {
   addTaskComment,
@@ -36,7 +38,15 @@ import {
 } from "./task.services";
 import type { TaskRecord } from "./task.types";
 
-type Tab = "actions" | "comments" | "checkpoints" | "jobs" | "charges" | "properties" | "closure";
+type Tab =
+  | "actions"
+  | "comments"
+  | "checkpoints"
+  | "jobs"
+  | "charges"
+  | "properties"
+  | "schedules"
+  | "closure";
 
 export function TaskShow({
   id,
@@ -62,6 +72,7 @@ export function TaskShow({
   const actions = useWorkReports(workTarget);
   const checkpoints = useWorkReports(workTarget, 1, "checkpoints");
   const charges = useWorkReports(workTarget, 1, "charges");
+  const schedules = useRecordSchedules("task", key);
   const comments = useQuery({
     queryKey: ["crm", "tasks", key, "comments"],
     queryFn: () => getTaskComments(key),
@@ -170,6 +181,13 @@ export function TaskShow({
         <WorkReportWorkspace
           taskId={key}
           active={tab === "actions"}
+          afterWhatsApp={
+            <ScheduleRecordButton
+              sourceType="task"
+              sourceId={key}
+              sourceLabel={`Task #${row.id} · ${row.title}`}
+            />
+          }
           onComment={
             canRespond
               ? async (body) => {
@@ -259,18 +277,38 @@ export function TaskShow({
       content: <WorkChargesWorkspace target={{ enquiryId: null, taskId: key }} />
     },
     {
+      value: "schedules",
+      label: (
+        <Label
+          icon={<CalendarClock className="size-4" />}
+          text="Schedules"
+          count={schedules.data?.length ?? 0}
+        />
+      ),
+      content: <ScheduleRecordList sourceType="task" sourceId={key} />
+    },
+    {
       value: "properties",
       label: <Label icon={<Settings2 className="size-4" />} text="Properties" />,
       content: (
-        <TaskPropertiesPanel
-          record={row}
-          options={options.data}
-          canEdit={Boolean(options.data?.capabilities.respond)}
-          loading={propertyMutation.isPending}
-          onChange={async (patch) => {
-            await propertyMutation.mutateAsync(patch);
-          }}
-        />
+        <div>
+          <div className="flex justify-end px-3 pt-3">
+            <ScheduleRecordButton
+              sourceType="task"
+              sourceId={key}
+              sourceLabel={`Task #${row.id} · ${row.title}`}
+            />
+          </div>
+          <TaskPropertiesPanel
+            record={row}
+            options={options.data}
+            canEdit={Boolean(options.data?.capabilities.respond)}
+            loading={propertyMutation.isPending}
+            onChange={async (patch) => {
+              await propertyMutation.mutateAsync(patch);
+            }}
+          />
+        </div>
       )
     },
     {
@@ -416,7 +454,8 @@ export function TaskShow({
         onValueChange={(value) => setTab(value as Tab)}
         keepMounted
         tabs={tabs}
-        listClassName="border-b-0 bg-card px-3 shadow-none"
+        listClassName="justify-between border-b-0 bg-card px-1 shadow-none 2xl:px-2"
+        triggerClassName="px-1 py-2 2xl:px-2"
         contentClassName="mt-0 rounded-t-none bg-card pb-0 [&>*]:border-t-0 [&>*]:rounded-t-none"
       />
     </WorkspacePage>
@@ -436,11 +475,26 @@ function MobileSummaryField({ label, value }: { label: string; value: ReactNode 
 
 function Label({ icon, text, count }: { icon: ReactNode; text: string; count?: number }) {
   return (
-    <span className="inline-flex items-center gap-2">
-      {icon}
-      {text}
+    <span
+      className="inline-flex items-center gap-1 2xl:gap-1.5"
+      title={`${text}${count === undefined ? "" : ` · ${count}`}`}
+    >
+      <span aria-hidden="true" className="shrink-0">
+        {icon}
+      </span>
+      <span className="sr-only 2xl:not-sr-only">{text}</span>
       {count !== undefined ? (
-        <span className="rounded-full bg-muted px-1.5 text-xs">{count}</span>
+        <>
+          <span
+            aria-hidden="true"
+            className="hidden rounded-full bg-muted px-1 text-xs 2xl:inline-flex"
+          >
+            {count}
+          </span>
+          <span className="sr-only">
+            {count} {count === 1 ? "item" : "items"}
+          </span>
+        </>
       ) : null}
     </span>
   );

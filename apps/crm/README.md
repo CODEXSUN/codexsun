@@ -19,6 +19,23 @@ The additive `crm.task.optional-contact-v4` migration adds a nullable contact ID
 Existing tasks remain unlinked. Older clients that omit contact fields preserve saved links on update.
 Run `npm run test:e2e:crm-task-contact` for optional, selected, inline-created, cleared, invalid, and unauthorized cases.
 
+## Enquiry and task list date ranges
+
+Enquiry and task lists provide a calendar date-range filter. Enquiries use the enquiry date, and tasks use their creation date.
+The range includes the full end date and combines with search, status, and column filters.
+
+## CRM schedules and reminders
+
+Schedules are local CRM records owned by the scheduler module. Each schedule links to one
+permitted enquiry, task, call log, duty assignment, or SOP. Users see and manage their own
+schedules; roles with the schedule-wide permissions can manage team schedules. The Platform
+main-menu notification control shows due and near-due CRM reminders while CRM is active. Selecting
+a reminder opens its linked record, and dismissing it acknowledges it through the CRM API. Reminder
+acknowledgement and schedule completion are recorded in the tenant CRM database. Enquiries and tasks expose a
+contextual schedule button in Actions and Properties, plus a Schedules tab with a table of linked
+reminders and completion/cancellation actions. Duties expose the same action from their list and
+assignment page.
+
 ## Enquiry contacts and closure approvals
 
 Enquiries use the same Core contact IDs as the CRM contact form.
@@ -62,8 +79,8 @@ Core owns contact identity. Local CRM records remain authoritative after an impo
 
 ### Source inventory
 
-- `api/src/modules`: `activities`, `call-log`, `closure`, `contact`, `contact-classifications`, `contact-communication`, `contact-documents`, `contact-employments`, `contact-lifecycle`, `contact-notes`, `contact-people`, `contact-person-tags`, `contact-preferences`, `contact-profiles`, `contact-relationships`, `contact-roles`, `contact-tags`, `duty-assignment`, `duty-report`, `enquiry`, `enquiry-location`, `list-in`, `priority`, `sop`, `sop-item`, `status`, `task`.
-- `web/src/modules`: `activities`, `call-log`, `closure`, `contact`, `contact-360`, `duties`, `enquiry`, `list-in`, `overview`, `priority`, `reports`, `sop`, `status`, `task`.
+- `api/src/modules`: `activities`, `call-log`, `closure`, `contact`, `contact-classifications`, `contact-communication`, `contact-documents`, `contact-employments`, `contact-lifecycle`, `contact-notes`, `contact-people`, `contact-person-tags`, `contact-preferences`, `contact-profiles`, `contact-relationships`, `contact-roles`, `contact-tags`, `duty-assignment`, `duty-report`, `enquiry`, `enquiry-location`, `list-in`, `priority`, `scheduler`, `sop`, `sop-item`, `status`, `task`.
+- `web/src/modules`: `activities`, `call-log`, `closure`, `contact`, `contact-360`, `duties`, `enquiry`, `list-in`, `overview`, `priority`, `reports`, `scheduler`, `sop`, `status`, `task`.
 - `mobile/`: `android`, `assets`, `ios`, `lib`, `linux`, `macos`, `test`, `tool`, `web`, `windows`.
 
 This inventory records source presence. It does not certify a deployed feature.

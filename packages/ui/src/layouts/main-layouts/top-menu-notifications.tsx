@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { BellIcon, XIcon } from "lucide-react";
 import { Button } from "../../components/button";
 import {
@@ -7,36 +6,28 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from "../../components/dropdown-menu";
-import type { TopMenuUser } from "./top-menu-types";
 import "./top-menu-notifications.css";
 
 export type TopMenuNotification = {
   body: string;
   id: string;
   title: string;
+  onSelect?: () => void;
 };
 
 export type TopMenuNotificationsProps = {
   notifications: TopMenuNotification[];
   onDismiss?: (id: string) => void;
-  user: TopMenuUser;
-  workspaceTitle: string;
 };
 
-export function TopMenuNotifications({
-  notifications,
-  onDismiss,
-  user,
-  workspaceTitle
-}: TopMenuNotificationsProps) {
-  const [showWelcome, setShowWelcome] = useState(true);
-  const unreadCount = notifications.length + Number(showWelcome);
+export function TopMenuNotifications({ notifications, onDismiss }: TopMenuNotificationsProps) {
+  const unreadCount = notifications.length;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications"}
+          aria-label={unreadCount ? `Notifications, ${unreadCount} active` : "Notifications"}
           className="relative size-9 rounded-full"
           size="icon"
           variant="ghost"
@@ -54,24 +45,18 @@ export function TopMenuNotifications({
           Notifications
         </DropdownMenuLabel>
         <div className="space-y-2">
-          {showWelcome ? (
-            <NotificationCard
-              body={`Hi ${user.name}, your workspace is ready.`}
-              onDismiss={() => setShowWelcome(false)}
-              title={`Welcome to ${workspaceTitle}`}
-            />
-          ) : null}
           {notifications.map((notification) => (
             <NotificationCard
               body={notification.body}
               key={notification.id}
               {...(onDismiss ? { onDismiss: () => onDismiss(notification.id) } : {})}
+              {...(notification.onSelect ? { onSelect: notification.onSelect } : {})}
               title={notification.title}
             />
           ))}
-          {!showWelcome && notifications.length === 0 ? (
+          {notifications.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-              You have no new notifications.
+              You have no notifications.
             </p>
           ) : null}
         </div>
@@ -93,16 +78,31 @@ function UnreadIndicator() {
 function NotificationCard({
   body,
   onDismiss,
+  onSelect,
   title
 }: {
   body: string;
   onDismiss?: () => void;
+  onSelect?: () => void;
   title: string;
 }) {
   return (
-    <div className="relative rounded-xl border bg-background px-3 py-3 pr-10 shadow-sm">
-      <p className="text-sm font-semibold">{title}</p>
-      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{body}</p>
+    <div className="relative flex items-start rounded-xl border bg-background shadow-sm">
+      {onSelect ? (
+        <button
+          className="min-w-0 flex-1 cursor-pointer px-3 py-3 pr-10 text-left"
+          onClick={onSelect}
+          type="button"
+        >
+          <span className="block text-sm font-semibold">{title}</span>
+          <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{body}</span>
+        </button>
+      ) : (
+        <div className="min-w-0 flex-1 px-3 py-3 pr-10">
+          <p className="text-sm font-semibold">{title}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{body}</p>
+        </div>
+      )}
       {onDismiss ? (
         <Button
           aria-label={`Dismiss ${title} notification`}

@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `42f0be00774dcdf5da132952d017314e6fffa17c2cd5faae1e44ebde472d5381`
+Source SHA-256 (LF line endings): `88227881665c04dc63be954f814c056d28b734f63a3bc51b2c672ae190b7e21a`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -49,6 +49,10 @@ This source review does not verify live database or mobile behavior.
   cross-module event history. The `task`, `sop`, `sop-item`, `duty-assignment`,
   and `duty-report` backend modules exist. Duty Assignment does not replace the
   planned general Assignment module.
+- CRM Scheduler owns follow-up schedule records linked by typed IDs to enquiries,
+  tasks, call logs, duty assignments, and SOPs. Reminders are in-app and refresh
+  while the authenticated CRM web app is open; no external notification delivery
+  is implied by this contract.
 - Source review does not prove persistence after restart or a complete mobile-to-
   server flow. Phase 0 must verify both with the running local database and app.
 
@@ -293,9 +297,5 @@ Service Request → Check Coverage and SLA → Diagnose
 - Track included cases or hours, usage, remaining coverage, expiry, suspension,
   cancellation, and renewal.
 - Define response and resolution targets with business calendars, time zones,
-  holidays, pause rules, warnings, and escalation paths.
-- Snapshot the terms applied to each Service Request. Later agreement edits must
-  not change historical commitments.
-- Recurring agreements create planned work from a versioned schedule. Each
-  generated request or work item uses an idempotency key.
+  holidays, pause rules, warnings,
 ````

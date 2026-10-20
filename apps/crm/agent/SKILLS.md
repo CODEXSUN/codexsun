@@ -10,6 +10,8 @@ This file is component guidance. It does not install a global Codex skill or gra
 
 Local enquiries, contact activity, follow-up tasks, SOPs, duty assignments, and duty reporting across web and mobile.
 
+Scheduler owns CRM reminders and follow-up schedule records. Use typed links to source records and preserve each source module's read permissions. Platform composes due CRM reminders into its main-menu notification control; this is an in-app web surface and does not imply SMS, email, or operating-system push delivery.
+
 Core owns contact identity. Local CRM records remain authoritative for CRM operations. Imported enquiries retain source serials, timestamps, mapped user identity, comments, and source links. The explicitly approved enquiry live-sync contract posts local enquiry creates and updates to their verified Frappe links and imports remote changes. This approval does not extend to other CRM outbound transfers. Preserve assignment scope and activity history.
 
 ## Implementation rules

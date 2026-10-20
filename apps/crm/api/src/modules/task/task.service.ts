@@ -34,7 +34,8 @@ export class TaskService {
     filter: string,
     columnFilters: TaskColumnFilters,
     contactId?: number,
-    scope: "visible" | "mine" = "visible"
+    scope: "visible" | "mine" = "visible",
+    dateRange: { fromAt?: string | undefined; toAt?: string | undefined } = {}
   ) {
     return this.repo.list(
       this.ctx.canViewAll,
@@ -46,7 +47,8 @@ export class TaskService {
       filter,
       columnFilters,
       contactId,
-      scope
+      scope,
+      dateRange
     );
   }
   async get(id: number) {

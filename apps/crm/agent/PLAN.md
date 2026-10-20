@@ -38,6 +38,10 @@ This source review does not verify live database or mobile behavior.
   cross-module event history. The `task`, `sop`, `sop-item`, `duty-assignment`,
   and `duty-report` backend modules exist. Duty Assignment does not replace the
   planned general Assignment module.
+- CRM Scheduler owns follow-up schedule records linked by typed IDs to enquiries,
+  tasks, call logs, duty assignments, and SOPs. Reminders are in-app and refresh
+  while the authenticated CRM web app is open; no external notification delivery
+  is implied by this contract.
 - Source review does not prove persistence after restart or a complete mobile-to-
   server flow. Phase 0 must verify both with the running local database and app.
 

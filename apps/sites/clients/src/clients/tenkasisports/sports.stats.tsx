@@ -47,8 +47,9 @@ function AnimatedStat({ stat, index, visible, isTa }: {
 
   return (
     <div className="ts-stat-item">
-      <strong aria-label={`${formatStat(stat.value, stat.value)}${stat.suffix}`}>
+      <strong>
         <span aria-hidden="true">{formatStat(value, stat.value)}{stat.suffix}</span>
+        <span className="ts-stat-sr-only">{formatStat(stat.value, stat.value)}{stat.suffix}</span>
       </strong>
       <span>{isTa ? stat.ta : stat.en}</span>
     </div>

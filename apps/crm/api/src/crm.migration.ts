@@ -33,6 +33,7 @@ import {
 import { dutyReportMigrationBatch, migrateDutyReportModule } from "./modules/duty-report/index.js";
 import { frappeSyncMigrationBatch, migrateFrappeSyncModule } from "./modules/frappe-sync/index.js";
 import { taskMigrationBatch, migrateTaskModule } from "./modules/task/index.js";
+import { schedulerMigrationBatch, migrateSchedulerModule } from "./modules/scheduler/index.js";
 
 const batches = [
   listinMigrationBatch,
@@ -49,6 +50,7 @@ const batches = [
   dutyReportMigrationBatch,
   frappeSyncMigrationBatch,
   taskMigrationBatch,
+  schedulerMigrationBatch,
   workReportMigrationBatch,
   enquiryWhatsAppMigrationBatch
 ];
@@ -92,6 +94,9 @@ export async function migrateCrmTenantDatabase(database: Kysely<EnquiryDatabase>
   );
   await migrateTaskModule(
     database as unknown as Kysely<import("./modules/task/index.js").TaskDatabase>
+  );
+  await migrateSchedulerModule(
+    database as unknown as Kysely<import("./modules/scheduler/index.js").SchedulerDatabase>
   );
   return migrateWorkReportModule(
     database as unknown as Kysely<import("./modules/work-report/index.js").WorkReportDatabase>

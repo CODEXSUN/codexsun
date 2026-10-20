@@ -1,4 +1,5 @@
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
+import { ScheduleRecordButton } from "../scheduler";
 import type { DutyAssignment } from "./duty-assignment.types";
 export function DutyAssignmentList({
   items,
@@ -43,6 +44,17 @@ export function DutyAssignmentList({
             row.original.frequency === "annually"
               ? "Yearly"
               : row.original.frequency.charAt(0).toUpperCase() + row.original.frequency.slice(1)
+        },
+        {
+          id: "schedule",
+          header: "Schedule",
+          cell: ({ row }) => (
+            <ScheduleRecordButton
+              sourceType="duty"
+              sourceId={row.original.id}
+              sourceLabel={`Duty · ${row.original.itemTitle} · ${row.original.assigneeName}`}
+            />
+          )
         }
       ]}
     />

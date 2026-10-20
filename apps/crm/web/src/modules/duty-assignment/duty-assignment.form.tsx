@@ -20,6 +20,7 @@ import {
   WorkspaceFormActions
 } from "@codexsun/ui/workspace/upsert";
 import type { SopItem } from "../sop";
+import { ScheduleRecordButton } from "../scheduler";
 import type { DutyAssignment, DutyAssignmentInput } from "./duty-assignment.services";
 export function DutyAssignmentForm({
   record,
@@ -61,7 +62,18 @@ export function DutyAssignmentForm({
     });
   }
   return (
-    <WorkspaceUpsertPage title={readOnly ? "Duty" : record ? "Edit duty" : "New duty"}>
+    <WorkspaceUpsertPage
+      title={readOnly ? "Duty" : record ? "Edit duty" : "New duty"}
+      action={
+        record ? (
+          <ScheduleRecordButton
+            sourceType="duty"
+            sourceId={record.id}
+            sourceLabel={`Duty · ${record.itemTitle} · ${record.assigneeName}`}
+          />
+        ) : undefined
+      }
+    >
       <form onSubmit={submit}>
         <WorkspaceFormSurface>
           <WorkspaceFormBody className="space-y-5">

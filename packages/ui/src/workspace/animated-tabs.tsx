@@ -59,7 +59,7 @@ export function WorkspaceAnimatedTabs({
             {tab.value === value ? (
               <motion.span
                 layoutId="workspace-tab-active-bar"
-                className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-foreground shadow-[0_1px_0_rgba(15,23,42,0.18)]"
+                className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-foreground shadow-[0_1px_0_rgba(15,23,42,0.18)] 2xl:inset-x-3"
                 transition={{ damping: 28, mass: 0.85, stiffness: 260, type: "spring" }}
               />
             ) : null}

@@ -2,7 +2,7 @@
   --ts-maroon: #781714;
   --ts-maroon-dark: #58100e;
   --ts-maroon-light: #94201c;
-  --ts-gold: #d97706;
+  --ts-gold: #b45309;
   --ts-gold-light: #f59e0b;
   --ts-gold-soft: #fef3c7;
   --ts-black: #191414;
@@ -276,7 +276,7 @@ body {
   color: #fff;
 }
 .ts-gold-btn:hover {
-  background: var(--ts-gold-light);
+  background: #92400e;
 }
 .ts-btn-outline {
   background: transparent;
@@ -469,6 +469,17 @@ body {
   padding-bottom: 32px;
 }
 .ts-stat-item strong { display: block; color: var(--ts-maroon); font-size: 25px; font-weight: 900; }
+.ts-stat-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .ts-stat-item > span { color: var(--ts-muted); font-size: 14px; font-weight: 600; }
 /* STRIP */
 .ts-strip {

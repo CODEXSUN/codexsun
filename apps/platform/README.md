@@ -15,10 +15,18 @@ Platform passes Ecommerce its verified tenant database name and tenant public st
 ### Source inventory
 
 - `api/src/modules`: `access-control`, `app-orchestration`, `app-registry`, `credential-recovery`, `database-maintenance`, `entitlement`, `industry`, `plan`, `platform-activity`, `qcafe`, `queue-manager`, `storage-manager`, `subscription`, `task-manager`, `tenant`, `tenant-domain`, `tenant-permission`, `tenant-role`, `tenant-role-permission`, `tenant-user`, `tenant-user-role`.
-- `web/src/modules`: `access-control`, `app-orchestration`, `app-registry`, `entitlement`, `industry`, `master-database`, `plan`, `plan-access`, `platform-activity`, `queue-management`, `storage-manager`, `subscription`, `task-manager`, `tenant`, `tenant-access`, `tenant-database`, `tenant-domain`, `tenant-permission`, `tenant-portal`, `tenant-role`, `tenant-role-permission`, `tenant-user`, `tenant-user-role`.
+- `web/src/modules`: `access-control`, `app-orchestration`, `app-registry`, `entitlement`, `industry`, `master-database`, `notifications`, `plan`, `plan-access`, `platform-activity`, `queue-management`, `storage-manager`, `subscription`, `task-manager`, `tenant`, `tenant-access`, `tenant-database`, `tenant-domain`, `tenant-permission`, `tenant-portal`, `tenant-role`, `tenant-role-permission`, `tenant-user`, `tenant-user-role`.
 - `windows/`: `Packaging`, `scripts`, `src`, `src-tauri`.
 
 This inventory records source presence. It does not certify a deployed feature.
+
+### Main-menu notifications
+
+Platform owns the authenticated main-menu notification surface and composes public
+notification feeds from enabled applications. The notifications web module currently
+adapts CRM scheduler reminders: selecting one opens its linked CRM record, and dismissing
+it calls the CRM acknowledgement API. Reminder records and permissions stay owned by CRM;
+Platform does not duplicate them in a second table.
 
 ### Workspace verification
 

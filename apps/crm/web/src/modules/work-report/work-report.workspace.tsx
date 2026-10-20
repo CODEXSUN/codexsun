@@ -15,6 +15,7 @@ export function WorkReportWorkspace({
   onComment,
   onJob,
   onWhatsApp,
+  afterWhatsApp,
   onRequestClosure,
   jobRunning,
   jobPending,
@@ -29,6 +30,7 @@ export function WorkReportWorkspace({
     ((body: string, parentId: number | null, requestId: string) => Promise<unknown>) | undefined;
   onJob?: (() => void) | undefined;
   onWhatsApp?: (() => void) | undefined;
+  afterWhatsApp?: React.ReactNode;
   onRequestClosure?: (() => void) | undefined;
   jobRunning?: boolean | undefined;
   jobPending?: boolean | undefined;
@@ -165,6 +167,7 @@ export function WorkReportWorkspace({
               onComment={onComment ? () => comment.mutate() : undefined}
               onJob={onJob}
               onWhatsApp={onWhatsApp}
+              afterWhatsApp={afterWhatsApp}
               onRequestClosure={onRequestClosure}
               jobRunning={jobRunning}
               jobPending={jobPending}

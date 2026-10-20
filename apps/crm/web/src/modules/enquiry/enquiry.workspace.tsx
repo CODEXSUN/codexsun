@@ -6,6 +6,7 @@ import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
+import { WorkspaceDateRangePicker } from "@codexsun/ui/workspace/date-range-picker";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
 import { EnquiryForm } from "./enquiry.form";
 import {
@@ -86,6 +87,7 @@ function EnquiryPage({
   const [search, setSearch] = useState("");
   const [showInlineFilters, setShowInlineFilters] = useState(false);
   const [columnFilters, setColumnFilters] = useState<EnquiryColumnFilters>({});
+  const [dateRange, setDateRange] = useState({ fromDate: "", toDate: "" });
   const [status, setStatus] = useState(reportFilters?.filter ?? (mobileFilter ? "all" : "active"));
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(100);
@@ -101,7 +103,8 @@ function EnquiryPage({
     ...(mobileFilter?.contactId ? { contactId: mobileFilter.contactId } : {}),
     columnFilters: deferredColumnFilters,
     filter: status,
-    reportFilters
+    reportFilters,
+    dateRange
   });
   const contacts = useEnquiryContacts(editing !== undefined || showing !== null);
   const options = useEnquiryOptions();
@@ -244,20 +247,30 @@ function EnquiryPage({
       {scope === "assigned" ? <EnquiryAttention onOpen={showRecord} /> : null}
       <WorkspaceFilters
         toolbarAction={
-          <Button
-            aria-label="Toggle column search filters"
-            aria-pressed={showInlineFilters}
-            className="h-8 min-w-8 gap-1 px-2"
-            title="Toggle column search filters"
-            type="button"
-            variant={showInlineFilters ? "default" : "outline"}
-            onClick={() => setShowInlineFilters((open) => !open)}
-          >
-            <SlidersHorizontal className="size-4" aria-hidden="true" />
-            {activeColumnFilters > 0 ? (
-              <span className="text-xs">{activeColumnFilters}</span>
-            ) : null}
-          </Button>
+          <>
+            <WorkspaceDateRangePicker
+              fromDate={dateRange.fromDate}
+              toDate={dateRange.toDate}
+              onValueChange={(value) => {
+                setDateRange(value);
+                setPage(1);
+              }}
+            />
+            <Button
+              aria-label="Toggle column search filters"
+              aria-pressed={showInlineFilters}
+              className="h-8 min-w-8 gap-1 px-2"
+              title="Toggle column search filters"
+              type="button"
+              variant={showInlineFilters ? "default" : "outline"}
+              onClick={() => setShowInlineFilters((open) => !open)}
+            >
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
+              {activeColumnFilters > 0 ? (
+                <span className="text-xs">{activeColumnFilters}</span>
+              ) : null}
+            </Button>
+          </>
         }
         columnOptions={columnOptions
           .filter(

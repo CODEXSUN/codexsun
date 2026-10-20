@@ -2,13 +2,19 @@
 
 Repository source: `apps/crm/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `42f0be00774dcdf5da132952d017314e6fffa17c2cd5faae1e44ebde472d5381`
+Source SHA-256 (LF line endings): `88227881665c04dc63be954f814c056d28b734f63a3bc51b2c672ae190b7e21a`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
 Historical notes and unchecked plans retain their original status.
 
 ```markdown
+ and escalation paths.
+- Snapshot the terms applied to each Service Request. Later agreement edits must
+  not change historical commitments.
+- Recurring agreements create planned work from a versioned schedule. Each
+  generated request or work item uses an idempotency key.
+
 ### Scheduling and Work
 
 - Track resource skills, working hours, territory, leave, capacity, service

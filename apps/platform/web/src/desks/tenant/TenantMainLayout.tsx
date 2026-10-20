@@ -19,6 +19,7 @@ import {
   StatusBar,
   TopMenu,
   type TopMenuAppItem,
+  type TopMenuNotification,
   type TopMenuSearchItem,
   type TopMenuUser
 } from "@codexsun/ui/layouts/main-layouts";
@@ -38,6 +39,8 @@ type TenantMainLayoutProps = {
   hideSidebarBrand?: boolean | undefined;
   homeHref: string;
   menuItems: SidemenuItem[];
+  notifications?: TopMenuNotification[];
+  onNotificationDismiss?: (id: string) => void;
   omitWorkspaceBreadcrumb?: boolean | undefined;
   onLogout: () => Promise<void>;
   onOpenSettings: () => void;
@@ -79,6 +82,8 @@ function TenantMainShell({
   hideSidebarBrand,
   homeHref,
   menuItems,
+  notifications = [],
+  onNotificationDismiss,
   omitWorkspaceBreadcrumb,
   onLogout,
   onOpenSettings,
@@ -119,7 +124,8 @@ function TenantMainShell({
           addonItems={addonAppItems}
           appItems={appItems}
           applicationName={workspaceName}
-          notifications={[]}
+          notifications={notifications}
+          {...(onNotificationDismiss ? { onNotificationDismiss } : {})}
           onCloseSearch={closeSearch}
           onLogout={onLogout}
           onOpenSearch={() => setSearchOpen(true)}

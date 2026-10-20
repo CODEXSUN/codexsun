@@ -1,6 +1,7 @@
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceMinimalEditor } from "@codexsun/ui/workspace/minimal-editor";
 import { RefreshCw, Send } from "lucide-react";
+import type { ReactNode } from "react";
 export function WorkReportForm({
   body,
   onChange,
@@ -9,6 +10,7 @@ export function WorkReportForm({
   onComment,
   onJob,
   onWhatsApp,
+  afterWhatsApp,
   onRequestClosure,
   jobRunning = false,
   jobPending = false,
@@ -27,6 +29,7 @@ export function WorkReportForm({
   onComment?: (() => void) | undefined;
   onJob?: (() => void) | undefined;
   onWhatsApp?: (() => void) | undefined;
+  afterWhatsApp?: ReactNode;
   onRequestClosure?: (() => void) | undefined;
   jobRunning?: boolean | undefined;
   jobPending?: boolean | undefined;
@@ -72,6 +75,7 @@ export function WorkReportForm({
             WhatsApp
           </Button>
         ) : null}
+        {afterWhatsApp}
         {onRequestClosure ? (
           <Button variant="outline" disabled={pending} onClick={onRequestClosure}>
             Request closure

@@ -17,7 +17,7 @@ export const updateTaskProperties = (
     listInId?: number | null;
     priorityId?: number;
     statusId?: number;
-      assignedUserId?: number | null;
+    assignedUserId?: number | null;
     dueDate?: string | null;
   }
 ) =>
@@ -30,27 +30,35 @@ export const listTasks = (
   page: number,
   pageSize: number,
   filter: string,
-  columnFilters: TaskColumnFilters
-) =>
-  crmRequest<{
+  columnFilters: TaskColumnFilters,
+  dateRange: { fromDate: string; toDate: string } = { fromDate: "", toDate: "" }
+) => {
+  const query = new URLSearchParams({
+    search,
+    page: String(page),
+    pageSize: String(pageSize),
+    filter,
+    title: columnFilters.title ?? "",
+    listIn: columnFilters.listIn ?? "",
+    dueDate: columnFilters.dueDate ?? "",
+    priority: columnFilters.priority ?? "",
+    creator: columnFilters.creator ?? "",
+    assignedTo: columnFilters.assignedTo ?? "",
+    status: columnFilters.status ?? ""
+  });
+  if (dateRange.fromDate) query.set("fromAt", localDateBoundary(dateRange.fromDate, 0));
+  if (dateRange.toDate) query.set("toAt", localDateBoundary(dateRange.toDate, 1));
+  return crmRequest<{
     items: TaskRecord[];
     total: number;
     statusCounts: Array<{ code: string; count: number }>;
-  }>(
-    `/crm/tasks?${new URLSearchParams({
-      search,
-      page: String(page),
-      pageSize: String(pageSize),
-      filter,
-      title: columnFilters.title ?? "",
-      listIn: columnFilters.listIn ?? "",
-      dueDate: columnFilters.dueDate ?? "",
-      priority: columnFilters.priority ?? "",
-      creator: columnFilters.creator ?? "",
-      assignedTo: columnFilters.assignedTo ?? "",
-      status: columnFilters.status ?? ""
-    }).toString()}`
-  );
+  }>(`/crm/tasks?${query}`);
+};
+
+function localDateBoundary(date: string, nextDay: number) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year!, month! - 1, day! + nextDay).toISOString();
+}
 export const getTask = (id: number) => crmRequest<TaskRecord>(`/crm/tasks/${id}`);
 export const getTaskOptions = () => crmRequest<TaskOptions>("/crm/tasks/options");
 export const createTask = (payload: TaskPayload) =>

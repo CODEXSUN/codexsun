@@ -9,6 +9,7 @@ import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
+import { WorkspaceDateRangePicker } from "@codexsun/ui/workspace/date-range-picker";
 import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
 import { taskOptionsQueryKey, taskQueryKey, useTaskOptions, useTasks } from "./task.hooks";
 import { TaskForm } from "./task.form";
@@ -54,6 +55,7 @@ export function TaskWorkspace({
     assignedTo: "",
     status: ""
   });
+  const [dateRange, setDateRange] = useState({ fromDate: "", toDate: "" });
   const [showInlineFilters, setShowInlineFilters] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
   const [page, setPage] = useState(1);
@@ -65,7 +67,14 @@ export function TaskWorkspace({
   const deferredSearch = useDeferredValue(search);
   const deferredFilters = useDeferredValue(columnFilters);
   const options = useTaskOptions();
-  const query = useTasks(deferredSearch.trim(), page, rowsPerPage, filter, deferredFilters);
+  const query = useTasks(
+    deferredSearch.trim(),
+    page,
+    rowsPerPage,
+    filter,
+    deferredFilters,
+    dateRange
+  );
   const open = (record: TaskRecord) => {
     setShowing(String(record.id));
     onOpenRecord?.(String(record.id));
@@ -171,18 +180,28 @@ export function TaskWorkspace({
     <WorkspacePage variant="list" title="" technicalName="page.crm.tasks.list">
       <WorkspaceFilters
         toolbarAction={
-          <Button
-            aria-label="Toggle column search filters"
-            aria-pressed={showInlineFilters}
-            className="h-8 min-w-8 gap-1 px-2"
-            title="Toggle column search filters"
-            type="button"
-            variant={showInlineFilters ? "default" : "outline"}
-            onClick={() => setShowInlineFilters((value) => !value)}
-          >
-            <SlidersHorizontal className="size-4" aria-hidden="true" />
-            {activeFilters ? <span className="text-xs">{activeFilters}</span> : null}
-          </Button>
+          <>
+            <WorkspaceDateRangePicker
+              fromDate={dateRange.fromDate}
+              toDate={dateRange.toDate}
+              onValueChange={(value) => {
+                setDateRange(value);
+                setPage(1);
+              }}
+            />
+            <Button
+              aria-label="Toggle column search filters"
+              aria-pressed={showInlineFilters}
+              className="h-8 min-w-8 gap-1 px-2"
+              title="Toggle column search filters"
+              type="button"
+              variant={showInlineFilters ? "default" : "outline"}
+              onClick={() => setShowInlineFilters((value) => !value)}
+            >
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
+              {activeFilters ? <span className="text-xs">{activeFilters}</span> : null}
+            </Button>
+          </>
         }
         columnOptions={columns.map((column) => ({
           ...column,
