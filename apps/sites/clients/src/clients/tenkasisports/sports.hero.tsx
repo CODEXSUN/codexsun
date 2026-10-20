@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowRight, ArrowUpRight, Shield } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { SportsLink } from "./sports.link";
 
 const slides = [
   {
@@ -118,10 +119,10 @@ export function SportsHero({ isTa }: { isTa: boolean }) {
               <h1 className="ts-hero-title">{slide.title[language]}</h1>
               <p className="ts-hero-intro">{slide.description[language]}</p>
               <div className="ts-hero-actions">
-                <a className="ts-button ts-hero-main-btn" href={slide.action.href}>
+                <SportsLink className="ts-button ts-hero-main-btn" href={slide.action.href}>
                   {slide.action[language]} <ArrowUpRight size={18} aria-hidden="true" />
-                </a>
-                <a className="ts-hero-secondary" href="/about">{isTa ? "கழகத்தைப் பற்றி" : "About the club"}</a>
+                </SportsLink>
+                <SportsLink className="ts-hero-secondary" href="/about">{isTa ? "கழகத்தைப் பற்றி" : "About the club"}</SportsLink>
               </div>
             </div>
         </div>

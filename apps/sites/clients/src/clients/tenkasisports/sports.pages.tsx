@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { sportsPortalUrl } from "./sports.links";
 import { SportsLoader } from "./sports.loader";
+import { SportsLink } from "./sports.link";
 import { headquartersAddress, officeAddress } from "./sports.locations";
 import { AlumniPage, StudentsPage } from "./sports.community";
 import { SportsBlogPages, sportsArticles } from "./sports.blogs";
@@ -391,9 +392,9 @@ function ClassesPage({ isTa }: { isTa: boolean; content: PageContent }) {
             <li>{isTa ? "இரு கைகளுக்கான சம சுழற்சி" : "Ambidextrous coordination"}</li>
             <li>{isTa ? "கள ஒழுக்க நெறிகள்" : "Arena discipline & respect"}</li>
           </ul>
-          <a className="ts-button ts-full-btn" href="/join">
+          <SportsLink className="ts-button ts-full-btn" href="/join">
             {isTa ? "சேர்க்கைக்கு விண்ணப்பிக்கவும்" : "Apply for Junior Batch"}
-          </a>
+          </SportsLink>
         </div>
 
         <div className="ts-card">
@@ -409,9 +410,9 @@ function ClassesPage({ isTa }: { isTa: boolean; content: PageContent }) {
             <li>{isTa ? "வர்ம முதலுதவி அறிமுகம்" : "Varmam safety introduction"}</li>
             <li>{isTa ? "உடல் வலிமை & சுறுசுறுப்பு" : "Endurance & stamina"}</li>
           </ul>
-          <a className="ts-button ts-full-btn" href="/join">
+          <SportsLink className="ts-button ts-full-btn" href="/join">
             {isTa ? "சேர்க்கைக்கு விண்ணப்பிக்கவும்" : "Apply for Adult Batch"}
-          </a>
+          </SportsLink>
         </div>
 
         <div className="ts-card ts-gold-card">
@@ -427,9 +428,9 @@ function ClassesPage({ isTa }: { isTa: boolean; content: PageContent }) {
             <li>{isTa ? "தீச்சிலம்பம் & அலங்கார வீச்சு" : "Fire staff demonstrations"}</li>
             <li>{isTa ? "இரட்டை வாள் வீச்சு" : "Dual sword combat mastery"}</li>
           </ul>
-          <a className="ts-button ts-full-btn" href="/join">
+          <SportsLink className="ts-button ts-full-btn" href="/join">
             {isTa ? "தகுதித் தேர்வுக்கு விண்ணப்பிக்கவும்" : "Apply for Tournament Team"}
-          </a>
+          </SportsLink>
         </div>
       </div>
 
@@ -860,9 +861,9 @@ function JoinPage({ isTa }: { isTa: boolean; content: PageContent }) {
               ? "குருகுல ஆசான் அல்லது நிர்வாகக் குழுவினர் விரைவில் உங்கள் கைபேசி எண்ணைத் தொடர்பு கொண்டு களம், நேரம் மற்றும் சரிபார்ப்பு விவரங்களை அறிவிப்பார்கள்."
               : "The academy administration or master will contact your phone number shortly to confirm batch timing, venue, and onboarding steps."}
           </p>
-          <a className="ts-button" href="/">
+          <SportsLink className="ts-button" href="/">
             {isTa ? "முகப்புப் பக்கத்திற்குத் திரும்புக" : "Return to Home"}
-          </a>
+          </SportsLink>
         </div>
       </article>
     );
@@ -1068,9 +1069,9 @@ function JoinPage({ isTa }: { isTa: boolean; content: PageContent }) {
                 ? "ஏற்கனவே சிவகலை குருகுல மாணவர் அல்லது ஆசானாக பதிவு பெற்றவர்கள் பிளாட்ஃபார்ம் கணக்கு மூலம் போர்ட்டலை அணுகலாம்."
                 : "Enrolled students and certified masters can access training logs and master feedback through the Codexsun desk."}
             </p>
-            <a href={sportsPortalUrl} className="ts-button ts-portal-link" target="_blank" rel="noreferrer">
+            <SportsLink href={sportsPortalUrl} className="ts-button ts-portal-link" target="_blank" rel="noreferrer">
               {isTa ? "போர்ட்டலைத் திறக்குக" : "Open Sportsclub Portal"} <ArrowUpRight size={18} />
-            </a>
+            </SportsLink>
           </div>
         </div>
       </div>
@@ -1443,21 +1444,21 @@ function NotFoundPage({ isTa }: { isTa: boolean }) {
             : "The page you are looking for does not exist or may have been moved."}
         </p>
         <div className="ts-nav-chips">
-          <a href="/" className="ts-button">
+          <SportsLink href="/" className="ts-button">
             {isTa ? "முகப்புக்குச் செல்க" : "Go to Home"}
-          </a>
-          <a href="/syllabus" className="ts-pill">
+          </SportsLink>
+          <SportsLink href="/syllabus" className="ts-pill">
             {isTa ? "பாடத்திட்டம்" : "Programs"} <ChevronRight size={14} />
-          </a>
-          <a href="/masters" className="ts-pill">
+          </SportsLink>
+          <SportsLink href="/masters" className="ts-pill">
             {isTa ? "ஆசான் வரலாறு" : "Masters"} <ChevronRight size={14} />
-          </a>
-          <a href="/join" className="ts-pill">
+          </SportsLink>
+          <SportsLink href="/join" className="ts-pill">
             {isTa ? "சேர்க்கை" : "Join Club"} <ChevronRight size={14} />
-          </a>
-          <a href="/contact" className="ts-pill">
+          </SportsLink>
+          <SportsLink href="/contact" className="ts-pill">
             {isTa ? "தொடர்பு" : "Contact"} <ChevronRight size={14} />
-          </a>
+          </SportsLink>
         </div>
       </div>
     </article>

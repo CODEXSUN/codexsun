@@ -12,12 +12,15 @@
   - Fail-closed tenant context validation against Platform `GET /api/platform/public/portals/tenkasisports/health`. Returns 503 `TENANT_SETUP_PENDING` if backend is unreachable or corporate ID is not `TENKASISPORTS`.
   - Same-origin POST enforcement with caller cookie stripping. Outbound requests sign HMAC headers (`x-codexsun-public-client`, `x-codexsun-client-time`, `x-codexsun-client-signature`) verified by Platform `verifiedSportsclubPortalClient`.
   - Canonical forwarding directly to `/public/sportsclub/registration` and `/public/sportsclub/enquiry`. No fallback to legacy `/student/register` (strictly returns 404 on missing routes).
+  - The Tenkasi build prerenders public page content in Tamil at its original route and in English under `/en`. Internal links, canonical tags, and sitemap alternates use the same language URL. The Worker redirects legacy `?lang=` links to these routes.
+  - Keep the published sitemap reachable at `/sitemap.xml` and listed in `robots.txt`. Search Console ownership and sitemap submission require an authenticated site owner; Worker deployment alone does not confirm indexing.
 - **Execution Gates**:
   1. Unit and worker proxy tests: `tenkasisports.worker.test.ts` (signed delivery, idempotent updates, fail-closed guards, same-origin, HMAC client headers).
   2. Platform integration tests: `sportsclub-platform.test.ts` (tenant isolation, role checks, schema validation).
   3. Static typing and linting: `@codexsun/sites-clients`, `@codexsun/sites-api`, `@codexsun/sites-web`.
   4. Module boundaries check: `node tools/check-module-boundaries.mjs sites`.
   5. Static build: `npm run build:tenkasisports -w @codexsun/sites-clients`.
+  5a. Inspect both language variants without JavaScript, hydrate both in a browser, and verify canonical, `hreflang`, sitemap, and response security headers on the live Worker.
   6. Coordinator gate: Await backend deployment on `codexsun.com` before Cloudflare Worker production deployment.
 
 ## Tirupur Connect content management — October 17, 2026

@@ -1,5 +1,6 @@
 import { ArrowUpRight, BookOpen, Users } from "lucide-react";
 import { useEffect, useState } from "react";
+import { SportsLink } from "./sports.link";
 import { sportsPortalUrl } from "./sports.links";
 
 type ShowcaseProfile = {
@@ -96,20 +97,20 @@ export function StudentsPage({ isTa }: { isTa: boolean }) {
           <BookOpen aria-hidden="true" size={28} />
           <h2>{isTa ? "பயிற்சியை அறிக" : "Explore training"}</h2>
           <p>{isTa ? "பாடத்திட்டம் மற்றும் வகுப்பு முறைகளைப் பாருங்கள்." : "Review the syllabus and class structure before joining."}</p>
-          <a href="/syllabus">{isTa ? "பாடத்திட்டம்" : "View syllabus"} <ArrowUpRight size={16} /></a>
+          <SportsLink href="/syllabus">{isTa ? "பாடத்திட்டம்" : "View syllabus"} <ArrowUpRight size={16} /></SportsLink>
         </section>
         <section className="ts-community-card">
           <Users aria-hidden="true" size={28} />
           <h2>{isTa ? "மாணவர் சேர்க்கை" : "Become a student"}</h2>
           <p>{isTa ? "புதிய மாணவர் பதிவு செய்து, உறுதிப்படுத்தலைப் பெறுங்கள்." : "Apply for training and wait for confirmation from the club."}</p>
-          <a href="/join">{isTa ? "சேர்க்கை படிவம்" : "Apply to join"} <ArrowUpRight size={16} /></a>
+          <SportsLink href="/join">{isTa ? "சேர்க்கை படிவம்" : "Apply to join"} <ArrowUpRight size={16} /></SportsLink>
         </section>
       </div>
       <ShowcaseGrid audience="students" isTa={isTa} />
       <div className="ts-community-access">
         <h2>{isTa ? "ஏற்கெனவே உறுப்பினரா?" : "Already a member?"}</h2>
         <p>{isTa ? "உங்கள் மாணவர் கணக்கைப் பயன்படுத்தி பாதுகாப்பான போர்ட்டலில் உள்நுழையுங்கள்." : "Use your student account to sign in to the secure member portal."}</p>
-        <a className="ts-button" href={sportsPortalUrl}>{isTa ? "மாணவர் போர்ட்டல்" : "Student portal"} <ArrowUpRight size={17} /></a>
+        <SportsLink className="ts-button" href={sportsPortalUrl}>{isTa ? "மாணவர் போர்ட்டல்" : "Student portal"} <ArrowUpRight size={17} /></SportsLink>
       </div>
     </article>
   );
@@ -134,12 +135,12 @@ export function AlumniPage({ isTa }: { isTa: boolean }) {
             ? "பயிற்சி அனுபவங்கள், நிகழ்வுகள் அல்லது முன்னாள் மாணவர் தொடர்புக்காக எங்களுக்குச் செய்தி அனுப்புங்கள். உண்மையான முன்னாள் மாணவர் பட்டியல் வெளியிடப்படவில்லை."
             : "Contact the club about your training history, events, or alumni connections. A real alumni directory is not published."}
         </p>
-        <a className="ts-button" href="/contact">{isTa ? "தொடர்பு கொள்ள" : "Contact the club"} <ArrowUpRight size={17} /></a>
+        <SportsLink className="ts-button" href="/contact">{isTa ? "தொடர்பு கொள்ள" : "Contact the club"} <ArrowUpRight size={17} /></SportsLink>
       </div>
       <ShowcaseGrid audience="alumni" isTa={isTa} />
-      <a className="ts-community-secondary" href="/gallery">
+      <SportsLink className="ts-community-secondary" href="/gallery">
         {isTa ? "குருகுலப் படங்களைப் பாருங்கள்" : "See moments from the Gurukulam"} <ArrowUpRight size={16} />
-      </a>
+      </SportsLink>
     </article>
   );
 }

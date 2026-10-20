@@ -2,6 +2,7 @@ import {
   deliverySnapshotSchema,
   deliveryPayloadSchema
 } from "@codexsun/sites-api/delivery-contract";
+import { englishRouteMetadata } from "./tenkasisports.seo.mjs";
 
 const encoder = new TextEncoder();
 
@@ -246,16 +247,20 @@ export const notFoundMetadata = {
 
 export function liveHtml(response, row, path = "/", statusCode = 200) {
   if (!response || !response.headers.get("content-type")?.includes("text/html")) return response;
-  const normalizedPath = routeAliases[path] || path;
+  const language = path === "/en" || path.startsWith("/en/") ? "en" : "ta";
+  const routePath = language === "en" ? (path.slice(3) || "/") : path;
+  const normalizedPath = routeAliases[routePath] || routePath;
   const isKnown = routeMetadata[normalizedPath] !== undefined;
-  const meta = isKnown ? routeMetadata[normalizedPath] : notFoundMetadata;
+  const meta = isKnown
+    ? language === "en" ? englishRouteMetadata[normalizedPath] : routeMetadata[normalizedPath]
+    : notFoundMetadata;
   const status = isKnown ? statusCode : 404;
 
   const publication = row ? JSON.parse(row.payload_json) : null;
   const title = meta.title;
   const description = meta.description;
   const serialized = publication ? JSON.stringify(publication).replaceAll("<", "\\u003c") : "";
-  const canonical = `https://tenkasisports.com${normalizedPath === "/" ? "" : normalizedPath}`;
+  const canonical = `https://tenkasisports.com${language === "en" ? "/en" : ""}${normalizedPath === "/" ? "" : normalizedPath}`;
 
   if (typeof HTMLRewriter === "undefined") {
     const result = new Response(response.body, {

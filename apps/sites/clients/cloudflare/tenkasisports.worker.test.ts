@@ -223,6 +223,24 @@ test("tenkasisports worker redirects www to canonical apex domain", async () => 
   }
 });
 
+test("tenkasisports routes English pages and legacy language URLs to distinct canonical paths", async () => {
+  const env = environment();
+  try {
+    const cases = [
+      ["/about?lang=en", "https://tenkasisports.com/en/about"],
+      ["/en/about?lang=ta", "https://tenkasisports.com/about"],
+      ["/en/programs", "https://tenkasisports.com/en/syllabus"]
+    ];
+    for (const [path, target] of cases) {
+      const response = await worker.fetch(new Request(`https://tenkasisports.com${path}`), env);
+      assert.equal(response.status, 308);
+      assert.equal(response.headers.get("Location"), target);
+    }
+  } finally {
+    env.CODEXSUN_TENKASISPORTS_CONTENT.db.close();
+  }
+});
+
 test("tenkasisports caches versioned assets while keeping page HTML fresh", async () => {
   const env = {
     ...environment(),
@@ -243,6 +261,8 @@ test("tenkasisports caches versioned assets while keeping page HTML fresh", asyn
     assert.equal(image.headers.get("Cache-Control"), "public, max-age=86400, stale-while-revalidate=604800");
     const page = await worker.fetch(new Request("https://tenkasisports.com/about"), env);
     assert.equal(page.headers.get("Cache-Control"), "no-store");
+    assert.equal(page.headers.get("Strict-Transport-Security"), "max-age=86400");
+    assert.match(page.headers.get("Content-Security-Policy") ?? "", /script-src 'self'/);
   } finally {
     env.CODEXSUN_TENKASISPORTS_CONTENT.db.close();
   }

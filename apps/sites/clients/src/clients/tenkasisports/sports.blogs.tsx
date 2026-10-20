@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { SportsLink } from "./sports.link";
 
 interface SportsArticle {
   slug: string;
@@ -120,9 +121,9 @@ export function SportsBlogPreview({ isTa }: { isTa: boolean }) {
           <span className="ts-eyebrow">05 / {isTa ? "குருகுலக் குறிப்புகள்" : "From the Gurukulam"}</span>
           <h2>{isTa ? "கலையையும் பயிற்சியையும் அறிக" : "Stories from the training ground"}</h2>
         </div>
-        <a className="ts-text-link" href="/blogs">
+        <SportsLink className="ts-text-link" href="/blogs">
           {isTa ? "அனைத்து கட்டுரைகள்" : "View all articles"} <ArrowUpRight size={18} />
-        </a>
+        </SportsLink>
       </div>
       <div className="ts-blog-grid">
         {sportsArticles.map((article) => <SportsBlogCard key={article.slug} article={article} isTa={isTa} />)}
@@ -153,7 +154,7 @@ export function SportsBlogPages({ path, isTa }: { path: string; isTa: boolean })
   if (!article) return null;
   return (
     <article className="ts-page ts-wrap ts-blog-article">
-      <a className="ts-blog-back" href="/blogs"><ArrowLeft size={17} /> {isTa ? "கட்டுரைகள்" : "All articles"}</a>
+      <SportsLink className="ts-blog-back" href="/blogs"><ArrowLeft size={17} /> {isTa ? "கட்டுரைகள்" : "All articles"}</SportsLink>
       <div className="ts-page-header">
         <span className="ts-badge">{isTa ? article.categoryTa : article.categoryEn}</span>
         <h1>{isTa ? article.titleTa : article.titleEn}</h1>
@@ -162,9 +163,9 @@ export function SportsBlogPages({ path, isTa }: { path: string; isTa: boolean })
       <img className="ts-blog-hero-image" src={article.image} alt={article.imageAlt} width={1100} height={570} decoding="async" />
       <div className="ts-blog-body">
         {(isTa ? article.bodyTa : article.bodyEn).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-        <a className="ts-text-link" href="/gallery">
+        <SportsLink className="ts-text-link" href="/gallery">
           {isTa ? "படத்தொகுப்பைக் காண்க" : "Explore the gallery"} <ArrowUpRight size={17} />
-        </a>
+        </SportsLink>
       </div>
     </article>
   );
@@ -172,7 +173,7 @@ export function SportsBlogPages({ path, isTa }: { path: string; isTa: boolean })
 
 function SportsBlogCard({ article, isTa }: { article: SportsArticle; isTa: boolean }) {
   return (
-    <a className="ts-blog-card" href={`/blogs/${article.slug}`}>
+    <SportsLink className="ts-blog-card" href={`/blogs/${article.slug}`}>
       <img src={article.image} alt="" loading="lazy" decoding="async" width={420} height={230} />
       <span className="ts-blog-card-content">
         <span className="ts-blog-category">{isTa ? article.categoryTa : article.categoryEn}</span>
@@ -180,6 +181,6 @@ function SportsBlogCard({ article, isTa }: { article: SportsArticle; isTa: boole
         <span className="ts-blog-summary">{isTa ? article.summaryTa : article.summaryEn}</span>
         <span className="ts-blog-read">{isTa ? "மேலும் படிக்க" : "Read article"} <ArrowUpRight size={16} /></span>
       </span>
-    </a>
+    </SportsLink>
   );
 }

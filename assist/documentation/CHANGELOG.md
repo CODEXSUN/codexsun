@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.25
+Current version: 1.1.26
 
-Release tag: v-1.1.25
+Release tag: v-1.1.26
 
-Changelog label: v 1.1.25
+Changelog label: v 1.1.26
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,22 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.26
+
+### [v 1.1.26] 2026-10-20 6:42 am - Improve Tenkasi search visibility
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.26.
+- Prerendered full Tamil and English HTML for all 19 Tenkasi Sports routes so headings, page copy, and internal links are present before JavaScript runs.
+- Added distinct `/en` URLs, localized navigation, legacy `?lang=` redirects, canonical and alternate language metadata, and 38 localized sitemap entries.
+- Added English page titles and descriptions, short HSTS and a restrictive HTML Content Security Policy to the Tenkasi Worker.
+- Verified the static build in a browser, language switching, client type checking and linting, and Worker route and security header tests.
 
 ## v-1.1.25
 

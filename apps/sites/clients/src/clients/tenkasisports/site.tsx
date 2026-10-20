@@ -1,4 +1,5 @@
-import { lazy, Suspense, useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect, type ComponentType } from "react";
+import type { PageContent } from "@codexsun/sites-api/page-contract";
 import {
   ArrowUpRight,
   Menu,
@@ -19,6 +20,7 @@ import { SportsBlogPreview, sportsArticles } from "./sports.blogs";
 import { sportsPortalUrl } from "./sports.links";
 import { headquartersAddress, officeAddress } from "./sports.locations";
 import { SportsLoader } from "./sports.loader";
+import { SportsLanguageProvider, SportsLink, sportsLocalizedHref } from "./sports.link";
 import "./sports.css";
 
 const SportsPages = lazy(() => import("./sports.pages").then((module) => ({ default: module.SportsPages })));
@@ -32,19 +34,18 @@ const fallback = initialSitePage({
 const siteDescription =
   "தென்காசி மாவட்ட விளையாட்டுக் கழகம் · தாயகம் சிவகலை குருகுலம். ஆசான் தி. வீரபாண்டியன் வழிகாட்டலில் சிலம்பம், வர்மக்கலை மற்றும் தற்காப்புப் பயிற்சி.";
 
-export function TenkasiSportsSite() {
+type PageRenderer = ComponentType<{ path: string; content: PageContent; lang: "ta" | "en" }>;
+
+export function TenkasiSportsSite({ prerenderPath, prerenderLanguage, prerenderPages }: {
+  prerenderPath?: string;
+  prerenderLanguage?: "ta" | "en";
+  prerenderPages?: PageRenderer;
+} = {}) {
   const { content } = useSitePublication("tenkasisports", fallback);
+  const requestPath = prerenderPath ?? sitePathname();
   const [open, setOpen] = useState(false);
-  const [lang, setLang] = useState<"ta" | "en">(() => {
-    if (typeof window === "undefined") return "ta";
-    try {
-      const queryLanguage = new URLSearchParams(window.location.search).get("lang");
-      if (queryLanguage === "en" || queryLanguage === "ta") return queryLanguage;
-      return window.sessionStorage.getItem("tenkasisports-language") === "en" ? "en" : "ta";
-    } catch {
-      return "ta";
-    }
-  });
+  const lang = prerenderLanguage ??
+    (requestPath === "/en" || requestPath.startsWith("/en/") ? "en" : "ta");
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -55,8 +56,10 @@ export function TenkasiSportsSite() {
     }
   }, [lang]);
 
-  const path = sitePathname().replace(/\/$/, "") || "/";
+  const path = (requestPath === "/en" ? "/" : requestPath.replace(/^\/en(?=\/)/, ""))
+    .replace(/\/$/, "") || "/";
   const isTa = lang === "ta";
+  const PagesComponent = prerenderPages ?? SportsPages;
   const article = sportsArticles.find((item) => path === `/blogs/${item.slug}`);
 
   const title =
@@ -88,39 +91,43 @@ export function TenkasiSportsSite() {
   ];
 
   return (
+    <SportsLanguageProvider language={lang}>
     <div className="ts-site">
-      <a className="ts-skip" href="#main">
+      <SportsLink className="ts-skip" href="#main">
         {isTa ? "முக்கிய பகுதிக்குச் செல்க (Skip to content)" : "Skip to main content"}
-      </a>
+      </SportsLink>
 
       <div className="ts-topline">
         <div className="ts-wrap ts-topline-inner">
           <div className="ts-topline-phone">
             <span className="ts-topline-call-label">Call us</span>
-            <a href="tel:+919843930300" aria-label="Call us at 9843930300">9843930300</a>
+            <SportsLink href="tel:+919843930300" aria-label="Call us at 9843930300">9843930300</SportsLink>
           </div>
           <div className="ts-topline-actions">
             <button
               type="button"
               className="ts-lang-toggle"
-              onClick={() => setLang(isTa ? "en" : "ta")}
+              onClick={() => {
+                const next = isTa ? "en" : "ta";
+                window.location.assign(sportsLocalizedHref(path, next));
+              }}
               aria-label={isTa ? "Switch to English" : "தமிழுக்கு மாற்றவும்"}
             >
               <Globe size={17} aria-hidden="true" />
               <span>{isTa ? "English" : "தமிழ்"}</span>
             </button>
-            <a href={sportsPortalUrl} className="ts-portal-link" target="_blank" rel="noreferrer" aria-label={isTa ? "உறுப்பினர் போர்ட்டல்" : "Member Portal"}>
+            <SportsLink href={sportsPortalUrl} className="ts-portal-link" target="_blank" rel="noreferrer" aria-label={isTa ? "உறுப்பினர் போர்ட்டல்" : "Member Portal"}>
               <UserRound size={17} className="ts-portal-icon" aria-hidden="true" />
               <span>{isTa ? "உறுப்பினர் போர்ட்டல்" : "Member Portal"}</span>
               <ArrowUpRight size={14} className="ts-portal-arrow" aria-hidden="true" />
-            </a>
+            </SportsLink>
           </div>
         </div>
       </div>
 
       <header className="ts-header">
         <div className="ts-header-inner ts-wrap">
-          <a className="ts-brand" href="/" aria-label="Tenkasi District Sports Club Home">
+          <SportsLink className="ts-brand" href="/" aria-label="Tenkasi District Sports Club Home">
             <img
               src="/club-logo-128.webp"
               alt="Tenkasi District Sports Club logo"
@@ -130,7 +137,7 @@ export function TenkasiSportsSite() {
               height={52}
             />
             <span className="ts-brand-title">{isTa ? "தென்காசி மாவட்ட விளையாட்டுக் கழகம்" : "Tenkasi District Sports Club"}</span>
-          </a>
+          </SportsLink>
 
         <nav
           className={open ? "ts-nav ts-open" : "ts-nav"}
@@ -138,29 +145,29 @@ export function TenkasiSportsSite() {
           id="ts-main-navigation"
         >
           {navigation.map(([href, label]) => (
-            <a
+            <SportsLink
               key={href}
               href={href}
               aria-current={path === href ? "page" : undefined}
               onClick={() => setOpen(false)}
             >
               {label}
-            </a>
+            </SportsLink>
           ))}
-          <a
+          <SportsLink
             className="ts-mobile-join"
             href="/join"
             onClick={() => setOpen(false)}
           >
             {isTa ? "பயிற்சியில் இணையுங்கள்" : "Join Training"}
-          </a>
+          </SportsLink>
         </nav>
 
         <div className="ts-header-right">
-          <a className="ts-button ts-header-btn" href="/join">
+          <SportsLink className="ts-button ts-header-btn" href="/join">
             {isTa ? "பயிற்சியில் இணையுங்கள்" : "Join Training"}
             <ArrowUpRight size={16} />
-          </a>
+          </SportsLink>
           <button
             className="ts-menu"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -180,7 +187,7 @@ export function TenkasiSportsSite() {
           <HomeView isTa={isTa} />
         ) : (
           <Suspense fallback={<div className="ts-page ts-page-loading ts-wrap"><SportsLoader /></div>}>
-            <SportsPages path={path} content={content} lang={lang} />
+            <PagesComponent path={path} content={content} lang={lang} />
           </Suspense>
         )}
       </main>
@@ -222,9 +229,9 @@ export function TenkasiSportsSite() {
             <div className="ts-footer-cta-box">
               <h3>{isTa ? "உங்கள் தற்காப்புப் பயணம் தொடங்கட்டும்" : "Begin Your Martial Journey"}</h3>
               <p>{isTa ? "தென்காசி மண்ணின் வீரக்கலையைக் கற்றுத் தேருங்கள்." : "Master traditional Tamil self-defense with certified guidance."}</p>
-              <a className="ts-button ts-gold-btn" href="/join">
+              <SportsLink className="ts-button ts-gold-btn" href="/join">
                 {isTa ? "மாணவர் சேர்க்கை" : "Enroll for Classes"} <ArrowUpRight size={18} />
-              </a>
+              </SportsLink>
             </div>
           </div>
 
@@ -232,30 +239,30 @@ export function TenkasiSportsSite() {
             <div>
               <h4>{isTa ? "வழிகாட்டி" : "Navigation"}</h4>
               <ul>
-                <li><a href="/about">{isTa ? "குருகுல மரபு" : "About Gurukulam"}</a></li>
-                <li><a href="/syllabus">{isTa ? "பாடத்திட்டம்" : "Syllabus (Levels 1-3)"}</a></li>
-                <li><a href="/classes">{isTa ? "பயிற்சிப் பிரிவுகள்" : "Classes & Batches"}</a></li>
-                <li><a href="/masters">{isTa ? "ஆசான் வரலாறு" : "Chief Master & Gurus"}</a></li>
+                <li><SportsLink href="/about">{isTa ? "குருகுல மரபு" : "About Gurukulam"}</SportsLink></li>
+                <li><SportsLink href="/syllabus">{isTa ? "பாடத்திட்டம்" : "Syllabus (Levels 1-3)"}</SportsLink></li>
+                <li><SportsLink href="/classes">{isTa ? "பயிற்சிப் பிரிவுகள்" : "Classes & Batches"}</SportsLink></li>
+                <li><SportsLink href="/masters">{isTa ? "ஆசான் வரலாறு" : "Chief Master & Gurus"}</SportsLink></li>
               </ul>
             </div>
             <div>
               <h4>{isTa ? "கள நிகழ்வுகள்" : "Activities"}</h4>
               <ul>
-                <li><a href="/events">{isTa ? "போட்டிகளும் நிகழ்வுகளும்" : "Events & Competitions"}</a></li>
-                <li><a href="/gallery">{isTa ? "களப் படத்தொகுப்பு" : "Photo Gallery"}</a></li>
-                <li><a href="/blogs">{isTa ? "பயிற்சிக் கட்டுரைகள்" : "Training Articles"}</a></li>
-                <li><a href="/join">{isTa ? "மாணவர் சேர்க்கை 2026" : "Admissions 2026"}</a></li>
-                <li><a href="/contact">{isTa ? "தொடர்பு & முகவரி" : "Contact & Grounds"}</a></li>
-                <li><a href="/students">{isTa ? "மாணவர்கள்" : "Students"}</a></li>
-                <li><a href="/alumni">{isTa ? "முன்னாள் மாணவர்கள்" : "Alumni"}</a></li>
+                <li><SportsLink href="/events">{isTa ? "போட்டிகளும் நிகழ்வுகளும்" : "Events & Competitions"}</SportsLink></li>
+                <li><SportsLink href="/gallery">{isTa ? "களப் படத்தொகுப்பு" : "Photo Gallery"}</SportsLink></li>
+                <li><SportsLink href="/blogs">{isTa ? "பயிற்சிக் கட்டுரைகள்" : "Training Articles"}</SportsLink></li>
+                <li><SportsLink href="/join">{isTa ? "மாணவர் சேர்க்கை 2026" : "Admissions 2026"}</SportsLink></li>
+                <li><SportsLink href="/contact">{isTa ? "தொடர்பு & முகவரி" : "Contact & Grounds"}</SportsLink></li>
+                <li><SportsLink href="/students">{isTa ? "மாணவர்கள்" : "Students"}</SportsLink></li>
+                <li><SportsLink href="/alumni">{isTa ? "முன்னாள் மாணவர்கள்" : "Alumni"}</SportsLink></li>
               </ul>
             </div>
             <div>
               <h4>{isTa ? "நெறிமுறைகள் & போர்ட்டல்" : "Policy & Access"}</h4>
               <ul>
-                <li><a href="/privacy">{isTa ? "தனியுரிமைக் கொள்கை" : "Privacy Policy"}</a></li>
-                <li><a href="/terms">{isTa ? "கள நெறிமுறைகள்" : "Arena Code of Conduct"}</a></li>
-                <li><a href={sportsPortalUrl} target="_blank" rel="noreferrer">{isTa ? "உறுப்பினர் போர்ட்டல்" : "Platform Member Portal"}</a></li>
+                <li><SportsLink href="/privacy">{isTa ? "தனியுரிமைக் கொள்கை" : "Privacy Policy"}</SportsLink></li>
+                <li><SportsLink href="/terms">{isTa ? "கள நெறிமுறைகள்" : "Arena Code of Conduct"}</SportsLink></li>
+                <li><SportsLink href={sportsPortalUrl} target="_blank" rel="noreferrer">{isTa ? "உறுப்பினர் போர்ட்டல்" : "Platform Member Portal"}</SportsLink></li>
               </ul>
             </div>
             <div>
@@ -280,6 +287,7 @@ export function TenkasiSportsSite() {
         </div>
       </footer>
     </div>
+    </SportsLanguageProvider>
   );
 }
 
@@ -318,7 +326,7 @@ function HomeView({ isTa }: { isTa: boolean }) {
           </h2>
         </div>
         <div className="ts-grid ts-3col ts-pillars-grid">
-          <a className="ts-card ts-pillar-card" href="/syllabus">
+          <SportsLink className="ts-card ts-pillar-card" href="/syllabus">
             <span className="ts-card-icon"><Shield size={28} /></span>
             <h3>{isTa ? "உடல் & மன ஒருமுகப்பாடு" : "Concentration & Internal Energy"}</h3>
             <p>
@@ -327,8 +335,8 @@ function HomeView({ isTa }: { isTa: boolean }) {
                 : "The swift whip of the staff cuts the air with sonic precision, channeling the student's senses into unified mental presence."}
             </p>
             <ArrowUpRight className="ts-pillar-link-icon" size={20} aria-hidden="true" />
-          </a>
-          <a className="ts-card ts-pillar-card" href="/syllabus">
+          </SportsLink>
+          <SportsLink className="ts-card ts-pillar-card" href="/syllabus">
             <span className="ts-card-icon"><BookOpen size={28} /></span>
             <h3>{isTa ? "நெறிப்படுத்தப்பட்ட பாடத்திட்டம்" : "Certified 3-Tier Syllabus"}</h3>
             <p>
@@ -337,8 +345,8 @@ function HomeView({ isTa }: { isTa: boolean }) {
                 : "From beginner footwork and hand-span measurements to lightning whip patterns, 108 Varmam nodes, and dual sword fencing."}
             </p>
             <ArrowUpRight className="ts-pillar-link-icon" size={20} aria-hidden="true" />
-          </a>
-          <a className="ts-card ts-pillar-card" href="/syllabus">
+          </SportsLink>
+          <SportsLink className="ts-card ts-pillar-card" href="/syllabus">
             <span className="ts-card-icon"><Award size={28} /></span>
             <h3>{isTa ? "பாரம்பரிய குருப் பரம்பரை" : "Ancient Guru Lineage"}</h3>
             <p>
@@ -347,7 +355,7 @@ function HomeView({ isTa }: { isTa: boolean }) {
                 : "Honoring venerable masters of Sengottai, Kadayam, and Kovilpatti, grooming the next generation of principled teachers."}
             </p>
             <ArrowUpRight className="ts-pillar-link-icon" size={20} aria-hidden="true" />
-          </a>
+          </SportsLink>
         </div>
       </section>
 
@@ -362,13 +370,13 @@ function HomeView({ isTa }: { isTa: boolean }) {
               <em>{isTa ? "முழுமையான தற்காப்புத் தேர்ச்சி" : "From Foundation to Master Tier"}</em>
             </h2>
           </div>
-          <a className="ts-text-link" href="/syllabus">
+          <SportsLink className="ts-text-link" href="/syllabus">
             {isTa ? "முழு பாடத்திட்டம் காண்க" : "View Complete Syllabus"} <ArrowUpRight size={18} />
-          </a>
+          </SportsLink>
         </div>
 
         <div className="ts-grid ts-3col">
-          <a className="ts-card ts-tier-item" href="/syllabus#level-1">
+          <SportsLink className="ts-card ts-tier-item" href="/syllabus#level-1">
             <span className="ts-tier-num">01</span>
             <h3>{isTa ? "நிலை 1: ஆரம்ப நிலை" : "Level 1: Beginner"}</h3>
             <p className="ts-tier-sub">{isTa ? "அடிப்படை நிலைகளும் சாண் பிடியும்" : "Foundations & Hand-Span Grip"}</p>
@@ -378,9 +386,9 @@ function HomeView({ isTa }: { isTa: boolean }) {
               <li>{isTa ? "முன்வீச்சு, வெட்டு & வாரல் முறைகள்" : "Forward cuts and basic sweeps"}</li>
             </ul>
             <span className="ts-arrow-link">{isTa ? "விவரங்கள்" : "Learn more"} →</span>
-          </a>
+          </SportsLink>
 
-          <a className="ts-card ts-tier-item" href="/syllabus#level-2">
+          <SportsLink className="ts-card ts-tier-item" href="/syllabus#level-2">
             <span className="ts-tier-num">02</span>
             <h3>{isTa ? "நிலை 2: இடைநிலை" : "Level 2: Intermediate"}</h3>
             <p className="ts-tier-sub">{isTa ? "சுவடு முறைகள் & தீச்சிலம்பம்" : "Combat Footwork & Fire Staff"}</p>
@@ -390,9 +398,9 @@ function HomeView({ isTa }: { isTa: boolean }) {
               <li>{isTa ? "அலங்காரச் சிலம்பம் & தீச்சிலம்பம்" : "Festival forms & Fire Silambam"}</li>
             </ul>
             <span className="ts-arrow-link">{isTa ? "விவரங்கள்" : "Learn more"} →</span>
-          </a>
+          </SportsLink>
 
-          <a className="ts-card ts-tier-item ts-gold-card" href="/syllabus#level-3">
+          <SportsLink className="ts-card ts-tier-item ts-gold-card" href="/syllabus#level-3">
             <span className="ts-tier-num ts-badge-gold">03</span>
             <h3>{isTa ? "நிலை 3: உயர் நிலை" : "Level 3: Master"}</h3>
             <p className="ts-tier-sub">{isTa ? "வர்மக்கலை & இரட்டை வாள்" : "Varmam Vital Points & Dual Sword"}</p>
@@ -402,7 +410,7 @@ function HomeView({ isTa }: { isTa: boolean }) {
               <li>{isTa ? "செடிக்குச்சி & இரட்டை வாள் வீச்சு" : "Sedikkuchi & Double Sword combat"}</li>
             </ul>
             <span className="ts-arrow-link">{isTa ? "விவரங்கள்" : "Learn more"} →</span>
-          </a>
+          </SportsLink>
         </div>
       </section>
 
@@ -436,10 +444,10 @@ function HomeView({ isTa }: { isTa: boolean }) {
                 ? "\"வெற்றியும் புகழும் குரு காட்டிய பாதையில் மாணவனின் பாதங்கள் பயணிப்பதனால் மட்டுமே விளைகிறது.\""
                 : "\"All victory and glory belong to the master; they are born only when the student's footsteps tread faithfully along the path illuminated by the guru.\""}
             </div>
-            <a className="ts-button" href="/masters">
+            <SportsLink className="ts-button" href="/masters">
               {isTa ? "முழு ஆசான் வரலாறு காண்க" : "Read Full Biography"}
               <ArrowUpRight size={18} />
-            </a>
+            </SportsLink>
           </div>
         </div>
       </section>
@@ -451,16 +459,16 @@ function HomeView({ isTa }: { isTa: boolean }) {
             <span className="ts-eyebrow">04 / {isTa ? "களக் காட்சிகள்" : "The Arena in Action"}</span>
             <h2>{isTa ? "உண்மையான பயிற்சித் தருணங்கள்" : "Authentic Moments on the Ground"}</h2>
           </div>
-          <a className="ts-text-link" href="/gallery">
+          <SportsLink className="ts-text-link" href="/gallery">
             {isTa ? "அனைத்து படங்களையும் காண்க" : "View Complete Gallery"} <ArrowUpRight size={18} />
-          </a>
+          </SportsLink>
         </div>
         <div className="ts-gallery-bento">
           {galleryHighlights.map((image) => (
-            <a className="ts-strip-photo" href={image.href} key={image.src}>
+            <SportsLink className="ts-strip-photo" href={image.href} key={image.src}>
               <img src={image.src} alt="" loading="lazy" decoding="async" />
               <span>{isTa ? image.ta : image.en} <ArrowUpRight size={16} aria-hidden="true" /></span>
-            </a>
+            </SportsLink>
           ))}
         </div>
       </section>
@@ -482,13 +490,13 @@ function HomeView({ isTa }: { isTa: boolean }) {
               : "Admissions open for juniors, youth, and adults. Submit your application online for batch assignment and master verification."}
           </p>
           <div className="ts-cta-buttons">
-            <a className="ts-button ts-hero-main-btn" href="/join">
+            <SportsLink className="ts-button ts-hero-main-btn" href="/join">
               {isTa ? "இப்போதே விண்ணப்பிக்கவும்" : "Submit Membership Application"}
               <ArrowUpRight size={18} />
-            </a>
-            <a className="ts-button ts-btn-outline" href="/contact">
+            </SportsLink>
+            <SportsLink className="ts-button ts-btn-outline" href="/contact">
               {isTa ? "வினவல் அனுப்ப" : "Contact the Academy"}
-            </a>
+            </SportsLink>
           </div>
         </div>
       </section>

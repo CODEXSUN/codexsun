@@ -9,7 +9,8 @@ export function useClientDocument(title: string, description: string, themeColor
       "/contact": "Contact",
       "/blogs": "Blog"
     };
-    const rendered = Boolean(document.getElementById("codexsun-sites-publication"));
+    const rendered = Boolean(document.getElementById("codexsun-sites-publication")) ||
+      document.documentElement.dataset.prerendered === "true";
     if (!rendered) document.title = label[path] ? `${label[path]} | ${title}` : title;
 
     const descriptionMeta = document.querySelector<HTMLMetaElement>('meta[name="description"]');

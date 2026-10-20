@@ -2,7 +2,9 @@ import {
   receivePublication,
   readPublication,
   publicationEnvelope,
-  liveHtml
+  liveHtml,
+  routeAliases,
+  routeMetadata
 } from "./tenkasisports.content.mjs";
 import { communityShowcase } from "./tenkasisports.showcase.mjs";
 
@@ -44,6 +46,21 @@ export default {
 
     if (url.pathname === "/site.xml") {
       return Response.redirect("https://tenkasisports.com/sitemap.xml", 308);
+    }
+
+    const isEnglish = url.pathname === "/en" || url.pathname.startsWith("/en/");
+    const pagePath = isEnglish ? (url.pathname.slice(3) || "/") : url.pathname;
+    const normalizedPage = (pagePath.replace(/\/$/, "") || "/").toLowerCase();
+    const canonicalPage = routeAliases[normalizedPage] || normalizedPage;
+    if (["GET", "HEAD"].includes(request.method) && routeMetadata[canonicalPage]) {
+      const language = url.searchParams.get("lang");
+      if (language === "en" || language === "ta" || canonicalPage !== normalizedPage) {
+        url.searchParams.delete("lang");
+        const targetPath = language === "en" ? `/en${canonicalPage === "/" ? "" : canonicalPage}`
+          : language === "ta" ? canonicalPage
+          : `${isEnglish ? "/en" : ""}${canonicalPage === "/" ? "" : canonicalPage}`;
+        return Response.redirect(`https://tenkasisports.com${targetPath}${url.search}`, 308);
+      }
     }
 
     if (url.pathname === "/__sites-publish") return receivePublication(request, env);
@@ -253,6 +270,22 @@ function secureResponse(response, pathname = "") {
   result.headers.set("X-Content-Type-Options", "nosniff");
   result.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   result.headers.set("X-Frame-Options", "SAMEORIGIN");
+  result.headers.set("Strict-Transport-Security", "max-age=86400");
+  if (result.headers.get("content-type")?.includes("text/html")) {
+    result.headers.set("Content-Security-Policy", [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'self'",
+      "form-action 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "upgrade-insecure-requests"
+    ].join("; "));
+  }
   if (result.ok && /^\/assets\/[^/]+-[a-z0-9_-]+\.(?:js|css)$/i.test(pathname)) {
     result.headers.set("Cache-Control", "public, max-age=31536000, immutable");
   } else if (result.ok && /\.(?:avif|webp|jpe?g|png|svg|woff2)$/i.test(pathname)) {
