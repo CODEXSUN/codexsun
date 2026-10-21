@@ -37,7 +37,7 @@ export async function runOrganisationE2e() {
     assert.equal(initial.companies[0]?.legal_name, null);
     assert.equal(Number(initial.companies[0]?.tds_available), 0);
     assert.equal(Number(initial.companies[0]?.tcs_available), 0);
-    assert.deepEqual(JSON.parse(String(initial.companies[0]?.emails_json)), []);
+    assert.deepEqual(jsonArray(initial.companies[0]?.emails_json), []);
     assert.equal(initial.financialYears.length, 1);
     assert.equal(Number(initial.financialYears[0]?.is_current), 1);
     assert.equal(initial.financialYears[0]?.status, "active");
@@ -55,7 +55,10 @@ export async function runOrganisationE2e() {
     );
 
     await runWithCoreDatabase(databaseName, () =>
-      new CompanyRepository().create({ name: "Dummy E2E Company" })
+      new CompanyRepository().create({
+        faviconPath: "storage/e2e/public/companies/2/logo/favicon.svg",
+        name: "Dummy E2E Company"
+      })
     );
     await closeCoreDatabase();
     await bootstrapCoreDatabase(databaseName);
@@ -63,6 +66,10 @@ export async function runOrganisationE2e() {
     const restarted = await loadSeedState(admin);
     assert.equal(restarted.companies.length, 2);
     assert.equal(restarted.companies.filter((company) => company.code === "CODEXSUN").length, 1);
+    assert.equal(
+      restarted.companies.find((company) => company.code === "DUMMY-E2E-COMPANY")?.favicon_path,
+      "storage/e2e/public/companies/2/logo/favicon.svg"
+    );
     assert.equal(restarted.financialYears.length, 1);
     assert.equal(restarted.defaults.length, 1);
     assert.equal(restarted.defaults[0]?.company_id, initial.companies[0]?.id);
@@ -84,7 +91,7 @@ export async function runOrganisationE2e() {
 
 async function loadSeedState(admin: Awaited<ReturnType<typeof createConnection>>) {
   const [companies] = await admin.query<Array<RowDataPacket & CompanyRow>>(
-    "SELECT id,code,name,legal_name,tds_available,tcs_available,status,emails_json FROM core_companies ORDER BY id"
+    "SELECT id,code,name,legal_name,tds_available,tcs_available,status,emails_json,favicon_path FROM core_companies ORDER BY id"
   );
   const [financialYears] = await admin.query<Array<RowDataPacket & FinancialYearRow>>(
     "SELECT id,is_current,status FROM core_financial_years ORDER BY id"
@@ -95,9 +102,15 @@ async function loadSeedState(admin: Awaited<ReturnType<typeof createConnection>>
   return { companies, defaults, financialYears };
 }
 
+function jsonArray(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text ? JSON.parse(text) : [];
+}
+
 type CompanyRow = {
   code: string;
   emails_json: string;
+  favicon_path: string | null;
   id: number;
   legal_name: string | null;
   name: string;
