@@ -973,10 +973,13 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
     (await app.inject({ method: "GET", url: "/crm/duty-reports/summary" })).statusCode,
     403
   );
+  const ownReportOptions = await app.inject({ method: "GET", url: "/crm/duty-reports/options" });
+  assert.equal(ownReportOptions.statusCode, 200, ownReportOptions.body);
+  assert.equal(ownReportOptions.json().data.canViewAll, false);
   assert.equal(
-    (await app.inject({ method: "GET", url: "/crm/duty-reports/options" })).statusCode,
+    (await app.inject({ method: "GET", url: "/crm/duty-reports?scope=all" })).statusCode,
     403,
-    "web report page cannot fall back to own scope"
+    "capability introspection does not grant team-wide report data"
   );
   assert.equal(
     (await app.inject({ method: "GET", url: "/crm/duty-reports?scope=own" })).statusCode,

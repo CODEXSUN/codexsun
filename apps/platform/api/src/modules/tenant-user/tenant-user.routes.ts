@@ -17,6 +17,7 @@ import { TenantUserService } from "./tenant-user.service.js";
 const path = "/tenant/access/users";
 const status = z.enum(["active", "inactive", "suspended"]);
 const record = z.object({
+  username: z.string().nullable(),
   email: z.string(),
   id: z.number().int().positive(),
   isProtected: z.boolean(),
@@ -26,6 +27,7 @@ const record = z.object({
   uuid: z.string().length(8)
 });
 const payload = z.object({
+  username: z.string().trim().max(80).nullable().optional(),
   email: z.string().email(),
   name: z.string().trim().min(2).max(180),
   password: z.string().min(8).max(128).optional(),

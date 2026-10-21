@@ -86,7 +86,7 @@ import {
 import type { LandingAppOption } from "@codexsun/core-web/modules/organisation/default-company/types";
 import { listFinancialYears } from "@codexsun/core-web/modules/organisation/financial-year/services";
 import { getSessionIdentity, logout } from "../../shared/api/platform-api";
-import { setPlatformDocumentTitle } from "../../shared/document/PageTitle";
+import { setPlatformDocumentTitle, setPlatformFavicon } from "../../shared/document/PageTitle";
 import { publishDesktopWorkspace } from "../../shared/desktop/desktop-bridge";
 import { publishAccountingYear, publishCompanyContext } from "../../shared/tenant/runtime-context";
 import { blogEditorHost } from "../../modules/blog/blog-host";
@@ -1050,6 +1050,9 @@ export function AppDesk() {
   const selectedCompany =
     activeCompanies.find((company) => company.id === activeDefaultCompany?.companyId) ?? null;
   const companyBranding = useCompanyBranding(selectedCompany?.id ?? null);
+  useEffect(() => {
+    setPlatformFavicon(companyBranding.faviconUrl);
+  }, [companyBranding.faviconUrl]);
   const activeFinancialYears = useMemo(
     () => (financialYearsQuery.data ?? []).filter((year) => year.status === "active"),
     [financialYearsQuery.data]

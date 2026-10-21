@@ -28,6 +28,8 @@ import {
 } from "../tenant-user-role/tenant-user-role.migration.js";
 import {
   migrateTenantUserModule,
+  migrateTenantUsername,
+  tenantUsernameMigration,
   tenantUserMigration
 } from "../tenant-user/tenant-user.migration.js";
 
@@ -88,6 +90,11 @@ export const tenantRuntimeMigrations = [
     description: "Add database-generated UUID defaults for repeatable tenant runtime writes.",
     name: "platform.tenant-runtime.uuid-defaults-v2",
     statements: ["VALIDATE database-generated UUID defaults"]
+  },
+  {
+    description: "Optional unique tenant username for sign-in.",
+    name: tenantUsernameMigration.key,
+    statements: ["ADD nullable unique app_users.username"]
   }
 ] as const;
 
@@ -193,6 +200,13 @@ export const tenantRuntimeMigrationBatch: MigrationBatch<TenantDatabase> = {
             .map((tableName) => `app_${tableName}`)
         ),
       version: 2
+    },
+    {
+      checksum: `${tenantUsernameMigration.key}:v1`,
+      description: "Optional unique tenant username for sign-in.",
+      name: tenantUsernameMigration.key,
+      up: migrateTenantUsername,
+      version: 1
     }
   ]
 };

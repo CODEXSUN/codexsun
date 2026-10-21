@@ -5,6 +5,13 @@ export function setPlatformDocumentTitle(pageTitle: string) {
   document.title = `${requiredClientEnv("VITE_TENANT_NAME")} | ${pageTitle}`;
 }
 
+export function setPlatformFavicon(url: string | null | undefined) {
+  const favicon = document.querySelector<HTMLLinkElement>('link[data-platform-favicon]');
+  if (!favicon) return;
+  favicon.href = url || "/logo/favicon.svg";
+  favicon.removeAttribute("type");
+}
+
 const pageTitles: Record<string, string> = {
   "/": "App Portal",
   "/admin": "Admin Desk",

@@ -3,11 +3,9 @@ import { seedSportsclubPortalRole } from "../sportsclub-identity.js";
 import { migrateTconnect, seedTconnect, tconnectTenantMigrations } from "@codexsun/tconnect-api";
 import {
   migrateSportsclubDatabase,
-  sportsclubMigration
+  sportsclubTenantMigrations
 } from "@codexsun/sportsclub-api/migration";
-import {
-  seedSportsclubDatabase
-} from "@codexsun/sportsclub-api/seed";
+import { seedSportsclubDatabase } from "@codexsun/sportsclub-api/seed";
 import {
   codexsunTenantMigrations,
   migrateCodexsunDatabase,
@@ -203,10 +201,10 @@ export function tenantDatabaseMigrationsFor(_tenant: Tenant) {
       ...migration,
       statements: [`RUN ${migration.name}`]
     })),
-    {
-      ...sportsclubMigration,
-      statements: [`RUN ${sportsclubMigration.name}`]
-    },
+    ...sportsclubTenantMigrations.map((migration) => ({
+      ...migration,
+      statements: [`RUN ${migration.name}`]
+    })),
     ...ecommerceTenantMigrations.map((migration) => ({
       ...migration,
       statements: [`RUN ${migration.name}`]

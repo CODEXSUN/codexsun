@@ -22,6 +22,7 @@ export const companySchema = z.object({
   description: nullableText,
   logoPath: nullableText,
   logoDarkPath: nullableText,
+  faviconPath: nullableText,
   status: z.enum(["active", "suspend"]),
   isActive: z.boolean(),
   emails: z.array(
@@ -108,6 +109,7 @@ export function prepareCompanyPayloadForSave(form: CompanySavePayload): CompanyS
     description: trimmedNullable(form.description),
     logoPath: trimmedNullable(form.logoPath),
     logoDarkPath: trimmedNullable(form.logoDarkPath),
+    faviconPath: trimmedNullable(form.faviconPath),
     emails: form.emails
       .filter((item) => item.email.trim())
       .map((item, index) => ({

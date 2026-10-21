@@ -406,6 +406,7 @@ export type TenantModuleSettingsTable = {
 };
 
 export type TenantUsersTable = {
+  username: ColumnType<string | null, string | null | undefined, string | null>;
   created_at: TimestampColumn;
   email: string;
   id: Generated<number>;

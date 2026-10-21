@@ -163,6 +163,7 @@ export function ContactForm({
               </WorkspaceFormBanner>
             ) : null}
             <WorkspaceAnimatedTabs
+              contentPadding
               keepMounted
               contentClassName="mt-5"
               onValueChange={(value) => setActiveTab(value as ContactTab)}

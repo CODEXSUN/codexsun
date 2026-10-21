@@ -414,6 +414,7 @@ export function QuotationFormView({
       <WorkspaceFormSurface>
         <WorkspaceFormTabbedBody className="pb-7">
           <WorkspaceAnimatedTabs
+            contentPadding
             tabs={tabs}
             value={activeTab}
             onValueChange={setActiveTab}

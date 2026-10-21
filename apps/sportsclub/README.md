@@ -35,14 +35,18 @@ apps/sportsclub/
 ## Public Contracts and Exports
 
 `@codexsun/sportsclub-api` provides browser-safe and server contracts:
+
 - `./contracts`: Zod schemas for member enrollment, progress notes, and public roster queries.
 - `./types`: TypeScript definitions for records, payloads, and audit events.
+
+Student photos use the member-owned authenticated `PUT` and `GET /sportsclub/members/:uuid/photo` routes after a member is saved. The upload is bounded to 2 MiB of JPEG, PNG, or WebP bytes and stored in a tenant-private `sportsclub_member_photos` table. Club administrators upload; the student, an assigned active master, and club administrators may read. Photos are never part of the public roster or member list response. Existing tenant databases require the `sportsclub.member.photos` migration before photo upload.
 
 Sites consumes these public contracts for public verification and portal redirect flows; club business logic, database migrations, and private management forms remain strictly inside `apps/sportsclub`.
 
 ## Source and Role Structure
 
 Following the CODEXSUN module-owned CRUD pattern, Sportsclub API provides 8 discrete backend leaves:
+
 - **`program`**: Discipline definitions (Silambam, athletics, martial arts), difficulty levels, age groups.
 - **`master`**: Master/instructor profiles, experience years, primary disciplines, public biographies.
 - **`member`**: Member rosters (students & masters), emergency contacts, guardian details, medical notes.

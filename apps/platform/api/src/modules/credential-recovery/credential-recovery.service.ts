@@ -105,17 +105,19 @@ export class CredentialRecoveryService {
     email: string
   ): Promise<RecoveryTarget | null> {
     const corporateId = input.corporateId?.trim() ?? "";
-    if (!isSingleTenantMode() && !corporateId) return null;
-    const domainTenant = await this.tenants.findByDomain(input.domain);
-    const corporateTenant = await this.tenants.findByCorporateId(
-      isSingleTenantMode() ? env.CODEXSUN_SINGLE_TENANT_CORPORATE_ID : corporateId
-    );
-    const tenant = domainTenant ?? corporateTenant;
+    const shared = isSharedApplicationHost(input.domain);
+    if (!isSingleTenantMode() && shared && !corporateId) return null;
+    const domainTenant = shared ? null : await this.tenants.findByDomain(input.domain);
+    const corporateTenant =
+      isSingleTenantMode() || shared
+        ? await this.tenants.findByCorporateId(
+            isSingleTenantMode() ? env.CODEXSUN_SINGLE_TENANT_CORPORATE_ID : corporateId
+          )
+        : null;
+    const tenant = isSingleTenantMode() || shared ? corporateTenant : domainTenant;
     if (
       !tenant ||
-      !corporateTenant ||
-      corporateTenant.uuid !== tenant.uuid ||
-      (isSingleTenantMode() && !isSharedApplicationHost(input.domain) && !domainTenant) ||
+      (!shared && domainTenant?.uuid !== tenant.uuid) ||
       (corporateId && tenant.corporateId?.trim().toUpperCase() !== corporateId.toUpperCase()) ||
       tenant.status !== "active"
     ) {

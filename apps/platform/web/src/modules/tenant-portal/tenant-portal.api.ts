@@ -6,6 +6,7 @@ export async function getTenantPublicPortal() {
   const portal = await apiGet<TenantPublicPortal>("/public/app-portal");
   return {
     ...portal,
+    faviconUrl: resolvePortalMediaUrl(portal.faviconUrl),
     logoDarkUrl: resolvePortalMediaUrl(portal.logoDarkUrl),
     logoUrl: resolvePortalMediaUrl(portal.logoUrl)
   };

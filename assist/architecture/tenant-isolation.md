@@ -29,8 +29,8 @@ database routing. In `single` mode, `CODEXSUN_SINGLE_TENANT_CORPORATE_ID` identi
 only active registered tenant. Startup rejects a missing, different, or additional
 tenant. Tenant login and password recovery bind to this identity without asking for
 Corporate ID; requests cannot select another tenant. Tenant creation and suspension
-are disabled. In `multi` mode, tenant login requires Corporate ID and continues to
-validate any custom-domain mapping. Change the mode only as a deployment operation
+are disabled. In `multi` mode, shared-host login requires Corporate ID; verified
+custom hosts select their mapped tenant without Corporate ID input. Change the mode only as a deployment operation
 after checking the registry and backing up the data; it is not a live user switch.
 
 Tenant context should include:
@@ -149,9 +149,9 @@ secret, verifies the user in that tenant database, and only then creates a
 tenant-bound session.
 
 Custom domains are optional mappings. They start disabled and pending, become
-active only after DNS TXT ownership verification. The verified host narrows tenant
-resolution, but it never replaces Corporate ID: every tenant login must supply an
-exact Corporate ID matching the tenant mapped to that host. Host mappings and
+active only after DNS TXT ownership verification. The verified host selects its
+mapped tenant for login and password recovery without Corporate ID input. A supplied
+Corporate ID must match; unknown hosts cannot use it as a fallback. Host mappings and
 session claims are rechecked on protected requests.
 
 Tenant, company, financial year, landing page, enabled modules, and safe settings

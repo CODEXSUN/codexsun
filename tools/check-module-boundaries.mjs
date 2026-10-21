@@ -301,8 +301,10 @@ const capabilityFrontendRoles = new Map([
   ["codexsun-web/devices", ["workspace", "list", "services", "hooks", "types"]],
   ["auditor-web/overview", ["workspace"]],
   ["hrms-web/overview", ["workspace", "services", "hooks", "types"]],
-  ["data-migration-web/overview", ["workspace"]],
-  ["data-migration-web/migration", ["workspace", "settings", "list", "form", "services", "types", "schema"]],
+  [
+    "data-migration-web/migration",
+    ["workspace", "settings", "list", "form", "services", "types", "schema"]
+  ],
   ["docs-web/overview", ["workspace", "services", "hooks", "types"]],
   ["himsx-web/overview", ["workspace", "services", "hooks", "types"]],
   ["sites-web/overview", ["workspace", "services", "hooks", "types"]],

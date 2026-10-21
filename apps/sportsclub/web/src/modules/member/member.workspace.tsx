@@ -14,7 +14,7 @@ import { useProgramDetails, useProgramLookups } from "../program/program.hooks";
 import { MemberForm } from "./member.form";
 import { memberQueryKeys, useMemberDetails, useMembersPage } from "./member.hooks";
 import { MemberList } from "./member.list";
-import { createMember, updateMember } from "./member.services";
+import { createMember, updateMember, uploadMemberPhoto } from "./member.services";
 import type { MemberColumnFilters, MemberRecord, MemberSavePayload } from "./member.types";
 
 const columnOptions = [
@@ -51,6 +51,7 @@ export function MemberWorkspace({
     initialCreate || mode === "new" ? null : undefined
   );
   const [internalViewRecord, setInternalViewRecord] = useState<MemberRecord | null>(null);
+  const [retryPhoto, setRetryPhoto] = useState<{ uuid: string; file: File } | null>(null);
 
   const [search, setSearch] = useState("");
   const [programSearch, setProgramSearch] = useState("");
@@ -92,25 +93,44 @@ export function MemberWorkspace({
   // Support routed edit / view by uuid
   const targetMemberUuid = mode === "edit" || mode === "view" ? uuid : undefined;
   const { data: fetchedMember } = useMemberDetails(targetMemberUuid);
-  const routedRecord =
-    records.find((r) => r.uuid === targetMemberUuid) ?? fetchedMember ?? null;
+  const routedRecord = records.find((r) => r.uuid === targetMemberUuid) ?? fetchedMember ?? null;
   const selectedRecord = routedRecord ?? internalEditing ?? null;
   const { data: selectedProgram } = useProgramDetails(selectedRecord?.programUuid);
   const { data: selectedMaster } = useMasterDetails(selectedRecord?.masterUuid);
 
   const editing =
-    mode === "new"
-      ? null
-      : mode === "edit" && routedRecord
-        ? routedRecord
-        : internalEditing;
+    mode === "new" ? null : mode === "edit" && routedRecord ? routedRecord : internalEditing;
 
-  const viewRecord =
-    mode === "view" && routedRecord ? routedRecord : internalViewRecord;
+  const viewRecord = mode === "view" && routedRecord ? routedRecord : internalViewRecord;
 
   const createMutation = useMutation({
-    mutationFn: (payload: MemberSavePayload) => createMember(payload),
-    onSuccess: () => {
+    mutationFn: async ({ payload, photo }: { payload: MemberSavePayload; photo: File | null }) => {
+      const member = await createMember(payload);
+      if (photo) {
+        try {
+          await uploadMemberPhoto(member.uuid, photo);
+        } catch (error) {
+          return {
+            member,
+            photoError: error instanceof Error ? error.message : "Photo upload failed."
+          };
+        }
+      }
+      return { member, photoError: null };
+    },
+    onSuccess: ({ member, photoError }, variables) => {
+      if (photoError) {
+        const selectedFile = variables.photo;
+        if (selectedFile) setRetryPhoto({ uuid: member.uuid, file: selectedFile });
+        toast.error(
+          `Member created, but the photo was not saved: ${photoError}. Save again in the edit form to retry.`
+        );
+        queryClient.invalidateQueries({ queryKey: memberQueryKeys.all });
+        if (onNavigate) onNavigate({ mode: "edit", uuid: member.uuid });
+        else setInternalEditing(member);
+        return;
+      }
+      setRetryPhoto(null);
       toast.success("Student member registered successfully");
       queryClient.invalidateQueries({ queryKey: memberQueryKeys.all });
       setInternalEditing(undefined);
@@ -125,16 +145,43 @@ export function MemberWorkspace({
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       targetUuid,
       payload,
-      revision
+      revision,
+      photo
     }: {
       targetUuid: string;
       payload: MemberSavePayload;
       revision: number;
-    }) => updateMember(targetUuid, payload, revision),
-    onSuccess: () => {
+      photo?: File | null;
+    }) => {
+      const member = await updateMember(targetUuid, payload, revision);
+      if (photo) {
+        try {
+          await uploadMemberPhoto(member.uuid, photo);
+        } catch (error) {
+          return {
+            member,
+            photoError: error instanceof Error ? error.message : "Photo upload failed."
+          };
+        }
+      }
+      return { member, photoError: null };
+    },
+    onSuccess: ({ member, photoError }, variables) => {
+      if (photoError) {
+        const selectedFile = variables.photo;
+        if (selectedFile) setRetryPhoto({ uuid: member.uuid, file: selectedFile });
+        toast.error(
+          `Member saved, but the photo was not saved: ${photoError}. Save again to retry the selected photo.`
+        );
+        queryClient.invalidateQueries({ queryKey: memberQueryKeys.all });
+        if (onNavigate) onNavigate({ mode: "edit", uuid: member.uuid });
+        else setInternalEditing(member);
+        return;
+      }
+      setRetryPhoto(null);
       toast.success("Member record updated");
       queryClient.invalidateQueries({ queryKey: memberQueryKeys.all });
       setInternalEditing(undefined);
@@ -147,15 +194,16 @@ export function MemberWorkspace({
     }
   });
 
-  const handleSave = (payload: MemberSavePayload) => {
+  const handleSave = (payload: MemberSavePayload, photo: File | null) => {
     if (editing) {
       updateMutation.mutate({
         targetUuid: editing.uuid,
         payload,
-        revision: editing.revision
+        revision: editing.revision,
+        photo
       });
     } else {
-      createMutation.mutate(payload);
+      createMutation.mutate({ payload, photo });
     }
   };
 
@@ -188,8 +236,8 @@ export function MemberWorkspace({
     }
   };
 
-
   const handleOpenEdit = (record: MemberRecord) => {
+    if (retryPhoto?.uuid !== record.uuid) setRetryPhoto(null);
     if (onNavigate) {
       onNavigate({ mode: "edit", uuid: record.uuid });
     } else {
@@ -224,8 +272,17 @@ export function MemberWorkspace({
       <MemberForm
         key={editing?.uuid ?? "new"}
         initialRecord={editing}
-        programOptions={selectedProgram && !programOptions.some((option) => option.value === selectedProgram.uuid) ? [{ label: selectedProgram.name, value: selectedProgram.uuid }, ...programOptions] : programOptions}
-        masterOptions={selectedMaster && !masterOptions.some((option) => option.value === selectedMaster.uuid) ? [{ label: selectedMaster.name, value: selectedMaster.uuid }, ...masterOptions] : masterOptions}
+        initialPhoto={editing && retryPhoto?.uuid === editing.uuid ? retryPhoto.file : null}
+        programOptions={
+          selectedProgram && !programOptions.some((option) => option.value === selectedProgram.uuid)
+            ? [{ label: selectedProgram.name, value: selectedProgram.uuid }, ...programOptions]
+            : programOptions
+        }
+        masterOptions={
+          selectedMaster && !masterOptions.some((option) => option.value === selectedMaster.uuid)
+            ? [{ label: selectedMaster.name, value: selectedMaster.uuid }, ...masterOptions]
+            : masterOptions
+        }
         programSearch={programSearch}
         onProgramSearchChange={setProgramSearch}
         masterSearch={masterSearch}
@@ -325,7 +382,8 @@ export function MemberWorkspace({
           totalPages={totalPages}
           onNextPage={() => setPage((v) => Math.min(totalPages, v + 1))}
           onPageChange={setPage}
-          onPreviousPage={() => setPage((v) => Math.max(1, v - 1))} onRowsPerPageChange={() => undefined}
+          onPreviousPage={() => setPage((v) => Math.max(1, v - 1))}
+          onRowsPerPageChange={() => undefined}
         />
       ) : null}
 
@@ -373,11 +431,10 @@ export function MemberWorkspace({
             <div className="rounded border bg-muted/20 p-2.5 text-xs">
               <span className="font-semibold text-foreground">Guardian & Emergency:</span>
               <p className="mt-1 text-foreground">
-                Guardian: {viewRecord.guardianName || "—"} ({viewRecord.guardianPhone || "No phone"})
+                Guardian: {viewRecord.guardianName || "—"} ({viewRecord.guardianPhone || "No phone"}
+                )
               </p>
-              <p className="text-foreground">
-                Emergency: {viewRecord.emergencyContact || "—"}
-              </p>
+              <p className="text-foreground">Emergency: {viewRecord.emergencyContact || "—"}</p>
             </div>
             {viewRecord.medicalNotes ? (
               <div className="rounded border bg-muted/20 p-2.5 text-xs">

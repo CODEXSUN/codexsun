@@ -89,6 +89,7 @@ export type TenantPublicPortal = {
   loginPath: "/login";
   logoDarkUrl: string | null;
   logoUrl: string | null;
+  faviconUrl: string | null;
   posts: TenantPortalPost[];
   publicSiteUrl: string | null;
   slides: TenantPortalContent[];

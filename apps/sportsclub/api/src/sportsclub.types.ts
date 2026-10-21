@@ -1,6 +1,7 @@
 import type { Generated } from "kysely";
 
-export type SportsclubRole = "student" | "master" | "club_admin" | "super_admin" | "anonymous" | "unregistered";
+export type SportsclubRole =
+  "student" | "master" | "club_admin" | "super_admin" | "anonymous" | "unregistered";
 
 export type SportsclubContext = {
   actorEmail?: string | undefined;
@@ -64,6 +65,13 @@ export type SportsclubDatabase = {
     progress_note: string;
     revision: number;
     created_at: string;
+    updated_at: string;
+  };
+  sportsclub_member_photos: {
+    member_uuid: string;
+    mime_type: "image/jpeg" | "image/png" | "image/webp";
+    content: Uint8Array;
+    size_bytes: number;
     updated_at: string;
   };
   sportsclub_sessions: {

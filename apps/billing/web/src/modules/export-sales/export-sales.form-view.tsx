@@ -433,6 +433,7 @@ export function ExportSalesFormView({
       <WorkspaceFormSurface>
         <WorkspaceFormTabbedBody className="pb-7">
           <WorkspaceAnimatedTabs
+            contentPadding
             tabs={tabs}
             value={activeTab}
             onValueChange={setActiveTab}

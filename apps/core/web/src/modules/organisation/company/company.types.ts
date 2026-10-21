@@ -76,6 +76,7 @@ export type CompanyRecord = {
   description: string | null;
   logoPath: string | null;
   logoDarkPath: string | null;
+  faviconPath: string | null;
   industryId: number | null;
   industryName: string | null;
   status: CompanyStatus;

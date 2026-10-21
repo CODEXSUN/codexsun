@@ -13,8 +13,8 @@ export async function seedEnquiryModule(database: Kysely<EnquiryDatabase>) {
     `.execute(database);
     const roles =
       action === "view-all"
-        ? ["admin", "super-admin", "manager"]
-        : ["admin", "super-admin", "manager", "user"];
+        ? ["admin", "super-admin"]
+        : ["admin", "super-admin", "manager", "team-head", "user"];
     for (const roleKey of roles) {
       await sql`
         INSERT INTO app_role_permissions (uuid, role_id, permission_id, status, is_protected)
@@ -23,6 +23,13 @@ export async function seedEnquiryModule(database: Kysely<EnquiryDatabase>) {
         WHERE role.\`key\`=${roleKey}
         ON DUPLICATE KEY UPDATE status='active'
       `.execute(database);
+    }
+    if (action === "view-all") {
+      await sql`UPDATE app_role_permissions rp
+        JOIN app_roles r ON r.id=rp.role_id
+        JOIN app_permissions p ON p.id=rp.permission_id
+        SET rp.status='inactive'
+        WHERE p.\`key\`=${key} AND r.\`key\` NOT IN ('admin','super-admin')`.execute(database);
     }
   }
 }

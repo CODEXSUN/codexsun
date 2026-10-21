@@ -10,6 +10,9 @@ import {
   memberPayloadSchema,
   memberPortalSchema,
   memberRecordSchema,
+  memberPhotoMetadataSchema,
+  memberPhotoSchema,
+  memberPhotoUploadSchema,
   studentEnrollmentSchema
 } from "./member.schema.js";
 
@@ -29,9 +32,14 @@ const progressUpdateSchema = z.strictObject({
   revision: z.number().int().min(0)
 });
 const lookupQuerySchema = baseListQuerySchema.pick({ search: true, page: true });
-const lookupResponseSchema = createListResponseSchema(memberRecordSchema.pick({
-  uuid: true, name: true, role: true, status: true
-}));
+const lookupResponseSchema = createListResponseSchema(
+  memberRecordSchema.pick({
+    uuid: true,
+    name: true,
+    role: true,
+    status: true
+  })
+);
 
 export function registerMemberRoutes(
   app: FastifyInstance,
@@ -74,7 +82,10 @@ export function registerMemberRoutes(
     schemas: { querystring: lookupQuerySchema, response: lookupResponseSchema },
     handler: async ({ request, query }) => {
       const result = await (await resolveService(request)).list(query);
-      return { ...result, items: result.items.map(({ uuid, name, role, status }) => ({ uuid, name, role, status })) };
+      return {
+        ...result,
+        items: result.items.map(({ uuid, name, role, status }) => ({ uuid, name, role, status }))
+      };
     }
   });
 
@@ -83,6 +94,31 @@ export function registerMemberRoutes(
     url: "/sportsclub/members/:uuid",
     schemas: { params: uuidParamsSchema, response: memberRecordSchema },
     handler: async ({ request, params }) => (await resolveService(request)).get(params.uuid)
+  });
+
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/sportsclub/members/:uuid/photo",
+    schemas: { params: uuidParamsSchema, response: memberPhotoSchema },
+    handler: async ({ request, params, reply }) => {
+      reply.header("Cache-Control", "private, no-store");
+      return (await resolveService(request)).readPhoto(params.uuid);
+    }
+  });
+
+  registerContractRoute(app, {
+    method: "PUT",
+    url: "/sportsclub/members/:uuid/photo",
+    bodyLimit: 3 * 1024 * 1024,
+    schemas: {
+      params: uuidParamsSchema,
+      body: memberPhotoUploadSchema,
+      response: memberPhotoMetadataSchema
+    },
+    handler: async ({ request, params, body, reply }) => {
+      reply.header("Cache-Control", "private, no-store");
+      return (await resolveService(request)).uploadPhoto(params.uuid, body);
+    }
   });
 
   registerContractRoute(app, {

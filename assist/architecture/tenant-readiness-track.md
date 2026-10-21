@@ -116,7 +116,7 @@ Before declaring production tenancy complete:
 2. Move tenant business repositories from master database tenant-scoped tables to tenant database tables, or explicitly document modules that must remain shared.
 3. Add tenant database migration/version tracking.
 4. Add tenant provisioning workflow status with failure, retry, and rollback states.
-5. Maintain the implemented host/domain resolution middleware: every tenant login requires an exact Corporate ID; custom domains additionally require an active DNS-verified mapping whose tenant matches that Corporate ID; server claims overwrite tenant routing headers.
+5. Maintain host/domain resolution middleware: shared-host tenant login requires an exact Corporate ID; custom-domain login binds to an active DNS-verified mapping without Corporate ID input, rejecting any supplied mismatched ID; server claims overwrite tenant routing headers.
 6. Add tenant industry activation tables and runtime resolver.
 7. Add industry-pack activation services for modules, settings, roles, templates, reports, and dashboards.
 8. Add database-level tests using two tenants and two tenant databases.

@@ -18,10 +18,7 @@ import {
   registerSportsclubTenantDatabaseConnection,
   resolveSportsclubDatabaseName
 } from "../database/sportsclub-database.js";
-import {
-  resolveMasterScope,
-  resolveStudentScope
-} from "../sportsclub.scope.js";
+import { resolveMasterScope, resolveStudentScope } from "../sportsclub.scope.js";
 import {
   defaultSportsclubFeeCatalog,
   sportsclubFeeDuesSchema,
@@ -29,10 +26,7 @@ import {
   sportsclubFeeItemSchema,
   toBillingCustomer
 } from "../sportsclub.billing-contract.js";
-import {
-  registerSportsclubApi,
-  sportsclubApiModuleKeys
-} from "../app.js";
+import { registerSportsclubApi, sportsclubApiModuleKeys } from "../app.js";
 import type { MemberRecord } from "../modules/member/member.types.js";
 
 function createInMemoryDatabase(): Kysely<SportsclubDatabase> {
@@ -46,9 +40,12 @@ function createInMemoryDatabase(): Kysely<SportsclubDatabase> {
           const statement = raw.prepare(sql);
           return {
             reader: statement.columns().length > 0,
-            all: (parameters: readonly unknown[]) => statement.all(...(parameters as SQLInputValue[])),
-            run: (parameters: readonly unknown[]) => statement.run(...(parameters as SQLInputValue[])),
-            iterate: (parameters: readonly unknown[]) => statement.iterate(...(parameters as SQLInputValue[]))
+            all: (parameters: readonly unknown[]) =>
+              statement.all(...(parameters as SQLInputValue[])),
+            run: (parameters: readonly unknown[]) =>
+              statement.run(...(parameters as SQLInputValue[])),
+            iterate: (parameters: readonly unknown[]) =>
+              statement.iterate(...(parameters as SQLInputValue[]))
           };
         }
       }
@@ -67,8 +64,9 @@ test("sportsclub infrastructure: module keys, tenant migrations, and DB naming c
   assert.ok(sportsclubApiModuleKeys.includes("event"));
   assert.ok(sportsclubApiModuleKeys.includes("enquiry"));
 
-  assert.equal(sportsclubTenantMigrations.length, 1);
+  assert.equal(sportsclubTenantMigrations.length, 2);
   assert.equal(sportsclubTenantMigrations[0]?.name, sportsclubMigration.name);
+  assert.equal(sportsclubTenantMigrations[1]?.name, "sportsclub.member.photos");
 
   assert.equal(resolveSportsclubDatabaseName(null), TENKASISPORTS_DB_NAME);
   assert.equal(resolveSportsclubDatabaseName(""), TENKASISPORTS_DB_NAME);
@@ -129,7 +127,11 @@ test("sportsclub infrastructure: Platform student and master scope resolution", 
     assert.equal(studentScope.status, "active");
 
     // Lookup by email
-    const studentByEmail = await resolveStudentScope(db, "unmatched-uuid", "kabilan@tenkasisports.test");
+    const studentByEmail = await resolveStudentScope(
+      db,
+      "unmatched-uuid",
+      "kabilan@tenkasisports.test"
+    );
     assert.ok(studentByEmail);
     assert.equal(studentByEmail.studentUuid, "d0010001");
 

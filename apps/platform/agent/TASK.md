@@ -1,5 +1,22 @@
 # Platform tasks
 
+## Custom-domain login without Corporate ID — 2026-10-21
+
+- Login context hides Corporate ID for active, verified custom-domain mappings; the existing web form uses this API flag.
+- Login and recovery select the mapped tenant on the server. Shared hosts still require Corporate ID; unknown hosts, inactive tenants, changed mappings, and mismatched supplied IDs are rejected.
+- Tenant login accepts either email or an optional unique username; the tenant user form supports creating and changing usernames. Email remains required for password recovery.
+- Existing tenant databases receive a nullable unique username column through an idempotent Platform runtime migration.
+- Added disposable MariaDB login/recovery target regression coverage; tests do not send mail or create live users.
+- Deployment and live browser proof are pending.
+
+## CRM own-record role composition — 2026-10-21
+
+- Composed CRM's administrator ceiling into active tenant permission resolution; stale broad grants cannot widen enquiry/task scope for non-admin roles.
+- Added the editable Team Head role without assigning users. Existing custom labels survive reseeding.
+- Hid Contact 360 permission/assignment entries from Access Control lists and permission pickers through the CRM public contract.
+- Platform typecheck/lint and Platform/CRM/Core boundaries passed. Disposable MariaDB tests verify active role resolution, revoked roles, custom labels, and hidden permission lists.
+- TECHMEDIA access repair and API hotfix are live. Team Head has zero assigned users; Admin tenant-wide reads remain allowed and User tenant-wide reads are denied. Business rows and other tenant access assignments were not changed.
+
 ## Frappe identity audit composition — October 20, 2026
 
 - [x] Expose the read-only Frappe identity audit through the tenant Frappe navigation and page registry.

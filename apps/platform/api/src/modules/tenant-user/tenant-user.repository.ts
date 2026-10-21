@@ -8,6 +8,7 @@ import type {
 } from "./tenant-user.types.js";
 
 type Row = {
+  username: string | null;
   email: string;
   id: number;
   is_protected: number | boolean;
@@ -17,20 +18,30 @@ type Row = {
 };
 type RoleRow = { user_id: number; role_id: number; role_label: string };
 
+export function findTenantUserForLogin(database: Kysely<TenantDatabase>, identifier: string) {
+  const value = identifier.trim().toLowerCase();
+  return database
+    .selectFrom("app_users")
+    .select(["id", "uuid", "name", "email", "password_hash", "role", "status"])
+    .where(value.includes("@") ? "email" : "username", "=", value)
+    .executeTakeFirst();
+}
+
 export class TenantUserRepository {
   constructor(private readonly database: Kysely<TenantDatabase>) {}
   async list(filters: TenantUserListFilters = {}) {
     const term = `%${(filters.search ?? "").trim().toLowerCase()}%`;
-    const result = await sql<Row>`SELECT id,uuid,name,email,status,is_protected FROM app_users
-      WHERE (${filters.search ?? ""}='' OR LOWER(name) LIKE ${term} OR LOWER(email) LIKE ${term}) ORDER BY name`.execute(
-      this.database
-    );
+    const result =
+      await sql<Row>`SELECT id,uuid,name,email,username,status,is_protected FROM app_users
+      WHERE (${filters.search ?? ""}='' OR LOWER(name) LIKE ${term} OR LOWER(email) LIKE ${term} OR username LIKE ${term}) ORDER BY name`.execute(
+        this.database
+      );
     const roles = await this.rolesForUsers(result.rows.map((row) => Number(row.id)));
     return result.rows.map((row) => mapRow(row, roles.get(Number(row.id)) ?? []));
   }
   async find(id: string | number) {
     const result =
-      await sql<Row>`SELECT id,uuid,name,email,status,is_protected FROM app_users WHERE id=${Number(id)} LIMIT 1`.execute(
+      await sql<Row>`SELECT id,uuid,name,email,username,status,is_protected FROM app_users WHERE id=${Number(id)} LIMIT 1`.execute(
         this.database
       );
     if (!result.rows[0]) return null;
@@ -39,13 +50,19 @@ export class TenantUserRepository {
   }
   async create(input: TenantUserSavePayload, uuid: string, passwordHash: string) {
     const result =
-      await sql`INSERT INTO app_users (uuid,name,email,password_hash,role,status,is_protected)
-      VALUES (${uuid},${input.name},${input.email},${passwordHash},'user',${input.status},FALSE)`.execute(
+      await sql`INSERT INTO app_users (uuid,name,email,username,password_hash,role,status,is_protected)
+      VALUES (${uuid},${input.name},${input.email},${input.username ?? null},${passwordHash},'user',${input.status},FALSE)`.execute(
         this.database
       );
     return (await this.find(Number(result.insertId)))!;
   }
   async update(id: number, input: TenantUserSavePayload, passwordHash?: string) {
+    if (input.username !== undefined)
+      await this.database
+        .updateTable("app_users")
+        .set({ username: input.username })
+        .where("id", "=", id)
+        .execute();
     if (passwordHash)
       await sql`UPDATE app_users SET name=${input.name},email=${input.email},password_hash=${passwordHash},status=${input.status} WHERE id=${id}`.execute(
         this.database
@@ -99,6 +116,7 @@ export class TenantUserRepository {
 }
 function mapRow(row: Row, roles: TenantUser["roles"]): TenantUser {
   return {
+    username: row.username,
     email: row.email,
     id: Number(row.id),
     isProtected: Boolean(row.is_protected),

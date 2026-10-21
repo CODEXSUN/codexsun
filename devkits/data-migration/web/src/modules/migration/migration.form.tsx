@@ -109,10 +109,11 @@ export function SourceForm({
     }
     setSaving(true);
     try {
+      const { password, ...connection } = values;
       const result = source
         ? await updateSource(source.id, {
-            ...values,
-            ...(values.password ? { password: values.password } : {})
+            ...connection,
+            ...(password ? { password } : {})
           })
         : await addSource(values);
       onSaved(result.id);
@@ -188,12 +189,12 @@ export function SourceForm({
       className="space-y-4 rounded-md border bg-card p-5"
     >
       <h2 className="text-base font-semibold">
-        {source ? `Edit ${source.label}` : "External MariaDB source"}
+        {source ? `Edit server connection: ${source.label}` : "Connect to a MariaDB server"}
       </h2>
       <p className="text-sm text-muted-foreground">
         {source
-          ? "Choose a database from this connection, or create a name. Leave the password blank to keep the saved secret."
-          : "Save the connection first, then choose a database from the server. The password is encrypted."}
+          ? "The database is optional. Choose one for migration analysis, or leave it blank to keep a server-level connection. Leave the password blank to keep the saved secret."
+          : "Test and save the server connection first. Database is optional; choose one later for migration analysis. The password is encrypted."}
       </p>
       <WorkspaceFormGrid>
         <SuggestionField
@@ -245,7 +246,7 @@ export function SourceForm({
         <div className="space-y-2">
           {source ? (
             <>
-              <WorkspaceFormField label="Database">
+              <WorkspaceFormField label="Database (optional)">
                 <div className="flex items-center gap-2">
                   <div className="min-w-0 flex-1">
                     <WorkspaceAutocomplete
@@ -276,7 +277,7 @@ export function SourceForm({
               </WorkspaceFormField>
             </>
           ) : (
-            <WorkspaceFormField label="Database">
+            <WorkspaceFormField label="Database (optional)">
               <Input disabled placeholder="Save connection to fetch databases" />
             </WorkspaceFormField>
           )}

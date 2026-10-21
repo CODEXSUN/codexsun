@@ -11,7 +11,11 @@ export const studentEnrollmentSchema = z.strictObject({
   emergencyContact: z.string().trim().max(32).nullable().optional(),
   medicalNotes: z.string().trim().max(1000).optional().default(""),
   address: z.string().trim().max(255).optional().default(""),
-  programUuid: z.string().regex(/^[a-f0-9]{8}$/).nullable().optional()
+  programUuid: z
+    .string()
+    .regex(/^[a-f0-9]{8}$/)
+    .nullable()
+    .optional()
 });
 
 export const memberPayloadSchema = z.strictObject({
@@ -25,8 +29,16 @@ export const memberPayloadSchema = z.strictObject({
   emergencyContact: z.string().trim().max(32).nullable().default(null),
   medicalNotes: z.string().trim().max(1000).default(""),
   address: z.string().trim().max(255).default(""),
-  programUuid: z.string().regex(/^[a-f0-9]{8}$/).nullable().default(null),
-  masterUuid: z.string().regex(/^[a-f0-9]{8}$/).nullable().default(null),
+  programUuid: z
+    .string()
+    .regex(/^[a-f0-9]{8}$/)
+    .nullable()
+    .default(null),
+  masterUuid: z
+    .string()
+    .regex(/^[a-f0-9]{8}$/)
+    .nullable()
+    .default(null),
   role: z.enum(["student", "master"]).default("student"),
   status: z.enum(["pending", "active", "suspended", "graduated"]).default("pending"),
   progressNote: z.string().trim().max(2000).default(""),
@@ -38,6 +50,19 @@ export const memberRecordSchema = memberPayloadSchema.extend({
   createdAt: z.string(),
   updatedAt: z.string()
 });
+
+export const memberPhotoUploadSchema = z.strictObject({
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  contentBase64: z.string().min(1).max(2_800_000)
+});
+
+export const memberPhotoSchema = z.strictObject({
+  mimeType: memberPhotoUploadSchema.shape.mimeType,
+  contentBase64: z.string(),
+  updatedAt: z.string()
+});
+
+export const memberPhotoMetadataSchema = memberPhotoSchema.omit({ contentBase64: true });
 
 export const memberActivitySchema = z.strictObject({
   uuid: z.string(),
@@ -55,10 +80,7 @@ export const memberPortalSchema = z.strictObject({
   members: z.array(memberRecordSchema)
 });
 
-import {
-  baseListQuerySchema,
-  createListResponseSchema
-} from "../../sportsclub.pagination.js";
+import { baseListQuerySchema, createListResponseSchema } from "../../sportsclub.pagination.js";
 
 export const memberSelectableColumns = [
   "uuid",

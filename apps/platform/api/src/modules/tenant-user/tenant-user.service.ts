@@ -160,7 +160,7 @@ export class TenantUserService {
     try {
       return await work();
     } catch (error) {
-      if (isDuplicate(error)) throw AppError.conflict("User email already exists.");
+      if (isDuplicate(error)) throw AppError.conflict("User email or username already exists.");
       throw error;
     }
   }
@@ -179,9 +179,15 @@ export class TenantUserService {
 }
 function normalize(input: TenantUserSavePayload, creating: boolean): TenantUserSavePayload {
   const password = input.password?.trim();
+  const username = input.username?.trim().toLowerCase() || null;
+  if (username && !/^[a-z0-9][a-z0-9._-]{2,79}$/.test(username))
+    throw AppError.validation(
+      "Username must be 3–80 letters, numbers, dots, underscores or hyphens, starting with a letter or number."
+    );
   if (creating && (!password || password.length < 8))
     throw AppError.validation("Password must contain at least 8 characters.");
   return {
+    ...(input.username !== undefined ? { username } : {}),
     email: input.email.trim().toLowerCase(),
     name: input.name.trim(),
     ...(password ? { password } : {}),

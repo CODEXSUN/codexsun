@@ -14,7 +14,12 @@ export const sportsclubMigration = {
   description: "Create all sportsclub multi-tenant tables in required dependency order."
 };
 
-export const sportsclubTenantMigrations = [sportsclubMigration];
+export const sportsclubMemberPhotoMigration = {
+  name: "sportsclub.member.photos",
+  description: "Create tenant-private member photo storage for existing Sportsclub tenants."
+};
+
+export const sportsclubTenantMigrations = [sportsclubMigration, sportsclubMemberPhotoMigration];
 
 export async function migrateSportsclubDatabase(db: Kysely<SportsclubDatabase>): Promise<void> {
   await migrateProgramModule(db);
@@ -32,6 +37,7 @@ export const migrateSportsclub = migrateSportsclubDatabase;
 export async function rollbackSportsclubDatabase(db: Kysely<SportsclubDatabase>): Promise<void> {
   const tables = [
     "sportsclub_activity",
+    "sportsclub_member_photos",
     "sportsclub_enquiries",
     "sportsclub_events",
     "sportsclub_progress",

@@ -3,6 +3,7 @@ import type { Tenant, TenantSavePayload } from "./tenant.types.js";
 import { sql } from "kysely";
 import { getPlatformDatabase } from "../../database/platform-database.js";
 import { getTenantDatabase } from "../../database/tenant-database.js";
+import { findTenantUserForLogin } from "../tenant-user/index.js";
 import {
   defaultTenantDomainForSlug,
   normalizeTenantDomain,
@@ -225,6 +226,10 @@ export class TenantRepository {
       .where(sql<string>`LOWER(email)`, "=", email.trim().toLowerCase())
       .executeTakeFirst();
     return row as TenantUserRow | undefined;
+  }
+
+  findTenantUserByLogin(tenant: Tenant, identifier: string) {
+    return findTenantUserForLogin(getTenantDatabase(tenant), identifier);
   }
 
   async updateTenantUserPasswordHash(tenant: Tenant, userUuid: string, passwordHash: string) {

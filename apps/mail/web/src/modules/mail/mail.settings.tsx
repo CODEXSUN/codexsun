@@ -84,6 +84,7 @@ export function MailSettingsForm({
             </div>
           ) : null}
           <WorkspaceAnimatedTabs
+            contentPadding
             value={activeTab}
             onValueChange={setActiveTab}
             keepMounted

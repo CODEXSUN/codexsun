@@ -2,12 +2,17 @@ import { AppError } from "@codexsun/framework/errors";
 import type { SportsclubContext } from "../../sportsclub.types.js";
 import type { MasterRepository } from "../master/master.repository.js";
 import type { ListResponse } from "../../sportsclub.pagination.js";
-import { parseMemberPayload, studentEnrollmentSchema } from "./member.schema.js";
+import {
+  memberPhotoUploadSchema,
+  parseMemberPayload,
+  studentEnrollmentSchema
+} from "./member.schema.js";
 import type { MemberRepository } from "./member.repository.js";
 import type {
   MemberActivity,
   MemberListQuery,
   MemberPayload,
+  MemberPhoto,
   MemberPortal,
   MemberRecord
 } from "./member.types.js";
@@ -44,9 +49,42 @@ export class MemberService {
     if (this.context.isSuperAdmin || this.context.isClubAdmin) return member;
     const actorEmail = (this.context.actorEmail ?? "").toLowerCase();
     const master = actorEmail ? await this.masterRepository.byEmail(actorEmail) : null;
-    if (master?.status === "suspended") throw AppError.forbidden("Your club membership is suspended.");
+    if (master?.status === "suspended")
+      throw AppError.forbidden("Your club membership is suspended.");
     if (master && member.masterUuid === master.uuid && member.role === "student") return member;
     throw AppError.forbidden("Club administrator or assigned master access required.");
+  }
+
+  async readPhoto(uuid: string): Promise<MemberPhoto> {
+    const member = await this.repository.find(uuid);
+    if (!member || member.role !== "student") throw AppError.notFound("Student not found.");
+    await this.assertPhotoReadAccess(member);
+    const photo = await this.repository.readPhoto(uuid);
+    if (!photo) throw AppError.notFound("Student photo not found.");
+    return photo;
+  }
+
+  async uploadPhoto(uuid: string, input: unknown): Promise<Omit<MemberPhoto, "contentBase64">> {
+    this.assertAdmin();
+    const member = await this.repository.find(uuid);
+    if (!member || member.role !== "student") throw AppError.notFound("Student not found.");
+    const payload = memberPhotoUploadSchema.parse(input);
+    const bytes = decodeMemberPhoto(payload.mimeType, payload.contentBase64);
+    return this.repository.savePhoto(
+      uuid,
+      payload.mimeType,
+      bytes,
+      this.context.actorEmail ?? "admin"
+    );
+  }
+
+  private async assertPhotoReadAccess(member: MemberRecord): Promise<void> {
+    if (this.context.isSuperAdmin || this.context.isClubAdmin) return;
+    const actorEmail = (this.context.actorEmail ?? "").toLowerCase();
+    if (actorEmail && member.email.toLowerCase() === actorEmail) return;
+    const master = actorEmail ? await this.masterRepository.byEmail(actorEmail) : undefined;
+    if (master?.status === "active" && member.masterUuid === master.uuid) return;
+    throw AppError.forbidden("Access denied to this student photo.");
   }
 
   async portal(): Promise<MemberPortal> {
@@ -193,10 +231,7 @@ export class MemberService {
       throw AppError.conflict("This email already belongs to a club member.");
     }
 
-    if (
-      current?.role === "master" &&
-      (payload.role !== "master" || payload.status !== "active")
-    ) {
+    if (current?.role === "master" && (payload.role !== "master" || payload.status !== "active")) {
       const assignedStudents = await this.repository.studentsByMaster(current.uuid);
       if (assignedStudents.length > 0) {
         throw AppError.conflict(
@@ -273,4 +308,30 @@ export class MemberService {
       throw AppError.forbidden("Club super admin access is required.");
     }
   }
+}
+
+function decodeMemberPhoto(mimeType: MemberPhoto["mimeType"], contentBase64: string): Uint8Array {
+  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(contentBase64)) {
+    throw AppError.validation("Photo content must be valid base64.");
+  }
+  const bytes = Buffer.from(contentBase64, "base64");
+  if (bytes.byteLength === 0 || bytes.byteLength > 2 * 1024 * 1024) {
+    throw AppError.validation("Student photo must be 2 MiB or smaller.");
+  }
+  const jpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  const png =
+    bytes.length >= 8 &&
+    bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const webp =
+    bytes.length >= 12 &&
+    bytes.toString("ascii", 0, 4) === "RIFF" &&
+    bytes.toString("ascii", 8, 12) === "WEBP";
+  if (!(
+    (mimeType === "image/jpeg" && jpeg) ||
+    (mimeType === "image/png" && png) ||
+    (mimeType === "image/webp" && webp)
+  )) {
+    throw AppError.validation("Photo bytes must match the selected JPEG, PNG, or WebP format.");
+  }
+  return bytes;
 }

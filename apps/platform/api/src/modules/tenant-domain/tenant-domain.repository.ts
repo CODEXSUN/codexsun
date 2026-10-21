@@ -186,7 +186,7 @@ export function isCanonicalAppHost(value: string) {
 
 export function isSharedApplicationHost(value: string) {
   const host = normalizeTenantDomain(value);
-  if (host === canonicalAppHost()) return true;
+  if (host === canonicalAppHost() || host === "codexsun.com") return true;
   return env.NODE_ENV !== "production" && (host === "localhost" || host === "127.0.0.1");
 }
 

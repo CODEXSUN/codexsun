@@ -6,14 +6,34 @@ import Fastify from "fastify";
 import type { SportsclubContext, SportsclubDatabase } from "../sportsclub.types.js";
 import { migrateSportsclubDatabase } from "../sportsclub.migration.js";
 import { seedSportsclubDatabase } from "../sportsclub.seed.js";
-import { ProgramRepository, ProgramService, registerProgramRoutes } from "../modules/program/index.js";
+import {
+  ProgramRepository,
+  ProgramService,
+  registerProgramRoutes
+} from "../modules/program/index.js";
 import { MasterRepository, MasterService, registerMasterRoutes } from "../modules/master/index.js";
 import { MemberRepository, MemberService, registerMemberRoutes } from "../modules/member/index.js";
-import { SessionRepository, SessionService, registerSessionRoutes } from "../modules/session/index.js";
-import { AttendanceRepository, AttendanceService, registerAttendanceRoutes } from "../modules/attendance/index.js";
-import { ProgressRepository, ProgressService, registerProgressRoutes } from "../modules/progress/index.js";
+import {
+  SessionRepository,
+  SessionService,
+  registerSessionRoutes
+} from "../modules/session/index.js";
+import {
+  AttendanceRepository,
+  AttendanceService,
+  registerAttendanceRoutes
+} from "../modules/attendance/index.js";
+import {
+  ProgressRepository,
+  ProgressService,
+  registerProgressRoutes
+} from "../modules/progress/index.js";
 import { EventRepository, EventService, registerEventRoutes } from "../modules/event/index.js";
-import { EnquiryRepository, EnquiryService, registerEnquiryRoutes } from "../modules/enquiry/index.js";
+import {
+  EnquiryRepository,
+  EnquiryService,
+  registerEnquiryRoutes
+} from "../modules/enquiry/index.js";
 
 function createInMemoryDatabase(): Kysely<SportsclubDatabase> {
   const raw = new DatabaseSync(":memory:");
@@ -26,9 +46,12 @@ function createInMemoryDatabase(): Kysely<SportsclubDatabase> {
           const statement = raw.prepare(sql);
           return {
             reader: statement.columns().length > 0,
-            all: (parameters: readonly unknown[]) => statement.all(...(parameters as SQLInputValue[])),
-            run: (parameters: readonly unknown[]) => statement.run(...(parameters as SQLInputValue[])),
-            iterate: (parameters: readonly unknown[]) => statement.iterate(...(parameters as SQLInputValue[]))
+            all: (parameters: readonly unknown[]) =>
+              statement.all(...(parameters as SQLInputValue[])),
+            run: (parameters: readonly unknown[]) =>
+              statement.run(...(parameters as SQLInputValue[])),
+            iterate: (parameters: readonly unknown[]) =>
+              statement.iterate(...(parameters as SQLInputValue[]))
           };
         }
       }
@@ -36,10 +59,7 @@ function createInMemoryDatabase(): Kysely<SportsclubDatabase> {
   });
 }
 
-function createServices(
-  db: Kysely<SportsclubDatabase>,
-  context: SportsclubContext
-) {
+function createServices(db: Kysely<SportsclubDatabase>, context: SportsclubContext) {
   const programRepo = new ProgramRepository(db);
   const masterRepo = new MasterRepository(db);
   const memberRepo = new MemberRepository(db);
@@ -62,7 +82,13 @@ function createServices(
     masterService: new MasterService(masterRepo, context),
     memberService: new MemberService(memberRepo, masterRepo, context),
     sessionService: new SessionService(sessionRepo, programRepo, masterRepo, context),
-    attendanceService: new AttendanceService(attendanceRepo, sessionRepo, memberRepo, masterRepo, context),
+    attendanceService: new AttendanceService(
+      attendanceRepo,
+      sessionRepo,
+      memberRepo,
+      masterRepo,
+      context
+    ),
     progressService: new ProgressService(progressRepo, memberRepo, masterRepo, context),
     eventService: new EventService(eventRepo, context),
     enquiryService: new EnquiryService(enquiryRepo, context)
@@ -123,15 +149,34 @@ test("sportsclub: migrations and seeds run idempotently without publishing unver
     assert.equal((await memberRepo.list({ name: "Kabilan" })).total, 1);
     const masterPrograms = new ProgramService(
       programRepo,
-      { actorRole: "master", actorEmail: "veerapandian@tenkasisports.test", isClubAdmin: false, isSuperAdmin: false },
-      masterRepo, memberRepo, sessionRepo
+      {
+        actorRole: "master",
+        actorEmail: "veerapandian@tenkasisports.test",
+        isClubAdmin: false,
+        isSuperAdmin: false
+      },
+      masterRepo,
+      memberRepo,
+      sessionRepo
     );
     const assignedPrograms = await masterPrograms.listLookups();
-    assert.deepEqual(assignedPrograms.items.map((item) => item.uuid), ["a0010001"]);
+    assert.deepEqual(
+      assignedPrograms.items.map((item) => item.uuid),
+      ["a0010001"]
+    );
     await assert.rejects(() => masterPrograms.get("a0010002"));
-    const studentPrograms = new ProgramService(programRepo, {
-      actorRole: "student", actorEmail: "kabilan@tenkasisports.test", isClubAdmin: false, isSuperAdmin: false
-    }, masterRepo, memberRepo, sessionRepo);
+    const studentPrograms = new ProgramService(
+      programRepo,
+      {
+        actorRole: "student",
+        actorEmail: "kabilan@tenkasisports.test",
+        isClubAdmin: false,
+        isSuperAdmin: false
+      },
+      masterRepo,
+      memberRepo,
+      sessionRepo
+    );
     await assert.rejects(() => studentPrograms.listLookups());
   } finally {
     await db.destroy();
@@ -144,7 +189,12 @@ test("sportsclub: student enrollment, strict payload handling, master assignment
     await migrateSportsclubDatabase(db);
     await seedSportsclubDatabase(db);
 
-    const adminCtx: SportsclubContext = { actorEmail: "admin@tenkasisports.test", actorRole: "super_admin", isClubAdmin: true, isSuperAdmin: true };
+    const adminCtx: SportsclubContext = {
+      actorEmail: "admin@tenkasisports.test",
+      actorRole: "super_admin",
+      isClubAdmin: true,
+      isSuperAdmin: true
+    };
     const admin = createServices(db, adminCtx);
 
     // Second coach
@@ -164,7 +214,12 @@ test("sportsclub: student enrollment, strict payload handling, master assignment
     });
 
     // 1. Student self-enrollment (public / student)
-    const studentCtx: SportsclubContext = { actorEmail: "newstudent@example.test", actorRole: "student", isClubAdmin: false, isSuperAdmin: false };
+    const studentCtx: SportsclubContext = {
+      actorEmail: "newstudent@example.test",
+      actorRole: "student",
+      isClubAdmin: false,
+      isSuperAdmin: false
+    };
     const studentService = createServices(db, studentCtx).memberService;
 
     const pending = await studentService.enroll({
@@ -187,7 +242,11 @@ test("sportsclub: student enrollment, strict payload handling, master assignment
 
     // Re-enrollment with same email must fail
     await assert.rejects(
-      studentService.enroll({ name: "Duplicate", email: "newstudent@example.test", phone: "+91 000" }),
+      studentService.enroll({
+        name: "Duplicate",
+        email: "newstudent@example.test",
+        phone: "+91 000"
+      }),
       /already have a club membership/
     );
 
@@ -261,7 +320,12 @@ test("sportsclub: role-based access control, progress evaluations, privacy, and 
     const studentEmail = "kabilan@tenkasisports.test";
     const otherStudentEmail = "otherstudent@tenkasisports.test";
 
-    const admin = createServices(db, { actorEmail: "admin@tenkasisports.test", actorRole: "super_admin", isClubAdmin: true, isSuperAdmin: true });
+    const admin = createServices(db, {
+      actorEmail: "admin@tenkasisports.test",
+      actorRole: "super_admin",
+      isClubAdmin: true,
+      isSuperAdmin: true
+    });
 
     // Coach 2
     const coach2 = await admin.masterService.create({
@@ -280,10 +344,30 @@ test("sportsclub: role-based access control, progress evaluations, privacy, and 
     });
     assert.ok(coach2.uuid);
 
-    const master1 = createServices(db, { actorEmail: master1Email, actorRole: "master", isClubAdmin: false, isSuperAdmin: false });
-    const master2 = createServices(db, { actorEmail: master2Email, actorRole: "master", isClubAdmin: false, isSuperAdmin: false });
-    const student = createServices(db, { actorEmail: studentEmail, actorRole: "student", isClubAdmin: false, isSuperAdmin: false });
-    const otherStudent = createServices(db, { actorEmail: otherStudentEmail, actorRole: "student", isClubAdmin: false, isSuperAdmin: false });
+    const master1 = createServices(db, {
+      actorEmail: master1Email,
+      actorRole: "master",
+      isClubAdmin: false,
+      isSuperAdmin: false
+    });
+    const master2 = createServices(db, {
+      actorEmail: master2Email,
+      actorRole: "master",
+      isClubAdmin: false,
+      isSuperAdmin: false
+    });
+    const student = createServices(db, {
+      actorEmail: studentEmail,
+      actorRole: "student",
+      isClubAdmin: false,
+      isSuperAdmin: false
+    });
+    const otherStudent = createServices(db, {
+      actorEmail: otherStudentEmail,
+      actorRole: "student",
+      isClubAdmin: false,
+      isSuperAdmin: false
+    });
 
     // 1. Student self portal shows only self
     const studentPortal = await student.memberService.portal();
@@ -341,10 +425,15 @@ test("sportsclub: role-based access control, progress evaluations, privacy, and 
     assert.equal(evalRecord.score, 92);
 
     // 7. Student view of progress excludes private instructor notes
-    const studentProgressList = (await student.progressService.listForMember("d0010001")) as unknown as Record<string, unknown>[];
+    const studentProgressList = (await student.progressService.listForMember(
+      "d0010001"
+    )) as unknown as Record<string, unknown>[];
     assert.equal(studentProgressList.length, 2);
     assert.equal(studentProgressList[0]?.privateNotes, undefined);
-    assert.equal(studentProgressList[0]?.assessment, "Outstanding coordination and precision in double-stick drills.");
+    assert.equal(
+      studentProgressList[0]?.assessment,
+      "Outstanding coordination and precision in double-stick drills."
+    );
 
     // 8. Other unrelated student cannot view Kabilan's progress (cross-account privacy)
     await assert.rejects(
@@ -398,6 +487,15 @@ test("sportsclub: cross-tenant database isolation", async () => {
     assert.equal(tenantAMembers.pagination, null);
     assert.equal(tenantAMembers.items[0]?.name, "S. Kabilan");
 
+    await tenantARepo.savePhoto(
+      tenantAMembers.items[0]!.uuid,
+      "image/png",
+      Buffer.from("iVBORw0KGgo=", "base64"),
+      "admin@tenant-a.test"
+    );
+    assert.ok(await tenantARepo.readPhoto(tenantAMembers.items[0]!.uuid));
+    assert.equal(await tenantBRepo.readPhoto(tenantAMembers.items[0]!.uuid), undefined);
+
     // Operations in Tenant B cannot see or touch Tenant A records
     assert.equal(await tenantBRepo.find(tenantAMembers.items[0]!.uuid), undefined);
   } finally {
@@ -432,14 +530,55 @@ test("sportsclub: Fastify contract routes enforce authentication, authorization,
       };
     };
 
-    registerProgramRoutes(app, (req) => new ProgramService(new ProgramRepository(db), getContext(req)));
-    registerMasterRoutes(app, (req) => new MasterService(new MasterRepository(db), getContext(req)));
-    registerMemberRoutes(app, (req) => new MemberService(new MemberRepository(db), new MasterRepository(db), getContext(req)));
-    registerSessionRoutes(app, (req) => new SessionService(new SessionRepository(db), new ProgramRepository(db), new MasterRepository(db), getContext(req)));
-    registerAttendanceRoutes(app, (req) => new AttendanceService(new AttendanceRepository(db), new SessionRepository(db), new MemberRepository(db), new MasterRepository(db), getContext(req)));
-    registerProgressRoutes(app, (req) => new ProgressService(new ProgressRepository(db), new MemberRepository(db), new MasterRepository(db), getContext(req)));
+    registerProgramRoutes(
+      app,
+      (req) => new ProgramService(new ProgramRepository(db), getContext(req))
+    );
+    registerMasterRoutes(
+      app,
+      (req) => new MasterService(new MasterRepository(db), getContext(req))
+    );
+    registerMemberRoutes(
+      app,
+      (req) =>
+        new MemberService(new MemberRepository(db), new MasterRepository(db), getContext(req))
+    );
+    registerSessionRoutes(
+      app,
+      (req) =>
+        new SessionService(
+          new SessionRepository(db),
+          new ProgramRepository(db),
+          new MasterRepository(db),
+          getContext(req)
+        )
+    );
+    registerAttendanceRoutes(
+      app,
+      (req) =>
+        new AttendanceService(
+          new AttendanceRepository(db),
+          new SessionRepository(db),
+          new MemberRepository(db),
+          new MasterRepository(db),
+          getContext(req)
+        )
+    );
+    registerProgressRoutes(
+      app,
+      (req) =>
+        new ProgressService(
+          new ProgressRepository(db),
+          new MemberRepository(db),
+          new MasterRepository(db),
+          getContext(req)
+        )
+    );
     registerEventRoutes(app, (req) => new EventService(new EventRepository(db), getContext(req)));
-    registerEnquiryRoutes(app, (req) => new EnquiryService(new EnquiryRepository(db), getContext(req)));
+    registerEnquiryRoutes(
+      app,
+      (req) => new EnquiryService(new EnquiryRepository(db), getContext(req))
+    );
 
     // 1. Public endpoints work without auth headers
     const publicPrograms = await app.inject({ method: "GET", url: "/sportsclub/public/programs" });
@@ -518,17 +657,99 @@ test("sportsclub: Fastify contract routes enforce authentication, authorization,
     assert.equal(adminEndpointAsAdmin.json().data.total, 2);
     assert.equal(adminEndpointAsAdmin.json().data.pagination, null);
 
-    const adminHeaders = { "x-test-actor": "admin@tenkasisports.test", "x-test-role": "super_admin" };
-    const studentHeaders = { "x-test-actor": "kabilan@tenkasisports.test", "x-test-role": "student" };
+    const photoUrl = "/sportsclub/members/d0010001/photo";
+    const photoBefore = await app.inject({
+      method: "GET",
+      url: photoUrl,
+      headers: { "x-test-actor": "admin@tenkasisports.test", "x-test-role": "super_admin" }
+    });
+    assert.equal(photoBefore.statusCode, 404);
+    const photoPayload = {
+      mimeType: "image/png",
+      contentBase64:
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII="
+    };
+    const rejectedPhoto = await app.inject({
+      method: "PUT",
+      url: photoUrl,
+      headers: { "x-test-actor": "kabilan@tenkasisports.test", "x-test-role": "student" },
+      payload: photoPayload
+    });
+    assert.equal(rejectedPhoto.statusCode, 403);
+    const invalidPhoto = await app.inject({
+      method: "PUT",
+      url: photoUrl,
+      headers: { "x-test-actor": "admin@tenkasisports.test", "x-test-role": "super_admin" },
+      payload: { mimeType: "image/png", contentBase64: Buffer.from("not a PNG").toString("base64") }
+    });
+    assert.equal(invalidPhoto.statusCode, 400);
+    const invalidMime = await app.inject({
+      method: "PUT",
+      url: photoUrl,
+      headers: { "x-test-actor": "admin@tenkasisports.test", "x-test-role": "super_admin" },
+      payload: { mimeType: "image/svg+xml", contentBase64: photoPayload.contentBase64 }
+    });
+    assert.equal(invalidMime.statusCode, 400);
+    const oversizedPhoto = await app.inject({
+      method: "PUT",
+      url: photoUrl,
+      headers: { "x-test-actor": "admin@tenkasisports.test", "x-test-role": "super_admin" },
+      payload: {
+        mimeType: "image/png",
+        contentBase64: Buffer.concat([
+          Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+          Buffer.alloc(2 * 1024 * 1024)
+        ]).toString("base64")
+      }
+    });
+    assert.equal(oversizedPhoto.statusCode, 400);
+    const photoSaved = await app.inject({
+      method: "PUT",
+      url: photoUrl,
+      headers: { "x-test-actor": "admin@tenkasisports.test", "x-test-role": "super_admin" },
+      payload: photoPayload
+    });
+    assert.equal(photoSaved.statusCode, 200);
+    assert.equal(photoSaved.json().data.mimeType, "image/png");
+    assert.equal(photoSaved.json().data.contentBase64, undefined);
+    const photoRead = await app.inject({
+      method: "GET",
+      url: photoUrl,
+      headers: { "x-test-actor": "kabilan@tenkasisports.test", "x-test-role": "student" }
+    });
+    assert.equal(photoRead.statusCode, 200);
+    assert.equal(photoRead.headers["cache-control"], "private, no-store");
+    assert.equal(photoRead.json().data.contentBase64, photoPayload.contentBase64);
+
+    const adminHeaders = {
+      "x-test-actor": "admin@tenkasisports.test",
+      "x-test-role": "super_admin"
+    };
+    const studentHeaders = {
+      "x-test-actor": "kabilan@tenkasisports.test",
+      "x-test-role": "student"
+    };
     for (const leaf of ["programs", "masters", "members", "sessions"]) {
-      const lookup = await app.inject({ method: "GET", url: `/sportsclub/${leaf}/lookups?search=Silambam&page=1`, headers: adminHeaders });
+      const lookup = await app.inject({
+        method: "GET",
+        url: `/sportsclub/${leaf}/lookups?search=Silambam&page=1`,
+        headers: adminHeaders
+      });
       assert.equal(lookup.statusCode, 200, `${leaf} lookups should be available to admins`);
       assert.ok(Array.isArray(lookup.json().data.items));
       assert.equal(typeof lookup.json().data.total, "number");
-      const denied = await app.inject({ method: "GET", url: `/sportsclub/${leaf}/lookups`, headers: studentHeaders });
+      const denied = await app.inject({
+        method: "GET",
+        url: `/sportsclub/${leaf}/lookups`,
+        headers: studentHeaders
+      });
       assert.equal(denied.statusCode, 403, `${leaf} lookups must preserve role access`);
     }
-    const memberDetail = await app.inject({ method: "GET", url: "/sportsclub/members/d0010001", headers: adminHeaders });
+    const memberDetail = await app.inject({
+      method: "GET",
+      url: "/sportsclub/members/d0010001",
+      headers: adminHeaders
+    });
     assert.equal(memberDetail.statusCode, 200);
     assert.equal(memberDetail.json().data.uuid, "d0010001");
     const seededAttendance = (await new AttendanceRepository(db).byMember("d0010001"))[0]!;
@@ -540,44 +761,72 @@ test("sportsclub: Fastify contract routes enforce authentication, authorization,
       remarks: "Updated after roll call"
     };
     const forbiddenAttendanceEdit = await app.inject({
-      method: "PUT", url: `/sportsclub/attendance/${seededAttendance.uuid}`,
-      headers: studentHeaders, payload: attendancePayload
+      method: "PUT",
+      url: `/sportsclub/attendance/${seededAttendance.uuid}`,
+      headers: studentHeaders,
+      payload: attendancePayload
     });
     assert.equal(forbiddenAttendanceEdit.statusCode, 403);
     const attendanceEdit = await app.inject({
-      method: "PUT", url: `/sportsclub/attendance/${seededAttendance.uuid}`,
-      headers: adminHeaders, payload: attendancePayload
+      method: "PUT",
+      url: `/sportsclub/attendance/${seededAttendance.uuid}`,
+      headers: adminHeaders,
+      payload: attendancePayload
     });
     assert.equal(attendanceEdit.statusCode, 200);
     assert.equal(attendanceEdit.json().data.status, "late");
     const progressDetail = await app.inject({
-      method: "GET", url: "/sportsclub/progress/f0020001", headers: adminHeaders
+      method: "GET",
+      url: "/sportsclub/progress/f0020001",
+      headers: adminHeaders
     });
     assert.equal(progressDetail.statusCode, 200);
-    assert.equal(progressDetail.json().data.privateNotes, "Ready for double-stick introductory drills next term.");
+    assert.equal(
+      progressDetail.json().data.privateNotes,
+      "Ready for double-stick introductory drills next term."
+    );
     const forbiddenProgressDetail = await app.inject({
-      method: "GET", url: "/sportsclub/progress/f0020001", headers: studentHeaders
+      method: "GET",
+      url: "/sportsclub/progress/f0020001",
+      headers: studentHeaders
     });
     assert.equal(forbiddenProgressDetail.statusCode, 403);
     const enquiryPayload = {
-      name: "Desk Visitor", email: "desk@example.test", phone: "", interest: "Silambam",
-      message: "Please contact this visitor.", consent: true, status: "new", notes: "", revision: 0
+      name: "Desk Visitor",
+      email: "desk@example.test",
+      phone: "",
+      interest: "Silambam",
+      message: "Please contact this visitor.",
+      consent: true,
+      status: "new",
+      notes: "",
+      revision: 0
     };
     const forbiddenEnquiryCreate = await app.inject({
-      method: "POST", url: "/sportsclub/enquiries", headers: studentHeaders, payload: enquiryPayload
+      method: "POST",
+      url: "/sportsclub/enquiries",
+      headers: studentHeaders,
+      payload: enquiryPayload
     });
     assert.equal(forbiddenEnquiryCreate.statusCode, 403);
     const enquiryCreate = await app.inject({
-      method: "POST", url: "/sportsclub/enquiries", headers: adminHeaders, payload: enquiryPayload
+      method: "POST",
+      url: "/sportsclub/enquiries",
+      headers: adminHeaders,
+      payload: enquiryPayload
     });
     assert.equal(enquiryCreate.statusCode, 200);
     assert.equal(enquiryCreate.json().data.email, "desk@example.test");
     const attendanceDeleteDenied = await app.inject({
-      method: "DELETE", url: `/sportsclub/attendance/${seededAttendance.uuid}/force`, headers: studentHeaders
+      method: "DELETE",
+      url: `/sportsclub/attendance/${seededAttendance.uuid}/force`,
+      headers: studentHeaders
     });
     assert.equal(attendanceDeleteDenied.statusCode, 403);
     const attendanceDelete = await app.inject({
-      method: "DELETE", url: `/sportsclub/attendance/${seededAttendance.uuid}/force`, headers: adminHeaders
+      method: "DELETE",
+      url: `/sportsclub/attendance/${seededAttendance.uuid}/force`,
+      headers: adminHeaders
     });
     assert.equal(attendanceDelete.statusCode, 200);
     assert.equal(await new AttendanceRepository(db).find(seededAttendance.uuid), undefined);

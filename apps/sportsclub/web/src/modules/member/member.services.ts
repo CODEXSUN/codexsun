@@ -34,6 +34,45 @@ export async function getMember(uuid: string): Promise<MemberRecord> {
   return sportsclubRequest<MemberRecord>(`/sportsclub/members/${uuid}`);
 }
 
+export type MemberPhoto = {
+  mimeType: "image/jpeg" | "image/png" | "image/webp";
+  contentBase64: string;
+  updatedAt: string;
+};
+
+export async function getMemberPhoto(uuid: string): Promise<MemberPhoto | null> {
+  try {
+    return await sportsclubRequest<MemberPhoto>(`/sportsclub/members/${uuid}/photo`);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Student photo not found.") return null;
+    throw error;
+  }
+}
+
+export async function uploadMemberPhoto(
+  uuid: string,
+  file: File
+): Promise<Pick<MemberPhoto, "mimeType" | "updatedAt">> {
+  const contentBase64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string" || !result.includes(","))
+        reject(new Error("Could not read the selected photo."));
+      else resolve(result.slice(result.indexOf(",") + 1));
+    };
+    reader.onerror = () => reject(new Error("Could not read the selected photo."));
+    reader.readAsDataURL(file);
+  });
+  return sportsclubRequest<Pick<MemberPhoto, "mimeType" | "updatedAt">>(
+    `/sportsclub/members/${uuid}/photo`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ mimeType: file.type, contentBase64 })
+    }
+  );
+}
+
 export async function createMember(payload: MemberSavePayload): Promise<MemberRecord> {
   return sportsclubRequest<MemberRecord>("/sportsclub/members", {
     method: "POST",
@@ -65,6 +104,8 @@ export async function updateMemberProgress(
 
 export async function listMemberLookups(search = ""): Promise<MemberLookup[]> {
   const query = new URLSearchParams({ search, page: "1" });
-  const page = await sportsclubRequest<{ items: MemberLookup[] }>(`/sportsclub/members/lookups?${query}`);
+  const page = await sportsclubRequest<{ items: MemberLookup[] }>(
+    `/sportsclub/members/lookups?${query}`
+  );
   return page.items;
 }

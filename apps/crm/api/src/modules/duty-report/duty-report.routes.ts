@@ -82,7 +82,6 @@ export function registerDutyReportRoutes(
     },
     handler: async ({ request }) => {
       const ctx = await context(request);
-      await ctx.authorize("crm.duty-report.view.all");
       const allowed = async (permission: string) => {
         try {
           await ctx.authorize(permission);
@@ -98,10 +97,12 @@ export function registerDutyReportRoutes(
           throw error;
         }
       };
+      const canViewAll = await allowed("crm.duty-report.view.all");
+      if (!canViewAll) await ctx.authorize("crm.duty-report.view.own");
       return {
         actorUserId: ctx.actorUserId,
         canCreate: await allowed("crm.duty-report.create.own"),
-        canViewAll: await allowed("crm.duty-report.view.all")
+        canViewAll
       };
     }
   });

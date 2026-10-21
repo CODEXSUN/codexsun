@@ -18,6 +18,7 @@ import {
   tenantStorageRoot
 } from "./storage-manager.paths.js";
 import type {
+  CompanyBrandingVariant,
   CompanyLogoUploadPayload,
   StorageDownloadInput,
   StorageEntry,
@@ -139,7 +140,7 @@ export class StorageManagerRepository {
     if (!tenant) throw new Error("Tenant was not found for storage.");
 
     const tenantKey = tenant.slug || tenant.tenantCode;
-    const fileName = input.variant === "logo-dark" ? "logo-dark.svg" : "logo.svg";
+    const fileName = companyBrandingFileName(input.variant);
     const companyId = positiveCompanyId(input.companyId);
     const logoFolder = `companies/${companyId}/logo`;
     const relativePath = `${logoFolder}/${fileName}`;
@@ -148,10 +149,10 @@ export class StorageManagerRepository {
     const buffer = Buffer.from(input.contentBase64, "base64");
 
     if (!isSafeSvg(buffer)) {
-      throw new Error("Company logos must be safe SVG files without scripts or external content.");
+      throw new Error("Company branding files must be safe SVG files without scripts or external content.");
     }
     if (buffer.byteLength > 640 * 1024) {
-      throw new Error("Company logos must be 640 KB or smaller.");
+      throw new Error("Company branding files must be 640 KB or smaller.");
     }
 
     await mkdir(resolveInsideStorage(base, logoFolder), { recursive: true });
@@ -171,12 +172,12 @@ export class StorageManagerRepository {
     return { path: `storage/${tenantKey}/public/${relativePath}`, variant: input.variant };
   }
 
-  async readCompanyLogo(tenantId: string, companyId: number, variant: "logo" | "logo-dark") {
+  async readCompanyLogo(tenantId: string, companyId: number, variant: CompanyBrandingVariant) {
     const tenant = await this.tenants.findByIdOrCode(tenantId);
     if (!tenant) throw new Error("Tenant was not found for storage.");
 
     const tenantKey = tenant.slug || tenant.tenantCode;
-    const fileName = variant === "logo-dark" ? "logo-dark.svg" : "logo.svg";
+    const fileName = companyBrandingFileName(variant);
     const base = tenantPublicStorageRoot(tenantKey);
     const filePath = await firstExistingFile(base, [
       `companies/${positiveCompanyId(companyId)}/logo/${fileName}`,
@@ -319,6 +320,12 @@ function positiveCompanyId(value: number) {
     throw new Error("Company logo storage requires a valid company ID.");
   }
   return value;
+}
+
+function companyBrandingFileName(variant: CompanyBrandingVariant) {
+  if (variant === "logo-dark") return "logo-dark.svg";
+  if (variant === "favicon") return "favicon.svg";
+  return "logo.svg";
 }
 
 function isFileNotFound(error: unknown) {

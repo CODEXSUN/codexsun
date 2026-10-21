@@ -48,7 +48,7 @@ export function DataMigrationSettings({ onOpenMigration }: { onOpenMigration: ()
       const items = await refresh();
       setAdding(false);
       setEditing(items.find((item) => item.id === id) ?? null);
-      toast.success("Platform MariaDB connection saved. Choose a source database when ready.");
+      toast.success("Platform server connection saved. Choose a database when ready.");
     } catch (reason) {
       setError(message(reason));
     } finally {
@@ -98,8 +98,8 @@ export function DataMigrationSettings({ onOpenMigration }: { onOpenMigration: ()
 
   return (
     <WorkspacePage
-      title="Migration Settings"
-      description="Set external MariaDB connection details and secrets for migration runs."
+      title="Database Settings"
+      description="Save MariaDB server connections for Migration and Migration Analysis only. These settings do not change CODEXSUN runtime databases."
     >
       <div className="flex flex-wrap items-center gap-2">
         {!adding && !editing ? (
@@ -110,26 +110,32 @@ export function DataMigrationSettings({ onOpenMigration }: { onOpenMigration: ()
               setAdding(true);
             }}
           >
-            Add source
+            Add server connection
           </Button>
         ) : null}
         <Button type="button" variant="outline" onClick={onOpenMigration}>
-          Open Migration
+          Open Migration Mapper
         </Button>
       </div>
       {currentConnection ? (
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-md border p-4">
           <div>
-            <h2 className="font-semibold">Current CODEXSUN MariaDB</h2>
+            <h2 className="font-semibold">Current CODEXSUN MariaDB server</h2>
             <p className="text-sm text-muted-foreground">
               {currentConnection.host}:{currentConnection.port} · {currentConnection.user}
             </p>
             <p className="text-sm text-muted-foreground">
-              Uses the server connection securely. The Platform master database is excluded.
+              Save this server connection for migration and analysis. The Platform master database
+              is excluded.
             </p>
           </div>
-          <Button type="button" variant="outline" disabled={usingCurrent} onClick={() => void useCurrentConnection()}>
-            {usingCurrent ? "Saving…" : "Use current connection"}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={usingCurrent}
+            onClick={() => void useCurrentConnection()}
+          >
+            {usingCurrent ? "Saving…" : "Add current server"}
           </Button>
         </section>
       ) : null}
@@ -147,7 +153,7 @@ export function DataMigrationSettings({ onOpenMigration }: { onOpenMigration: ()
               .then((items) => {
                 setAdding(false);
                 setEditing(items.find((item) => item.id === id) ?? null);
-                toast.success("Connection saved. Choose a database when ready.");
+                toast.success("Server connection saved. Choose a database when ready.");
               })
               .catch((reason: unknown) => setError(message(reason)));
           }}
@@ -159,10 +165,10 @@ export function DataMigrationSettings({ onOpenMigration }: { onOpenMigration: ()
         </p>
       ) : null}
       <section className="space-y-3">
-        <h2 className="text-base font-semibold">Saved sources</h2>
+        <h2 className="text-base font-semibold">Saved server connections</h2>
         <WorkspaceTable<SourceOption>
           data={sources}
-          emptyState="No external MariaDB source saved yet."
+          emptyState="No MariaDB server connection saved yet."
           columns={[
             { accessorKey: "label", header: "SOURCE" },
             {

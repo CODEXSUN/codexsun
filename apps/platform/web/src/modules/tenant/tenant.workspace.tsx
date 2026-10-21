@@ -540,7 +540,7 @@ function TenantShowPage({
         </div>
       }
     >
-      <WorkspaceAnimatedTabs tabs={tabs} value={activeTab} onValueChange={setActiveTab} />
+      <WorkspaceAnimatedTabs contentPadding tabs={tabs} value={activeTab} onValueChange={setActiveTab} />
     </WorkspacePage>
   );
 }
@@ -1207,7 +1207,7 @@ function TenantUpsertPage({
               {localBanner || errorMessage}
             </WorkspaceFormBanner>
           ) : null}
-          <WorkspaceAnimatedTabs tabs={tabs} value={activeTab} onValueChange={setActiveTab} />
+          <WorkspaceAnimatedTabs contentPadding tabs={tabs} value={activeTab} onValueChange={setActiveTab} />
         </div>
       </form>
     </WorkspaceUpsertPage>

@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `3e9d85a8789e63dcaf04ecfa11ded9fed974c537e72ee5ff946b71f1e48f12ba`
+Source SHA-256 (LF line endings): `c510c3d74ba229cdb835cd86eaae57fc31a01062d7f6b761957de42c1de8e797`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -10,6 +10,22 @@ Historical notes and unchecked plans retain their original status.
 
 ```markdown
 # Frappe tasks
+
+## Deterministic identity audit and actor attribution — 2026-10-20
+
+- [x] Add the Frappe Identity audit page and read-only API endpoint for local/Frappe User and Employee mapping fields.
+- [x] Report matched, mismatched, and unmapped users, including stale connection hashes, disabled or wrong-type Frappe users, email mismatches, inactive or duplicate Employees, and missing Employee references.
+- [x] Make imported activity and call-log creators resolve through saved mappings; preserve the remote owner if no local mapping exists.
+- [x] Correct CRM enquiry comments and task comments to show mapped user names instead of email-domain fragments.
+- [x] Keep import-generated initial enquiry events attributed to the mapped enquiry creator while later sync updates remain system-attributed.
+      Verification: 148 CRM/Frappe tests passed, including two identity-audit cases; local isolated CRM Duty, mobile customer, and Core contact-upsert E2E tests passed. API/web typechecks passed before final docs. Production/browser verification was not run.
+
+## Enquiry creator and assignee reconciliation — 2026-10-20
+
+- [x] Resolve imported enquiry creator from the source `user_employee` Employee mapping; fall back to the mapped Frappe document owner when no unique Employee mapping exists.
+- [x] Treat source `assigned_to_employee` as authoritative so removed, unmapped, or ambiguous assignments cannot leave a stale local assignee.
+- [x] Flag Employee codes assigned to multiple local users in the read-only identity audit.
+      Focused import and audit regression tests verify creator identity, unassignment, and ambiguous mapping detection.
 
 ## Sync direction audit - 2026-10-18
 

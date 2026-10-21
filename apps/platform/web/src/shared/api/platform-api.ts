@@ -274,7 +274,8 @@ function errorMessage(error: unknown) {
 export async function login(input: {
   corporateId?: string;
   desk: Desk;
-  email: string;
+  email?: string;
+  identifier?: string;
   password: string;
   tenantCode?: string;
 }) {

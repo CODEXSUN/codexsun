@@ -92,6 +92,7 @@ export function TenantUserWorkspace({ mode = "tenant" }: { mode?: "super-admin" 
           (!term ||
             record.name.toLowerCase().includes(term) ||
             record.email.toLowerCase().includes(term) ||
+            (record.username ?? "").toLowerCase().includes(term) ||
             record.roles.some((role) => role.label.toLowerCase().includes(term)))
       );
   }, [query.data, search, status, JSON.stringify(listTools.filters)]);

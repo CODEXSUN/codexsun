@@ -125,13 +125,19 @@ export function registerClosureRoutes(
     handler: async ({ query, request }) => {
       const scope = await context(request);
       requireReviewer(scope);
-      const ids = await scope.database
-        .selectFrom("crm_closure_requests")
-        .select("id")
-        .where("status", "=", query.status)
-        .orderBy("requested_at", "desc")
-        .limit(200)
-        .execute();
+      let requests = scope.database
+        .selectFrom("crm_closure_requests as request")
+        .innerJoin("crm_enquiries as enquiry", "enquiry.id", "request.enquiry_id")
+        .select("request.id")
+        .where("request.status", "=", query.status);
+      if (!scope.canViewAll)
+        requests = requests.where((eb) =>
+          eb.or([
+            eb("enquiry.assigned_user_id", "=", scope.actorUserId ?? -1),
+            eb("enquiry.created_by", "=", scope.actorEmail)
+          ])
+        );
+      const ids = await requests.orderBy("request.requested_at", "desc").limit(200).execute();
       return { items: await Promise.all(ids.map((row) => loadRequest(scope.database, row.id))) };
     }
   });
@@ -194,6 +200,19 @@ export function registerClosureRoutes(
           .forUpdate()
           .executeTakeFirst();
         if (!current) throw AppError.notFound("Closure request was not found.");
+        const parent = await trx
+          .selectFrom("crm_enquiries")
+          .select(["assigned_user_id", "created_by"])
+          .where("id", "=", current.enquiry_id)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!parent) throw AppError.notFound("Enquiry was not found.");
+        if (
+          !scope.canViewAll &&
+          (scope.actorUserId === null || parent.assigned_user_id !== scope.actorUserId) &&
+          parent.created_by.toLowerCase() !== scope.actorEmail.toLowerCase()
+        )
+          throw AppError.forbidden("You cannot review closure for this enquiry.");
         if (current.status !== "pending") {
           throw AppError.conflict("This closure request has already been reviewed.");
         }

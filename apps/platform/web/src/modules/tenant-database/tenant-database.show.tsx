@@ -186,7 +186,7 @@ export function TenantDatabaseShowPage({
         </div>
       }
     >
-      <WorkspaceAnimatedTabs tabs={tabs} value={activeTab} onValueChange={setActiveTab} />
+      <WorkspaceAnimatedTabs contentPadding tabs={tabs} value={activeTab} onValueChange={setActiveTab} />
     </WorkspacePage>
   );
 }

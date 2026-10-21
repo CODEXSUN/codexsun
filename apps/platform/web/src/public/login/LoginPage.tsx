@@ -125,7 +125,7 @@ export function LoginPage({ desk, title }: LoginPageProps) {
           ? { corporateId: corporateId.trim() }
           : {}),
         desk,
-        email,
+        ...(desk === "tenant" ? { identifier: email.trim() } : { email }),
         password
       });
 
@@ -194,13 +194,13 @@ export function LoginPage({ desk, title }: LoginPageProps) {
           />
         ) : null}
         <Field
-          autoComplete="email"
+          autoComplete={desk === "tenant" ? "username" : "email"}
           className="auth-field"
-          label="Email"
+          label={desk === "tenant" ? "Username or email" : "Email"}
           name="email"
           disabled={loading}
           onChange={(event: ChangeEvent<HTMLInputElement>) => setEmail(event.target.value)}
-          type="email"
+          type={desk === "tenant" ? "text" : "email"}
           value={email}
         />
         <Field

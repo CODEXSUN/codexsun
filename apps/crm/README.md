@@ -1,5 +1,20 @@
 # CRM
 
+## Record visibility
+
+Tenant Admin and Super Admin retain tenant-wide enquiry and task reads. Other roles see only
+records assigned to their active user or created by their email. Activities, overview totals,
+filters, direct record links, comments, and closure review inherit that record scope.
+Legacy non-admin `view-all` grants are disabled by the enquiry/task permission seeds and rejected
+by the runtime authorization policy even if restored manually.
+
+The editable `Team Head` role is available without assigning any users to it. Team membership
+and managed-team expansion are deferred; Manager and Team Head currently retain own-record scope.
+Contact 360 permissions and assignments are hidden from Access Control lists and pickers while
+the feature is unfinished. Existing Contact 360 data and grants are retained.
+
+Run `npm run test:e2e:crm-record-scope` for disposable MariaDB authorization and route regression tests.
+
 ## Frappe reference and comparison
 
 Use [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git) for custom Frappe schemas and functions.
@@ -8,6 +23,9 @@ Read the [CRM comparison](agent/FRAPPE-COMPARISON.md) and
 CRM remains locally authoritative for normal enquiries. Frappe-imported enquiries preserve their source timestamps and comments, and the approved Frappe live-sync path posts CRM enquiry changes back to the linked Frappe record. Reference parity does not authorize additional outbound integration beyond this explicit enquiry sync contract.
 See the [implemented Duty bindings](../frappe/agent/CRM-DUTY-FIELD-MAPPING.md) for frequency, Department, Employee, and report fields.
 Run `npm run test:crm-frappe` for CRM/Frappe unit tests and isolated Duty API/database E2E.
+
+Duty-report capability options are available to users with own-report or team-report read access.
+The options return permission flags only; team-wide report lists and summaries still require team-report read access.
 
 ## Optional task contacts
 

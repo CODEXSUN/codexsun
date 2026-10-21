@@ -14,6 +14,7 @@ import { tenantUserSchema } from "./tenant-user.schema";
 import type { TenantUser, TenantUserRoleOption, TenantUserSavePayload } from "./tenant-user.types";
 
 const emptyUser: TenantUserSavePayload = {
+  username: "",
   email: "",
   name: "",
   password: "",
@@ -61,6 +62,7 @@ export function TenantUserForm({
           record
             ? {
                 email: record.email,
+                username: record.username ?? "",
                 name: record.name,
                 password: "",
                 roleId: record.roles[0]?.id ?? 0,
@@ -139,7 +141,7 @@ function TenantUserFormBody({
         <WorkspaceFormBanner title="Unable to save">{shownError}</WorkspaceFormBanner>
       ) : null}
       <WorkspaceFormGrid columns={1}>
-        <WorkspaceFormField label="User name" required>
+        <WorkspaceFormField label="Display name" required>
           <Input
             aria-invalid={Boolean(fieldErrors.name)}
             autoFocus
@@ -153,6 +155,24 @@ function TenantUserFormBody({
             }}
           />
           {fieldErrors.name ? <p className="text-xs text-destructive">{fieldErrors.name}</p> : null}
+        </WorkspaceFormField>
+        <WorkspaceFormField label="Username (optional)">
+          <Input
+            aria-invalid={Boolean(fieldErrors.username)}
+            autoComplete="off"
+            maxLength={80}
+            value={value.username ?? ""}
+            onChange={(event) => {
+              setValue((current) => ({ ...current, username: event.target.value }));
+              setFieldErrors((current) => withoutFieldError(current, "username"));
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            Unique within this tenant. Users can sign in with this or their email.
+          </p>
+          {fieldErrors.username ? (
+            <p className="text-xs text-destructive">{fieldErrors.username}</p>
+          ) : null}
         </WorkspaceFormField>
         <WorkspaceFormField label="Email" required>
           <Input

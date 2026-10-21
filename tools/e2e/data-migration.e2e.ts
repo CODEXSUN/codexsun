@@ -16,7 +16,8 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
   const names = [
     `codexsun_mig_source_${suffix}`,
     `codexsun_mig_target_${suffix}`,
-    `codexsun_mig_master_${suffix}`
+    `codexsun_mig_master_${suffix}`,
+    `codexsun_mig_job_target_${suffix}`
   ];
   const config = {
     host: required("DB_HOST"),
@@ -31,13 +32,21 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
     database = new Kysely<unknown>({
       dialect: new MysqlDialect({ pool: createPool({ ...config, database: names[2] }) })
     });
+    await sqlAdmin(
+      admin,
+      names[2]!,
+      "CREATE TABLE tenants (id INT NOT NULL PRIMARY KEY) ENGINE=InnoDB"
+    );
+    await sqlAdmin(admin, names[2]!, "INSERT INTO tenants (id) VALUES (2), (3)");
     await migrateDataMigrationDatabase(database);
     await migrateDataMigrationDatabase(database);
     const source = await createConnection({ ...config, database: names[0] });
     const target = await createConnection({ ...config, database: names[1] });
+    const jobTarget = await createConnection({ ...config, database: names[3] });
     try {
       await source.query("CREATE TABLE sample (id INT PRIMARY KEY, label VARCHAR(32) NOT NULL)");
       await target.query("CREATE TABLE sample (id INT PRIMARY KEY, label VARCHAR(32) NOT NULL)");
+      await jobTarget.query("CREATE TABLE sample (id INT PRIMARY KEY, label VARCHAR(32) NOT NULL)");
       await source.query("INSERT INTO sample VALUES (1, 'first'), (2, 'second')");
       const service = new MigrationService(host(database, names, config));
       await assert.rejects(
@@ -84,10 +93,23 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
         });
         assert.equal(response.statusCode, 200);
         assert.ok((response.json().data as string[]).includes(names[0]!));
+        const updateResponse = await api.inject({
+          method: "PUT",
+          url: `/api/data-migration/sources/${sourceId}`,
+          payload: {
+            label: "Updated external source",
+            host: config.host,
+            port: config.port,
+            database: names[0],
+            user: config.user,
+            tlsMode: "disabled"
+          }
+        });
+        assert.equal(updateResponse.statusCode, 200, updateResponse.body);
       } finally {
         await api.close();
       }
-      assert.equal((await service.listSources())[0]?.label, "External test database");
+      assert.equal((await service.listSources())[0]?.label, "Updated external source");
       assert.equal(JSON.stringify(await service.listSources()).includes(config.password), false);
       const [secrets] = await admin.query<RowDataPacket[]>(
         `SELECT password_ciphertext FROM \`${names[2]}\`.data_migration_sources WHERE id = ?`,
@@ -134,7 +156,8 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
             user: config.user
           },
           "test@codexsun.app"
-        )
+        ),
+        /refused the connection/u
       );
       assert.equal((await service.listSources())[0]?.port, config.port);
       assert.deepEqual(await service.listTables(sourceId), ["sample"]);
@@ -147,8 +170,9 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
       });
       assert.equal((await service.copy(sourceId, 2, "sample", "test@codexsun.app")).copiedRows, 2);
       assert.equal(await count(target, "sample"), 2);
-      await assert.rejects(service.copy(sourceId, 2, "sample", "test@codexsun.app"), /empty/u);
       assert.equal((await service.listRuns())[0]?.status, "completed");
+      await assert.rejects(service.copy(sourceId, 2, "sample", "test@codexsun.app"), /empty/u);
+      assert.equal((await service.listRuns())[0]?.status, "failed");
 
       await source.query(
         "CREATE TABLE rollback_sample (id INT PRIMARY KEY, label VARCHAR(32) NOT NULL)"
@@ -160,12 +184,159 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
       await assert.rejects(service.copy(sourceId, 2, "rollback_sample", "test@codexsun.app"));
       assert.equal(await count(target, "rollback_sample"), 0);
       assert.equal((await service.listRuns())[0]?.status, "failed");
+
+      await source.query(
+        "CREATE TABLE mapped_sample (id INT PRIMARY KEY, old_label VARCHAR(32) NOT NULL)"
+      );
+      await target.query(
+        "CREATE TABLE mapped_sample (id INT PRIMARY KEY, new_label VARCHAR(32) NOT NULL, note VARCHAR(24) NOT NULL DEFAULT 'local')"
+      );
+      await jobTarget.query(
+        "CREATE TABLE mapped_sample (id INT PRIMARY KEY, new_label VARCHAR(32) NOT NULL, note VARCHAR(24) NOT NULL DEFAULT 'local')"
+      );
+      await source.query("INSERT INTO mapped_sample VALUES (1, 'first'), (2, 'second')");
+      const mapping = [
+        { sourceColumn: "id", targetColumn: "id" },
+        { sourceColumn: "old_label", targetColumn: "new_label" }
+      ];
+      const mappedPreview = await service.preview(sourceId, 2, "mapped_sample", mapping);
+      assert.equal(mappedPreview.compatible, true);
+      assert.equal(
+        (await service.copy(sourceId, 2, "mapped_sample", "test@codexsun.app", mapping)).copiedRows,
+        2
+      );
+      const [mappedRows] = await target.query<RowDataPacket[]>(
+        "SELECT * FROM mapped_sample ORDER BY id"
+      );
+      assert.deepEqual(mappedRows, [
+        { id: 1, new_label: "first", note: "local" },
+        { id: 2, new_label: "second", note: "local" }
+      ]);
+      assert.equal(await count(source, "mapped_sample"), 2);
+      await service.savePlan(sourceId, 2, "mapped_sample", mapping, "test@codexsun.app");
+      assert.deepEqual(await service.getPlan(sourceId, 2), [
+        { table: "mapped_sample", columnMappings: mapping }
+      ]);
+      await source.query(
+        "CREATE TABLE old_accounts (legacy_id INT NOT NULL, legacy_name VARCHAR(32) NOT NULL)"
+      );
+      await target.query(
+        "CREATE TABLE new_accounts (id INT NOT NULL, display_name VARCHAR(32) NOT NULL)"
+      );
+      await source.query("INSERT INTO old_accounts VALUES (1, 'Sukraa')");
+      const { id: jobId } = await service.createJob(
+        { sessionName: "Sukraa job", sourceId, sourceTenantId: null, targetTenantId: 2 },
+        "test@codexsun.app"
+      );
+      await service.renameJob(jobId, "Sukraa migration", "test@codexsun.app");
+      await service.saveJobTable(
+        jobId,
+        {
+          sourceTable: "old_accounts",
+          targetTable: "new_accounts",
+          mappings: [
+            { sourceColumn: "legacy_id", targetColumn: "id" },
+            { sourceColumn: "legacy_name", targetColumn: "display_name" }
+          ]
+        },
+        "test@codexsun.app"
+      );
+      const job = (await service.listJobs()).find((item) => item.id === jobId);
+      assert.equal(job?.sessionName, "Sukraa migration");
+      assert.equal(job?.sourceDatabase, names[0]);
+      assert.equal(job?.targetDatabase, names[1]);
+      assert.equal(job?.tableCount, 1);
+      const jobTables = await service.getJobTables(jobId);
+      assert.equal(jobTables[0]?.sourceTable, "old_accounts");
+      assert.equal(jobTables[0]?.targetTable, "new_accounts");
+      assert.equal(jobTables[0]?.sourceRows, 1);
+      assert.equal(jobTables[0]?.targetRows, 0);
+      assert.equal(jobTables[0]?.mappingStatus, "mapped");
+      assert.equal(jobTables[0]?.migrationStatus, "pending");
+      assert.equal(jobTables[0]?.columnMappings[0]?.by, "test@codexsun.app");
+      assert.ok(jobTables[0]?.columnMappings[0]?.id);
+      assert.equal(await count(source, "old_accounts"), 1);
+      await jobTarget.query(
+        "CREATE TABLE new_accounts (id INT NOT NULL, display_name VARCHAR(32) NOT NULL)"
+      );
+      await source.query("DROP TABLE old_accounts");
+      await source.query("DROP TABLE rollback_sample");
+      await target.query("DROP TABLE rollback_sample");
+      await target.query("TRUNCATE TABLE sample");
+      await target.query("TRUNCATE TABLE mapped_sample");
+      const sampleMapping = [
+        { sourceColumn: "id", targetColumn: "id" },
+        { sourceColumn: "label", targetColumn: "label" }
+      ];
+      await service.savePlan(sourceId, 2, "sample", sampleMapping, "test@codexsun.app");
+      await target.query(
+        "CREATE TRIGGER fail_sample_insert BEFORE INSERT ON sample FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'planned batch failure'"
+      );
+      await assert.rejects(
+        service.migratePlan(sourceId, 2, "test@codexsun.app"),
+        /planned batch failure/u
+      );
+      assert.equal(await count(target, "mapped_sample"), 0);
+      assert.equal(await count(target, "sample"), 0);
+      await target.query("DROP TRIGGER fail_sample_insert");
+      const batch = await service.migratePlan(sourceId, 2, "test@codexsun.app");
+      assert.equal(batch.completed.length, 2);
+      assert.equal(batch.copiedRows, 4);
+      assert.equal(await count(source, "sample"), 2);
+      assert.equal(await count(source, "mapped_sample"), 2);
+      assert.equal(await count(target, "sample"), 2);
+      assert.equal(await count(target, "mapped_sample"), 2);
+      await source.query(
+        "CREATE TABLE old_accounts (legacy_id INT NOT NULL, legacy_name VARCHAR(32) NOT NULL)"
+      );
+      await source.query("INSERT INTO old_accounts VALUES (1, 'Sukraa')");
+      const { id: batchJobId } = await service.createJob(
+        { sessionName: "Sukraa migration", sourceId, sourceTenantId: null, targetTenantId: 3 },
+        "test@codexsun.app"
+      );
+      await service.saveJobTable(
+        batchJobId,
+        { sourceTable: "sample", targetTable: "sample", mappings: sampleMapping },
+        "test@codexsun.app"
+      );
+      await service.saveJobTable(
+        batchJobId,
+        { sourceTable: "mapped_sample", targetTable: "mapped_sample", mappings: mapping },
+        "test@codexsun.app"
+      );
+      await service.saveJobTable(
+        batchJobId,
+        {
+          sourceTable: "old_accounts",
+          targetTable: "new_accounts",
+          mappings: [
+            { sourceColumn: "legacy_id", targetColumn: "id" },
+            { sourceColumn: "legacy_name", targetColumn: "display_name" }
+          ]
+        },
+        "test@codexsun.app"
+      );
+      const jobBatch = await service.migrateJob(batchJobId, "test@codexsun.app");
+      assert.equal(jobBatch.completed.length, 3);
+      assert.equal(jobBatch.copiedRows, 5);
+      assert.equal(await count(source, "sample"), 2);
+      assert.equal(await count(source, "mapped_sample"), 2);
+      assert.equal(await count(source, "old_accounts"), 1);
+      assert.equal(await count(jobTarget, "sample"), 2);
+      assert.equal(await count(jobTarget, "mapped_sample"), 2);
+      assert.equal(await count(jobTarget, "new_accounts"), 1);
+      assert.equal(
+        (await service.getJobTables(batchJobId)).every(
+          (item) => item.migrationStatus === "completed"
+        ),
+        true
+      );
       assert.equal((await service.verifySource(sourceId, "test@codexsun.app")).verified, true);
       await service.deactivateSource(sourceId, "test@codexsun.app");
       assert.equal((await service.listSources()).length, 0);
       await assert.rejects(service.listTables(sourceId), /not found/u);
     } finally {
-      await Promise.all([source.end(), target.end()]);
+      await Promise.all([source.end(), target.end(), jobTarget.end()]);
     }
   } finally {
     if (database) await database.destroy();
@@ -216,10 +387,22 @@ test("denies migration reads and writes before resolving a tenant", async () => 
       method: "GET",
       url: "/api/data-migration/sources/1/databases"
     });
+    const planRead = await app.inject({
+      method: "POST",
+      url: "/api/data-migration/plan/read",
+      payload: { sourceId: 1, targetTenantId: 2 }
+    });
+    const planRun = await app.inject({
+      method: "POST",
+      url: "/api/data-migration/plan/migrate",
+      payload: { sourceId: 1, targetTenantId: 2 }
+    });
     assert.equal(reads.statusCode, 403);
     assert.equal(writes.statusCode, 403);
     assert.equal(settingsWrite.statusCode, 403);
     assert.equal(databases.statusCode, 403);
+    assert.equal(planRead.statusCode, 403);
+    assert.equal(planRun.statusCode, 403);
     assert.equal(resolved, false);
   } finally {
     await app.close();
@@ -242,12 +425,21 @@ function host(
     masterDatabase: { host: config.host, port: config.port, database: names[2]! },
     currentDatabase: config,
     authorize: () => "test@codexsun.app",
-    listTenants: async () => [{ id: 2, label: "Target" }],
+    listTenants: async () => [
+      { id: 2, label: "Target" },
+      { id: 3, label: "Job target" }
+    ],
     async resolveTenant(id) {
-      if (id !== 2) throw new Error("Unknown tenant.");
-      return { id, label: "Target", database: names[1]!, ...config };
+      if (id === 2) return { id, label: "Target", database: names[1]!, ...config };
+      if (id === 3) return { id, label: "Job target", database: names[3]!, ...config };
+      throw new Error("Unknown tenant.");
     }
   };
+}
+
+async function sqlAdmin(admin: Connection, database: string, statement: string) {
+  await admin.query(`USE \`${database}\``);
+  await admin.query(statement);
 }
 
 async function count(connection: Connection, table: string) {

@@ -425,7 +425,7 @@ export function BillingSettingsWorkspace() {
             : "Billing settings could not be loaded."}
         </div>
       ) : null}
-      <WorkspaceAnimatedTabs tabs={tabs} value={activeTab} onValueChange={setActiveTab} />
+      <WorkspaceAnimatedTabs contentPadding tabs={tabs} value={activeTab} onValueChange={setActiveTab} />
     </section>
   );
 }

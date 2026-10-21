@@ -19,14 +19,25 @@ export function useCompanyBranding(companyId: number | null) {
     queryFn: () => readCompanyLogo(companyId!, "logo-dark"),
     queryKey: ["core", "organisation", "companies", companyId, "logo-dark", company?.updatedAt]
   });
+  const faviconQuery = useQuery({
+    enabled: Boolean(company?.faviconPath),
+    queryFn: () => readCompanyLogo(companyId!, "favicon"),
+    queryKey: ["core", "organisation", "companies", companyId, "favicon", company?.updatedAt]
+  });
   const lightLogoUrl = useBlobUrl(lightLogoQuery.data);
   const darkLogoUrl = useBlobUrl(darkLogoQuery.data) ?? lightLogoUrl;
+  const faviconUrl = useBlobUrl(faviconQuery.data);
 
   return {
     brandName: company ? companyBrandName(company) : null,
     company,
     darkLogoUrl,
-    isLoading: companyQuery.isLoading || lightLogoQuery.isLoading || darkLogoQuery.isLoading,
+    faviconUrl,
+    isLoading:
+      companyQuery.isLoading ||
+      lightLogoQuery.isLoading ||
+      darkLogoQuery.isLoading ||
+      faviconQuery.isLoading,
     lightLogoUrl
   };
 }

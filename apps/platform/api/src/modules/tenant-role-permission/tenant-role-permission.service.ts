@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { AppError } from "@codexsun/framework/errors";
+import { isContact360Permission } from "@codexsun/crm-api";
 import { recordTenantAccessAudit } from "../../database/tenant-access-audit.js";
 import { TenantRolePermissionRepository } from "./tenant-role-permission.repository.js";
 import type {
@@ -16,7 +17,9 @@ export class TenantRolePermissionService {
   }
   async list(f: TenantRolePermissionListFilters = {}) {
     await this.context.authorize("platform.application.role-permission.view");
-    return this.repository.list(f);
+    return (await this.repository.list(f)).filter(
+      (assignment) => !isContact360Permission(assignment.permissionKey)
+    );
   }
   async get(id: string) {
     await this.context.authorize("platform.application.role-permission.view");

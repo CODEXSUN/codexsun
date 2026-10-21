@@ -33,11 +33,11 @@ const ZunoWorkspace = lazyWorkspace(() =>
 const ProjectManagerWorkspaceHost = lazyWorkspace(() =>
   import("@codexsun/project-manager-web").then((module) => module.ProjectManagerWorkspaceHost)
 );
-const DataMigrationOverview = lazyWorkspace(() =>
-  import("@codexsun/data-migration-web").then((module) => module.DataMigrationOverview)
-);
 const DataMigrationWorkspace = lazyWorkspace(() =>
   import("@codexsun/data-migration-web").then((module) => module.DataMigrationWorkspace)
+);
+const DataMigrationAnalysisWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-migration-web").then((module) => module.DataMigrationAnalysisWorkspace)
 );
 const DataMigrationSettings = lazyWorkspace(() =>
   import("@codexsun/data-migration-web").then((module) => module.DataMigrationSettings)
@@ -127,7 +127,7 @@ type SaPage =
   | "task-manager"
   | "project-manager-registry"
   | "project-manager-ideas"
-  | "data-migration-overview"
+  | "data-migration-analysis"
   | "data-migration-run"
   | "data-migration-settings"
   | "zuno"
@@ -157,6 +157,11 @@ export function SaDesk() {
   const location = useLocation();
   const navigate = useNavigate();
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
+  const [migrationSelection, setMigrationSelection] = useState<{
+    sourceId: number;
+    targetTenantId: number;
+    table: string;
+  }>();
   const page = pageFromUrl(location.pathname);
   const tenantSearch = (location.search as Record<string, unknown>).tenant;
   const selectedZetroTenant = typeof tenantSearch === "string" ? tenantSearch : "";
@@ -198,7 +203,7 @@ export function SaDesk() {
 
   function openAppOperations(appId: string) {
     if (appId === "data-migration") {
-      selectPage("data-migration-overview");
+      selectPage("data-migration-run");
       return;
     }
     void navigate({
@@ -377,19 +382,19 @@ export function SaDesk() {
         page.startsWith("data-migration-"),
       items: [
         {
-          title: "Migration Overview",
-          isActive: page === "data-migration-overview",
-          onSelect: () => selectPage("data-migration-overview")
+          title: "Database Settings",
+          isActive: page === "data-migration-settings",
+          onSelect: () => selectPage("data-migration-settings")
         },
         {
-          title: "Migration",
+          title: "Migration Mapper",
           isActive: page === "data-migration-run",
           onSelect: () => selectPage("data-migration-run")
         },
         {
-          title: "Migration Settings",
-          isActive: page === "data-migration-settings",
-          onSelect: () => selectPage("data-migration-settings")
+          title: "Migration Analysis",
+          isActive: page === "data-migration-analysis",
+          onSelect: () => selectPage("data-migration-analysis")
         },
         {
           title: "Master Database",
@@ -476,12 +481,15 @@ export function SaDesk() {
             {page.startsWith("project-manager-") ? (
               <ProjectManagerWorkspaceHost workspaceId={page.slice("project-manager-".length)} />
             ) : null}
-            {page === "data-migration-overview" ? (
-              <DataMigrationOverview onOpenMigration={() => selectPage("data-migration-run")} />
-            ) : null}
             {page === "data-migration-run" ? (
-              <DataMigrationWorkspace
-                onOpenSettings={() => selectPage("data-migration-settings")}
+              <DataMigrationWorkspace initialSelection={migrationSelection} />
+            ) : null}
+            {page === "data-migration-analysis" ? (
+              <DataMigrationAnalysisWorkspace
+                onOpenMigration={(selection) => {
+                  setMigrationSelection(selection);
+                  selectPage("data-migration-run");
+                }}
               />
             ) : null}
             {page === "data-migration-settings" ? (
@@ -525,11 +533,12 @@ function pageFromUrl(pathname: string): SaPage {
   const zetroPage = zetroPageFromUrl(pathname);
   if (zetroPage) return zetroPage;
   const page = pathname.split("/").slice(2).join("/");
+  if (page === "data-migration-overview") return "data-migration-run";
   return page === "app-operations" ||
     page === "task-manager" ||
     page === "project-manager-registry" ||
     page === "project-manager-ideas" ||
-    page === "data-migration-overview" ||
+    page === "data-migration-analysis" ||
     page === "data-migration-run" ||
     page === "data-migration-settings" ||
     page === "zuno" ||

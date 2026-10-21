@@ -4,7 +4,9 @@ import { isSqliteDatabase } from "../../sportsclub.dialect.js";
 
 export async function migrateMemberModule(db: Kysely<SportsclubDatabase>) {
   if (isSqliteDatabase(db)) {
-    await sql.raw(`CREATE TABLE IF NOT EXISTS sportsclub_members (
+    await sql
+      .raw(
+        `CREATE TABLE IF NOT EXISTS sportsclub_members (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       uuid TEXT NOT NULL UNIQUE,
       email TEXT NOT NULL UNIQUE,
@@ -25,9 +27,13 @@ export async function migrateMemberModule(db: Kysely<SportsclubDatabase>) {
       revision INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`).execute(db);
+    )`
+      )
+      .execute(db);
 
-    await sql.raw(`CREATE TABLE IF NOT EXISTS sportsclub_activity (
+    await sql
+      .raw(
+        `CREATE TABLE IF NOT EXISTS sportsclub_activity (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       uuid TEXT NOT NULL UNIQUE,
       entity_type TEXT NOT NULL,
@@ -36,9 +42,13 @@ export async function migrateMemberModule(db: Kysely<SportsclubDatabase>) {
       action TEXT NOT NULL,
       details TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`).execute(db);
+    )`
+      )
+      .execute(db);
   } else {
-    await sql.raw(`CREATE TABLE IF NOT EXISTS sportsclub_members (
+    await sql
+      .raw(
+        `CREATE TABLE IF NOT EXISTS sportsclub_members (
       id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
       uuid VARCHAR(8) NOT NULL UNIQUE,
       email VARCHAR(254) NOT NULL UNIQUE,
@@ -63,9 +73,13 @@ export async function migrateMemberModule(db: Kysely<SportsclubDatabase>) {
       INDEX idx_sportsclub_members_status (status),
       FOREIGN KEY (program_uuid) REFERENCES sportsclub_programs(uuid) ON DELETE RESTRICT,
       FOREIGN KEY (master_uuid) REFERENCES sportsclub_masters(uuid) ON DELETE RESTRICT
-    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`).execute(db);
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+      )
+      .execute(db);
 
-    await sql.raw(`CREATE TABLE IF NOT EXISTS sportsclub_activity (
+    await sql
+      .raw(
+        `CREATE TABLE IF NOT EXISTS sportsclub_activity (
       id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
       uuid VARCHAR(8) NOT NULL UNIQUE,
       entity_type VARCHAR(64) NOT NULL,
@@ -75,6 +89,38 @@ export async function migrateMemberModule(db: Kysely<SportsclubDatabase>) {
       details TEXT NOT NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_sportsclub_activity_entity (entity_type, entity_uuid)
-    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`).execute(db);
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+      )
+      .execute(db);
   }
+  await migrateMemberPhotoModule(db);
+}
+
+export async function migrateMemberPhotoModule(db: Kysely<SportsclubDatabase>) {
+  if (isSqliteDatabase(db)) {
+    await sql
+      .raw(
+        `CREATE TABLE IF NOT EXISTS sportsclub_member_photos (
+      member_uuid TEXT PRIMARY KEY REFERENCES sportsclub_members(uuid) ON DELETE CASCADE,
+      mime_type TEXT NOT NULL,
+      content BLOB NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`
+      )
+      .execute(db);
+    return;
+  }
+  await sql
+    .raw(
+      `CREATE TABLE IF NOT EXISTS sportsclub_member_photos (
+    member_uuid VARCHAR(8) NOT NULL PRIMARY KEY,
+    mime_type VARCHAR(32) NOT NULL,
+    content MEDIUMBLOB NOT NULL,
+    size_bytes INT NOT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (member_uuid) REFERENCES sportsclub_members(uuid) ON DELETE CASCADE
+  ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+    )
+    .execute(db);
 }

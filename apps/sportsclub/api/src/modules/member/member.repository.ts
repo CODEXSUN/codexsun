@@ -2,7 +2,13 @@ import { randomBytes } from "node:crypto";
 import type { Kysely } from "kysely";
 import { AppError } from "@codexsun/framework/errors";
 import type { SportsclubDatabase } from "../../sportsclub.types.js";
-import type { MemberActivity, MemberListQuery, MemberPayload, MemberRecord } from "./member.types.js";
+import type {
+  MemberActivity,
+  MemberListQuery,
+  MemberPayload,
+  MemberPhoto,
+  MemberRecord
+} from "./member.types.js";
 import {
   DEFAULT_PAGE_SIZE,
   calculatePagination,
@@ -13,13 +19,14 @@ export class MemberRepository {
   constructor(private readonly db: Kysely<SportsclubDatabase>) {}
 
   async programUuidsForMaster(masterUuid: string): Promise<string[]> {
-    const rows = await this.db.selectFrom("sportsclub_members")
+    const rows = await this.db
+      .selectFrom("sportsclub_members")
       .select("program_uuid")
       .distinct()
       .where("master_uuid", "=", masterUuid)
       .where("program_uuid", "is not", null)
       .execute();
-    return rows.flatMap((row) => row.program_uuid ? [row.program_uuid] : []);
+    return rows.flatMap((row) => (row.program_uuid ? [row.program_uuid] : []));
   }
 
   async listAll(): Promise<MemberRecord[]> {
@@ -40,8 +47,10 @@ export class MemberRepository {
     let baseQuery = this.db.selectFrom("sportsclub_members");
 
     if (query?.name?.trim()) baseQuery = baseQuery.where("name", "like", `%${query.name.trim()}%`);
-    if (query?.email?.trim()) baseQuery = baseQuery.where("email", "like", `%${query.email.trim()}%`);
-    if (query?.phone?.trim()) baseQuery = baseQuery.where("phone", "like", `%${query.phone.trim()}%`);
+    if (query?.email?.trim())
+      baseQuery = baseQuery.where("email", "like", `%${query.email.trim()}%`);
+    if (query?.phone?.trim())
+      baseQuery = baseQuery.where("phone", "like", `%${query.phone.trim()}%`);
 
     if (query?.role) {
       baseQuery = baseQuery.where("role", "=", query.role);
@@ -90,7 +99,6 @@ export class MemberRepository {
     };
   }
 
-
   async find(uuid: string): Promise<MemberRecord | undefined> {
     const row = await this.db
       .selectFrom("sportsclub_members")
@@ -98,6 +106,67 @@ export class MemberRepository {
       .where("uuid", "=", uuid)
       .executeTakeFirst();
     return row ? toRecord(row) : undefined;
+  }
+
+  async readPhoto(memberUuid: string): Promise<MemberPhoto | undefined> {
+    const row = await this.db
+      .selectFrom("sportsclub_member_photos")
+      .select(["mime_type", "content", "updated_at"])
+      .where("member_uuid", "=", memberUuid)
+      .executeTakeFirst();
+    if (!row) return undefined;
+    return {
+      mimeType: row.mime_type,
+      contentBase64: Buffer.from(row.content).toString("base64"),
+      updatedAt: String(row.updated_at)
+    };
+  }
+
+  async savePhoto(
+    memberUuid: string,
+    mimeType: MemberPhoto["mimeType"],
+    content: Uint8Array,
+    actor: string
+  ): Promise<Omit<MemberPhoto, "contentBase64">> {
+    const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+    await this.db.transaction().execute(async (tx) => {
+      const existing = await tx
+        .selectFrom("sportsclub_member_photos")
+        .select("member_uuid")
+        .where("member_uuid", "=", memberUuid)
+        .executeTakeFirst();
+      if (existing) {
+        await tx
+          .updateTable("sportsclub_member_photos")
+          .set({ mime_type: mimeType, content, size_bytes: content.byteLength, updated_at: now })
+          .where("member_uuid", "=", memberUuid)
+          .execute();
+      } else {
+        await tx
+          .insertInto("sportsclub_member_photos")
+          .values({
+            member_uuid: memberUuid,
+            mime_type: mimeType,
+            content,
+            size_bytes: content.byteLength,
+            updated_at: now
+          })
+          .execute();
+      }
+      await tx
+        .insertInto("sportsclub_activity")
+        .values({
+          uuid: randomBytes(4).toString("hex"),
+          entity_type: "member",
+          entity_uuid: memberUuid,
+          actor,
+          action: "photo_updated",
+          details: "Member photo updated",
+          created_at: now
+        })
+        .execute();
+    });
+    return { mimeType, updatedAt: now };
   }
 
   async byEmail(email: string): Promise<MemberRecord | undefined> {

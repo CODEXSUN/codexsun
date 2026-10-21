@@ -3,6 +3,7 @@ import type { TenantDatabase } from "../../database/schema.js";
 
 export type TenantUserStatus = "active" | "inactive" | "suspended";
 export type TenantUser = {
+  username: string | null;
   email: string;
   id: number;
   isProtected: boolean;
@@ -12,6 +13,7 @@ export type TenantUser = {
   uuid: string;
 };
 export type TenantUserSavePayload = {
+  username?: string | null | undefined;
   email: string;
   name: string;
   password?: string | undefined;

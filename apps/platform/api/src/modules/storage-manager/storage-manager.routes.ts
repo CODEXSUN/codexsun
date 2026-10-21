@@ -7,6 +7,7 @@ import { tenantAccessContext } from "../../auth/tenant-access-context.js";
 import { TenantService } from "../tenant/tenant.service.js";
 import { StorageManagerService } from "./storage-manager.service.js";
 import type {
+  CompanyBrandingVariant,
   CompanyLogoUploadPayload,
   StorageFolderPayload,
   StorageListInput,
@@ -72,7 +73,12 @@ export async function registerStorageManagerRoutes(app: FastifyInstance) {
     const variant = companyLogoVariant((request.params as { variant?: unknown }).variant);
     const resolved = await tenants.getPublicApplicationCompany(requestHost(request));
     const company = resolved.company;
-    const configuredPath = variant === "logo-dark" ? company?.logoDarkPath : company?.logoPath;
+    const configuredPath =
+      variant === "logo-dark"
+        ? company?.logoDarkPath
+        : variant === "favicon"
+          ? company?.faviconPath
+          : company?.logoPath;
     if (!resolved.tenant || !company || !configuredPath) {
       return companyLogoNotFound(reply, request.id);
     }
@@ -133,8 +139,8 @@ function companyLogoParams(value: unknown) {
   return { companyId, variant: companyLogoVariant(input.variant) };
 }
 
-function companyLogoVariant(value: unknown): "logo" | "logo-dark" {
-  if (value === "logo" || value === "logo-dark") return value;
+function companyLogoVariant(value: unknown): CompanyBrandingVariant {
+  if (value === "favicon" || value === "logo" || value === "logo-dark") return value;
   throw AppError.notFound("Company logo was not found.");
 }
 

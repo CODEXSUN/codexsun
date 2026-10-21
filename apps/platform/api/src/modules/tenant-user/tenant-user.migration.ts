@@ -2,6 +2,13 @@ import { sql, type Kysely } from "kysely";
 import type { TenantDatabase } from "../../database/schema.js";
 
 export const tenantUserMigration = { key: "platform.tenant-user.foundation-v1" } as const;
+export const tenantUsernameMigration = { key: "platform.tenant-user.username-v1" } as const;
+
+export async function migrateTenantUsername(database: Kysely<TenantDatabase>) {
+  if (!(await columnExists(database, "app_users", "username")))
+    await sql`ALTER TABLE app_users ADD COLUMN username VARCHAR(80) NULL,
+      ADD UNIQUE KEY app_users_username_unique (username)`.execute(database);
+}
 
 export async function migrateTenantUserModule(database: Kysely<TenantDatabase>) {
   await sql
@@ -12,12 +19,14 @@ export async function migrateTenantUserModule(database: Kysely<TenantDatabase>) 
     uuid VARCHAR(8) NOT NULL UNIQUE,
     name VARCHAR(180) NOT NULL,
     email VARCHAR(180) NOT NULL UNIQUE,
+    username VARCHAR(80) NULL,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(80) NOT NULL DEFAULT 'user',
     status VARCHAR(24) NOT NULL DEFAULT 'active',
     is_protected BOOLEAN NOT NULL DEFAULT FALSE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY app_users_username_unique (username)
   ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
     )
     .execute(database);

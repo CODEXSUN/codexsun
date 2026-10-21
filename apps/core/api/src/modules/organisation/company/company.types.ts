@@ -71,6 +71,7 @@ export type CompanyRecord = {
   description: string | null;
   logoPath: string | null;
   logoDarkPath: string | null;
+  faviconPath: string | null;
   industryId: number | null;
   industryName: string | null;
   status: CompanyStatus;
@@ -99,6 +100,7 @@ export type CompanySaveInput = {
   description?: string | null | undefined;
   logoPath?: string | null | undefined;
   logoDarkPath?: string | null | undefined;
+  faviconPath?: string | null | undefined;
   industryId?: number | null | undefined;
   industryName?: string | null | undefined;
   status?: CompanyStatus | undefined;

@@ -223,9 +223,9 @@ Passing TypeScript or lint alone does not prove module ownership. The ownership 
 
 ## Authentication And Domain Rules
 
-- `app.codexsun.com` is the shared application domain; Corporate ID is mandatory there for tenant login.
-- Custom tenant domains require ownership verification and an active mapping before they may resolve a tenant, and Corporate ID remains mandatory and must match that mapped tenant.
-- Host, Corporate ID, tenant status, tenant user, and tenant database secret must be verified in that order.
+- `app.codexsun.com` and the `codexsun.com` apex are shared application domains; Corporate ID is mandatory there for tenant login.
+- Custom tenant domains require ownership verification and an active mapping before they may resolve a tenant. The server selects the mapped tenant without Corporate ID input; any supplied Corporate ID must match that tenant.
+- Verify the host, tenant selector (Corporate ID on shared hosts, verified mapping on custom hosts), tenant status, tenant database secret, and tenant user before creating a session. Unknown hosts cannot fall back to a supplied Corporate ID.
 - Browser sessions are encrypted, HttpOnly, Secure, SameSite Strict, host-only, and revocable. Browser-readable JWT storage is forbidden. The only exception to Secure is an explicit `AUTH_COOKIE_SECURE=0` on a plain-HTTP LAN install; it must never be set on an internet-facing deployment.
 - A new login replaces the current browser principal and clears old tokens, cookies, tenant context, and query caches.
 - Request tenant headers are inputs only at the edge; authenticated server claims and registry data must overwrite them before module routes execute.

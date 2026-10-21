@@ -306,6 +306,7 @@ export function publicPortalForTenant(
       ? publicCompanyLogoUrl("logo-dark", company.updatedAt)
       : null,
     logoUrl: company?.logoPath ? publicCompanyLogoUrl("logo", company.updatedAt) : null,
+    faviconUrl: company?.faviconPath ? publicCompanyLogoUrl("favicon", company.updatedAt) : null,
     posts: portalPostList(settings.posts, fallbackPosts),
     publicSiteUrl,
     slides: portalContentList(settings.slides, fallbackSlides),
@@ -319,7 +320,7 @@ export function publicPortalForTenant(
   };
 }
 
-function publicCompanyLogoUrl(variant: "logo" | "logo-dark", updatedAt: string) {
+function publicCompanyLogoUrl(variant: "favicon" | "logo" | "logo-dark", updatedAt: string) {
   return `/public/app-portal/company-logo/${variant}?v=${encodeURIComponent(updatedAt)}`;
 }
 

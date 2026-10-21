@@ -64,6 +64,7 @@ export class TaskService {
   async save(input: TaskInput, id?: number) {
     if (!input.title.trim()) throw AppError.validation("Task title is required.");
     const existing = id === undefined ? null : await this.assertParticipant(id);
+    this.assertAssignee(input.assignedUserId, existing?.assignedUserId, id !== undefined);
     if (!(await this.masterLookup.priority(input.priorityId)))
       throw AppError.validation("Select an active priority.");
     const status = await this.masterLookup.status(input.statusId);
@@ -101,6 +102,8 @@ export class TaskService {
     }
   ) {
     const current = await this.assertParticipant(id);
+    if (patch.assignedUserId !== undefined)
+      this.assertAssignee(patch.assignedUserId, current.assignedUserId, true);
     if (patch.priorityId !== undefined && !(await this.masterLookup.priority(patch.priorityId)))
       throw AppError.validation("Select an active priority.");
     if (patch.statusId !== undefined) {
@@ -142,6 +145,17 @@ export class TaskService {
     throw AppError.forbidden(
       "Only the task creator, assignee, or a CRM task manager can act on this task."
     );
+  }
+  private assertAssignee(
+    next: number | null,
+    previous: number | null | undefined,
+    updating: boolean
+  ) {
+    if (
+      !this.ctx.canViewAll &&
+      (updating ? next !== previous : next !== null && next !== this.ctx.actorUserId)
+    )
+      throw AppError.forbidden("Only a task administrator can change the assignee.");
   }
   async addComment(taskId: number, body: string, parentId: number | null) {
     await this.assertParticipant(taskId);

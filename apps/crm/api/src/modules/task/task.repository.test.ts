@@ -26,7 +26,7 @@ test("mine task scope stays user-bound even when the actor can view all", () => 
   assert.deepEqual(query.parameters.slice(0, 2), [17, "agent@example.com"]);
 });
 
-test("visible task scope retains manager-wide access", () => {
+test("visible task scope retains administrator-wide access", () => {
   const query = compiled(true, "visible");
   assert.doesNotMatch(query.sql, /`t`.`assigned_user_id` = \?/u);
   assert.doesNotMatch(query.sql, /`t`.`created_by` = \?/u);

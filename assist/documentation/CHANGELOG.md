@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.33
+Current version: 1.1.34
 
-Release tag: v-1.1.33
+Release tag: v-1.1.34
 
-Changelog label: v 1.1.33
+Changelog label: v 1.1.34
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,26 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.34
+
+### [v 1.1.34] 2026-10-21 11:59 am - Tenant access and operational workflows
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Add an optional tenant-unique username to `app_users` with an idempotent tenant runtime migration.
+- Add persisted mapping plans and named migration job, table, and field records in the Data Migration master database.
+- Add student photo storage in the Sportsclub tenant database with a member-keyed photo table.
+
+#### App Codebase Changes
+
+- Allow tenant users to sign in by email or username. Resolve tenants from verified custom domains, and require Corporate ID on shared hosts, including `codexsun.com`.
+- Scope CRM task, enquiry, duty-report, and closure-review actions to the actor's permitted records. Keep assignee changes within admin rights.
+- Add persistent named migration sessions, explicit source-to-target table and field mapping, preflight checks, and transactional batch execution.
+- Add private Sportsclub student photo upload and access checks for students, assigned masters, and administrators.
+- Apply consistent content padding to shared tabs and affected Site Studio, Mail, and Ecommerce forms.
+- Include Platform, CRM, Core, Sportsclub, Data Migration, shared UI, and generated Docs updates.
 
 ## v-1.1.33
 

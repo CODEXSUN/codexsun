@@ -4,6 +4,7 @@ import { AppError } from "@codexsun/framework/errors";
 import { getTenantDatabaseByName } from "../database/tenant-database.js";
 import { env } from "../env.js";
 import type { Kysely } from "kysely";
+import { crmRecordReadRoles } from "@codexsun/crm-api";
 
 export function tenantAccessContext(request: FastifyRequest) {
   const header = request.headers["x-tenant-db"];
@@ -31,7 +32,7 @@ export async function authorizeTenantUser(
   email: string,
   permission: string
 ) {
-  const allowed = await database
+  let query = database
     .selectFrom("app_users as user")
     .innerJoin("app_user_roles as userRole", "userRole.user_id", "user.id")
     .innerJoin("app_roles as role", "role.id", "userRole.role_id")
@@ -44,7 +45,9 @@ export async function authorizeTenantUser(
     .where("role.status", "=", "active")
     .where("rolePermission.status", "=", "active")
     .where("permission.status", "=", "active")
-    .where("permission.key", "=", permission)
-    .executeTakeFirst();
+    .where("permission.key", "=", permission);
+  const roles = crmRecordReadRoles(permission);
+  if (roles) query = query.where("role.key", "in", roles);
+  const allowed = await query.executeTakeFirst();
   if (!allowed) throw AppError.forbidden(`Permission ${permission} is required.`);
 }

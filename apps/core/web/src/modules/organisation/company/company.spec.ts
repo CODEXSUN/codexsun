@@ -42,6 +42,7 @@ function companyPayload(): CompanySavePayload {
     description: " Business operating platform ",
     logoPath: " storage/company/logo.svg ",
     logoDarkPath: null,
+    faviconPath: " storage/company/favicon.svg ",
     status: "active",
     isActive: true,
     emails: [

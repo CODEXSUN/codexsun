@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getTenantPublicPortal, type TenantPublicPortal } from "../../modules/tenant-portal";
 import { logout, restoreSession } from "../../shared/api/platform-api";
+import { setPlatformFavicon } from "../../shared/document/PageTitle";
 import { fallbackTenantPortal } from "./tenant-site.defaults";
 
 type TenantSiteContextValue = {
@@ -76,6 +77,10 @@ export function TenantSiteProvider({
       ? `${pageTitle} | ${portal.brandName}`
       : `${portal.brandName} | Billing & Accounts`;
   }, [pageTitle, portal.brandName]);
+
+  useEffect(() => {
+    setPlatformFavicon(portal.faviconUrl);
+  }, [portal.faviconUrl]);
 
   const value = useMemo(
     () => ({

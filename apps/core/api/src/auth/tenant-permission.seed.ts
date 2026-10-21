@@ -25,7 +25,7 @@ export async function seedCoreTenantPermissions(database: Kysely<unknown>) {
     `.execute(database);
     const roles =
       key === "core.application.records.view"
-        ? ["admin", "super-admin", "manager", "user"]
+        ? ["admin", "super-admin", "manager", "team-head", "user"]
         : ["admin"];
     for (const roleKey of roles) {
       await sql`

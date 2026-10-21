@@ -571,7 +571,13 @@ export class TaskRepository {
       .orderBy("id", "desc")
       .execute();
   }
-  async reviewClosure(id: number, actor: string, decision: "approved" | "rejected", note: string) {
+  async reviewClosure(
+    id: number,
+    actor: string,
+    decision: "approved" | "rejected",
+    note: string,
+    viewer: { canViewAll: boolean; actorUserId: number | null }
+  ) {
     return this.db.transaction().execute(async (trx) => {
       const request = await trx
         .selectFrom("crm_task_closure_requests")
@@ -583,11 +589,17 @@ export class TaskRepository {
       if (!request) return false;
       const task = await trx
         .selectFrom("crm_tasks")
-        .select("id")
+        .select(["id", "assigned_user_id", "created_by"])
         .where("id", "=", request.task_id)
         .forUpdate()
         .executeTakeFirst();
       if (!task) throw AppError.notFound("Task not found.");
+      if (
+        !viewer.canViewAll &&
+        (viewer.actorUserId === null || task.assigned_user_id !== viewer.actorUserId) &&
+        task.created_by.toLowerCase() !== actor.toLowerCase()
+      )
+        throw AppError.forbidden("You cannot review closure for this task.");
       if (decision === "approved") {
         const runningJob = await trx
           .selectFrom("crm_task_jobs")

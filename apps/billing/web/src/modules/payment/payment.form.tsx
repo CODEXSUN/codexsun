@@ -356,6 +356,7 @@ export function PaymentForm({
             </WorkspaceFormBanner>
           ) : null}
           <WorkspaceAnimatedTabs
+            contentPadding
             contentClassName="min-h-[25rem]"
             onValueChange={setTab}
             tabs={tabs}

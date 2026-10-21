@@ -1,3 +1,4 @@
+export { crmRecordReadRoles, isContact360Permission } from "./crm.access.js";
 export { enquiryModule, seedEnquiryModule } from "./modules/enquiry/index.js";
 export { activitiesModule } from "./modules/activities/index.js";
 export { closureModule } from "./modules/closure/index.js";

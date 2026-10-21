@@ -14,7 +14,7 @@ export type MigrationTenant = {
 
 export type DataMigrationHost = {
   authorize(request: FastifyRequest): Promise<string> | string;
-  listTenants(): Promise<Array<{ id: number; label: string }>>;
+  listTenants(): Promise<Array<{ id: number; label: string; database?: string }>>;
   resolveTenant(id: number): Promise<MigrationTenant>;
   database: Kysely<unknown>;
   secretKey: string;
@@ -35,7 +35,11 @@ export type TableColumn = {
   type: string;
   nullable: string;
   extra: string;
+  defaultValue: unknown;
+  required: boolean;
 };
+
+export type MigrationColumnMapping = { sourceColumn: string; targetColumn: string };
 
 export type TablePreview = {
   table: string;

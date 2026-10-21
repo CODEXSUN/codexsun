@@ -1,5 +1,6 @@
 import { StorageManagerRepository } from "./storage-manager.repository.js";
 import type {
+  CompanyBrandingVariant,
   CompanyLogoUploadPayload,
   StorageDownloadInput,
   StorageFolderPayload,
@@ -30,7 +31,7 @@ export class StorageManagerService {
     return this.repository.uploadCompanyLogo(tenantId, input);
   }
 
-  readCompanyLogo(tenantId: string, companyId: number, variant: "logo" | "logo-dark") {
+  readCompanyLogo(tenantId: string, companyId: number, variant: CompanyBrandingVariant) {
     return this.repository.readCompanyLogo(tenantId, companyId, variant);
   }
 

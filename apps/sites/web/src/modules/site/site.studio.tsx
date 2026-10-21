@@ -125,6 +125,7 @@ export function SiteStudio({
         <DeploymentWorkspace uuid={site.uuid} gateway={gateway?.deployment} />
       ) : null}
       <WorkspaceAnimatedTabs
+        contentPadding
         value={tab}
         onValueChange={(value) => {
           if (

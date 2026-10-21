@@ -529,7 +529,10 @@ test("closure requests await web approval before changing enquiry status", async
     })
     .executeTakeFirstOrThrow();
   await assert.rejects(
-    taskRepository.reviewClosure(taskClosureId, actor.email, "approved", ""),
+    taskRepository.reviewClosure(taskClosureId, actor.email, "approved", "", {
+      canViewAll: true,
+      actorUserId: actor.id
+    }),
     /Stop all running jobs before approving closure/u
   );
   await database
@@ -553,7 +556,10 @@ test("closure requests await web approval before changing enquiry status", async
     })
     .execute();
   await assert.rejects(
-    taskRepository.reviewClosure(taskClosureId, actor.email, "approved", ""),
+    taskRepository.reviewClosure(taskClosureId, actor.email, "approved", "", {
+      canViewAll: true,
+      actorUserId: actor.id
+    }),
     /Check out all checked-in users before approving closure/u
   );
   await database
@@ -571,7 +577,13 @@ test("closure requests await web approval before changing enquiry status", async
       created_by: actor.email
     })
     .execute();
-  assert.equal(await taskRepository.reviewClosure(taskClosureId, actor.email, "approved", ""), true);
+  assert.equal(
+    await taskRepository.reviewClosure(taskClosureId, actor.email, "approved", "", {
+      canViewAll: true,
+      actorUserId: actor.id
+    }),
+    true
+  );
   const closedTask = await database
     .selectFrom("crm_tasks")
     .innerJoin("crm_enquiry_statuses", "crm_enquiry_statuses.id", "crm_tasks.status_id")
@@ -599,6 +611,8 @@ test("closure requests await web approval before changing enquiry status", async
   const callLogName = mobileCallLogRequests[0]!.json().data.name;
   assert.equal(mobileCallLogRequests[1]!.json().data.name, callLogName);
   const mobileCallLogRows = await sql<{ total: number }>`SELECT COUNT(*) AS total
-    FROM crm_call_logs WHERE source_reference=${mobileCallLogInput.sourceReference}`.execute(database);
+    FROM crm_call_logs WHERE source_reference=${mobileCallLogInput.sourceReference}`.execute(
+    database
+  );
   assert.equal(Number(mobileCallLogRows.rows[0]?.total), 1);
 });

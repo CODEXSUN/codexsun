@@ -73,7 +73,7 @@ export const forceDeleteCompany = (id: number) =>
 export async function uploadCompanyLogo(
   file: File,
   companyId: number,
-  variant: "logo" | "logo-dark"
+  variant: "favicon" | "logo" | "logo-dark"
 ) {
   if (!file.name.toLowerCase().endsWith(".svg") && file.type !== "image/svg+xml") {
     throw new Error("Select an SVG logo file.");
@@ -99,7 +99,10 @@ export async function uploadCompanyLogo(
   return body.data;
 }
 
-export async function readCompanyLogo(companyId: number, variant: "logo" | "logo-dark") {
+export async function readCompanyLogo(
+  companyId: number,
+  variant: "favicon" | "logo" | "logo-dark"
+) {
   const token = getToken("tenant");
   const response = await fetch(
     `${platformBase}/tenant/media/companies/${companyId}/company-logo/${variant}`,

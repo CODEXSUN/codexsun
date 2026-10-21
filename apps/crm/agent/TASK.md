@@ -1,5 +1,27 @@
 # CRM Delivery Tasks
 
+## CRM own-record visibility and Team Head — 2026-10-21
+
+- [x] Restrict enquiry/task tenant-wide reads to active Admin/Super Admin roles, including stale broad-grant denial.
+- [x] Reconcile non-admin tenant-wide grants in repeatable permission seeds.
+- [x] Add editable Team Head role defaults without assigning users or guessing teams.
+- [x] Apply parent scope to closure list/review and prevent non-admin task reassignment.
+- [x] Hide unfinished Contact 360 permissions and assignments from Access Control lists/pickers.
+- [x] Verify Admin, User, Manager, Team Head, counts, search filters, direct/child routes, stale grants, custom labels, and revoked roles in disposable MariaDB.
+- [x] Apply the TECHMEDIA live permission repair and verify Manikandan's signed-in browser overview, enquiry list, task list, and activities.
+
+Verification: 159 CRM/Frappe unit tests and five disposable database E2E suites passed, including the new role-scope suite and the existing closure suite. Core/Platform typechecks, affected API lint, module boundaries, dependency layout, and component docs checks passed. API hotfix `1.1.33-crm-record-scope-20261021` is healthy on CODEXSUN and TECHMEDIA. Only TECHMEDIA access seeds were reconciled; no users were reassigned and no business test records were created. Live user scope at verification: 275 enquiries, 0 tasks, and 1,885 enquiry activities. Other tenants, Web/Shop images, and shared infrastructure were not replaced.
+
+The live Manikandan browser also denied direct access to enquiry #2022 (local ID 2013), which belongs outside his assignment/creator scope. Sign-in succeeded after earlier HTTP 429 attempts; no rate-limit protections were disabled.
+
+Managed-team expansion is deferred by the user's narrowed scope. Manager and Team Head use own-record scope until explicit membership support is configured.
+
+## Overview capability loading — 2026-10-21
+
+- [x] Allow own-report users to query duty-report permission flags without requiring team-wide report access.
+- [x] Keep team report lists and summaries protected, including manager-only and own-only permission combinations.
+      Verification: 155 unit tests and three isolated CRM/Frappe database E2E checks passed. The scoped API hotfix is live; the existing `manikandan@techmedia.in` session on `app.techmedia.in` loads Overview without the warning. Own-report read/create permissions remain unchanged and team report access remains denied.
+
 ## Frappe creator attribution — 2026-10-20
 
 - [x] Display mapped app-user names for enquiry and task comments, not fragments derived from email domains.

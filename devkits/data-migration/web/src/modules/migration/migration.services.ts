@@ -5,8 +5,13 @@ import type {
   SourceUpdate,
   MigrationRun,
   MigrationPreview,
-  TransferSelection
+  TransferSelection,
+  MigrationColumnMapping,
+  MigrationAnalysis,
+  MigrationTableSchema,
+  MigrationJob
 } from "./migration.types.js";
+import type { SavedTableMapping } from "./migration.types.js";
 export type {
   TenantOption,
   SourceOption,
@@ -14,12 +19,17 @@ export type {
   SourceUpdate,
   MigrationRun,
   MigrationPreview,
-  TransferSelection
+  TransferSelection,
+  MigrationAnalysis,
+  MigrationColumnMapping,
+  MigrationTableSchema,
+  SavedTableMapping,
+  MigrationJob
 } from "./migration.types.js";
 
 type Envelope<T> = { success: true; data: T } | { success: false; error: { message: string } };
 
-async function request<T>(path: string, body?: unknown, method?: "POST" | "PUT"): Promise<T> {
+async function request<T>(path: string, body?: unknown, method?: "POST" | "PUT" | "PATCH"): Promise<T> {
   const slot = sessionStorage.getItem("codexsun.auth.slot");
   const response = await fetch(`/api/data-migration${path}`, {
     method: body === undefined ? "GET" : (method ?? "POST"),
@@ -54,7 +64,56 @@ export const deactivateSource = (id: number) => request<unknown>(`/sources/${id}
 export const removeSource = (id: number) => request<unknown>(`/sources/${id}/remove`, {});
 export const listTables = (sourceId: number) => request<string[]>(`/sources/${sourceId}/tables`);
 export const listRuns = () => request<MigrationRun[]>("/runs");
+export const listJobs = () => request<MigrationJob[]>("/jobs");
+export const createJob = (input: {
+  sessionName: string;
+  sourceId: number;
+  sourceTenantId: number | null;
+  targetTenantId: number;
+}) => request<{ id: string }>("/jobs", input);
+export const renameJob = (id: string, sessionName: string) =>
+  request<{ id: string; sessionName: string }>(`/jobs/${id}`, { sessionName }, "PATCH");
+export const listTenantTables = (tenantId: number) =>
+  request<string[]>(`/tenants/${tenantId}/tables`);
+export const getTenantDatabase = (tenantId: number) =>
+  request<{ database: string }>(`/tenants/${tenantId}/database`);
+export const readJobTables = (jobId: string) =>
+  request<SavedTableMapping[]>(`/jobs/${jobId}/tables`);
+export const saveJobTablePair = (
+  jobId: string,
+  input: { sourceTable: string; targetTable: string; columnMappings: MigrationColumnMapping[] }
+) =>
+  request<{ saved: boolean; jobId: string; sourceTable: string; targetTable: string }>(
+    `/jobs/${jobId}/tables`,
+    {
+      sourceTable: input.sourceTable,
+      targetTable: input.targetTable,
+      columnMappings: input.columnMappings.map(({ sourceColumn, targetColumn }) => ({
+        sourceColumn,
+        targetColumn
+      }))
+    },
+    "PUT"
+  );
+export const runMigrationJob = (jobId: string) =>
+  request<{ completed: Array<{ table: string; copiedRows: number }>; copiedRows: number }>(
+    `/jobs/${jobId}/migrate`,
+    {}
+  );
 export const previewTransfer = (selection: TransferSelection) =>
   request<MigrationPreview>("/preview", selection);
+export const analyzeMigration = (selection: Omit<TransferSelection, "table">) =>
+  request<MigrationAnalysis>("/analysis", selection);
+export const readMigrationPlan = (selection: Omit<TransferSelection, "table">) =>
+  request<SavedTableMapping[]>("/plan/read", selection);
+export const saveTableMapping = (selection: TransferSelection) =>
+  request<{ saved: boolean }>("/plan/save", selection);
+export const migrateSavedPlan = (selection: Omit<TransferSelection, "table">) =>
+  request<{ completed: Array<{ table: string; copiedRows: number }>; copiedRows: number }>(
+    "/plan/migrate",
+    selection
+  );
+export const getTableSchema = (selection: TransferSelection) =>
+  request<MigrationTableSchema>("/schema", selection);
 export const executeTransfer = (selection: TransferSelection) =>
   request<{ id: string; copiedRows: number }>("/runs", selection);

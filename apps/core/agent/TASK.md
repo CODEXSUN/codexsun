@@ -1,5 +1,10 @@
 # Core tasks
 
+## Team Head workspace reads — 2026-10-21
+
+- Extended the repeatable Core workspace read grant to `team-head` so the new role can load CRM setup and contact lookups.
+- No Core write or lifecycle grants were added. The CRM scope database suite verifies this read permission for Team Head.
+
 ## Responsibility
 
 Shared tenant masters, contact and product identity, organization records, and geographic relationships.

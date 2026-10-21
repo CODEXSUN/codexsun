@@ -402,7 +402,7 @@ export function registerTaskRoutes(
       const { ctx, repo } = await service(await context(request));
       await ctx.authorize("crm.task.closure.review");
       return {
-        reviewed: await repo.reviewClosure(params.id, ctx.actorEmail, body.decision, body.note)
+        reviewed: await repo.reviewClosure(params.id, ctx.actorEmail, body.decision, body.note, ctx)
       };
     }
   });

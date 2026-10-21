@@ -535,6 +535,7 @@ export function SalesFormView({ model }: { model: ReturnType<typeof useSalesForm
       <WorkspaceFormSurface>
         <WorkspaceFormTabbedBody className="pb-7">
           <WorkspaceAnimatedTabs
+            contentPadding
             tabs={tabs}
             value={activeTab}
             onValueChange={setActiveTab}

@@ -18,14 +18,20 @@ export async function seedTaskPermissions(db: Kysely<TaskDatabase>) {
     );
     const roles =
       action === "view" || action === "respond" || action === "work"
-        ? ["admin", "super-admin", "manager", "user"]
+        ? ["admin", "super-admin", "manager", "team-head", "user"]
         : action === "view-all"
-          ? ["admin", "super-admin", "manager"]
-          : ["admin", "super-admin", "manager"];
+          ? ["admin", "super-admin"]
+          : ["admin", "super-admin", "manager", "team-head"];
     for (const role of roles)
       await sql`INSERT INTO app_role_permissions (uuid, role_id, permission_id, status, is_protected) SELECT ${stable(`${role}:${key}`)}, r.id, p.id, 'active', TRUE FROM app_roles r JOIN app_permissions p ON p.\`key\`=${key} WHERE r.\`key\`=${role} ON DUPLICATE KEY UPDATE status='active'`.execute(
         db
       );
+    if (action === "view-all")
+      await sql`UPDATE app_role_permissions rp
+        JOIN app_roles r ON r.id=rp.role_id
+        JOIN app_permissions p ON p.id=rp.permission_id
+        SET rp.status='inactive'
+        WHERE p.\`key\`=${key} AND r.\`key\` NOT IN ('admin','super-admin')`.execute(db);
   }
 }
 function stable(value: string) {

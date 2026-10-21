@@ -1,5 +1,17 @@
 # Platform
 
+Active, DNS-verified custom domains select their mapped tenant for login and password
+recovery. Corporate ID is hidden on those forms. Shared-host login, including
+`codexsun.com` and `app.codexsun.com`, still requires it;
+unknown hosts and supplied mismatched IDs fail closed. Tenant selection remains server-owned.
+Tenant users can sign in with their email or an optional, tenant-unique username.
+Administrators manage usernames in the tenant user form; email remains required for recovery.
+
+CRM composes an administrator role ceiling for tenant-wide enquiry and task permissions.
+Authorization uses active persisted user-role and role-permission links on every request.
+The editable `team-head` role is seeded with label `Team Head`; re-seeding preserves a custom label.
+Access Control hides unfinished CRM Contact 360 entries through the CRM public policy contract.
+
 ## Component documentation
 
 The authenticated runtime, tenant routing, application composition, entitlements, permissions, queues, storage, administration, and Windows host.

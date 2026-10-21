@@ -36,7 +36,11 @@ export async function registerDataMigrationHost(
       const records = await tenants.list();
       return records
         .filter((tenant) => tenant.status === "active" && tenant.dbType === "mariadb")
-        .map((tenant) => ({ id: tenant.id, label: `${tenant.tenantName} (${tenant.tenantCode})` }));
+        .map((tenant) => ({
+          id: tenant.id,
+          label: `${tenant.tenantName} (${tenant.tenantCode})`,
+          database: tenant.dbName
+        }));
     },
     async resolveTenant(id): Promise<MigrationTenant> {
       const tenant = await tenants.findByIdOrCode(String(id));

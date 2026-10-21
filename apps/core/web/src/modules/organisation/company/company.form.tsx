@@ -165,6 +165,7 @@ export function CompanyForm({
               </WorkspaceFormBanner>
             ) : null}
             <WorkspaceAnimatedTabs
+              contentPadding
               keepMounted
               contentClassName="mt-5"
               tabs={tabs}
@@ -278,6 +279,14 @@ function LogoTab({
         variant="logo-dark"
         onUploaded={(path) => set("logoDarkPath", path)}
       />
+      <LogoUploadCard
+        companyId={companyId}
+        defaultPreview={companyLogo}
+        label="Browser favicon"
+        path={form.faviconPath}
+        variant="favicon"
+        onUploaded={(path) => set("faviconPath", path)}
+      />
     </WorkspaceFormGrid>
   );
 }
@@ -297,7 +306,7 @@ function LogoUploadCard({
   label: string;
   onUploaded: (path: string) => void;
   path: string | null;
-  variant: "logo" | "logo-dark";
+  variant: "favicon" | "logo" | "logo-dark";
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -332,11 +341,11 @@ function LogoUploadCard({
     }
     setError("");
     if (!file.name.toLowerCase().endsWith(".svg") && file.type !== "image/svg+xml") {
-      setError("Select an SVG logo file.");
+      setError(variant === "favicon" ? "Select an SVG favicon file." : "Select an SVG logo file.");
       return;
     }
     if (file.size > 640 * 1024) {
-      setError("Company logos must be 640 KB or smaller.");
+      setError(`${variant === "favicon" ? "Favicons" : "Company logos"} must be 640 KB or smaller.`);
       return;
     }
     setUploading(true);
@@ -1109,6 +1118,7 @@ function initialPayload(
       description: record.description,
       logoPath: record.logoPath,
       logoDarkPath: record.logoDarkPath,
+      faviconPath: record.faviconPath,
       industryId: record.industryId,
       status: record.isActive ? "active" : "suspend",
       isActive: record.isActive,
@@ -1133,6 +1143,7 @@ function initialPayload(
     description: null,
     logoPath: null,
     logoDarkPath: null,
+    faviconPath: null,
     industryId: null,
     status: "active",
     isActive: true,

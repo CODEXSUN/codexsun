@@ -30,6 +30,7 @@ export type ApplicationCompanyBranding = {
   legalName: string | null;
   logoDarkPath: string | null;
   logoPath: string | null;
+  faviconPath: string | null;
   name: string;
   updatedAt: string;
 };

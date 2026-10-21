@@ -27,6 +27,7 @@ export const fallbackTenantPortal: TenantPublicPortal = {
     "Features, automation, billing, accounts, communication, and daily operations in one connected product.",
   headline: "Run the work behind your business from one clear system.",
   loginPath: "/login",
+  faviconUrl: null,
   logoDarkUrl: null,
   logoUrl: null,
   posts: [

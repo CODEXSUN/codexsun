@@ -50,7 +50,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     const tenant = await tenants.findByDomain(host);
     return ok(
       tenant
-        ? { corporateIdRequired: true, host, mode: "custom_domain", tenantName: tenant.tenantName }
+        ? { corporateIdRequired: false, host, mode: "custom_domain", tenantName: tenant.tenantName }
         : { corporateIdRequired: true, host, mode: "unknown", tenantName: null },
       { requestId: request.id }
     );
@@ -91,8 +91,30 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
   app.post("/auth/login", async (request, reply) => {
     enforceBrowserRequestOrigin(request);
-    const body = loginSchema.parse(request.body);
-    const key = `${request.ip}:${requestHost(request)}:${body.desk}:${body.email.toLowerCase()}`;
+    const parsed = loginSchema.safeParse(request.body);
+    if (!parsed.success)
+      return reply
+        .code(400)
+        .send(
+          fail(
+            {
+              code: "AUTH_INVALID_LOGIN_REQUEST",
+              message: "Enter one username or email and a password."
+            },
+            { requestId: request.id }
+          )
+        );
+    const body = parsed.data;
+    const corporateId = body.corporateId ?? body.tenantCode;
+    const loginInput = {
+      desk: body.desk,
+      domain: requestHost(request),
+      identifier: body.identifier ?? body.email ?? "",
+      password: body.password,
+      ...(corporateId ? { corporateId } : {})
+    };
+    const identity = await authService.loginAttemptIdentity(loginInput);
+    const key = `${request.ip}:${requestHost(request)}:${body.desk}:${identity}`;
     if (await attempts.isRateLimited(key)) {
       return reply
         .code(429)
@@ -103,20 +125,12 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           )
         );
     }
-    const loginInput: {
-      corporateId?: string;
-      desk: typeof body.desk;
-      domain: string;
-      email: string;
-      password: string;
-    } = {
-      desk: body.desk,
-      domain: requestHost(request),
-      email: body.email,
-      password: body.password
-    };
-    const corporateId = body.corporateId ?? body.tenantCode;
-    if (body.desk === "tenant" && !isSingleTenantMode() && !corporateId) {
+    if (
+      body.desk === "tenant" &&
+      !isSingleTenantMode() &&
+      isSharedApplicationHost(requestHost(request)) &&
+      !corporateId
+    ) {
       return reply.code(400).send(
         fail(
           {
@@ -127,7 +141,6 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         )
       );
     }
-    if (corporateId) loginInput.corporateId = corporateId;
     const result = await authService.login(loginInput);
     if (!result) {
       await attempts.recordFailure(key);
@@ -195,11 +208,15 @@ const loginSchema = z
   .object({
     corporateId: z.string().trim().min(1).max(120).optional(),
     desk: z.enum(["tenant", "admin", "staff", "sa", "super_admin"]),
-    email: z.string().trim().email().max(180),
+    email: z.string().trim().email().max(180).optional(),
+    identifier: z.string().trim().min(1).max(180).optional(),
     password: z.string().min(1).max(1024),
     tenantCode: z.string().trim().min(1).max(120).optional()
   })
-  .strict();
+  .strict()
+  .refine((value) => Boolean(value.identifier) !== Boolean(value.email), {
+    message: "Provide one username or email."
+  });
 
 function invalidCredentials(request: FastifyRequest) {
   return fail(

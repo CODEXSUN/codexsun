@@ -30,13 +30,22 @@ const sessionRepository = new AuthSessionRepository();
 export class AuthService {
   async login(input: LoginInput) {
     const desk = normalizeDesk(input.desk);
-    const email = input.email?.trim().toLowerCase() ?? "";
+    const identifier = (input.identifier ?? input.email)?.trim().toLowerCase() ?? "";
     const password = input.password ?? "";
     const loginHost = normalizeTenantDomain(input.domain ?? "");
-    if (!email || !password || !loginHost) return null;
-    if (desk === "tenant") return this.loginTenant({ ...input, email, loginHost, password });
+    if (!identifier || !password || !loginHost) return null;
+    if (desk === "tenant") return this.loginTenant({ ...input, identifier, loginHost, password });
     if (!isSharedApplicationHost(loginHost)) return null;
-    return this.loginPlatformUser({ desk, email, loginHost, password });
+    return this.loginPlatformUser({ desk, email: identifier, loginHost, password });
+  }
+
+  async loginAttemptIdentity(input: LoginInput) {
+    const identifier = (input.identifier ?? input.email)?.trim().toLowerCase() ?? "";
+    if (normalizeDesk(input.desk) !== "tenant") return identifier;
+    const loginHost = normalizeTenantDomain(input.domain ?? "");
+    const tenant = await this.tenantForLogin({ ...input, loginHost });
+    const user = tenant ? await tenantRepository.findTenantUserByLogin(tenant, identifier) : null;
+    return user?.email.toLowerCase() ?? identifier;
   }
 
   async sessionRole(payload: AuthTokenPayload) {
@@ -46,12 +55,10 @@ export class AuthService {
     return tenantProfileRole(tenant, payload.userId);
   }
 
-  private async loginTenant(
-    input: Required<Pick<LoginInput, "email" | "password">> & LoginInput & { loginHost: string }
-  ) {
+  private async tenantForLogin(input: LoginInput & { loginHost: string }) {
     const shared = isSharedApplicationHost(input.loginHost);
     const corporateId = input.corporateId?.trim().toUpperCase() ?? "";
-    if (!isSingleTenantMode() && !corporateId) return null;
+    if (!isSingleTenantMode() && shared && !corporateId) return null;
     const tenant = isSingleTenantMode()
       ? await configuredSingleTenant(tenantRepository)
       : shared
@@ -65,7 +72,15 @@ export class AuthService {
     ) {
       return null;
     }
-    const user = await tenantRepository.findTenantUserByEmail(tenant, input.email);
+    return tenant;
+  }
+
+  private async loginTenant(
+    input: LoginInput & { identifier: string; password: string; loginHost: string }
+  ) {
+    const tenant = await this.tenantForLogin(input);
+    if (!tenant) return null;
+    const user = await tenantRepository.findTenantUserByLogin(tenant, input.identifier);
     if (!user || user.status !== "active" || !verifyPassword(input.password, user.password_hash)) {
       return null;
     }
@@ -76,7 +91,9 @@ export class AuthService {
         hashPassword(input.password)
       );
     }
-    const mode: TenantAccessMode = shared ? "shared_domain" : "custom_domain";
+    const mode: TenantAccessMode = isSharedApplicationHost(input.loginHost)
+      ? "shared_domain"
+      : "custom_domain";
     const context = await buildTenantSessionCache(tenant);
     const jti = randomUUID();
     const accessToken = signAuthToken(
@@ -182,6 +199,7 @@ export class AuthService {
 }
 
 type LoginInput = {
+  identifier?: string;
   corporateId?: string;
   desk?: unknown;
   domain?: string;
@@ -251,7 +269,7 @@ async function tenantProfileRole(tenant: Tenant, userUuid: string) {
     .where("role.status", "=", "active")
     .execute();
   return (
-    ["super-admin", "admin", "manager", "auditor", "user"].find((key) =>
+    ["super-admin", "admin", "manager", "team-head", "auditor", "user"].find((key) =>
       rows.some((row) => row.key === key)
     ) ?? "user"
   );

@@ -189,6 +189,7 @@ export function ProductInformationForm({
           </Field>
         </div>
         <WorkspaceAnimatedTabs
+          contentPadding
           keepMounted
           value={activeTab}
           onValueChange={setActiveTab}

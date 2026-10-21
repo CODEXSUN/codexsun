@@ -26,6 +26,7 @@ type BrandingRow = {
   legal_name: string | null;
   logo_dark_path: string | null;
   logo_path: string | null;
+  favicon_path: string | null;
   name: string;
   updated_at: string;
 };
@@ -53,7 +54,7 @@ export class DefaultCompanyRepository {
   }
   async getApplicationBranding(): Promise<ApplicationCompanyBranding | null> {
     const rows = await sql<BrandingRow>`
-      SELECT c.id AS company_id,c.name,c.legal_name,c.logo_path,c.logo_dark_path,c.updated_at
+      SELECT c.id AS company_id,c.name,c.legal_name,c.logo_path,c.logo_dark_path,c.favicon_path,c.updated_at
       FROM core_default_company_settings d
       INNER JOIN core_companies c ON c.id=d.company_id
       WHERE d.singleton_key=1 AND d.status='active' AND c.status='active'
@@ -69,6 +70,7 @@ export class DefaultCompanyRepository {
       legalName,
       logoDarkPath: nullableText(row.logo_dark_path),
       logoPath: nullableText(row.logo_path),
+      faviconPath: nullableText(row.favicon_path),
       name,
       updatedAt: String(row.updated_at)
     };

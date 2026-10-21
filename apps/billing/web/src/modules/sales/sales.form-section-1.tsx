@@ -332,6 +332,7 @@ export function SaleContactQuickForm({
         <DialogTitle>{title}</DialogTitle>
       </DialogHeader>
       <WorkspaceAnimatedTabs
+        contentPadding
         contentClassName="h-[26rem] overflow-y-auto px-5 pb-5"
         listClassName="rounded-none border-x-0 border-t-0 px-5 shadow-none"
         tabs={tabs}

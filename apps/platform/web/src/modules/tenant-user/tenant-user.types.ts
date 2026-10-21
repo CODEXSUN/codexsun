@@ -1,5 +1,6 @@
 export type TenantUserStatus = "active" | "inactive" | "suspended";
 export type TenantUser = {
+  username?: string | null;
   id: number;
   isProtected: boolean;
   email: string;
@@ -10,6 +11,7 @@ export type TenantUser = {
   uuid: string;
 };
 export type TenantUserSavePayload = {
+  username?: string | null | undefined;
   email: string;
   name: string;
   password?: string;

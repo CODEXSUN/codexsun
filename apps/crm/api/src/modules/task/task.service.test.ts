@@ -96,7 +96,7 @@ test("direct task status changes cannot bypass closure approval", async () => {
     dueDate: null
   };
 
-  await assert.rejects(service.save(input), /approved closure request/i);
+  await assert.rejects(service.save({ ...input, assignedUserId: 1 }), /approved closure request/i);
   await assert.rejects(
     service.updateProperties(task.id, { statusId: 1 }),
     /approved closure request/i
@@ -121,11 +121,50 @@ test("property edits reject inactive task assignees", async () => {
       })
     })
   } as unknown as TaskContext["database"];
-  const service = new TaskService(repository, { ...context(), database });
+  const service = new TaskService(repository, { ...context(), database, canViewAll: true });
 
   await assert.rejects(
     service.updateProperties(task.id, { assignedUserId: 8 }),
     /Select an active assignee/i
+  );
+  assert.equal(saved, false);
+});
+
+test("non-admin task assignees cannot be replaced through properties or save", async () => {
+  let saved = false;
+  const repository = {
+    get: async () => task,
+    save: async () => {
+      saved = true;
+      return task.id;
+    },
+    patchProperties: async () => {
+      saved = true;
+    }
+  } as unknown as TaskRepository;
+  const service = new TaskService(repository, context());
+  await assert.rejects(
+    service.updateProperties(task.id, { assignedUserId: 8 }),
+    /Only a task administrator/
+  );
+  await assert.rejects(
+    service.updateProperties(task.id, { assignedUserId: null }),
+    /Only a task administrator/
+  );
+  await assert.rejects(
+    service.save(
+      {
+        title: task.title,
+        description: "",
+        listInId: 1,
+        priorityId: 1,
+        statusId: 1,
+        assignedUserId: 8,
+        dueDate: null
+      },
+      task.id
+    ),
+    /Only a task administrator/
   );
   assert.equal(saved, false);
 });

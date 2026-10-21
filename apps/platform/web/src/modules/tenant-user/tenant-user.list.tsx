@@ -7,7 +7,12 @@ import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { TenantUser } from "./tenant-user.types";
 
-export const tenantUserListColumns = { name: "User", email: "Email", status: "Status" };
+export const tenantUserListColumns = {
+  name: "User",
+  username: "Username",
+  email: "Email",
+  status: "Status"
+};
 
 export function TenantUserList({
   listTools,
@@ -33,6 +38,11 @@ export function TenantUserList({
       header: "User"
     },
     { accessorKey: "email", header: "Email" },
+    {
+      accessorKey: "username",
+      header: "Username",
+      cell: ({ row }) => row.original.username || "—"
+    },
     {
       cell: ({ row }) =>
         row.original.roles.length ? row.original.roles.map((role) => role.label).join(", ") : "—",

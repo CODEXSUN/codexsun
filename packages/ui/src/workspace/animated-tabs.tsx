@@ -13,6 +13,7 @@ export type WorkspaceAnimatedTab = {
 
 export function WorkspaceAnimatedTabs({
   className,
+  contentPadding = false,
   contentClassName,
   keepMounted = false,
   listClassName,
@@ -22,6 +23,7 @@ export function WorkspaceAnimatedTabs({
   value
 }: {
   className?: string;
+  contentPadding?: boolean;
   contentClassName?: string;
   keepMounted?: boolean;
   listClassName?: string;
@@ -73,13 +75,13 @@ export function WorkspaceAnimatedTabs({
           value={tab.value}
           {...(keepMounted ? { forceMount: true } : {})}
           className={cn(
-            tabs.length > 1 ? "mt-0 pb-2" : "mt-6 pb-2",
+            tabs.length > 1 ? "mt-0 p-0 pb-2" : "mt-6 p-0 pb-2",
             keepMounted && "data-[state=inactive]:hidden",
             contentClassName,
             tabs.length > 1 && "mt-0"
           )}
         >
-          {tab.content}
+          {contentPadding ? <div className="p-4">{tab.content}</div> : tab.content}
         </TabsContent>
       ))}
     </Tabs>
