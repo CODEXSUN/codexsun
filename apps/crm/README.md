@@ -21,6 +21,7 @@ Use [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git) for custom
 Read the [CRM comparison](agent/FRAPPE-COMPARISON.md) and
 [complete DocType catalogue](../frappe/agent/LOGICX-CRM-REFERENCE.md) for the reviewed source snapshot.
 CRM remains locally authoritative for normal enquiries. Frappe-imported enquiries preserve their source timestamps and comments, and the approved Frappe live-sync path posts CRM enquiry changes back to the linked Frappe record. Reference parity does not authorize additional outbound integration beyond this explicit enquiry sync contract.
+Local enquiry creates and edits now append a durable upsert event in the same transaction, then dispatch it to the queue after commit. Queue retries and the periodic relay recover transient failures; the CRM save does not wait for the remote Frappe request. The Frappe sync status column and detail history are visible only to `admin@tenant.com` when that user also has `crm.enquiry.frappe-sync.view`.
 See the [implemented Duty bindings](../frappe/agent/CRM-DUTY-FIELD-MAPPING.md) for frequency, Department, Employee, and report fields.
 Run `npm run test:crm-frappe` for CRM/Frappe unit tests and isolated Duty API/database E2E.
 

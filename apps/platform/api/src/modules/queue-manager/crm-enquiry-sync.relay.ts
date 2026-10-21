@@ -6,6 +6,30 @@ import { TenantRepository } from "../tenant/tenant.repository.js";
 import { getTenantDatabase } from "../../database/tenant-database.js";
 import type { QueueManagerService } from "./queue-manager.service.js";
 
+export async function enqueueCrmEnquirySync(
+  queue: QueueManagerService,
+  input: {
+    tenantId: string;
+    tenantDatabase: string;
+    eventId: number;
+    actorEmail: string;
+    attempts?: number;
+    correlationId?: string;
+  }
+) {
+  return queue.enqueue({
+    actorEmail: input.actorEmail,
+    correlationId: input.correlationId ?? `crm-enquiry:${input.eventId}`,
+    idempotencyKey: `crm-enquiry-sync:${input.tenantId}:${input.eventId}:${input.attempts ?? 0}`,
+    jobName: "crm.enquiry.frappe-sync",
+    maxAttempts: 6,
+    payload: { eventId: input.eventId, tenantDatabase: input.tenantDatabase },
+    queueName: "crm",
+    sourceModule: "crm.enquiry",
+    tenantId: input.tenantId
+  });
+}
+
 export function startCrmEnquirySyncRelay(queue: QueueManagerService) {
   let running = false;
   const dispatch = async () => {
@@ -38,16 +62,13 @@ export function startCrmEnquirySyncRelay(queue: QueueManagerService) {
           const events = await sync.dispatchableEvents();
           for (const event of events) {
             try {
-              await queue.enqueue({
+              await enqueueCrmEnquirySync(queue, {
+                tenantId: tenant.uuid,
+                tenantDatabase: tenant.dbName,
+                eventId: event.id,
                 actorEmail: event.actor_email,
-                correlationId: event.correlation_id,
-                idempotencyKey: `crm-enquiry-sync:${tenant.uuid}:${event.id}:${event.attempts}`,
-                jobName: "crm.enquiry.frappe-sync",
-                maxAttempts: 6,
-                payload: { eventId: event.id, tenantDatabase: tenant.dbName },
-                queueName: "crm",
-                sourceModule: "crm.enquiry",
-                tenantId: tenant.uuid
+                attempts: event.attempts,
+                correlationId: event.correlation_id
               });
             } catch (error) {
               console.warn("[crm-enquiry-sync] outbox dispatch deferred", {

@@ -38,6 +38,7 @@ const columnOptions = [
   { id: "listIn", label: "List in" },
   { id: "dueDate", label: "Due date" },
   { id: "priority", label: "Priority" },
+  { id: "frappeSync", label: "Frappe sync" },
   { id: "creator", label: "Creator" },
   { id: "assignedTo", label: "Assigned to" },
   { id: "status", label: "Status" }
@@ -275,6 +276,8 @@ function EnquiryPage({
         columnOptions={columnOptions
           .filter(
             (column) =>
+              (column.id !== "frappeSync" ||
+                records.some((record) => record.canViewFrappeSync === true)) &&
               (column.id !== "creator" || scope !== "created") &&
               (column.id !== "assignedTo" || scope !== "assigned")
           )
@@ -317,6 +320,7 @@ function EnquiryPage({
       ) : null}
       <EnquiryList
         records={records}
+        showFrappeSync={records.some((record) => record.canViewFrappeSync === true)}
         showInlineFilters={showInlineFilters}
         columnFilters={columnFilters}
         onColumnFilterChange={(column, value) => {

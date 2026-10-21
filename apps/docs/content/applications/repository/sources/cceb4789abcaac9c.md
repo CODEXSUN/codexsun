@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `c510c3d74ba229cdb835cd86eaae57fc31a01062d7f6b761957de42c1de8e797`
+Source SHA-256 (LF line endings): `d5469aebe268dc86c6ab1e18754bbba728a5a1898abcc21d0c6ad5088b88c8a1`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -10,6 +10,25 @@ Historical notes and unchecked plans retain their original status.
 
 ```markdown
 # Frappe tasks
+
+## Queued CRM enquiry upserts — 2026-10-21
+
+- [x] Process CRM enquiry create/edit outbox events using the tenant's verified Frappe connection and existing export policy.
+- [x] Keep CRM writes fast by dispatching after local commit; preserve durable queue retry and relay recovery behavior.
+- [x] Pass automated regression checks, the queue E2E, and isolated database E2E verification before release. Browser verification was not run. No live tenant records were changed.
+
+## Inbound enquiry title normalization — 2026-10-21
+
+- [x] Normalize Frappe Quill/HTML titles before showing import previews or saving imported enquiries in CRM.
+- [x] Preserve the original rich `Enquiry Details` HTML, including embedded image references.
+      Evidence: regression coverage in `enquiry-sync.service.test.ts`; all 162 CRM/Frappe unit tests and three isolated database E2E suites passed. No live Frappe or tenant data was changed.
+
+## Outbound enquiry title normalization — 2026-10-21
+
+- [x] Convert CRM Quill title markup, entities, and whitespace to readable plain text before Frappe export.
+- [x] Use the same normalized title when matching an existing remote enquiry.
+- [x] Keep `enquiry_details` unchanged so rich text and embedded image content remain intact.
+      Evidence: live TECHMEDIA `ENQ2023` shows Quill markup in Title while Enquiry Details render as text. The new normalization tests and the 162-test CRM/Frappe unit suite passed. The combined isolated CRM/Frappe suite passed all three database E2E checks. No live Frappe record was changed.
 
 ## Deterministic identity audit and actor attribution — 2026-10-20
 

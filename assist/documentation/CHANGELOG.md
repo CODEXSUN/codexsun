@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.35
+Current version: 1.1.36
 
-Release tag: v-1.1.35
+Release tag: v-1.1.36
 
-Changelog label: v 1.1.35
+Changelog label: v 1.1.36
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -20,6 +20,21 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.1.36
+
+### [v 1.1.36] 2026-10-21 9:27 pm - Immediate CRM enquiry sync to Frappe
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Write enquiry create and edit events to the durable outbox with the local transaction, then dispatch committed events to the verified tenant Frappe queue. Keep relay recovery and ordered retry handling.
+- Add an admin-only enquiry list sync indicator and a detail tab with sync history, state, and error information. Require both `crm.enquiry.frappe-sync.view` and the exact `admin@tenant.com` actor.
+- Verify 162 CRM/Frappe unit tests, three isolated CRM database E2E suites, the dedicated queue E2E, and the full repository `npm run check` gate. No live tenant records were changed. Browser verification was not run.
+- Bumped workspace version to 1.1.36.
+
 ## v-1.1.35
 
 ### [v 1.1.35] 2026-10-21 8:34 pm - Normalize Frappe titles and tenant branding
@@ -31,9 +46,10 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 #### App Codebase Changes
 
 - Normalize Quill markup and entities in CRM enquiry titles before Frappe export and duplicate matching. Keep rich enquiry details and embedded image content intact.
+- Normalize Quill/HTML titles from Frappe before import previews and before saving or updating the local CRM enquiry. Preserve the original rich details and embedded image references.
 - Show tenant Company branding on verified custom-domain login pages and support validated SVG, PNG, JPEG, WebP, AVIF, GIF, ICO, and BMP branding files.
 - Resolve public tenant pages from the request host, ignore forwarded-host tenant overrides, and isolate host parsing to prevent an authentication import cycle.
-- Add title-normalization, public-host, and branding regression tests. Pass 162 CRM/Frappe unit tests, three isolated CRM integration E2E tests, and all 47 Platform API tests.
+- Add inbound/outbound title-normalization, public-host, and branding regression tests. Pass 162 CRM/Frappe unit tests, three isolated CRM integration E2E tests, and all 47 Platform API tests.
 - Bump workspace version to 1.1.35.
 
 ## v-1.1.34

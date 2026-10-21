@@ -1,5 +1,12 @@
 # CRM Delivery Tasks
 
+## Immediate verified Frappe enquiry sync — 2026-10-21
+
+- [x] Persist an enquiry upsert in the CRM outbox in the same transaction as local create/edit, then dispatch the committed event to the tenant queue without waiting for Frappe HTTP.
+- [x] Run the queued handler through the verified tenant Frappe connection; keep periodic relay recovery for durable pending events and retries.
+- [x] Add a Frappe sync status column and enquiry detail history/errors tab. Gate both by `crm.enquiry.frappe-sync.view` and the exact `admin@tenant.com` actor email.
+- [x] Pass automated regression checks and isolated database E2E verification before release. The queue E2E and all three CRM/Frappe database suites passed. Browser verification was not run. No live tenant records were changed.
+
 ## CRM own-record visibility and Team Head — 2026-10-21
 
 - [x] Restrict enquiry/task tenant-wide reads to active Admin/Super Admin roles, including stale broad-grant denial.

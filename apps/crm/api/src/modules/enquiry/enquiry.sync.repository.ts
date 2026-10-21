@@ -9,6 +9,41 @@ export type EnquirySyncValidation = "valid" | "invalid" | "warning";
 export class EnquirySyncRepository {
   constructor(private readonly database: Kysely<EnquiryDatabase>) {}
 
+  async enqueueUpsert(
+    input: { actorEmail: string; correlationId: string; enquiryId: number },
+    transaction?: Transaction<EnquiryDatabase>
+  ) {
+    const database = transaction ?? this.database;
+    const current = await database
+      .selectFrom("crm_enquiry_sync_events")
+      .select(["id", "status"])
+      .where("enquiry_id", "=", input.enquiryId)
+      .orderBy("id", "desc")
+      .limit(1)
+      .forUpdate()
+      .executeTakeFirst();
+    if (current && ["pending", "retry"].includes(current.status)) {
+      await database
+        .updateTable("crm_enquiry_sync_events")
+        .set({
+          event_type: "enquiry-upsert",
+          entity_id: null,
+          actor_email: input.actorEmail,
+          correlation_id: input.correlationId,
+          status: "pending",
+          attempts: 0,
+          available_at: sql`UTC_TIMESTAMP()`,
+          last_error: null,
+          updated_at: sql`UTC_TIMESTAMP()`
+        })
+        .where("id", "=", current.id)
+        .execute();
+      await this.recordValidation(current.id, "valid", [], database);
+      return current.id;
+    }
+    return this.enqueue({ ...input, eventType: "enquiry-upsert" }, transaction);
+  }
+
   async enqueue(
     input: {
       actorEmail: string;
@@ -103,6 +138,23 @@ export class EnquirySyncRepository {
     });
   }
 
+  async latestStatuses(enquiryIds: number[]) {
+    if (!enquiryIds.length) return new Map<number, EnquirySyncEventRow["status"]>();
+    const latest = this.database
+      .selectFrom("crm_enquiry_sync_events")
+      .select("enquiry_id")
+      .select(({ fn }) => fn.max<number>("id").as("id"))
+      .where("enquiry_id", "in", enquiryIds)
+      .groupBy("enquiry_id")
+      .as("latest");
+    const rows = await this.database
+      .selectFrom("crm_enquiry_sync_events as event")
+      .innerJoin(latest, "latest.id", "event.id")
+      .select(["event.enquiry_id as enquiryId", "event.status"])
+      .execute();
+    return new Map(rows.map((row) => [row.enquiryId, row.status]));
+  }
+
   async listQueue(
     status: "all" | "pending" | "processing" | "retry" | "failed" | "synced",
     page: number,
@@ -194,7 +246,7 @@ export class EnquirySyncRepository {
         SELECT 1 FROM crm_enquiry_sync_events earlier
         WHERE earlier.enquiry_id = event.enquiry_id
           AND earlier.id < event.id
-          AND earlier.status <> 'synced'
+          AND earlier.status IN ('pending','processing','retry')
       )`
       )
       .orderBy("event.id")
@@ -267,8 +319,13 @@ export class EnquirySyncRepository {
     );
   }
 
-  private async recordValidation(eventId: number, status: EnquirySyncValidation, errors: string[]) {
-    await this.database
+  private async recordValidation(
+    eventId: number,
+    status: EnquirySyncValidation,
+    errors: string[],
+    database: Kysely<EnquiryDatabase> | Transaction<EnquiryDatabase> = this.database
+  ) {
+    await database
       .insertInto("crm_enquiry_sync_validation")
       .values({
         event_id: eventId,

@@ -1,5 +1,17 @@
 # Frappe tasks
 
+## Queued CRM enquiry upserts — 2026-10-21
+
+- [x] Process CRM enquiry create/edit outbox events using the tenant's verified Frappe connection and existing export policy.
+- [x] Keep CRM writes fast by dispatching after local commit; preserve durable queue retry and relay recovery behavior.
+- [x] Pass automated regression checks, the queue E2E, and isolated database E2E verification before release. Browser verification was not run. No live tenant records were changed.
+
+## Inbound enquiry title normalization — 2026-10-21
+
+- [x] Normalize Frappe Quill/HTML titles before showing import previews or saving imported enquiries in CRM.
+- [x] Preserve the original rich `Enquiry Details` HTML, including embedded image references.
+      Evidence: regression coverage in `enquiry-sync.service.test.ts`; all 162 CRM/Frappe unit tests and three isolated database E2E suites passed. No live Frappe or tenant data was changed.
+
 ## Outbound enquiry title normalization — 2026-10-21
 
 - [x] Convert CRM Quill title markup, entities, and whitespace to readable plain text before Frappe export.

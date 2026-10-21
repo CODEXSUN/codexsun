@@ -28,10 +28,10 @@ This source review does not verify live database or mobile behavior.
   comments, and work updates, and can upload selected device calls with comments.
 - Mobile call-log uploads use a source reference for duplicate detection. Call-log
   comments do not have a retry key, so a repeated request can add another comment.
-- Enquiry and Call Log services save through their local repositories. Platform's
-  legacy `crm.enquiry.frappe-sync` and `crm.call-log.frappe-sync` processors return
-  `stopped`. Frappe import routes and processors remain registered in
-  `apps/platform/api/src/app.ts`. Task 0.2 remains open until their removal.
+- Enquiry saves append a durable Frappe upsert outbox event and dispatch it after
+  commit through the queue worker; the periodic relay recovers pending events.
+  Call Log outbound remains stopped and out of scope. Frappe import routes and
+  processors remain registered in `apps/platform/api/src/app.ts`.
 - Enquiry reads return Local data, but the API keeps provider and remote-source
   contracts. Remove these leftovers when CRM becomes local-only.
 - The Activities list currently reads enquiry activity rows. It is not yet a

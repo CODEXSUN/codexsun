@@ -6,6 +6,7 @@ import {
   type FrappeSettings
 } from "../connection/index.js";
 import type { EnquiryInput } from "@codexsun/crm-api/enquiry-sync";
+import { normalizeFrappeEnquiryTitle } from "../export/enquiry-title.js";
 import type { EnquirySyncContext, ImportProgress, RemoteEnquiry } from "./enquiry-sync.types.js";
 
 const pageSize = 50;
@@ -60,7 +61,7 @@ export class FrappeEnquirySyncService {
     const links = await this.repository.linksByRemoteNames(valid.map((item) => item.name));
     const items = valid.map((item) => ({
       name: item.name,
-      title: item.title?.trim() || item.name,
+      title: normalizeFrappeEnquiryTitle(item.title) || item.name,
       mobile: item.mobile?.trim() || null,
       date: item.date || null,
       status: item.status?.trim() || null,
@@ -510,7 +511,10 @@ export class FrappeEnquirySyncService {
       ? await this.context.listInForName(remote.group.trim())
       : (linked?.listInId ?? null);
     return {
-      title: (remote.title?.trim() || remote.enquiry_details?.trim() || remote.name).slice(0, 255),
+      title:
+        normalizeFrappeEnquiryTitle(remote.title) ||
+        normalizeFrappeEnquiryTitle(remote.enquiry_details) ||
+        remote.name,
       description: remote.enquiry_details?.trim() || null,
       contactId: linked?.contactId ?? null,
       capturedName: customer,

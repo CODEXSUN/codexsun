@@ -1,5 +1,5 @@
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
-import { BellRing } from "lucide-react";
+import { BellRing, CheckCircle2, CircleAlert, CloudUpload, LoaderCircle } from "lucide-react";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { CrmStatusBadge, prioritySwatch } from "../../crm-colors";
@@ -24,6 +24,7 @@ export function EnquiryList({
   users,
   userColumnMode,
   showActions = true,
+  showFrappeSync = false,
   visibleColumns,
   showInlineFilters,
   columnFilters,
@@ -42,6 +43,7 @@ export function EnquiryList({
   users: EnquiryLookup[];
   userColumnMode: "creator" | "allocatedTo" | "both";
   showActions?: boolean;
+  showFrappeSync?: boolean;
   visibleColumns: Record<string, boolean>;
   showInlineFilters: boolean;
   columnFilters: EnquiryColumnFilters;
@@ -155,6 +157,50 @@ export function EnquiryList({
       )
     },
     {
+      id: "frappeSync",
+      header: "Frappe sync",
+      accessorFn: (record) => record.frappeSyncStatus ?? "not-synced",
+      cell: ({ row }) => {
+        const status = row.original.frappeSyncStatus ?? null;
+        const Icon =
+          status === "synced"
+            ? CheckCircle2
+            : status === "failed" || status === "retry"
+              ? CircleAlert
+              : status === "processing"
+                ? LoaderCircle
+                : CloudUpload;
+        const label =
+          status === "synced"
+            ? "Synced to Frappe"
+            : status === "failed"
+              ? "Frappe sync failed"
+              : status === "retry"
+                ? "Frappe sync retry scheduled"
+                : status === "processing"
+                  ? "Syncing to Frappe"
+                  : status === "pending"
+                    ? "Waiting to sync to Frappe"
+                    : "Not yet synced to Frappe";
+        const tone =
+          status === "synced"
+            ? "text-emerald-600"
+            : status === "failed"
+              ? "text-destructive"
+              : status === "retry"
+                ? "text-amber-600"
+                : status === "processing"
+                  ? "text-sky-600"
+                  : "text-muted-foreground";
+        return (
+          <span className={`inline-flex items-center gap-1.5 ${tone}`} title={label}>
+            <Icon className={`size-4 ${status === "processing" ? "animate-spin" : ""}`} />
+            <span className="sr-only">{label}</span>
+          </span>
+        );
+      }
+    },
+    {
       id: "creator",
       header: "Creator",
       accessorFn: creatorName,
@@ -207,6 +253,8 @@ export function EnquiryList({
         if (column.id === "creator" && userColumnMode === "allocatedTo") return false;
         if (column.id === "assignedTo" && userColumnMode === "creator") return false;
         if (column.id === "actions") return showActions;
+        if (column.id === "frappeSync")
+          return showFrappeSync && visibleColumns[column.id] !== false;
         return column.id === "enquiryNo" || visibleColumns[column.id ?? ""] !== false;
       })}
       data={records}

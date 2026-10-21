@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `88227881665c04dc63be954f814c056d28b734f63a3bc51b2c672ae190b7e21a`
+Source SHA-256 (LF line endings): `fa8355a1ab8c240208312b7d35643269dc2051b4007ec7a9ca565c866a234a99`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -39,10 +39,10 @@ This source review does not verify live database or mobile behavior.
   comments, and work updates, and can upload selected device calls with comments.
 - Mobile call-log uploads use a source reference for duplicate detection. Call-log
   comments do not have a retry key, so a repeated request can add another comment.
-- Enquiry and Call Log services save through their local repositories. Platform's
-  legacy `crm.enquiry.frappe-sync` and `crm.call-log.frappe-sync` processors return
-  `stopped`. Frappe import routes and processors remain registered in
-  `apps/platform/api/src/app.ts`. Task 0.2 remains open until their removal.
+- Enquiry saves append a durable Frappe upsert outbox event and dispatch it after
+  commit through the queue worker; the periodic relay recovers pending events.
+  Call Log outbound remains stopped and out of scope. Frappe import routes and
+  processors remain registered in `apps/platform/api/src/app.ts`.
 - Enquiry reads return Local data, but the API keeps provider and remote-source
   contracts. Remove these leftovers when CRM becomes local-only.
 - The Activities list currently reads enquiry activity rows. It is not yet a
@@ -297,5 +297,5 @@ Service Request → Check Coverage and SLA → Diagnose
 - Track included cases or hours, usage, remaining coverage, expiry, suspension,
   cancellation, and renewal.
 - Define response and resolution targets with business calendars, time zones,
-  holidays, pause rules, warnings,
+  holidays, pause rules, warnings, and es
 ````

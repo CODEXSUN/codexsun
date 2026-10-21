@@ -16,6 +16,7 @@ import type {
   EnquirySearchColumn
 } from "./enquiry.types.js";
 import { sanitizeCommentHtml } from "./enquiry.comment-html.js";
+import { EnquirySyncRepository } from "./enquiry.sync.repository.js";
 
 type PersistedRow = Selectable<EnquiryRow> & {
   list_name: string | null;
@@ -33,7 +34,8 @@ export class EnquiryRepository {
       enquiryId: number,
       action: string,
       body: string
-    ) => Promise<void>
+    ) => Promise<void>,
+    private readonly dispatchFrappeSync?: (eventId: number) => Promise<void>
   ) {}
 
   async listPage(options: EnquiryListOptions): Promise<EnquiryPage> {
@@ -367,7 +369,7 @@ export class EnquiryRepository {
     resolveContact?: (transaction: Transaction<EnquiryDatabase>) => Promise<EnquiryInput>,
     source?: { enquiryNo: number; createdAt: string; updatedAt: string; createdBy: string }
   ) {
-    const id = await this.database.transaction().execute(async (transaction) => {
+    const created = await this.database.transaction().execute(async (transaction) => {
       const prepared = resolveContact ? await resolveContact(transaction) : input;
       const enquiryNo = source
         ? await this.reserveImportedNumber(transaction, source.enquiryNo)
@@ -429,9 +431,16 @@ export class EnquiryRepository {
         "assigned",
         prepared.description || prepared.title
       );
-      return enquiryId;
+      const syncEventId = source
+        ? null
+        : await new EnquirySyncRepository(this.database).enqueueUpsert(
+            { actorEmail: actor, correlationId: `crm-enquiry:${enquiryId}:created`, enquiryId },
+            transaction
+          );
+      return { enquiryId, syncEventId };
     });
-    return this.get(id);
+    await this.dispatchSync(created.syncEventId);
+    return this.get(created.enquiryId);
   }
 
   async update(
@@ -440,9 +449,10 @@ export class EnquiryRepository {
     actor: string,
     details = "Enquiry updated",
     expectedStatusId?: number,
-    resolveContact?: (transaction: Transaction<EnquiryDatabase>) => Promise<EnquiryInput>
+    resolveContact?: (transaction: Transaction<EnquiryDatabase>) => Promise<EnquiryInput>,
+    syncToFrappe = true
   ) {
-    await this.database.transaction().execute(async (transaction) => {
+    const syncEventId = await this.database.transaction().execute(async (transaction) => {
       const previous = await transaction
         .selectFrom("crm_enquiries")
         .select(["assigned_user_id", "status_id"])
@@ -510,8 +520,27 @@ export class EnquiryRepository {
       if (previous.status_id === prepared.statusId) {
         await insertEnquiryActivity(transaction, id, "updated", details, actor);
       }
+      if (syncToFrappe)
+        return new EnquirySyncRepository(this.database).enqueueUpsert(
+          { actorEmail: actor, correlationId: `crm-enquiry:${id}:updated`, enquiryId: id },
+          transaction
+        );
+      return null;
     });
+    await this.dispatchSync(syncEventId);
     return this.get(id);
+  }
+
+  private async dispatchSync(eventId: number | null) {
+    if (eventId === null || !this.dispatchFrappeSync) return;
+    try {
+      await this.dispatchFrappeSync(eventId);
+    } catch (error) {
+      console.warn("[crm-enquiry-sync] immediate dispatch deferred", {
+        eventId,
+        message: error instanceof Error ? error.message : "Queue dispatch failed."
+      });
+    }
   }
 
   async listComments(enquiryId: number): Promise<EnquiryComment[]> {

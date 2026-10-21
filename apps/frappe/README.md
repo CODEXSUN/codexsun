@@ -44,6 +44,8 @@ the write interface for local operations; imported records remain linked to thei
 
 Enquiry imports preserve numeric `ENQ` serials, Frappe creation and modified timestamps, mapped
 creator and assignee, the current Customer display name and mobile, and Comment/Info timeline entries.
+Remote enquiry titles are converted from Quill/HTML to plain text before preview and local persistence;
+the rich `Enquiry Details` field is preserved so formatting and embedded images remain available.
 The enquiry's read-only `user_employee` field is the business creator shown in CRM; it maps through
 the verified Employee-to-local-user mapping. Frappe's document `owner` is a fallback when that
 Employee has no unique local mapping. `assigned_to_employee` is authoritative: clearing it clears

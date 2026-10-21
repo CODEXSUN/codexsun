@@ -21,6 +21,7 @@ import { StatusRepository } from "../status/status.repository.js";
 import { PriorityService } from "../priority/priority.service.js";
 import { PriorityRepository } from "../priority/priority.repository.js";
 import { localViewRecord, localViewComment, type EnquiryViewInput } from "./enquiry.view-model.js";
+import { EnquirySyncRepository } from "./enquiry.sync.repository.js";
 
 const nullableText = z.string().trim().nullable();
 const inputSchema = z.object({
@@ -54,7 +55,12 @@ const recordSchema = inputSchema.extend({
   createdBy: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  closurePending: z.boolean().optional()
+  closurePending: z.boolean().optional(),
+  frappeSyncStatus: z
+    .enum(["pending", "processing", "retry", "failed", "synced"])
+    .nullable()
+    .optional(),
+  canViewFrappeSync: z.boolean().optional()
 });
 const referenceSchema = z.string().trim().min(1).max(191);
 const viewInputSchema = inputSchema
@@ -195,6 +201,7 @@ export type EnquiryRequestContext = {
   actorEmail: string;
   actorUserId: number | null;
   canViewAll: boolean;
+  canViewFrappeSync?: boolean;
   relations: EnquiryRelations;
   listUsers: () => Promise<Array<{ id: number; name: string; email: string; status: string }>>;
   pendingClosureLookup?: PendingClosureLookup;
@@ -204,6 +211,7 @@ export type EnquiryRequestContext = {
     action: string,
     body: string
   ) => Promise<void>;
+  dispatchFrappeSync?: (eventId: number) => Promise<void>;
 };
 
 export function registerEnquiryRoutes(
@@ -213,7 +221,7 @@ export function registerEnquiryRoutes(
   const service = async (request: FastifyRequest) => {
     const scope = await context(request);
     const enquiry = new EnquiryService(
-      new EnquiryRepository(scope.database, scope.workEvent),
+      new EnquiryRepository(scope.database, scope.workEvent, scope.dispatchFrappeSync),
       scope.relations,
       scope,
       scope.pendingClosureLookup
@@ -343,7 +351,24 @@ export function registerEnquiryRoutes(
       querystring: listQuerySchema,
       response: viewPageSchema
     },
-    handler: async ({ query, request }) => (await service(request)).read.list(query)
+    handler: async ({ query, request }) => {
+      const current = await service(request);
+      const page = await current.read.list(query);
+      const canViewFrappeSync = current.scope.canViewFrappeSync === true;
+      const statuses = canViewFrappeSync
+        ? await new EnquirySyncRepository(current.scope.database).latestStatuses(
+            page.items.map((item) => Number(item.id))
+          )
+        : new Map();
+      return {
+        ...page,
+        items: page.items.map((item) => ({
+          ...item,
+          canViewFrappeSync,
+          ...(canViewFrappeSync ? { frappeSyncStatus: statuses.get(Number(item.id)) ?? null } : {})
+        }))
+      };
+    }
   });
   registerContractRoute(app, {
     method: "GET",
@@ -424,7 +449,49 @@ export function registerEnquiryRoutes(
     schemas: { params: viewIdSchema, response: viewRecordSchema },
     handler: async ({ params, request }) => {
       const current = await service(request);
-      return localViewRecord(await current.enquiry.get(localId(params.id)));
+      const record = localViewRecord(await current.enquiry.get(localId(params.id)));
+      if (!current.scope.canViewFrappeSync) return { ...record, canViewFrappeSync: false };
+      const statuses = await new EnquirySyncRepository(current.scope.database).latestStatuses([
+        Number(params.id)
+      ]);
+      return {
+        ...record,
+        canViewFrappeSync: true,
+        frappeSyncStatus: statuses.get(Number(params.id)) ?? null
+      };
+    }
+  });
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/crm/enquiries/:id/frappe-sync",
+    schemas: {
+      params: viewIdSchema,
+      response: z.array(
+        z.object({
+          id: z.string(),
+          eventType: z.enum(["enquiry-upsert", "comment-add", "job-upsert", "estimate-upsert"]),
+          status: z.enum(["pending", "processing", "retry", "failed", "synced"]),
+          attempts: z.number().int().nonnegative(),
+          remoteName: z.string().nullable(),
+          lastError: z.string().nullable(),
+          createdAt: z.string(),
+          validation: z
+            .object({
+              status: z.enum(["valid", "invalid", "warning"]),
+              errors: z.array(z.string()),
+              checkedAt: z.string()
+            })
+            .nullable()
+        })
+      )
+    },
+    handler: async ({ params, request }) => {
+      const current = await service(request);
+      if (!current.scope.canViewFrappeSync)
+        throw AppError.forbidden("You cannot view Frappe sync details.");
+      const id = localId(params.id);
+      await current.enquiry.get(id);
+      return new EnquirySyncRepository(current.scope.database).listForEnquiry(id);
     }
   });
   registerContractRoute(app, {

@@ -84,7 +84,15 @@ test("previews remote enquiries and their local link", async () => {
   globalThis.fetch = async (input) =>
     String(input).includes("get_count")
       ? Response.json({ message: 1 })
-      : Response.json({ data: [{ name: "ENQ27", title: "Machine issue", date: "2026-10-06" }] });
+      : Response.json({
+          data: [
+            {
+              name: "ENQ27",
+              title: '<div class="ql-editor read-mode"><p>Machine issue</p></div>',
+              date: "2026-10-06"
+            }
+          ]
+        });
   const service = new FrappeEnquirySyncService(
     {
       database: scope.value,
@@ -304,8 +312,8 @@ test("pull creates a local enquiry and records the remote identity", async () =>
           creation: "2026-10-06 10:00:00.000000",
           modified: "2026-10-07 11:30:00.000000",
           owner: "agent@example.com",
-          title: "Machine issue",
-          enquiry_details: "Machine stopped",
+          title: '<div class="ql-editor read-mode"><p>Machine&nbsp;issue</p></div>',
+          enquiry_details: '<p>Machine stopped</p><img src="/files/evidence.png">',
           mobile: "9994885548",
           user_employee: "HR-EMP-00011",
           assigned_to_employee: "HR-EMP-00011",
@@ -360,6 +368,8 @@ test("pull creates a local enquiry and records the remote identity", async () =>
   });
   assert.equal(created[0]?.source, "frappe");
   assert.equal(created[0]?.sourceReference, "ENQ27");
+  assert.equal(created[0]?.title, "Machine issue");
+  assert.equal(created[0]?.description, '<p>Machine stopped</p><img src="/files/evidence.png">');
   assert.equal(created[0]?.statusId, 2);
   assert.equal(created[0]?.assignedUserId, 7);
   assert.equal(created[0]?.listInId, 9);

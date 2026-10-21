@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { crmRequest } from "../../crm-request";
 import {
   getEnquiry,
+  listEnquiryFrappeSync,
   getEnquiryOverviewActivity,
   getEnquiryAttention,
   getEnquirySummary,
@@ -24,6 +25,8 @@ export const enquiryReportQueryKey = ["crm", "enquiries", "reports"] as const;
 export const enquiryContactsQueryKey = ["crm", "enquiry", "core-contacts"] as const;
 export const enquiryUsersQueryKey = ["crm", "enquiry", "tenant-users"] as const;
 export const enquiryDetailQueryKey = (id: string) => ["crm", "enquiry", id] as const;
+export const enquiryFrappeSyncQueryKey = (id: string) =>
+  ["crm", "enquiry", id, "frappe-sync"] as const;
 export const enquiryCommentsQueryKey = (id: string) => ["crm", "enquiry", id, "comments"] as const;
 export const enquiryJobsQueryKey = (id: string) => ["crm", "enquiry", id, "jobs"] as const;
 export const enquiryEstimatesQueryKey = (id: string) =>
@@ -65,7 +68,8 @@ export const useEnquiryPage = (options: {
       options.reportFilters,
       options.dateRange
     ],
-    refetchInterval: 15000,
+    refetchInterval: (query) =>
+      query.state.data?.items.some((record) => record.canViewFrappeSync === true) ? 3000 : 15000,
     queryFn: () => listEnquiryPage(options)
   });
 export const useEnquiryReport = (
@@ -136,6 +140,13 @@ export const useEnquiryDetail = (id: string) =>
     queryKey: enquiryDetailQueryKey(id),
     queryFn: () => getEnquiry(id),
     refetchInterval: 10000
+  });
+export const useEnquiryFrappeSync = (id: string, enabled: boolean) =>
+  useQuery({
+    queryKey: enquiryFrappeSyncQueryKey(id),
+    queryFn: () => listEnquiryFrappeSync(id),
+    enabled,
+    refetchInterval: 3000
   });
 export const useEnquiryComments = (id: string) =>
   useQuery({

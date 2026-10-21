@@ -8,6 +8,7 @@ import {
   Activity,
   BellRing,
   CalendarClock,
+  CloudUpload,
   LogIn,
   MessageSquare,
   ReceiptText,
@@ -35,7 +36,8 @@ import {
   useEnquiryComments,
   useEnquiryDetail,
   useEnquiryEstimates,
-  useEnquiryJobs
+  useEnquiryJobs,
+  useEnquiryFrappeSync
 } from "./enquiry.hooks";
 import { EnquiryJobs } from "./enquiry.jobs";
 import { EnquiryProperties } from "./enquiry.properties";
@@ -43,6 +45,7 @@ import { EnquiryCustomer } from "./enquiry.customer";
 import { ScheduleRecordButton, ScheduleRecordList, useRecordSchedules } from "../scheduler";
 import { createEnquiryComment, startEnquiryJob, stopEnquiryJob } from "./enquiry.services";
 import { enquiryTableText } from "./enquiry.table-text";
+import { EnquiryFrappeSyncWorkspace } from "./enquiry.frappe-sync";
 import type { EnquiryLookup, EnquiryMasterLookup, EnquiryRecord } from "./enquiry.types";
 
 type EnquiryTab =
@@ -56,7 +59,8 @@ type EnquiryTab =
   | "closure"
   | "customer"
   | "whatsapp"
-  | "schedules";
+  | "schedules"
+  | "frappe-sync";
 
 export function EnquiryShow({
   id,
@@ -89,6 +93,7 @@ export function EnquiryShow({
   const whatsApp = useWhatsAppMessages(Number(id));
   const schedules = useRecordSchedules("enquiry", Number(id));
   const record = enquiry.data;
+  const frappeSync = useEnquiryFrappeSync(id, record?.canViewFrappeSync === true);
   const contact = contacts.find((item) => item.id === record?.contactId);
   const mobile = contact?.primaryPhone || record?.capturedPhone || null;
   const error = enquiry.error ?? comments.error ?? jobs.error ?? estimates.error;
@@ -270,6 +275,27 @@ export function EnquiryShow({
       ),
       content: <ScheduleRecordList sourceType="enquiry" sourceId={Number(id)} />
     },
+    ...(record?.canViewFrappeSync
+      ? [
+          {
+            value: "frappe-sync" as const,
+            label: (
+              <TabLabel
+                icon={<CloudUpload className="size-4" />}
+                label="Frappe sync"
+                count={frappeSync.data?.length ?? 0}
+              />
+            ),
+            content: (
+              <EnquiryFrappeSyncWorkspace
+                events={frappeSync.data ?? []}
+                loading={frappeSync.isLoading}
+                error={frappeSync.error?.message ?? ""}
+              />
+            )
+          }
+        ]
+      : []),
     {
       value: "closure",
       label: (

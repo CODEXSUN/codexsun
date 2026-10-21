@@ -175,7 +175,8 @@ export class EnquiryService {
       actor,
       "Enquiry updated from Frappe",
       current.statusId,
-      async () => ({ ...prepared, contactId: externalContact?.id ?? null })
+      async () => ({ ...prepared, contactId: externalContact?.id ?? null }),
+      false
     );
     if (!record) throw AppError.notFound("Enquiry was not found.");
     const metadata = {
