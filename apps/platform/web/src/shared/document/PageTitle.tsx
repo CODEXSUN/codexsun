@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { requiredClientEnv } from "../env/client-env";
 
-export function setPlatformDocumentTitle(pageTitle: string) {
-  document.title = `${requiredClientEnv("VITE_TENANT_NAME")} | ${pageTitle}`;
+export function setPlatformDocumentTitle(pageTitle: string, brandName?: string | null) {
+  document.title = `${brandName || requiredClientEnv("VITE_TENANT_NAME")} | ${pageTitle}`;
 }
 
 export function setPlatformFavicon(url: string | null | undefined) {
-  const favicon = document.querySelector<HTMLLinkElement>('link[data-platform-favicon]');
+  const favicon = document.querySelector<HTMLLinkElement>("link[data-platform-favicon]");
   if (!favicon) return;
   favicon.href = url || "/logo/favicon.svg";
   favicon.removeAttribute("type");

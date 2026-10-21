@@ -3,6 +3,7 @@ import { getCompanyForDatabase } from "@codexsun/core-api";
 import { AppError } from "@codexsun/framework/errors";
 import { fail, ok } from "@codexsun/framework/http";
 import { requireSuperAdmin } from "../../auth/super-admin.guard.js";
+import { requestHost } from "../../auth/request-host.js";
 import { tenantAccessContext } from "../../auth/tenant-access-context.js";
 import { TenantService } from "../tenant/tenant.service.js";
 import { StorageManagerService } from "./storage-manager.service.js";
@@ -142,10 +143,6 @@ function companyLogoParams(value: unknown) {
 function companyLogoVariant(value: unknown): CompanyBrandingVariant {
   if (value === "favicon" || value === "logo" || value === "logo-dark") return value;
   throw AppError.notFound("Company logo was not found.");
-}
-
-function requestHost(request: FastifyRequest) {
-  return String(request.headers["x-forwarded-host"] ?? request.headers.host ?? "");
 }
 
 function companyLogoNotFound(reply: FastifyReply, requestId: string) {

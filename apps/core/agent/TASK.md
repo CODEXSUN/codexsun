@@ -25,6 +25,14 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Company image branding formats, 21-10-2026
+
+- Company Logo accepts light logo, dark logo, and favicon files in SVG, PNG, JPEG, WebP, AVIF, GIF, ICO, and BMP formats.
+- Platform checks the image signature before it writes the file. SVG files also reject scripts and external content.
+- Core stores branding paths. Platform reads the assets through the existing Default Company public contract.
+- SVG files are limited to 640 KB. Raster image files are limited to 5 MB.
+- The custom-domain login page and public home page use the Default Company name.
+
 ### Core workspace read access for User role, 19-10-2026
 
 - The repeatable Core permission seed grants `core.application.records.view` to Admin, Super Admin, Manager, and User roles.

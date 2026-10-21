@@ -24,7 +24,14 @@ import {
 } from "./company.schema";
 import companyLogo from "./logo.svg";
 import companyLogoDark from "./logo-dark.svg";
-import { readCompanyLogo, uploadCompanyLogo } from "./company.services";
+import {
+  companyBrandingImageAccept,
+  companyBrandingImageDescription,
+  companyBrandingMaxBytes,
+  isCompanyBrandingImage,
+  readCompanyLogo,
+  uploadCompanyLogo
+} from "./company.services";
 import type {
   CompanyAddress,
   CompanyBankAccount,
@@ -340,12 +347,12 @@ function LogoUploadCard({
       return;
     }
     setError("");
-    if (!file.name.toLowerCase().endsWith(".svg") && file.type !== "image/svg+xml") {
-      setError(variant === "favicon" ? "Select an SVG favicon file." : "Select an SVG logo file.");
+    if (!isCompanyBrandingImage(file)) {
+      setError(`Select a ${companyBrandingImageDescription} file.`);
       return;
     }
-    if (file.size > 640 * 1024) {
-      setError(`${variant === "favicon" ? "Favicons" : "Company logos"} must be 640 KB or smaller.`);
+    if (file.size > companyBrandingMaxBytes) {
+      setError("Company branding images must be 5 MB or smaller.");
       return;
     }
     setUploading(true);
@@ -371,7 +378,9 @@ function LogoUploadCard({
       <div className="space-y-5">
         <div>
           <h2 className="text-base font-semibold">{label}</h2>
-          <p className="text-sm text-muted-foreground">SVG only, up to 640 KB.</p>
+          <p className="text-sm text-muted-foreground">
+            {companyBrandingImageDescription}, up to 5 MB. SVG files are limited to 640 KB.
+          </p>
         </div>
         <div
           className={`flex min-h-44 flex-col items-center justify-center gap-4 rounded-lg border border-dashed p-6 transition-colors ${
@@ -390,12 +399,12 @@ function LogoUploadCard({
             className={`text-center text-sm ${dark ? "text-slate-300" : "text-muted-foreground"}`}
           >
             {companyId
-              ? "Drag and drop an SVG here, or browse from your computer."
+              ? `Drag and drop a ${companyBrandingImageDescription} file here, or browse from your computer.`
               : "Save the Company before uploading its logo."}
           </div>
           <input
             ref={inputRef}
-            accept=".svg,image/svg+xml"
+            accept={companyBrandingImageAccept}
             aria-label={`Browse ${label}`}
             className="hidden"
             type="file"

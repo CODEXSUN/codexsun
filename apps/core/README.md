@@ -28,6 +28,11 @@ A concrete leaf owns its schema, repository, validation, routes, seeds, and UI. 
 
 The public `getOrganisationOptionsForDatabase` contract supplies active company and financial-year options plus the tenant Default Company. Ecommerce uses this read contract for its own storefront organisation settings. It does not change Core defaults.
 
+Company owns the Company name, light logo, dark logo, and favicon paths. Platform reads these
+values through the Default Company contract. The login page and public home page use the Company
+name. Company branding accepts SVG, PNG, JPEG, WebP, AVIF, GIF, ICO, and BMP files. Platform
+validates file content before it stores the asset.
+
 - [TASK.md](agent/TASK.md): work items and acceptance evidence.
 - [PLAN.md](agent/PLAN.md): scope, ownership, delivery order, and verification gates.
 - [SKILLS.md](agent/SKILLS.md): component working rules and safety constraints.

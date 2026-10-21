@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { ok, registerContractRoute } from "@codexsun/framework/http";
+import { requestHost } from "../../auth/request-host.js";
 import { TenantService } from "./tenant.service.js";
 import type { TenantSavePayload } from "./tenant.types.js";
 
@@ -52,10 +53,7 @@ export async function registerTenantRoutes(app: FastifyInstance) {
         theme: z.enum(["blue", "emerald", "slate", "violet"])
       })
     },
-    handler: ({ request }) =>
-      tenantService.getPublicPortal(
-        String(request.headers["x-forwarded-host"] ?? request.headers.host ?? "")
-      )
+    handler: ({ request }) => tenantService.getPublicPortal(requestHost(request))
   });
 
   app.get("/admin/tenants", async (request) =>

@@ -1,5 +1,12 @@
 # Frappe tasks
 
+## Outbound enquiry title normalization — 2026-10-21
+
+- [x] Convert CRM Quill title markup, entities, and whitespace to readable plain text before Frappe export.
+- [x] Use the same normalized title when matching an existing remote enquiry.
+- [x] Keep `enquiry_details` unchanged so rich text and embedded image content remain intact.
+      Evidence: live TECHMEDIA `ENQ2023` shows Quill markup in Title while Enquiry Details render as text. The new normalization tests and the 162-test CRM/Frappe unit suite passed. The combined isolated CRM/Frappe suite passed all three database E2E checks. No live Frappe record was changed.
+
 ## Deterministic identity audit and actor attribution — 2026-10-20
 
 - [x] Add the Frappe Identity audit page and read-only API endpoint for local/Frappe User and Employee mapping fields.

@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.34
+Current version: 1.1.35
 
-Release tag: v-1.1.34
+Release tag: v-1.1.35
 
-Changelog label: v 1.1.34
+Changelog label: v 1.1.35
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,22 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.35
+
+### [v 1.1.35] 2026-10-21 8:34 pm - Normalize Frappe titles and tenant branding
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Normalize Quill markup and entities in CRM enquiry titles before Frappe export and duplicate matching. Keep rich enquiry details and embedded image content intact.
+- Show tenant Company branding on verified custom-domain login pages and support validated SVG, PNG, JPEG, WebP, AVIF, GIF, ICO, and BMP branding files.
+- Resolve public tenant pages from the request host, ignore forwarded-host tenant overrides, and isolate host parsing to prevent an authentication import cycle.
+- Add title-normalization, public-host, and branding regression tests. Pass 162 CRM/Frappe unit tests, three isolated CRM integration E2E tests, and all 47 Platform API tests.
+- Bump workspace version to 1.1.35.
 
 ## v-1.1.34
 

@@ -123,3 +123,33 @@ test("public portal HTTP contract preserves Blog availability and media path", a
     await app.close();
   }
 });
+
+test("public portal uses the browser host and ignores a supplied forwarded host", async () => {
+  const portal = publicPortalForTenant(fixture(), "tenant.example");
+  let resolvedHost = "";
+  const getPortal = mock.method(
+    TenantService.prototype,
+    "getPublicPortal",
+    async (host: string) => {
+      resolvedHost = host;
+      return portal;
+    }
+  );
+  const app = Fastify();
+  try {
+    await registerTenantRoutes(app);
+    const response = await app.inject({
+      headers: {
+        host: "tenant.example:443",
+        "x-forwarded-host": "another-tenant.example"
+      },
+      method: "GET",
+      url: "/public/app-portal"
+    });
+    assert.equal(response.statusCode, 200);
+    assert.equal(resolvedHost, "tenant.example");
+  } finally {
+    getPortal.mock.restore();
+    await app.close();
+  }
+});

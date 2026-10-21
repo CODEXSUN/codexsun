@@ -70,6 +70,17 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Company image branding formats, 21-10-2026
+
+- Storage Manager accepts SVG, PNG, JPEG, WebP, AVIF, GIF, ICO, and BMP Company branding images.
+- The upload endpoint detects the file format from its content. It does not trust the browser filename or MIME type.
+- SVG files reject scripts and external content. SVG files are limited to 640 KB. Raster image files are limited to 5 MB.
+- Existing SVG asset paths remain readable during the change.
+- The custom-domain login page and public home page use the Default Company name.
+- Public tenant pages and their logo, dark logo, and favicon read the same-origin browser host. Only an active, verified custom domain can select its tenant. A forwarded-host request header cannot select another tenant.
+- Host parsing now uses a separate module, so public routes cannot create an authentication import cycle.
+- Passed: all 47 Platform API tests, Platform and Core typechecks, lint, builds, the Core and Platform boundary checks, and focused company-form tests. Live page and deployment checks remain pending.
+
 ### Tenkasi Sports targeted local provisioning and registration hardening, 19-10-2026
 
 - Hardened canonical `/public/sportsclub/registration` to use a single tenant database transaction (`db.transaction().execute`) for both `services.member.enroll` and `context.provisionStudentIdentity`, failing closed with internal error if `db.transaction` is unavailable.

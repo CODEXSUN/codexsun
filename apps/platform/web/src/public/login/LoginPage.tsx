@@ -15,6 +15,7 @@ import {
   hasSessionExpiredReason,
   hasSessionRefreshedReason
 } from "../../shared/auth/session-expiry";
+import { setPlatformDocumentTitle } from "../../shared/document/PageTitle";
 
 type LoginPageProps = {
   desk: Desk;
@@ -40,6 +41,7 @@ export function LoginPage({ desk, title }: LoginPageProps) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [tenantContext, setTenantContext] = useState<{
+    brandName: string | null;
     corporateIdRequired: boolean;
     mode: "custom_domain" | "shared_domain" | "unknown";
     tenantName: string | null;
@@ -68,6 +70,12 @@ export function LoginPage({ desk, title }: LoginPageProps) {
   }, [desk]);
 
   useEffect(() => {
+    if (desk === "tenant" && tenantContext?.brandName) {
+      setPlatformDocumentTitle("Sign in", tenantContext.brandName);
+    }
+  }, [desk, tenantContext?.brandName]);
+
+  useEffect(() => {
     if (
       desk !== "tenant" ||
       tconnectLogin ||
@@ -92,7 +100,9 @@ export function LoginPage({ desk, title }: LoginPageProps) {
           sportsclubLogin
             ? "/app/sportsclub/student"
             : tconnectLogin
-              ? (tconnectBuyer ? "/app/tconnect/buyer" : "/app/tconnect/member")
+              ? tconnectBuyer
+                ? "/app/tconnect/buyer"
+                : "/app/tconnect/member"
               : "/app/"
         );
       })
@@ -141,7 +151,9 @@ export function LoginPage({ desk, title }: LoginPageProps) {
           sportsclubLogin
             ? "/app/sportsclub/student"
             : tconnectLogin
-              ? (tconnectBuyer ? "/app/tconnect/buyer" : "/app/tconnect/member")
+              ? tconnectBuyer
+                ? "/app/tconnect/buyer"
+                : "/app/tconnect/member"
               : "/app/"
         );
         return;
@@ -178,8 +190,8 @@ export function LoginPage({ desk, title }: LoginPageProps) {
       }
     >
       <form className="auth-form" onSubmit={submit}>
-        {desk === "tenant" && tenantContext?.tenantName ? (
-          <p className="auth-workspace">{tenantContext.tenantName}</p>
+        {desk === "tenant" && tenantContext?.brandName ? (
+          <p className="auth-workspace">{tenantContext.brandName}</p>
         ) : null}
         {desk === "tenant" && tenantContext?.corporateIdRequired ? (
           <Field

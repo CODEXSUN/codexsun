@@ -4,6 +4,7 @@ import { FrappeConnectionAccess, requestFrappe } from "../connection/index.js";
 import type { FrappeDatabase, FrappeSettings } from "../connection/index.js";
 import { mappedEmployeeCodeForLocalUser } from "../user-mapping/index.js";
 import type { FrappeUserMappingDatabase } from "../user-mapping/index.js";
+import { normalizeFrappeEnquiryTitle } from "./enquiry-title.js";
 import { assertFrappeExportAllowed } from "./export.policy.js";
 import type {
   ExportKind,
@@ -312,6 +313,7 @@ export class FrappeExportService {
       WHERE e.id=${id} LIMIT 1`.execute(this.database);
     const enquiry = result.rows[0];
     if (!enquiry) throw AppError.notFound("Enquiry was not found.");
+    const title = normalizeFrappeEnquiryTitle(enquiry.title);
     if (enquiry.remote_name) {
       await this.verifyRemote("Enquiry", enquiry.remote_name, settings);
       return { outcome: "linked" as const, remoteName: enquiry.remote_name };
@@ -326,14 +328,14 @@ export class FrappeExportService {
       "Enquiry",
       ["name", "title", "mobile", "customer", "date"],
       [
-        ["title", "=", enquiry.title],
+        ["title", "=", title],
         ["date", "=", dateOnly(enquiry.enquired_at)]
       ],
       settings
     );
     const exact = candidates.filter(
       (candidate) =>
-        normalized(candidate.title) === normalized(enquiry.title) &&
+        normalized(candidate.title) === normalized(title) &&
         (enquiry.captured_phone
           ? samePhone(candidate.mobile, enquiry.captured_phone)
           : Boolean(
@@ -591,6 +593,9 @@ export class FrappeExportService {
       WHERE e.id=${id} LIMIT 1`.execute(this.database);
     const enquiry = result.rows[0];
     if (!enquiry) throw AppError.notFound("Enquiry was not found.");
+    const title = normalizeFrappeEnquiryTitle(enquiry.title);
+    if (!title)
+      throw AppError.validation("Add readable text to the enquiry title before exporting.");
     const linkedName = verifiedRemoteName ?? enquiry.remote_name;
     const creator = linkedName
       ? undefined
@@ -598,8 +603,8 @@ export class FrappeExportService {
     if (!linkedName && !enquiry.captured_phone?.trim())
       throw AppError.conflict("Add a mobile number before creating this enquiry in Frappe.");
     const payload = {
-      title: enquiry.title,
-      enquiry_details: enquiry.description || enquiry.title,
+      title,
+      enquiry_details: enquiry.description || title,
       mobile: enquiry.captured_phone || undefined,
       date: dateOnly(enquiry.enquired_at),
       due_date: enquiry.due_date ? dateOnly(enquiry.due_date) : undefined,

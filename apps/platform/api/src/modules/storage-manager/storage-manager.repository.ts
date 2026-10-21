@@ -148,11 +148,13 @@ export class StorageManagerRepository {
     const filePath = resolveInsideStorage(base, relativePath);
     const buffer = Buffer.from(input.contentBase64, "base64");
 
-    if (!isSafeSvg(buffer)) {
-      throw new Error("Company branding files must be safe SVG files without scripts or external content.");
+    const image = companyBrandingImage(buffer);
+    if (!image) throw new Error(companyBrandingImageError());
+    if (image.format === "svg" && !isSafeSvg(buffer)) {
+      throw new Error("SVG branding files cannot include scripts or external content.");
     }
-    if (buffer.byteLength > 640 * 1024) {
-      throw new Error("Company branding files must be 640 KB or smaller.");
+    if (buffer.byteLength > companyBrandingMaxBytes(image.format)) {
+      throw new Error(companyBrandingSizeError(image.format));
     }
 
     await mkdir(resolveInsideStorage(base, logoFolder), { recursive: true });
@@ -160,7 +162,7 @@ export class StorageManagerRepository {
     await this.recordObject({
       checksum: createHash("sha256").update(buffer).digest("hex"),
       diskPath: filePath,
-      mimeType: "image/svg+xml",
+      mimeType: image.mimeType,
       objectType: "file",
       relativePath,
       scope: "tenant",
@@ -180,8 +182,8 @@ export class StorageManagerRepository {
     const fileName = companyBrandingFileName(variant);
     const base = tenantPublicStorageRoot(tenantKey);
     const filePath = await firstExistingFile(base, [
-      `companies/${positiveCompanyId(companyId)}/logo/${fileName}`,
-      `logo/${fileName}`
+      ...companyBrandingPaths(positiveCompanyId(companyId), variant),
+      ...legacyCompanyBrandingPaths(positiveCompanyId(companyId), variant)
     ]);
     if (!filePath) return null;
     let info;
@@ -191,11 +193,17 @@ export class StorageManagerRepository {
       if (isFileNotFound(error)) return null;
       throw error;
     }
-    if (!info.isFile()) throw new Error("Company logo was not found.");
+    if (!info.isFile()) throw new Error("Company branding asset was not found.");
+    const buffer = await readFile(filePath);
+    const image = companyBrandingImage(buffer);
+    if (!image) throw new Error("Stored company branding has an unsupported image format.");
+    if (image.format === "svg" && !isSafeSvg(buffer)) {
+      throw new Error("Stored SVG branding cannot include scripts or external content.");
+    }
     return {
-      buffer: await readFile(filePath),
+      buffer,
       fileName,
-      mimeType: "image/svg+xml",
+      mimeType: image.mimeType,
       sizeBytes: info.size
     };
   }
@@ -323,9 +331,18 @@ function positiveCompanyId(value: number) {
 }
 
 function companyBrandingFileName(variant: CompanyBrandingVariant) {
-  if (variant === "logo-dark") return "logo-dark.svg";
-  if (variant === "favicon") return "favicon.svg";
-  return "logo.svg";
+  if (variant === "logo-dark") return "logo-dark";
+  if (variant === "favicon") return "favicon";
+  return "logo";
+}
+
+function companyBrandingPaths(companyId: number, variant: CompanyBrandingVariant) {
+  return [`companies/${companyId}/logo/${companyBrandingFileName(variant)}`];
+}
+
+function legacyCompanyBrandingPaths(companyId: number, variant: CompanyBrandingVariant) {
+  const fileName = companyBrandingFileName(variant);
+  return [`companies/${companyId}/logo/${fileName}.svg`, `logo/${fileName}.svg`];
 }
 
 function isFileNotFound(error: unknown) {
@@ -351,9 +368,7 @@ function sanitizeFileName(value: string) {
 
 function isSafeSvg(buffer: Buffer) {
   const source = buffer.toString("utf8").trim();
-  const hasSvg = source.startsWith("<?xml")
-    ? /<svg[\s>]/i.test(source)
-    : /^<svg[\s>]/i.test(source);
+  const hasSvg = isSvgSource(source);
   return (
     hasSvg &&
     !/<script[\s>]/i.test(source) &&
@@ -362,6 +377,68 @@ function isSafeSvg(buffer: Buffer) {
     !/javascript\s*:/i.test(source) &&
     !/(?:href|src)\s*=\s*["'](?:https?:|\/\/)/i.test(source)
   );
+}
+
+function isSvgSource(source: string) {
+  return source.startsWith("<?xml") ? /<svg[\s>]/i.test(source) : /^<svg[\s>]/i.test(source);
+}
+
+type CompanyBrandingImageFormat = "avif" | "bmp" | "gif" | "ico" | "jpeg" | "png" | "svg" | "webp";
+
+type CompanyBrandingImage = {
+  format: CompanyBrandingImageFormat;
+  mimeType: string;
+};
+
+function companyBrandingImage(buffer: Buffer): CompanyBrandingImage | null {
+  if (isSvgSource(buffer.toString("utf8").trim())) {
+    return { format: "svg", mimeType: "image/svg+xml" };
+  }
+  if (buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+    return { format: "png", mimeType: "image/png" };
+  }
+  if (buffer.subarray(0, 3).equals(Buffer.from([255, 216, 255]))) {
+    return { format: "jpeg", mimeType: "image/jpeg" };
+  }
+  if (
+    buffer.subarray(0, 6).toString("ascii") === "GIF87a" ||
+    buffer.subarray(0, 6).toString("ascii") === "GIF89a"
+  ) {
+    return { format: "gif", mimeType: "image/gif" };
+  }
+  if (
+    buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
+    buffer.subarray(8, 12).toString("ascii") === "WEBP"
+  ) {
+    return { format: "webp", mimeType: "image/webp" };
+  }
+  if (
+    buffer.subarray(4, 8).toString("ascii") === "ftyp" &&
+    ["avif", "avis"].includes(buffer.subarray(8, 12).toString("ascii"))
+  ) {
+    return { format: "avif", mimeType: "image/avif" };
+  }
+  if (buffer.subarray(0, 4).equals(Buffer.from([0, 0, 1, 0]))) {
+    return { format: "ico", mimeType: "image/x-icon" };
+  }
+  if (buffer.subarray(0, 2).toString("ascii") === "BM") {
+    return { format: "bmp", mimeType: "image/bmp" };
+  }
+  return null;
+}
+
+function companyBrandingMaxBytes(format: CompanyBrandingImageFormat) {
+  return format === "svg" ? 640 * 1024 : 5 * 1024 * 1024;
+}
+
+function companyBrandingSizeError(format: CompanyBrandingImageFormat) {
+  return format === "svg"
+    ? "SVG branding files must be 640 KB or smaller."
+    : "Raster branding images must be 5 MB or smaller.";
+}
+
+function companyBrandingImageError() {
+  return "Company branding must be SVG, PNG, JPEG, WebP, AVIF, GIF, ICO, or BMP.";
 }
 
 function mimeTypeFor(filePath: string) {

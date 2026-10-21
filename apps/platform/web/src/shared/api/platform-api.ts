@@ -314,6 +314,7 @@ export async function developmentTenantLogin() {
 
 export function getTenantLoginContext() {
   return apiGet<{
+    brandName: string | null;
     corporateIdRequired: boolean;
     host: string;
     mode: "custom_domain" | "shared_domain" | "unknown";

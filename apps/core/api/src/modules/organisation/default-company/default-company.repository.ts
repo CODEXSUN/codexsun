@@ -65,7 +65,7 @@ export class DefaultCompanyRepository {
     const name = row.name.trim();
     const legalName = nullableText(row.legal_name);
     return {
-      brandName: legalName ?? name,
+      brandName: name,
       companyId: Number(row.company_id),
       legalName,
       logoDarkPath: nullableText(row.logo_dark_path),

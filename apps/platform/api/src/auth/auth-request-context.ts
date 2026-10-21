@@ -14,6 +14,9 @@ import { verifyAuthToken, type AuthTokenPayload } from "./jwt.js";
 import { readEncryptedSessionCookie, clearInvalidSessionCookies } from "./session-cookie.js";
 import { isSingleTenantMode } from "../tenancy-mode.js";
 import { env } from "../env.js";
+import { requestHost } from "./request-host.js";
+
+export { requestHost } from "./request-host.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -133,10 +136,6 @@ export function isPublicAuthenticationPath(path: string) {
   return (
     path.startsWith("/public/") || path.startsWith("/storefront/") || publicAuthPaths.has(path)
   );
-}
-
-export function requestHost(request: FastifyRequest) {
-  return normalizeTenantDomain(request.headers.host ?? "");
 }
 
 function bearerToken(request: FastifyRequest) {

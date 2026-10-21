@@ -18,6 +18,40 @@ const platformBase = requiredClientEnv("VITE_PLATFORM_API_URL");
 const companyPath = "/core/organisation/companies";
 type Envelope<T> = { data: T; success: true } | { error: { message: string }; success: false };
 
+const companyBrandingExtensions = [
+  "avif",
+  "bmp",
+  "gif",
+  "ico",
+  "jpeg",
+  "jpg",
+  "png",
+  "svg",
+  "webp"
+];
+const companyBrandingMimeTypes = new Set([
+  "image/avif",
+  "image/bmp",
+  "image/gif",
+  "image/jpeg",
+  "image/png",
+  "image/svg+xml",
+  "image/vnd.microsoft.icon",
+  "image/webp",
+  "image/x-icon"
+]);
+
+export const companyBrandingImageAccept =
+  ".svg,.png,.jpg,.jpeg,.webp,.avif,.gif,.ico,.bmp,image/svg+xml,image/png,image/jpeg,image/webp,image/avif,image/gif,image/x-icon,image/bmp";
+
+export const companyBrandingImageDescription = "SVG, PNG, JPEG, WebP, AVIF, GIF, ICO, or BMP";
+export const companyBrandingMaxBytes = 5 * 1024 * 1024;
+
+export function isCompanyBrandingImage(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return companyBrandingExtensions.includes(extension) || companyBrandingMimeTypes.has(file.type);
+}
+
 async function request<T>(path: string, options: RequestInit = {}) {
   const token = getToken("tenant");
   const database = getTenantDbName();
@@ -75,10 +109,12 @@ export async function uploadCompanyLogo(
   companyId: number,
   variant: "favicon" | "logo" | "logo-dark"
 ) {
-  if (!file.name.toLowerCase().endsWith(".svg") && file.type !== "image/svg+xml") {
-    throw new Error("Select an SVG logo file.");
+  if (!isCompanyBrandingImage(file)) {
+    throw new Error(`Select a ${companyBrandingImageDescription} file.`);
   }
-  if (file.size > 640 * 1024) throw new Error("Company logos must be 640 KB or smaller.");
+  if (file.size > companyBrandingMaxBytes) {
+    throw new Error("Company branding images must be 5 MB or smaller.");
+  }
   const token = getToken("tenant");
   const response = await fetch(`${platformBase}/tenant/media/company-logo`, {
     body: JSON.stringify({ companyId, contentBase64: await fileToBase64(file), variant }),
@@ -92,7 +128,7 @@ export async function uploadCompanyLogo(
   });
   const body = (await response.json()) as Envelope<{
     path: string;
-    variant: "logo" | "logo-dark";
+    variant: "favicon" | "logo" | "logo-dark";
   }>;
   if (!response.ok || !body.success)
     throw new Error(body.success ? "Company logo upload failed." : body.error.message);
@@ -109,7 +145,7 @@ export async function readCompanyLogo(
     {
       credentials: "include",
       headers: {
-        Accept: "image/svg+xml",
+        Accept: "image/*",
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       }
     }

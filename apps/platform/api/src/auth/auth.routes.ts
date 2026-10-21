@@ -12,6 +12,7 @@ import { writeDevelopmentSessionCookie } from "./development-session-cookie.js";
 import { enforceBrowserRequestOrigin, requestHost } from "./auth-request-context.js";
 import { isSharedApplicationHost } from "../modules/tenant-domain/tenant-domain.repository.js";
 import { TenantRepository } from "../modules/tenant/tenant.repository.js";
+import { TenantService } from "../modules/tenant/tenant.service.js";
 import { env } from "../env.js";
 import { configuredSingleTenant, isSingleTenantMode } from "../tenancy-mode.js";
 import { AuthLoginAttemptRepository } from "./auth-login-attempt.repository.js";
@@ -19,6 +20,7 @@ import { AuthLoginAttemptRepository } from "./auth-login-attempt.repository.js";
 const authService = new AuthService();
 const sessions = new AuthSessionRepository();
 const tenants = new TenantRepository();
+const tenantService = new TenantService();
 const attempts = new AuthLoginAttemptRepository();
 
 export async function registerAuthRoutes(app: FastifyInstance) {
@@ -31,27 +33,23 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         : await tenants.findByDomain(host);
       return ok(
         domainTenant?.uuid === tenant.uuid
-          ? {
-              corporateIdRequired: false,
+          ? await tenantLoginContext(
               host,
-              mode: isSharedApplicationHost(host) ? "shared_domain" : "custom_domain",
-              tenantName: tenant.tenantName
-            }
-          : { corporateIdRequired: false, host, mode: "unknown", tenantName: null },
+              tenant.tenantName,
+              isSharedApplicationHost(host) ? "shared_domain" : "custom_domain"
+            )
+          : unknownTenantLoginContext(host),
         { requestId: request.id }
       );
     }
     if (isSharedApplicationHost(host)) {
-      return ok(
-        { corporateIdRequired: true, host, mode: "shared_domain", tenantName: null },
-        { requestId: request.id }
-      );
+      return ok(sharedTenantLoginContext(host), { requestId: request.id });
     }
     const tenant = await tenants.findByDomain(host);
     return ok(
       tenant
-        ? { corporateIdRequired: false, host, mode: "custom_domain", tenantName: tenant.tenantName }
-        : { corporateIdRequired: true, host, mode: "unknown", tenantName: null },
+        ? await tenantLoginContext(host, tenant.tenantName, "custom_domain")
+        : unknownTenantLoginContext(host),
       { requestId: request.id }
     );
   });
@@ -202,6 +200,43 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     clearSelectedSessionCookie(reply, request);
     return ok({ loggedOut: true }, { requestId: request.id });
   });
+}
+
+async function tenantLoginContext(
+  host: string,
+  tenantName: string,
+  mode: "custom_domain" | "shared_domain"
+) {
+  const { company } = await tenantService
+    .getPublicApplicationCompany(host)
+    .catch(() => ({ company: null }));
+  return {
+    brandName: company?.brandName ?? tenantName,
+    corporateIdRequired: mode === "shared_domain",
+    host,
+    mode,
+    tenantName
+  };
+}
+
+function sharedTenantLoginContext(host: string) {
+  return {
+    brandName: null,
+    corporateIdRequired: true,
+    host,
+    mode: "shared_domain" as const,
+    tenantName: null
+  };
+}
+
+function unknownTenantLoginContext(host: string) {
+  return {
+    brandName: null,
+    corporateIdRequired: true,
+    host,
+    mode: "unknown" as const,
+    tenantName: null
+  };
 }
 
 const loginSchema = z
