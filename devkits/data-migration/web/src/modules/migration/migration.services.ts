@@ -27,7 +27,9 @@ export type {
   MigrationJob
 } from "./migration.types.js";
 
-type Envelope<T> = { success: true; data: T } | { success: false; error: { message: string } };
+type Envelope<T> =
+  | { success: true; data: T; meta?: { requestId?: string } }
+  | { success: false; error: { code?: string; message: string }; meta?: { requestId?: string } };
 
 async function request<T>(path: string, body?: unknown, method?: "POST" | "PUT" | "PATCH"): Promise<T> {
   const slot = sessionStorage.getItem("codexsun.auth.slot");
@@ -42,9 +44,9 @@ async function request<T>(path: string, body?: unknown, method?: "POST" | "PUT" 
   });
   const envelope = (await response.json()) as Envelope<T>;
   if (!response.ok || !envelope.success) {
-    throw new Error(
-      envelope.success ? `Request failed (${response.status}).` : envelope.error.message
-    );
+    const serverMessage = envelope.success ? `Request failed (${response.status}).` : envelope.error.message;
+    const requestId = envelope.meta?.requestId;
+    throw new Error(requestId ? `${serverMessage} (Request ID: ${requestId})` : serverMessage);
   }
   return envelope.data;
 }

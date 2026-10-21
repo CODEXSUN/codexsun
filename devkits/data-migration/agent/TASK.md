@@ -15,6 +15,7 @@
 - [x] Add a trash action to remove a saved source, erase its saved password, and retain migration history.
 - [x] Add persistent per-table column mapping plans for all source tables.
 - [x] Provide side-by-side source and destination column tables with an explicit Map action in Migration Mapper.
+- [x] Add per-table compatibility analysis and selectable field mapping controls; include request IDs in API errors.
 - [x] Add generated-UUID named migration sessions, table-pair child records, and field-pair child records with row-count snapshots, statuses, actor IDs, and foreign-key relationships.
 - [x] Require every source table mapping and run job preflight before atomic dependency-ordered destination writes.
 - [x] Gate batch migration on complete mappings and whole-plan preflight; execute dependency ordered inserts in one destination transaction and keep the source read only.

@@ -36,6 +36,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Allow tenant users to sign in by email or username. Resolve tenants from verified custom domains, and require Corporate ID on shared hosts, including `codexsun.com`.
 - Scope CRM task, enquiry, duty-report, and closure-review actions to the actor's permitted records. Keep assignee changes within admin rights.
 - Add persistent named migration sessions, explicit source-to-target table and field mapping, preflight checks, and transactional batch execution.
+- Add per-table compatibility analysis and selectable field mapping controls, and surface API request IDs in migration errors.
 - Add private Sportsclub student photo upload and access checks for students, assigned masters, and administrators.
 - Apply consistent content padding to shared tabs and affected Site Studio, Mail, and Ecommerce forms.
 - Include Platform, CRM, Core, Sportsclub, Data Migration, shared UI, and generated Docs updates.

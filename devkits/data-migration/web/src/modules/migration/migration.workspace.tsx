@@ -57,6 +57,7 @@ export function DataMigrationWorkspace({
   const [table, setTable] = useState("");
   const [targetTable, setTargetTable] = useState("");
   const [preview, setPreview] = useState<MigrationPreview | null>(null);
+  const [compatibilityCheck, setCompatibilityCheck] = useState<MigrationPreview | null>(null);
   const [schema, setSchema] = useState<MigrationTableSchema | null>(null);
   const [columnMappings, setColumnMappings] = useState<MigrationColumnMapping[]>([]);
   const [selectedSourceColumn, setSelectedSourceColumn] = useState("");
@@ -187,6 +188,7 @@ export function DataMigrationWorkspace({
     ])
       .then(([result, plan]) => {
         if (!active) return;
+        setError("");
         setSchema(result);
         setJobTables(plan);
         const saved = plan.find(
@@ -261,6 +263,21 @@ export function DataMigrationWorkspace({
     setPreview(null);
     try {
       setPreview(await previewTransfer({ ...selection, columnMappings }));
+    } catch (reason) {
+      setError(message(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function analyzeTableCompatibility() {
+    if (!source || !target || !table || !targetTable || !schema) return;
+    setBusy(true);
+    setError("");
+    setCompatibilityCheck(null);
+    try {
+      const result = await previewTransfer({ ...selection, columnMappings });
+      setCompatibilityCheck(result);
     } catch (reason) {
       setError(message(reason));
     } finally {
@@ -343,6 +360,8 @@ export function DataMigrationWorkspace({
     setTargetDatabase(item.targetDatabase);
     setJobId(item.id);
     setPreview(null);
+    setCompatibilityCheck(null);
+    setError("");
   }
 
   return (
@@ -673,6 +692,8 @@ export function DataMigrationWorkspace({
                           onClick={() => {
                             setTable(item.sourceTable ?? item.table);
                             setTargetTable(item.targetTable ?? item.table);
+                            setError("");
+                            setCompatibilityCheck(null);
                             setActiveStep("fields");
                           }}
                         >
@@ -707,16 +728,50 @@ export function DataMigrationWorkspace({
               {table} → {targetTable} · select a field mapping to edit it.
             </p>
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Select a field to edit its destination mapping.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!table || !schema || busy}
+                onClick={() => void analyzeTableCompatibility()}
+              >
+                {busy ? "Analyzing…" : "Analyze compatibility"}
+              </Button>
+              <Button
+                type="button"
+                disabled={!selectedSourceColumn || !schema}
+                onClick={() => {
+                  const mapping = columnMappings.find((item) => item.sourceColumn === selectedSourceColumn);
+                  setSelectedTargetColumn(mapping?.targetColumn ?? "");
+                  setError("");
+                  setActiveStep("field-editor");
+                }}
+              >
+                Edit mapping
+              </Button>
+            </div>
+          </div>
+          {compatibilityCheck ? (
+            <p className={`rounded-md border px-4 py-3 text-sm ${compatibilityCheck.compatible ? "border-emerald-500/30 bg-emerald-500/5" : "border-destructive/30 bg-destructive/5 text-destructive"}`}>
+              {compatibilityCheck.compatible
+                ? `Compatible · ${compatibilityCheck.sourceRows} source rows · ${compatibilityCheck.targetRows} destination rows.`
+                : compatibilityCheck.reason ?? "Compatibility checks failed."}
+            </p>
+          ) : null}
           <WorkspaceTablePanel>
             <div className="workspace-scroll overflow-x-auto">
               <table className="w-full min-w-[720px] border-collapse text-sm">
                 <thead className="bg-muted/50">
                   <tr>
+                    <WorkspaceTableHeaderCell>Select</WorkspaceTableHeaderCell>
                     <WorkspaceTableHeaderCell>Source field</WorkspaceTableHeaderCell>
                     <WorkspaceTableHeaderCell>Source type</WorkspaceTableHeaderCell>
                     <WorkspaceTableHeaderCell>Destination field</WorkspaceTableHeaderCell>
                     <WorkspaceTableHeaderCell>Mapping status</WorkspaceTableHeaderCell>
-                    <WorkspaceTableHeaderCell>Action</WorkspaceTableHeaderCell>
                   </tr>
                 </thead>
                 <tbody>
@@ -724,23 +779,20 @@ export function DataMigrationWorkspace({
                     const mapping = columnMappings.find((item) => item.sourceColumn === column.name);
                     return (
                       <tr key={column.name} className="border-b last:border-0">
+                        <td className="px-3 py-2">
+                          <Checkbox
+                            aria-label={`Select field ${column.name}`}
+                            checked={selectedSourceColumn === column.name}
+                            onCheckedChange={(checked) => {
+                              setSelectedSourceColumn(checked ? column.name : "");
+                              setError("");
+                            }}
+                          />
+                        </td>
                         <td className="px-3 py-2 font-medium">{column.name}</td>
                         <td className="px-3 py-2 text-muted-foreground">{column.type}</td>
                         <td className="px-3 py-2">{mapping?.targetColumn || "Not mapped"}</td>
                         <td className="px-3 py-2">{mapping?.targetColumn ? "Mapped" : "Pending"}</td>
-                        <td className="px-3 py-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedSourceColumn(column.name);
-                              setSelectedTargetColumn(mapping?.targetColumn ?? "");
-                              setActiveStep("field-editor");
-                            }}
-                          >
-                            Edit mapping
-                          </Button>
-                        </td>
                       </tr>
                     );
                   })}
