@@ -44,6 +44,9 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - The CRM/Frappe suite passed 169 unit tests and three database E2E tests. CRM API/Web, Frappe API, and Platform API typechecks and builds passed. CRM API/Web and Frappe API and Platform API lint, module boundaries, and component-doc checks passed.
 - The live VPS queue probe completed through BullMQ and Redis in about one second. It did not create or verify a Frappe document.
 - CRM Tasks show a disabled Verify action because Frappe does not have an approved Task mapping.
+- Deployed source commit `4007dfd66f089157a3c92f6b5cee93b185ad2398` as API, Web, and Shop images tagged 1.1.43. All three containers are healthy.
+- Public API health, Application Overview, and Shop routes returned HTTP 200. These route checks do not verify authenticated browser UX.
+- No database migration or seed ran. Shared MariaDB, Redis, media, Cloudflared, and CXApp services remained healthy.
 
 ## v-1.1.42
 

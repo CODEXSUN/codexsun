@@ -3,11 +3,12 @@
 ## Frappe sync status and verification — 2026-10-22
 
 - [x] Add a shared green-confirmed, grey-waiting, red-error Frappe indicator and a Verify action to enquiry, contact, and call-log rows. Verify always queues a backend remote check and reports the result; call-log verification uses `crm.call-log.view`.
+- [x] Persist the latest tenant-scoped Contact and Call Log verification result so list reloads keep the state.
 - [x] Return persistent `crm_frappe_sync_queue` state with SOP items, duty assignments, and duty reports. Their Verify action reloads the owner API state from the backend queue.
 - [x] Show CRM Tasks as not linked to Frappe and disable Verify. No supported Task mapping or export permission exists, so the UI does not invent one.
 - [x] Confirm published SOP items, assignments, and reports expose pending queue state in the isolated CRM Duties E2E. Draft SOP items remain unqueued until publication.
 
-Verification: `npm run test:crm-frappe` passed 168 unit tests and the Duties, Frappe Mobile Customer, and CRM Contact Upsert database E2Es. CRM API/Web typecheck, lint, build, CRM/Platform module boundaries, component-doc checks, and Platform API typecheck/lint/build passed. A live Hostinger `queue.probe` completed through the configured BullMQ + Redis backend in about one second. The UI release has not yet been deployed; live Frappe record verification remains untested.
+Verification: `npm run test:crm-frappe` passed 169 unit tests and the Duties, Frappe Mobile Customer, and CRM Contact Upsert database E2Es. CRM API/Web, Frappe API, and Platform API typecheck/build, relevant lint, module boundaries, and component-doc checks passed. A live Hostinger `queue.probe` completed through BullMQ + Redis in about one second. Release 1.1.43 is deployed from `4007dfd66f089157a3c92f6b5cee93b185ad2398`; API, Web, and Shop containers are healthy, and public health/application/shop routes returned HTTP 200. No database migration or live Frappe record verification was run. Browser UX was not tested.
 
 ## Immediate verified Frappe enquiry sync — 2026-10-21
 

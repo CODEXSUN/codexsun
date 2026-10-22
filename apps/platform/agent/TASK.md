@@ -4,7 +4,10 @@
 
 - [x] Authorize Frappe call-log verification with the CRM call-log read permission, while retaining connection management authorization and server-side tenant/connection checks.
 - [x] Keep the existing Frappe export policy as the final gate; verification does not authorize outbound call-log export.
+- [x] Provide tenant-scoped latest verification status lookup for up to 100 records, with per-kind CRM read authorization and tenant database matching.
 - [x] Verify Platform API typecheck, lint, build, and CRM/Platform module boundaries.
+
+Release 1.1.43 is deployed from commit `4007dfd66f089157a3c92f6b5cee93b185ad2398`. Container and public route checks passed. No database migration was required.
 
 ## Custom-domain login without Corporate ID — 2026-10-21
 
