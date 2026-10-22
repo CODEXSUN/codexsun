@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.36
+Current version: 1.1.37
 
-Release tag: v-1.1.36
+Release tag: v-1.1.37
 
-Changelog label: v 1.1.36
+Changelog label: v 1.1.37
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,21 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.37
+
+### [v 1.1.37] 2026-10-22 7:39 am - TECHMEDIA Frappe sync verification
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Verify the TECHMEDIA enquiry as `admin@tenant.com`. The list shows no Frappe sync indicator, and the detail page shows no Frappe sync tab.
+- Confirm the sync queue contains enquiry #2032 in Retry after four attempts. Frappe returned HTTP 417, and the queue reports that sending is stopped. The live post did not succeed.
+- Record live verification only. No tenant records, sync settings, or application code changed in this version.
+- Bumped workspace version to 1.1.37.
 
 ## v-1.1.36
 
