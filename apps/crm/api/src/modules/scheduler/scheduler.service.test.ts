@@ -28,7 +28,7 @@ function setup(
       lookedUp.push(sourceType);
       return Object.hasOwn(options, "source") ? options.source! : { id: 9, label: "Record #9" };
     },
-    create: async () => ({ id: 1, title: "Reminder" }),
+    create: async () => ({ id: 1, notes: "Reminder" }),
     updateStatus: async () => null,
     acknowledge: async () => null
   } as unknown as SchedulerRepository;
@@ -56,34 +56,37 @@ test("schedule creation checks permission to view the linked source", async () =
   const { service, lookedUp } = setup({ permissions: ["crm.schedule.create"] });
   await assert.rejects(
     service.create({
-      title: "Follow up",
-      details: "",
+      notes: "Follow up",
       sourceType: "enquiry",
       sourceId: 9,
-      scheduledAt: "2026-10-21T10:00:00.000Z",
-      reminderAt: "2026-10-21T09:00:00.000Z"
+      scheduledAt: "2026-10-21T10:00:00.000Z"
     }),
     (error: unknown) => error instanceof AppError && error.code === "FORBIDDEN"
   );
   assert.deepEqual(lookedUp, []);
 });
 
-test("schedule creation rejects invalid dates and reminders after the schedule", async () => {
+test("schedule creation rejects invalid notes and dates", async () => {
   const { service, lookedUp } = setup({ permissions: ["crm.schedule.create"] });
   await assert.rejects(
     service.create({
-      title: "Follow up",
-      details: "",
+      notes: "Follow up",
       sourceType: "task",
       sourceId: 9,
-      scheduledAt: "not-a-date",
-      reminderAt: "not-a-date"
+      scheduledAt: "not-a-date"
     })
   );
   await assert.rejects(
     service.create({
-      title: "Follow up",
-      details: "",
+      notes: " ",
+      sourceType: "task",
+      sourceId: 9,
+      scheduledAt: "2026-10-21T09:00:00.000Z"
+    })
+  );
+  await assert.rejects(
+    service.create({
+      notes: "Follow up",
       sourceType: "task",
       sourceId: 9,
       scheduledAt: "2026-10-21T09:00:00.000Z",
@@ -100,12 +103,10 @@ test("schedule creation requires the linked CRM source to exist in the permitted
   });
   await assert.rejects(
     service.create({
-      title: "Follow up",
-      details: "",
+      notes: "Follow up",
       sourceType: "enquiry",
       sourceId: 999,
-      scheduledAt: "2026-10-21T10:00:00.000Z",
-      reminderAt: "2026-10-21T09:00:00.000Z"
+      scheduledAt: "2026-10-21T10:00:00.000Z"
     }),
     (error: unknown) => error instanceof AppError && error.code === "NOT_FOUND"
   );

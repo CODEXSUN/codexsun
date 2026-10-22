@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 
 import 'package:codexsun_crm_mobile/core/api/crm_mobile_api.dart';
 import 'package:codexsun_crm_mobile/core/auth/secure_session_store.dart';
+import 'package:codexsun_crm_mobile/core/config/app_config.dart';
 import 'package:codexsun_crm_mobile/core/update/app_update_service.dart';
 import 'package:codexsun_crm_mobile/app/app_footer_dock.dart';
 import 'package:codexsun_crm_mobile/app/dashboard_navigation.dart';
@@ -19,10 +20,12 @@ import 'package:codexsun_crm_mobile/features/dashboard/job_detail_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/job_enquiry_card.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/job_duration.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/job_work_feed.dart';
+import 'package:codexsun_crm_mobile/features/dashboard/work_timestamp_format.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/messages_sample_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/my_enquiries_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/home_enquiry_form_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/task_form_page.dart';
+import 'package:codexsun_crm_mobile/features/dashboard/tasks_page.dart';
 
 void main() {
   test(
@@ -51,6 +54,7 @@ void main() {
     },
   );
   test('uses the local development host for Android emulator API calls', () {
+    expect(AppConfig.apiUrl, 'http://10.0.2.2:7010');
     expect(CrmMobileApi('http://10.0.2.2:7010').hostHeader, '127.0.0.1:7010');
     expect(CrmMobileApi('https://crm.example.com').hostHeader, isNull);
   });
@@ -686,6 +690,81 @@ void main() {
     expect(find.text('Job #3 stopped.'), findsOneWidget);
   });
 
+  testWidgets('show feed formats job and checkpoint timestamps on mobile', (
+    WidgetTester tester,
+  ) async {
+    final job = CrmJob.fromJson({
+      'id': '7',
+      'enquiryNo': '7',
+      'title': 'Timestamp format test',
+      'messages': [
+        {
+          'id': 'job-completed',
+          'comment':
+              'Job #7 completed\n'
+              'Started @ 2026-10-22T08:49:17.000Z\n'
+              'Completed @ 2026-10-22T08:49:26.125Z\n'
+              'Duration: 00:00:09',
+          'createdAt': '2026-10-22T08:49:26.125Z',
+          'createdByUserId': 'vijay@example.com',
+        },
+      ],
+    });
+    const session = UserSession(
+      accessToken: 'test-token',
+      profile: UserProfile(
+        email: 'vijay@example.com',
+        name: 'Vijay Anand',
+        role: 'user',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: JobWorkFeed(job: job, session: session, showSystemLogs: true),
+        ),
+      ),
+    );
+
+    expect(
+      find.textContaining(
+        'Started @ ${formatWorkDateTime(DateTime.parse('2026-10-22T08:49:17Z'))}',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('2026-10-22T08:49:17'), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: JobWorkFeed(
+            job: job,
+            session: session,
+            selectedSection: 'checkpoints',
+            reports: [
+              {
+                'action': 'check-in',
+                'body':
+                    'Captured: Thu Oct 22 2026 14:12:30 GMT+0530 '
+                    '(India Standard Time)',
+                'created_by': 'vijay@example.com',
+                'created_at': '2026-10-22T08:42:30.000Z',
+              },
+            ],
+          ),
+        ),
+      ),
+    );
+    expect(
+      find.textContaining(
+        'Captured: ${formatWorkDateTime(DateTime(2026, 10, 22, 14, 12, 30))}',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('India Standard Time'), findsNothing);
+  });
+
   testWidgets('starts and stops jobs immediately and shows system comments', (
     WidgetTester tester,
   ) async {
@@ -958,6 +1037,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(api._closureRequest?.status, 'pending');
     expect(find.text('Completion request sent for approval.'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('enquiry-card-completion-pending')),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+    expect(find.text('Mark Completed'), findsOneWidget);
+    final pendingCard = tester.widget<Card>(find.byType(Card).first);
+    expect(pendingCard.color, const Color(0xFFFFF7ED));
+    final pendingHighlight = tester.widget<Container>(
+      find.byKey(const ValueKey('enquiry-card-highlight')),
+    );
+    final pendingDecoration = pendingHighlight.decoration! as BoxDecoration;
+    final pendingBorder = pendingDecoration.border! as Border;
+    expect(pendingBorder.left.color, const Color(0xFFF59E0B));
 
     await tester.tap(find.byKey(const ValueKey('enquiry-card-customer')));
     await tester.pumpAndSettle();
@@ -988,6 +1081,81 @@ void main() {
 
     expect(find.text('Messages'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
+  testWidgets('hides system work conversations from Messages', (
+    WidgetTester tester,
+  ) async {
+    final api = _FakeCrmMobileApi()
+      ..mockConversations = [
+        MessagingConversation(
+          id: 1,
+          uuid: 'work-enquiry',
+          title: 'Enquiry: Sample job',
+          preview: 'admin: Enquiry #3 · comment-added',
+          updatedAt: DateTime(2026, 10, 22),
+          unreadCount: 1,
+          kind: 'group',
+        ),
+        MessagingConversation(
+          id: 4,
+          uuid: 'work-duty',
+          title: 'Duty: duty daily',
+          preview: 'admin: Duty #1 · duty daily',
+          updatedAt: DateTime(2026, 10, 22),
+          unreadCount: 1,
+          kind: 'group',
+        ),
+        MessagingConversation(
+          id: 5,
+          uuid: 'work-task',
+          title: 'Task: Follow up',
+          preview: 'admin: Task #4 · assigned',
+          updatedAt: DateTime(2026, 10, 22),
+          unreadCount: 1,
+          kind: 'group',
+        ),
+        MessagingConversation(
+          id: 2,
+          uuid: 'person-chat',
+          title: 'Arunesh',
+          preview: 'admin: hi',
+          updatedAt: DateTime(2026, 10, 22),
+          unreadCount: 0,
+          kind: 'dm',
+        ),
+        MessagingConversation(
+          id: 3,
+          uuid: 'team-chat',
+          title: 'Service team',
+          preview: 'See you tomorrow',
+          updatedAt: DateTime(2026, 10, 22),
+          unreadCount: 0,
+          kind: 'group',
+        ),
+      ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MessagesPage(
+          api: api,
+          session: const UserSession(
+            accessToken: 'test-token',
+            profile: UserProfile(
+              name: 'Vijay Anand',
+              email: 'vijay@example.com',
+              role: 'admin',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enquiry: Sample job'), findsNothing);
+    expect(find.text('Duty: duty daily'), findsNothing);
+    expect(find.text('Task: Follow up'), findsNothing);
+    expect(find.text('Arunesh'), findsOneWidget);
+    expect(find.text('Service team'), findsOneWidget);
   });
 
   testWidgets('filters enquiries by search query in MyEnquiriesPage', (
@@ -1085,6 +1253,83 @@ void main() {
     expect(fakeApi.createdTaskPayload?['priorityId'], 2);
     expect(fakeApi.createdTaskPayload?['statusId'], 1);
     expect(fakeApi.createdTaskPayload?['title'], 'Follow up');
+  });
+
+  testWidgets('Tasks use enquiry cards and open the shared task action sheet', (
+    WidgetTester tester,
+  ) async {
+    final api = _FakeTaskMobileApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TasksPage(
+          api: api,
+          session: const UserSession(
+            accessToken: 'test-token',
+            profile: UserProfile(
+              email: 'vijay@example.com',
+              name: 'Vijay Anand',
+              role: 'user',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Card), findsOneWidget);
+    expect(find.text('Follow up with customer'), findsOneWidget);
+    expect(find.text('#42  New'), findsOneWidget);
+    await tester.tap(find.text('Follow up with customer'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Task #42'), findsOneWidget);
+    expect(find.text('Customer asked for a call back.'), findsOneWidget);
+    await tester.tap(find.byTooltip('Add action'));
+    await tester.pumpAndSettle();
+    expect(find.text('Comment'), findsOneWidget);
+    expect(find.text('Check in'), findsOneWidget);
+    expect(find.text('Start Job'), findsOneWidget);
+    expect(find.text('Mark Complete'), findsOneWidget);
+  });
+
+  testWidgets('active task job timer appears in list and task show header', (
+    WidgetTester tester,
+  ) async {
+    final api = _FakeTaskMobileApi()..runningTaskJob = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TasksPage(
+          api: api,
+          session: const UserSession(
+            accessToken: 'test-token',
+            profile: UserProfile(
+              email: 'vijay@example.com',
+              name: 'Vijay Anand',
+              role: 'user',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+
+    expect(
+      find.byKey(const ValueKey('task-card-running-clock')),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Follow up with customer'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+
+    expect(
+      find.byKey(const ValueKey('task-detail-heading-divider')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('task-detail-running-clock')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('creates an enquiry with customer and selected option fields', (
@@ -1338,6 +1583,12 @@ void main() {
 
     expect(find.byTooltip('Create enquiry'), findsNothing);
     expect(find.text('Write a comment only'), findsOneWidget);
+    expect(find.byIcon(Icons.add_comment_outlined), findsOneWidget);
+    expect(find.byTooltip('Submit comment'), findsOneWidget);
+    expect(find.text('Comment'), findsNothing);
+    final commentField = tester.widget<TextField>(find.byType(TextField));
+    expect(commentField.minLines, 2);
+    expect(commentField.maxLines, 2);
   });
 
   testWidgets('loads only assigned enquiries for the home dashboard', (
@@ -1410,6 +1661,92 @@ void main() {
       find.byKey(const ValueKey('enquiry-card-running-timer')),
       findsOneWidget,
     );
+    feed.dispose();
+  });
+
+  testWidgets('Jobs list initializes completion pending from the API', (
+    WidgetTester tester,
+  ) async {
+    final api = _FakeCrmMobileApi();
+    final session = const UserSession(
+      accessToken: 'test-token',
+      profile: UserProfile(
+        email: 'vijay@example.com',
+        name: 'Vijay Anand',
+        role: 'user',
+      ),
+    );
+    final feed = DashboardJobsFeed(api: api, session: session);
+    api.pendingClosureIds.add(_testCrmJob.sourceId);
+    await feed.refresh();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MyEnquiriesPage(
+            api: api,
+            session: session,
+            embedded: true,
+            jobsFeed: feed,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('enquiry-card-completion-pending')),
+      findsOneWidget,
+    );
+    expect(find.text('Mark Completed'), findsOneWidget);
+    expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+    feed.dispose();
+  });
+
+  testWidgets('Jobs list highlights outstanding collection in purple', (
+    WidgetTester tester,
+  ) async {
+    final api = _FakeCrmMobileApi();
+    const session = UserSession(
+      accessToken: 'test-token',
+      profile: UserProfile(
+        email: 'vijay@example.com',
+        name: 'Vijay Anand',
+        role: 'user',
+      ),
+    );
+    final feed = DashboardJobsFeed(api: api, session: session);
+    api.pendingCollectionIds.add(_testCrmJob.sourceId);
+    await feed.refresh();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MyEnquiriesPage(
+            api: api,
+            session: session,
+            embedded: true,
+            jobsFeed: feed,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Collection pending'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('enquiry-card-collection-pending')),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<Card>(find.byType(Card).first).color,
+      const Color(0xFFFBF6FE),
+    );
+    final highlight = tester.widget<Container>(
+      find.byKey(const ValueKey('enquiry-card-highlight')),
+    );
+    final cardBorder =
+        (highlight.decoration! as BoxDecoration).border! as Border;
+    expect(cardBorder.left.color, const Color(0xFF8B3BA8));
     feed.dispose();
   });
 
@@ -1567,6 +1904,48 @@ void main() {
     expect(find.text('Status updated to In Progress.'), findsOneWidget);
     expect(find.text('#762  In Progress'), findsOneWidget);
   });
+
+  testWidgets('job detail remains available when schedules fail to refresh', (
+    WidgetTester tester,
+  ) async {
+    final api = _FakeCrmMobileApi()..failEnquirySchedules = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: JobDetailPage(
+          api: api,
+          session: const UserSession(
+            accessToken: 'test-token',
+            profile: UserProfile(
+              email: 'vijay@example.com',
+              name: 'Vijay Anand',
+              role: 'user',
+            ),
+          ),
+          initialJob: _testCrmJob,
+          enquiry: const DashboardListItem(
+            enquiryNumber: '762',
+            title: 'ROG Asus Adopter 240W',
+            customer: 'Vee Cee Exports',
+            list: 'Spares',
+            assignedTo: 'Vijay Anand',
+            dueDate: '03 Aug',
+            createdBy: 'Vijay Anand',
+            createdAgo: '3 days ago',
+            lastAction: 'Awaiting customer confirmation',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('#762  Open'), findsOneWidget);
+    expect(find.text('ROG Asus Adopter 240W'), findsOneWidget);
+    expect(
+      find.text('Some job details could not be refreshed. Retry shortly.'),
+      findsOneWidget,
+    );
+  });
+
   for (final decision in ['approved', 'rejected']) {
     testWidgets('refreshes mobile after web closure $decision', (tester) async {
       final api = _FakeCrmMobileApi();
@@ -1694,10 +2073,14 @@ class _FakeCrmMobileApi extends CrmMobileApi {
   Future<List<MessagingConversation>> conversations({
     required String accessToken,
     required String currentEmail,
-  }) async => [];
+  }) async => mockConversations;
+
+  List<MessagingConversation> mockConversations = [];
 
   CrmJob _job = _testCrmJob;
   ClosureRequest? _closureRequest;
+  final Set<String> pendingClosureIds = {};
+  final Set<String> pendingCollectionIds = {};
   final List<String> postedComments = [];
   var startJobCalls = 0;
   var stopJobCalls = 0;
@@ -1764,6 +2147,14 @@ class _FakeCrmMobileApi extends CrmMobileApi {
 
   @override
   Future<List<CrmJob>> assignedJobs(String accessToken) async => [_job];
+
+  @override
+  Future<Set<String>> pendingEnquiryClosureIds(String accessToken) async =>
+      pendingClosureIds;
+
+  @override
+  Future<Set<String>> pendingEnquiryCollectionIds(String accessToken) async =>
+      pendingCollectionIds;
 
   @override
   Future<List<CrmJob>> assignedJobDetails(String accessToken) async {
@@ -2032,6 +2423,7 @@ class _FakeCrmMobileApi extends CrmMobileApi {
 
   final workUpdates = <Map<String, dynamic>>[];
   bool checkpointCheckedIn = false;
+  bool failEnquirySchedules = false;
 
   @override
   Future<bool> workCheckpoint(
@@ -2051,7 +2443,12 @@ class _FakeCrmMobileApi extends CrmMobileApi {
   Future<List<Map<String, dynamic>>> enquirySchedules(
     String accessToken, {
     required int enquiryId,
-  }) async => [];
+  }) async {
+    if (failEnquirySchedules) {
+      throw const CrmMobileApiException('schedule endpoint unavailable');
+    }
+    return [];
+  }
 
   @override
   Future<void> sendWorkReport(
@@ -2149,4 +2546,107 @@ class _FakeCrmMobileApi extends CrmMobileApi {
     );
     return _job;
   }
+}
+
+class _FakeTaskMobileApi extends _FakeCrmMobileApi {
+  bool runningTaskJob = false;
+  static final _task = <String, dynamic>{
+    'id': 42,
+    'uuid': 'task-42',
+    'title': 'Follow up with customer',
+    'description': 'Confirm the delivery address before calling.',
+    'contactName': 'Sundar',
+    'contactPhone': '9655227766',
+    'listIn': 'Office',
+    'status': 'open',
+    'statusName': 'New',
+    'priority': 'normal',
+    'priorityName': 'Normal',
+    'dueDate': '2026-10-30',
+    'createdBy': 'vijay@example.com',
+    'creatorName': 'Vijay Anand',
+    'createdAt': '2026-10-22T10:00:00.000Z',
+    'closurePending': false,
+  };
+
+  @override
+  Future<CrmPage<Map<String, dynamic>>> tasksPage(
+    String accessToken, {
+    String filter = 'active',
+    int page = 1,
+    int pageSize = 100,
+    String scope = 'mine',
+  }) async => CrmPage(
+    items: [
+      if (runningTaskJob)
+        {
+          ..._task,
+          'runningJobStartedAt': DateTime.now()
+              .subtract(const Duration(seconds: 35))
+              .toIso8601String(),
+        }
+      else
+        _task,
+    ],
+    page: page,
+    pageSize: pageSize,
+    total: 1,
+  );
+
+  @override
+  Future<Map<String, dynamic>> task(String accessToken, int id) async =>
+      runningTaskJob
+      ? {
+          ..._task,
+          'runningJobStartedAt': DateTime.now()
+              .subtract(const Duration(seconds: 35))
+              .toIso8601String(),
+        }
+      : _task;
+
+  @override
+  Future<List<Map<String, dynamic>>> taskComments(
+    String accessToken,
+    int id,
+  ) async => [
+    {
+      'body': 'Customer asked for a call back.',
+      'createdBy': 'vijay@example.com',
+      'createdAt': '2026-10-22T10:00:00.000Z',
+    },
+  ];
+
+  @override
+  Future<List<Map<String, dynamic>>> taskClosures(
+    String accessToken,
+    int id,
+  ) async => [];
+
+  @override
+  Future<List<Map<String, dynamic>>> taskJobs(String token, int id) async =>
+      runningTaskJob
+      ? [
+          {
+            'id': 5,
+            'startedAt': DateTime.now()
+                .subtract(const Duration(seconds: 35))
+                .toIso8601String(),
+            'stoppedAt': null,
+          },
+        ]
+      : [];
+
+  @override
+  Future<List<Map<String, dynamic>>> workReports(
+    String accessToken, {
+    int? enquiryId,
+    int? taskId,
+  }) async => [];
+
+  @override
+  Future<bool> workCheckpoint(
+    String accessToken, {
+    int? enquiryId,
+    int? taskId,
+  }) async => false;
 }

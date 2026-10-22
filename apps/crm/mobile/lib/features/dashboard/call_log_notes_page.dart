@@ -240,8 +240,8 @@ class _CommentComposer extends StatelessWidget {
                   child: TextField(
                     controller: controller,
                     focusNode: focusNode,
-                    minLines: 1,
-                    maxLines: 3,
+                    minLines: 2,
+                    maxLines: 2,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(
@@ -267,9 +267,18 @@ class _CommentComposer extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 IconButton.filled(
-                  tooltip: 'Add comment',
+                  key: const ValueKey('submit-call-log-comment'),
+                  tooltip: 'Submit comment',
                   onPressed: isSaving ? null : onSave,
-                  icon: const Icon(Icons.send_rounded),
+                  icon: isSaving
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.add_comment_outlined),
                 ),
               ],
             ),

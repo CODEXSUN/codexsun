@@ -42,7 +42,7 @@ import {
 import { EnquiryJobs } from "./enquiry.jobs";
 import { EnquiryProperties } from "./enquiry.properties";
 import { EnquiryCustomer } from "./enquiry.customer";
-import { ScheduleRecordButton, ScheduleRecordList, useRecordSchedules } from "../scheduler";
+import { ScheduleRecordList, useRecordSchedules } from "../scheduler";
 import { createEnquiryComment, startEnquiryJob, stopEnquiryJob } from "./enquiry.services";
 import { enquiryTableText } from "./enquiry.table-text";
 import { EnquiryFrappeSyncWorkspace } from "./enquiry.frappe-sync";
@@ -124,15 +124,6 @@ export function EnquiryShow({
           enquiryId={Number(id)}
           active={activeTab === "actions"}
           onWhatsApp={() => setActiveTab("whatsapp")}
-          afterWhatsApp={
-            record ? (
-              <ScheduleRecordButton
-                sourceType="enquiry"
-                sourceId={Number(record.id)}
-                sourceLabel={`Enquiry #${record.enquiryNo} · ${record.title}`}
-              />
-            ) : null
-          }
           onRequestClosure={() => setActiveTab("closure")}
           onComment={async (body, parentId, requestId) => {
             await createEnquiryComment(
@@ -207,6 +198,9 @@ export function EnquiryShow({
           icon={<ReceiptText className="size-4" />}
           label="Charges"
           count={charges.data?.total ?? 0}
+          pending={Boolean(
+            charges.data && charges.data.amounts.charges > charges.data.amounts.collections
+          )}
         />
       ),
       content: <WorkChargesWorkspace target={{ enquiryId: Number(id), taskId: null }} />
@@ -216,13 +210,6 @@ export function EnquiryShow({
       label: <TabLabel icon={<Settings2 className="size-4" />} label="Properties" />,
       content: record ? (
         <div className="p-4">
-          <div className="mb-3 flex justify-end">
-            <ScheduleRecordButton
-              sourceType="enquiry"
-              sourceId={Number(record.id)}
-              sourceLabel={`Enquiry #${record.enquiryNo} · ${record.title}`}
-            />
-          </div>
           <EnquiryProperties
             record={record}
             mobile={mobile}
@@ -273,7 +260,13 @@ export function EnquiryShow({
           count={schedules.data?.length ?? 0}
         />
       ),
-      content: <ScheduleRecordList sourceType="enquiry" sourceId={Number(id)} />
+      content: record ? (
+        <ScheduleRecordList
+          sourceType="enquiry"
+          sourceId={Number(record.id)}
+          sourceLabel={`Enquiry #${record.enquiryNo} · ${record.title}`}
+        />
+      ) : null
     },
     ...(record?.canViewFrappeSync
       ? [
@@ -557,11 +550,21 @@ function SummaryDetail({
   );
 }
 
-function TabLabel({ icon, label, count }: { icon: ReactNode; label: string; count?: number }) {
+function TabLabel({
+  icon,
+  label,
+  count,
+  pending = false
+}: {
+  icon: ReactNode;
+  label: string;
+  count?: number;
+  pending?: boolean;
+}) {
   return (
     <span
       className="inline-flex items-center gap-1 2xl:gap-1.5"
-      title={`${label}${count === undefined ? "" : ` · ${count}`}`}
+      title={`${label}${count === undefined ? "" : ` · ${count}`}${pending ? " · Collection pending" : ""}`}
     >
       <span aria-hidden="true" className="shrink-0">
         {icon}
@@ -579,6 +582,14 @@ function TabLabel({ icon, label, count }: { icon: ReactNode; label: string; coun
             {count} {count === 1 ? "item" : "items"}
           </span>
         </>
+      ) : null}
+      {pending ? (
+        <span className="rounded-full border border-violet-300 bg-violet-100 px-1.5 text-[10px] font-semibold text-violet-800 dark:border-violet-700 dark:bg-violet-900/50 dark:text-violet-200">
+          <span className="2xl:hidden" aria-hidden="true">
+            !
+          </span>
+          <span className="sr-only 2xl:not-sr-only">Pending</span>
+        </span>
       ) : null}
     </span>
   );

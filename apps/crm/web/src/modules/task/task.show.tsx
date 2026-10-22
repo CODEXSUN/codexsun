@@ -22,7 +22,7 @@ import { CrmColorLabel, CrmStatusBadge, statusRing } from "../../crm-colors";
 import { useWorkReports } from "../work-report/work-report.hooks";
 import { TaskPropertiesPanel } from "./task.properties";
 import { TaskClosurePanel, TaskJobsPanel } from "./task.tab-panels";
-import { ScheduleRecordButton, ScheduleRecordList, useRecordSchedules } from "../scheduler";
+import { ScheduleRecordList, useRecordSchedules } from "../scheduler";
 import { useTaskOptions, taskQueryKey } from "./task.hooks";
 import {
   addTaskComment,
@@ -181,13 +181,6 @@ export function TaskShow({
         <WorkReportWorkspace
           taskId={key}
           active={tab === "actions"}
-          afterWhatsApp={
-            <ScheduleRecordButton
-              sourceType="task"
-              sourceId={key}
-              sourceLabel={`Task #${row.id} · ${row.title}`}
-            />
-          }
           onComment={
             canRespond
               ? async (body) => {
@@ -272,6 +265,9 @@ export function TaskShow({
           icon={<ReceiptText className="size-4" />}
           text="Charges"
           count={charges.data?.total ?? 0}
+          pending={Boolean(
+            charges.data && charges.data.amounts.charges > charges.data.amounts.collections
+          )}
         />
       ),
       content: <WorkChargesWorkspace target={{ enquiryId: null, taskId: key }} />
@@ -285,20 +281,19 @@ export function TaskShow({
           count={schedules.data?.length ?? 0}
         />
       ),
-      content: <ScheduleRecordList sourceType="task" sourceId={key} />
+      content: (
+        <ScheduleRecordList
+          sourceType="task"
+          sourceId={key}
+          sourceLabel={`Task #${row.id} · ${row.title}`}
+        />
+      )
     },
     {
       value: "properties",
       label: <Label icon={<Settings2 className="size-4" />} text="Properties" />,
       content: (
         <div>
-          <div className="flex justify-end px-3 pt-3">
-            <ScheduleRecordButton
-              sourceType="task"
-              sourceId={key}
-              sourceLabel={`Task #${row.id} · ${row.title}`}
-            />
-          </div>
           <TaskPropertiesPanel
             record={row}
             options={options.data}
@@ -473,11 +468,21 @@ function MobileSummaryField({ label, value }: { label: string; value: ReactNode 
   );
 }
 
-function Label({ icon, text, count }: { icon: ReactNode; text: string; count?: number }) {
+function Label({
+  icon,
+  text,
+  count,
+  pending = false
+}: {
+  icon: ReactNode;
+  text: string;
+  count?: number;
+  pending?: boolean;
+}) {
   return (
     <span
       className="inline-flex items-center gap-1 2xl:gap-1.5"
-      title={`${text}${count === undefined ? "" : ` · ${count}`}`}
+      title={`${text}${count === undefined ? "" : ` · ${count}`}${pending ? " · Collection pending" : ""}`}
     >
       <span aria-hidden="true" className="shrink-0">
         {icon}
@@ -495,6 +500,14 @@ function Label({ icon, text, count }: { icon: ReactNode; text: string; count?: n
             {count} {count === 1 ? "item" : "items"}
           </span>
         </>
+      ) : null}
+      {pending ? (
+        <span className="rounded-full border border-violet-300 bg-violet-100 px-1.5 text-[10px] font-semibold text-violet-800 dark:border-violet-700 dark:bg-violet-900/50 dark:text-violet-200">
+          <span className="2xl:hidden" aria-hidden="true">
+            !
+          </span>
+          <span className="sr-only 2xl:not-sr-only">Pending</span>
+        </span>
       ) : null}
     </span>
   );

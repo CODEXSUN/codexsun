@@ -85,13 +85,14 @@ export class SchedulerRepository {
     const result = await this.database
       .insertInto("crm_schedules")
       .values({
-        title: input.title,
-        details: input.details,
+        title: input.notes.slice(0, 191),
+        details: input.notes.slice(191),
+        notes: input.notes,
         source_type: input.sourceType,
         source_id: input.sourceId,
         source_label: sourceLabel,
         scheduled_at: utcDateTime(input.scheduledAt),
-        reminder_at: utcDateTime(input.reminderAt),
+        reminder_at: utcDateTime(input.reminderAt ?? input.scheduledAt),
         status: "scheduled",
         assigned_user_id: actorUserId,
         created_by: actorEmail
@@ -106,7 +107,7 @@ export class SchedulerRepository {
   ) {
     const sourceType = options.sourceType ?? "";
     const sourceId = options.sourceId ?? 0;
-    const query = await sql<RawSchedule>`SELECT s.id, s.uuid, s.title, s.details,
+    const query = await sql<RawSchedule>`SELECT s.id, s.uuid, s.notes, s.title, s.details,
       s.source_type AS sourceType, s.source_id AS sourceId, s.source_label AS sourceLabel,
       s.scheduled_at AS scheduledAt, s.reminder_at AS reminderAt,
       s.acknowledged_at AS acknowledgedAt, s.status,
@@ -124,7 +125,7 @@ export class SchedulerRepository {
   }
 
   async reminders(scope: Scope) {
-    const query = await sql<RawSchedule>`SELECT s.id, s.uuid, s.title, s.details,
+    const query = await sql<RawSchedule>`SELECT s.id, s.uuid, s.notes, s.title, s.details,
       s.source_type AS sourceType, s.source_id AS sourceId, s.source_label AS sourceLabel,
       s.scheduled_at AS scheduledAt, s.reminder_at AS reminderAt,
       s.acknowledged_at AS acknowledgedAt, s.status,
@@ -157,7 +158,7 @@ export class SchedulerRepository {
   }
 
   private async get(id: number) {
-    const row = await sql<RawSchedule>`SELECT s.id, s.uuid, s.title, s.details,
+    const row = await sql<RawSchedule>`SELECT s.id, s.uuid, s.notes, s.title, s.details,
       s.source_type AS sourceType, s.source_id AS sourceId, s.source_label AS sourceLabel,
       s.scheduled_at AS scheduledAt, s.reminder_at AS reminderAt,
       s.acknowledged_at AS acknowledgedAt, s.status,
@@ -173,6 +174,7 @@ export class SchedulerRepository {
 type RawSchedule = {
   id: number;
   uuid: string;
+  notes: string;
   title: string;
   details: string;
   sourceType: ScheduleSourceType;
@@ -190,13 +192,21 @@ type RawSchedule = {
 
 function mapSchedule(row: RawSchedule): ScheduleRecord {
   return {
-    ...row,
     id: Number(row.id),
+    uuid: row.uuid,
+    notes: row.notes,
+    title: row.title,
+    details: row.details,
+    sourceType: row.sourceType,
     sourceId: Number(row.sourceId),
+    sourceLabel: row.sourceLabel,
     assignedUserId: Number(row.assignedUserId),
     scheduledAt: toIso(row.scheduledAt),
     reminderAt: toIso(row.reminderAt),
     acknowledgedAt: row.acknowledgedAt ? toIso(row.acknowledgedAt) : null,
+    status: row.status,
+    assignedTo: row.assignedTo,
+    createdBy: row.createdBy,
     createdAt: toIso(row.createdAt)
   };
 }

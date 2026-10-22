@@ -1,4 +1,5 @@
 import { Button } from "@codexsun/ui/components/button";
+import { Badge } from "@codexsun/ui/components/badge";
 import { Input } from "@codexsun/ui/components/input";
 import { Textarea } from "@codexsun/ui/components/textarea";
 import { WorkspaceTableEmptyState } from "@codexsun/ui/workspace/table";
@@ -16,9 +17,14 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
   const client = useQueryClient();
   const [page, setPage] = useState(1);
   const history = useWorkReports(target, page, "charges");
-  const [action, setAction] = useState<ChargeAction>("charge");
+  const [selectedAction, setSelectedAction] = useState<ChargeAction | null>(null);
   const [amount, setAmount] = useState("");
   const [body, setBody] = useState("");
+  const totals = history.data?.amounts;
+  const charged = totals?.charges ?? 0;
+  const collected = totals?.collections ?? 0;
+  const outstanding = Math.max(0, charged - collected);
+  const action = selectedAction ?? (outstanding > 0 ? "collection" : "charge");
   const save = useMutation({
     mutationFn: () =>
       createWorkReport({
@@ -37,15 +43,11 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
       setBody("");
       setPage(1);
       await client.invalidateQueries({ queryKey: workReportKey(target) });
+      setSelectedAction(null);
       toast.success(action === "charge" ? "Charge initiated" : "Collection recorded");
     },
     onError: (error) => toast.error("Could not save charge", { description: error.message })
   });
-  const totals = history.data?.amounts;
-  const charged = totals?.charges ?? 0;
-  const collected = totals?.collections ?? 0;
-  const outstanding = Math.max(0, charged - collected);
-
   return (
     <section className="space-y-4 bg-card p-4">
       {history.error ? (
@@ -58,25 +60,40 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
         <AmountSummary label="Collected" value={collected} />
         <AmountSummary label="Outstanding" value={outstanding} />
       </div>
+      {outstanding > 0 ? (
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-900 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-200"
+          role="status"
+        >
+          <Badge
+            variant="outline"
+            className="border-violet-300 bg-violet-100 text-violet-800 dark:border-violet-700 dark:bg-violet-900/50 dark:text-violet-200"
+          >
+            Collection pending
+          </Badge>
+          <span>{formatCurrency(outstanding)} awaits collection details and confirmation.</span>
+        </div>
+      ) : null}
       <div className="space-y-3 rounded-md border border-border/70 p-3">
         <div className="flex flex-wrap gap-2" aria-label="Charge action">
           <Button
             type="button"
             variant={action === "charge" ? "default" : "outline"}
             aria-pressed={action === "charge"}
-            onClick={() => setAction("charge")}
+            onClick={() => setSelectedAction("charge")}
           >
-            Initiate charge
+            {outstanding > 0 ? "Initiate another charge" : "Initiate charge"}
           </Button>
-          <Button
-            type="button"
-            variant={action === "collection" ? "default" : "outline"}
-            aria-pressed={action === "collection"}
-            disabled={outstanding <= 0}
-            onClick={() => setAction("collection")}
-          >
-            Record collected charge
-          </Button>
+          {outstanding > 0 ? (
+            <Button
+              type="button"
+              variant={action === "collection" ? "default" : "outline"}
+              aria-pressed={action === "collection"}
+              onClick={() => setSelectedAction("collection")}
+            >
+              Collect charge
+            </Button>
+          ) : null}
         </div>
         <form
           className="grid gap-3 sm:grid-cols-[minmax(10rem,0.45fr)_minmax(16rem,1fr)_auto] sm:items-end"
@@ -88,6 +105,10 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
             }
             if (action === "collection" && Number(amount) > outstanding) {
               toast.error(`Collection cannot exceed ${formatCurrency(outstanding)} outstanding.`);
+              return;
+            }
+            if (action === "collection" && !body.trim()) {
+              toast.error("Enter collection notes before confirming.");
               return;
             }
             save.mutate();
@@ -108,7 +129,9 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
             />
           </label>
           <label className="space-y-1 text-sm font-medium">
-            <span>Details (optional)</span>
+            <span>
+              {action === "collection" ? "Collection notes *" : "Charge details (optional)"}
+            </span>
             <Textarea
               className="h-11 min-h-11 resize-none"
               value={body}
@@ -116,6 +139,7 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
               maxLength={10000}
               rows={1}
               disabled={save.isPending}
+              required={action === "collection"}
             />
           </label>
           <Button
@@ -126,7 +150,7 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
               ? "Saving…"
               : action === "charge"
                 ? "Initiate charge"
-                : "Record collection"}
+                : "Confirm collection"}
           </Button>
         </form>
       </div>

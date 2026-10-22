@@ -43,7 +43,7 @@ class MobileNotificationService extends ChangeNotifier {
   );
 
   Future<void> _initialize() async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const android = AndroidInitializationSettings('ic_launcher');
     await _notifications.initialize(
       const InitializationSettings(android: android),
     );

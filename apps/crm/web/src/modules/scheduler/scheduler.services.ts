@@ -5,13 +5,11 @@ export type ScheduleSourceType = (typeof scheduleSources)[number];
 export type ScheduleRecord = {
   id: number;
   uuid: string;
-  title: string;
-  details: string;
+  notes: string;
   sourceType: ScheduleSourceType;
   sourceId: number;
   sourceLabel: string;
   scheduledAt: string;
-  reminderAt: string;
   acknowledgedAt: string | null;
   status: "scheduled" | "completed" | "cancelled";
   assignedUserId: number;
@@ -21,7 +19,7 @@ export type ScheduleRecord = {
 };
 export type ScheduleInput = Pick<
   ScheduleRecord,
-  "title" | "details" | "sourceType" | "sourceId" | "scheduledAt" | "reminderAt"
+  "notes" | "sourceType" | "sourceId" | "scheduledAt"
 >;
 export type ScheduleSourceOption = { id: number; label: string };
 

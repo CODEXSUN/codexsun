@@ -8,6 +8,7 @@ import '../../core/api/crm_mobile_api.dart';
 import '../../core/platform/mobile_actions.dart';
 import 'dashboard_list_page.dart';
 import 'job_duration.dart';
+import 'work_timestamp_format.dart';
 import 'job_detail_page.dart';
 
 class JobEnquiryCard extends StatefulWidget {
@@ -19,6 +20,9 @@ class JobEnquiryCard extends StatefulWidget {
     required this.onJobChanged,
     this.capturePosition,
     this.onJobUpdated,
+    this.closurePending = false,
+    this.collectionPending = false,
+    this.onClosurePendingChanged,
     super.key,
   });
 
@@ -29,6 +33,9 @@ class JobEnquiryCard extends StatefulWidget {
   final VoidCallback onJobChanged;
   final Future<Position> Function()? capturePosition;
   final ValueChanged<CrmJob>? onJobUpdated;
+  final bool closurePending;
+  final bool collectionPending;
+  final ValueChanged<bool>? onClosurePendingChanged;
 
   @override
   State<JobEnquiryCard> createState() => _JobEnquiryCardState();
@@ -67,13 +74,18 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
     final runningJob = _runningJob;
     final isRunning = runningJob != null;
     final isNew = !isRunning && _job.status.trim().toLowerCase() == 'new';
+    final isCompletionPending = _completionPending || widget.closurePending;
     final messageStyle = Theme.of(context).textTheme.titleSmall
         ?.copyWith(fontWeight: FontWeight.w800, height: 1.2);
     final messageLineHeight = MediaQuery.textScalerOf(context)
         .scale(messageStyle?.fontSize ?? 14);
     return Card(
       margin: EdgeInsets.zero,
-      color: isRunning
+      color: isCompletionPending
+          ? const Color(0xFFFFF7ED)
+          : widget.collectionPending
+          ? const Color(0xFFFBF6FE)
+          : isRunning
           ? const Color(0xFFFBF6FE)
           : isNew
           ? const Color(0xFFF1F8FF)
@@ -84,7 +96,11 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isRunning
+          color: isCompletionPending
+              ? const Color(0xFFF59E0B)
+              : widget.collectionPending
+              ? const Color(0xFFB67AD2)
+              : isRunning
               ? const Color(0xFFB67AD2)
               : isNew
               ? const Color(0xFF8CCAF0)
@@ -94,16 +110,24 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: isNew
+        onTap: isNew && !widget.collectionPending
             ? (_isSending ? null : _openNewCall)
             : () => _openDetail(context, enquiry),
         child: Container(
           key: const ValueKey('enquiry-card-highlight'),
-          decoration: isRunning || isNew
+          decoration:
+              isRunning ||
+                  isNew ||
+                  isCompletionPending ||
+                  widget.collectionPending
               ? BoxDecoration(
                   border: Border(
                     left: BorderSide(
-                      color: isRunning
+                      color: isCompletionPending
+                          ? const Color(0xFFF59E0B)
+                          : widget.collectionPending
+                          ? const Color(0xFF8B3BA8)
+                          : isRunning
                           ? const Color(0xFF8B3BA8)
                           : const Color(0xFF1596D2),
                       width: 4,
@@ -144,8 +168,21 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
                   constraints: BoxConstraints(
                     minHeight: messageLineHeight * 2.4,
                   ),
-                  child: isNew
-                      ? Align(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (isCompletionPending) ...[
+                        const _CompletionPendingBadge(),
+                        const SizedBox(height: 5),
+                      ],
+                      if (widget.collectionPending) ...[
+                        const _CollectionPendingBadge(),
+                        const SizedBox(height: 5),
+                      ],
+                      if (isNew &&
+                          !isCompletionPending &&
+                          !widget.collectionPending)
+                        Align(
                           alignment: Alignment.centerLeft,
                           child: OutlinedButton.icon(
                             key: const ValueKey('enquiry-card-new-call'),
@@ -169,7 +206,8 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
                             ),
                           ),
                         )
-                      : LayoutBuilder(
+                      else
+                        LayoutBuilder(
                           builder: (context, constraints) => SizedBox(
                             width: double.infinity,
                             child: Text(
@@ -186,6 +224,8 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
                             ),
                           ),
                         ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 22),
                 Row(
@@ -285,10 +325,16 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
         id: _job.sourceId,
       );
       if (!mounted) return;
-      setState(() => _completionPending = true);
+      _setCompletionPending(true);
       widget.onJobChanged();
       _showMessage('Completion request sent for approval.');
     });
+  }
+
+  void _setCompletionPending(bool pending) {
+    if (!mounted) return;
+    setState(() => _completionPending = pending);
+    widget.onClosurePendingChanged?.call(pending);
   }
 
   Future<void> _performCardAction(Future<void> Function() action) async {
@@ -322,6 +368,7 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
           initialJob: _job,
           onJobChanged: widget.onJobChanged,
           onJobUpdated: widget.onJobUpdated,
+          onClosurePendingChanged: _setCompletionPending,
         ),
       ),
     );
@@ -446,18 +493,12 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
   }
 
   String _locationComment(Position position) {
-    final capturedAt = (position.timestamp).toLocal();
-    final timestamp =
-        '${capturedAt.year.toString().padLeft(4, '0')}-'
-        '${capturedAt.month.toString().padLeft(2, '0')}-'
-        '${capturedAt.day.toString().padLeft(2, '0')} '
-        '${capturedAt.hour.toString().padLeft(2, '0')}:'
-        '${capturedAt.minute.toString().padLeft(2, '0')}';
+    final timestamp = formatWorkDateTime(position.timestamp);
     return 'Pinned location\n'
         'Latitude: ${position.latitude.toStringAsFixed(6)}\n'
         'Longitude: ${position.longitude.toStringAsFixed(6)}\n'
         'Accuracy: ±${position.accuracy.round()} m\n'
-        'Captured: $timestamp\n'
+        'Captured @ $timestamp\n'
         'Customer: ${_job.customer}\n'
         'Enquiry: ${_job.title}';
   }
@@ -468,6 +509,70 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
       SnackBar(content: Text('$action is not available on this device.')),
     );
   }
+}
+
+class _CompletionPendingBadge extends StatelessWidget {
+  const _CompletionPendingBadge();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const ValueKey('enquiry-card-completion-pending'),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFF7ED),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: const Color(0xFFF59E0B)),
+    ),
+    child: const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.notifications_active_outlined,
+          size: 16,
+          color: Color(0xFFB45309),
+        ),
+        SizedBox(width: 6),
+        Text(
+          'Mark Completed',
+          style: TextStyle(
+            color: Color(0xFF92400E),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _CollectionPendingBadge extends StatelessWidget {
+  const _CollectionPendingBadge();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const ValueKey('enquiry-card-collection-pending'),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF5EAFB),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: const Color(0xFFB67AD2)),
+    ),
+    child: const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.payments_outlined, size: 16, color: Color(0xFF7B2FA0)),
+        SizedBox(width: 6),
+        Text(
+          'Collection pending',
+          style: TextStyle(
+            color: Color(0xFF682A82),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _JobCardHeader extends StatelessWidget {

@@ -66,6 +66,7 @@ class _LiveJobsList extends StatelessWidget {
           separatorBuilder: (context, index) => const SizedBox(height: 14),
           itemBuilder: (context, index) {
             return JobEnquiryCard(
+              key: ValueKey(jobs[index].sourceId),
               api: api,
               session: session,
               enquiry: items[index],
@@ -74,6 +75,12 @@ class _LiveJobsList extends StatelessWidget {
                 jobsFeed.refresh();
               },
               onJobUpdated: jobsFeed.updateJob,
+              closurePending: jobsFeed.isClosurePending(jobs[index].sourceId),
+              collectionPending: jobsFeed.isCollectionPending(
+                jobs[index].sourceId,
+              ),
+              onClosurePendingChanged: (pending) =>
+                  jobsFeed.updateClosurePending(jobs[index].sourceId, pending),
             );
           },
         );

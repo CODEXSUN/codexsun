@@ -27,7 +27,8 @@ const task: TaskRecord = {
   creatorName: "Manager",
   createdAt: "2026-10-14T00:00:00.000Z",
   updatedAt: "2026-10-14T00:00:00.000Z",
-  closurePending: false
+  closurePending: false,
+  runningJobStartedAt: null
 };
 
 function context(actorEmail = "manager@example.com"): TaskContext {

@@ -13,6 +13,28 @@ val appApplicationId = providers.environmentVariable("ANDROID_APPLICATION_ID")
 val appAndroidBrandAsset = providers.environmentVariable("MOBILE_ANDROID_BRAND_ASSET")
     .orNull ?: error("Set --android-brand-asset for CRM mobile builds.")
 
+val releaseKeystorePath = providers.environmentVariable("CODEXSUN_ANDROID_KEYSTORE_PATH").orNull
+val releaseKeystorePassword = providers.environmentVariable("CODEXSUN_ANDROID_KEYSTORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("CODEXSUN_ANDROID_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.environmentVariable("CODEXSUN_ANDROID_KEY_PASSWORD").orNull
+val releaseBuildRequested = gradle.startParameter.taskNames.any {
+    it.contains("release", ignoreCase = true)
+}
+
+if (releaseBuildRequested) {
+    require(
+        !releaseKeystorePath.isNullOrBlank() &&
+            !releaseKeystorePassword.isNullOrBlank() &&
+            !releaseKeyAlias.isNullOrBlank() &&
+            !releaseKeyPassword.isNullOrBlank()
+    ) {
+        "Release builds require CODEXSUN_ANDROID_KEYSTORE_PATH, CODEXSUN_ANDROID_KEYSTORE_PASSWORD, CODEXSUN_ANDROID_KEY_ALIAS, and CODEXSUN_ANDROID_KEY_PASSWORD."
+    }
+    require(file(releaseKeystorePath!!).isFile) {
+        "CODEXSUN_ANDROID_KEYSTORE_PATH must point to an existing keystore file."
+    }
+}
+
 require(appAndroidBrandAsset.matches(Regex("[a-z][a-z0-9_]*"))) {
     "MOBILE_ANDROID_BRAND_ASSET must be a lowercase Android resource profile name."
 }
@@ -38,6 +60,15 @@ android {
         getByName("main").res.srcDir("src/main/branding/$appAndroidBrandAsset/res")
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = releaseKeystorePath?.let { file(it) }
+            storePassword = releaseKeystorePassword
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeyPassword
+        }
+    }
+
     defaultConfig {
         applicationId = appApplicationId
         minSdk = flutter.minSdkVersion
@@ -54,9 +85,7 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

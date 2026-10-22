@@ -1,8 +1,8 @@
 # CRM: Schedules and reminders
 
-The CRM scheduler owns schedules linked to enquiries, tasks, call logs, duties, and SOPs. A schedule stores its title, details, scheduled time, reminder time, status, assigned user, and acknowledgement time in the tenant CRM database.
+The CRM scheduler owns schedules linked to enquiries, tasks, call logs, duties, and SOPs. A schedule exposes one Notes field and one scheduled date and time. That time also drives its in-app reminder. Status, assigned user, and acknowledgement time remain tenant-local.
 
-The Enquiry and Task detail pages provide contextual scheduling actions and a Schedules tab. Duty and SOP workflows can also create linked schedules. The CRM Schedules and Reminders pages list permitted records. Platform displays due CRM reminders in its main notification menu and sends acknowledgement requests back to CRM.
+The Enquiry and Task detail pages create and list schedules in the Schedules tab. Mobile creates schedules through the same API and shows linked Enquiry schedules in its Schedules section. Duty and SOP workflows can also create linked schedules. The CRM Schedules and Reminders pages list permitted records. Platform displays due CRM reminders in its main notification menu and sends acknowledgement requests back to CRM.
 
 ## Source contracts
 
@@ -35,4 +35,6 @@ The Enquiry and Task detail pages provide contextual scheduling actions and a Sc
 - `crm.schedule.update-own`
 - `crm.schedule.manage`
 
-The scheduler migration adds `crm_schedules` with tenant-local record IDs and a public UUID. The permission seed grants normal users view, create, and own-record update access. Admin, Manager, and Super Admin roles receive team-wide access and management actions.
+The scheduler migration adds `crm_schedules` with tenant-local record IDs and a public UUID. The additive Notes migration combines existing titles and details without deleting either legacy column. New writes keep the legacy title populated for older readers. The permission seed grants normal users view, create, and own-record update access. Admin, Manager, and Super Admin roles receive team-wide access and management actions.
+
+`POST /crm/schedules` accepts Notes, a linked source, and one scheduled timestamp. During the mobile transition it also accepts the previous title, details, and reminder timestamp request and combines the text into Notes. Responses retain title, details, and reminder time for older installed clients; current clients use Notes and the scheduled time. Existing reminder timestamps are preserved.

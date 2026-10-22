@@ -35,7 +35,12 @@ const cases: Array<[string, boolean, Record<string, unknown>]> = [
   ["rejects a negative charge", false, { action: "charge", amount: -1 }],
   ["rejects a charge without amount", false, { action: "charge", amount: null }],
   ["rejects GPS data on a charge", false, { action: "charge", amount: 250, ...gps }],
-  ["accepts a positive collection", true, { action: "collection", amount: 500 }],
+  [
+    "accepts a positive collection with notes",
+    true,
+    { action: "collection", amount: 500, body: "Cash received" }
+  ],
+  ["rejects a collection without notes", false, { action: "collection", amount: 500 }],
   ["rejects a collection without amount", false, { action: "collection", amount: null }],
   ["accepts a check-in with captured GPS", true, { action: "check-in", ...gps }],
   ["accepts a check-out with captured GPS", true, { action: "check-out", ...gps }],

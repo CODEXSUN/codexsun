@@ -5,8 +5,10 @@ This generic CRM Flutter app uses the CODEXSUN Platform API. Its default app nam
 Run from the repository root with Flutter installed:
 
 ```powershell
-npm run crm:mobile:run -- --api-url=http://127.0.0.1:7010
+npm run crm:mobile:run -- --api-url=http://10.0.2.2:7010
 ```
+
+For the Android emulator, use `http://10.0.2.2:7010` to reach the development API on the host machine. This is the default mobile API URL. For a physical device, pass the host machine's LAN address instead.
 
 Create a client-named APK with the same settings. Release APKs include the repository version in their filename:
 
@@ -14,9 +16,13 @@ Create a client-named APK with the same settings. Release APKs include the repos
 npm run crm:mobile:apk:release -- --api-url=https://crm.example.com
 ```
 
+Release builds require a configured signing keystore through `CODEXSUN_ANDROID_KEYSTORE_PATH`, `CODEXSUN_ANDROID_KEYSTORE_PASSWORD`, `CODEXSUN_ANDROID_KEY_ALIAS`, and `CODEXSUN_ANDROID_KEY_PASSWORD`. Debug builds do not require these values.
+
 Optional build inputs are `--client-name="Client Name"`, `--application-id=in.example.crm`, `--corporate-id=CLIENTCODE`, `--logo-asset=assets/crm-logo.png`, and `--android-brand-asset=crm`. The API URL is the API base URL, without an app-specific `/crm` path. The default display name is `CRM` across supported platforms.
 
-The CRM screens use local CRM APIs for assigned enquiries, tasks, comments, jobs, check-in/out, activities, duties, and reports. Mobile comments use the enquiry/task comment endpoints. Job start/stop is a toggle with an elapsed timer, and check-in changes to check-out after a successful capture. Charge initiation and collection are managed in the web Charges tab, not as mobile action notes. A user can sync a selected Android device call-log entry and its comments to the local CRM database. Creating enquiries from call logs remains administrator-only. Mobile CRM actions do not send records to Frappe.
+The CRM screens use local CRM APIs for assigned enquiries, tasks, comments, jobs, check-in/out, activities, duties, and reports. Mobile comments use the enquiry/task comment endpoints. Job start/stop is a toggle with an elapsed timer, and check-in changes to check-out after a successful capture. Charges initiated on web appear in the mobile enquiry and task Charges lists. An outstanding balance shows a purple Collection pending notice and highlights its enquiry card in purple. Collect charge in the mobile Actions sheet or a charge row opens the same collection form with an amount and required notes. The action checks the latest outstanding balance before opening the form and warns when no charge is pending. A user can sync a selected Android device call-log entry and its comments to the local CRM database. Creating enquiries from call logs remains administrator-only. Mobile CRM actions do not send records to Frappe.
+
+The Schedule action creates a CRM schedule linked to the open enquiry or task. It asks for one Notes field and a date and time with hour and minute selection. Enquiry schedules appear together in the record's Schedules section. The schedule time also determines its in-app reminder.
 
 ## Closure approval refresh
 
@@ -31,7 +37,7 @@ This runs widget tests without the Windows desktop plugin symlinks. It does not 
 
 Open Menu > Tasks for accessible active tasks. A task shows its optional contact, status, action history, and completion request.
 Choose Add action on an enquiry or task. The action sheet follows the web Actions pattern: comment composer, check-in/out toggle, job timer toggle, WhatsApp, and closure request.
-Enquiries and tasks support comments, GPS checkpoints, job timers, and closure requests. The web Charges tab handles structured charge/collection amounts. Duties use their report/result fields in the duty flow.
+Enquiries and tasks support comments, GPS checkpoints, job timers, and closure requests. Web initiates structured charges; web and mobile show collections and the outstanding total. Mobile collection entry is available by tapping a charge. Duties use their report/result fields in the duty flow.
 GPS checkpoints require location permission and a fresh capture.
 A failed submission retains its retry key and input. Permission errors remain visible during history polling.
 The server enforces assignment, checkpoint sequence, and duplicate protection. Reports appear in the web Actions tab.

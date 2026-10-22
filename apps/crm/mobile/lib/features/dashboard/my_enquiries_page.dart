@@ -277,6 +277,18 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
                         onJobChanged: refresh,
                         capturePosition: widget.capturePosition,
                         onJobUpdated: widget.onJobUpdated,
+                        closurePending:
+                            widget.jobsFeed?.isClosurePending(
+                              cardJob.sourceId,
+                            ) ??
+                            false,
+                        collectionPending:
+                            widget.jobsFeed?.isCollectionPending(
+                              cardJob.sourceId,
+                            ) ??
+                            false,
+                        onClosurePendingChanged: (pending) => widget.jobsFeed
+                            ?.updateClosurePending(cardJob.sourceId, pending),
                       ),
                     );
                   }),
@@ -332,6 +344,7 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
       _enquiries = enquiries;
     });
     await enquiries;
+    await widget.jobsFeed?.refresh();
   }
 
   void _changePage(int page) {

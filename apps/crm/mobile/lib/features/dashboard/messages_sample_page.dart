@@ -130,7 +130,9 @@ class MessagesPageState extends State<MessagesPage> {
         }
         if (!snapshot.hasData)
           return const Center(child: CircularProgressIndicator());
-        final conversations = snapshot.data!;
+        final conversations = snapshot.data!
+            .where((conversation) => !_isSystemWorkConversation(conversation))
+            .toList();
         if (conversations.isEmpty)
           return const Center(child: Text('No conversations yet.'));
         return RefreshIndicator(
@@ -173,6 +175,13 @@ class MessagesPageState extends State<MessagesPage> {
     );
     await _reload();
   }
+
+  bool _isSystemWorkConversation(MessagingConversation conversation) =>
+      conversation.kind == 'group' &&
+      RegExp(
+        r'^(enquiry|duty|task):',
+        caseSensitive: false,
+      ).hasMatch(conversation.title.trimLeft());
 }
 
 class _NewChatPage extends StatefulWidget {

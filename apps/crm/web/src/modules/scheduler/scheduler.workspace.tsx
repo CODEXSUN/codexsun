@@ -5,6 +5,7 @@ import { Button } from "@codexsun/ui/components/button";
 import { Card } from "@codexsun/ui/components/card";
 import { Input } from "@codexsun/ui/components/input";
 import { Label } from "@codexsun/ui/components/label";
+import { Textarea } from "@codexsun/ui/components/textarea";
 import { toast } from "sonner";
 import {
   acknowledgeReminder,
@@ -22,10 +23,8 @@ export function SchedulerWorkspace({ view = "schedules" }: { view?: "schedules" 
   const [sourceType, setSourceType] = useState<ScheduleSourceType>("enquiry");
   const [sourceSearch, setSourceSearch] = useState("");
   const [sourceId, setSourceId] = useState("");
-  const [title, setTitle] = useState("");
-  const [details, setDetails] = useState("");
+  const [notes, setNotes] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
-  const [reminderAt, setReminderAt] = useState("");
   const schedules = useQuery({
     queryKey: ["crm-schedules", view],
     queryFn: () => listSchedules(view)
@@ -43,13 +42,11 @@ export function SchedulerWorkspace({ view = "schedules" }: { view?: "schedules" 
   const create = useMutation({
     mutationFn: createSchedule,
     onSuccess: async () => {
-      toast.success("Reminder scheduled");
-      setTitle("");
-      setDetails("");
+      toast.success("Schedule saved");
+      setNotes("");
       setSourceId("");
       setSourceSearch("");
       setScheduledAt("");
-      setReminderAt("");
       await refresh();
     },
     onError: (error) =>
@@ -80,17 +77,15 @@ export function SchedulerWorkspace({ view = "schedules" }: { view?: "schedules" 
   );
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!title.trim() || !sourceId || !scheduledAt || !reminderAt) {
-      toast.error("Complete the title, linked record, schedule time, and reminder time.");
+    if (!notes.trim() || !sourceId || !scheduledAt) {
+      toast.error("Complete the notes, linked record, and schedule date and time.");
       return;
     }
     create.mutate({
-      title: title.trim(),
-      details: details.trim(),
+      notes: notes.trim(),
       sourceType,
       sourceId: Number(sourceId),
-      scheduledAt: new Date(scheduledAt).toISOString(),
-      reminderAt: new Date(reminderAt).toISOString()
+      scheduledAt: new Date(scheduledAt).toISOString()
     });
   };
 
@@ -118,16 +113,28 @@ export function SchedulerWorkspace({ view = "schedules" }: { view?: "schedules" 
       {view === "schedules" && (
         <Card className="p-5">
           <div className="mb-4 flex items-center gap-2 font-semibold">
-            <PlusIcon className="size-4 text-violet-700" /> New schedule or reminder
+            <PlusIcon className="size-4 text-violet-700" /> New schedule
           </div>
           <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={submit}>
             <div className="space-y-1.5">
-              <Label htmlFor="schedule-title">Title</Label>
+              <Label htmlFor="schedule-at">Scheduled for</Label>
               <Input
-                id="schedule-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Follow up with customer"
+                id="schedule-at"
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-notes">Notes</Label>
+              <Textarea
+                id="schedule-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                maxLength={10000}
+                required
+                placeholder="What needs to be done?"
               />
             </div>
             <div className="space-y-1.5">
@@ -186,36 +193,6 @@ export function SchedulerWorkspace({ view = "schedules" }: { view?: "schedules" 
                   Linked to selected {sourceLabels[sourceType].toLowerCase()}
                 </p>
               )}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="schedule-at">Scheduled for</Label>
-              <Input
-                id="schedule-at"
-                type="datetime-local"
-                value={scheduledAt}
-                onChange={(e) => {
-                  setScheduledAt(e.target.value);
-                  if (!reminderAt) setReminderAt(e.target.value);
-                }}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="reminder-at">Remind me at</Label>
-              <Input
-                id="reminder-at"
-                type="datetime-local"
-                value={reminderAt}
-                onChange={(e) => setReminderAt(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5 xl:col-span-1">
-              <Label htmlFor="schedule-details">Details (optional)</Label>
-              <Input
-                id="schedule-details"
-                value={details}
-                onChange={(e) => setDetails(e.target.value)}
-                placeholder="Add context for this reminder"
-              />
             </div>
             <div className="flex items-end">
               <Button
@@ -286,7 +263,7 @@ function ScheduleCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-semibold text-slate-900">{item.title}</h2>
+            <h2 className="whitespace-pre-wrap font-semibold text-slate-900">{item.notes}</h2>
             <span
               className={`rounded-full px-2 py-0.5 text-xs ${item.status === "scheduled" ? "bg-violet-100 text-violet-800" : item.status === "completed" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}
             >
@@ -301,12 +278,9 @@ function ScheduleCard({
           <a className="mt-1 inline-block text-sm text-violet-700 hover:underline" href={href}>
             {sourceLabels[item.sourceType]} · {item.sourceLabel}
           </a>
-          {item.details && (
-            <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{item.details}</p>
-          )}
           <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
             <Clock3Icon className="size-3.5" />
-            {due.toLocaleString()} · Reminder {new Date(item.reminderAt).toLocaleString()}
+            {due.toLocaleString()}
           </p>
         </div>
         {item.status === "scheduled" && (

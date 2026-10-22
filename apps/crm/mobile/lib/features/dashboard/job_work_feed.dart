@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api/crm_mobile_api.dart';
 import '../../core/platform/mobile_actions.dart';
 import 'job_duration.dart';
+import 'work_timestamp_format.dart';
 
 class JobWorkFeed extends StatelessWidget {
   const JobWorkFeed({
@@ -92,7 +93,7 @@ class _WorkFeedEntry {
           title: normalizeCrmText('${report['action']}').replaceAll('-', ' '),
           detail: [
             if (report['amount'] != null) 'Amount: ${report['amount']}',
-            normalizeCrmText('${report['body'] ?? ''}'),
+            formatWorkTimestamps(normalizeCrmText('${report['body'] ?? ''}')),
             if (report['latitude'] != null)
               'GPS: ${report['latitude']}, ${report['longitude']} · ${report['accuracy_meters']} m',
           ].where((part) => part.isNotEmpty).join('\n'),
@@ -110,7 +111,7 @@ class _WorkFeedEntry {
         (comment) => _WorkFeedEntry(
           icon: Icons.chat_bubble_outline,
           title: null,
-          detail: comment.comment,
+          detail: formatWorkTimestamps(comment.comment),
           author: _author(comment.createdByUserId, session),
           createdAt: comment.createdAt,
           isSystemLog: _isSystemWorkLog(comment.comment),
@@ -163,10 +164,9 @@ class _WorkFeedEntry {
         return _WorkFeedEntry(
           icon: Icons.calendar_month_outlined,
           title: normalizeCrmText(
-            '${schedule['title'] ?? 'Scheduled follow-up'}',
+            '${schedule['notes'] ?? 'Scheduled follow-up'}',
           ),
           detail: [
-            normalizeCrmText('${schedule['details'] ?? ''}'),
             if (scheduledAt != null)
               'Scheduled ${_scheduleDateTime(scheduledAt)}',
             if ('${schedule['status'] ?? ''}'.isNotEmpty)

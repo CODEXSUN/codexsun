@@ -115,6 +115,35 @@ export function registerClosureRoutes(
 
   registerContractRoute(app, {
     method: "GET",
+    url: "/crm/enquiries/closure-requests/pending",
+    schemas: {
+      response: z.object({ items: z.array(z.number().int().positive()) })
+    },
+    handler: async ({ request }) => {
+      const scope = await context(request);
+      let pending = scope.database
+        .selectFrom("crm_closure_requests as request")
+        .innerJoin("crm_enquiries as enquiry", "enquiry.id", "request.enquiry_id")
+        .select("request.enquiry_id as enquiryId")
+        .distinct()
+        .where("request.status", "=", "pending");
+      if (!scope.canViewAll) {
+        pending = pending.where((eb) =>
+          scope.actorUserId == null
+            ? eb("enquiry.created_by", "=", scope.actorEmail)
+            : eb.or([
+                eb("enquiry.assigned_user_id", "=", scope.actorUserId),
+                eb("enquiry.created_by", "=", scope.actorEmail)
+              ])
+        );
+      }
+      const rows = await pending.execute();
+      return { items: rows.map(({ enquiryId }) => Number(enquiryId)) };
+    }
+  });
+
+  registerContractRoute(app, {
+    method: "GET",
     url: "/crm/closure-requests",
     schemas: {
       querystring: z.object({

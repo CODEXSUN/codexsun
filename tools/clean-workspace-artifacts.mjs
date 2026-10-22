@@ -5,7 +5,16 @@ import { join, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const workspaceRoots = ["apps", "devkits", "packages", "tools"].map((dir) => join(root, dir));
-const removableNames = new Set([".turbo", "dist", "dist-types", "node_modules"]);
+const removableNames = new Set([
+  ".dart_tool",
+  ".gradle",
+  ".turbo",
+  "build",
+  "dist",
+  "dist-types",
+  "node_modules",
+  "target"
+]);
 
 function removeNestedArtifacts(dir) {
   if (!existsSync(dir)) {

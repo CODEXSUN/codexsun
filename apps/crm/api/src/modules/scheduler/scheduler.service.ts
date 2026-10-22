@@ -37,13 +37,15 @@ export class SchedulerService {
 
   async create(input: ScheduleInput) {
     await this.context.authorize("crm.schedule.create");
-    if (
-      !Number.isFinite(Date.parse(input.scheduledAt)) ||
-      !Number.isFinite(Date.parse(input.reminderAt))
-    )
-      throw AppError.validation("Schedule and reminder times must be valid dates.");
-    if (Date.parse(input.reminderAt) > Date.parse(input.scheduledAt))
-      throw AppError.validation("The reminder time must be on or before the schedule time.");
+    if (!input.notes.trim()) throw AppError.validation("Schedule notes are required.");
+    if (!Number.isFinite(Date.parse(input.scheduledAt)))
+      throw AppError.validation("The schedule time must be a valid date.");
+    if (input.reminderAt) {
+      if (!Number.isFinite(Date.parse(input.reminderAt)))
+        throw AppError.validation("The reminder time must be a valid date.");
+      if (Date.parse(input.reminderAt) > Date.parse(input.scheduledAt))
+        throw AppError.validation("The reminder time must be on or before the schedule time.");
+    }
     const sourceScope = await this.sourceScope(input.sourceType);
     const source = await this.repository.findSource(input.sourceType, input.sourceId, sourceScope);
     if (!source) throw AppError.notFound("The linked CRM record is unavailable.");

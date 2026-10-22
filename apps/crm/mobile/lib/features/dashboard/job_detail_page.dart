@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../core/api/crm_mobile_api.dart';
+import '../../core/api/mobile_request_outcome.dart';
 import 'dashboard_list_page.dart';
 import 'work_action_sheet.dart';
 import 'job_duration.dart';
 import 'job_work_feed.dart';
+import 'work_charges_section.dart';
 
 const _detailSurfaceTone = Color(0xFFFCF9FD);
 const _mobileDetailSections = <(String, String)>[
@@ -28,6 +30,7 @@ class JobDetailPage extends StatefulWidget {
     this.capturePosition,
     this.onJobChanged,
     this.onJobUpdated,
+    this.onClosurePendingChanged,
     super.key,
   });
 
@@ -38,6 +41,7 @@ class JobDetailPage extends StatefulWidget {
   final Future<Position> Function()? capturePosition;
   final VoidCallback? onJobChanged;
   final ValueChanged<CrmJob>? onJobUpdated;
+  final ValueChanged<bool>? onClosurePendingChanged;
 
   @override
   State<JobDetailPage> createState() => _JobDetailPageState();
@@ -54,8 +58,10 @@ class _JobDetailPageState extends State<JobDetailPage>
   var _isLoading = false;
   var _isSending = false;
   var _selectedSection = 'comments';
+  int _chargeVersion = 0;
   Timer? _runningTimer;
   Timer? _closureTimer;
+  var _partialFailureReported = false;
 
   @override
   void initState() {
@@ -135,14 +141,21 @@ class _JobDetailPageState extends State<JobDetailPage>
                 actions: const [SizedBox.shrink()],
               ),
             Expanded(
-              child: JobWorkFeed(
-                job: _job,
-                session: widget.session,
-                locations: _locations,
-                reports: _workReports,
-                schedules: _schedules,
-                selectedSection: _selectedSection,
-              ),
+              child: _selectedSection == 'charges'
+                  ? WorkChargesSection(
+                      key: ValueKey(_chargeVersion),
+                      api: widget.api,
+                      session: widget.session,
+                      enquiryId: _job.id,
+                    )
+                  : JobWorkFeed(
+                      job: _job,
+                      session: widget.session,
+                      locations: _locations,
+                      reports: _workReports,
+                      schedules: _schedules,
+                      selectedSection: _selectedSection,
+                    ),
             ),
           ],
         ),
@@ -153,42 +166,72 @@ class _JobDetailPageState extends State<JobDetailPage>
   Future<void> _refresh() async {
     setState(() => _isLoading = true);
     try {
-      final results = await Future.wait<Object?>([
-        widget.api.job(widget.session.accessToken, widget.initialJob.sourceId),
-        widget.api.latestClosureRequest(
-          accessToken: widget.session.accessToken,
-          id: widget.initialJob.sourceId,
+      final job = await widget.api.job(
+        widget.session.accessToken,
+        widget.initialJob.sourceId,
+      );
+      final results = await Future.wait([
+        captureMobileRequest<ClosureRequest?>(
+          widget.api.latestClosureRequest(
+            accessToken: widget.session.accessToken,
+            id: widget.initialJob.sourceId,
+          ),
         ),
-        widget.api.workReports(
-          widget.session.accessToken,
-          enquiryId: widget.initialJob.id,
+        captureMobileRequest<List<Map<String, dynamic>>>(
+          widget.api.workReports(
+            widget.session.accessToken,
+            enquiryId: widget.initialJob.id,
+          ),
         ),
-        widget.api.enquiryLocations(
-          accessToken: widget.session.accessToken,
-          enquiryId: widget.initialJob.sourceId,
+        captureMobileRequest<List<CrmEnquiryLocation>>(
+          widget.api.enquiryLocations(
+            accessToken: widget.session.accessToken,
+            enquiryId: widget.initialJob.sourceId,
+          ),
         ),
-        widget.api.enquirySchedules(
-          widget.session.accessToken,
-          enquiryId: widget.initialJob.id,
+        captureMobileRequest<List<Map<String, dynamic>>>(
+          widget.api.enquirySchedules(
+            widget.session.accessToken,
+            enquiryId: widget.initialJob.id,
+          ),
         ),
-        widget.api.workCheckpoint(
-          widget.session.accessToken,
-          enquiryId: widget.initialJob.id,
+        captureMobileRequest<bool>(
+          widget.api.workCheckpoint(
+            widget.session.accessToken,
+            enquiryId: widget.initialJob.id,
+          ),
         ),
       ]);
-      final job = results[0] as CrmJob;
       if (mounted) {
         setState(() {
           _job = job;
-          _closureRequest = results[1] as ClosureRequest?;
-          _workReports = results[2] as List<Map<String, dynamic>>;
-          _locations = results[3] as List<CrmEnquiryLocation>;
-          _schedules = results[4] as List<Map<String, dynamic>>;
-          _checkedIn = results[5] as bool;
+          if (results[0].succeeded) {
+            _closureRequest = results[0].value as ClosureRequest?;
+          }
+          if (results[1].succeeded) {
+            _workReports = results[1].value as List<Map<String, dynamic>>;
+          }
+          if (results[2].succeeded) {
+            _locations = results[2].value as List<CrmEnquiryLocation>;
+          }
+          if (results[3].succeeded) {
+            _schedules = results[3].value as List<Map<String, dynamic>>;
+          }
+          if (results[4].succeeded) _checkedIn = results[4].value as bool;
         });
         _syncRunningTimer();
         widget.onJobChanged?.call();
         widget.onJobUpdated?.call(_job);
+        widget.onClosurePendingChanged?.call(
+          _closureRequest?.status == 'pending',
+        );
+        final hasPartialFailure = results.any((result) => !result.succeeded);
+        if (hasPartialFailure && !_partialFailureReported) {
+          _partialFailureReported = true;
+          _showError('Some job details could not be refreshed. Retry shortly.');
+        } else if (!hasPartialFailure) {
+          _partialFailureReported = false;
+        }
       }
     } on CrmMobileApiException catch (error) {
       if (mounted) _showError(error.message);
@@ -208,6 +251,11 @@ class _JobDetailPageState extends State<JobDetailPage>
       closed: _closureRequest?.status == 'approved',
       capturePosition: widget.capturePosition,
       onEnquiryUpdated: widget.onJobUpdated,
+      onClosurePendingChanged: widget.onClosurePendingChanged,
+      onCollectionSaved: () => setState(() {
+        _selectedSection = 'charges';
+        _chargeVersion++;
+      }),
     );
     if (saved && mounted) await _refresh();
   }

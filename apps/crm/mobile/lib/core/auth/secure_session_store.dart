@@ -32,11 +32,13 @@ class SecureSessionStore {
     final token = await _read(_tokenKey);
     final pinHash = await _read(_pinHashKey);
     final email = await _read(_emailKey) ?? '';
-    final lastActivityAt = DateTime.tryParse(
-      await _read(_lastActivityAtKey) ??
-          await _read(_legacyAuthenticatedAtKey) ??
-          '',
-    ) ?? DateTime.now().toUtc();
+    final lastActivityAt =
+        DateTime.tryParse(
+          await _read(_lastActivityAtKey) ??
+              await _read(_legacyAuthenticatedAtKey) ??
+              '',
+        ) ??
+        DateTime.now().toUtc();
     if (token == null && pinHash == null && email.isEmpty) return null;
     final name = await _read(_profileNameKey) ?? '';
     final role = await _read(_profileRoleKey) ?? '';
@@ -217,8 +219,8 @@ class StoredSession {
   final String savedPassword;
 
   UserProfile get profile => UserProfile(
-        email: email,
-        name: name.isNotEmpty ? name : (email.isNotEmpty ? email : 'User'),
-        role: role.isNotEmpty ? role : 'user',
-      );
+    email: email,
+    name: name.isNotEmpty ? name : (email.isNotEmpty ? email : 'User'),
+    role: role.isNotEmpty ? role : 'user',
+  );
 }

@@ -20,6 +20,130 @@ class FakeActionsApi extends CrmMobileApi {
   var starts = 0;
   var stops = 0;
   bool failCheckIn = false;
+  final schedules = <Map<String, dynamic>>[];
+  String? enquiryStageId;
+  int? taskStageId;
+  double chargeOutstanding = 0;
+  int? chargeEnquiryId;
+  int? chargeTaskId;
+
+  @override
+  Future<Map<String, dynamic>> workCharges(
+    String accessToken, {
+    int? enquiryId,
+    int? taskId,
+    int page = 1,
+  }) async {
+    chargeEnquiryId = enquiryId;
+    chargeTaskId = taskId;
+    return {
+      'items': const [],
+      'total': 0,
+      'amounts': {'charges': chargeOutstanding, 'collections': 0},
+    };
+  }
+
+  static final enquiry = CrmJob(
+    id: 41,
+    sourceId: '41',
+    number: '41',
+    title: 'Mobile service request',
+    customer: 'Customer',
+    list: 'Office',
+    dueDate: '',
+    createdBy: 'field@example.test',
+    createdAt: DateTime.utc(2026, 10, 22),
+    lastAction: '',
+    status: 'New',
+    statusId: '1',
+    priority: 'Normal',
+    comments: [],
+    jobs: [],
+    activities: [],
+  );
+
+  @override
+  Future<CrmJob> updateProperties({
+    required String accessToken,
+    required String id,
+    String? statusId,
+    String? priorityId,
+    String? listInId,
+    String? assignedUserId,
+    String? dueDate,
+    String? closedReason,
+  }) async {
+    enquiryStageId = statusId;
+    return enquiry;
+  }
+
+  @override
+  Future<Map<String, dynamic>> taskOptions(String accessToken) async => {
+    'statuses': [
+      {'id': 1, 'name': 'New', 'code': 'new'},
+      {'id': 2, 'name': 'Open', 'code': 'open'},
+      {'id': 3, 'name': 'Won', 'code': 'won'},
+      {'id': 4, 'name': 'Lost', 'code': 'lost'},
+      {'id': 5, 'name': 'Hold for Approval', 'code': 'hold-for-approval'},
+      {'id': 6, 'name': 'Long Hold', 'code': 'long-hold'},
+      {'id': 7, 'name': 'Hold for Spares', 'code': 'hold-for-spares'},
+      {'id': 8, 'name': 'Closed', 'code': 'closed'},
+      {'id': 9, 'name': 'Re-open', 'code': 're-open'},
+    ],
+  };
+
+  @override
+  Future<CrmCallEnquiryFormData> callEnquiryFormData(
+    String accessToken,
+  ) async => const CrmCallEnquiryFormData(
+    groups: [],
+    assignees: [],
+    statuses: [
+      CrmCallEnquiryStatus(id: '1', name: 'New', code: 'new'),
+      CrmCallEnquiryStatus(id: '2', name: 'Open', code: 'open'),
+      CrmCallEnquiryStatus(id: '3', name: 'Won', code: 'won'),
+      CrmCallEnquiryStatus(id: '4', name: 'Lost', code: 'lost'),
+      CrmCallEnquiryStatus(
+        id: '5',
+        name: 'Hold for Approval',
+        code: 'hold-for-approval',
+      ),
+      CrmCallEnquiryStatus(id: '6', name: 'Long Hold', code: 'long-hold'),
+      CrmCallEnquiryStatus(
+        id: '7',
+        name: 'Hold for Spares',
+        code: 'hold-for-spares',
+      ),
+      CrmCallEnquiryStatus(id: '8', name: 'Closed', code: 'closed'),
+      CrmCallEnquiryStatus(id: '9', name: 'Re-open', code: 're-open'),
+    ],
+  );
+
+  @override
+  Future<void> createSchedule({
+    required String accessToken,
+    required String notes,
+    required String sourceType,
+    required int sourceId,
+    required DateTime scheduledAt,
+  }) async {
+    schedules.add({
+      'notes': notes,
+      'sourceType': sourceType,
+      'sourceId': sourceId,
+      'scheduledAt': scheduledAt,
+    });
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateTaskProperties({
+    required String accessToken,
+    required int id,
+    required int statusId,
+  }) async {
+    taskStageId = statusId;
+    return {'id': id, 'statusId': statusId};
+  }
 
   @override
   Future<void> sendWorkReport(
@@ -64,6 +188,70 @@ Position samplePosition() => Position(
 );
 
 void main() {
+  for (final target in ['enquiry', 'task']) {
+    testWidgets('Collect charge action submits $target collection with notes', (
+      tester,
+    ) async {
+      final api = FakeActionsApi()..chargeOutstanding = 150;
+      var savedCount = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WorkActionSheet(
+              api: api,
+              session: session,
+              enquiries: target == 'enquiry'
+                  ? [FakeActionsApi.enquiry]
+                  : const [],
+              taskId: target == 'task' ? 4 : null,
+              onCollectionSaved: () => savedCount++,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('work-action-collect-charge')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Record collection'), findsOneWidget);
+      expect(api.chargeEnquiryId, target == 'enquiry' ? 41 : null);
+      expect(api.chargeTaskId, target == 'task' ? 4 : null);
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-amount')),
+        '75',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('collection-notes')),
+        'Received by card',
+      );
+      await tester.tap(find.text('Confirm collection'));
+      await tester.pumpAndSettle();
+      expect(api.reports.single, containsPair('action', 'collection'));
+      expect(api.reports.single, containsPair('amount', 75.0));
+      expect(api.reports.single, containsPair('body', 'Received by card'));
+      expect(savedCount, 1);
+    });
+  }
+
+  testWidgets('Collect charge action warns when nothing is outstanding', (
+    tester,
+  ) async {
+    final api = FakeActionsApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkActionSheet(api: api, session: session, taskId: 4),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-collect-charge')));
+    await tester.pumpAndSettle();
+    expect(find.text('No charges are awaiting collection.'), findsOneWidget);
+    expect(find.text('Record collection'), findsNothing);
+  });
+
   testWidgets('check-in waits for submit and displays captured location', (
     tester,
   ) async {
@@ -194,6 +382,326 @@ void main() {
     await tester.pumpAndSettle();
     expect(api.starts, 1);
     expect(find.text('Actions'), findsNothing);
+  });
+
+  testWidgets('schedule action submits a dated enquiry schedule', (
+    tester,
+  ) async {
+    final api = FakeActionsApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkActionSheet(
+            api: api,
+            session: session,
+            enquiries: [FakeActionsApi.enquiry],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-schedule')));
+    await tester.pumpAndSettle();
+    expect(find.text('Schedule').last, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('work-action-schedule-date')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('work-action-schedule-time')));
+    await tester.pumpAndSettle();
+    expect(find.byType(TimePickerDialog), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.keyboard_outlined));
+    await tester.pumpAndSettle();
+    final timeFields = find.descendant(
+      of: find.byType(TimePickerDialog),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(timeFields.first, '10');
+    await tester.enterText(timeFields.last, '30');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('work-action-schedule-notes')),
+      'Call customer and confirm delivery time',
+    );
+    await tester.tap(find.byKey(const ValueKey('work-action-schedule-submit')));
+    await tester.pumpAndSettle();
+
+    expect(api.schedules, hasLength(1));
+    expect(api.schedules.single['sourceType'], 'enquiry');
+    expect(api.schedules.single['sourceId'], 41);
+    expect(
+      api.schedules.single['notes'],
+      'Call customer and confirm delivery time',
+    );
+    expect(api.schedules.single['scheduledAt'], isA<DateTime>());
+    final scheduledAt = api.schedules.single['scheduledAt'] as DateTime;
+    expect(scheduledAt.hour % 12, 10);
+    expect(scheduledAt.minute, 30);
+    expect(find.text('Actions'), findsNothing);
+  });
+
+  testWidgets('task schedule action submits through the CRM API', (
+    tester,
+  ) async {
+    final api = FakeActionsApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkActionSheet(
+            api: api,
+            session: session,
+            taskId: 7,
+            taskStatusId: '1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-schedule')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('work-action-schedule-notes')),
+      'Prepare visit',
+    );
+    await tester.tap(find.byKey(const ValueKey('work-action-schedule-submit')));
+    await tester.pumpAndSettle();
+    expect(api.schedules.single['sourceType'], 'task');
+    expect(api.schedules.single['sourceId'], 7);
+    expect(find.text('Actions'), findsNothing);
+  });
+
+  testWidgets('task Change Stage submits the selected lookup value', (
+    tester,
+  ) async {
+    final api = FakeActionsApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkActionSheet(
+            api: api,
+            session: session,
+            taskId: 7,
+            taskStatusId: '1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-change-stage')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('work-action-stage-lookup')),
+      'Open',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-stage-option-2')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-stage-submit')));
+    await tester.pumpAndSettle();
+
+    expect(api.taskStageId, 2);
+    expect(find.text('Actions'), findsNothing);
+  });
+
+  testWidgets('task Change Stage shows every available non-closed status', (
+    tester,
+  ) async {
+    final api = FakeActionsApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkActionSheet(
+            api: api,
+            session: session,
+            taskId: 7,
+            taskStatusId: '1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-change-stage')));
+    await tester.pumpAndSettle();
+    final stageSheet = tester.getSize(
+      find.byKey(const ValueKey('work-action-stage-sheet')),
+    );
+    final viewportHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    expect(stageSheet.height, greaterThan(viewportHeight * .68));
+    expect(stageSheet.height, lessThan(viewportHeight * .8));
+    await tester.tap(find.byKey(const ValueKey('work-action-stage-lookup')));
+    await tester.pumpAndSettle();
+    final optionScrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar));
+    expect(optionScrollbar.thumbVisibility, isTrue);
+    expect(optionScrollbar.trackVisibility, isTrue);
+    expect(
+      find.byKey(const ValueKey('work-action-stage-option-1')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Icon>(find.byKey(const ValueKey('work-action-stage-color-1')))
+          .color,
+      const Color(0xFF2563EB),
+    );
+    expect(
+      tester
+          .widget<Icon>(
+            find.byKey(const ValueKey('work-action-stage-selected-1')),
+          )
+          .color,
+      const Color(0xFF2563EB),
+    );
+    expect(
+      tester
+          .widget<Icon>(find.byKey(const ValueKey('work-action-stage-color-2')))
+          .color,
+      const Color(0xFF0EA5E9),
+    );
+    expect(
+      tester
+          .widget<Icon>(find.byKey(const ValueKey('work-action-stage-color-3')))
+          .color,
+      const Color(0xFF10B981),
+    );
+    expect(
+      tester
+          .widget<Icon>(find.byKey(const ValueKey('work-action-stage-color-4')))
+          .color,
+      const Color(0xFFDC2626),
+    );
+    expect(
+      tester
+          .widget<Icon>(find.byKey(const ValueKey('work-action-stage-color-5')))
+          .color,
+      const Color(0xFFF59E0B),
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('work-action-stage-option-7')),
+      100,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(
+      find.byKey(const ValueKey('work-action-stage-option-7')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Icon>(find.byKey(const ValueKey('work-action-stage-color-6')))
+          .color,
+      const Color(0xFF7C3AED),
+    );
+    expect(
+      tester
+          .widget<Icon>(find.byKey(const ValueKey('work-action-stage-color-7')))
+          .color,
+      const Color(0xFFF97316),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('work-action-stage-lookup')),
+      'Closed',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('work-action-stage-option-8')),
+      findsNothing,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('work-action-stage-lookup')),
+      'Re-open',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('work-action-stage-option-9')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('enquiry Change Stage uses the searchable status lookup', (
+    tester,
+  ) async {
+    final api = FakeActionsApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkActionSheet(
+            api: api,
+            session: session,
+            enquiries: [FakeActionsApi.enquiry],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-change-stage')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('work-action-stage-lookup')),
+      'Open',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-stage-option-2')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-stage-submit')));
+    await tester.pumpAndSettle();
+
+    expect(api.enquiryStageId, '2');
+    expect(find.text('Actions'), findsNothing);
+  });
+
+  testWidgets('enquiry Change Stage omits Closed and Re-open', (tester) async {
+    final api = FakeActionsApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkActionSheet(
+            api: api,
+            session: session,
+            enquiries: [FakeActionsApi.enquiry],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-change-stage')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-stage-lookup')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('work-action-stage-option-1')),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('work-action-stage-option-7')),
+      100,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(
+      find.byKey(const ValueKey('work-action-stage-option-7')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('work-action-stage-lookup')),
+      'Closed',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('work-action-stage-option-8')),
+      findsNothing,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('work-action-stage-lookup')),
+      'Re-open',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('work-action-stage-option-9')),
+      findsNothing,
+    );
   });
 
   testWidgets(

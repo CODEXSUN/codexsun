@@ -9,6 +9,7 @@ export type CrmScheduleRow = {
   uuid: Generated<string>;
   title: string;
   details: string;
+  notes: string;
   source_type: ScheduleSourceType;
   source_id: number;
   source_label: string;
@@ -43,17 +44,17 @@ export type SchedulerContext = {
 };
 
 export type ScheduleInput = {
-  title: string;
-  details: string;
+  notes: string;
   sourceType: ScheduleSourceType;
   sourceId: number;
   scheduledAt: string;
-  reminderAt: string;
+  reminderAt?: string;
 };
 
 export type ScheduleRecord = {
   id: number;
   uuid: string;
+  notes: string;
   title: string;
   details: string;
   sourceType: ScheduleSourceType;

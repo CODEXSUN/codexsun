@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -8,14 +9,18 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 
 class AppUpdateService {
-  AppUpdateService({http.Client? client, MethodChannel? channel})
-    : _client = client ?? http.Client(),
-      _channel = channel ?? MethodChannel(_channelName);
+  AppUpdateService({
+    http.Client? client,
+    MethodChannel? channel,
+    this.downloadIdleTimeout = const Duration(seconds: 30),
+  }) : _client = client ?? http.Client(),
+       _channel = channel ?? MethodChannel(_channelName);
 
   static final _channelName = '${AppConfig.nativeChannelPrefix}/app-update';
 
   final http.Client _client;
   final MethodChannel _channel;
+  final Duration downloadIdleTimeout;
 
   Future<AppRelease?> checkForUpdate() async {
     if (!Platform.isAndroid) return null;
@@ -47,9 +52,14 @@ class AppUpdateService {
   }
 
   Future<void> downloadAndInstall(AppRelease release) async {
-    final response = await _client.send(
-      http.Request('GET', Uri.parse(release.apkUrl)),
-    );
+    final response = await _client
+        .send(http.Request('GET', Uri.parse(release.apkUrl)))
+        .timeout(
+          const Duration(seconds: 30),
+          onTimeout: () => throw AppUpdateException(
+            'The app update server did not respond. Try again.',
+          ),
+        );
     if (response.statusCode != HttpStatus.ok) {
       throw AppUpdateException('The update download is not available.');
     }
@@ -63,7 +73,21 @@ class AppUpdateService {
       '$directory${Platform.pathSeparator}${AppConfig.releaseFilePrefix}-${release.versionName}.apk',
     );
     final sink = file.openWrite();
-    await response.stream.pipe(sink);
+    var downloadCompleted = false;
+    try {
+      await response.stream.timeout(downloadIdleTimeout).forEach(sink.add);
+      await sink.flush();
+      downloadCompleted = true;
+    } on TimeoutException {
+      throw AppUpdateException('The app update download timed out. Try again.');
+    } on Exception {
+      throw AppUpdateException(
+        'The app update download was interrupted. Try again.',
+      );
+    } finally {
+      await sink.close();
+      if (!downloadCompleted && await file.exists()) await file.delete();
+    }
 
     final checksum = await file.openRead().transform(sha256).first;
     if (checksum.toString().toLowerCase() != release.sha256.toLowerCase()) {

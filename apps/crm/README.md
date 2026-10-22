@@ -50,9 +50,12 @@ permitted enquiry, task, call log, duty assignment, or SOP. Users see and manage
 schedules; roles with the schedule-wide permissions can manage team schedules. The Platform
 main-menu notification control shows due and near-due CRM reminders while CRM is active. Selecting
 a reminder opens its linked record, and dismissing it acknowledges it through the CRM API. Reminder
-acknowledgement and schedule completion are recorded in the tenant CRM database. Enquiries and tasks expose a
-contextual schedule button in Actions and Properties, plus a Schedules tab with a table of linked
-reminders and completion/cancellation actions. Duties expose the same action from their list and
+acknowledgement and schedule completion are recorded in the tenant CRM database. Enquiry and Task
+detail pages keep schedule creation and their linked schedule lists together in the Schedules tab.
+The New schedule form asks for Notes and one date and time; the reminder uses that same time.
+The tab refreshes after saving and supports completion and cancellation. Existing schedule titles
+and details are combined into Notes by the additive scheduler migration. Mobile uses the same API
+contract and provides date, hour, and minute selection. Duties expose scheduling from their list and
 assignment page.
 
 ## Enquiry contacts and closure approvals
@@ -241,6 +244,8 @@ Run `npm exec tsx -- --test tools/e2e/crm-whatsapp.e2e.ts` for database acceptan
 ### Work charges
 
 Enquiry and task show pages include a Charges tab for initiating charges and recording collections. These operational CRM records are not invoices or payments in Billing. Collections cannot exceed the remaining initiated amount. The `crm.work-report.charges-v1` migration adds a nullable decimal amount to existing work-report rows without changing prior history.
+The mobile enquiry and task Charges sections show the same charge and collection history. An outstanding balance shows a purple Collection pending notice on web and mobile. Tapping a charge or Collect charge in the mobile Actions sheet opens the collection form with amount and required notes; confirming the collection updates the balance. Collections apply to the enquiry or task's outstanding total; work reports do not store a link to an individual charge.
+The mobile Jobs list fetches outstanding enquiry IDs through `GET /crm/work-reports/pending-collections`. The endpoint returns only enquiries assigned to or created by the signed-in user. Cards with outstanding collections use a purple highlight and Collection pending badge; a pending completion request keeps its orange card highlight.
 
 ## Mobile user record scope
 

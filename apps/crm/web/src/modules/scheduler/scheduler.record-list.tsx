@@ -3,6 +3,7 @@ import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceTableEmptyState } from "@codexsun/ui/workspace/table";
 import { formatDateTime } from "@codexsun/ui/workspace/utils";
 import { toast } from "sonner";
+import { ScheduleRecordButton } from "./scheduler.record-button";
 import { listSchedules, updateScheduleStatus, type ScheduleSourceType } from "./scheduler.services";
 
 export function useRecordSchedules(sourceType: ScheduleSourceType, sourceId: number) {
@@ -15,10 +16,12 @@ export function useRecordSchedules(sourceType: ScheduleSourceType, sourceId: num
 
 export function ScheduleRecordList({
   sourceType,
-  sourceId
+  sourceId,
+  sourceLabel
 }: {
   sourceType: ScheduleSourceType;
   sourceId: number;
+  sourceLabel: string;
 }) {
   const client = useQueryClient();
   const schedules = useRecordSchedules(sourceType, sourceId);
@@ -38,6 +41,14 @@ export function ScheduleRecordList({
 
   return (
     <section className="space-y-3 p-4">
+      <div className="flex justify-end">
+        <ScheduleRecordButton
+          sourceType={sourceType}
+          sourceId={sourceId}
+          sourceLabel={sourceLabel}
+          label="New schedule"
+        />
+      </div>
       {schedules.isError ? (
         <div
           className="flex items-center justify-between gap-3 text-sm text-destructive"
@@ -53,25 +64,21 @@ export function ScheduleRecordList({
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr>
-              {["#", "Schedule", "Details", "Scheduled", "Reminder", "Status", "By", "Action"].map(
-                (label) => (
-                  <th key={label} className="px-3 py-2">
-                    {label}
-                  </th>
-                )
-              )}
+              {["#", "Notes", "Scheduled", "Status", "By", "Action"].map((label) => (
+                <th key={label} className="px-3 py-2">
+                  {label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((item, index) => (
               <tr key={item.id} className="border-t border-border/70 align-top">
                 <td className="px-3 py-2">{index + 1}</td>
-                <td className="min-w-44 px-3 py-2 font-medium">{item.title}</td>
-                <td className="max-w-sm whitespace-pre-wrap break-words px-3 py-2">
-                  {item.details || "—"}
+                <td className="max-w-sm whitespace-pre-wrap break-words px-3 py-2 font-medium">
+                  {item.notes}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2">{formatDateTime(item.scheduledAt)}</td>
-                <td className="whitespace-nowrap px-3 py-2">{formatDateTime(item.reminderAt)}</td>
                 <td className="px-3 py-2 capitalize">{item.status}</td>
                 <td className="px-3 py-2">{item.createdBy}</td>
                 <td className="px-3 py-2">

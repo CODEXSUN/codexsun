@@ -139,6 +139,7 @@ export type TaskRecord = {
   createdAt: string;
   updatedAt: string;
   closurePending: boolean;
+  runningJobStartedAt: string | null;
 };
 export type TaskInput = {
   contactId?: number | null | undefined;

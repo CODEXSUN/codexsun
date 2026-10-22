@@ -175,6 +175,12 @@ test(
               .sort(),
             [1, 2]
           );
+        if (actor === 2 && module === "enquiries") {
+          const createdRecord = response
+            .json()
+            .data.items.find((item: { id: number | string }) => Number(item.id) === 1);
+          assert.equal(createdRecord.createdByName, "admin");
+        }
       }
     }
     const summary = await read("/crm/enquiries/summary?today=2026-10-21");

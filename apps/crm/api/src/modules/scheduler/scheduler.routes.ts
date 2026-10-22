@@ -10,6 +10,7 @@ const idParams = z.object({ id: z.coerce.number().int().positive() });
 const row = z.object({
   id: z.number(),
   uuid: z.string(),
+  notes: z.string(),
   title: z.string(),
   details: z.string(),
   sourceType: z.enum(scheduleSourceTypes),
@@ -70,17 +71,36 @@ export function registerSchedulerRoutes(
     method: "POST",
     url: "/crm/schedules",
     schemas: {
-      body: z.object({
-        title: z.string().trim().min(1).max(191),
-        details: z.string().trim().max(10000).default(""),
-        sourceType: z.enum(scheduleSourceTypes),
-        sourceId: z.number().int().positive(),
-        scheduledAt: z.iso.datetime({ offset: true }),
-        reminderAt: z.iso.datetime({ offset: true })
-      }),
+      body: z.union([
+        z.object({
+          notes: z.string().trim().min(1).max(10000),
+          sourceType: z.enum(scheduleSourceTypes),
+          sourceId: z.number().int().positive(),
+          scheduledAt: z.iso.datetime({ offset: true })
+        }),
+        z.object({
+          title: z.string().trim().min(1).max(191),
+          details: z.string().trim().max(10000).default(""),
+          sourceType: z.enum(scheduleSourceTypes),
+          sourceId: z.number().int().positive(),
+          scheduledAt: z.iso.datetime({ offset: true }),
+          reminderAt: z.iso.datetime({ offset: true })
+        })
+      ]),
       response: row
     },
-    handler: async ({ body, request }) => (await service(request)).create(body)
+    handler: async ({ body, request }) =>
+      (await service(request)).create(
+        "notes" in body
+          ? body
+          : {
+              notes: body.details ? `${body.title}\n${body.details}` : body.title,
+              sourceType: body.sourceType,
+              sourceId: body.sourceId,
+              scheduledAt: body.scheduledAt,
+              reminderAt: body.reminderAt
+            }
+      )
   });
   registerContractRoute(app, {
     method: "POST",

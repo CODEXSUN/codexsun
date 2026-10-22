@@ -11,6 +11,20 @@ import type {
 } from "./work-report.types.js";
 export class WorkReportRepository {
   constructor(private readonly db: Kysely<WorkReportDatabase>) {}
+  async pendingEnquiryCollectionIds(actorUserId: number | null, actorEmail: string) {
+    const result = await sql<{ enquiryId: number }>`
+      SELECT report.enquiry_id AS enquiryId
+      FROM crm_work_reports AS report
+      INNER JOIN crm_enquiries AS enquiry ON enquiry.id=report.enquiry_id
+      WHERE report.status='active' AND report.action IN ('charge','collection')
+        AND (enquiry.assigned_user_id=${actorUserId}
+          OR LOWER(enquiry.created_by)=LOWER(${actorEmail}))
+      GROUP BY report.enquiry_id
+      HAVING COALESCE(SUM(CASE WHEN report.action='charge' THEN report.amount
+        ELSE -report.amount END),0)>0
+    `.execute(this.db);
+    return result.rows.map(({ enquiryId }) => Number(enquiryId));
+  }
   async target(target: WorkReportTarget, db: Kysely<WorkReportDatabase> = this.db, lock = false) {
     let query =
       target.enquiryId !== null
@@ -97,6 +111,7 @@ export class WorkReportRepository {
       if (input.amount === null || input.amount <= 0)
         throw AppError.validation("Enter an amount greater than zero.");
       if (input.action === "collection") {
+        if (!input.body.trim()) throw AppError.validation("Enter collection notes.");
         const id = input.enquiryId ?? input.taskId!;
         const totals = await sql<{ charges: number | string; collections: number | string }>`
           SELECT COALESCE(SUM(CASE WHEN action='charge' THEN amount ELSE 0 END),0) AS charges,

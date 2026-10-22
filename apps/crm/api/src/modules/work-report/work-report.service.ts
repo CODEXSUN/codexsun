@@ -11,6 +11,13 @@ export class WorkReportService {
   constructor(private readonly context: WorkReportContext) {
     this.repository = new WorkReportRepository(context.database);
   }
+  async pendingEnquiryCollectionIds() {
+    await this.context.authorize("crm.enquiry.view");
+    return this.repository.pendingEnquiryCollectionIds(
+      this.context.actorUserId,
+      this.context.actorEmail
+    );
+  }
   async list(target: WorkReportTarget) {
     await this.access(target, false);
     return this.repository.list(target);

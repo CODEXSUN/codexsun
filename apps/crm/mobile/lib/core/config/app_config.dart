@@ -10,7 +10,7 @@ class AppConfig {
 
   static const apiUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'http://127.0.0.1:7010',
+    defaultValue: 'http://10.0.2.2:7010',
   );
 
   static const corporateId = String.fromEnvironment('CORPORATE_ID');

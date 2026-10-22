@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.38
+Current version: 1.1.39
 
-Release tag: v-1.1.38
+Release tag: v-1.1.39
 
-Changelog label: v 1.1.38
+Changelog label: v 1.1.39
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,29 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.39
+
+### [v 1.1.39] 2026-10-22 7:26 pm - CRM mobile task cards and work actions
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Replace the mobile task list with enquiry-style cards and add task detail and action screens.
+- Hide system-generated conversations in chat, duty, and task views; refine call-note comments and work action sheets.
+- Show completion-pending state on mobile enquiry cards and format completed job/check-in cycle timestamps consistently.
+- Bump the Flutter mobile package to 1.1.39 (Android build 139) for the cloud-connected emulator build.
+- Verify `https://codexsun.com/api/app/health` and install and launch the 1.1.39 release APK on Android emulator `emulator-5554`.
+- Include active task job start timestamps in task list records and show live timers on task cards and detail headers; add a divider beneath the task title.
+- Add Schedule forms and searchable Change Stage actions for mobile enquiries and tasks.
+- Split CRM mobile API models from transport code and normalize connection and malformed-response failures into typed mobile API errors.
+- Keep enquiry and task detail records usable when secondary detail requests fail, while retaining successfully loaded sections and showing a retry hint.
+- Add an idle timeout and partial-file cleanup to mobile APK downloads; require a configured keystore for Android release signing.
+- Align generated-workspace cleanup with the artifact verifier, including Flutter and Gradle build directories.
+- Verify the mobile code with clean analysis, 75 passing Flutter tests, and a successful Android debug APK build. No cloud deployment was performed for this update.
 
 ## v-1.1.38
 

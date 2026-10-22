@@ -19,6 +19,8 @@ class DashboardJobsFeed extends ChangeNotifier with WidgetsBindingObserver {
   UserSession session;
   final List<CrmJob> _jobs = [];
   final Map<String, List<CrmJobExecution>> _jobSessions = {};
+  final Set<String> _pendingClosureIds = {};
+  final Set<String> _pendingCollectionIds = {};
   Timer? _timer;
   bool _isLoading = true;
   bool _isRefreshing = false;
@@ -29,8 +31,19 @@ class DashboardJobsFeed extends ChangeNotifier with WidgetsBindingObserver {
   List<CrmJob> get jobs => List.unmodifiable(_jobs);
   CrmJob? jobFor(String sourceId) =>
       _jobs.where((job) => job.sourceId == sourceId).firstOrNull;
+  bool isClosurePending(String sourceId) =>
+      _pendingClosureIds.contains(sourceId);
+  bool isCollectionPending(String sourceId) =>
+      _pendingCollectionIds.contains(sourceId);
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+  void updateClosurePending(String sourceId, bool pending) {
+    final changed = pending
+        ? _pendingClosureIds.add(sourceId)
+        : _pendingClosureIds.remove(sourceId);
+    if (changed) notifyListeners();
+  }
 
   void start() {
     _startPolling();
@@ -45,6 +58,34 @@ class DashboardJobsFeed extends ChangeNotifier with WidgetsBindingObserver {
       final includeDetails = _includeDetailsOnNextLoad;
       final updated = await _loadEnquiries(includeDetails: includeDetails);
       if (generation != _sessionGeneration) return;
+      Set<String>? pendingClosureIds;
+      try {
+        pendingClosureIds = await api.pendingEnquiryClosureIds(
+          session.accessToken,
+        );
+      } on Exception {
+        // Keep the last confirmed completion state if this lookup is unavailable.
+      }
+      if (generation != _sessionGeneration) return;
+      if (pendingClosureIds != null) {
+        _pendingClosureIds
+          ..clear()
+          ..addAll(pendingClosureIds);
+      }
+      Set<String>? pendingCollectionIds;
+      try {
+        pendingCollectionIds = await api.pendingEnquiryCollectionIds(
+          session.accessToken,
+        );
+      } on Exception {
+        // Keep the last confirmed collection state if this lookup is unavailable.
+      }
+      if (generation != _sessionGeneration) return;
+      if (pendingCollectionIds != null) {
+        _pendingCollectionIds
+          ..clear()
+          ..addAll(pendingCollectionIds);
+      }
       _includeDetailsOnNextLoad = false;
       for (final job in updated) {
         if (job.jobs.isNotEmpty) _jobSessions[job.sourceId] = job.jobs;
@@ -90,6 +131,8 @@ class DashboardJobsFeed extends ChangeNotifier with WidgetsBindingObserver {
     if (session.profile.email != updatedSession.profile.email) {
       _jobs.clear();
       _jobSessions.clear();
+      _pendingClosureIds.clear();
+      _pendingCollectionIds.clear();
     }
     session = updatedSession;
     _sessionGeneration += 1;

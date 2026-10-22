@@ -138,8 +138,27 @@ export class TaskRepository {
           .execute()
       : [];
     const pending = new Set(pendingRows.map((row) => Number(row.task_id)));
+    const runningRows = ids.length
+      ? await this.db
+          .selectFrom("crm_task_jobs")
+          .select(["task_id", "started_at"])
+          .where("task_id", "in", ids)
+          .where("stopped_at", "is", null)
+          .orderBy("started_at", "desc")
+          .execute()
+      : [];
+    const runningStarts = new Map<number, string>();
+    for (const row of runningRows) {
+      const taskId = Number(row.task_id);
+      if (!runningStarts.has(taskId)) {
+        runningStarts.set(taskId, taskJobTimestamp(row.started_at));
+      }
+    }
     return {
-      items: rows.map((row) => this.map(row, pending.has(Number(row.id)))),
+      items: rows.map((row) => {
+        const id = Number(row.id);
+        return this.map(row, pending.has(id), runningStarts.get(id) ?? null);
+      }),
       statusCounts: statusCounts.map((row) => ({ code: row.code, count: Number(row.count) })),
       total: Number(count.total)
     };
@@ -714,7 +733,8 @@ export class TaskRepository {
       created_at: string;
       updated_at: string;
     },
-    closurePending: boolean
+    closurePending: boolean,
+    runningJobStartedAt: string | null = null
   ): TaskRecord {
     return {
       id: Number(row.id),
@@ -744,7 +764,8 @@ export class TaskRepository {
       creatorName: row.creator_name ?? row.created_by,
       createdAt: new Date(row.created_at).toISOString(),
       updatedAt: new Date(row.updated_at).toISOString(),
-      closurePending
+      closurePending,
+      runningJobStartedAt
     };
   }
 }

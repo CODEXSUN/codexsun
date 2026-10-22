@@ -40,6 +40,28 @@ export const schedulerMigrationBatch: MigrationBatch<SchedulerDatabase> = {
           )
           .execute(database);
       }
+    },
+    {
+      name: "crm.scheduler.notes-v2",
+      description: "Combine existing schedule title and details into notes.",
+      checksum: "crm.scheduler.notes-v2:v1",
+      version: 2,
+      up: async (database) => {
+        const existing = await sql<{ total: number | string }>`SELECT COUNT(*) AS total
+          FROM information_schema.COLUMNS
+          WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='crm_schedules' AND COLUMN_NAME='notes'`.execute(
+          database
+        );
+        if (Number(existing.rows[0]?.total ?? 0) === 0) {
+          await sql`ALTER TABLE crm_schedules ADD COLUMN notes TEXT NULL AFTER details`.execute(
+            database
+          );
+        }
+        await sql`UPDATE crm_schedules SET notes=CONCAT(title,
+          CASE WHEN details='' THEN '' ELSE CONCAT(CHAR(10), details) END)
+          WHERE notes IS NULL`.execute(database);
+        await sql`ALTER TABLE crm_schedules MODIFY COLUMN notes TEXT NOT NULL`.execute(database);
+      }
     }
   ]
 };

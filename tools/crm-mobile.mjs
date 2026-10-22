@@ -106,7 +106,7 @@ function readOptions(args) {
   };
   const options = {
     clientName: value("client-name", "CRM"),
-    apiUrl: value("api-url", "http://127.0.0.1:7010"),
+    apiUrl: value("api-url", "http://10.0.2.2:7010"),
     applicationId: value("application-id", "in.codexsun.crm_app"),
     corporateId: value("corporate-id", process.env.DEFAULT_TENANT_CORPORATE_ID ?? "CODEXSUN"),
     logoAsset: value("logo-asset", "assets/crm-logo.png"),

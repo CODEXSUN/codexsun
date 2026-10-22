@@ -50,7 +50,8 @@ const record = z.object({
   creatorName: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  closurePending: z.boolean()
+  closurePending: z.boolean(),
+  runningJobStartedAt: z.string().nullable()
 });
 const comment = z.object({
   id: z.number(),

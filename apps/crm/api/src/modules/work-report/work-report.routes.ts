@@ -29,12 +29,15 @@ export const workReportInput = z
       v.action === "report"
         ? v.body.length > 0 && v.amount === null
         : v.action === "charge" || v.action === "collection"
-          ? v.amount !== null && v.latitude === null && v.longitude === null
+          ? v.amount !== null &&
+            v.latitude === null &&
+            v.longitude === null &&
+            (v.action === "charge" || v.body.length > 0)
           : v.amount === null &&
             v.latitude !== null &&
             v.longitude !== null &&
             v.capturedAt !== null,
-    "Reports need text, charges need a positive amount, and check-in/out need a captured GPS location."
+    "Reports need text, charges need a positive amount, collections need notes, and check-in/out need a captured GPS location."
   );
 const row = z.object({
   id: z.number(),
@@ -60,6 +63,14 @@ export function registerWorkReportRoutes(
   app: FastifyInstance,
   context: (request: FastifyRequest) => Promise<WorkReportContext>
 ) {
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/crm/work-reports/pending-collections",
+    schemas: { response: z.object({ items: z.array(z.number().int().positive()) }) },
+    handler: async ({ request }) => ({
+      items: await new WorkReportService(await context(request)).pendingEnquiryCollectionIds()
+    })
+  });
   registerContractRoute(app, {
     method: "GET",
     url: "/crm/work-reports",
