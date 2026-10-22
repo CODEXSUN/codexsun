@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.42
+Current version: 1.1.43
 
-Release tag: v-1.1.42
+Release tag: v-1.1.43
 
-Changelog label: v 1.1.42
+Changelog label: v 1.1.43
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,31 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.43
+
+### [v 1.1.43] 2026-10-22 10:44 pm - CRM Frappe sync status and verification
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.43.
+- Added Frappe status indicators and Verify actions to Enquiries, Contacts, and Call Logs.
+- Added persisted, tenant-scoped lookup of the latest remote verification result for Contacts and Call Logs.
+- Showed saved Frappe queue status on SOPs, Duties, and Duty Reports. Verify reloads the queue state from the CRM API.
+- Marked CRM Tasks as not linked because no approved Frappe task mapping exists.
+- Kept Contact, Call Log, Activity, and Task exports blocked. Call Log verification now uses the CRM call-log read permission.
+- Added database E2E checks for pending sync status after SOP publication, duty assignment, and report creation.
+- Updated CRM, Frappe, and Platform task records with supported scopes and verification results.
+
+#### Verification Notes
+
+- The CRM/Frappe suite passed 169 unit tests and three database E2E tests. CRM API/Web, Frappe API, and Platform API typechecks and builds passed. CRM API/Web and Frappe API and Platform API lint, module boundaries, and component-doc checks passed.
+- The live VPS queue probe completed through BullMQ and Redis in about one second. It did not create or verify a Frappe document.
+- CRM Tasks show a disabled Verify action because Frappe does not have an approved Task mapping.
 
 ## v-1.1.42
 

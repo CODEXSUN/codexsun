@@ -26,6 +26,7 @@ const row = z.object({
   recurrenceKey: z.string(),
   actions: z.string(),
   result: z.enum(["completed", "blocked"]),
+  frappeSyncStatus: z.enum(["pending", "processing", "failed", "synced"]).nullable(),
   issueDetails: z.string(),
   submittedBy: z.string(),
   createdAt: z.string(),

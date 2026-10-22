@@ -19,6 +19,11 @@ export class DutyReportRepository {
       .innerJoin("crm_sops as sop", "sop.id", "item.sop_id")
       .innerJoin("crm_sop_item_revisions as revision", "revision.id", "report.revision_id")
       .innerJoin("app_users as person", "person.id", "report.assignee_user_id")
+      .leftJoin("crm_frappe_sync_queue as sync", (join) =>
+        join
+          .onRef("sync.local_record_id", "=", "report.id")
+          .on("sync.entity_type", "=", "duty-report")
+      )
       .select([
         "report.id",
         "report.uuid",
@@ -37,7 +42,8 @@ export class DutyReportRepository {
         "item.frequency",
         "item.department",
         "revision.instructions",
-        "person.name as assignee_name"
+        "person.name as assignee_name",
+        "sync.status as frappe_sync_status"
       ]);
   }
   async list(
@@ -278,6 +284,7 @@ function map(row: SelectedReport): DutyReport {
     recurrenceKey: row.recurrence_key,
     actions: row.actions,
     result: row.result,
+    frappeSyncStatus: row.frappe_sync_status ?? null,
     issueDetails: row.issue_details,
     submittedBy: row.submitted_by,
     createdAt: new Date(row.created_at).toISOString(),

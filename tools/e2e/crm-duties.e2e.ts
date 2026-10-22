@@ -182,6 +182,9 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
     url: `/crm/sop-items/${itemId}/revisions/${revisionId}/publish`
   });
   assert.equal(published.statusCode, 200, published.body);
+  const publishedItem = await app.inject({ method: "GET", url: `/crm/sop-items/${itemId}` });
+  assert.equal(publishedItem.statusCode, 200, publishedItem.body);
+  assert.equal(publishedItem.json().data.frappeSyncStatus, "pending");
   const renamedSop = await app.inject({
     method: "PUT",
     url: `/crm/sops/${sopId}`,
@@ -204,6 +207,7 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
   assert.equal(assigned.statusCode, 200, assigned.body);
   assignmentId = assigned.json().data.id;
   assert.equal(assigned.json().data.startDate, today);
+  assert.equal(assigned.json().data.frappeSyncStatus, "pending");
   const editedAssignment = await app.inject({
     method: "PUT",
     url: `/crm/duty-assignments/${assignmentId}`,
@@ -248,6 +252,7 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
   });
   assert.equal(submitted.statusCode, 200, submitted.body);
   reportId = submitted.json().data.id;
+  assert.equal(submitted.json().data.frappeSyncStatus, "pending");
   const conversations = await new ChatRepository().listChannels(
     {
       database: database as never,

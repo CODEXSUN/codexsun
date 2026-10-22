@@ -28,6 +28,7 @@ const row = z.object({
   startDate: z.string(),
   endDate: z.string().nullable(),
   status: z.enum(["active", "inactive"]),
+  frappeSyncStatus: z.enum(["pending", "processing", "failed", "synced"]).nullable(),
   assignedBy: z.string(),
   sopCode: z.string(),
   sopTitle: z.string(),

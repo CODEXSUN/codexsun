@@ -4,6 +4,7 @@ import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { formatDate as formatWorkspaceDate } from "@codexsun/ui/workspace/utils";
 import { CrmStatusBadge } from "../../crm-colors";
 import { TaskInlineFilter } from "./task.inline-filter";
+import { FrappeSyncIndicator } from "../frappe-sync/frappe-sync.indicator";
 import type { TaskColumnFilters, TaskRecord } from "./task.types";
 
 const filters: Record<string, { key: keyof TaskColumnFilters; label: string }> = {
@@ -112,6 +113,11 @@ export function TaskList({
       cell: ({ row }) => (
         <CrmStatusBadge code={row.original.status} label={row.original.statusName} />
       )
+    },
+    {
+      id: "frappeSync",
+      header: "Frappe sync",
+      cell: () => <FrappeSyncIndicator status={null} onVerify={async () => null} unsupported />
     },
     {
       id: "actions",

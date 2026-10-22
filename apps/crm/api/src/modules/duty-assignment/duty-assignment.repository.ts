@@ -41,6 +41,11 @@ export class DutyAssignmentRepository {
       .innerJoin("crm_sop_item_revisions as revision", "revision.id", "assignment.revision_id")
       .innerJoin("crm_sops as sop", "sop.id", "item.sop_id")
       .innerJoin("app_users as person", "person.id", "assignment.assignee_user_id")
+      .leftJoin("crm_frappe_sync_queue as sync", (join) =>
+        join
+          .onRef("sync.local_record_id", "=", "assignment.id")
+          .on("sync.entity_type", "=", "duty-assignment")
+      )
       .select([
         "assignment.id",
         "assignment.uuid",
@@ -62,7 +67,8 @@ export class DutyAssignmentRepository {
         "revision.instructions",
         "revision.evidence_guidance",
         "person.name as assignee_name",
-        "person.email as assignee_email"
+        "person.email as assignee_email",
+        "sync.status as frappe_sync_status"
       ]);
   }
   async create(input: DutyAssignmentInput, actor: string) {
@@ -247,6 +253,7 @@ function map(row: SelectedAssignment): DutyAssignment {
     startDate: dateOnly(row.start_date),
     endDate: row.end_date ? dateOnly(row.end_date) : null,
     status: row.status,
+    frappeSyncStatus: row.frappe_sync_status ?? null,
     assignedBy: row.assigned_by,
     sopCode: row.sop_code,
     sopTitle: row.sop_title,

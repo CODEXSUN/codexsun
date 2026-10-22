@@ -4,6 +4,8 @@ import { Input } from "@codexsun/ui/components/input";
 import { WorkspaceProtectedIndicator } from "@codexsun/ui/workspace/protected-indicator";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
+import { FrappeSyncIndicator, verifyFrappeRecord } from "../frappe-sync/frappe-sync.indicator";
+import type { FrappeSyncStatus } from "../frappe-sync/frappe-sync.indicator";
 import {
   WorkspaceTableEmptyState,
   WorkspaceTableHeaderCell,
@@ -13,7 +15,7 @@ import {
 import type { ContactRecord } from "./contact.types";
 
 export type ContactColumnFilters = Partial<
-  Record<"contact" | "code" | "phone" | "email" | "status", string>
+  Record<"contact" | "code" | "phone" | "email" | "status" | "frappeSync", string>
 >;
 
 const columns = [
@@ -21,7 +23,8 @@ const columns = [
   { id: "code", label: "Code" },
   { id: "phone", label: "Phone" },
   { id: "email", label: "Email" },
-  { id: "status", label: "Status" }
+  { id: "status", label: "Status" },
+  { id: "frappeSync", label: "Frappe sync" }
 ] as const;
 
 export function CrmContactList({
@@ -35,7 +38,8 @@ export function CrmContactList({
   onEdit,
   onForceDelete,
   onToggle,
-  records
+  records,
+  frappeSyncStatuses
 }: {
   loading: boolean;
   visibleColumns: Record<string, boolean>;
@@ -48,6 +52,7 @@ export function CrmContactList({
   onForceDelete: (record: ContactRecord) => void;
   onToggle: (record: ContactRecord) => void;
   records: ContactRecord[];
+  frappeSyncStatuses: Record<number, FrappeSyncStatus>;
 }) {
   const shownColumns = columns.filter((column) => visibleColumns[column.id] !== false);
   return (
@@ -67,12 +72,14 @@ export function CrmContactList({
               <tr className="border-b bg-white">
                 {shownColumns.map((column) => (
                   <td className="px-4 py-2" key={column.id}>
-                    <InlineFilterInput
-                      label={column.label}
-                      value={columnFilters[column.id] ?? ""}
-                      onChange={(value) => onColumnFilterChange(column.id, value)}
-                      onHide={onHideInlineFilters}
-                    />
+                    {column.id === "frappeSync" ? null : (
+                      <InlineFilterInput
+                        label={column.label}
+                        value={columnFilters[column.id] ?? ""}
+                        onChange={(value) => onColumnFilterChange(column.id, value)}
+                        onHide={onHideInlineFilters}
+                      />
+                    )}
                   </td>
                 ))}
                 <td />
@@ -115,6 +122,14 @@ export function CrmContactList({
                       <WorkspaceStatusBadge
                         label={record.isActive ? "active" : "inactive"}
                         tone={record.isActive ? "success" : "warning"}
+                      />
+                    </td>
+                  ) : null}
+                  {visibleColumns.frappeSync !== false ? (
+                    <td className="px-4 py-3">
+                      <FrappeSyncIndicator
+                        status={frappeSyncStatuses[Number(record.id)] ?? null}
+                        onVerify={() => verifyFrappeRecord("contacts", Number(record.id))}
                       />
                     </td>
                   ) : null}

@@ -25,7 +25,8 @@ const columns = [
   { id: "priority", label: "Priority" },
   { id: "creator", label: "Creator" },
   { id: "assignee", label: "Assigned to" },
-  { id: "status", label: "Status" }
+  { id: "status", label: "Status" },
+  { id: "frappeSync", label: "Frappe sync" }
 ];
 
 export function TaskWorkspace({

@@ -10,7 +10,7 @@ export type SopItemInput = {
 };
 export type SopRevisionInput = { instructions: string; evidenceGuidance: string };
 export type SopItemRecord = SopItemInput & {
-  id: number; uuid: string; status: "active" | "inactive"; currentRevision: SopItemRevision | null;
+  id: number; uuid: string; status: "active" | "inactive"; frappeSyncStatus: "pending" | "processing" | "failed" | "synced" | null; currentRevision: SopItemRevision | null;
   createdBy: string; updatedBy: string; createdAt: string; updatedAt: string;
 };
 export type SopItemRevision = {

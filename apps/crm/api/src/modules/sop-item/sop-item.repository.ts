@@ -20,6 +20,9 @@ export class SopItemRepository {
     let query = this.database
       .selectFrom("crm_sop_items as item")
       .innerJoin("crm_sops as sop", "sop.id", "item.sop_id")
+      .leftJoin("crm_frappe_sync_queue as sync", (join) =>
+        join.onRef("sync.local_record_id", "=", "item.id").on("sync.entity_type", "=", "sop-item")
+      )
       .select([
         "item.id",
         "item.uuid",
@@ -33,7 +36,8 @@ export class SopItemRepository {
         "item.created_by",
         "item.updated_by",
         "item.created_at",
-        "item.updated_at"
+        "item.updated_at",
+        "sync.status as frappe_sync_status"
       ])
       .where("sop.status", "=", "active");
     if (search.trim()) {
@@ -53,9 +57,13 @@ export class SopItemRepository {
 
   async get(id: number) {
     const row = await this.database
-      .selectFrom("crm_sop_items")
-      .selectAll()
-      .where("id", "=", id)
+      .selectFrom("crm_sop_items as item")
+      .leftJoin("crm_frappe_sync_queue as sync", (join) =>
+        join.onRef("sync.local_record_id", "=", "item.id").on("sync.entity_type", "=", "sop-item")
+      )
+      .selectAll("item")
+      .select("sync.status as frappe_sync_status")
+      .where("item.id", "=", id)
       .executeTakeFirst();
     return row ? this.withRevision(mapItem(row)) : null;
   }
@@ -247,7 +255,11 @@ export class SopItemRepository {
   }
 }
 
-function mapItem(row: SelectedSopItemRow): SopItemRecord {
+function mapItem(
+  row: SelectedSopItemRow & {
+    frappe_sync_status?: "pending" | "processing" | "failed" | "synced" | null;
+  }
+): SopItemRecord {
   return {
     id: row.id,
     uuid: row.uuid,
@@ -258,6 +270,7 @@ function mapItem(row: SelectedSopItemRow): SopItemRecord {
     frequency: row.frequency,
     sortOrder: row.sort_order,
     status: row.status,
+    frappeSyncStatus: row.frappe_sync_status ?? null,
     currentRevision: null,
     createdBy: row.created_by,
     updatedBy: row.updated_by,

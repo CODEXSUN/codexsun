@@ -1,13 +1,16 @@
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { DutyReport } from "./duty-report.types";
+import { FrappeSyncIndicator, type FrappeSyncStatus } from "../frappe-sync/frappe-sync.indicator";
 export function DutyReportList({
   items,
   loading,
-  onOpen
+  onOpen,
+  onVerify
 }: {
   items: DutyReport[];
   loading: boolean;
   onOpen: (row: DutyReport) => void;
+  onVerify: (row: DutyReport) => Promise<FrappeSyncStatus>;
 }) {
   return (
     <WorkspaceTable<DutyReport>
@@ -61,6 +64,16 @@ export function DutyReportList({
             <span className="line-clamp-2 max-w-lg whitespace-pre-wrap">
               {row.original.actions}
             </span>
+          )
+        },
+        {
+          id: "frappeSync",
+          header: "Frappe sync",
+          cell: ({ row }) => (
+            <FrappeSyncIndicator
+              status={row.original.frappeSyncStatus}
+              onVerify={() => onVerify(row.original)}
+            />
           )
         }
       ]}

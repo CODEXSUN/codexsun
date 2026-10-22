@@ -14,6 +14,7 @@ import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
 import { listOwnDuties } from "../duty-assignment";
 import { DutyReportForm } from "./duty-report.form";
 import { createReport, updateReport, type DutyReport } from "./duty-report.services";
+import type { FrappeSyncStatus } from "../frappe-sync/frappe-sync.indicator";
 export function DutyReportWorkspace() {
   const [overview, setOverview] = useState<ReportOverviewState>({
     view: "sop",
@@ -166,6 +167,10 @@ export function DutyReportWorkspace() {
       <DutyReportList
         items={query.data?.items ?? []}
         loading={query.isLoading || options.isLoading}
+        onVerify={async (row): Promise<FrappeSyncStatus> => {
+          const latest = await query.refetch();
+          return latest.data?.items.find((item) => item.id === row.id)?.frappeSyncStatus ?? null;
+        }}
         onOpen={(row) => {
           save.reset();
           setEditing(row);

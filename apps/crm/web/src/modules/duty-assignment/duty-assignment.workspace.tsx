@@ -9,6 +9,7 @@ import { DutyAssignmentList } from "./duty-assignment.list";
 import { listSopItems } from "../sop";
 import { DutyAssignmentForm } from "./duty-assignment.form";
 import { listDutyUsers, saveDuty, type DutyAssignment } from "./duty-assignment.services";
+import type { FrappeSyncStatus } from "../frappe-sync/frappe-sync.indicator";
 export function DutyAssignmentWorkspace() {
   const client = useQueryClient();
   const [editing, setEditing] = useState<DutyAssignment | null | undefined>();
@@ -111,6 +112,10 @@ export function DutyAssignmentWorkspace() {
       <DutyAssignmentList
         items={items}
         loading={query.isLoading || options.isLoading}
+        onVerify={async (row): Promise<FrappeSyncStatus> => {
+          const latest = await query.refetch();
+          return latest.data?.find((item) => item.id === row.id)?.frappeSyncStatus ?? null;
+        }}
         onOpen={(row) => {
           save.reset();
           setEditing(row);

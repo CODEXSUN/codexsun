@@ -11,7 +11,7 @@ const revisionParams = id.extend({ revisionId: z.coerce.number().int().positive(
 const input = z.object({ sopId: z.number().int().positive(), code: z.string().trim().min(1).max(64), title: z.string().trim().min(1).max(191), department: z.string().trim().max(120).default(""), frequency: z.enum(sopFrequencies), sortOrder: z.number().int().min(0).max(1000000) }).strict();
 const revisionInput = z.object({ instructions: z.string().trim().min(1).max(20000), evidenceGuidance: z.string().trim().max(4000).default("") }).strict();
 const revisionSchema = z.object({ id: z.number().int().positive(), uuid: z.string(), sopItemId: z.number().int().positive(), revision: z.number().int().positive(), instructions: z.string(), evidenceGuidance: z.string(), status: z.enum(["draft", "published", "superseded"]), effectiveFrom: z.string().nullable(), author: z.string(), publishedAt: z.string().nullable(), createdAt: z.string() });
-const itemSchema = input.extend({ id: z.number().int().positive(), uuid: z.string(), status: z.enum(["active", "inactive"]), currentRevision: revisionSchema.nullable(), createdBy: z.string(), updatedBy: z.string(), createdAt: z.string(), updatedAt: z.string() });
+const itemSchema = input.extend({ id: z.number().int().positive(), uuid: z.string(), status: z.enum(["active", "inactive"]), frappeSyncStatus: z.enum(["pending", "processing", "failed", "synced"]).nullable(), currentRevision: revisionSchema.nullable(), createdBy: z.string(), updatedBy: z.string(), createdAt: z.string(), updatedAt: z.string() });
 
 export function registerSopItemRoutes(app: FastifyInstance, context: (request: FastifyRequest) => Promise<SopItemRequestContext>) {
   const service = async (request: FastifyRequest) => {

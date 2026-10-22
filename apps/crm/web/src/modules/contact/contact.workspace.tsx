@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { Plus, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ import {
   updateContact
 } from "./contact.services";
 import { prepareContactPayloadForSave } from "./contact.schema";
+import { getFrappeRecordStatuses } from "../frappe-sync/frappe-sync.indicator";
 import type {
   ContactLookupCreate,
   ContactLookups,
@@ -57,7 +58,8 @@ const contactColumns = [
   { id: "code", label: "Code" },
   { id: "phone", label: "Phone" },
   { id: "email", label: "Email" },
-  { id: "status", label: "Status" }
+  { id: "status", label: "Status" },
+  { id: "frappeSync", label: "Frappe sync" }
 ] as const;
 
 export function CrmContactWorkspace({
@@ -149,23 +151,25 @@ export function CrmContactWorkspace({
   const filteredRecords = records.filter((record) => {
     if (statusFilter === "active" && !record.isActive) return false;
     if (statusFilter === "inactive" && record.isActive) return false;
-    return contactColumns.every(({ id }) => {
-      const value = columnFilters[id as keyof ContactColumnFilters]?.trim().toLowerCase();
-      if (!value) return true;
-      const text =
-        id === "contact"
-          ? record.name
-          : id === "code"
-            ? record.code
-            : id === "phone"
-              ? record.primaryPhone
-              : id === "email"
-                ? record.primaryEmail
-                : record.isActive
-                  ? "active"
-                  : "inactive";
-      return (text ?? "").toLowerCase().includes(value);
-    });
+    return contactColumns
+      .filter(({ id }) => id !== "frappeSync")
+      .every(({ id }) => {
+        const value = columnFilters[id as keyof ContactColumnFilters]?.trim().toLowerCase();
+        if (!value) return true;
+        const text =
+          id === "contact"
+            ? record.name
+            : id === "code"
+              ? record.code
+              : id === "phone"
+                ? record.primaryPhone
+                : id === "email"
+                  ? record.primaryEmail
+                  : record.isActive
+                    ? "active"
+                    : "inactive";
+        return (text ?? "").toLowerCase().includes(value);
+      });
   });
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
@@ -173,6 +177,13 @@ export function CrmContactWorkspace({
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
+  const syncIds = visibleRecords.map((record) => Number(record.id));
+  const syncStatuses = useQuery({
+    queryKey: ["crm", "frappe-sync", "contacts", syncIds],
+    queryFn: () => getFrappeRecordStatuses("contacts", syncIds),
+    enabled: syncIds.length > 0 && visibleColumns.frappeSync !== false,
+    staleTime: 15_000
+  });
   const activeColumnFilters = Object.values(columnFilters).filter((value) => value?.trim()).length;
   const save = useMutation({
     mutationFn: (payload: ContactSavePayload) =>
@@ -393,6 +404,7 @@ export function CrmContactWorkspace({
       <CrmContactList
         loading={query.isFetching && !query.data}
         records={visibleRecords}
+        frappeSyncStatuses={syncStatuses.data ?? {}}
         visibleColumns={visibleColumns}
         showInlineFilters={showInlineFilters}
         columnFilters={columnFilters}

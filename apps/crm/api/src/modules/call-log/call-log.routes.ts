@@ -32,6 +32,7 @@ const commentSchema = z.object({
   createdAt: z.string()
 });
 const recordSchema = z.object({
+  id: z.number().int().positive(),
   name: z.string(),
   from: z.string(),
   to: z.string(),

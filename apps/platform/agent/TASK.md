@@ -1,5 +1,11 @@
 # Platform tasks
 
+## CRM Frappe verification authorization — 2026-10-22
+
+- [x] Authorize Frappe call-log verification with the CRM call-log read permission, while retaining connection management authorization and server-side tenant/connection checks.
+- [x] Keep the existing Frappe export policy as the final gate; verification does not authorize outbound call-log export.
+- [x] Verify Platform API typecheck, lint, build, and CRM/Platform module boundaries.
+
 ## Custom-domain login without Corporate ID — 2026-10-21
 
 - Login context hides Corporate ID for active, verified custom-domain mappings; the existing web form uses this API flag.

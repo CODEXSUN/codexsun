@@ -1,5 +1,5 @@
 import { useDeferredValue, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
@@ -11,6 +11,7 @@ import { useCallLogs, useCallLogOptions } from "./call-log.hooks";
 import { CallLogList, callLogColumns } from "./call-log.list";
 import { createCallLog } from "./call-log.services";
 import type { CallLogFilters } from "./call-log.types";
+import { getFrappeRecordStatuses } from "../frappe-sync/frappe-sync.indicator";
 
 export function CallLogWorkspace() {
   const client = useQueryClient();
@@ -24,6 +25,13 @@ export function CallLogWorkspace() {
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
   const [open, setOpen] = useState(false);
   const query = useCallLogs(useDeferredValue(filters));
+  const callLogIds = query.data?.items.map((record) => record.id) ?? [];
+  const syncStatuses = useQuery({
+    queryKey: ["crm", "frappe-sync", "call-logs", callLogIds],
+    queryFn: () => getFrappeRecordStatuses("call-logs", callLogIds),
+    enabled: callLogIds.length > 0 && visibleColumns.frappeSync !== false,
+    staleTime: 15_000
+  });
   const options = useCallLogOptions();
   const loadError = query.error ?? options.error;
   const save = useMutation({
@@ -91,6 +99,7 @@ export function CallLogWorkspace() {
         records={query.data?.items ?? []}
         loading={query.isLoading}
         visibleColumns={visibleColumns}
+        frappeSyncStatuses={syncStatuses.data ?? {}}
       />
       <div className="flex items-center justify-end gap-3 text-sm">
         <span>Page {filters.page}</span>

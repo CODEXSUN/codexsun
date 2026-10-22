@@ -1026,7 +1026,7 @@ export async function createApp() {
     preview: async (request, kind, page) => {
       const context = tenantAccessContext(request);
       await context.authorize("frappe.connection.manage");
-      await context.authorize(kind === "contacts" ? "crm.contact.view" : "crm.enquiry.view-all");
+      await context.authorize(frappeExportReadPermission(kind));
       return new FrappeExportService(
         context.database as unknown as import("kysely").Kysely<FrappeDatabase>,
         env.JWT_SECRET,
@@ -1036,7 +1036,7 @@ export async function createApp() {
     enqueue: async (request, kind, ids, mode, verifiedJobId) => {
       const context = tenantAccessContext(request);
       await context.authorize("frappe.connection.manage");
-      await context.authorize(kind === "contacts" ? "crm.contact.view" : "crm.enquiry.view-all");
+      await context.authorize(frappeExportReadPermission(kind));
       if (mode === "export") {
         await context.authorize(kind === "contacts" ? "crm.contact.update" : "crm.enquiry.update");
       }
@@ -1124,7 +1124,6 @@ export async function createApp() {
     status: async (request, jobId) => {
       const context = tenantAccessContext(request);
       await context.authorize("frappe.connection.manage");
-      await context.authorize("crm.enquiry.view-all");
       const job = await queueService.findJob(jobId);
       if (
         !job ||
@@ -1133,9 +1132,68 @@ export async function createApp() {
         job.payload.tenantDatabase !== context.tenantDatabase
       )
         throw AppError.notFound("Frappe export job was not found.");
+      if (!isFrappeExportKind(job.payload.kind))
+        throw AppError.notFound("Frappe export job was not found.");
+      await context.authorize(frappeExportReadPermission(job.payload.kind));
       const result = job.result;
       const progress = typeof result.scanned === "number" ? (result as ExportProgress) : null;
       return { jobId, status: job.status, progress, errorMessage: job.errorMessage };
+    },
+    recordStatuses: async (request, kind, ids) => {
+      const context = tenantAccessContext(request);
+      await context.authorize("frappe.connection.manage");
+      await context.authorize(frappeExportReadPermission(kind));
+      const validated = await new FrappeExportService(
+        context.database as unknown as import("kysely").Kysely<FrappeDatabase>,
+        env.JWT_SECRET,
+        frappeSettings
+      ).validateSelection(kind, ids);
+      const statuses = new Map<
+        number,
+        "pending" | "processing" | "failed" | "synced" | "unlinked"
+      >();
+      const requested = new Set(validated.ids);
+      const jobs = await queueService.listJobs({
+        jobName: "frappe.export",
+        queueName: "reports",
+        tenantId: context.tenantId
+      });
+      for (const job of jobs) {
+        if (
+          job.payload.tenantDatabase !== context.tenantDatabase ||
+          job.payload.kind !== kind ||
+          job.payload.mode !== "verify" ||
+          !Array.isArray(job.payload.ids)
+        )
+          continue;
+        const jobIds = job.payload.ids.filter(
+          (id): id is number => typeof id === "number" && requested.has(id)
+        );
+        for (const id of jobIds) {
+          if (statuses.has(id)) continue;
+          if (job.status === "pending") {
+            statuses.set(id, "pending");
+            continue;
+          }
+          if (job.status === "running") {
+            statuses.set(id, "processing");
+            continue;
+          }
+          if (job.status === "failed" || job.status === "cancelled") {
+            statuses.set(id, "failed");
+            continue;
+          }
+          const results = Array.isArray(job.result.results) ? job.result.results : [];
+          const result = results.find(
+            (item) => typeof item === "object" && item !== null && item.id === id
+          ) as { outcome?: unknown } | undefined;
+          if (result?.outcome === "linked" || result?.outcome === "matched")
+            statuses.set(id, "synced");
+          else if (result?.outcome === "new") statuses.set(id, "unlinked");
+          else statuses.set(id, "failed");
+        }
+      }
+      return validated.ids.map((id) => ({ id, status: statuses.get(id) ?? null }));
     }
   });
   registerQueueJobProcessor("frappe.live-sync", async (job, report) => {
@@ -2429,6 +2487,18 @@ export async function createApp() {
   console.info("[platform.boot] bootstrap completed");
 
   return app;
+}
+
+function isFrappeExportKind(value: unknown): value is ExportKind {
+  return (
+    value === "contacts" || value === "enquiries" || value === "activities" || value === "call-logs"
+  );
+}
+
+function frappeExportReadPermission(kind: ExportKind) {
+  if (kind === "contacts") return "crm.contact.view";
+  if (kind === "call-logs") return "crm.call-log.view";
+  return "crm.enquiry.view-all";
 }
 
 async function writeAuditorAuditEvent(tenantUuid: string, actorEmail: string, eventName: string) {

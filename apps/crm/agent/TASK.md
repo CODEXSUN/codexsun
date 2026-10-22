@@ -1,5 +1,14 @@
 # CRM Delivery Tasks
 
+## Frappe sync status and verification — 2026-10-22
+
+- [x] Add a shared green-confirmed, grey-waiting, red-error Frappe indicator and a Verify action to enquiry, contact, and call-log rows. Verify always queues a backend remote check and reports the result; call-log verification uses `crm.call-log.view`.
+- [x] Return persistent `crm_frappe_sync_queue` state with SOP items, duty assignments, and duty reports. Their Verify action reloads the owner API state from the backend queue.
+- [x] Show CRM Tasks as not linked to Frappe and disable Verify. No supported Task mapping or export permission exists, so the UI does not invent one.
+- [x] Confirm published SOP items, assignments, and reports expose pending queue state in the isolated CRM Duties E2E. Draft SOP items remain unqueued until publication.
+
+Verification: `npm run test:crm-frappe` passed 168 unit tests and the Duties, Frappe Mobile Customer, and CRM Contact Upsert database E2Es. CRM API/Web typecheck, lint, build, CRM/Platform module boundaries, component-doc checks, and Platform API typecheck/lint/build passed. A live Hostinger `queue.probe` completed through the configured BullMQ + Redis backend in about one second. The UI release has not yet been deployed; live Frappe record verification remains untested.
+
 ## Immediate verified Frappe enquiry sync — 2026-10-21
 
 - [x] Persist an enquiry upsert in the CRM outbox in the same transaction as local create/edit, then dispatch the committed event to the tenant queue without waiting for Frappe HTTP.

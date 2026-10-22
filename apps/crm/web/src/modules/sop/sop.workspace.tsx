@@ -7,6 +7,7 @@ import { WorkspaceFilters } from "@codexsun/ui/workspace/filters";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { listSopItems, type SopItem } from "./sop.services";
 import { SopSimpleForm } from "./sop.simple-form";
+import { FrappeSyncIndicator } from "../frappe-sync/frappe-sync.indicator";
 
 export function SopWorkspace() {
   const query = useQuery({
@@ -108,6 +109,22 @@ export function SopWorkspace() {
               <span className="line-clamp-2 max-w-xl whitespace-pre-wrap text-muted-foreground">
                 {row.original.currentRevision?.instructions ?? "�"}
               </span>
+            )
+          },
+          {
+            id: "frappeSync",
+            header: "Frappe sync",
+            cell: ({ row }) => (
+              <FrappeSyncIndicator
+                status={row.original.frappeSyncStatus}
+                onVerify={async () => {
+                  const latest = await query.refetch();
+                  return (
+                    latest.data?.find((item) => item.id === row.original.id)?.frappeSyncStatus ??
+                    null
+                  );
+                }}
+              />
             )
           }
         ]}

@@ -41,6 +41,7 @@ export type DutyReport = {
   recurrenceKey: string;
   actions: string;
   result: "completed" | "blocked";
+  frappeSyncStatus: "pending" | "processing" | "failed" | "synced" | null;
   issueDetails: string;
   submittedBy: string;
   createdAt: string;

@@ -16,6 +16,7 @@ export type SopItem = {
   frequency: string;
   sortOrder: number;
   status: "active" | "inactive";
+  frappeSyncStatus: "pending" | "processing" | "failed" | "synced" | null;
   currentRevision: {
     id: number;
     instructions: string;

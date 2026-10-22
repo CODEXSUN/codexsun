@@ -1,4 +1,5 @@
 export type CallLogRecord = {
+  id: number;
   name: string;
   from: string;
   to: string;

@@ -1,5 +1,13 @@
 # Frappe tasks
 
+## CRM record verification indicators — 2026-10-22
+
+- [x] Reuse the existing queued remote verification API for enquiry, contact, and call-log row actions. The action only uses `mode: verify`; export policy remains unchanged.
+- [x] Keep outbound Contacts, Call Logs, Activities, and Tasks blocked. No new Frappe document mapping or transfer was introduced.
+- [x] Keep verified connections and remote credentials server-side; verification outcomes are returned through existing tenant-scoped export job status routes.
+
+The live VPS smoke test exercised the shared BullMQ + Redis queue with the non-business `queue.probe` job. It did not create or verify a live Frappe document.
+
 ## Queued CRM enquiry upserts — 2026-10-21
 
 - [x] Process CRM enquiry create/edit outbox events using the tenant's verified Frappe connection and existing export policy.

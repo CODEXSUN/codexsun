@@ -1,10 +1,11 @@
 import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy";
-import { BellRing, CheckCircle2, CircleAlert, CloudUpload, LoaderCircle } from "lucide-react";
+import { BellRing } from "lucide-react";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { CrmStatusBadge, prioritySwatch } from "../../crm-colors";
 import { EnquiryInlineFilter } from "./enquiry.inline-filter";
 import { enquiryTableText } from "./enquiry.table-text";
+import { FrappeSyncIndicator, verifyFrappeRecord } from "../frappe-sync/frappe-sync.indicator";
 import { formatListDueDate } from "./enquiry.view-utils";
 import type { EnquiryColumnFilters, EnquiryLookup, EnquiryRecord } from "./enquiry.types";
 
@@ -162,41 +163,11 @@ export function EnquiryList({
       accessorFn: (record) => record.frappeSyncStatus ?? "not-synced",
       cell: ({ row }) => {
         const status = row.original.frappeSyncStatus ?? null;
-        const Icon =
-          status === "synced"
-            ? CheckCircle2
-            : status === "failed" || status === "retry"
-              ? CircleAlert
-              : status === "processing"
-                ? LoaderCircle
-                : CloudUpload;
-        const label =
-          status === "synced"
-            ? "Synced to Frappe"
-            : status === "failed"
-              ? "Frappe sync failed"
-              : status === "retry"
-                ? "Frappe sync retry scheduled"
-                : status === "processing"
-                  ? "Syncing to Frappe"
-                  : status === "pending"
-                    ? "Waiting to sync to Frappe"
-                    : "Not yet synced to Frappe";
-        const tone =
-          status === "synced"
-            ? "text-emerald-600"
-            : status === "failed"
-              ? "text-destructive"
-              : status === "retry"
-                ? "text-amber-600"
-                : status === "processing"
-                  ? "text-sky-600"
-                  : "text-muted-foreground";
         return (
-          <span className={`inline-flex items-center gap-1.5 ${tone}`} title={label}>
-            <Icon className={`size-4 ${status === "processing" ? "animate-spin" : ""}`} />
-            <span className="sr-only">{label}</span>
-          </span>
+          <FrappeSyncIndicator
+            status={status === "retry" ? "pending" : status}
+            onVerify={() => verifyFrappeRecord("enquiries", Number(row.original.id))}
+          />
         );
       }
     },

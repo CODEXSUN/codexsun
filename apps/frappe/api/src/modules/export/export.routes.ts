@@ -45,9 +45,38 @@ export type ExportRouteCallbacks = {
     progress: ExportProgress | null;
     errorMessage: string | null;
   }>;
+  recordStatuses: (
+    request: FastifyRequest,
+    kind: ExportKind,
+    ids: number[]
+  ) => Promise<
+    Array<{
+      id: number;
+      status: "pending" | "processing" | "failed" | "synced" | "unlinked" | null;
+    }>
+  >;
 };
 
 export function registerFrappeExportRoutes(app: FastifyInstance, callbacks: ExportRouteCallbacks) {
+  registerContractRoute(app, {
+    method: "POST",
+    url: "/frappe/export/:kind/status",
+    schemas: {
+      params: z.object({ kind: kindSchema }),
+      body: z.object({ ids: z.array(z.number().int().positive()).min(1).max(100) }).strict(),
+      response: z.object({
+        items: z.array(
+          z.object({
+            id: z.number().int().positive(),
+            status: z.enum(["pending", "processing", "failed", "synced", "unlinked"]).nullable()
+          })
+        )
+      })
+    },
+    handler: async ({ request, params, body }) => ({
+      items: await callbacks.recordStatuses(request, params.kind, body.ids)
+    })
+  });
   registerContractRoute(app, {
     method: "GET",
     url: "/frappe/export/:kind",

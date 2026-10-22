@@ -1,14 +1,17 @@
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { ScheduleRecordButton } from "../scheduler";
+import { FrappeSyncIndicator, type FrappeSyncStatus } from "../frappe-sync/frappe-sync.indicator";
 import type { DutyAssignment } from "./duty-assignment.types";
 export function DutyAssignmentList({
   items,
   loading,
-  onOpen
+  onOpen,
+  onVerify
 }: {
   items: DutyAssignment[];
   loading: boolean;
   onOpen: (row: DutyAssignment) => void;
+  onVerify: (row: DutyAssignment) => Promise<FrappeSyncStatus>;
 }) {
   return (
     <WorkspaceTable<DutyAssignment>
@@ -53,6 +56,16 @@ export function DutyAssignmentList({
               sourceType="duty"
               sourceId={row.original.id}
               sourceLabel={`Duty · ${row.original.itemTitle} · ${row.original.assigneeName}`}
+            />
+          )
+        },
+        {
+          id: "frappeSync",
+          header: "Frappe sync",
+          cell: ({ row }) => (
+            <FrappeSyncIndicator
+              status={row.original.frappeSyncStatus}
+              onVerify={() => onVerify(row.original)}
             />
           )
         }

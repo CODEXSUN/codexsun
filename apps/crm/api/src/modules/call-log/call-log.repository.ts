@@ -35,11 +35,15 @@ export class CallLogRepository {
       ORDER BY log.id DESC LIMIT ${filters.pageSize + 1} OFFSET ${(filters.page - 1) * filters.pageSize}`.execute(
         this.database
       ),
-      sql<{ status: string; status_count: number }>`SELECT log.call_status AS status, COUNT(*) AS status_count
+      sql<{
+        status: string;
+        status_count: number;
+      }>`SELECT log.call_status AS status, COUNT(*) AS status_count
         FROM crm_call_logs log WHERE ${where} GROUP BY log.call_status`.execute(this.database)
     ]);
     return {
       items: result.rows.slice(0, filters.pageSize).map((row) => ({
+        id: row.id,
         name: `CL-${row.id}`,
         from: row.from_number,
         to: row.to_number,
@@ -55,7 +59,10 @@ export class CallLogRepository {
       pageSize: filters.pageSize,
       hasMore: result.rows.length > filters.pageSize,
       total: summary.rows.reduce((total, row) => total + Number(row.status_count), 0),
-      statusCounts: summary.rows.map((row) => ({ code: row.status, count: Number(row.status_count) }))
+      statusCounts: summary.rows.map((row) => ({
+        code: row.status,
+        count: Number(row.status_count)
+      }))
     };
   }
 
@@ -90,9 +97,7 @@ export class CallLogRepository {
       const insert = await sql`INSERT INTO crm_call_logs
         (direction, from_number, to_number, call_status, duration_seconds, user_email, source_reference, started_at, created_by)
         VALUES (${input.type}, ${input.from.trim()}, ${input.to.trim()}, ${input.status}, ${input.duration}, ${input.user}, ${input.sourceReference ?? null}, ${startedAt}, ${actorEmail})
-        ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)`.execute(
-        transaction
-      );
+        ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)`.execute(transaction);
       const id = Number(insert.insertId);
       return { name: `CL-${id}` };
     });
