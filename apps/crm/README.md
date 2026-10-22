@@ -244,6 +244,7 @@ Run `npm exec tsx -- --test tools/e2e/crm-whatsapp.e2e.ts` for database acceptan
 ### Work charges
 
 Enquiry and task show pages include a Charges tab for initiating charges and recording collections. These operational CRM records are not invoices or payments in Billing. Collections cannot exceed the remaining initiated amount. The `crm.work-report.charges-v1` migration adds a nullable decimal amount to existing work-report rows without changing prior history.
+The web Charges form keeps its request ID when a user retries the same charge or collection after a failed response. A changed amount, note, action, or record starts a new request. This uses the work-report API retry contract to prevent duplicate entries when a save succeeds but the response is lost.
 The mobile enquiry and task Charges sections show the same charge and collection history. An outstanding balance shows a purple Collection pending notice on web and mobile. Tapping a charge or Collect charge in the mobile Actions sheet opens the collection form with amount and required notes; confirming the collection updates the balance. Collections apply to the enquiry or task's outstanding total; work reports do not store a link to an individual charge.
 The mobile Jobs list fetches outstanding enquiry IDs through `GET /crm/work-reports/pending-collections`. The endpoint returns only enquiries assigned to or created by the signed-in user. Cards with outstanding collections use a purple highlight and Collection pending badge; a pending completion request keeps its orange card highlight.
 

@@ -6,7 +6,7 @@ import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import type { ListInRecord } from "./list-in.types";
 
-export const listinListColumns = {"sortOrder": "ORDER", "name": "NAME", "status": "STATUS"};
+export const listinListColumns = { sortOrder: "ORDER", name: "NAME", status: "STATUS" };
 
 export function ListInList({
   listTools,
@@ -88,7 +88,12 @@ export function ListInList({
   ];
   return (
     <WorkspaceTable
-      columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))))}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))
+          )
+      )}
       {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No list in records found."

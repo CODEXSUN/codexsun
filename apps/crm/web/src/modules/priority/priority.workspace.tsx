@@ -1,5 +1,8 @@
 import { useWorkspaceListTools } from "@codexsun/ui/workspace/list-tools";
-import { useWorkspaceQueryValue, useWorkspaceRecordSelection } from "@codexsun/ui/workspace/navigation";
+import {
+  useWorkspaceQueryValue,
+  useWorkspaceRecordSelection
+} from "@codexsun/ui/workspace/navigation";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
@@ -38,7 +41,10 @@ export function PriorityWorkspace() {
   const listTools = useWorkspaceListTools(priorityListColumns);
   const client = useQueryClient();
   const query = usePriority();
-  const [editing, setEditing] = useWorkspaceRecordSelection<PriorityRecord>(query.data ?? [], (record) => String(record.id));
+  const [editing, setEditing] = useWorkspaceRecordSelection<PriorityRecord>(
+    query.data ?? [],
+    (record) => String(record.id)
+  );
   const [search, setSearch] = useWorkspaceQueryValue("q", "");
   const [status, setStatus] = useWorkspaceQueryValue("status", "all");
   const [page, setPage] = useWorkspaceQueryValue("page", 1);
@@ -79,26 +85,32 @@ export function PriorityWorkspace() {
   });
   const filtered = useMemo(
     () =>
-      (query.data ?? []).filter((record) => listTools.matches(record)).filter(
-        (record) =>
-          (status === "all" || record.status === status) &&
-          record.name.toLowerCase().includes(search.trim().toLowerCase())
-      ),
+      (query.data ?? [])
+        .filter((record) => listTools.matches(record))
+        .filter(
+          (record) =>
+            (status === "all" || record.status === status) &&
+            record.name.toLowerCase().includes(search.trim().toLowerCase())
+        ),
     [query.data, search, status, JSON.stringify(listTools.filters)]
   );
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const records = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
-  if (editing !== undefined) return (<PriorityForm
+  if (editing !== undefined)
+    return (
+      <PriorityForm
         open={editing !== undefined}
         record={editing ?? null}
         loading={save.isPending}
         error={save.error?.message ?? ""}
         onCancel={() => setEditing(undefined)}
         onSubmit={(input) => save.mutate(input)}
-      />);
+      />
+    );
   return (
-    <WorkspacePage variant="list"
+    <WorkspacePage
+      variant="list"
       title="Priorities"
       description="Manage Priority options for enquiries."
       technicalName="page.crm.priority.list"
@@ -128,8 +140,16 @@ export function PriorityWorkspace() {
         }}
         filterOptions={[
           { id: "all", label: "All records" },
-          { id: "active", label: "Active", count: (query.data ?? []).filter((record) => record.status === "active").length },
-          { id: "inactive", label: "Inactive", count: (query.data ?? []).filter((record) => record.status === "inactive").length }
+          {
+            id: "active",
+            label: "Active",
+            count: (query.data ?? []).filter((record) => record.status === "active").length
+          },
+          {
+            id: "inactive",
+            label: "Inactive",
+            count: (query.data ?? []).filter((record) => record.status === "inactive").length
+          }
         ]}
       />
       {query.error ? (

@@ -7,7 +7,12 @@ import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { CrmColorLabel } from "../../crm-colors";
 import type { PriorityRecord } from "./priority.types";
 
-export const priorityListColumns = {"sortOrder": "ORDER", "name": "NAME", "code": "CODE", "status": "STATUS"};
+export const priorityListColumns = {
+  sortOrder: "ORDER",
+  name: "NAME",
+  code: "CODE",
+  status: "STATUS"
+};
 
 export function PriorityList({
   listTools,
@@ -89,7 +94,12 @@ export function PriorityList({
   ];
   return (
     <WorkspaceTable
-      columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))))}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))
+          )
+      )}
       {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No priorities records found."

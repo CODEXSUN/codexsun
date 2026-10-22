@@ -7,7 +7,12 @@ import { WorkspaceTable } from "@codexsun/ui/workspace/table";
 import { CrmStatusBadge } from "../../crm-colors";
 import type { StatusRecord } from "./status.types";
 
-export const statusListColumns = {"sortOrder": "ORDER", "name": "NAME", "code": "CODE", "status": "STATUS"};
+export const statusListColumns = {
+  sortOrder: "ORDER",
+  name: "NAME",
+  code: "CODE",
+  status: "STATUS"
+};
 
 export function StatusList({
   listTools,
@@ -89,7 +94,12 @@ export function StatusList({
   ];
   return (
     <WorkspaceTable
-      columns={columns.filter((column) => !listTools?.hidden.includes(String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))))}
+      columns={columns.filter(
+        (column) =>
+          !listTools?.hidden.includes(
+            String(column.id ?? ("accessorKey" in column ? column.accessorKey : ""))
+          )
+      )}
       {...(listTools?.showFilters ? { filterRow: listTools.filterRow } : {})}
       data={records}
       emptyState="No statuses records found."

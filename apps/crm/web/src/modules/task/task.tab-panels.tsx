@@ -134,7 +134,9 @@ export function TaskClosurePanel({
             </Button>
           </div>
         ) : null}
-        {loading ? <p className="text-sm text-muted-foreground">Loading closure requests…</p> : null}
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading closure requests…</p>
+        ) : null}
         {!loading && requests.length === 0 ? (
           <p className="text-sm text-muted-foreground">No closure request has been made.</p>
         ) : null}
@@ -143,13 +145,19 @@ export function TaskClosurePanel({
             <table className="w-full min-w-[820px] text-left text-sm">
               <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>
-                  {["#", "Status", "Reason", "Requested by", "Requested", "Reviewed by", "Review note"].map(
-                    (label) => (
-                      <th className="px-3 py-2" key={label}>
-                        {label}
-                      </th>
-                    )
-                  )}
+                  {[
+                    "#",
+                    "Status",
+                    "Reason",
+                    "Requested by",
+                    "Requested",
+                    "Reviewed by",
+                    "Review note"
+                  ].map((label) => (
+                    <th className="px-3 py-2" key={label}>
+                      {label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -190,9 +198,7 @@ export function TaskClosurePanel({
                     <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
                       {formatDateTime(item.createdAt)}
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {item.reviewedBy || "—"}
-                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{item.reviewedBy || "—"}</td>
                     <td className="min-w-48 px-3 py-2 text-muted-foreground">
                       {item.reviewNote || "—"}
                     </td>
@@ -206,4 +212,3 @@ export function TaskClosurePanel({
     </WorkspaceShowCard>
   );
 }
-

@@ -12,7 +12,7 @@ export const callLogColumns = [
   { id: "status", label: "Status" },
   { id: "duration", label: "Duration" },
   { id: "receiver", label: "Call received by" },
-  { id: "caller", label: "Caller" },
+  { id: "caller", label: "Caller" }
 ] as const;
 
 type CallLogCell = { row: { original: CallLogRecord } };
@@ -65,7 +65,7 @@ export function CallLogList({
       accessorKey: "caller",
       header: "CALLER",
       cell: ({ row }: CallLogCell) => row.original.caller || "—"
-    },
+    }
   ].filter((column) => visibleColumns[column.id] !== false);
   return (
     <WorkspaceTable

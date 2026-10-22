@@ -257,9 +257,7 @@ export function TaskForm({
                       showCreateWhenEmpty
                       showAllOptionsOnFocus
                       options={options.statuses
-                        .filter(
-                          (item) => item.code !== "closed" || record?.status === "closed"
-                        )
+                        .filter((item) => item.code !== "closed" || record?.status === "closed")
                         .map((item) => ({
                           label: item.name,
                           value: String(item.id),

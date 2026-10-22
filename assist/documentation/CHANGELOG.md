@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.40
+Current version: 1.1.41
 
-Release tag: v-1.1.40
+Release tag: v-1.1.41
 
-Changelog label: v 1.1.40
+Changelog label: v 1.1.41
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,21 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.41
+
+### [v 1.1.41] 2026-10-22 10:04 pm - CRM web review and charge retry safety
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.41.
+- Format CRM web source with the repository Prettier rules.
+- Keep the same work-report request ID when the web Charges form retries unchanged charge or collection details. Prevent action changes during a pending save.
+- Verify CRM web typecheck, lint, build, module boundaries, web unit tests, and the disposable work-report database test.
 
 ## v-1.1.40
 

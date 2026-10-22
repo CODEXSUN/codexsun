@@ -5,11 +5,11 @@ import { Textarea } from "@codexsun/ui/components/textarea";
 import { WorkspaceTableEmptyState } from "@codexsun/ui/workspace/table";
 import { formatDateTime } from "@codexsun/ui/workspace/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useWorkReports, workReportKey } from "./work-report.hooks";
 import { createWorkReport } from "./work-report.services";
-import type { WorkReportTarget } from "./work-report.types";
+import type { WorkReportPayload, WorkReportTarget } from "./work-report.types";
 
 type ChargeAction = "charge" | "collection";
 
@@ -20,31 +20,22 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
   const [selectedAction, setSelectedAction] = useState<ChargeAction | null>(null);
   const [amount, setAmount] = useState("");
   const [body, setBody] = useState("");
+  const retry = useRef<WorkReportPayload | null>(null);
   const totals = history.data?.amounts;
   const charged = totals?.charges ?? 0;
   const collected = totals?.collections ?? 0;
   const outstanding = Math.max(0, charged - collected);
   const action = selectedAction ?? (outstanding > 0 ? "collection" : "charge");
   const save = useMutation({
-    mutationFn: () =>
-      createWorkReport({
-        ...target,
-        action,
-        body: body.trim(),
-        amount: Number(amount),
-        requestId: crypto.randomUUID(),
-        latitude: null,
-        longitude: null,
-        accuracyMeters: null,
-        capturedAt: null
-      }),
-    onSuccess: async () => {
+    mutationFn: createWorkReport,
+    onSuccess: async (_, payload) => {
+      retry.current = null;
       setAmount("");
       setBody("");
       setPage(1);
       await client.invalidateQueries({ queryKey: workReportKey(target) });
       setSelectedAction(null);
-      toast.success(action === "charge" ? "Charge initiated" : "Collection recorded");
+      toast.success(payload.action === "charge" ? "Charge initiated" : "Collection recorded");
     },
     onError: (error) => toast.error("Could not save charge", { description: error.message })
   });
@@ -80,6 +71,7 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
             type="button"
             variant={action === "charge" ? "default" : "outline"}
             aria-pressed={action === "charge"}
+            disabled={save.isPending}
             onClick={() => setSelectedAction("charge")}
           >
             {outstanding > 0 ? "Initiate another charge" : "Initiate charge"}
@@ -89,6 +81,7 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
               type="button"
               variant={action === "collection" ? "default" : "outline"}
               aria-pressed={action === "collection"}
+              disabled={save.isPending}
               onClick={() => setSelectedAction("collection")}
             >
               Collect charge
@@ -99,6 +92,7 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
           className="grid gap-3 sm:grid-cols-[minmax(10rem,0.45fr)_minmax(16rem,1fr)_auto] sm:items-end"
           onSubmit={(event) => {
             event.preventDefault();
+            if (save.isPending) return;
             if (Number(amount) <= 0 || !Number.isFinite(Number(amount))) {
               toast.error("Enter an amount greater than zero.");
               return;
@@ -111,7 +105,30 @@ export function WorkChargesWorkspace({ target }: { target: WorkReportTarget }) {
               toast.error("Enter collection notes before confirming.");
               return;
             }
-            save.mutate();
+            const normalizedBody = body.trim();
+            const normalizedAmount = Number(amount);
+            const previous = retry.current;
+            if (
+              !previous ||
+              previous.enquiryId !== target.enquiryId ||
+              previous.taskId !== target.taskId ||
+              previous.action !== action ||
+              previous.body !== normalizedBody ||
+              previous.amount !== normalizedAmount
+            ) {
+              retry.current = {
+                ...target,
+                action,
+                body: normalizedBody,
+                amount: normalizedAmount,
+                requestId: crypto.randomUUID(),
+                latitude: null,
+                longitude: null,
+                accuracyMeters: null,
+                capturedAt: null
+              };
+            }
+            if (retry.current) save.mutate(retry.current);
           }}
         >
           <label className="space-y-1 text-sm font-medium">
