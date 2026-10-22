@@ -34,6 +34,8 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Hide the Corporate ID field in client-branded builds and submit the configured tenant ID at sign-in.
 - Add a login widget test for embedded tenant IDs and email/password-only sign-in.
 - Build separate TechMedia and Rainbow debug APKs with tenant IDs `techmedia` and `RAINBOW`, connected to the CODEXSUN API.
+- Create a Windows-user-protected Android release keystore outside the repository and sign both client APKs with it.
+- Verify both v1.1.40 release APK signatures and Android package metadata.
 
 ## v-1.1.39
 
