@@ -3,17 +3,20 @@ import 'package:flutter/material.dart';
 import '../../core/api/crm_mobile_api.dart';
 import 'action_quick_action_sheet.dart';
 import 'dashboard_list_page.dart';
+import 'dashboard_jobs_feed.dart';
 import 'job_detail_page.dart';
 
 class ActionActivityPage extends StatefulWidget {
   const ActionActivityPage({
     required this.api,
     required this.session,
+    this.jobsFeed,
     super.key,
   });
 
   final CrmMobileApi api;
   final UserSession session;
+  final DashboardJobsFeed? jobsFeed;
 
   @override
   State<ActionActivityPage> createState() => _ActionActivityPageState();
@@ -163,6 +166,7 @@ class _ActionActivityPageState extends State<ActionActivityPage> {
             enquiry: DashboardListItem.fromCrmJob(job),
             initialJob: job,
             onJobChanged: _reload,
+            onJobUpdated: widget.jobsFeed?.updateJob,
           ),
         ),
       );
@@ -198,6 +202,7 @@ class _ActionActivityPageState extends State<ActionActivityPage> {
         api: widget.api,
         session: widget.session,
         jobs: jobs,
+        onEnquiryUpdated: widget.jobsFeed?.updateJob,
       );
       if (changed && mounted) {
         setState(() => _activities = _loadActivities());

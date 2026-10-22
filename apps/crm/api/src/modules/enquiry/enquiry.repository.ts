@@ -20,6 +20,7 @@ import { EnquirySyncRepository } from "./enquiry.sync.repository.js";
 
 type PersistedRow = Selectable<EnquiryRow> & {
   list_name: string | null;
+  creator_name: string | null;
   status_code: string;
   status_name: string;
   priority_code: string;
@@ -765,6 +766,7 @@ export class EnquiryRepository {
     return this.database
       .selectFrom("crm_enquiries as enquiry")
       .leftJoin("crm_enquiry_lists as list", "list.id", "enquiry.list_in_id")
+      .leftJoin("app_users as creator", "creator.email", "enquiry.created_by")
       .innerJoin("crm_enquiry_statuses as status_master", "status_master.id", "enquiry.status_id")
       .innerJoin(
         "crm_enquiry_priorities as priority_master",
@@ -774,6 +776,7 @@ export class EnquiryRepository {
       .selectAll("enquiry")
       .select([
         "list.name as list_name",
+        "creator.name as creator_name",
         "status_master.code as status_code",
         "status_master.name as status_name",
         "priority_master.code as priority_code",
@@ -855,6 +858,7 @@ function toRecord(row: PersistedRow): EnquiryRecord {
     dueDate: row.due_date ? toDate(row.due_date) : null,
     closedReason: row.closed_reason,
     createdBy: row.created_by,
+    createdByName: row.creator_name,
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at)
   };

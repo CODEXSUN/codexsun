@@ -24,8 +24,9 @@ class DashboardListPage extends StatelessWidget {
     if (section.isJobs) {
       return _LiveJobsList(api: api, session: session, jobsFeed: jobsFeed);
     }
-    if (section.isActions)
-      return ActionActivityPage(api: api, session: session);
+    if (section.isActions) {
+      return ActionActivityPage(api: api, session: session, jobsFeed: jobsFeed);
+    }
     return _StandardList(section: section);
   }
 }
@@ -48,7 +49,7 @@ class _LiveJobsList extends StatelessWidget {
       builder: (context, child) {
         if (jobsFeed.error != null && jobsFeed.jobs.isEmpty) {
           return _LiveState(
-            message: 'Could not load your assigned enquiries.',
+            message: 'Could not load your assigned jobs.',
             onRetry: () {
               jobsFeed.refresh();
             },
@@ -72,6 +73,7 @@ class _LiveJobsList extends StatelessWidget {
               onJobChanged: () {
                 jobsFeed.refresh();
               },
+              onJobUpdated: jobsFeed.updateJob,
             );
           },
         );
@@ -162,6 +164,7 @@ class DashboardListItem {
     required this.enquiryNumber,
     required this.title,
     required this.customer,
+    this.mobile = '',
     required this.list,
     required this.assignedTo,
     required this.dueDate,
@@ -179,6 +182,7 @@ class DashboardListItem {
   final String title;
   final String detail;
   final String customer;
+  final String mobile;
   final String list;
   final String assignedTo;
   final String dueDate;
@@ -194,6 +198,7 @@ class DashboardListItem {
     enquiryNumber: job.number.isEmpty ? job.id.toString() : job.number,
     title: job.title,
     customer: job.customer,
+    mobile: job.mobile,
     list: job.list,
     assignedTo: job.assignedTo,
     dueDate: job.dueDate,
@@ -208,6 +213,7 @@ class DashboardListItem {
     },
     statusName: job.status.isNotEmpty ? job.status : 'Open',
     priority: switch (job.priority.toLowerCase()) {
+      'low' => JobPriority.low,
       'urgent' => JobPriority.urgent,
       'high' => JobPriority.high,
       _ => JobPriority.normal,
@@ -215,15 +221,15 @@ class DashboardListItem {
   );
 }
 
-enum JobPriority { normal, high, urgent }
+enum JobPriority { low, normal, high, urgent }
 
 enum JobStatus { open, won, lost }
 
 final dashboardListSections = [
   DashboardListSection(label: 'Home', icon: Icons.home, items: []),
   DashboardListSection(
-    label: 'Enquiry',
-    heading: 'Enquiries',
+    label: 'Jobs',
+    heading: 'Jobs',
     icon: Icons.assignment_outlined,
     isJobs: true,
     items: [],

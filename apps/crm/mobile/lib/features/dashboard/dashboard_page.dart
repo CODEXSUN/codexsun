@@ -13,7 +13,6 @@ import 'dashboard_home.dart';
 import 'dashboard_jobs_feed.dart';
 import 'dashboard_list_page.dart';
 import 'duty_page.dart';
-import 'tasks_page.dart';
 import 'my_enquiries_page.dart';
 import 'home_enquiry_form_page.dart';
 import 'my_reports_page.dart';
@@ -103,7 +102,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 Container(height: 28, width: 1, color: const Color(0xFFD7D1DA)),
                 const SizedBox(width: 12),
                 Text(
-                  _selectedIndex == 1 ? 'Enquiries' : 'Duty',
+                  _selectedIndex == 1 ? 'Jobs' : 'Duty',
                   style: Theme.of(context).textTheme.titleLarge
                       ?.copyWith(fontWeight: FontWeight.w600),
                 ),
@@ -173,7 +172,7 @@ class _DashboardPageState extends State<DashboardPage> {
             child: const Icon(Icons.add_rounded),
           ),
           1 => FloatingActionButton(
-            tooltip: 'New enquiry',
+            tooltip: 'New job',
             onPressed: _openNewEnquiryFromTab,
             child: const Icon(Icons.add_rounded),
           ),
@@ -194,8 +193,6 @@ class _DashboardPageState extends State<DashboardPage> {
         jobsFeed: _jobsFeed,
         assignmentCount: _mobileNotifications.assignmentCount,
         onOpenList: _selectDestination,
-        onOpenActions: _openActions,
-        onOpenReports: _openReports,
         onReauthenticate: widget.onReauthenticate,
       );
     }
@@ -205,6 +202,8 @@ class _DashboardPageState extends State<DashboardPage> {
         api: widget.api,
         session: widget.session,
         embedded: true,
+        onJobUpdated: _jobsFeed.updateJob,
+        jobsFeed: _jobsFeed,
       );
     }
     if (_selectedIndex == 2) {
@@ -246,8 +245,11 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _openActions() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (context) =>
-            ActionActivityPage(api: widget.api, session: widget.session),
+        builder: (context) => ActionActivityPage(
+          api: widget.api,
+          session: widget.session,
+          jobsFeed: _jobsFeed,
+        ),
       ),
     );
   }
@@ -282,8 +284,8 @@ class _DashboardPageState extends State<DashboardPage> {
       builder: (context) => SafeArea(
         child: ListTile(
           leading: const Icon(Icons.note_add_outlined),
-          title: const Text('New enquiry'),
-          subtitle: const Text('Create a new CRM enquiry.'),
+          title: const Text('New job'),
+          subtitle: const Text('Create a new job.'),
           onTap: () => Navigator.pop(context, _HomeAddAction.newEnquiry),
         ),
       ),
@@ -329,19 +331,6 @@ class _DashboardPageState extends State<DashboardPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ListTile(
-                  leading: const Icon(Icons.task_alt),
-                  title: const Text('Tasks'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.of(this.context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            TasksPage(api: widget.api, session: widget.session),
-                      ),
-                    );
-                  },
-                ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.call_outlined),

@@ -8,6 +8,7 @@ Future<bool> showActionQuickActionSheet({
   required CrmMobileApi api,
   required UserSession session,
   required List<CrmJob> jobs,
+  ValueChanged<CrmJob>? onEnquiryUpdated,
 }) async {
   if (jobs.isEmpty) return false;
   return showWorkActionSheet(
@@ -15,5 +16,6 @@ Future<bool> showActionQuickActionSheet({
     api: api,
     session: session,
     enquiries: jobs,
+    onEnquiryUpdated: onEnquiryUpdated,
   );
 }

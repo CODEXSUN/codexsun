@@ -14,22 +14,18 @@ class DashboardHome extends StatelessWidget {
     required this.api,
     required this.session,
     required this.onOpenList,
-    required this.onOpenActions,
     required this.jobsFeed,
     this.onReauthenticate,
     this.assignmentCount = 0,
-    required this.onOpenReports,
     super.key,
   });
 
   final CrmMobileApi api;
   final UserSession session;
   final ValueChanged<int> onOpenList;
-  final Future<void> Function() onOpenActions;
   final DashboardJobsFeed jobsFeed;
   final VoidCallback? onReauthenticate;
   final int assignmentCount;
-  final Future<void> Function() onOpenReports;
 
   @override
   Widget build(BuildContext context) {
@@ -111,20 +107,43 @@ class DashboardHome extends StatelessWidget {
               onOpenList: onOpenList,
               api: api,
               session: session,
-              onOpenActions: onOpenActions,
-              onOpenReports: onOpenReports,
             ),
             if (runningJob != null) ...[
               const SizedBox(height: 18),
               _RunningJobCard(
                 job: runningJob,
                 onOpenJob: () => _openJob(context, runningJob),
+                onStopJob: () => _stopRunningJob(context, runningJob),
               ),
             ],
           ],
         );
       },
     );
+  }
+
+  Future<void> _stopRunningJob(BuildContext context, CrmJob job) async {
+    final execution = job.jobs
+        .where((candidate) => candidate.isRunning)
+        .firstOrNull;
+    if (execution == null) return;
+    try {
+      final updated = await api.stopJob(
+        accessToken: session.accessToken,
+        id: job.sourceId,
+        jobName: execution.name,
+      );
+      if (!context.mounted) return;
+      jobsFeed.updateJob(updated);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Job stopped.')));
+    } on CrmMobileApiException catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(error.message)));
+    }
   }
 
   Future<void> _openJob(BuildContext context, CrmJob job) async {
@@ -136,6 +155,7 @@ class DashboardHome extends StatelessWidget {
           enquiry: DashboardListItem.fromCrmJob(job),
           initialJob: job,
           onJobChanged: jobsFeed.refresh,
+          onJobUpdated: jobsFeed.updateJob,
         ),
       ),
     );
@@ -150,10 +170,15 @@ CrmJob? _runningJob(List<CrmJob> jobs) {
 }
 
 class _RunningJobCard extends StatefulWidget {
-  const _RunningJobCard({required this.job, required this.onOpenJob});
+  const _RunningJobCard({
+    required this.job,
+    required this.onOpenJob,
+    required this.onStopJob,
+  });
 
   final CrmJob job;
   final VoidCallback onOpenJob;
+  final Future<void> Function() onStopJob;
 
   @override
   State<_RunningJobCard> createState() => _RunningJobCardState();
@@ -161,6 +186,7 @@ class _RunningJobCard extends StatefulWidget {
 
 class _RunningJobCardState extends State<_RunningJobCard> {
   Timer? _timer;
+  var _isStopping = false;
 
   @override
   void initState() {
@@ -174,6 +200,16 @@ class _RunningJobCardState extends State<_RunningJobCard> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _stopJob() async {
+    if (_isStopping) return;
+    setState(() => _isStopping = true);
+    try {
+      await widget.onStopJob();
+    } finally {
+      if (mounted) setState(() => _isStopping = false);
+    }
   }
 
   @override
@@ -234,12 +270,29 @@ class _RunningJobCardState extends State<_RunningJobCard> {
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                formatJobDuration(execution),
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: const Color(0xFF682A82),
-                  fontWeight: FontWeight.w800,
-                ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formatJobDuration(execution),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: const Color(0xFF682A82),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  FilledButton.tonalIcon(
+                    onPressed: _isStopping ? null : _stopJob,
+                    icon: _isStopping
+                        ? const SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.stop_rounded, size: 16),
+                    label: const Text('Stop Job'),
+                  ),
+                ],
               ),
             ],
           ),

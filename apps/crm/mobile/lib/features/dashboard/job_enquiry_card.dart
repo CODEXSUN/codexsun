@@ -1,12 +1,14 @@
+import 'package:flutter/material.dart';
+
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../core/api/crm_mobile_api.dart';
 import '../../core/platform/mobile_actions.dart';
 import 'dashboard_list_page.dart';
-import 'job_detail_page.dart';
 import 'job_duration.dart';
+import 'job_detail_page.dart';
 
 class JobEnquiryCard extends StatefulWidget {
   const JobEnquiryCard({
@@ -15,6 +17,8 @@ class JobEnquiryCard extends StatefulWidget {
     required this.enquiry,
     required this.job,
     required this.onJobChanged,
+    this.capturePosition,
+    this.onJobUpdated,
     super.key,
   });
 
@@ -23,6 +27,8 @@ class JobEnquiryCard extends StatefulWidget {
   final DashboardListItem enquiry;
   final CrmJob job;
   final VoidCallback onJobChanged;
+  final Future<Position> Function()? capturePosition;
+  final ValueChanged<CrmJob>? onJobUpdated;
 
   @override
   State<JobEnquiryCard> createState() => _JobEnquiryCardState();
@@ -30,125 +36,228 @@ class JobEnquiryCard extends StatefulWidget {
 
 class _JobEnquiryCardState extends State<JobEnquiryCard> {
   late CrmJob _job = widget.job;
-  bool _updating = false;
-  Timer? _runningTimer;
+  Timer? _jobTimer;
+  var _isSending = false;
+  var _completionPending = false;
 
   @override
   void initState() {
     super.initState();
-    _syncRunningTimer();
+    _syncJobTimer();
   }
 
   @override
   void didUpdateWidget(covariant JobEnquiryCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.job != widget.job) _job = widget.job;
-    _syncRunningTimer();
+    if (oldWidget.job != widget.job) {
+      _job = widget.job;
+      _syncJobTimer();
+    }
   }
 
   @override
   void dispose() {
-    _runningTimer?.cancel();
+    _jobTimer?.cancel();
     super.dispose();
-  }
-
-  CrmJobExecution? get _runningJob {
-    for (final execution in _job.jobs) {
-      if (execution.isRunning) return execution;
-    }
-    return null;
-  }
-
-  void _syncRunningTimer() {
-    if (_runningJob == null) {
-      _runningTimer?.cancel();
-      _runningTimer = null;
-      return;
-    }
-    _runningTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final enquiry = DashboardListItem.fromCrmJob(_job);
-    final running = _runningJob != null;
+    final runningJob = _runningJob;
+    final isRunning = runningJob != null;
+    final isNew = !isRunning && _job.status.trim().toLowerCase() == 'new';
+    final messageStyle = Theme.of(context).textTheme.titleSmall
+        ?.copyWith(fontWeight: FontWeight.w800, height: 1.2);
+    final messageLineHeight = MediaQuery.textScalerOf(context)
+        .scale(messageStyle?.fontSize ?? 14);
     return Card(
       margin: EdgeInsets.zero,
-      color: Colors.white,
+      color: isRunning
+          ? const Color(0xFFFBF6FE)
+          : isNew
+          ? const Color(0xFFF1F8FF)
+          : Colors.white,
       elevation: 2,
       shadowColor: const Color(0x24140D1B),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFE1DCE6)),
+        side: BorderSide(
+          color: isRunning
+              ? const Color(0xFFB67AD2)
+              : isNew
+              ? const Color(0xFF8CCAF0)
+              : const Color(0xFFE1DCE6),
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => _openDetail(context, enquiry),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 11, 10, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _JobCardHeader(
-                enquiry: enquiry,
-                running: running,
-                runningDuration: running
-                    ? formatJobDuration(_runningJob!)
-                    : null,
-                updating: _updating,
-                onChanged: _toggleJob,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                enquiry.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w800, height: 1.2),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                enquiry.customer,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: const Color(0xFF6E6872)),
-              ),
-              const SizedBox(height: 22),
-              Text(
-                'Created by ${enquiry.createdBy} · ${enquiry.createdDate} | ${enquiry.createdAgo}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF6D6870),
-                  fontWeight: FontWeight.w500,
+        onTap: isNew
+            ? (_isSending ? null : _openNewCall)
+            : () => _openDetail(context, enquiry),
+        child: Container(
+          key: const ValueKey('enquiry-card-highlight'),
+          decoration: isRunning || isNew
+              ? BoxDecoration(
+                  border: Border(
+                    left: BorderSide(
+                      color: isRunning
+                          ? const Color(0xFF8B3BA8)
+                          : const Color(0xFF1596D2),
+                      width: 4,
+                    ),
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                )
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 11, 10, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  key: const ValueKey('enquiry-card-header'),
+                  width: double.infinity,
+                  child: _JobCardHeader(
+                    enquiry: enquiry,
+                    onCall: () => _runContactAction('Call', MobileActions.call),
+                    onWhatsApp: _openWhatsApp,
+                    onMore: _runMoreAction,
+                    runningJob: _runningJob,
+                    isSending: _isSending,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 7),
-              const Divider(height: 1),
-              const SizedBox(height: 5),
-              _JobCardFooter(
-                onMore: _runMoreAction,
-                onWhatsApp: _openWhatsApp,
-                onCall: () => _runContactAction('Call', MobileActions.call),
-              ),
-            ],
+                const SizedBox(height: 10),
+                Text(
+                  _customerDisplayName(enquiry),
+                  key: const ValueKey('enquiry-card-customer'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: const Color(0xFF6E6872)),
+                ),
+                const SizedBox(height: 5),
+                ConstrainedBox(
+                  key: const ValueKey('enquiry-card-message-area'),
+                  constraints: BoxConstraints(
+                    minHeight: messageLineHeight * 2.4,
+                  ),
+                  child: isNew
+                      ? Align(
+                          alignment: Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            key: const ValueKey('enquiry-card-new-call'),
+                            onPressed: _isSending ? null : _openNewCall,
+                            icon: const Icon(
+                              Icons.notifications_active_outlined,
+                              size: 16,
+                            ),
+                            label: const Text('New call'),
+                            style: OutlinedButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              minimumSize: const Size(0, 32),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              foregroundColor: const Color(0xFF374151),
+                              side: const BorderSide(color: Color(0xFFD1D5DB)),
+                              shape: const StadiumBorder(),
+                              textStyle: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        )
+                      : LayoutBuilder(
+                          builder: (context, constraints) => SizedBox(
+                            width: double.infinity,
+                            child: Text(
+                              _mobileMessageText(
+                                enquiry.title,
+                                constraints.maxWidth,
+                              ),
+                              key: const ValueKey('enquiry-card-message'),
+                              maxLines: 2,
+                              softWrap: true,
+                              textWidthBasis: TextWidthBasis.parent,
+                              overflow: TextOverflow.ellipsis,
+                              style: messageStyle,
+                            ),
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Created by - ${_creatorDisplayName(enquiry.createdBy)} · ${enquiry.createdDate} | ${enquiry.createdAgo}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF6D6870),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (runningJob != null) ...[
+                      const SizedBox(width: 8),
+                      _RunningClockBadge(execution: runningJob),
+                    ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Future<void> _toggleJob(bool shouldRun) async {
-    if (_updating) return;
-    setState(() => _updating = true);
-    try {
-      final running = _runningJob;
-      final updated = shouldRun
+  String _mobileMessageText(String value, double availableWidth) {
+    final message = value.trim();
+    if (availableWidth > 420 ||
+        message.length <= 35 ||
+        message.contains('\n')) {
+      return message;
+    }
+    final splitAt = message.lastIndexOf(' ', 38);
+    if (splitAt < 24) return message;
+    return '${message.substring(0, splitAt).trimRight()}\n'
+        '${message.substring(splitAt + 1).trimLeft()}';
+  }
+
+  CrmJobExecution? get _runningJob =>
+      _job.jobs.where((execution) => execution.isRunning).firstOrNull;
+
+  Future<void> _openNewCall() async {
+    await _performCardAction(() async {
+      _job = await widget.api.openNewCall(
+        accessToken: widget.session.accessToken,
+        id: _job.sourceId,
+      );
+      widget.onJobUpdated?.call(_job);
+      widget.onJobChanged();
+      _showMessage('New call opened successfully.');
+    });
+  }
+
+  void _syncJobTimer() {
+    if (_runningJob == null) {
+      _jobTimer?.cancel();
+      _jobTimer = null;
+      return;
+    }
+    _jobTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  Future<void> _toggleJob() async {
+    final running = _runningJob;
+    await _performCardAction(() async {
+      _job = running == null
           ? await widget.api.startJob(
               accessToken: widget.session.accessToken,
               id: _job.sourceId,
@@ -156,21 +265,48 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
           : await widget.api.stopJob(
               accessToken: widget.session.accessToken,
               id: _job.sourceId,
-              jobName: running!.name,
+              jobName: running.name,
             );
-      if (mounted) {
-        setState(() => _job = updated);
-        _syncRunningTimer();
-        widget.onJobChanged();
-      }
-    } on CrmMobileApiException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.message)));
-      }
-    } finally {
-      if (mounted) setState(() => _updating = false);
+      _syncJobTimer();
+      widget.onJobUpdated?.call(_job);
+      widget.onJobChanged();
+      _showMessage(running == null ? 'Job started.' : 'Job stopped.');
+    });
+  }
+
+  Future<void> _markCompleted() async {
+    if (_completionPending) {
+      _showMessage('Completion is already waiting for approval.');
+      return;
     }
+    await _performCardAction(() async {
+      await widget.api.requestClosure(
+        accessToken: widget.session.accessToken,
+        id: _job.sourceId,
+      );
+      if (!mounted) return;
+      setState(() => _completionPending = true);
+      widget.onJobChanged();
+      _showMessage('Completion request sent for approval.');
+    });
+  }
+
+  Future<void> _performCardAction(Future<void> Function() action) async {
+    setState(() => _isSending = true);
+    try {
+      await action();
+    } on CrmMobileApiException catch (error) {
+      _showMessage(error.message);
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openDetail(
@@ -185,6 +321,7 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
           enquiry: enquiry,
           initialJob: _job,
           onJobChanged: widget.onJobChanged,
+          onJobUpdated: widget.onJobUpdated,
         ),
       ),
     );
@@ -196,7 +333,7 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
       );
       if (mounted) {
         setState(() => _job = refreshed);
-        _syncRunningTimer();
+        widget.onJobUpdated?.call(refreshed);
         widget.onJobChanged();
       }
     } on CrmMobileApiException {
@@ -225,14 +362,104 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
   }
 
   Future<void> _runMoreAction(_JobMoreAction action) async {
-    final opened = switch (action) {
-      _JobMoreAction.location => MobileActions.location(
-        '${_job.customer} ${_job.title}',
+    switch (action) {
+      case _JobMoreAction.pinLocation:
+        await _pinLocation();
+      case _JobMoreAction.toggleJob:
+        await _toggleJob();
+      case _JobMoreAction.markCompleted:
+        await _markCompleted();
+    }
+  }
+
+  Future<Position> _captureCurrentPosition() async {
+    if (widget.capturePosition != null) return widget.capturePosition!();
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      throw const CrmMobileApiException('Turn on device location.');
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      throw const CrmMobileApiException(
+        'Allow location access to pin the current location.',
+      );
+    }
+    return Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 20),
       ),
-      _JobMoreAction.scanDocument => MobileActions.scanDocument(),
-      _JobMoreAction.photo => MobileActions.photo(),
-    };
-    if (!await opened) _showUnavailable(action.label);
+    );
+  }
+
+  Future<void> _pinLocation() async {
+    await _performCardAction(() async {
+      final position = await _captureCurrentPosition();
+      if (!mounted) return;
+      var details = _locationComment(position);
+      final comment = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Pin location'),
+          content: SizedBox(
+            width: 480,
+            child: TextFormField(
+              key: const ValueKey('pinned-location-details'),
+              initialValue: details,
+              autofocus: true,
+              minLines: 5,
+              maxLines: 8,
+              onChanged: (value) => details = value,
+              decoration: const InputDecoration(
+                labelText: 'Location details',
+                alignLabelWithHint: true,
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const ValueKey('submit-pinned-location'),
+              onPressed: () => Navigator.pop(dialogContext, details.trim()),
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      );
+      if (comment == null || comment.isEmpty) return;
+      _job = await widget.api.addJobComment(
+        accessToken: widget.session.accessToken,
+        id: _job.sourceId,
+        comment: comment,
+      );
+      widget.onJobChanged();
+      widget.onJobUpdated?.call(_job);
+      _showMessage('Pinned location saved in comments.');
+    });
+  }
+
+  String _locationComment(Position position) {
+    final capturedAt = (position.timestamp).toLocal();
+    final timestamp =
+        '${capturedAt.year.toString().padLeft(4, '0')}-'
+        '${capturedAt.month.toString().padLeft(2, '0')}-'
+        '${capturedAt.day.toString().padLeft(2, '0')} '
+        '${capturedAt.hour.toString().padLeft(2, '0')}:'
+        '${capturedAt.minute.toString().padLeft(2, '0')}';
+    return 'Pinned location\n'
+        'Latitude: ${position.latitude.toStringAsFixed(6)}\n'
+        'Longitude: ${position.longitude.toStringAsFixed(6)}\n'
+        'Accuracy: ±${position.accuracy.round()} m\n'
+        'Captured: $timestamp\n'
+        'Customer: ${_job.customer}\n'
+        'Enquiry: ${_job.title}';
   }
 
   void _showUnavailable(String action) {
@@ -246,137 +473,163 @@ class _JobEnquiryCardState extends State<JobEnquiryCard> {
 class _JobCardHeader extends StatelessWidget {
   const _JobCardHeader({
     required this.enquiry,
-    required this.running,
-    required this.runningDuration,
-    required this.updating,
-    required this.onChanged,
-  });
-
-  final DashboardListItem enquiry;
-  final bool running;
-  final String? runningDuration;
-  final bool updating;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(7, 5, 9, 5),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.adjust_rounded, size: 15, color: Colors.white),
-              const SizedBox(width: 4),
-              Text(
-                '#${enquiry.enquiryNumber}  ${_statusLabel(enquiry)}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            enquiry.list.toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelMedium,
-          ),
-        ),
-        Icon(
-          running ? Icons.stop_rounded : Icons.play_arrow_rounded,
-          size: 18,
-          color: const Color(0xFF242127),
-        ),
-        const SizedBox(width: 3),
-        Text(
-          running ? 'Stop ${runningDuration ?? ''}'.trim() : 'Start',
-          style: Theme.of(context).textTheme.labelMedium,
-        ),
-        const SizedBox(width: 2),
-        if (updating)
-          const SizedBox(
-            height: 24,
-            width: 38,
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          )
-        else
-          _EmbossedSwitch(value: running, onChanged: onChanged),
-      ],
-    );
-  }
-}
-
-class _JobCardFooter extends StatelessWidget {
-  const _JobCardFooter({
     required this.onCall,
     required this.onWhatsApp,
     required this.onMore,
+    required this.runningJob,
+    required this.isSending,
   });
 
+  final DashboardListItem enquiry;
   final VoidCallback onCall;
   final VoidCallback onWhatsApp;
   final ValueChanged<_JobMoreAction> onMore;
+  final CrmJobExecution? runningJob;
+  final bool isSending;
 
   @override
   Widget build(BuildContext context) {
+    final statusColors = _statusColors(_statusLabel(enquiry));
     return Row(
       children: [
-        IconButton(
-          tooltip: 'Call customer',
-          visualDensity: VisualDensity.compact,
-          onPressed: onCall,
-          icon: const Icon(Icons.call_rounded, size: 21),
-        ),
-        IconButton(
-          tooltip: 'WhatsApp customer',
-          visualDensity: VisualDensity.compact,
-          onPressed: onWhatsApp,
-          icon: const _WhatsAppMark(),
-        ),
-        const Spacer(),
-        PopupMenuButton<_JobMoreAction>(
-          tooltip: 'More job actions',
-          onSelected: onMore,
-          itemBuilder: (context) => _JobMoreAction.values
-              .map(
-                (action) => PopupMenuItem(
-                  value: action,
-                  child: Row(
-                    children: [
-                      Icon(action.icon, size: 19),
-                      const SizedBox(width: 10),
-                      Text(action.label),
-                    ],
+        Expanded(
+          child: Row(
+            children: [
+              Container(
+                key: ValueKey(
+                  'status-badge-${_statusLabel(enquiry).toLowerCase().replaceAll(' ', '-')}',
+                ),
+                padding: const EdgeInsets.fromLTRB(7, 5, 9, 5),
+                decoration: BoxDecoration(
+                  color: statusColors.background,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.adjust_rounded,
+                      size: 15,
+                      color: statusColors.text,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '#${enquiry.enquiryNumber}  ${_statusLabel(enquiry)}',
+                      style: TextStyle(
+                        color: statusColors.text,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                fit: FlexFit.loose,
+                child: Text(
+                  enquiry.list.toUpperCase(),
+                  key: const ValueKey('enquiry-list-name'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Tooltip(
+                message: 'Priority: ${_priorityLabel(enquiry.priority)}',
+                child: Container(
+                  key: ValueKey('priority-dot-${enquiry.priority.name}'),
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: _priorityColor(enquiry.priority),
+                    shape: BoxShape.circle,
                   ),
                 ),
-              )
-              .toList(),
-          child: Container(
-            height: 42,
-            width: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1DDF5),
-              shape: BoxShape.circle,
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x28000000),
-                  blurRadius: 5,
-                  offset: Offset(0, 2),
-                ),
-              ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 3),
+        SizedBox(
+          width: 36,
+          height: 36,
+          child: IconButton(
+            key: const ValueKey('enquiry-card-call'),
+            tooltip: 'Call customer',
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+            padding: EdgeInsets.zero,
+            onPressed: onCall,
+            icon: const Icon(Icons.call_rounded, size: 20),
+          ),
+        ),
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 36,
+          height: 36,
+          child: IconButton(
+            key: const ValueKey('enquiry-card-whatsapp'),
+            tooltip: 'WhatsApp customer',
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+            padding: EdgeInsets.zero,
+            onPressed: onWhatsApp,
+            icon: const _WhatsAppMark(),
+          ),
+        ),
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 36,
+          height: 36,
+          child: PopupMenuButton<_JobMoreAction>(
+            key: const ValueKey('enquiry-card-more'),
+            tooltip: 'More job actions',
+            padding: EdgeInsets.zero,
+            position: PopupMenuPosition.under,
+            onSelected: onMore,
+            itemBuilder: (context) => _JobMoreAction.values
+                .where(
+                  (action) =>
+                      action != _JobMoreAction.markCompleted || !isSending,
+                )
+                .map(
+                  (action) => PopupMenuItem(
+                    enabled: !isSending,
+                    value: action,
+                    child: Row(
+                      children: [
+                        Icon(action.icon, size: 19),
+                        const SizedBox(width: 10),
+                        Text(action.label(runningJob != null)),
+                        if (action == _JobMoreAction.toggleJob &&
+                            runningJob != null) ...[
+                          const SizedBox(width: 18),
+                          _RunningTimerBadge(execution: runningJob!),
+                        ],
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+            child: Container(
+              key: const ValueKey('enquiry-card-more-button'),
+              height: 36,
+              width: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1DDF5),
+                shape: BoxShape.circle,
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x28000000),
+                    blurRadius: 5,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.add_rounded, color: Color(0xFF682A82)),
             ),
-            child: const Icon(Icons.add_rounded, color: Color(0xFF682A82)),
           ),
         ),
       ],
@@ -384,71 +637,80 @@ class _JobCardFooter extends StatelessWidget {
   }
 }
 
-class _EmbossedSwitch extends StatelessWidget {
-  const _EmbossedSwitch({required this.value, required this.onChanged});
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      toggled: value,
-      button: true,
-      label: value ? 'Stop job' : 'Start job',
-      child: GestureDetector(
-        onTap: () => onChanged(!value),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: 50,
-          height: 29,
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: value ? const Color(0xFF70298C) : const Color(0xFFE8DFEC),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: value ? const Color(0xFF70298C) : const Color(0xFFD9C9DE),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: value
-                    ? const Color(0x33702A86)
-                    : const Color(0x1F8E6B99),
-                blurRadius: 3,
-                offset: Offset(1, 2),
-              ),
-              const BoxShadow(
-                color: Color(0x99FFFFFF),
-                blurRadius: 2,
-                offset: Offset(-1, -1),
-              ),
-            ],
-          ),
-          child: AnimatedAlign(
-            duration: const Duration(milliseconds: 180),
-            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFDF9FF),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x2E702A86),
-                    blurRadius: 3,
-                    offset: Offset(1, 1),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+String _creatorDisplayName(String value) {
+  final creator = value.trim();
+  final localPart = creator.split('@').first;
+  return localPart
+      .split(RegExp(r'[._-]+'))
+      .where((part) => part.isNotEmpty)
+      .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+      .join(' ');
 }
+
+String _customerDisplayName(DashboardListItem enquiry) {
+  final customer = enquiry.customer.trim();
+  final mobile = enquiry.mobile.trim();
+  final hasCustomerName =
+      customer.isNotEmpty &&
+      customer.toLowerCase() != 'customer' &&
+      !RegExp(r'^\+?[\d\s().-]+$').hasMatch(customer);
+  if (hasCustomerName) return customer;
+  if (mobile.isNotEmpty) return mobile;
+  return customer.toLowerCase() == 'customer' || customer.isEmpty
+      ? '—'
+      : customer;
+}
+
+class _StatusBadgeColors {
+  const _StatusBadgeColors(this.background, this.text);
+
+  final Color background;
+  final Color text;
+}
+
+_StatusBadgeColors _statusColors(String label) {
+  final code = label.trim().toLowerCase().replaceAll(RegExp(r'[ _]+'), '-');
+  return switch (code) {
+    'new' ||
+    'reopen' => const _StatusBadgeColors(Color(0xFF2563EB), Colors.white),
+    'open' || 'contacted' => const _StatusBadgeColors(
+      Color(0xFF0EA5E9),
+      Color(0xFF020617),
+    ),
+    'won' || 'qualified' => const _StatusBadgeColors(
+      Color(0xFF10B981),
+      Color(0xFF020617),
+    ),
+    'lost' => const _StatusBadgeColors(Color(0xFFDC2626), Colors.white),
+    'hold-for-approval' || 'hold-for-job-out' => const _StatusBadgeColors(
+      Color(0xFFF59E0B),
+      Color(0xFF020617),
+    ),
+    'long-hold' => const _StatusBadgeColors(Color(0xFF7C3AED), Colors.white),
+    'hold-for-spares' => const _StatusBadgeColors(
+      Color(0xFFF97316),
+      Color(0xFF020617),
+    ),
+    'escalation' => const _StatusBadgeColors(Color(0xFFE11D48), Colors.white),
+    'unqualified' ||
+    'closed' => const _StatusBadgeColors(Color(0xFF475569), Colors.white),
+    _ => const _StatusBadgeColors(Color(0xFF475569), Colors.white),
+  };
+}
+
+Color _priorityColor(JobPriority priority) => switch (priority) {
+  JobPriority.low => const Color(0xFF0EA5E9),
+  JobPriority.normal => const Color(0xFF14B8A6),
+  JobPriority.high => const Color(0xFFF97316),
+  JobPriority.urgent => const Color(0xFFF43F5E),
+};
+
+String _priorityLabel(JobPriority priority) => switch (priority) {
+  JobPriority.low => 'Low',
+  JobPriority.normal => 'Normal',
+  JobPriority.high => 'High',
+  JobPriority.urgent => 'Urgent',
+};
 
 class _WhatsAppMark extends StatelessWidget {
   const _WhatsAppMark();
@@ -476,14 +738,91 @@ class _WhatsAppMark extends StatelessWidget {
 }
 
 enum _JobMoreAction {
-  location('Location', Icons.location_on_outlined),
-  scanDocument('Scan document', Icons.document_scanner_outlined),
-  photo('Photo', Icons.photo_camera_outlined);
+  toggleJob(Icons.play_arrow_rounded),
+  markCompleted(Icons.check_circle_outline_rounded),
+  pinLocation(Icons.location_on_outlined);
 
-  const _JobMoreAction(this.label, this.icon);
+  const _JobMoreAction(this.icon);
 
-  final String label;
   final IconData icon;
+
+  String label(bool isRunning) => switch (this) {
+    pinLocation => 'Pin location',
+    toggleJob => isRunning ? 'Stop Job' : 'Start Job',
+    markCompleted => 'Mark Completed',
+  };
+}
+
+class _RunningTimerBadge extends StatefulWidget {
+  const _RunningTimerBadge({required this.execution});
+
+  final CrmJobExecution execution;
+
+  @override
+  State<_RunningTimerBadge> createState() => _RunningTimerBadgeState();
+}
+
+class _RunningClockBadge extends StatelessWidget {
+  const _RunningClockBadge({required this.execution});
+
+  final CrmJobExecution execution;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const ValueKey('enquiry-card-running-clock'),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: const Color(0xFF682A82),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.timer_outlined, size: 13, color: Colors.white),
+        const SizedBox(width: 4),
+        Text(
+          formatJobDurationClock(execution),
+          style: Theme.of(context).textTheme.labelSmall
+              ?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+      ],
+    ),
+  );
+}
+
+class _RunningTimerBadgeState extends State<_RunningTimerBadge> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const ValueKey('enquiry-card-running-timer'),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF1DDF5),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(
+      formatJobDuration(widget.execution),
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: const Color(0xFF682A82),
+        fontWeight: FontWeight.w800,
+      ),
+    ),
+  );
 }
 
 String _statusLabel(DashboardListItem enquiry) {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../app/app_footer_dock.dart';
+import '../../app/dashboard_navigation.dart';
 import '../../core/api/crm_mobile_api.dart';
-import 'assignee_picker.dart';
+import 'inline_select_field.dart';
 
 class HomeEnquiryFormPage extends StatefulWidget {
   const HomeEnquiryFormPage({
@@ -35,7 +37,6 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
   String? _customerId;
   String? _statusId;
   String? _priorityId;
-  DateTime? _dueDate;
   String? _matchedPartyName;
   var _isSaving = false;
   var _focusRequested = false;
@@ -69,11 +70,14 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
           child: FilledButton(
             onPressed: _isSaving ? null : _save,
             style: FilledButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              backgroundColor: const Color(0xFF4D1F68),
+              minimumSize: const Size(84, 42),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              backgroundColor: crmDockIconColor,
               foregroundColor: Colors.white,
+              disabledBackgroundColor: crmDockIconColor.withValues(alpha: .65),
+              disabledForegroundColor: Colors.white.withValues(alpha: .8),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
             child: _isSaving
@@ -86,6 +90,7 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
         ),
       ],
     ),
+    bottomNavigationBar: _buildBottomDock(context),
     body: FutureBuilder<CrmCallEnquiryFormData>(
       future: _formData,
       builder: (context, snapshot) {
@@ -116,7 +121,10 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
             ),
             if (_matchedPartyName case final name?) ...[
               const SizedBox(height: 6),
-              _MatchedPartyLabel(name: name),
+              _MatchedPartyLabel(
+                key: const ValueKey('matched-enquiry-contact'),
+                name: name,
+              ),
             ],
             const SizedBox(height: 14),
             TextField(
@@ -128,7 +136,7 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
                 _matchedPartyName = null;
               }),
               decoration: InputDecoration(
-                labelText: 'Customer name',
+                labelText: 'Customer name (optional)',
                 suffixIcon: IconButton(
                   tooltip: 'Find contact for this phone number',
                   onPressed: _lookupContact,
@@ -137,77 +145,35 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
               ),
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _group,
-              decoration: const InputDecoration(labelText: 'List'),
-              items: formData.groups
+            InlineSelectField(
+              label: 'List',
+              value: _group,
+              options: formData.groups
                   .map(
-                    (group) => DropdownMenuItem(
+                    (group) => InlineSelectOption(
                       value: group.value,
-                      child: Text(group.label),
+                      label: group.label,
                     ),
                   )
                   .toList(),
               onChanged: (value) => setState(() => _group = value),
             ),
             const SizedBox(height: 16),
-            AssigneePicker(
-              assignees: formData.assignees,
+            InlineSelectField(
+              label: 'Allocated',
               value: _assignee,
+              options: [
+                const InlineSelectOption(label: 'Not allocated', value: null),
+                ...formData.assignees.map(
+                  (assignee) => InlineSelectOption(
+                    label: assignee.name,
+                    value: assignee.id,
+                  ),
+                ),
+              ],
               onChanged: (value) => setState(() => _assignee = value),
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _priorityId,
-              decoration: const InputDecoration(labelText: 'Priority'),
-              items: formData.priorities
-                  .map(
-                    (priority) => DropdownMenuItem(
-                      value: priority.id,
-                      child: Text(priority.name),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) => setState(() => _priorityId = value),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _statusId,
-              decoration: const InputDecoration(labelText: 'Status'),
-              items: formData.statuses
-                  .map(
-                    (status) => DropdownMenuItem(
-                      value: status.id,
-                      child: Text(status.name),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) => setState(() => _statusId = value),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Due date'),
-              subtitle: Text(
-                _dueDate == null ? 'Not set' : _displayDate(_dueDate!),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_dueDate != null)
-                    IconButton(
-                      tooltip: 'Clear due date',
-                      onPressed: () => setState(() => _dueDate = null),
-                      icon: const Icon(Icons.clear),
-                    ),
-                  IconButton(
-                    tooltip: 'Choose due date',
-                    onPressed: _chooseDueDate,
-                    icon: const Icon(Icons.calendar_month_outlined),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
             TextField(
               key: const ValueKey('enquiry-message'),
               controller: _message,
@@ -230,17 +196,6 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
   Future<CrmCallEnquiryFormData> _loadFormData() =>
       widget.api.callEnquiryFormData(widget.session.accessToken);
 
-  Future<void> _chooseDueDate() async {
-    final now = DateTime.now();
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: _dueDate ?? now,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 10),
-    );
-    if (selected != null) setState(() => _dueDate = selected);
-  }
-
   static CrmCallEnquiryStatus? _preferredStatus(
     List<CrmCallEnquiryStatus> statuses,
     String code,
@@ -253,12 +208,6 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
   ) => priorities
       .where((priority) => priority.code.toLowerCase() == code)
       .firstOrNull;
-
-  static String _date(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
-  static String _displayDate(DateTime date) =>
-      '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}';
 
   void _reload() => setState(() {
     _focusRequested = false;
@@ -286,10 +235,6 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
       _showMessage('Add an enquiry message and choose a list.');
       return;
     }
-    if (_customerId == null && customer.isEmpty && mobile.isEmpty) {
-      _showMessage('Enter a customer name or mobile number.');
-      return;
-    }
     if (mobile.isNotEmpty && mobile.length != 10) {
       _showMessage('Enter a 10-digit mobile number.');
       return;
@@ -306,7 +251,6 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
         message: message,
         statusId: _statusId,
         priorityId: _priorityId,
-        dueDate: _dueDate == null ? null : _date(_dueDate!),
       );
       if (mounted) Navigator.pop(context, job);
     } on CrmMobileApiException catch (error) {
@@ -314,6 +258,25 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  Widget? _buildBottomDock(BuildContext context) {
+    final dock = DashboardDockScope.maybeOf(context);
+    if (dock == null ||
+        dock.dockIsGlobal ||
+        MediaQuery.viewInsetsOf(context).bottom > 0) {
+      return null;
+    }
+    return SafeArea(
+      top: false,
+      child: AppFooterDock(
+        selectedIndex: dock.navigation.selectedIndex,
+        dashboardMode: false,
+        jobBadgeCount: dock.navigation.jobBadgeCount,
+        onDashboardCallLogs: dock.onDashboardCallLogs,
+        onDestinationSelected: dock.onDestinationSelected,
+      ),
+    );
   }
 
   void _clearMatchedParty(String _) {
@@ -334,7 +297,7 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: FutureBuilder<List<_PartyLookup>>(
           future: lookup,
           builder: (context, snapshot) {
@@ -364,33 +327,103 @@ class _HomeEnquiryFormPageState extends State<HomeEnquiryFormPage> {
                 child: Center(child: Text('No contact found for $mobile.')),
               );
             }
-            return ListView(
-              shrinkWrap: true,
-              children: parties
-                  .map(
-                    (party) => ListTile(
-                      contentPadding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
-                      leading: Icon(
-                        party.type == 'Customer'
-                            ? Icons.person_outline_rounded
-                            : Icons.local_shipping_outlined,
-                      ),
-                      title: Text(party.name),
-                      subtitle: Text('${party.type} found for $mobile'),
-                      trailing: TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _matchedPartyName = party.name;
-                            _customer.text = party.name;
-                            _customerId = party.id;
-                          });
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Select'),
+            var selectedPartyId = _customerId;
+            return StatefulBuilder(
+              builder: (context, setSheetState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: parties.map((party) {
+                          final selected = selectedPartyId == party.id;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 3,
+                            ),
+                            child: Material(
+                              color: selected
+                                  ? Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer
+                                        .withValues(alpha: 0.55)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                              child: ListTile(
+                                key: ValueKey('contact-option-${party.id}'),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: selected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context)
+                                              .colorScheme
+                                              .outlineVariant,
+                                  ),
+                                ),
+                                onTap: () => setSheetState(
+                                  () => selectedPartyId = party.id,
+                                ),
+                                contentPadding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  8,
+                                  16,
+                                  8,
+                                ),
+                                leading: Icon(
+                                  party.type == 'Customer'
+                                      ? Icons.person_outline_rounded
+                                      : Icons.local_shipping_outlined,
+                                ),
+                                title: Text(party.name),
+                                subtitle: Text(
+                                  '${party.type} found for $mobile',
+                                ),
+                                trailing: selected
+                                    ? Icon(
+                                        Icons.check_circle_rounded,
+                                        key: const ValueKey(
+                                          'selected-contact-check',
+                                        ),
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ),
-                  )
-                  .toList(),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          key: const ValueKey('use-selected-contact'),
+                          onPressed: selectedPartyId == null
+                              ? null
+                              : () {
+                                  final party = parties.firstWhere(
+                                    (item) => item.id == selectedPartyId,
+                                  );
+                                  setState(() {
+                                    _matchedPartyName = party.name;
+                                    _customer.text = party.name;
+                                    _customerId = party.id;
+                                  });
+                                  Navigator.pop(sheetContext);
+                                },
+                          child: const Text('Use contact'),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             );
           },
         ),
@@ -429,7 +462,7 @@ class _PartyLookup {
 }
 
 class _MatchedPartyLabel extends StatelessWidget {
-  const _MatchedPartyLabel({required this.name});
+  const _MatchedPartyLabel({required this.name, super.key});
 
   final String name;
 

@@ -98,6 +98,109 @@ test("mobile enquiries use the local create contract", async () => {
   assert.equal(createArgumentCount, 3);
 });
 
+test("mobile enquiries can be saved without creating a blank customer", async () => {
+  let saved: EnquiryInput | undefined;
+  let contactResolutionCalls = 0;
+  const repository = {
+    create: async (
+      input: EnquiryInput,
+      _actor: string,
+      resolveContact?: (tx: never) => Promise<EnquiryInput>
+    ) => {
+      saved = resolveContact ? await resolveContact({} as never) : input;
+      return { ...record(), ...saved } as EnquiryRecord;
+    }
+  } as unknown as EnquiryRepository;
+  const service = new EnquiryService(
+    repository,
+    {
+      ...relations,
+      resolveOrCreateCustomer: async () => {
+        contactResolutionCalls += 1;
+        return { id: 2, name: "Should not be created" };
+      }
+    },
+    { actorEmail: "mobile@example.com", actorUserId: 2, canViewAll: false }
+  );
+
+  await service.create(
+    {
+      ...record(),
+      source: "mobile",
+      contactId: null,
+      capturedName: null,
+      capturedPhone: null
+    },
+    "mobile@example.com"
+  );
+
+  assert.equal(saved?.contactId, null);
+  assert.equal(saved?.capturedName, null);
+  assert.equal(saved?.capturedPhone, null);
+  assert.equal(contactResolutionCalls, 0);
+});
+
+test("mobile enquiry title, details, and new customer name are stored as plain text", async () => {
+  let saved: EnquiryInput | undefined;
+  const repository = {
+    create: async (
+      input: EnquiryInput,
+      _actor: string,
+      resolveContact?: (tx: never) => Promise<EnquiryInput>
+    ) => {
+      saved = resolveContact ? await resolveContact({} as never) : input;
+      return { ...record(), ...saved } as EnquiryRecord;
+    }
+  } as unknown as EnquiryRepository;
+  const service = new EnquiryService(repository, relations, {
+    actorEmail: "mobile@example.com",
+    actorUserId: 2,
+    canViewAll: false
+  });
+
+  await service.create(
+    {
+      ...record(),
+      source: "mobile",
+      contactId: null,
+      title: '<div class="ql-editor read-mode"><p><strong>Repair request</strong></p></div>',
+      description: "<p>Replace <b>damaged</b> screen</p><script>alert(1)</script>",
+      capturedName: "<b>New Customer</b>",
+      capturedPhone: null
+    },
+    "mobile@example.com"
+  );
+
+  assert.equal(saved?.title, "Repair request");
+  assert.equal(saved?.description, "Replace damaged screen");
+  assert.equal(saved?.capturedName, "New Customer");
+  assert.equal(saved?.contactId, 1);
+});
+
+test("non-mobile enquiries still require a customer or mobile number", async () => {
+  let createCalls = 0;
+  const repository = {
+    create: async () => {
+      createCalls += 1;
+      return record();
+    }
+  } as unknown as EnquiryRepository;
+  const service = new EnquiryService(repository, relations, {
+    actorEmail: "web@example.com",
+    actorUserId: 2,
+    canViewAll: false
+  });
+
+  await assert.rejects(
+    service.create(
+      { ...record(), contactId: null, capturedName: null, capturedPhone: null },
+      "web@example.com"
+    ),
+    /customer name or mobile number/i
+  );
+  assert.equal(createCalls, 0);
+});
+
 test("list scope and detail access use the server actor", async () => {
   let options: EnquiryListOptions | undefined;
   const repository = {

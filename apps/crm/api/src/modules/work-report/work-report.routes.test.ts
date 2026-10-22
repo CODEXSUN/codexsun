@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { workReportInput } from "./work-report.routes.js";
+import { checkpointCycleCommentBody } from "./work-report.repository.js";
 
 const base = {
   enquiryId: 12,
@@ -79,4 +80,30 @@ for (const [name, expected, values] of cases) {
 test("checkpoint retry identity is preserved for both directions", () => {
   assert.equal(checkpoint("check-in").success, true);
   assert.equal(checkpoint("check-out", { requestId: "checkout-request-02" }).success, true);
+});
+
+test("completed checkpoint comments include both notes and captured locations", () => {
+  const body = checkpointCycleCommentBody(
+    {
+      body: "Arrived at the site.",
+      latitude: 13.08,
+      longitude: 80.27,
+      accuracy_meters: 8,
+      captured_at: "2026-10-22T08:05:09.000Z"
+    },
+    {
+      body: "Work finished.",
+      latitude: 13.09,
+      longitude: 80.28,
+      accuracy_meters: 10,
+      captured_at: "2026-10-22T13:05:09.000Z"
+    }
+  );
+  assert.match(body, /Check in\nArrived at the site\./);
+  assert.match(body, /13\.08, 80\.27 · 8 m/);
+  assert.match(body, /Check out\nWork finished\./);
+  assert.match(body, /13\.09, 80\.28 · 10 m/);
+  assert.match(body, /Captured @ 22-10-26 08:05:09 AM/);
+  assert.match(body, /Captured @ 22-10-26 01:05:09 PM/);
+  assert.doesNotMatch(body, /Captured: 2026-/);
 });

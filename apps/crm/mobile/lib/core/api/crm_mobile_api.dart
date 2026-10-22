@@ -284,6 +284,25 @@ class CrmMobileApi {
     return (data as List).cast<Map<String, dynamic>>();
   }
 
+  Future<List<Map<String, dynamic>>> enquirySchedules(
+    String accessToken, {
+    required int enquiryId,
+  }) async {
+    final data = await _request(
+      '/crm/schedules',
+      accessToken: accessToken,
+      query: {
+        'view': 'schedules',
+        'sourceType': 'enquiry',
+        'sourceId': '$enquiryId',
+      },
+    );
+    if (data is! List) {
+      throw const CrmMobileApiException('Unexpected schedules response.');
+    }
+    return data.whereType<Map<String, dynamic>>().toList();
+  }
+
   Future<void> sendWorkReport(
     String accessToken,
     Map<String, dynamic> payload,
@@ -722,17 +741,17 @@ class CrmMobileApi {
         .whereType<Map<String, dynamic>>();
     final priorities = (options['priorities'] as List)
         .whereType<Map<String, dynamic>>();
-    final status = statuses.firstWhere(
-      (item) => statusId != null
-          ? item['id']?.toString() == statusId
-          : (item['code'] as String? ?? '').toLowerCase() == 'new',
-      orElse: () => statuses.first,
+    final status = _requiredEnquiryOption(
+      statuses,
+      selectedId: statusId,
+      defaultCode: 'new',
+      label: 'New status',
     );
-    final priority = priorities.firstWhere(
-      (item) => priorityId != null
-          ? item['id']?.toString() == priorityId
-          : (item['code'] as String? ?? '').toLowerCase() == 'normal',
-      orElse: () => priorities.first,
+    final priority = _requiredEnquiryOption(
+      priorities,
+      selectedId: priorityId,
+      defaultCode: 'normal',
+      label: 'Normal priority',
     );
     final data = await _request(
       '/crm/enquiries',
@@ -742,9 +761,12 @@ class CrmMobileApi {
         'title': title,
         'description': message,
         'contactId': int.tryParse(customer),
-        'capturedName': int.tryParse(customer) == null ? customer : null,
+        'capturedName':
+            customer.trim().isEmpty || int.tryParse(customer) != null
+            ? null
+            : customer.trim(),
         'capturedEmail': null,
-        'capturedPhone': mobile,
+        'capturedPhone': mobile.isEmpty ? null : mobile,
         'source': 'mobile',
         'sourceReference': null,
         'listInId': enquiryGroup,
@@ -757,6 +779,24 @@ class CrmMobileApi {
       },
     );
     return CrmJob.fromJson(data as Map<String, dynamic>);
+  }
+
+  Map<String, dynamic> _requiredEnquiryOption(
+    Iterable<Map<String, dynamic>> options, {
+    required String? selectedId,
+    required String defaultCode,
+    required String label,
+  }) {
+    final option = options.where((item) {
+      if (selectedId != null) return item['id']?.toString() == selectedId;
+      return (item['code'] as String? ?? '').toLowerCase() == defaultCode;
+    }).firstOrNull;
+    if (option == null) {
+      throw CrmMobileApiException(
+        '$label is not available. Refresh and try again.',
+      );
+    }
+    return option;
   }
 
   Future<CrmJob> startJob({
@@ -1430,6 +1470,29 @@ class CrmJob {
   final List<CrmJobExecution> jobs;
   final List<CrmActivity> activities;
 
+  CrmJob withJobs(List<CrmJobExecution> updatedJobs) => CrmJob(
+    id: id,
+    sourceId: sourceId,
+    number: number,
+    title: title,
+    customer: customer,
+    mobile: mobile,
+    assignedTo: assignedTo,
+    list: list,
+    dueDate: dueDate,
+    createdBy: createdBy,
+    createdAt: createdAt,
+    lastAction: lastAction,
+    status: status,
+    priority: priority,
+    statusId: statusId,
+    priorityId: priorityId,
+    listInId: listInId,
+    comments: comments,
+    jobs: updatedJobs,
+    activities: activities,
+  );
+
   factory CrmJob.fromJson(Map<String, dynamic> json) {
     final comments = (json['messages'] as List? ?? [])
         .whereType<Map<String, dynamic>>()
@@ -1474,10 +1537,12 @@ class CrmJob {
                 : schedule.first['scheduledOn'] as String?),
       ),
       createdBy: normalizeCrmText(
-        json['createdBy'] is Map<String, dynamic>
-            ? (json['createdBy'] as Map<String, dynamic>)['name'] as String? ??
-                  AppConfig.brandName
-            : json['createdBy'] as String? ?? AppConfig.brandName,
+        json['createdByName'] as String? ??
+            (json['createdBy'] is Map<String, dynamic>
+                ? (json['createdBy'] as Map<String, dynamic>)['name']
+                          as String? ??
+                      AppConfig.brandName
+                : json['createdBy'] as String? ?? AppConfig.brandName),
       ),
       createdAt:
           DateTime.tryParse(

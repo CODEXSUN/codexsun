@@ -10,6 +10,14 @@ import 'job_duration.dart';
 import 'job_work_feed.dart';
 
 const _detailSurfaceTone = Color(0xFFFCF9FD);
+const _mobileDetailSections = <(String, String)>[
+  ('comments', 'Comments'),
+  ('actions', 'Action'),
+  ('checkpoints', 'Check in / out'),
+  ('jobs', 'Jobs'),
+  ('charges', 'Charges'),
+  ('schedules', 'Schedules'),
+];
 
 class JobDetailPage extends StatefulWidget {
   const JobDetailPage({
@@ -19,6 +27,7 @@ class JobDetailPage extends StatefulWidget {
     required this.initialJob,
     this.capturePosition,
     this.onJobChanged,
+    this.onJobUpdated,
     super.key,
   });
 
@@ -28,6 +37,7 @@ class JobDetailPage extends StatefulWidget {
   final CrmJob initialJob;
   final Future<Position> Function()? capturePosition;
   final VoidCallback? onJobChanged;
+  final ValueChanged<CrmJob>? onJobUpdated;
 
   @override
   State<JobDetailPage> createState() => _JobDetailPageState();
@@ -35,14 +45,15 @@ class JobDetailPage extends StatefulWidget {
 
 class _JobDetailPageState extends State<JobDetailPage>
     with WidgetsBindingObserver {
-  final _replyController = TextEditingController();
   late CrmJob _job;
   ClosureRequest? _closureRequest;
   List<CrmEnquiryLocation> _locations = const [];
   List<Map<String, dynamic>> _workReports = [];
+  List<Map<String, dynamic>> _schedules = [];
   bool _checkedIn = false;
   var _isLoading = false;
   var _isSending = false;
+  var _selectedSection = 'comments';
   Timer? _runningTimer;
   Timer? _closureTimer;
 
@@ -65,7 +76,6 @@ class _JobDetailPageState extends State<JobDetailPage>
     WidgetsBinding.instance.removeObserver(this);
     _closureTimer?.cancel();
     _runningTimer?.cancel();
-    _replyController.dispose();
     super.dispose();
   }
 
@@ -103,6 +113,9 @@ class _JobDetailPageState extends State<JobDetailPage>
               job: _job,
               onTapStatus: _isSending ? () {} : _showStatusPicker,
               onOpenNewCall: _isSending ? () {} : _openNewCall,
+              selectedSection: _selectedSection,
+              onSelectSection: (section) =>
+                  setState(() => _selectedSection = section),
             ),
             if (_isLoading) const LinearProgressIndicator(minHeight: 2),
             if (_closureRequest?.status == 'pending')
@@ -127,14 +140,12 @@ class _JobDetailPageState extends State<JobDetailPage>
                 session: widget.session,
                 locations: _locations,
                 reports: _workReports,
+                schedules: _schedules,
+                selectedSection: _selectedSection,
               ),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: _ReplyComposer(
-        controller: _replyController,
-        onSend: _isSending ? null : _addComment,
       ),
     );
   }
@@ -156,6 +167,10 @@ class _JobDetailPageState extends State<JobDetailPage>
           accessToken: widget.session.accessToken,
           enquiryId: widget.initialJob.sourceId,
         ),
+        widget.api.enquirySchedules(
+          widget.session.accessToken,
+          enquiryId: widget.initialJob.id,
+        ),
         widget.api.workCheckpoint(
           widget.session.accessToken,
           enquiryId: widget.initialJob.id,
@@ -168,10 +183,12 @@ class _JobDetailPageState extends State<JobDetailPage>
           _closureRequest = results[1] as ClosureRequest?;
           _workReports = results[2] as List<Map<String, dynamic>>;
           _locations = results[3] as List<CrmEnquiryLocation>;
-          _checkedIn = results[4] as bool;
+          _schedules = results[4] as List<Map<String, dynamic>>;
+          _checkedIn = results[5] as bool;
         });
         _syncRunningTimer();
         widget.onJobChanged?.call();
+        widget.onJobUpdated?.call(_job);
       }
     } on CrmMobileApiException catch (error) {
       if (mounted) _showError(error.message);
@@ -190,36 +207,9 @@ class _JobDetailPageState extends State<JobDetailPage>
       closurePending: _closureRequest?.status == 'pending',
       closed: _closureRequest?.status == 'approved',
       capturePosition: widget.capturePosition,
+      onEnquiryUpdated: widget.onJobUpdated,
     );
     if (saved && mounted) await _refresh();
-  }
-
-  Future<void> _addComment() async {
-    final message = _replyController.text.trim();
-    if (message.isEmpty) return;
-    await _saveComment(message);
-    _replyController.clear();
-    if (mounted) FocusScope.of(context).unfocus();
-  }
-
-  Future<void> _saveComment(String comment) async {
-    setState(() => _isSending = true);
-    try {
-      final job = await widget.api.addJobComment(
-        accessToken: widget.session.accessToken,
-        id: widget.initialJob.sourceId,
-        comment: comment,
-      );
-      if (mounted) {
-        setState(() => _job = job);
-        _syncRunningTimer();
-        widget.onJobChanged?.call();
-      }
-    } on CrmMobileApiException catch (error) {
-      if (mounted) _showError(error.message);
-    } finally {
-      if (mounted) setState(() => _isSending = false);
-    }
   }
 
   Future<void> _openNewCall() async {
@@ -233,6 +223,7 @@ class _JobDetailPageState extends State<JobDetailPage>
         setState(() => _job = updated);
         _syncRunningTimer();
         widget.onJobChanged?.call();
+        widget.onJobUpdated?.call(_job);
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
@@ -337,6 +328,7 @@ class _JobDetailPageState extends State<JobDetailPage>
           setState(() => _job = updated);
           _syncRunningTimer();
           widget.onJobChanged?.call();
+          widget.onJobUpdated?.call(_job);
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
@@ -368,12 +360,16 @@ class _CompactJobDetail extends StatelessWidget {
     required this.job,
     required this.onTapStatus,
     required this.onOpenNewCall,
+    required this.selectedSection,
+    required this.onSelectSection,
   });
 
   final DashboardListItem enquiry;
   final CrmJob job;
-  final VoidCallback onTapStatus;
+  final VoidCallback? onTapStatus;
   final VoidCallback onOpenNewCall;
+  final String selectedSection;
+  final ValueChanged<String> onSelectSection;
 
   @override
   Widget build(BuildContext context) {
@@ -384,80 +380,150 @@ class _CompactJobDetail extends StatelessWidget {
         color: _detailSurfaceTone,
         border: Border(bottom: BorderSide(color: Color(0xFFE7E1E9))),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
-            children: [
-              IconButton(
-                tooltip: 'Back to jobs',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-              _DetailStatusBadge(
-                number: enquiry.enquiryNumber,
-                status: enquiry.status,
-                statusName: job.status.isNotEmpty ? job.status : null,
-                onTap: onTapStatus,
-              ),
-              if (job.status.toLowerCase() == 'new') ...[
-                const SizedBox(width: 8),
-                FilledButton.tonalIcon(
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+          Padding(
+            padding: const EdgeInsets.only(right: 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compactHeader = constraints.maxWidth < 380;
+                    return Row(
+                      children: [
+                        IconButton(
+                          tooltip: 'Back to jobs',
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 32,
+                            height: 32,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.arrow_back_rounded),
+                        ),
+                        _DetailStatusBadge(
+                          number: enquiry.enquiryNumber,
+                          status: enquiry.status,
+                          statusName: job.status.isNotEmpty ? job.status : null,
+                          onTap: onTapStatus,
+                        ),
+                        if (job.status.toLowerCase() == 'new') ...[
+                          if (compactHeader)
+                            IconButton(
+                              tooltip: 'Open call',
+                              visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints.tightFor(
+                                width: 32,
+                                height: 32,
+                              ),
+                              padding: EdgeInsets.zero,
+                              onPressed: onOpenNewCall,
+                              icon: const Icon(Icons.call_made, size: 14),
+                            )
+                          else ...[
+                            const SizedBox(width: 8),
+                            FilledButton.tonalIcon(
+                              style: FilledButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                              ),
+                              onPressed: onOpenNewCall,
+                              icon: const Icon(Icons.call_made, size: 14),
+                              label: const Text(
+                                'Open call',
+                                style: TextStyle(fontSize: 11),
+                              ),
+                            ),
+                          ],
+                        ],
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEBE6F0),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              enquiry.list.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF5A5260),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        _DetailJobTimer(job: job),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  enquiry.title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1E1724),
                   ),
-                  onPressed: onOpenNewCall,
-                  icon: const Icon(Icons.call_made, size: 14),
-                  label: const Text(
-                    'Open call',
-                    style: TextStyle(fontSize: 11),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Created by ${enquiry.createdBy} · ${enquiry.createdDate} | ${enquiry.createdAgo}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF6D6870),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEBE6F0),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  enquiry.list.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF5A5260),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              _DetailJobTimer(job: job),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            enquiry.title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF1E1724),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Created by ${enquiry.createdBy} · ${enquiry.createdDate} | ${enquiry.createdAgo}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF6D6870),
-              fontWeight: FontWeight.w500,
+          Positioned(
+            top: -4,
+            right: -8,
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: PopupMenuButton<String>(
+                key: const ValueKey('show-page-section-menu'),
+                tooltip: 'Select section',
+                icon: const Icon(Icons.more_vert_rounded),
+                iconSize: 24,
+                padding: EdgeInsets.zero,
+                position: PopupMenuPosition.under,
+                onSelected: onSelectSection,
+                itemBuilder: (context) => [
+                  for (final section in _mobileDetailSections)
+                    PopupMenuItem<String>(
+                      value: section.$1,
+                      child: Row(
+                        children: [
+                          Icon(
+                            section.$1 == selectedSection
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_unchecked,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(section.$2)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
@@ -573,63 +639,3 @@ String _detailStatusLabel(JobStatus status) => switch (status) {
   JobStatus.won => 'Won',
   JobStatus.lost => 'Lost',
 };
-
-class _ReplyComposer extends StatelessWidget {
-  const _ReplyComposer({required this.controller, required this.onSend});
-
-  final TextEditingController controller;
-  final VoidCallback? onSend;
-
-  @override
-  Widget build(BuildContext context) {
-    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      padding: EdgeInsets.only(
-        bottom: keyboardInset == 0 ? 0 : keyboardInset + 8,
-      ),
-      child: SafeArea(
-        top: false,
-        bottom: keyboardInset == 0,
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            color: _detailSurfaceTone,
-            border: Border(top: BorderSide(color: Color(0xFFF0ECF2))),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 9, 14, 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    minLines: 1,
-                    maxLines: 3,
-                    textInputAction: TextInputAction.newline,
-                    decoration: InputDecoration(
-                      hintText: 'Write a comment only',
-                      isDense: true,
-                      filled: true,
-                      fillColor: const Color(0xFFF9F7FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  tooltip: 'Send reply',
-                  onPressed: onSend,
-                  icon: const Icon(Icons.send, size: 19),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

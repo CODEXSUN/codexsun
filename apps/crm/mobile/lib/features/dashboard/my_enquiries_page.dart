@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../core/api/crm_mobile_api.dart';
 import 'dashboard_list_page.dart';
+import 'dashboard_jobs_feed.dart';
 import 'home_enquiry_form_page.dart';
 import 'job_enquiry_card.dart';
+import 'job_duration.dart';
 
 class MyEnquiriesPage extends StatefulWidget {
   const MyEnquiriesPage({
@@ -11,6 +14,9 @@ class MyEnquiriesPage extends StatefulWidget {
     required this.session,
     this.onSignOut,
     this.embedded = false,
+    this.capturePosition,
+    this.onJobUpdated,
+    this.jobsFeed,
     super.key,
   });
 
@@ -18,6 +24,9 @@ class MyEnquiriesPage extends StatefulWidget {
   final UserSession session;
   final VoidCallback? onSignOut;
   final bool embedded;
+  final Future<Position> Function()? capturePosition;
+  final ValueChanged<CrmJob>? onJobUpdated;
+  final DashboardJobsFeed? jobsFeed;
 
   @override
   State<MyEnquiriesPage> createState() => MyEnquiriesPageState();
@@ -93,140 +102,13 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final content = Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search title, customer, phone...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                _searchQuery = '';
-                                _page = 1;
-                                _enquiries = _load();
-                              });
-                            },
-                          )
-                        : null,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFDDD8E0)),
-                    ),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value.trim();
-                    });
-                  },
-                  onSubmitted: (value) {
-                    setState(() {
-                      _searchQuery = value.trim();
-                      _page = 1;
-                      _enquiries = _load();
-                    });
-                  },
-                ),
-              ),
-              if (widget.embedded) ...[
-                const SizedBox(width: 4),
-                _buildListFilterButton(),
-                _buildStatusFilterButton(),
-              ],
-            ],
-          ),
-        ),
-        Expanded(
-          child: FutureBuilder<CrmPage<CrmJob>>(
-            future: _enquiries,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) return _LoadError(onRetry: refresh);
-              final result =
-                  snapshot.data ??
-                  const CrmPage<CrmJob>(
-                    items: [],
-                    page: 1,
-                    pageSize: 100,
-                    total: 0,
-                  );
-              final allEnquiries = result.items;
-              final enquiries = _filter(allEnquiries);
-              if (enquiries.isEmpty && result.total == 0) {
-                return Center(
-                  child: Text(
-                    allEnquiries.isEmpty
-                        ? 'No enquiries found.'
-                        : 'No enquiries are in this list.',
-                  ),
-                );
-              }
-              return RefreshIndicator(
-                onRefresh: refresh,
-                child: ListView(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    6,
-                    16,
-                    widget.embedded ? 84 : 28,
-                  ),
-                  children: [
-                    if (enquiries.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Center(
-                          child: Text('No enquiries are in this list.'),
-                        ),
-                      ),
-                    ...enquiries.map(
-                      (enquiry) => Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: JobEnquiryCard(
-                          api: widget.api,
-                          session: widget.session,
-                          enquiry: DashboardListItem.fromCrmJob(enquiry),
-                          job: enquiry,
-                          onJobChanged: refresh,
-                        ),
-                      ),
-                    ),
-                    if (result.total > 100)
-                      _CrmPageControls(
-                        page: result.page,
-                        pageCount: result.pageCount,
-                        total: result.total,
-                        label: 'enquiries',
-                        onPrevious: result.hasPrevious
-                            ? () => _changePage(result.page - 1)
-                            : null,
-                        onNext: result.hasNext
-                            ? () => _changePage(result.page + 1)
-                            : null,
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
+    final jobsFeed = widget.jobsFeed;
+    final content = jobsFeed == null
+        ? _buildContent()
+        : ListenableBuilder(
+            listenable: jobsFeed,
+            builder: (context, _) => _buildContent(),
+          );
 
     if (widget.embedded) {
       return content;
@@ -234,10 +116,10 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enquiries'),
+        title: const Text('Jobs'),
         actions: [
           IconButton(
-            tooltip: 'New enquiry',
+            tooltip: 'New job',
             onPressed: _openNewEnquiry,
             icon: const Icon(Icons.add_rounded),
           ),
@@ -271,12 +153,154 @@ class MyEnquiriesPageState extends State<MyEnquiriesPage> {
       ),
       body: content,
       floatingActionButton: FloatingActionButton(
-        tooltip: 'New enquiry',
+        tooltip: 'New job',
         onPressed: _openNewEnquiry,
         child: const Icon(Icons.add_rounded),
       ),
     );
   }
+
+  Widget _buildContent() => Column(
+    children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search title, customer, phone...',
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                              _page = 1;
+                              _enquiries = _load();
+                            });
+                          },
+                        )
+                      : null,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFDDD8E0)),
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.trim();
+                  });
+                },
+                onSubmitted: (value) {
+                  setState(() {
+                    _searchQuery = value.trim();
+                    _page = 1;
+                    _enquiries = _load();
+                  });
+                },
+              ),
+            ),
+            if (widget.embedded) ...[
+              const SizedBox(width: 4),
+              _buildListFilterButton(),
+              _buildStatusFilterButton(),
+            ],
+          ],
+        ),
+      ),
+      Expanded(
+        child: FutureBuilder<CrmPage<CrmJob>>(
+          future: _enquiries,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) return _LoadError(onRetry: refresh);
+            final result =
+                snapshot.data ??
+                const CrmPage<CrmJob>(
+                  items: [],
+                  page: 1,
+                  pageSize: 100,
+                  total: 0,
+                );
+            final allEnquiries = result.items;
+            final enquiries = sortRunningJobsFirst(
+              _filter(allEnquiries).map((enquiry) {
+                final sharedJob = widget.jobsFeed?.jobFor(enquiry.sourceId);
+                return sharedJob == null
+                    ? enquiry
+                    : enquiry.withJobs(sharedJob.jobs);
+              }),
+            );
+            if (enquiries.isEmpty && result.total == 0) {
+              return Center(
+                child: Text(
+                  allEnquiries.isEmpty
+                      ? 'No jobs found.'
+                      : 'No jobs are in this list.',
+                ),
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: refresh,
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  6,
+                  16,
+                  widget.embedded ? 84 : 28,
+                ),
+                children: [
+                  if (enquiries.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: Text('No jobs are in this list.')),
+                    ),
+                  ...enquiries.map((cardJob) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: JobEnquiryCard(
+                        api: widget.api,
+                        session: widget.session,
+                        enquiry: DashboardListItem.fromCrmJob(cardJob),
+                        job: cardJob,
+                        onJobChanged: refresh,
+                        capturePosition: widget.capturePosition,
+                        onJobUpdated: widget.onJobUpdated,
+                      ),
+                    );
+                  }),
+                  if (result.total > 100)
+                    _CrmPageControls(
+                      page: result.page,
+                      pageCount: result.pageCount,
+                      total: result.total,
+                      label: 'jobs',
+                      onPrevious: result.hasPrevious
+                          ? () => _changePage(result.page - 1)
+                          : null,
+                      onNext: result.hasNext
+                          ? () => _changePage(result.page + 1)
+                          : null,
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    ],
+  );
 
   Future<CrmPage<CrmJob>> _load() async {
     final token = widget.session.accessToken;
@@ -370,7 +394,7 @@ class _LoadError extends StatelessWidget {
   Widget build(BuildContext context) => Center(
     child: FilledButton.tonal(
       onPressed: onRetry,
-      child: const Text('Could not load your enquiries. Retry'),
+      child: const Text('Could not load your jobs. Retry'),
     ),
   );
 }

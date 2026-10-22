@@ -166,6 +166,9 @@ export class WorkReportRepository {
         updated_at: sql`UTC_TIMESTAMP()`
       })
       .execute();
+    if (input.action === "check-out") {
+      await this.insertCheckpointComment(trx, input, context);
+    }
     const people = await trx
       .selectFrom("app_users")
       .select("email")
@@ -225,6 +228,125 @@ export class WorkReportRepository {
       .where("uuid", "=", uuid)
       .executeTakeFirstOrThrow();
   }
+
+  private async insertCheckpointComment(
+    trx: Transaction<WorkReportDatabase>,
+    input: Omit<WorkReportInput, "action"> & { action: string },
+    context: WorkReportContext
+  ) {
+    if (input.action !== "check-out")
+      throw AppError.validation("Only a completed check-out can be added as a cycle comment.");
+    let checkInQuery = trx
+      .selectFrom("crm_work_reports")
+      .select(["body", "latitude", "longitude", "accuracy_meters", "captured_at"])
+      .where("created_by", "=", context.actorEmail)
+      .where("action", "=", "check-in");
+    checkInQuery =
+      input.enquiryId !== null
+        ? checkInQuery.where("enquiry_id", "=", input.enquiryId)
+        : checkInQuery.where("task_id", "=", input.taskId!);
+    const checkIn = await checkInQuery.orderBy("id", "desc").executeTakeFirst();
+    if (!checkIn) throw AppError.conflict("The check-in record for this work cycle was not found.");
+    const body = checkpointCycleCommentBody(checkIn, {
+      body: input.body,
+      latitude: input.latitude,
+      longitude: input.longitude,
+      accuracy_meters: input.accuracyMeters,
+      captured_at: input.capturedAt
+    });
+    if (input.enquiryId !== null) {
+      await trx
+        .insertInto("crm_enquiry_comments")
+        .values({
+          request_id: input.requestId,
+          enquiry_id: input.enquiryId,
+          parent_id: null,
+          body,
+          body_format: "plain",
+          status: "active",
+          created_by: context.actorEmail,
+          created_at: sql`UTC_TIMESTAMP()`,
+          updated_at: sql`UTC_TIMESTAMP()`
+        })
+        .execute();
+      await trx
+        .insertInto("crm_enquiry_activity")
+        .values({
+          enquiry_id: input.enquiryId,
+          action: "comment-added",
+          details: body,
+          status: "active",
+          created_by: context.actorEmail,
+          created_at: sql`UTC_TIMESTAMP()`,
+          updated_at: sql`UTC_TIMESTAMP()`
+        })
+        .execute();
+      return;
+    }
+
+    const taskId = input.taskId!;
+    await trx
+      .insertInto("crm_task_comments")
+      .values({
+        task_id: taskId,
+        parent_id: null,
+        body,
+        created_by: context.actorEmail,
+        status: "active",
+        created_at: sql`UTC_TIMESTAMP()`,
+        updated_at: sql`UTC_TIMESTAMP()`
+      })
+      .execute();
+    await trx
+      .insertInto("crm_task_activity")
+      .values({
+        task_id: taskId,
+        event_type: "comment",
+        description: body,
+        actor: context.actorEmail,
+        created_by: context.actorEmail,
+        status: "active",
+        created_at: sql`UTC_TIMESTAMP()`,
+        updated_at: sql`UTC_TIMESTAMP()`
+      })
+      .execute();
+  }
+}
+
+type CheckpointCommentDetails = {
+  body: string;
+  latitude: string | number | null;
+  longitude: string | number | null;
+  accuracy_meters: string | number | null;
+  captured_at: string | Date | null;
+};
+
+export function checkpointCycleCommentBody(
+  checkIn: CheckpointCommentDetails,
+  checkOut: CheckpointCommentDetails
+) {
+  const details = (report: CheckpointCommentDetails) =>
+    [
+      report.body,
+      `GPS: ${report.latitude}, ${report.longitude} · ${report.accuracy_meters ?? "unknown"} m`,
+      `Captured @ ${formatCapturedAt(report.captured_at)}`
+    ]
+      .filter((part) => part.length > 0)
+      .join("\n");
+  return `Check in\n${details(checkIn)}\n\nCheck out\n${details(checkOut)}`;
+}
+
+function formatCapturedAt(value: string | Date | null) {
+  if (value === null) return "unknown";
+  const date =
+    value instanceof Date
+      ? value
+      : new Date(/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value) ? value : `${value.replace(" ", "T")}Z`);
+  if (Number.isNaN(date.getTime())) return "unknown";
+  const hour = date.getUTCHours();
+  const hour12 = hour % 12 || 12;
+  const twoDigits = (part: number) => String(part).padStart(2, "0");
+  return `${twoDigits(date.getUTCDate())}-${twoDigits(date.getUTCMonth() + 1)}-${twoDigits(date.getUTCFullYear() % 100)} ${twoDigits(hour12)}:${twoDigits(date.getUTCMinutes())}:${twoDigits(date.getUTCSeconds())} ${hour < 12 ? "AM" : "PM"}`;
 }
 
 function captureSecond(value: string | Date | null) {

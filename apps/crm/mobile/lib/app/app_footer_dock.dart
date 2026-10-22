@@ -1,45 +1,65 @@
 import 'package:flutter/material.dart';
 
+const crmDockIconColor = Color(0xFF662C90);
+const crmDockBackgroundColor = Color(0xFFF2E5FA);
+
 class AppFooterDock extends StatelessWidget {
   const AppFooterDock({
     required this.selectedIndex,
     required this.onDestinationSelected,
+    this.onDashboardCallLogs,
+    this.onDashboardChat,
+    this.dashboardMode = false,
     this.jobBadgeCount = 0,
     super.key,
   });
 
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
+  final VoidCallback? onDashboardCallLogs;
+  final VoidCallback? onDashboardChat;
+  final bool dashboardMode;
   final int jobBadgeCount;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: Theme.of(context).colorScheme.surface,
-    elevation: 0,
-    shadowColor: Colors.transparent,
-    surfaceTintColor: Colors.transparent,
-    child: DecoratedBox(
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFFF7F3F8))),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-        child: Row(
-          children: List.generate(
-            _destinations.length,
-            (index) => Expanded(
-              child: _DockItem(
-                destination: _destinations[index],
-                isSelected: index == _selectedDockIndex,
-                onTap: () => onDestinationSelected(index),
-                badgeCount: index == 1 ? jobBadgeCount : 0,
+  Widget build(BuildContext context) {
+    final destinations = dashboardMode ? _dashboardDestinations : _destinations;
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: Color(0xFFF7F3F8))),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          child: Row(
+            children: List.generate(
+              destinations.length,
+              (index) => Expanded(
+                child: _DockItem(
+                  destination: destinations[index],
+                  isSelected: index == _selectedDockIndex,
+                  onTap: () {
+                    if (dashboardMode && index == 1) {
+                      onDashboardChat?.call();
+                    } else if (dashboardMode && index == 2) {
+                      onDashboardCallLogs?.call();
+                    } else {
+                      onDestinationSelected(index);
+                    }
+                  },
+                  badgeCount: index == 1 ? jobBadgeCount : 0,
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
   int get _selectedDockIndex => selectedIndex;
 }
@@ -154,8 +174,8 @@ class _Destination {
   final IconData icon;
   final IconData selectedIcon;
 
-  static const iconColor = Color(0xFF662C90);
-  static const backgroundColor = Color(0xFFF2E5FA);
+  static const iconColor = crmDockIconColor;
+  static const backgroundColor = crmDockBackgroundColor;
 }
 
 const _destinations = [
@@ -173,6 +193,25 @@ const _destinations = [
     label: 'Duty',
     icon: Icons.calendar_month_outlined,
     selectedIcon: Icons.calendar_month,
+  ),
+  _Destination(label: 'Menu', icon: Icons.menu, selectedIcon: Icons.menu),
+];
+
+const _dashboardDestinations = [
+  _Destination(
+    label: 'Home',
+    icon: Icons.home_outlined,
+    selectedIcon: Icons.home,
+  ),
+  _Destination(
+    label: 'Chat',
+    icon: Icons.forum_outlined,
+    selectedIcon: Icons.forum,
+  ),
+  _Destination(
+    label: 'Call logs',
+    icon: Icons.call_outlined,
+    selectedIcon: Icons.call,
   ),
   _Destination(label: 'Menu', icon: Icons.menu, selectedIcon: Icons.menu),
 ];

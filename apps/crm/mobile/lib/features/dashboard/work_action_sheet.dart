@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../core/api/crm_mobile_api.dart';
-import '../../core/platform/mobile_actions.dart';
 
 Future<bool> showWorkActionSheet({
   required BuildContext context,
@@ -20,13 +19,14 @@ Future<bool> showWorkActionSheet({
   bool closurePending = false,
   bool closed = false,
   Future<Position> Function()? capturePosition,
+  ValueChanged<CrmJob>? onEnquiryUpdated,
 }) async =>
     await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      isDismissible: false,
-      enableDrag: false,
+      isDismissible: true,
+      enableDrag: true,
       useSafeArea: true,
       constraints: const BoxConstraints(maxWidth: 560),
       builder: (_) => WorkActionSheet(
@@ -41,6 +41,7 @@ Future<bool> showWorkActionSheet({
         closurePending: closurePending,
         closed: closed,
         capturePosition: capturePosition,
+        onEnquiryUpdated: onEnquiryUpdated,
       ),
     ) ??
     false;
@@ -58,6 +59,7 @@ class WorkActionSheet extends StatefulWidget {
     this.closurePending = false,
     this.closed = false,
     this.capturePosition,
+    this.onEnquiryUpdated,
     super.key,
   });
 
@@ -72,6 +74,7 @@ class WorkActionSheet extends StatefulWidget {
   final bool closurePending;
   final bool closed;
   final Future<Position> Function()? capturePosition;
+  final ValueChanged<CrmJob>? onEnquiryUpdated;
 
   @override
   State<WorkActionSheet> createState() => _WorkActionSheetState();
@@ -168,8 +171,11 @@ class _WorkActionSheetState extends State<WorkActionSheet> {
     );
   }
 
-  Future<void> _run(Future<void> Function() operation) async {
-    if (_busy) return;
+  Future<bool> _run(
+    Future<void> Function() operation, {
+    bool closeOnSuccess = false,
+  }) async {
+    if (_busy) return false;
     setState(() {
       _busy = true;
       _error = null;
@@ -177,6 +183,8 @@ class _WorkActionSheetState extends State<WorkActionSheet> {
     try {
       await operation();
       _changed = true;
+      if (closeOnSuccess && mounted) Navigator.pop(context, true);
+      return true;
     } catch (error) {
       if (mounted) {
         setState(
@@ -185,18 +193,19 @@ class _WorkActionSheetState extends State<WorkActionSheet> {
               : '$error',
         );
       }
+      return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _addComment() async {
+  Future<bool> _addComment() async {
     final body = _comment.text.trim();
     if (body.isEmpty) {
       setState(() => _error = 'Enter a comment.');
-      return;
+      return false;
     }
-    await _run(() async {
+    return _run(() async {
       if (widget.taskId != null) {
         await widget.api.addTaskComment(
           widget.session.accessToken,
@@ -212,6 +221,21 @@ class _WorkActionSheetState extends State<WorkActionSheet> {
       }
       _comment.clear();
     });
+  }
+
+  Future<void> _openCommentComposer() async {
+    final body = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (_) => const _CommentComposerSheet(),
+    );
+    if (!mounted || body == null || body.trim().isEmpty) return;
+    _comment.text = body.trim();
+    if (await _addComment() && mounted) {
+      Navigator.pop(context, _changed);
+    }
   }
 
   Future<void> _toggleJob() async {
@@ -253,17 +277,23 @@ class _WorkActionSheetState extends State<WorkActionSheet> {
         });
       }
       _syncTimer();
-    });
+      if (widget.taskId == null && _enquiry != null) {
+        widget.onEnquiryUpdated?.call(_enquiry!);
+      }
+    }, closeOnSuccess: true);
   }
 
   Future<void> _toggleCheckIn() async {
     final action = _checkedIn ? 'check-out' : 'check-in';
-    await _run(() async {
-      if (_retry?['action'] != action || _retry?['body'] != '') {
-        _retry = null;
-      }
-      if (_retry == null) {
+    if (_retry?['action'] != action) _retry = null;
+    if (_retry == null) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+      try {
         final position = await _position();
+        if (!mounted) return;
         _retry = {
           'enquiryId': widget.taskId == null ? _enquiry!.id : null,
           'taskId': widget.taskId,
@@ -277,11 +307,46 @@ class _WorkActionSheetState extends State<WorkActionSheet> {
           'accuracyMeters': position.accuracy,
           'capturedAt': position.timestamp.toUtc().toIso8601String(),
         };
+      } catch (error) {
+        if (mounted) {
+          setState(
+            () => _error = error is CrmMobileApiException
+                ? error.message
+                : '$error',
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _busy = false);
       }
+    }
+    if (!mounted || _retry == null) return;
+
+    final retry = _retry!;
+    final body = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (_) => _CheckInComposerSheet(
+        title: action == 'check-in' ? 'Check in' : 'Check out',
+        latitude: retry['latitude'] as num,
+        longitude: retry['longitude'] as num,
+        accuracyMeters: retry['accuracyMeters'] as num,
+        initialValue: '${retry['body'] ?? ''}',
+      ),
+    );
+    if (!mounted || body == null) return;
+    if (body != retry['body']) {
+      retry['body'] = body;
+      retry['requestId'] =
+          'mobile-${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(0x7fffffff)}';
+    }
+
+    await _run(() async {
       await widget.api.sendWorkReport(widget.session.accessToken, _retry!);
       setState(() => _checkedIn = !_checkedIn);
       _retry = null;
-    });
+    }, closeOnSuccess: true);
   }
 
   Future<void> _requestClosure() async {
@@ -300,24 +365,7 @@ class _WorkActionSheetState extends State<WorkActionSheet> {
         );
       }
       setState(() => _closurePending = true);
-    });
-  }
-
-  Future<void> _openWhatsApp() async {
-    final mobile = widget.taskId == null
-        ? _enquiry?.mobile ?? ''
-        : widget.taskPhone;
-    if (mobile.trim().isEmpty) {
-      setState(() => _error = 'No customer mobile number is available.');
-      return;
-    }
-    await _run(() async {
-      if (!await MobileActions.whatsApp(mobile)) {
-        throw const CrmMobileApiException(
-          'WhatsApp is not available on this device.',
-        );
-      }
-    });
+    }, closeOnSuccess: true);
   }
 
   @override
@@ -362,67 +410,33 @@ class _WorkActionSheetState extends State<WorkActionSheet> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                TextField(
-                  controller: _comment,
-                  enabled: !_busy,
-                  minLines: 2,
-                  maxLines: 5,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    hintText: 'Write a comment…',
-                    border: OutlineInputBorder(),
-                  ),
+                _WorkActionMenuItem(
+                  key: const ValueKey('work-action-comment'),
+                  icon: Icons.chat_bubble_outline,
+                  title: 'Comment',
+                  onTap: _busy ? null : _openCommentComposer,
                 ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: _busy ? null : _addComment,
-                      icon: const Icon(Icons.send_outlined),
-                      label: const Text('Comment'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: _busy || _closed ? null : _toggleCheckIn,
-                      icon: Icon(_checkedIn ? Icons.logout : Icons.login),
-                      label: Text(_checkedIn ? 'Check out' : 'Check in'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: _busy || _closed ? null : _toggleJob,
-                      icon: Icon(_jobRunning ? Icons.stop : Icons.play_arrow),
-                      label: Text(_jobRunning ? 'Stop job' : 'Start job'),
-                    ),
-                    if (widget.taskId == null &&
-                            (_enquiry?.mobile.trim().isNotEmpty ?? false) ||
-                        widget.taskId != null &&
-                            widget.taskPhone.trim().isNotEmpty)
-                      OutlinedButton.icon(
-                        onPressed: _busy ? null : _openWhatsApp,
-                        icon: const Icon(Icons.chat_outlined),
-                        label: const Text('WhatsApp'),
-                      ),
-                    if (!_closed)
-                      OutlinedButton.icon(
-                        onPressed: _busy || _closurePending
-                            ? null
-                            : _requestClosure,
-                        icon: const Icon(Icons.notifications_active_outlined),
-                        label: Text(
-                          _closurePending
-                              ? 'Closure pending'
-                              : 'Request closure',
-                        ),
-                      ),
-                  ],
+                _WorkActionMenuItem(
+                  icon: _checkedIn ? Icons.logout : Icons.login,
+                  title: _checkedIn ? 'Check out' : 'Check in',
+                  onTap: _busy || _closed ? null : _toggleCheckIn,
                 ),
-                if (_jobRunning) ...[
-                  const SizedBox(height: 12),
-                  _ActionStatus(
-                    icon: Icons.timer_outlined,
-                    text: 'Job running · ${_durationLabel(_elapsed)}',
+                _WorkActionMenuItem(
+                  icon: _jobRunning ? Icons.stop : Icons.play_arrow,
+                  title: _jobRunning ? 'Stop Job' : 'Start Job',
+                  trailing: _jobRunning
+                      ? _RunningTimerBadge(duration: _elapsed)
+                      : null,
+                  onTap: _busy || _closed ? null : _toggleJob,
+                ),
+                if (!_closed)
+                  _WorkActionMenuItem(
+                    icon: Icons.notifications_active_outlined,
+                    title: _closurePending
+                        ? 'Completion pending'
+                        : 'Mark Complete',
+                    onTap: _busy || _closurePending ? null : _requestClosure,
                   ),
-                ],
                 if (_checkedIn) ...[
                   const SizedBox(height: 8),
                   const _ActionStatus(
@@ -439,16 +453,6 @@ class _WorkActionSheetState extends State<WorkActionSheet> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 18),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton.tonal(
-                    onPressed: _busy
-                        ? null
-                        : () => Navigator.pop(context, _changed),
-                    child: const Text('Done'),
-                  ),
-                ),
               ],
             ),
           ),
@@ -456,6 +460,216 @@ class _WorkActionSheetState extends State<WorkActionSheet> {
       ),
     );
   }
+}
+
+class _WorkActionMenuItem extends StatelessWidget {
+  const _WorkActionMenuItem({
+    required this.icon,
+    required this.title,
+    this.trailing,
+    required this.onTap,
+    super.key,
+  });
+
+  final IconData icon;
+  final String title;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    contentPadding: EdgeInsets.zero,
+    leading: Icon(icon, color: const Color(0xFF5F5266)),
+    title: Text(title),
+    trailing: trailing,
+    onTap: onTap,
+  );
+}
+
+class _RunningTimerBadge extends StatelessWidget {
+  const _RunningTimerBadge({required this.duration});
+
+  final Duration duration;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const ValueKey('work-action-running-timer'),
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF1E4F8),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.timer_outlined, size: 14),
+        const SizedBox(width: 4),
+        Text(_durationLabel(duration)),
+      ],
+    ),
+  );
+}
+
+class _CommentComposerSheet extends StatefulWidget {
+  const _CommentComposerSheet();
+
+  @override
+  State<_CommentComposerSheet> createState() => _CommentComposerSheetState();
+}
+
+class _CommentComposerSheetState extends State<_CommentComposerSheet> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      20,
+      8,
+      20,
+      MediaQuery.viewInsetsOf(context).bottom + 20,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Comment', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 14),
+        TextField(
+          key: const ValueKey('work-action-comment-input'),
+          controller: _controller,
+          autofocus: true,
+          minLines: 4,
+          maxLines: 7,
+          onChanged: (_) => setState(() {}),
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            hintText: 'Write a comment…',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            key: const ValueKey('work-action-comment-submit'),
+            onPressed: _controller.text.trim().isEmpty
+                ? null
+                : () => Navigator.of(context).pop(_controller.text.trim()),
+            icon: const Icon(Icons.send_outlined),
+            label: const Text('Submit'),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _CheckInComposerSheet extends StatefulWidget {
+  const _CheckInComposerSheet({
+    required this.title,
+    required this.latitude,
+    required this.longitude,
+    required this.accuracyMeters,
+    required this.initialValue,
+  });
+
+  final String title;
+  final num latitude;
+  final num longitude;
+  final num accuracyMeters;
+  final String initialValue;
+
+  @override
+  State<_CheckInComposerSheet> createState() => _CheckInComposerSheetState();
+}
+
+class _CheckInComposerSheetState extends State<_CheckInComposerSheet> {
+  late final _controller = TextEditingController(text: widget.initialValue);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      20,
+      8,
+      20,
+      MediaQuery.viewInsetsOf(context).bottom + 20,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(widget.title, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 14),
+        Container(
+          key: const ValueKey('work-action-captured-location'),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.location_on_outlined),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Captured location'),
+                    const SizedBox(height: 4),
+                    SelectableText(
+                      'GPS: ${widget.latitude}, ${widget.longitude}',
+                      key: const ValueKey('work-action-location-coordinates'),
+                    ),
+                    Text(
+                      'Accuracy: ${widget.accuracyMeters.toStringAsFixed(1)} m',
+                      key: const ValueKey('work-action-location-accuracy'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          key: const ValueKey('work-action-check-in-input'),
+          controller: _controller,
+          autofocus: true,
+          minLines: 3,
+          maxLines: 6,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            hintText: 'Add a note (optional)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            key: const ValueKey('work-action-check-in-submit'),
+            onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
+            icon: const Icon(Icons.send_outlined),
+            label: const Text('Submit'),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ActionStatus extends StatelessWidget {

@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/crm_mobile_api.dart';
 import 'tasks_page.dart';
-import 'admin_call_log_page.dart';
-import '../../core/platform/mobile_actions.dart';
 
 class DashboardStats extends StatefulWidget {
   const DashboardStats({
@@ -13,8 +11,6 @@ class DashboardStats extends StatefulWidget {
     required this.session,
     required this.jobCount,
     required this.onOpenList,
-    required this.onOpenActions,
-    required this.onOpenReports,
     this.assignmentCount = 0,
     super.key,
   });
@@ -23,8 +19,6 @@ class DashboardStats extends StatefulWidget {
   final int jobCount;
   final int assignmentCount;
   final ValueChanged<int> onOpenList;
-  final Future<void> Function() onOpenActions;
-  final Future<void> Function() onOpenReports;
   @override
   State<DashboardStats> createState() => _DashboardStatsState();
 }
@@ -73,33 +67,23 @@ class _DashboardStatsState extends State<DashboardStats>
     _loading = true;
     final token = widget.session.accessToken;
     await Future.wait([
-      _load('Call logs', () async {
-        if (!await MobileActions.hasCallLogAccess())
-          throw StateError('Permission required');
-        return (await MobileActions.callLogs()).length;
-      }, token),
       _load('Tasks', () => widget.api.tasksCount(token), token),
-      _loadDutyAndReportCounts(token),
-      _load('Activities', () => widget.api.activitiesCount(token), token),
+      _loadDutyCount(token),
     ]);
     _loading = false;
   }
 
-  Future<void> _loadDutyAndReportCounts(String token) async {
+  Future<void> _loadDutyCount(String token) async {
     try {
       final duties = await widget.api.duties(token);
       if (!mounted || token != widget.session.accessToken) return;
       setState(() {
         _counts['Duty'] = duties.length;
-        _counts['Reports'] = duties.fold<int>(
-          0,
-          (total, duty) => total + duty.reports.length,
-        );
-        _errors.removeAll(['Duty', 'Reports']);
+        _errors.remove('Duty');
       });
     } catch (_) {
       if (mounted && token == widget.session.accessToken) {
-        setState(() => _errors.addAll(['Duty', 'Reports']));
+        setState(() => _errors.add('Duty'));
       }
     }
   }
@@ -159,7 +143,7 @@ class _DashboardStatsState extends State<DashboardStats>
         runSpacing: 12,
         children: [
           _card(
-            'Enquiries',
+            'Jobs',
             Icons.assignment_outlined,
             () => widget.onOpenList(1),
             count: widget.jobCount,
@@ -179,25 +163,6 @@ class _DashboardStatsState extends State<DashboardStats>
             Icons.calendar_month_outlined,
             () => widget.onOpenList(2),
           ),
-          _card(
-            'Activities',
-            Icons.bolt_outlined,
-            widget.onOpenActions,
-            caption: 'Last 7 days',
-          ),
-          _card('Call logs', Icons.call_outlined, () async {
-            await Navigator.of(context).push<void>(
-              MaterialPageRoute(
-                builder: (_) =>
-                    AdminCallLogPage(api: widget.api, session: widget.session),
-              ),
-            );
-            _refresh();
-          }),
-          _card('Reports', Icons.description_outlined, () async {
-            await widget.onOpenReports();
-            _refresh();
-          }),
         ].map((card) => SizedBox(width: width, child: card)).toList(),
       );
     },

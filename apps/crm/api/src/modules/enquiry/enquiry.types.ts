@@ -32,6 +32,7 @@ export type EnquiryRecord = EnquiryInput & {
   priority: string;
   priorityName: string;
   createdBy: string;
+  createdByName?: string | null;
   createdAt: string;
   updatedAt: string;
   closurePending?: boolean;

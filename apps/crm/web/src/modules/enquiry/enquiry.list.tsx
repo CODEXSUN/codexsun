@@ -64,7 +64,9 @@ export function EnquiryList({
     if (user.email) creatorNames.set(user.email.toLowerCase(), user.name);
   }
   const creatorName = (record: EnquiryRecord) =>
-    creatorNames.get(record.createdBy.toLowerCase()) ?? record.createdBy;
+    record.createdByName ??
+    creatorNames.get(record.createdBy.toLowerCase()) ??
+    record.createdBy;
   const columns: ColumnDef<EnquiryRecord>[] = [
     {
       id: "enquiryNo",

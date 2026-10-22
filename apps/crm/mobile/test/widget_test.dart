@@ -11,11 +11,14 @@ import 'package:codexsun_crm_mobile/features/auth/login_page.dart';
 import 'package:codexsun_crm_mobile/features/auth/pin_auth_pages.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/dashboard_list_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/dashboard_jobs_feed.dart';
+import 'package:codexsun_crm_mobile/features/dashboard/dashboard_home.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/dashboard_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/admin_call_log_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/call_log_notes_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/job_detail_page.dart';
+import 'package:codexsun_crm_mobile/features/dashboard/job_enquiry_card.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/job_duration.dart';
+import 'package:codexsun_crm_mobile/features/dashboard/job_work_feed.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/messages_sample_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/my_enquiries_page.dart';
 import 'package:codexsun_crm_mobile/features/dashboard/home_enquiry_form_page.dart';
@@ -168,6 +171,7 @@ void main() {
       'listIn': 'Accounts',
       'dueDate': '2026-10-30',
       'createdBy': 'Maya',
+      'createdByName': 'Maya K',
       'createdAt': '2026-10-12T08:15:00.000Z',
       'status': 'new',
       'statusName': 'New',
@@ -199,6 +203,7 @@ void main() {
     });
 
     expect(enquiry.number, '1807');
+    expect(enquiry.createdBy, 'Maya K');
     expect(enquiry.customer, 'Acme Ltd');
     expect(enquiry.assignedTo, 'Ravi');
     expect(enquiry.comments.single.comment, 'Called customer');
@@ -280,10 +285,51 @@ void main() {
       ),
       '10 sec',
     );
+    final isoStart = DateTime.parse('2026-08-30T09:43:38Z');
+    expect(
+      formatJobDuration(
+        execution(start: '2026-08-30T09:43:38Z'),
+        now: isoStart.toLocal().add(const Duration(seconds: 10)),
+      ),
+      '10 sec',
+    );
     expect(
       formatJobDuration(execution(start: '', stop: null, hours: 0.5)),
       'Running',
     );
+    expect(
+      formatJobDurationClock(
+        execution(start: '09:43:38'),
+        now: DateTime(2026, 8, 30, 9, 43, 48),
+      ),
+      '00:10',
+    );
+    final now = DateTime.now();
+    CrmJobExecution runningFor(String name, int seconds) => CrmJobExecution(
+      name: name,
+      employee: 'HR-EMP-00001',
+      createdAt: now,
+      date: null,
+      startTime: now
+          .subtract(Duration(seconds: seconds))
+          .toUtc()
+          .toIso8601String(),
+      stopTime: null,
+      hours: 0,
+      employeeCostPerHour: 0,
+      totalCost: 0,
+      status: 'Running',
+    );
+    final shortest = _testCrmJob.withJobs([runningFor('shortest', 10)]);
+    final longest = _testCrmJob.withJobs([runningFor('longest', 90)]);
+    final sorted = sortRunningJobsFirst([
+      longest,
+      _testCrmJob.withJobs(const []),
+      shortest,
+    ]);
+    expect(sorted.first.jobs.single.name, 'longest');
+    expect(sorted[1].jobs.single.name, 'shortest');
+    expect(sorted.last.jobs, isEmpty);
   });
 
   testWidgets('shows the CRM sign-in screen', (WidgetTester tester) async {
@@ -358,6 +404,8 @@ void main() {
     WidgetTester tester,
   ) async {
     final navigation = DashboardNavigation();
+    var dashboardCallLogsOpened = 0;
+    var dashboardChatOpened = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: Stack(
@@ -376,11 +424,17 @@ void main() {
               onSignOut: () {},
               enableLiveNotifications: false,
             ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: AppFooterDock(
-                selectedIndex: navigation.selectedIndex,
-                onDestinationSelected: navigation.selectDockDestination,
+            AnimatedBuilder(
+              animation: navigation,
+              builder: (context, _) => Align(
+                alignment: Alignment.bottomCenter,
+                child: AppFooterDock(
+                  selectedIndex: navigation.selectedIndex,
+                  dashboardMode: navigation.selectedIndex == 0,
+                  onDashboardCallLogs: () => dashboardCallLogsOpened++,
+                  onDashboardChat: () => dashboardChatOpened++,
+                  onDestinationSelected: navigation.selectDockDestination,
+                ),
               ),
             ),
           ],
@@ -390,22 +444,35 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Enquiries'), findsNWidgets(2));
+    expect(find.text('Jobs'), findsOneWidget);
+    expect(find.text('Chat'), findsOneWidget);
+    expect(find.text('Enquiries'), findsNothing);
     expect(find.text('Menu'), findsOneWidget);
-    expect(find.text('Duty'), findsNWidgets(2));
+    expect(find.text('Duty'), findsOneWidget);
     expect(find.text('Tasks'), findsOneWidget);
-    expect(find.text('Activities'), findsOneWidget);
     expect(find.text('Call logs'), findsOneWidget);
-    expect(find.text('Reports'), findsOneWidget);
+    expect(find.text('Activities'), findsNothing);
+    expect(find.text('Reports'), findsNothing);
+    expect(find.byIcon(Icons.forum_outlined), findsOneWidget);
     expect(find.byTooltip('Notifications'), findsNothing);
     expect(find.text('3'), findsOneWidget);
 
+    await tester.tap(find.text('Call logs'));
+    expect(dashboardCallLogsOpened, 1);
+
+    await tester.tap(find.text('Chat'));
+    expect(dashboardChatOpened, 1);
+
     await tester.tap(find.text('Menu'));
     await tester.pumpAndSettle();
-    expect(find.text('Duty'), findsNWidgets(2));
+    expect(find.text('Duty'), findsOneWidget);
+    expect(
+      find.ancestor(of: find.text('Tasks'), matching: find.byType(ListTile)),
+      findsNothing,
+    );
     expect(find.text('Call logs'), findsNWidgets(2));
-    expect(find.text('Activities'), findsNWidgets(2));
-    expect(find.text('Reports'), findsNWidgets(2));
+    expect(find.text('Activities'), findsOneWidget);
+    expect(find.text('Reports'), findsOneWidget);
     Navigator.of(tester.element(find.text('Activities').last)).pop();
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Account options'));
@@ -416,19 +483,37 @@ void main() {
     Navigator.of(tester.element(find.text('Account'))).pop();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Enquiries').last);
-    await tester.pumpAndSettle();
-    expect(find.byTooltip('New enquiry'), findsOneWidget);
-    expect(find.byType(TextField), findsOneWidget);
-    expect(find.text('All'), findsNothing);
-    expect(find.text('Assigned'), findsNothing);
-    expect(find.text('Created'), findsNothing);
+    expect(dashboardChatOpened, 1);
   });
 
-  testWidgets('shows the job detail comments and reply flow', (
+  testWidgets('show page keeps comments in actions without a reply composer', (
     WidgetTester tester,
   ) async {
     final fakeApi = _FakeCrmMobileApi();
+    fakeApi._job = CrmJob(
+      id: _testCrmJob.id,
+      sourceId: _testCrmJob.sourceId,
+      number: _testCrmJob.number,
+      title: _testCrmJob.title,
+      customer: _testCrmJob.customer,
+      list: _testCrmJob.list,
+      dueDate: _testCrmJob.dueDate,
+      createdBy: _testCrmJob.createdBy,
+      createdAt: _testCrmJob.createdAt,
+      lastAction: _testCrmJob.lastAction,
+      status: _testCrmJob.status,
+      priority: _testCrmJob.priority,
+      comments: [
+        CrmComment(
+          id: 'system-start',
+          comment: 'Job started by Vijay Anand.',
+          createdAt: DateTime(2026, 10, 22),
+          createdByUserId: 'vijay@example.com',
+        ),
+      ],
+      jobs: const [],
+      activities: const [],
+    );
     await tester.pumpWidget(
       MaterialApp(
         home: JobDetailPage(
@@ -441,7 +526,7 @@ void main() {
               role: 'user',
             ),
           ),
-          initialJob: _testCrmJob,
+          initialJob: fakeApi._job,
           capturePosition: () async => Position(
             latitude: 13.0827,
             longitude: 80.2707,
@@ -473,6 +558,35 @@ void main() {
     expect(find.text('Comments'), findsNothing);
     expect(find.text('Jobs'), findsNothing);
     expect(find.text('Activity'), findsNothing);
+    expect(find.text('Write a comment only'), findsNothing);
+    expect(find.byTooltip('Send reply'), findsNothing);
+    expect(
+      tester.widget<Scaffold>(find.byType(Scaffold)).bottomNavigationBar,
+      isNull,
+    );
+    await tester.tap(find.byKey(const ValueKey('show-page-section-menu')));
+    await tester.pumpAndSettle();
+    for (final section in [
+      'Comments',
+      'Action',
+      'Check in / out',
+      'Jobs',
+      'Charges',
+      'Schedules',
+    ]) {
+      expect(find.text(section), findsOneWidget);
+    }
+    expect(find.text('Show system logs'), findsNothing);
+    await tester.tap(find.text('Jobs'));
+    await tester.pumpAndSettle();
+    expect(find.text('No jobs recorded yet.'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('show-page-section-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Comments'));
+    await tester.pumpAndSettle();
+    expect(find.text('Job started by Vijay Anand.'), findsNothing);
+
+    expect(find.text('Job started by Vijay Anand.'), findsNothing);
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
@@ -480,44 +594,103 @@ void main() {
     expect(find.text('Log location'), findsNothing);
     expect(find.text('Charges'), findsNothing);
     expect(find.text('Collected Rs.'), findsNothing);
+    expect(find.text('Write a comment…'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('work-action-comment')));
+    await tester.pumpAndSettle();
     await tester.enterText(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == 'Write a comment…',
-      ),
+      find.byKey(const ValueKey('work-action-comment-input')),
       'Mobile action comment',
     );
-    await tester.tap(find.text('Comment'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('work-action-comment-submit')));
     await tester.pumpAndSettle();
     expect(fakeApi.postedComments, contains('Mobile action comment'));
+    expect(find.text('Actions'), findsNothing);
+    await tester.tap(find.byTooltip('Add action'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Check in'));
     await tester.pumpAndSettle();
-    expect(find.text('Check out'), findsOneWidget);
-    await tester.tap(find.text('Request closure'));
+    expect(find.text('Captured location'), findsOneWidget);
+    expect(find.text('GPS: 13.0827, 80.2707'), findsOneWidget);
+    expect(fakeApi.checkpointCheckedIn, isFalse);
+    await tester.tap(find.byKey(const ValueKey('work-action-check-in-submit')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Done'));
+    expect(find.text('Actions'), findsNothing);
+    expect(fakeApi.checkpointCheckedIn, isTrue);
+    await tester.tap(find.byTooltip('Add action'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark Complete'));
     await tester.pumpAndSettle();
     expect(
       find.text('Completion sent. Waiting for web approval.'),
       findsOneWidget,
     );
     expect(fakeApi.loggedLocations, isEmpty);
+  });
 
-    await tester.enterText(
-      find.byType(TextField),
-      'Customer asked for a quotation update.',
+  testWidgets('show feed hides system job comments unless requested', (
+    WidgetTester tester,
+  ) async {
+    final job = CrmJob.fromJson({
+      'id': '762',
+      'enquiryNo': '762',
+      'title': 'Work feed filter test',
+      'messages': [
+        {
+          'id': 'system-start',
+          'comment': 'Job started by Vijay Anand.',
+          'createdAt': '2026-10-22T10:00:00.000Z',
+          'createdByUserId': 'vijay@example.com',
+        },
+        {
+          'id': 'system-stop',
+          'comment': 'Job #3 stopped.',
+          'createdAt': '2026-10-22T10:01:00.000Z',
+          'createdByUserId': 'vijay@example.com',
+        },
+        {
+          'id': 'customer-note',
+          'comment': 'Customer confirmed the visit.',
+          'createdAt': '2026-10-22T10:02:00.000Z',
+          'createdByUserId': 'vijay@example.com',
+        },
+      ],
+    });
+    const session = UserSession(
+      accessToken: 'test-token',
+      profile: UserProfile(
+        email: 'vijay@example.com',
+        name: 'Vijay Anand',
+        role: 'user',
+      ),
     );
-    await tester.tap(find.byTooltip('Send reply'));
-    await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: JobWorkFeed(job: job, session: session),
+        ),
+      ),
+    );
+    expect(find.text('Customer confirmed the visit.'), findsOneWidget);
+    expect(find.text('Job started by Vijay Anand.'), findsNothing);
+    expect(find.text('Job #3 stopped.'), findsNothing);
 
-    expect(find.text('Customer asked for a quotation update.'), findsOneWidget);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: JobWorkFeed(job: job, session: session, showSystemLogs: true),
+        ),
+      ),
+    );
+    expect(find.text('Job started by Vijay Anand.'), findsOneWidget);
+    expect(find.text('Job #3 stopped.'), findsOneWidget);
   });
 
   testWidgets('starts and stops jobs immediately and shows system comments', (
     WidgetTester tester,
   ) async {
     final api = _FakeCrmMobileApi();
+    CrmJob? latestJob;
     await tester.pumpWidget(
       MaterialApp(
         home: JobDetailPage(
@@ -531,6 +704,7 @@ void main() {
             ),
           ),
           initialJob: _testCrmJob,
+          onJobUpdated: (job) => latestJob = job,
           enquiry: const DashboardListItem(
             enquiryNumber: '762',
             title: 'ROG Asus Adopter 240W',
@@ -549,24 +723,248 @@ void main() {
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Start job'));
-    await tester.pump();
-    expect(find.textContaining('Job running ·'), findsOneWidget);
-    await tester.tap(find.text('Done'));
+    await tester.tap(find.text('Start Job'));
     await tester.pumpAndSettle();
 
     expect(api.startJobCalls, 1);
-    expect(find.text('Job started by Vijay Anand.'), findsOneWidget);
+    expect(latestJob?.jobs.any((job) => job.isRunning), isTrue);
+    expect(find.text('Job started by Vijay Anand.'), findsNothing);
 
     await tester.tap(find.byTooltip('Add action'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Stop job'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Done'));
+    await tester.tap(find.text('Stop Job'));
     await tester.pumpAndSettle();
 
     expect(api.stopJobCalls, 1);
-    expect(find.text('Job #762 stopped.'), findsOneWidget);
+    expect(latestJob?.jobs.any((job) => job.isRunning), isFalse);
+    expect(find.text('Job #762 stopped.'), findsNothing);
+  });
+
+  testWidgets('enquiry card actions align evenly and creator shows as a name', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    final api = _FakeCrmMobileApi();
+    final job = CrmJob(
+      id: 1,
+      sourceId: '1',
+      number: '1',
+      title: 'QUOTED 1. Acer One 15 AO15-41M-G2 (UN.37DSI…)',
+      customer: 'Customer',
+      mobile: '9876543210',
+      list: 'Accounts',
+      dueDate: '',
+      createdBy: 'vijay.anand@tenant.com',
+      createdAt: DateTime(2026, 10, 22),
+      lastAction: '',
+      status: 'New',
+      priority: 'High',
+      comments: const [],
+      jobs: const [],
+      activities: const [],
+    );
+    api._job = job;
+    final enquiry = DashboardListItem.fromCrmJob(job);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: JobEnquiryCard(
+            api: api,
+            session: const UserSession(
+              accessToken: 'test-token',
+              profile: UserProfile(
+                email: 'vijay@example.com',
+                name: 'Vijay Anand',
+                role: 'user',
+              ),
+            ),
+            enquiry: enquiry,
+            job: job,
+            onJobChanged: () {},
+            capturePosition: () async => Position(
+              latitude: 13.0827,
+              longitude: 80.2707,
+              timestamp: DateTime(2026, 10, 22, 10, 30),
+              accuracy: 8.5,
+              altitude: 0,
+              altitudeAccuracy: 0,
+              heading: 0,
+              headingAccuracy: 0,
+              speed: 0,
+              speedAccuracy: 0,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Start'), findsNothing);
+    expect(find.text('Stop'), findsNothing);
+    final statusBadge = tester.widget<Container>(
+      find.byKey(const ValueKey('status-badge-new')),
+    );
+    expect(
+      (statusBadge.decoration! as BoxDecoration).color,
+      const Color(0xFF2563EB),
+    );
+    expect(find.byKey(const ValueKey('enquiry-card-new-call')), findsOneWidget);
+    expect(find.byKey(const ValueKey('enquiry-card-message')), findsNothing);
+    expect(
+      tester.widget<Card>(find.byType(Card).first).color,
+      const Color(0xFFF1F8FF),
+    );
+    final highlight = tester.widget<Container>(
+      find.byKey(const ValueKey('enquiry-card-highlight')),
+    );
+    expect(
+      ((highlight.decoration! as BoxDecoration).border! as Border).left.color,
+      const Color(0xFF1596D2),
+    );
+    final priorityDot = tester.widget<Container>(
+      find.byKey(const ValueKey('priority-dot-high')),
+    );
+    expect(
+      (priorityDot.decoration! as BoxDecoration).color,
+      const Color(0xFFF97316),
+    );
+    final listCenter = tester.getCenter(
+      find.byKey(const ValueKey('enquiry-list-name')),
+    );
+    final listRect = tester.getRect(
+      find.byKey(const ValueKey('enquiry-list-name')),
+    );
+    final priorityRect = tester.getRect(
+      find.byKey(const ValueKey('priority-dot-high')),
+    );
+    final priorityCenter = tester.getCenter(
+      find.byKey(const ValueKey('priority-dot-high')),
+    );
+    final callCenter = tester.getCenter(
+      find.byKey(const ValueKey('enquiry-card-call')),
+    );
+    final whatsappCenter = tester.getCenter(
+      find.byKey(const ValueKey('enquiry-card-whatsapp')),
+    );
+    final moreCenter = tester.getCenter(
+      find.byKey(const ValueKey('enquiry-card-more-button')),
+    );
+    expect(priorityCenter.dx, greaterThan(listCenter.dx));
+    expect(priorityRect.left - listRect.right, lessThan(12));
+    expect(callCenter.dx, greaterThan(priorityCenter.dx));
+    expect(whatsappCenter.dx, greaterThan(callCenter.dx));
+    expect(moreCenter.dx, greaterThan(whatsappCenter.dx));
+    final callRect = tester.getRect(
+      find.byKey(const ValueKey('enquiry-card-call')),
+    );
+    final whatsappRect = tester.getRect(
+      find.byKey(const ValueKey('enquiry-card-whatsapp')),
+    );
+    final moreRect = tester.getRect(
+      find.byKey(const ValueKey('enquiry-card-more-button')),
+    );
+    final cardRect = tester.getRect(find.byType(Card));
+    expect(callRect.size, const Size(36, 36));
+    expect(whatsappRect.size, callRect.size);
+    expect(moreRect.size, callRect.size);
+    expect(whatsappRect.left - callRect.right, 6);
+    expect(moreRect.left - whatsappRect.right, 6);
+    expect(cardRect.right - moreRect.right, lessThan(15));
+    expect(find.textContaining('Created by - Vijay Anand'), findsOneWidget);
+    final customer = tester.widget<Text>(
+      find.byKey(const ValueKey('enquiry-card-customer')),
+    );
+    expect(customer.data, '9876543210');
+    expect(customer.maxLines, 1);
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('enquiry-card-new-call')))
+          .height,
+      greaterThan(25),
+    );
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('enquiry-card-message-area')))
+          .height,
+      greaterThanOrEqualTo(30),
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('enquiry-card-customer'))).dy,
+      lessThan(
+        tester
+            .getTopLeft(find.byKey(const ValueKey('enquiry-card-new-call')))
+            .dy,
+      ),
+    );
+    expect(callCenter.dy, closeTo(listCenter.dy, 2));
+    expect(whatsappCenter.dy, closeTo(listCenter.dy, 2));
+    expect(moreCenter.dy, closeTo(listCenter.dy, 2));
+
+    await tester.tap(find.byKey(const ValueKey('enquiry-card-more')));
+    await tester.pumpAndSettle();
+    expect(find.text('Pin location'), findsOneWidget);
+    expect(find.text('Start Job'), findsOneWidget);
+    expect(find.text('Mark Completed'), findsOneWidget);
+    expect(find.text('Scan document'), findsNothing);
+    expect(find.text('Photo'), findsNothing);
+
+    await tester.tap(find.text('Pin location'));
+    await tester.pumpAndSettle();
+    final locationInput = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('pinned-location-details')),
+    );
+    expect(locationInput.initialValue, contains('Latitude: 13.082700'));
+    expect(locationInput.initialValue, contains('Longitude: 80.270700'));
+    expect(
+      api.postedComments.where(
+        (comment) => comment.startsWith('Pinned location'),
+      ),
+      isEmpty,
+    );
+    await tester.tap(find.byKey(const ValueKey('submit-pinned-location')));
+    await tester.pumpAndSettle();
+    expect(api.postedComments.last, contains('Pinned location'));
+    expect(api.postedComments.last, contains('Accuracy: ±9 m'));
+
+    await tester.tap(find.byKey(const ValueKey('enquiry-card-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start Job'));
+    await tester.pumpAndSettle();
+    expect(api.startJobCalls, 1);
+
+    await tester.tap(find.byKey(const ValueKey('enquiry-card-more')));
+    await tester.pumpAndSettle();
+    expect(find.text('Stop Job'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('enquiry-card-running-timer')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('enquiry-card-running-clock')),
+      findsOneWidget,
+    );
+    expect(find.textContaining(RegExp(r'^\d{2}:\d{2}$')), findsOneWidget);
+    final runningCard = tester.widget<Card>(find.byType(Card).first);
+    expect(runningCard.color, const Color(0xFFFBF6FE));
+    await tester.tap(find.text('Stop Job'));
+    await tester.pumpAndSettle();
+    expect(api.stopJobCalls, 1);
+
+    await tester.tap(find.byKey(const ValueKey('enquiry-card-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark Completed'));
+    await tester.pumpAndSettle();
+    expect(api._closureRequest?.status, 'pending');
+    expect(find.text('Completion request sent for approval.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('enquiry-card-customer')));
+    await tester.pumpAndSettle();
+    expect(api._job.status, 'open');
+    expect(find.byKey(const ValueKey('enquiry-card-new-call')), findsNothing);
+    expect(find.text('New call opened successfully.'), findsOneWidget);
+    expect(find.textContaining('QUOTED 1. Acer One 15'), findsOneWidget);
   });
 
   testWidgets('shows the live Messages loading state', (
@@ -623,7 +1021,7 @@ void main() {
     await tester.enterText(searchField, 'Dell');
     await tester.pumpAndSettle();
     expect(find.text('ROG Asus Adopter 240W'), findsNothing);
-    expect(find.text('No enquiries are in this list.'), findsOneWidget);
+    expect(find.text('No jobs are in this list.'), findsOneWidget);
 
     await tester.enterText(searchField, 'ROG');
     await tester.pumpAndSettle();
@@ -651,11 +1049,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('250 enquiries · Page 1 of 3'), findsOneWidget);
+      expect(find.text('250 jobs · Page 1 of 3'), findsOneWidget);
       await tester.tap(find.byTooltip('Next page'));
       await tester.pumpAndSettle();
       expect(fakeApi.requestedEnquiryPages, [1, 2]);
-      expect(find.text('250 enquiries · Page 2 of 3'), findsOneWidget);
+      expect(find.text('250 jobs · Page 2 of 3'), findsOneWidget);
     },
   );
 
@@ -710,6 +1108,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final saveButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Save'),
+    );
+    expect(saveButton.style?.minimumSize?.resolve({}), const Size(84, 42));
+    expect(saveButton.style?.backgroundColor?.resolve({}), crmDockIconColor);
+    expect(saveButton.style?.foregroundColor?.resolve({}), Colors.white);
+
     await tester.enterText(
       find.byKey(const ValueKey('enquiry-mobile')),
       '9655227767',
@@ -731,6 +1136,177 @@ void main() {
     expect(fakeApi.createdEnquiryPayload?['statusId'], 'st-new');
     expect(fakeApi.createdEnquiryPayload?['priorityId'], 'pr-1');
   });
+
+  testWidgets('contact lookup selects the full row and shows a checkmark', (
+    WidgetTester tester,
+  ) async {
+    final fakeApi = _FakeCrmMobileApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeEnquiryFormPage(
+          api: fakeApi,
+          session: const UserSession(
+            accessToken: 'test-token',
+            profile: UserProfile(
+              email: 'vijay@example.com',
+              name: 'Vijay Anand',
+              role: 'user',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('enquiry-mobile')),
+      '9655227738',
+    );
+    await tester.tap(find.byTooltip('Find contact for this phone number'));
+    await tester.pumpAndSettle();
+
+    final contactRow = find.byKey(const ValueKey('contact-option-customer-1'));
+    expect(contactRow, findsOneWidget);
+    expect(find.byKey(const ValueKey('selected-contact-check')), findsNothing);
+    await tester.tap(
+      find.descendant(of: contactRow, matching: find.text('Sundar')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('selected-contact-check')),
+      findsOneWidget,
+    );
+    expect(find.text('Use contact'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('use-selected-contact')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('matched-enquiry-contact')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('enquiry selectors search options in floating popovers', (
+    WidgetTester tester,
+  ) async {
+    final fakeApi = _FakeCrmMobileApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeEnquiryFormPage(
+          api: fakeApi,
+          session: const UserSession(
+            accessToken: 'test-token',
+            profile: UserProfile(
+              email: 'vijay@example.com',
+              name: 'Vijay Anand',
+              role: 'user',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final messageField = find.byKey(const ValueKey('enquiry-message'));
+    final messageTopBefore = tester.getTopLeft(messageField).dy;
+    final listField = find.byKey(const ValueKey('inline-select-List'));
+    await tester.tap(listField);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('inline-search-List')),
+      'serv',
+    );
+    await tester.pumpAndSettle();
+    final listOption = find.byKey(const ValueKey('inline-option-List-0'));
+    expect(find.text('Services'), findsOneWidget);
+    expect(find.text('office'), findsNothing);
+    expect(tester.getTopLeft(messageField).dy, closeTo(messageTopBefore, .5));
+    expect(
+      tester.getTopLeft(listOption).dy,
+      greaterThan(tester.getBottomLeft(listField).dy),
+    );
+    await tester.tap(listOption);
+    await tester.pumpAndSettle();
+    expect(find.text('Services'), findsOneWidget);
+
+    final allocatedField = find.byKey(
+      const ValueKey('inline-select-Allocated'),
+    );
+    await tester.tap(allocatedField);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('inline-search-Allocated')),
+      'tenant',
+    );
+    await tester.pumpAndSettle();
+    final unallocatedOption = find.byKey(
+      const ValueKey('inline-option-Allocated-0'),
+    );
+    expect(unallocatedOption, findsOneWidget);
+    expect(
+      find.descendant(
+        of: unallocatedOption,
+        matching: find.text('Not allocated'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: unallocatedOption, matching: find.text('tenant')),
+      findsOneWidget,
+    );
+    expect(
+      tester.getTopLeft(unallocatedOption).dy,
+      greaterThan(tester.getBottomLeft(allocatedField).dy),
+    );
+    expect(tester.getTopLeft(messageField).dy, closeTo(messageTopBefore, .5));
+  });
+
+  testWidgets(
+    'creates a mobile enquiry without customer details using Normal and New defaults',
+    (WidgetTester tester) async {
+      final fakeApi = _FakeCrmMobileApi();
+      final navigation = DashboardNavigation();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DashboardDockScope(
+            navigation: navigation,
+            onDestinationSelected: navigation.selectDockDestination,
+            child: HomeEnquiryFormPage(
+              api: fakeApi,
+              session: const UserSession(
+                accessToken: 'test-token',
+                profile: UserProfile(
+                  email: 'vijay@example.com',
+                  name: 'Vijay Anand',
+                  role: 'user',
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Customer name (optional)'), findsOneWidget);
+      expect(find.text('Priority'), findsNothing);
+      expect(find.text('Status'), findsNothing);
+      expect(find.text('Due date'), findsNothing);
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Enquiries'), findsOneWidget);
+      expect(find.text('Duty'), findsOneWidget);
+      expect(find.text('Menu'), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('enquiry-message')),
+        'Enquiry without a known customer',
+      );
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(fakeApi.createdEnquiryPayload?['customer'], '');
+      expect(fakeApi.createdEnquiryPayload?['mobile'], '');
+      expect(fakeApi.createdEnquiryPayload?['statusId'], 'st-new');
+      expect(fakeApi.createdEnquiryPayload?['priorityId'], 'pr-1');
+    },
+  );
 
   testWidgets('keeps call-log enquiry creation administrator-only', (
     WidgetTester tester,
@@ -783,6 +1359,98 @@ void main() {
     expect(fakeApi.requestedEnquiryScope, 'assigned');
     expect(fakeApi.requestedEnquiryFilter, 'active');
     expect(feed.jobs.single.sourceId, _testCrmJob.sourceId);
+    final running = await fakeApi.startJob(
+      accessToken: session.accessToken,
+      id: _testCrmJob.sourceId,
+    );
+    feed.updateJob(running);
+    await feed.refresh();
+    expect(feed.jobs.single.jobs.single.isRunning, isTrue);
+    feed.dispose();
+  });
+
+  testWidgets('enquiry cards show Stop Job and elapsed time from shared feed', (
+    WidgetTester tester,
+  ) async {
+    final api = _FakeCrmMobileApi();
+    final session = const UserSession(
+      accessToken: 'test-token',
+      profile: UserProfile(
+        email: 'vijay@example.com',
+        name: 'Vijay Anand',
+        role: 'user',
+      ),
+    );
+    await api.startJob(
+      accessToken: session.accessToken,
+      id: _testCrmJob.sourceId,
+    );
+    final feed = DashboardJobsFeed(api: api, session: session);
+    await feed.refresh();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MyEnquiriesPage(
+            api: api,
+            session: session,
+            embedded: true,
+            jobsFeed: feed,
+            onJobUpdated: feed.updateJob,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('enquiry-card-more')));
+    await tester.pumpAndSettle();
+    expect(find.text('Stop Job'), findsOneWidget);
+    expect(find.text('Start Job'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('enquiry-card-running-timer')),
+      findsOneWidget,
+    );
+    feed.dispose();
+  });
+
+  testWidgets('dashboard running-job card shows elapsed time and stops job', (
+    WidgetTester tester,
+  ) async {
+    final api = _FakeCrmMobileApi();
+    final session = const UserSession(
+      accessToken: 'test-token',
+      profile: UserProfile(
+        email: 'vijay@example.com',
+        name: 'Vijay Anand',
+        role: 'user',
+      ),
+    );
+    final running = await api.startJob(
+      accessToken: session.accessToken,
+      id: _testCrmJob.sourceId,
+    );
+    final feed = DashboardJobsFeed(api: api, session: session)
+      ..updateJob(running);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DashboardHome(
+            api: api,
+            session: session,
+            jobsFeed: feed,
+            onOpenList: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Job running'), findsOneWidget);
+    expect(find.textContaining(' sec'), findsOneWidget);
+    await tester.tap(find.text('Stop Job'));
+    await tester.pumpAndSettle();
+    expect(api.stopJobCalls, 1);
+    expect(find.text('Job running'), findsNothing);
     feed.dispose();
   });
 
@@ -874,6 +1542,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Open call'), findsOneWidget);
+    await tester.tap(find.text('#762  New'));
+    await tester.pumpAndSettle();
+    expect(find.text('Change Status'), findsOneWidget);
+    Navigator.of(tester.element(find.text('Change Status'))).pop();
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('Open call'));
     await tester.pumpAndSettle();
 
@@ -926,9 +1600,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Add action'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Request closure'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Done'));
+      await tester.tap(find.text('Mark Complete'));
       await tester.pumpAndSettle();
       expect(
         find.text('Completion sent. Waiting for web approval.'),
@@ -977,7 +1649,7 @@ void main() {
       await tester.tap(find.byTooltip('Add action'));
       await tester.pumpAndSettle();
       expect(
-        find.text('Request closure'),
+        find.text('Mark Complete'),
         decision == 'approved' ? findsNothing : findsOneWidget,
       );
       await tester.pumpWidget(const SizedBox.shrink());
@@ -1009,6 +1681,14 @@ class _FakeCrmMobileApi extends CrmMobileApi {
 
   @override
   Future<int> tasksCount(String accessToken) async => 3;
+
+  @override
+  Future<List<CrmPartyReference>> partiesByMobile({
+    required String accessToken,
+    required String mobile,
+  }) async => const [
+    CrmPartyReference(id: 'customer-1', name: 'Sundar', type: 'Customer'),
+  ];
 
   @override
   Future<List<MessagingConversation>> conversations({
@@ -1086,7 +1766,14 @@ class _FakeCrmMobileApi extends CrmMobileApi {
   Future<List<CrmJob>> assignedJobs(String accessToken) async => [_job];
 
   @override
-  Future<List<CrmJob>> assignedJobDetails(String accessToken) async => [_job];
+  Future<List<CrmJob>> assignedJobDetails(String accessToken) async {
+    await enquiries(
+      accessToken: accessToken,
+      scope: 'assigned',
+      filter: 'active',
+    );
+    return [_job];
+  }
 
   @override
   Future<List<CrmDuty>> duties(String accessToken) async => [];
@@ -1211,8 +1898,16 @@ class _FakeCrmMobileApi extends CrmMobileApi {
   Future<CrmCallEnquiryFormData> callEnquiryFormData(
     String accessToken,
   ) async => const CrmCallEnquiryFormData(
-    groups: [CrmCallEnquiryGroup(label: 'Accounts', value: '7')],
-    assignees: [],
+    groups: [
+      CrmCallEnquiryGroup(label: 'Accounts', value: '7'),
+      CrmCallEnquiryGroup(label: 'office', value: '8'),
+      CrmCallEnquiryGroup(label: 'Stores', value: '9'),
+      CrmCallEnquiryGroup(label: 'Services', value: '10'),
+    ],
+    assignees: [
+      CrmCallEnquiryAssignee(id: '3', name: 'Vijay Anand'),
+      CrmCallEnquiryAssignee(id: '4', name: 'tenant'),
+    ],
     statuses: [
       CrmCallEnquiryStatus(id: 'st-new', name: 'New', code: 'new'),
       CrmCallEnquiryStatus(id: 'st-1', name: 'Open', code: 'OPEN'),
@@ -1351,6 +2046,13 @@ class _FakeCrmMobileApi extends CrmMobileApi {
     int? enquiryId,
     int? taskId,
   }) async => workUpdates;
+
+  @override
+  Future<List<Map<String, dynamic>>> enquirySchedules(
+    String accessToken, {
+    required int enquiryId,
+  }) async => [];
+
   @override
   Future<void> sendWorkReport(
     String accessToken,

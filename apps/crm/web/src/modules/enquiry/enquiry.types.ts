@@ -27,6 +27,7 @@ export type EnquiryRecord = EnquirySavePayload & {
   priority: string;
   priorityName: string;
   createdBy: string;
+  createdByName?: string | null;
   createdAt: string;
   updatedAt: string;
   assignedToName: string | null;

@@ -455,20 +455,54 @@ export class TaskRepository {
   }
   async stopJob(taskId: number, actor: string, canManage: boolean) {
     await this.db.transaction().execute(async (trx) => {
-      let q = trx
-        .updateTable("crm_task_jobs")
+      let activeQuery = trx
+        .selectFrom("crm_task_jobs")
+        .select(["id", "started_at"])
         .where("task_id", "=", taskId)
-        .where("stopped_at", "is", null);
-      if (!canManage) q = q.where("started_by", "=", actor);
-      const result = await q
+        .where("stopped_at", "is", null)
+        .forUpdate();
+      if (!canManage) activeQuery = activeQuery.where("started_by", "=", actor);
+      const activeJob = await activeQuery.executeTakeFirst();
+      if (!activeJob) throw AppError.conflict("No active task timer is assigned to you.");
+      const stoppedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
+      const result = await trx
+        .updateTable("crm_task_jobs")
+        .where("id", "=", activeJob.id)
         .set({
           updated_at: sql`UTC_TIMESTAMP()`,
-          stopped_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+          stopped_at: stoppedAt,
           status: "inactive"
         })
         .executeTakeFirst();
       if (!Number(result.numUpdatedRows))
         throw AppError.conflict("No active task timer is assigned to you.");
+      const durationSeconds = Math.max(
+        0,
+        Math.floor(
+          (Date.parse(`${stoppedAt.replace(" ", "T")}Z`) -
+            Date.parse(taskJobTimestamp(activeJob.started_at))) /
+            1000
+        )
+      );
+      const comment = taskJobCycleComment(
+        Number(activeJob.id),
+        taskJobTimestamp(activeJob.started_at),
+        stoppedAt.replace(" ", "T") + "Z",
+        durationSeconds
+      );
+      await trx
+        .insertInto("crm_task_comments")
+        .values({
+          uuid: publicUuid(),
+          task_id: taskId,
+          parent_id: null,
+          body: comment,
+          created_by: actor,
+          created_at: sql`UTC_TIMESTAMP()`,
+          updated_at: sql`UTC_TIMESTAMP()`
+        })
+        .execute();
+      await this.insertActivity(trx, taskId, "comment", comment, actor);
       await this.insertActivity(trx, taskId, "job-stopped", "Job timer stopped.", actor);
     });
   }
@@ -717,6 +751,32 @@ export class TaskRepository {
 
 function publicUuid() {
   return randomBytes(4).toString("hex");
+}
+
+function taskJobTimestamp(value: string | Date) {
+  if (value instanceof Date) return value.toISOString();
+  const normalized = value.includes("T") ? value : `${value.replace(" ", "T")}Z`;
+  return new Date(normalized).toISOString();
+}
+
+export function taskJobCycleComment(
+  jobId: number,
+  startedAt: string,
+  stoppedAt: string,
+  durationSeconds: number
+) {
+  const hours = Math.floor(durationSeconds / 3600);
+  const minutes = Math.floor((durationSeconds % 3600) / 60);
+  const seconds = durationSeconds % 60;
+  const duration = [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+  return `Job #${jobId} completed\nStarted @ ${formatJobTimestamp(startedAt)}\nCompleted @ ${formatJobTimestamp(stoppedAt)}\nDuration: ${duration}`;
+}
+
+function formatJobTimestamp(value: string) {
+  const date = new Date(value);
+  const hour = date.getUTCHours();
+  const twoDigits = (part: number) => String(part).padStart(2, "0");
+  return `${twoDigits(date.getUTCDate())}-${twoDigits(date.getUTCMonth() + 1)}-${twoDigits(date.getUTCFullYear() % 100)} ${twoDigits(hour % 12 || 12)}:${twoDigits(date.getUTCMinutes())}:${twoDigits(date.getUTCSeconds())} ${hour < 12 ? "AM" : "PM"}`;
 }
 
 function utcDateTime(value: string) {

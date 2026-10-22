@@ -10,6 +10,9 @@ class JobWorkFeed extends StatelessWidget {
     required this.session,
     this.locations = const [],
     this.reports = const [],
+    this.schedules = const [],
+    this.selectedSection = 'comments',
+    this.showSystemLogs = false,
     super.key,
   });
 
@@ -17,12 +20,22 @@ class JobWorkFeed extends StatelessWidget {
   final UserSession session;
   final List<CrmEnquiryLocation> locations;
   final List<Map<String, dynamic>> reports;
+  final List<Map<String, dynamic>> schedules;
+  final String selectedSection;
+  final bool showSystemLogs;
 
   @override
   Widget build(BuildContext context) {
-    final entries = _WorkFeedEntry.fromJob(job, session, locations, reports);
+    final entries =
+        _WorkFeedEntry.fromJob(job, session, locations, reports, schedules)
+            .where(
+              (entry) =>
+                  entry.section == selectedSection &&
+                  (showSystemLogs || !entry.isSystemLog),
+            )
+            .toList();
     if (entries.isEmpty) {
-      return const Center(child: Text('No comments or job records yet.'));
+      return Center(child: Text(_emptySectionMessage(selectedSection)));
     }
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 92),
@@ -43,6 +56,8 @@ class _WorkFeedEntry {
     required this.createdAt,
     this.durationLabel,
     this.onTap,
+    this.isSystemLog = false,
+    required this.section,
   });
 
   final IconData icon;
@@ -52,31 +67,45 @@ class _WorkFeedEntry {
   final DateTime createdAt;
   final String? durationLabel;
   final VoidCallback? onTap;
+  final bool isSystemLog;
+  final String section;
 
   static List<_WorkFeedEntry> fromJob(
     CrmJob job,
     UserSession session,
     List<CrmEnquiryLocation> locations,
     List<Map<String, dynamic>> reports,
+    List<Map<String, dynamic>> schedules,
   ) {
     final entries = <_WorkFeedEntry>[
-      ...reports.map(
-        (report) => _WorkFeedEntry(
+      ...reports.map((report) {
+        final action = '${report['action'] ?? 'report'}'.toLowerCase();
+        final section = switch (action) {
+          'check-in' || 'check-out' => 'checkpoints',
+          'charge' || 'collection' => 'charges',
+          _ => 'actions',
+        };
+        return _WorkFeedEntry(
           icon: report['latitude'] == null
               ? Icons.task_alt
               : Icons.location_on_outlined,
           title: normalizeCrmText('${report['action']}').replaceAll('-', ' '),
-          detail:
-              '${normalizeCrmText('${report['body'] ?? ''}')}${report['latitude'] == null ? '' : '\nGPS: ${report['latitude']}, ${report['longitude']} · ${report['accuracy_meters']} m'}',
+          detail: [
+            if (report['amount'] != null) 'Amount: ${report['amount']}',
+            normalizeCrmText('${report['body'] ?? ''}'),
+            if (report['latitude'] != null)
+              'GPS: ${report['latitude']}, ${report['longitude']} · ${report['accuracy_meters']} m',
+          ].where((part) => part.isNotEmpty).join('\n'),
           author: _author('${report['created_by']}', session),
           createdAt: DateTime.parse('${report['created_at']}'),
+          section: section,
           onTap: report['latitude'] == null
               ? null
               : () => MobileActions.location(
                   '${report['latitude']},${report['longitude']}',
                 ),
-        ),
-      ),
+        );
+      }),
       ...job.comments.map(
         (comment) => _WorkFeedEntry(
           icon: Icons.chat_bubble_outline,
@@ -84,6 +113,8 @@ class _WorkFeedEntry {
           detail: comment.comment,
           author: _author(comment.createdByUserId, session),
           createdAt: comment.createdAt,
+          isSystemLog: _isSystemWorkLog(comment.comment),
+          section: 'comments',
         ),
       ),
       ...job.jobs.map(
@@ -97,6 +128,7 @@ class _WorkFeedEntry {
           author: execution.employee,
           createdAt: execution.createdAt,
           durationLabel: formatJobDuration(execution),
+          section: 'jobs',
         ),
       ),
       ...locations.map(
@@ -108,15 +140,64 @@ class _WorkFeedEntry {
               '${location.accuracyMeters == null ? '' : ' · ±${location.accuracyMeters!.round()} m'}',
           author: _author(location.createdBy, session),
           createdAt: location.capturedAt,
+          section: 'actions',
           onTap: () => MobileActions.location(
             '${location.latitude},${location.longitude}',
           ),
         ),
       ),
+      ...job.activities.map(
+        (activity) => _WorkFeedEntry(
+          icon: Icons.bolt_outlined,
+          title: normalizeCrmText(activity.action),
+          detail: normalizeCrmText(activity.details),
+          author: _author(activity.createdBy, session),
+          createdAt: activity.createdAt,
+          section: 'actions',
+        ),
+      ),
+      ...schedules.map((schedule) {
+        final scheduledAt = DateTime.tryParse(
+          '${schedule['scheduledAt'] ?? ''}',
+        )?.toLocal();
+        return _WorkFeedEntry(
+          icon: Icons.calendar_month_outlined,
+          title: normalizeCrmText(
+            '${schedule['title'] ?? 'Scheduled follow-up'}',
+          ),
+          detail: [
+            normalizeCrmText('${schedule['details'] ?? ''}'),
+            if (scheduledAt != null)
+              'Scheduled ${_scheduleDateTime(scheduledAt)}',
+            if ('${schedule['status'] ?? ''}'.isNotEmpty)
+              normalizeCrmText('${schedule['status']}'),
+          ].where((part) => part.isNotEmpty).join(' · '),
+          author: _author('${schedule['createdBy'] ?? ''}', session),
+          createdAt:
+              DateTime.tryParse('${schedule['createdAt'] ?? ''}') ??
+              DateTime.now(),
+          section: 'schedules',
+        );
+      }),
     ]..sort((left, right) => right.createdAt.compareTo(left.createdAt));
     return entries;
   }
 }
+
+bool _isSystemWorkLog(String value) => RegExp(
+  r'^(?:Job started by\b|Job\s+#\S+\s+stopped\.?$)',
+  caseSensitive: false,
+).hasMatch(value.trim());
+
+String _emptySectionMessage(String section) => switch (section) {
+  'comments' => 'No comments yet.',
+  'actions' => 'No actions recorded yet.',
+  'checkpoints' => 'No check in or out records yet.',
+  'jobs' => 'No jobs recorded yet.',
+  'charges' => 'No charges recorded yet.',
+  'schedules' => 'No schedules yet.',
+  _ => 'No records found.',
+};
 
 class _WorkFeedTile extends StatelessWidget {
   const _WorkFeedTile({required this.entry});
@@ -235,6 +316,14 @@ String _author(String value, UserSession session) {
 String _jobTime(String? value) {
   if (value == null || value.isEmpty) return 'Running';
   return value.length >= 8 ? value.substring(0, 8) : value;
+}
+
+String _scheduleDateTime(DateTime value) {
+  final month = value.month.toString().padLeft(2, '0');
+  final day = value.day.toString().padLeft(2, '0');
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  return '$day/$month/${value.year} $hour:$minute';
 }
 
 String _relativeTime(DateTime value) {

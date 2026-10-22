@@ -53,6 +53,7 @@ const recordSchema = inputSchema.extend({
   priority: z.string(),
   priorityName: z.string(),
   createdBy: z.string(),
+  createdByName: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   closurePending: z.boolean().optional(),

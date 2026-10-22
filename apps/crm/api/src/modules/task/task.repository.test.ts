@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { DummyDriver, Kysely, MysqlAdapter, MysqlIntrospector, MysqlQueryCompiler } from "kysely";
-import { TaskRepository } from "./task.repository.js";
+import { TaskRepository, taskJobCycleComment } from "./task.repository.js";
+import { jobCycleComment } from "../enquiry/enquiry.work.repository.js";
 import type { TaskDatabase } from "./task.types.js";
 
 const database = new Kysely<TaskDatabase>({
@@ -44,4 +45,18 @@ test("task date ranges filter creation timestamps with an inclusive start and ex
   assert.match(query.sql, /`t`.`created_at` >= \?/u);
   assert.match(query.sql, /`t`.`created_at` < \?/u);
   assert.deepEqual(query.parameters, ["2026-10-01 00:00:00", "2026-10-02 00:00:00"]);
+});
+
+test("completed enquiry and task job comments use the requested date and time format", () => {
+  const start = "2026-10-22T00:05:09.000Z";
+  const stop = "2026-10-22T13:05:09.000Z";
+
+  for (const body of [
+    jobCycleComment(4, start, stop, 46_800),
+    taskJobCycleComment(4, start, stop, 46_800)
+  ]) {
+    assert.match(body, /Started @ 22-10-26 12:05:09 AM/);
+    assert.match(body, /Completed @ 22-10-26 01:05:09 PM/);
+    assert.match(body, /Duration: 13:00:00/);
+  }
 });

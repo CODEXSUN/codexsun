@@ -200,6 +200,7 @@ Grouped totals run on the server across all matching records, before detail pagi
 ## Mobile work actions and administrative review
 
 Mobile is the user client. Web is the administrative client. Both use the same tenant-scoped Platform API and local CRM database.
+New mobile enquiries default to the New status and Normal priority. Customer name and mobile are optional; a supplied name or phone is resolved to a contact, while an enquiry without either remains unlinked. Mobile title, details, and a newly entered customer name are normalized to plain text before they are saved.
 The mobile Menu includes Tasks. Task details show the optional saved contact, actions, GPS check-in/check-out, and completion requests.
 Enquiries, Tasks, and Duties share an Add action drawer: select an action, complete its input form, then Confirm. Cancel closes the drawer without submitting.
 Duty report history opens the same drawer for edits; the server preserves the original outcome and instruction snapshot.

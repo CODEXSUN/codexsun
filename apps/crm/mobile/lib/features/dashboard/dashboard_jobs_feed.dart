@@ -18,13 +18,17 @@ class DashboardJobsFeed extends ChangeNotifier with WidgetsBindingObserver {
   final CrmMobileApi api;
   UserSession session;
   final List<CrmJob> _jobs = [];
+  final Map<String, List<CrmJobExecution>> _jobSessions = {};
   Timer? _timer;
   bool _isLoading = true;
   bool _isRefreshing = false;
+  bool _includeDetailsOnNextLoad = true;
   String? _error;
   var _sessionGeneration = 0;
 
   List<CrmJob> get jobs => List.unmodifiable(_jobs);
+  CrmJob? jobFor(String sourceId) =>
+      _jobs.where((job) => job.sourceId == sourceId).firstOrNull;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -38,11 +42,23 @@ class DashboardJobsFeed extends ChangeNotifier with WidgetsBindingObserver {
     _isRefreshing = true;
     final generation = _sessionGeneration;
     try {
-      final updated = await _loadEnquiries();
+      final includeDetails = _includeDetailsOnNextLoad;
+      final updated = await _loadEnquiries(includeDetails: includeDetails);
       if (generation != _sessionGeneration) return;
+      _includeDetailsOnNextLoad = false;
+      for (final job in updated) {
+        if (job.jobs.isNotEmpty) _jobSessions[job.sourceId] = job.jobs;
+      }
       _jobs
         ..clear()
-        ..addAll(updated);
+        ..addAll(
+          updated.map((job) {
+            final sessions = _jobSessions[job.sourceId];
+            return job.jobs.isEmpty && sessions != null
+                ? job.withJobs(sessions)
+                : job;
+          }),
+        );
       _error = null;
     } on Object catch (error) {
       if (generation != _sessionGeneration) return;
@@ -58,12 +74,28 @@ class DashboardJobsFeed extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  void updateJob(CrmJob updated) {
+    _jobSessions[updated.sourceId] = updated.jobs;
+    final index = _jobs.indexWhere((job) => job.sourceId == updated.sourceId);
+    if (index >= 0) {
+      _jobs[index] = updated;
+    } else if (updated.status.toLowerCase() != 'closed') {
+      _jobs.add(updated);
+    }
+    notifyListeners();
+  }
+
   void updateSession(UserSession updatedSession) {
     if (session.accessToken == updatedSession.accessToken) return;
+    if (session.profile.email != updatedSession.profile.email) {
+      _jobs.clear();
+      _jobSessions.clear();
+    }
     session = updatedSession;
     _sessionGeneration += 1;
     _isRefreshing = false;
     _isLoading = _jobs.isEmpty;
+    _includeDetailsOnNextLoad = true;
     unawaited(refresh());
   }
 
@@ -85,7 +117,14 @@ class DashboardJobsFeed extends ChangeNotifier with WidgetsBindingObserver {
     _timer ??= Timer.periodic(_refreshInterval, (_) => unawaited(refresh()));
   }
 
-  Future<List<CrmJob>> _loadEnquiries() async {
+  Future<List<CrmJob>> _loadEnquiries({required bool includeDetails}) async {
+    if (includeDetails) {
+      try {
+        return await api.assignedJobDetails(session.accessToken);
+      } on CrmMobileApiException {
+        // Keep the list available if a detail endpoint is temporarily down.
+      }
+    }
     try {
       return await api.enquiries(
         accessToken: session.accessToken,

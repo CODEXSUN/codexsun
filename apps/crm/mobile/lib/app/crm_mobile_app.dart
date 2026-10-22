@@ -11,6 +11,8 @@ import '../features/auth/login_page.dart';
 import '../features/auth/change_password_dialog.dart';
 import '../features/auth/pin_auth_pages.dart';
 import '../features/dashboard/dashboard_page.dart';
+import '../features/dashboard/admin_call_log_page.dart';
+import '../features/dashboard/messages_sample_page.dart';
 import 'app_footer_dock.dart';
 import 'dashboard_navigation.dart';
 
@@ -512,11 +514,12 @@ class _CrmMobileAppState extends State<CrmMobileApp>
         useMaterial3: true,
       ),
       builder: (context, child) {
-        final canPop = _navigatorKey.currentState?.canPop() ?? false;
         return _AuthenticatedAppShell(
           navigation: _dashboardNavigation,
           navigatorKey: _navigatorKey,
-          showDock: _stage == _AuthStage.dashboard && !canPop,
+          showDock: _stage == _AuthStage.dashboard,
+          onDashboardCallLogs: _openDashboardCallLogs,
+          onDashboardChat: _openDashboardChat,
           child: child ?? const SizedBox.shrink(),
         );
       },
@@ -564,6 +567,29 @@ class _CrmMobileAppState extends State<CrmMobileApp>
         );
     }
   }
+
+  Future<void> _openDashboardCallLogs() async {
+    final session = _session;
+    final navigator = _navigatorKey.currentState;
+    if (session == null || navigator == null) return;
+    await navigator.push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => AdminCallLogPage(api: _api, session: session),
+      ),
+    );
+  }
+
+  Future<void> _openDashboardChat() async {
+    final session = _session;
+    final navigator = _navigatorKey.currentState;
+    if (session == null || navigator == null) return;
+    navigator.popUntil((route) => route.isFirst);
+    await navigator.push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => MessagesPage(api: _api, session: session),
+      ),
+    );
+  }
 }
 
 const _brandPurple = Color(0xFF662C90);
@@ -575,51 +601,68 @@ class _AuthenticatedAppShell extends StatelessWidget {
     required this.navigation,
     required this.navigatorKey,
     required this.showDock,
+    required this.onDashboardCallLogs,
+    required this.onDashboardChat,
     required this.child,
   });
 
   final DashboardNavigation navigation;
   final GlobalKey<NavigatorState> navigatorKey;
   final bool showDock;
+  final Future<void> Function() onDashboardCallLogs;
+  final Future<void> Function() onDashboardChat;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    if (!showDock) return child;
-    return AnimatedBuilder(
-      animation: navigation,
-      builder: (context, _) {
-        final keyboardIsVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
-        final dockIsVisible = !keyboardIsVisible;
-        return Stack(
-          children: [
-            Padding(
-              padding: EdgeInsets.only(bottom: dockIsVisible ? 82 : 0),
-              child: child,
-            ),
-            if (dockIsVisible)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: SafeArea(
-                  top: false,
-                  child: AppFooterDock(
-                    selectedIndex: navigation.selectedIndex,
-                    jobBadgeCount: navigation.jobBadgeCount,
-                    onDestinationSelected: (index) {
-                      navigatorKey.currentState?.popUntil(
-                        (route) => route.isFirst,
-                      );
-                      navigation.selectDockDestination(index);
-                    },
+    final content = showDock
+        ? AnimatedBuilder(
+            animation: navigation,
+            builder: (context, _) {
+              final keyboardIsVisible =
+                  MediaQuery.viewInsetsOf(context).bottom > 0;
+              final dockIsVisible = !keyboardIsVisible;
+              return Stack(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(bottom: dockIsVisible ? 82 : 0),
+                    child: child,
                   ),
-                ),
-              ),
-          ],
-        );
-      },
+                  if (dockIsVisible)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: SafeArea(
+                        top: false,
+                        child: AppFooterDock(
+                          selectedIndex: navigation.selectedIndex,
+                          dashboardMode: navigation.selectedIndex == 0,
+                          jobBadgeCount: navigation.jobBadgeCount,
+                          onDashboardCallLogs: () =>
+                              unawaited(onDashboardCallLogs()),
+                          onDashboardChat: () => unawaited(onDashboardChat()),
+                          onDestinationSelected: _selectDockDestination,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          )
+        : child;
+    return DashboardDockScope(
+      navigation: navigation,
+      onDestinationSelected: _selectDockDestination,
+      onDashboardCallLogs: () => unawaited(onDashboardCallLogs()),
+      dockIsGlobal: true,
+      child: content,
     );
+  }
+
+  void _selectDockDestination(int index) {
+    navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    navigation.selectDockDestination(index);
   }
 }
 

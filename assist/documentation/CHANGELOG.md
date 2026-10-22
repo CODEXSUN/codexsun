@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.37
+Current version: 1.1.38
 
-Release tag: v-1.1.37
+Release tag: v-1.1.38
 
-Changelog label: v 1.1.37
+Changelog label: v 1.1.38
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,21 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.38
+
+### [v 1.1.38] 2026-10-22 2:24 pm - CRM mobile work actions and cycle timestamps
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Add mobile job timer actions to enquiry cards and the dashboard; completed enquiry and task timers post one comment with start time, completion time, and duration.
+- Format completed job and check-in/check-out cycle timestamps as `DD-MM-YY hh:mm:ss AM/PM`.
+- Add mobile check-in/check-out comments after a full cycle, including both submitted notes and captured GPS details.
+- Refine mobile enquiry cards, dashboard navigation, and show-page comment/action views.
 
 ## v-1.1.37
 

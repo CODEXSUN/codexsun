@@ -18,14 +18,12 @@ const session = UserSession(
 class HomeApi extends CrmMobileApi {
   HomeApi() : super('http://localhost');
   int taskCount = 2;
-  int activityCount = 4;
   int unread = 0;
   int latest = 1;
   final reads = <int?>[];
   @override
   Future<int> tasksCount(String token) async => taskCount;
   @override
-  Future<int> activitiesCount(String token) async => activityCount;
   @override
   Future<List<CrmDuty>> duties(String token) async => [];
   @override
@@ -99,13 +97,9 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
   });
-  testWidgets('all Home cards navigate and counts refresh after changes', (
-    tester,
-  ) async {
+  testWidgets('dashboard cards show Jobs, Tasks and Duty', (tester) async {
     final api = HomeApi();
     final destinations = <int>[];
-    var actions = 0;
-    var reportsOpened = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -114,42 +108,27 @@ void main() {
             session: session,
             jobCount: 3,
             onOpenList: destinations.add,
-            onOpenActions: () async {
-              actions++;
-            },
-            onOpenReports: () async {
-              reportsOpened++;
-            },
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Enquiries'));
+    await tester.tap(find.text('Jobs'));
     await tester.tap(find.text('Duty'));
-    await tester.tap(find.text('Activities'));
     expect(destinations, [1, 2]);
-    expect(actions, 1);
-    expect(find.text('Last 7 days'), findsOneWidget);
+    expect(find.text('Activities'), findsNothing);
+    expect(find.text('Reports'), findsNothing);
+    expect(find.text('Call logs'), findsNothing);
     expect(find.text('2'), findsOneWidget);
     api.taskCount = 7;
-    api.activityCount = 9;
     await tester.pump(const Duration(seconds: 20));
     await tester.pumpAndSettle();
     expect(find.text('7'), findsOneWidget);
-    expect(find.text('9'), findsOneWidget);
     await tester.tap(find.text('Tasks'));
     await tester.pumpAndSettle();
     expect(find.text('No active tasks.'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Call logs'));
-    await tester.pumpAndSettle();
-    expect(find.text('Call Logs'), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Reports'));
-    expect(reportsOpened, 1);
     await tester.pumpWidget(const SizedBox());
   });
   test('assignment and message unread snapshots clear after reading', () async {

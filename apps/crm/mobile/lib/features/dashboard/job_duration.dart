@@ -10,6 +10,42 @@ String formatJobDuration(CrmJobExecution job, {DateTime? now}) {
   return minutes == 0 ? '$hours hr' : '$hours hr $minutes min';
 }
 
+String formatJobDurationClock(CrmJobExecution job, {DateTime? now}) {
+  final seconds = jobElapsedSeconds(job, now: now);
+  final hours = seconds ~/ 3600;
+  final minutes = (seconds % 3600) ~/ 60;
+  final remainingSeconds = seconds % 60;
+  final paddedMinutes = minutes.toString().padLeft(2, '0');
+  final paddedSeconds = remainingSeconds.toString().padLeft(2, '0');
+  if (hours == 0) return '$paddedMinutes:$paddedSeconds';
+  return '$hours:$paddedMinutes:$paddedSeconds';
+}
+
+int jobElapsedSeconds(CrmJobExecution job, {DateTime? now}) =>
+    _durationSeconds(job, now: now) ?? 0;
+
+List<CrmJob> sortRunningJobsFirst(Iterable<CrmJob> jobs) {
+  final now = DateTime.now();
+  final indexed = jobs.indexed.toList();
+  indexed.sort((left, right) {
+    final leftRunning = left.$2.jobs.where((job) => job.isRunning).firstOrNull;
+    final rightRunning = right.$2.jobs
+        .where((job) => job.isRunning)
+        .firstOrNull;
+    if (leftRunning == null && rightRunning == null) {
+      return left.$1.compareTo(right.$1);
+    }
+    if (leftRunning == null) return 1;
+    if (rightRunning == null) return -1;
+    final durationOrder = jobElapsedSeconds(
+      rightRunning,
+      now: now,
+    ).compareTo(jobElapsedSeconds(leftRunning, now: now));
+    return durationOrder == 0 ? left.$1.compareTo(right.$1) : durationOrder;
+  });
+  return indexed.map((entry) => entry.$2).toList();
+}
+
 int? _durationSeconds(CrmJobExecution job, {DateTime? now}) {
   final start = _secondsFromTime(job.startTime);
   final stop = _secondsFromTime(job.stopTime);
@@ -26,6 +62,11 @@ int? _runningSeconds(
   int? startTimeSeconds, {
   DateTime? now,
 }) {
+  final exactStart = DateTime.tryParse(job.startTime)?.toLocal();
+  if (exactStart != null) {
+    final seconds = (now ?? DateTime.now()).difference(exactStart).inSeconds;
+    return seconds < 0 ? 0 : seconds;
+  }
   if (startTimeSeconds == null) return null;
   final date = DateTime.tryParse(job.date ?? '');
   final startedAt = date == null

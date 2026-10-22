@@ -304,6 +304,15 @@ export class EnquiryService {
     current: EnquiryRecord | null,
     imported = false
   ): Promise<EnquiryInput> {
+    if (input.source === "mobile") {
+      input = {
+        ...input,
+        title: normalizeMobileText(input.title) ?? "",
+        description: normalizeMobileText(input.description),
+        capturedName: normalizeMobileText(input.capturedName),
+        capturedPhone: input.capturedPhone?.trim() || null
+      };
+    }
     if (
       !this.viewer.canViewAll &&
       (current
@@ -313,7 +322,12 @@ export class EnquiryService {
       throw AppError.forbidden("Only an enquiry manager can change the assignee.");
     const title = input.title.trim() || titleFromMessage(input.description);
     if (!title) throw AppError.validation("Enter an enquiry message or title.");
-    if (!input.contactId && !input.capturedName?.trim() && !input.capturedPhone?.trim()) {
+    if (
+      input.source !== "mobile" &&
+      !input.contactId &&
+      !input.capturedName?.trim() &&
+      !input.capturedPhone?.trim()
+    ) {
       throw AppError.validation("Customer name or mobile number is required.");
     }
     if (input.contactId && !(await this.relations.contact(input.contactId))) {
@@ -365,6 +379,9 @@ export class EnquiryService {
 
   private async resolveContact(input: EnquiryInput, transaction: Transaction<EnquiryDatabase>) {
     if (input.contactId) return input;
+    if (input.source === "mobile" && !input.capturedName?.trim() && !input.capturedPhone?.trim()) {
+      return { ...input, contactId: null, capturedName: null, capturedPhone: null };
+    }
     const contact = await this.relations.resolveOrCreateCustomer(
       { name: input.capturedName, mobile: input.capturedPhone },
       transaction
@@ -380,6 +397,12 @@ export class EnquiryService {
     const contact = record.contactId ? await this.relations.contact(record.contactId) : null;
     return { ...record, contactName: contact?.name ?? null };
   }
+}
+
+function normalizeMobileText(value: string | null) {
+  if (value === null) return null;
+  const text = commentPlainText(value).replace(/\s+/gu, " ").trim();
+  return text || null;
 }
 
 function titleFromMessage(message: string | null) {

@@ -91,6 +91,23 @@ export class EnquiryWorkRepository {
         `Job #${jobId} stopped`,
         actor
       );
+      const comment = jobCycleComment(jobId, toIso(job.start_at), stopAt, totals.duration_seconds);
+      await transaction
+        .insertInto("crm_enquiry_comments")
+        .values({
+          request_id: null,
+          enquiry_id: enquiryId,
+          parent_id: null,
+          body: comment,
+          body_format: "plain",
+          status: "active",
+          created_by: actor,
+          created_at: sqlDate(stopAt),
+          updated_at: sqlDate(stopAt)
+        })
+        .execute();
+      await insertEnquiryActivity(transaction, enquiryId, "comment-added", "Comment added", actor);
+      await this.workEvent?.(transaction, enquiryId, "comment-added", comment);
       await this.workEvent?.(transaction, enquiryId, "job-stopped", `Job #${jobId} stopped.`);
     });
     return this.getJob(enquiryId, jobId);
@@ -317,6 +334,29 @@ function jobTotals(startAt: string, stopAt: string | null, ratePerHour: number) 
     duration_seconds: durationSeconds,
     total_cost: ((durationSeconds / 3600) * ratePerHour).toFixed(2)
   };
+}
+
+export function jobCycleComment(
+  jobId: number,
+  startAt: string,
+  stopAt: string,
+  durationSeconds: number
+) {
+  return `Job #${jobId} completed\nStarted @ ${formatJobTimestamp(startAt)}\nCompleted @ ${formatJobTimestamp(stopAt)}\nDuration: ${formatDuration(durationSeconds)}`;
+}
+
+function formatJobTimestamp(value: string) {
+  const date = new Date(value);
+  const hour = date.getUTCHours();
+  const twoDigits = (part: number) => String(part).padStart(2, "0");
+  return `${twoDigits(date.getUTCDate())}-${twoDigits(date.getUTCMonth() + 1)}-${twoDigits(date.getUTCFullYear() % 100)} ${twoDigits(hour % 12 || 12)}:${twoDigits(date.getUTCMinutes())}:${twoDigits(date.getUTCSeconds())} ${hour < 12 ? "AM" : "PM"}`;
+}
+
+function formatDuration(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
 function toJob(row: Selectable<EnquiryJobRow>): EnquiryJob {
