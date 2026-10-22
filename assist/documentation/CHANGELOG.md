@@ -26,7 +26,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 #### Database Changes
 
-- Database update: No (manual).
+- Database update: Yes (additive scheduler notes migration).
 
 #### App Codebase Changes
 
