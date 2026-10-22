@@ -136,7 +136,10 @@ export async function registerMigrationRoutes(app: FastifyInstance, host: DataMi
   });
   app.patch("/jobs/:id", async (request) => {
     const { id } = jobParams.parse(request.params);
-    const { sessionName } = z.object({ sessionName: z.string().trim().min(1).max(120) }).strict().parse(request.body);
+    const { sessionName } = z
+      .object({ sessionName: z.string().trim().min(1).max(120) })
+      .strict()
+      .parse(request.body);
     const actor = await host.authorize(request);
     return ok(await service.renameJob(id, sessionName, actor), { requestId: request.id });
   });
@@ -145,6 +148,27 @@ export async function registerMigrationRoutes(app: FastifyInstance, host: DataMi
     return ok(await service.getJobTables(jobParams.parse(request.params).id), {
       requestId: request.id
     });
+  });
+  app.get("/jobs/:id/query-plan", async (request) => {
+    const { id } = jobParams.parse(request.params);
+    await host.authorize(request);
+    return ok(await service.getJobQueryPlan(id), { requestId: request.id });
+  });
+  app.post("/jobs/:id/query-plan/generate", async (request) => {
+    const { id } = jobParams.parse(request.params);
+    z.object({})
+      .strict()
+      .parse(request.body ?? {});
+    const actor = await host.authorize(request);
+    return ok(await service.generateJobQueryPlan(id, actor), { requestId: request.id });
+  });
+  app.post("/jobs/:id/query-plan/finalize", async (request) => {
+    const { id } = jobParams.parse(request.params);
+    z.object({})
+      .strict()
+      .parse(request.body ?? {});
+    const actor = await host.authorize(request);
+    return ok(await service.finalizeJobQueryPlan(id, actor), { requestId: request.id });
   });
   app.put("/jobs/:id/tables", async (request) => {
     const params = jobParams.parse(request.params);
@@ -236,6 +260,42 @@ export async function registerMigrationRoutes(app: FastifyInstance, host: DataMi
       {
         requestId: request.id
       }
+    );
+  });
+  app.post("/sample", async (request) => {
+    const input = transfer
+      .omit({ columnMappings: true })
+      .extend({
+        targetTable: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/u),
+        sourcePage: z.number().int().min(1).max(100000),
+        targetPage: z.number().int().min(1).max(100000),
+        sourceColumn: z
+          .string()
+          .regex(/^[A-Za-z_][A-Za-z0-9_]*$/u)
+          .optional(),
+        targetColumn: z
+          .string()
+          .regex(/^[A-Za-z_][A-Za-z0-9_]*$/u)
+          .optional()
+      })
+      .refine(
+        (value) => Boolean(value.sourceColumn) === Boolean(value.targetColumn),
+        "Select both source and destination fields for a mapped-field preview."
+      )
+      .parse(request.body);
+    await host.authorize(request);
+    return ok(
+      await service.sampleTableData(
+        input.sourceId,
+        input.targetTenantId,
+        input.table,
+        input.targetTable,
+        input.sourcePage,
+        input.targetPage,
+        input.sourceColumn,
+        input.targetColumn
+      ),
+      { requestId: request.id }
     );
   });
   app.post("/schema", async (request) => {

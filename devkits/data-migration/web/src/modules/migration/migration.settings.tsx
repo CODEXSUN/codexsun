@@ -15,7 +15,7 @@ import {
   type SourceOption
 } from "./migration.services.js";
 
-export function DataMigrationSettings({ onOpenMigration }: { onOpenMigration: () => void }) {
+export function DataMigrationSettings() {
   const [sources, setSources] = useState<SourceOption[]>([]);
   const [editing, setEditing] = useState<SourceOption | null>(null);
   const [adding, setAdding] = useState(false);
@@ -97,11 +97,8 @@ export function DataMigrationSettings({ onOpenMigration }: { onOpenMigration: ()
   }
 
   return (
-    <WorkspacePage
-      title="Database Settings"
-      description="Save MariaDB server connections for Migration and Migration Analysis only. These settings do not change CODEXSUN runtime databases."
-    >
-      <div className="flex flex-wrap items-center gap-2">
+    <WorkspacePage title="Database Settings">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         {!adding && !editing ? (
           <Button
             type="button"
@@ -113,32 +110,26 @@ export function DataMigrationSettings({ onOpenMigration }: { onOpenMigration: ()
             Add server connection
           </Button>
         ) : null}
-        <Button type="button" variant="outline" onClick={onOpenMigration}>
-          Open Migration Mapper
-        </Button>
+        {currentConnection ? (
+          <section className="ml-auto flex items-center gap-3 rounded-md border px-3 py-2">
+            <div className="text-right">
+              <p className="text-sm font-medium">Current server</p>
+              <p className="text-xs text-muted-foreground">
+                {currentConnection.host}:{currentConnection.port} · {currentConnection.user}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={usingCurrent}
+              onClick={() => void useCurrentConnection()}
+            >
+              {usingCurrent ? "Adding…" : "Add current server"}
+            </Button>
+          </section>
+        ) : null}
       </div>
-      {currentConnection ? (
-        <section className="flex flex-wrap items-center justify-between gap-4 rounded-md border p-4">
-          <div>
-            <h2 className="font-semibold">Current CODEXSUN MariaDB server</h2>
-            <p className="text-sm text-muted-foreground">
-              {currentConnection.host}:{currentConnection.port} · {currentConnection.user}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Save this server connection for migration and analysis. The Platform master database
-              is excluded.
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={usingCurrent}
-            onClick={() => void useCurrentConnection()}
-          >
-            {usingCurrent ? "Saving…" : "Add current server"}
-          </Button>
-        </section>
-      ) : null}
       {adding || editing ? (
         <SourceForm
           key={editing?.id ?? "new"}

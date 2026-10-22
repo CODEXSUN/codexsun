@@ -39,6 +39,16 @@ notification feeds from enabled applications. The notifications web module curre
 adapts CRM scheduler reminders: selecting one opens its linked CRM record, and dismissing
 it calls the CRM acknowledgement API. Reminder records and permissions stay owned by CRM;
 Platform does not duplicate them in a second table.
+The notification title uses the first line of the schedule notes, and its date uses the
+scheduled time. Platform keeps the linked CRM enquiry or task as the destination.
+
+### Data Migration navigation
+
+The first Super Admin navigation group is Data sync. It links to Data Migration's
+Database Settings, Migration Mapper, and Migration Analysis pages in that order.
+Opening Data Migration from Super Admin Apps goes directly to Migration Mapper.
+Platform supplies the authenticated host and destination tenant contracts; the
+Data Migration DevKit owns connection settings and transfer behavior.
 
 ### Workspace verification
 

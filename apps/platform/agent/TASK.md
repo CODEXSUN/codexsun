@@ -70,6 +70,13 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 
 ## Acceptance evidence
 
+### Data sync navigation and unified CRM schedule notices
+
+- Moved Database Settings, Migration Mapper, and Migration Analysis under the first Super Admin Data sync group.
+- Data Migration from Super Admin Apps opens Migration Mapper; Database Settings has no page shortcut to Migration Mapper.
+- Platform notification titles use the first line of CRM schedule notes, and notification dates use the scheduled time.
+- Passed the full repository check and the Platform CRM notification mapper tests. Production verification remains pending.
+
 ### Company image branding formats, 21-10-2026
 
 - Storage Manager accepts SVG, PNG, JPEG, WebP, AVIF, GIF, ICO, and BMP Company branding images.

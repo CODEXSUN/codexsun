@@ -12,7 +12,7 @@ export {
   WorkspaceTablePanel,
   WorkspaceTableLoadingState
 } from "./table";
-export { WorkspaceFilters } from "./filters";
+export { WorkspaceColumnMenu, WorkspaceFilters } from "./filters";
 export { WorkspacePagination } from "./pagination";
 export { WorkspaceRowActions } from "./row-actions";
 export { WorkspaceProtectedIndicator } from "./protected-indicator";

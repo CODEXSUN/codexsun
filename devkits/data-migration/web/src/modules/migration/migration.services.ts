@@ -5,11 +5,13 @@ import type {
   SourceUpdate,
   MigrationRun,
   MigrationPreview,
+  MigrationTableSample,
   TransferSelection,
   MigrationColumnMapping,
   MigrationAnalysis,
   MigrationTableSchema,
-  MigrationJob
+  MigrationJob,
+  MigrationQueryPlan
 } from "./migration.types.js";
 import type { SavedTableMapping } from "./migration.types.js";
 export type {
@@ -19,19 +21,25 @@ export type {
   SourceUpdate,
   MigrationRun,
   MigrationPreview,
+  MigrationTableSample,
   TransferSelection,
   MigrationAnalysis,
   MigrationColumnMapping,
   MigrationTableSchema,
   SavedTableMapping,
-  MigrationJob
+  MigrationJob,
+  MigrationQueryPlan
 } from "./migration.types.js";
 
 type Envelope<T> =
   | { success: true; data: T; meta?: { requestId?: string } }
   | { success: false; error: { code?: string; message: string }; meta?: { requestId?: string } };
 
-async function request<T>(path: string, body?: unknown, method?: "POST" | "PUT" | "PATCH"): Promise<T> {
+async function request<T>(
+  path: string,
+  body?: unknown,
+  method?: "POST" | "PUT" | "PATCH"
+): Promise<T> {
   const slot = sessionStorage.getItem("codexsun.auth.slot");
   const response = await fetch(`/api/data-migration${path}`, {
     method: body === undefined ? "GET" : (method ?? "POST"),
@@ -44,7 +52,9 @@ async function request<T>(path: string, body?: unknown, method?: "POST" | "PUT" 
   });
   const envelope = (await response.json()) as Envelope<T>;
   if (!response.ok || !envelope.success) {
-    const serverMessage = envelope.success ? `Request failed (${response.status}).` : envelope.error.message;
+    const serverMessage = envelope.success
+      ? `Request failed (${response.status}).`
+      : envelope.error.message;
     const requestId = envelope.meta?.requestId;
     throw new Error(requestId ? `${serverMessage} (Request ID: ${requestId})` : serverMessage);
   }
@@ -81,6 +91,12 @@ export const getTenantDatabase = (tenantId: number) =>
   request<{ database: string }>(`/tenants/${tenantId}/database`);
 export const readJobTables = (jobId: string) =>
   request<SavedTableMapping[]>(`/jobs/${jobId}/tables`);
+export const readJobQueryPlan = (jobId: string) =>
+  request<MigrationQueryPlan | null>(`/jobs/${jobId}/query-plan`);
+export const generateJobQueryPlan = (jobId: string) =>
+  request<MigrationQueryPlan>(`/jobs/${jobId}/query-plan/generate`, {});
+export const finalizeJobQueryPlan = (jobId: string) =>
+  request<MigrationQueryPlan | null>(`/jobs/${jobId}/query-plan/finalize`, {});
 export const saveJobTablePair = (
   jobId: string,
   input: { sourceTable: string; targetTable: string; columnMappings: MigrationColumnMapping[] }
@@ -104,6 +120,14 @@ export const runMigrationJob = (jobId: string) =>
   );
 export const previewTransfer = (selection: TransferSelection) =>
   request<MigrationPreview>("/preview", selection);
+export const sampleTableData = (
+  selection: TransferSelection & {
+    sourcePage: number;
+    targetPage: number;
+    sourceColumn?: string;
+    targetColumn?: string;
+  }
+) => request<MigrationTableSample>("/sample", selection);
 export const analyzeMigration = (selection: Omit<TransferSelection, "table">) =>
   request<MigrationAnalysis>("/analysis", selection);
 export const readMigrationPlan = (selection: Omit<TransferSelection, "table">) =>

@@ -4,6 +4,7 @@ import type { DataMigrationHost } from "./migration.types.js";
 import { decryptPassword, encryptPassword } from "./migration.secrets.js";
 import type { MigrationSourceInput, MigrationTenant } from "./migration.types.js";
 import type { MigrationColumnMapping } from "./migration.types.js";
+import type { MigrationQueryPlan } from "./migration.types.js";
 
 export class MigrationRepository {
   constructor(private readonly database: DataMigrationHost["database"]) {}
@@ -165,6 +166,11 @@ export class MigrationRepository {
   ) {
     const job = await this.resolveJob(uuid);
     await this.database.transaction().execute(async (transaction) => {
+      const lockedJob = await sql<{ status: string }>`SELECT status FROM data_migration_jobs
+        WHERE id = ${job.id} FOR UPDATE`.execute(transaction);
+      if (lockedJob.rows[0]?.status === "running") {
+        throw new Error("This migration is running. Table mappings are locked until it finishes.");
+      }
       await sql`INSERT INTO data_migration_job_tables
         (job_id, table_name, source_table_name, target_table_name, source_rows, target_rows,
          mapping_status, migration_status, column_mappings, updated_by)
@@ -189,6 +195,95 @@ export class MigrationRepository {
         );
       }
       await sql`UPDATE data_migration_jobs SET updated_by = ${actor}, status = 'draft'
+        WHERE id = ${job.id}`.execute(transaction);
+      await sql`UPDATE data_migration_job_query_plans
+        SET status = 'stale', finalized_by = NULL, finalized_at = NULL
+        WHERE job_id = ${job.id}`.execute(transaction);
+    });
+  }
+
+  async saveJobQueryPlan(uuid: string, plan: MigrationQueryPlan, actor: string) {
+    const job = await this.resolveJob(uuid);
+    await this.database.transaction().execute(async (transaction) => {
+      const lockedJob = await sql<{ status: string }>`SELECT status FROM data_migration_jobs
+        WHERE id = ${job.id} FOR UPDATE`.execute(transaction);
+      if (lockedJob.rows[0]?.status === "running") {
+        throw new Error("A query plan cannot be changed while this migration is running.");
+      }
+      await sql`INSERT INTO data_migration_job_query_plans
+        (uuid, job_id, plan_hash, plan_json, status, created_by, created_at, generated_by, generated_at,
+         finalized_by, finalized_at)
+        VALUES (${plan.id}, ${job.id}, ${plan.hash}, ${JSON.stringify(plan)}, 'generated',
+          ${actor}, CURRENT_TIMESTAMP, ${actor}, CURRENT_TIMESTAMP, NULL, NULL)
+        ON DUPLICATE KEY UPDATE uuid = VALUES(uuid), plan_hash = VALUES(plan_hash),
+          plan_json = VALUES(plan_json), status = 'generated', generated_by = VALUES(generated_by),
+          generated_at = CURRENT_TIMESTAMP, finalized_by = NULL, finalized_at = NULL,
+          updated_at = CURRENT_TIMESTAMP`.execute(transaction);
+    });
+    return plan;
+  }
+
+  async getJobQueryPlan(uuid: string): Promise<MigrationQueryPlan | null> {
+    const job = await this.resolveJob(uuid);
+    const result = await sql<{
+      plan_json: MigrationQueryPlan | string;
+      status: MigrationQueryPlan["status"];
+      finalized_by: string | null;
+      finalized_at: Date | null;
+    }>`SELECT plan_json, status, finalized_by, finalized_at
+      FROM data_migration_job_query_plans WHERE job_id = ${job.id}`.execute(this.database);
+    const row = result.rows[0];
+    if (!row) return null;
+    const plan =
+      typeof row.plan_json === "string"
+        ? (JSON.parse(row.plan_json) as MigrationQueryPlan)
+        : row.plan_json;
+    return {
+      ...plan,
+      status: row.status,
+      finalizedBy: row.finalized_by,
+      finalizedAt: row.finalized_at ? new Date(row.finalized_at).toISOString() : null
+    };
+  }
+
+  async finalizeJobQueryPlan(uuid: string, hash: string, actor: string) {
+    const job = await this.resolveJob(uuid);
+    const result = await sql`UPDATE data_migration_job_query_plans
+      SET status = 'finalized', finalized_by = ${actor}, finalized_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE job_id = ${job.id} AND plan_hash = ${hash} AND status = 'generated'`.execute(
+      this.database
+    );
+    if (Number(result.numAffectedRows) !== 1) {
+      throw new Error(
+        "The generated query plan changed. Generate and review it again before finalizing."
+      );
+    }
+    return this.getJobQueryPlan(uuid);
+  }
+
+  async setJobQueryPlanStatus(uuid: string, status: MigrationQueryPlan["status"]) {
+    const job = await this.resolveJob(uuid);
+    await sql`UPDATE data_migration_job_query_plans SET status = ${status}, updated_at = CURRENT_TIMESTAMP
+      WHERE job_id = ${job.id}`.execute(this.database);
+  }
+
+  async beginFinalizedJob(uuid: string, hash: string, actor: string) {
+    const job = await this.resolveJob(uuid);
+    await this.database.transaction().execute(async (transaction) => {
+      const lockedJob = await sql<{ status: string }>`SELECT status FROM data_migration_jobs
+        WHERE id = ${job.id} FOR UPDATE`.execute(transaction);
+      if (!lockedJob.rows[0] || lockedJob.rows[0].status === "running") {
+        throw new Error("This migration is already running or no longer available.");
+      }
+      const plan = await sql<{ plan_hash: string; status: string }>`SELECT plan_hash, status
+        FROM data_migration_job_query_plans WHERE job_id = ${job.id} FOR UPDATE`.execute(
+        transaction
+      );
+      if (plan.rows[0]?.status !== "finalized" || plan.rows[0].plan_hash !== hash) {
+        throw new Error("The finalized query plan changed before execution. Review it again.");
+      }
+      await sql`UPDATE data_migration_jobs SET status = 'running', updated_by = ${actor}
         WHERE id = ${job.id}`.execute(transaction);
     });
   }

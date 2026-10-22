@@ -188,14 +188,15 @@ export function SourceForm({
       onSubmit={(event) => void save(event)}
       className="space-y-4 rounded-md border bg-card p-5"
     >
-      <h2 className="text-base font-semibold">
-        {source ? `Edit server connection: ${source.label}` : "Connect to a MariaDB server"}
-      </h2>
-      <p className="text-sm text-muted-foreground">
-        {source
-          ? "The database is optional. Choose one for migration analysis, or leave it blank to keep a server-level connection. Leave the password blank to keep the saved secret."
-          : "Test and save the server connection first. Database is optional; choose one later for migration analysis. The password is encrypted."}
-      </p>
+      {!source ? (
+        <>
+          <h2 className="text-base font-semibold">Connect to a MariaDB server</h2>
+          <p className="text-sm text-muted-foreground">
+            Test and save the server connection first. Database is optional; choose one later for
+            migration analysis. The password is encrypted.
+          </p>
+        </>
+      ) : null}
       <WorkspaceFormGrid>
         <SuggestionField
           label="Connection name"

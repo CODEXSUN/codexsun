@@ -8,8 +8,8 @@ import {
 export function mapCrmReminderNotification(reminder: ScheduleRecord): TopMenuNotification {
   return {
     id: `crm-schedule:${reminder.id}`,
-    title: reminder.title,
-    body: `${sourceLabels[reminder.sourceType]} · ${reminder.sourceLabel} · ${new Date(reminder.reminderAt).toLocaleString()}`,
+    title: (reminder.notes.split(/\r?\n/u, 1)[0] ?? "").slice(0, 100),
+    body: `${sourceLabels[reminder.sourceType]} · ${reminder.sourceLabel} · ${new Date(reminder.scheduledAt).toLocaleString()}`,
     onSelect: () =>
       window.location.assign(scheduleSourceHref(reminder.sourceType, reminder.sourceId))
   };

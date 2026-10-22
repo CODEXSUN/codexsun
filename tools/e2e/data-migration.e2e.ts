@@ -165,14 +165,121 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
         table: "sample",
         sourceRows: 2,
         targetRows: 0,
+        exactMatches: 0,
+        uniqueKeyConflicts: 0,
         compatible: true,
         reason: null
       });
+      const emptyTargetSample = await service.sampleTableData(
+        sourceId,
+        2,
+        "sample",
+        "sample",
+        1,
+        1
+      );
+      assert.deepEqual(emptyTargetSample.sourceRows, [
+        { id: 1, label: "first" },
+        { id: 2, label: "second" }
+      ]);
+      assert.deepEqual(emptyTargetSample.targetRows, []);
+      assert.equal(await count(source, "sample"), 2);
+      assert.equal(await count(target, "sample"), 0);
       assert.equal((await service.copy(sourceId, 2, "sample", "test@codexsun.app")).copiedRows, 2);
       assert.equal(await count(target, "sample"), 2);
+      const populatedTargetSample = await service.sampleTableData(
+        sourceId,
+        2,
+        "sample",
+        "sample",
+        1,
+        1
+      );
+      assert.deepEqual(populatedTargetSample.sourceRows, populatedTargetSample.targetRows);
+      const existingRowsPreview = await service.preview(sourceId, 2, "sample");
+      assert.equal(existingRowsPreview.exactMatches, 2);
+      assert.equal(existingRowsPreview.uniqueKeyConflicts, 0);
+      await target.query("UPDATE sample SET label = 'changed' WHERE id = 1");
+      const conflictingRowsPreview = await service.preview(sourceId, 2, "sample");
+      assert.equal(conflictingRowsPreview.exactMatches, 1);
+      assert.equal(conflictingRowsPreview.uniqueKeyConflicts, 1);
       assert.equal((await service.listRuns())[0]?.status, "completed");
       await assert.rejects(service.copy(sourceId, 2, "sample", "test@codexsun.app"), /empty/u);
       assert.equal((await service.listRuns())[0]?.status, "failed");
+
+      await source.query(
+        "CREATE TABLE paging_source (legacy_value INT NOT NULL, source_note VARCHAR(32) NOT NULL)"
+      );
+      await target.query(
+        "CREATE TABLE paging_target (new_value INT NOT NULL, target_note VARCHAR(32) NOT NULL)"
+      );
+      for (let start = 1; start <= 205; start += 100) {
+        const batch = Array.from({ length: Math.min(100, 206 - start) }, (_, index) => {
+          const value = start + index;
+          return [value, `source-${value}`];
+        });
+        await source.query(
+          `INSERT INTO paging_source (legacy_value, source_note) VALUES ${batch
+            .map(() => "(?, ?)")
+            .join(",")}`,
+          batch.flat()
+        );
+        await target.query(
+          `INSERT INTO paging_target (new_value, target_note) VALUES ${batch
+            .map(() => "(?, ?)")
+            .join(",")}`,
+          batch.flatMap(([value]) => [value, `target-${value}`])
+        );
+      }
+      const firstPage = await service.sampleTableData(
+        sourceId,
+        2,
+        "paging_source",
+        "paging_target",
+        1,
+        1,
+        "source_note",
+        "target_note"
+      );
+      assert.equal(firstPage.source.totalRows, 205);
+      assert.equal(firstPage.target.totalRows, 205);
+      assert.equal(firstPage.pageSize, 100);
+      assert.equal(firstPage.sourceRows.length, 100);
+      assert.equal(firstPage.targetRows.length, 100);
+      assert.deepEqual(firstPage.sourceColumns, ["source_note"]);
+      assert.deepEqual(firstPage.targetColumns, ["target_note"]);
+      assert.deepEqual(firstPage.selectedMapping, {
+        sourceColumn: "source_note",
+        targetColumn: "target_note"
+      });
+      const secondPage = await service.sampleTableData(
+        sourceId,
+        2,
+        "paging_source",
+        "paging_target",
+        2,
+        2,
+        "source_note",
+        "target_note"
+      );
+      assert.equal(secondPage.sourceRows.length, 100);
+      assert.equal(secondPage.targetRows.length, 100);
+      const finalPage = await service.sampleTableData(
+        sourceId,
+        2,
+        "paging_source",
+        "paging_target",
+        3,
+        2,
+        "source_note",
+        "target_note"
+      );
+      assert.equal(finalPage.sourceRows.length, 5);
+      assert.equal(finalPage.source.page, 3);
+      assert.equal(finalPage.target.page, 2);
+      assert.equal(await count(source, "paging_source"), 205);
+      await source.query("DROP TABLE paging_source");
+      await target.query("DROP TABLE paging_target");
 
       await source.query(
         "CREATE TABLE rollback_sample (id INT PRIMARY KEY, label VARCHAR(32) NOT NULL)"
@@ -218,12 +325,12 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
         { table: "mapped_sample", columnMappings: mapping }
       ]);
       await source.query(
-        "CREATE TABLE old_accounts (legacy_id INT NOT NULL, legacy_name VARCHAR(32) NOT NULL)"
+        "CREATE TABLE old_accounts (legacy_id INT NOT NULL, legacy_name VARCHAR(32) NOT NULL, created_by VARCHAR(32) NULL)"
       );
       await target.query(
         "CREATE TABLE new_accounts (id INT NOT NULL, display_name VARCHAR(32) NOT NULL)"
       );
-      await source.query("INSERT INTO old_accounts VALUES (1, 'Sukraa')");
+      await source.query("INSERT INTO old_accounts VALUES (1, 'Sukraa', 'cloud-user')");
       const { id: jobId } = await service.createJob(
         { sessionName: "Sukraa job", sourceId, sourceTenantId: null, targetTenantId: 2 },
         "test@codexsun.app"
@@ -287,9 +394,9 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
       assert.equal(await count(target, "sample"), 2);
       assert.equal(await count(target, "mapped_sample"), 2);
       await source.query(
-        "CREATE TABLE old_accounts (legacy_id INT NOT NULL, legacy_name VARCHAR(32) NOT NULL)"
+        "CREATE TABLE old_accounts (legacy_id INT NOT NULL, legacy_name VARCHAR(32) NOT NULL, created_by VARCHAR(32) NULL)"
       );
-      await source.query("INSERT INTO old_accounts VALUES (1, 'Sukraa')");
+      await source.query("INSERT INTO old_accounts VALUES (1, 'Sukraa', 'cloud-user')");
       const { id: batchJobId } = await service.createJob(
         { sessionName: "Sukraa migration", sourceId, sourceTenantId: null, targetTenantId: 3 },
         "test@codexsun.app"
@@ -316,6 +423,46 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
         },
         "test@codexsun.app"
       );
+      const generatedPlan = await service.generateJobQueryPlan(batchJobId, "test@codexsun.app");
+      assert.equal(generatedPlan.status, "generated");
+      assert.equal(generatedPlan.canFinalize, true);
+      assert.equal(generatedPlan.totalSourceRows, 5);
+      const accountsPlan = generatedPlan.tables.find((item) => item.sourceTable === "old_accounts");
+      assert.match(accountsPlan?.selectSql ?? "", /^SELECT `legacy_id`/u);
+      assert.match(accountsPlan?.insertSqlTemplate ?? "", /VALUES \(\?, \?\)/u);
+      assert.deepEqual(accountsPlan?.excludedSourceFields, ["created_by"]);
+      assert.equal(JSON.stringify(generatedPlan).includes("Sukraa"), false);
+      await assert.rejects(
+        service.migrateJob(batchJobId, "test@codexsun.app"),
+        /finalize the migration query plan/u
+      );
+      const queryPlanApi = Fastify();
+      try {
+        await registerDataMigrationApi(queryPlanApi, host(database, names, config));
+        const planRead = await queryPlanApi.inject({
+          method: "GET",
+          url: `/api/data-migration/jobs/${batchJobId}/query-plan`
+        });
+        assert.equal(planRead.statusCode, 200, planRead.body);
+        assert.equal(planRead.json().data.hash, generatedPlan.hash);
+        const finalize = await queryPlanApi.inject({
+          method: "POST",
+          url: `/api/data-migration/jobs/${batchJobId}/query-plan/finalize`,
+          payload: {}
+        });
+        assert.equal(finalize.statusCode, 200, finalize.body);
+        assert.equal(finalize.json().data.status, "finalized");
+      } finally {
+        await queryPlanApi.close();
+      }
+      await source.query("UPDATE sample SET label = 'source changed after review' WHERE id = 1");
+      await assert.rejects(
+        service.migrateJob(batchJobId, "test@codexsun.app"),
+        /no longer current/u
+      );
+      const refreshedPlan = await service.generateJobQueryPlan(batchJobId, "test@codexsun.app");
+      assert.equal(refreshedPlan.canFinalize, true);
+      await service.finalizeJobQueryPlan(batchJobId, "test@codexsun.app");
       const jobBatch = await service.migrateJob(batchJobId, "test@codexsun.app");
       assert.equal(jobBatch.completed.length, 3);
       assert.equal(jobBatch.copiedRows, 5);
@@ -325,6 +472,7 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
       assert.equal(await count(jobTarget, "sample"), 2);
       assert.equal(await count(jobTarget, "mapped_sample"), 2);
       assert.equal(await count(jobTarget, "new_accounts"), 1);
+      assert.equal((await service.getJobQueryPlan(batchJobId))?.status, "completed");
       assert.equal(
         (await service.getJobTables(batchJobId)).every(
           (item) => item.migrationStatus === "completed"
@@ -397,12 +545,29 @@ test("denies migration reads and writes before resolving a tenant", async () => 
       url: "/api/data-migration/plan/migrate",
       payload: { sourceId: 1, targetTenantId: 2 }
     });
+    const queryPlanRead = await app.inject({
+      method: "GET",
+      url: "/api/data-migration/jobs/00000000-0000-4000-8000-000000000001/query-plan"
+    });
+    const queryPlanGenerate = await app.inject({
+      method: "POST",
+      url: "/api/data-migration/jobs/00000000-0000-4000-8000-000000000001/query-plan/generate",
+      payload: {}
+    });
+    const queryPlanFinalize = await app.inject({
+      method: "POST",
+      url: "/api/data-migration/jobs/00000000-0000-4000-8000-000000000001/query-plan/finalize",
+      payload: {}
+    });
     assert.equal(reads.statusCode, 403);
     assert.equal(writes.statusCode, 403);
     assert.equal(settingsWrite.statusCode, 403);
     assert.equal(databases.statusCode, 403);
     assert.equal(planRead.statusCode, 403);
     assert.equal(planRun.statusCode, 403);
+    assert.equal(queryPlanRead.statusCode, 403);
+    assert.equal(queryPlanGenerate.statusCode, 403);
+    assert.equal(queryPlanFinalize.statusCode, 403);
     assert.equal(resolved, false);
   } finally {
     await app.close();

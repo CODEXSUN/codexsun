@@ -226,6 +226,28 @@ export function SaDesk() {
       onSelect: () => selectPage("overview")
     },
     {
+      title: "Data sync",
+      icon: DatabaseIcon,
+      isActive: page.startsWith("data-migration-"),
+      items: [
+        {
+          title: "Database Settings",
+          isActive: page === "data-migration-settings",
+          onSelect: () => selectPage("data-migration-settings")
+        },
+        {
+          title: "Migration Mapper",
+          isActive: page === "data-migration-run",
+          onSelect: () => selectPage("data-migration-run")
+        },
+        {
+          title: "Migration Analysis",
+          isActive: page === "data-migration-analysis",
+          onSelect: () => selectPage("data-migration-analysis")
+        }
+      ]
+    },
+    {
       title: "Task Manager",
       icon: ListChecksIcon,
       isActive: page === "task-manager",
@@ -378,24 +400,8 @@ export function SaDesk() {
         page === "master-backups" ||
         page === "tenant-database" ||
         page === "tenant-backups" ||
-        page === "storage-manager" ||
-        page.startsWith("data-migration-"),
+        page === "storage-manager",
       items: [
-        {
-          title: "Database Settings",
-          isActive: page === "data-migration-settings",
-          onSelect: () => selectPage("data-migration-settings")
-        },
-        {
-          title: "Migration Mapper",
-          isActive: page === "data-migration-run",
-          onSelect: () => selectPage("data-migration-run")
-        },
-        {
-          title: "Migration Analysis",
-          isActive: page === "data-migration-analysis",
-          onSelect: () => selectPage("data-migration-analysis")
-        },
         {
           title: "Master Database",
           isActive: page === "master-database",
@@ -492,9 +498,7 @@ export function SaDesk() {
                 }}
               />
             ) : null}
-            {page === "data-migration-settings" ? (
-              <DataMigrationSettings onOpenMigration={() => selectPage("data-migration-run")} />
-            ) : null}
+            {page === "data-migration-settings" ? <DataMigrationSettings /> : null}
             {page === "tenants" ? <TenantList onBack={() => selectPage("overview")} /> : null}
             {page === "domains" ? <TenantDomainList /> : null}
             {page === "plans" ? <PlanWorkspace /> : null}

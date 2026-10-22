@@ -98,6 +98,31 @@ async function createJobs(database: Kysely<unknown>) {
     .execute(database);
 }
 
+async function createQueryPlans(database: Kysely<unknown>) {
+  await sql
+    .raw(
+      `CREATE TABLE IF NOT EXISTS data_migration_job_query_plans (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    uuid CHAR(36) NOT NULL UNIQUE,
+    job_id INT NOT NULL,
+    plan_hash CHAR(64) NOT NULL,
+    plan_json JSON NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'generated',
+    created_by VARCHAR(191) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    generated_by VARCHAR(191) NOT NULL,
+    generated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    finalized_by VARCHAR(191) NULL,
+    finalized_at DATETIME NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_data_migration_job_query_plan (job_id),
+    CONSTRAINT fk_data_migration_job_query_plans_job FOREIGN KEY (job_id)
+      REFERENCES data_migration_jobs(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+    )
+    .execute(database);
+}
+
 async function upgradeJobsWithMappingHierarchy(database: Kysely<unknown>) {
   const addColumn = async (table: string, column: string, definition: string) => {
     if (!(await hasColumn(database, table, column))) {
@@ -314,6 +339,13 @@ const migrationBatch: MigrationBatch<unknown> = {
       name: "data-migration.mapping-hierarchy-v5",
       up: upgradeJobsWithMappingHierarchy,
       version: 5
+    },
+    {
+      checksum: "data-migration.job-query-plans-v6",
+      description: "Persist generated and finalized migration query plans.",
+      name: "data-migration.job-query-plans-v6",
+      up: createQueryPlans,
+      version: 6
     }
   ]
 };

@@ -1,5 +1,5 @@
 import { createConnection, type Connection, type RowDataPacket } from "mysql2/promise";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import { AppError } from "@codexsun/framework/errors";
 import type {
   DataMigrationHost,
@@ -8,7 +8,8 @@ import type {
   MigrationSourceUpdate,
   MigrationColumnMapping,
   TableColumn,
-  TablePreview
+  TablePreview,
+  MigrationQueryPlan
 } from "./migration.types.js";
 import { MigrationRepository } from "./migration.repository.js";
 import { analyzeDatabases } from "./migration.analysis.js";
@@ -193,6 +194,93 @@ export class MigrationService {
     }
   }
 
+  async sampleTableData(
+    sourceId: number,
+    targetId: number,
+    sourceTable: string,
+    targetTable: string,
+    sourcePage: number,
+    targetPage: number,
+    sourceColumn?: string,
+    targetColumn?: string
+  ) {
+    this.validateSelection(sourceTable);
+    this.validateSelection(targetTable);
+    const [source, target] = await Promise.all([
+      this.runs.resolveSource(sourceId, this.host.secretKey),
+      this.host.resolveTenant(targetId)
+    ]);
+    this.requireDatabase(source);
+    this.ensureDifferent(source, target);
+    const sourceConnection = await this.connect(source);
+    const targetConnection = await this.connect(target).catch(async (error: unknown) => {
+      await sourceConnection.end();
+      throw error;
+    });
+    try {
+      const [sourceColumns, targetColumns] = await Promise.all([
+        this.columns(sourceConnection, source.database, sourceTable),
+        this.columns(targetConnection, target.database, targetTable)
+      ]);
+      if (!sourceColumns.length) throw new Error("Source table does not exist.");
+      if (!targetColumns.length) throw new Error("Destination table does not exist.");
+      const selectedSourceColumn = sourceColumn
+        ? sourceColumns.find((column) => column.name === sourceColumn)
+        : undefined;
+      const selectedTargetColumn = targetColumn
+        ? targetColumns.find((column) => column.name === targetColumn)
+        : undefined;
+      if (sourceColumn && !selectedSourceColumn)
+        throw new Error("Selected source field does not exist.");
+      if (targetColumn && !selectedTargetColumn)
+        throw new Error("Selected destination field does not exist.");
+      const sourceProjection = selectedSourceColumn ? quote(selectedSourceColumn.name) : "*";
+      const targetProjection = selectedTargetColumn ? quote(selectedTargetColumn.name) : "*";
+      const pageSize = 100;
+      const sourceOffset = (sourcePage - 1) * pageSize;
+      const targetOffset = (targetPage - 1) * pageSize;
+      const [[sourceCount], [targetCount], [sourceRows], [targetRows]] = await Promise.all([
+        sourceConnection.query<RowDataPacket[]>(
+          `SELECT COUNT(*) AS count FROM ${quote(sourceTable)}`
+        ),
+        targetConnection.query<RowDataPacket[]>(
+          `SELECT COUNT(*) AS count FROM ${quote(targetTable)}`
+        ),
+        sourceConnection.query<RowDataPacket[]>(
+          `SELECT ${sourceProjection} FROM ${quote(sourceTable)} LIMIT ${pageSize} OFFSET ${sourceOffset}`
+        ),
+        targetConnection.query<RowDataPacket[]>(
+          `SELECT ${targetProjection} FROM ${quote(targetTable)} LIMIT ${pageSize} OFFSET ${targetOffset}`
+        )
+      ]);
+      return {
+        sourceTable,
+        targetTable,
+        sourceColumns: selectedSourceColumn
+          ? [selectedSourceColumn.name]
+          : sourceColumns.map(({ name }) => name),
+        targetColumns: selectedTargetColumn
+          ? [selectedTargetColumn.name]
+          : targetColumns.map(({ name }) => name),
+        sourceRows: sourceRows.map(serializableRow),
+        targetRows: targetRows.map(serializableRow),
+        source: { totalRows: Number(sourceCount[0]?.count ?? 0), page: sourcePage },
+        target: { totalRows: Number(targetCount[0]?.count ?? 0), page: targetPage },
+        pageSize,
+        ...(selectedSourceColumn && selectedTargetColumn
+          ? {
+              selectedMapping: {
+                sourceColumn: selectedSourceColumn.name,
+                targetColumn: selectedTargetColumn.name
+              }
+            }
+          : {})
+      };
+    } finally {
+      await Promise.all([sourceConnection.end(), targetConnection.end()]);
+    }
+  }
+
   async analyze(sourceId: number, targetId: number) {
     const [source, target] = await Promise.all([
       this.runs.resolveSource(sourceId, this.host.secretKey),
@@ -330,6 +418,240 @@ export class MigrationService {
     };
   }
 
+  async generateJobQueryPlan(uuid: string, actor: string) {
+    const plan = await this.buildJobQueryPlan(uuid, actor);
+    return this.runs.saveJobQueryPlan(uuid, plan, actor);
+  }
+
+  async finalizeJobQueryPlan(uuid: string, actor: string) {
+    const saved = await this.runs.getJobQueryPlan(uuid);
+    if (!saved || saved.status !== "generated") {
+      throw new Error("Generate and review a query plan before finalizing it.");
+    }
+    const current = await this.buildJobQueryPlan(uuid, actor);
+    if (!current.canFinalize) {
+      await this.runs.saveJobQueryPlan(uuid, current, actor);
+      throw new Error("The migration plan has blockers. Resolve them, then generate it again.");
+    }
+    if (current.hash !== saved.hash) {
+      await this.runs.saveJobQueryPlan(uuid, current, actor);
+      throw new Error(
+        "Source data or migration settings changed. Review the regenerated plan before finalizing."
+      );
+    }
+    return this.runs.finalizeJobQueryPlan(uuid, current.hash, actor);
+  }
+
+  async getJobQueryPlan(uuid: string) {
+    return this.runs.getJobQueryPlan(uuid);
+  }
+
+  private async buildJobQueryPlan(uuid: string, actor: string): Promise<MigrationQueryPlan> {
+    const job = await this.runs.resolveJob(uuid);
+    await this.assertJobDatabases(job);
+    const [source, target, tables, sourceTables] = await Promise.all([
+      this.runs.resolveSource(job.sourceId, this.host.secretKey),
+      this.host.resolveTenant(job.targetTenantId),
+      this.runs.getJobTables(uuid),
+      this.listTables(job.sourceId)
+    ]);
+    const tableBySource = new Map(tables.map((item) => [item.sourceTable, item]));
+    const missing = sourceTables.filter((name) => !tableBySource.has(name));
+    if (missing.length) throw new Error(`Map every source table first: ${missing.join(", ")}`);
+    const entries = sourceTables.map((name) => tableBySource.get(name)!);
+    if (entries.some((item) => item.mappingStatus !== "mapped" || !item.columnMappings.length)) {
+      throw new Error("Every source table needs at least one included field mapping.");
+    }
+    const sourceConnection = await this.connect(source);
+    const targetConnection = await this.connect(target).catch(async (error: unknown) => {
+      await sourceConnection.end();
+      throw error;
+    });
+    const blockers: string[] = [];
+    const planTables: MigrationQueryPlan["tables"] = [];
+    const planId = randomUUID();
+    try {
+      await sourceConnection.query("START TRANSACTION WITH CONSISTENT SNAPSHOT");
+      const ordered = await jobDependencyOrder(sourceConnection, source.database, entries);
+      for (const item of ordered) {
+        const tableBlockers: string[] = [];
+        let preview: TablePreview;
+        try {
+          preview = await this.inspect(
+            sourceConnection,
+            targetConnection,
+            source,
+            target,
+            item.sourceTable,
+            item.columnMappings,
+            item.targetTable
+          );
+        } catch (error) {
+          preview = {
+            table: item.sourceTable,
+            sourceRows: item.sourceRows,
+            targetRows: item.targetRows,
+            exactMatches: null,
+            uniqueKeyConflicts: null,
+            compatible: false,
+            reason: message(error)
+          };
+        }
+        if (!preview.compatible)
+          tableBlockers.push(preview.reason ?? "Compatibility check failed.");
+        if (preview.sourceRows !== item.sourceRows) {
+          tableBlockers.push(
+            `Source row count changed from ${item.sourceRows} to ${preview.sourceRows}; save the table mapping again.`
+          );
+        }
+        if (preview.targetRows !== 0) {
+          tableBlockers.push(`Destination contains ${preview.targetRows} rows; it must be empty.`);
+        }
+        if (preview.sourceRows > copyLimit) {
+          tableBlockers.push(`Source exceeds the ${copyLimit} row limit.`);
+        }
+        const [sourceSchema, targetSchema] = await Promise.all([
+          this.columns(sourceConnection, source.database, item.sourceTable),
+          this.columns(targetConnection, target.database, item.targetTable)
+        ]);
+        const sourceSchemaFingerprint = createHash("sha256")
+          .update(JSON.stringify(sourceSchema))
+          .digest("hex");
+        const targetSchemaFingerprint = createHash("sha256")
+          .update(JSON.stringify(targetSchema))
+          .digest("hex");
+        const includedFields = new Set(item.columnMappings.map((mapping) => mapping.sourceColumn));
+        const excludedSourceFields = sourceSchema
+          .filter((column) => !includedFields.has(column.name))
+          .map((column) => column.name);
+        let sourceFingerprint = "";
+        if (preview.sourceRows <= copyLimit && item.columnMappings.length) {
+          try {
+            sourceFingerprint = await this.fingerprintSourceRows(
+              sourceConnection,
+              item.sourceTable,
+              item.columnMappings,
+              preview.sourceRows
+            );
+          } catch {
+            tableBlockers.push("Source rows changed while generating the plan.");
+          }
+        }
+        const sourceProjection = item.columnMappings
+          .map((mapping) => quote(mapping.sourceColumn))
+          .join(", ");
+        const targetProjection = item.columnMappings
+          .map((mapping) => quote(mapping.targetColumn))
+          .join(", ");
+        const insertValues = item.columnMappings.map(() => "?").join(", ");
+        const tablePlan = {
+          sourceTable: item.sourceTable,
+          targetTable: item.targetTable,
+          sourceRows: preview.sourceRows,
+          targetRows: preview.targetRows,
+          sourceFingerprint,
+          sourceSchemaFingerprint,
+          targetSchemaFingerprint,
+          columnMappings: item.columnMappings.map(({ sourceColumn, targetColumn }) => ({
+            sourceColumn,
+            targetColumn
+          })),
+          excludedSourceFields,
+          selectSql: `SELECT ${sourceProjection} FROM ${quote(item.sourceTable)};`,
+          insertSqlTemplate: `INSERT INTO ${quote(item.targetTable)} (${targetProjection}) VALUES (${insertValues});`,
+          blockers: tableBlockers
+        };
+        planTables.push(tablePlan);
+        blockers.push(...tableBlockers.map((blocker) => `${item.sourceTable}: ${blocker}`));
+      }
+      await sourceConnection.commit();
+    } catch (error) {
+      await sourceConnection.rollback().catch(() => undefined);
+      throw error;
+    } finally {
+      await Promise.all([sourceConnection.end(), targetConnection.end()]);
+    }
+    const hashPayload = {
+      jobId: uuid,
+      sourceDatabase: job.sourceDatabase,
+      targetDatabase: job.targetDatabase,
+      tables: planTables.map(
+        ({
+          sourceTable,
+          targetTable,
+          sourceRows,
+          targetRows,
+          sourceFingerprint,
+          sourceSchemaFingerprint,
+          targetSchemaFingerprint,
+          columnMappings,
+          excludedSourceFields,
+          selectSql,
+          insertSqlTemplate,
+          blockers: tableBlockers
+        }) => ({
+          sourceTable,
+          targetTable,
+          sourceRows,
+          targetRows,
+          sourceFingerprint,
+          sourceSchemaFingerprint,
+          targetSchemaFingerprint,
+          columnMappings,
+          excludedSourceFields,
+          selectSql,
+          insertSqlTemplate,
+          blockers: tableBlockers
+        })
+      ),
+      blockers
+    };
+    const hash = createHash("sha256").update(JSON.stringify(hashPayload)).digest("hex");
+    const now = new Date().toISOString();
+    return {
+      id: planId,
+      status: "generated",
+      hash,
+      generatedBy: actor,
+      generatedAt: now,
+      finalizedBy: null,
+      finalizedAt: null,
+      canFinalize: blockers.length === 0,
+      sourceDatabase: job.sourceDatabase,
+      targetDatabase: job.targetDatabase,
+      totalSourceRows: planTables.reduce((total, item) => total + item.sourceRows, 0),
+      tables: planTables,
+      blockers
+    };
+  }
+
+  private async fingerprintSourceRows(
+    connection: Connection,
+    table: string,
+    mappings: MigrationColumnMapping[],
+    expectedRows: number
+  ) {
+    const projection = mappings.map((mapping) => quote(mapping.sourceColumn));
+    const [rows] = await connection.query<RowDataPacket[]>(
+      `SELECT ${projection.join(", ")} FROM ${quote(table)} ORDER BY ${projection.join(", ")}`
+    );
+    if (rows.length !== expectedRows) throw new Error("Source row count changed.");
+    const fingerprint = createHmac("sha256", this.host.secretKey);
+    for (const row of rows) {
+      const values = mappings.map((mapping) => row[mapping.sourceColumn]);
+      fingerprint.update(
+        JSON.stringify(values, (_key, value: unknown) => {
+          if (Buffer.isBuffer(value)) return value.toString("base64");
+          if (value instanceof Date) return value.toISOString();
+          if (typeof value === "bigint") return value.toString();
+          return value;
+        }) ?? "null"
+      );
+      fingerprint.update("\n");
+    }
+    return fingerprint.digest("hex");
+  }
+
   private async assertJobDatabases(job: Awaited<ReturnType<MigrationRepository["resolveJob"]>>) {
     const [source, target] = await Promise.all([
       this.runs.resolveSource(job.sourceId, this.host.secretKey),
@@ -350,6 +672,17 @@ export class MigrationService {
   async migrateJob(uuid: string, actor: string) {
     const job = await this.runs.resolveJob(uuid);
     await this.assertJobDatabases(job);
+    const finalizedPlan = await this.runs.getJobQueryPlan(uuid);
+    if (!finalizedPlan || finalizedPlan.status !== "finalized") {
+      throw new Error("Generate and finalize the migration query plan before running it.");
+    }
+    const currentPlan = await this.buildJobQueryPlan(uuid, actor);
+    if (!currentPlan.canFinalize || currentPlan.hash !== finalizedPlan.hash) {
+      await this.runs.setJobQueryPlanStatus(uuid, "stale");
+      throw new Error(
+        "The finalized plan is no longer current. Generate, review, and finalize it again."
+      );
+    }
     const [source, target, plan] = await Promise.all([
       this.runs.resolveSource(job.sourceId, this.host.secretKey),
       this.host.resolveTenant(job.targetTenantId),
@@ -361,7 +694,7 @@ export class MigrationService {
     if (missing.length) throw new Error(`Map every source table first: ${missing.join(", ")}`);
     const entries = sourceTables.map((name) => planBySource.get(name)!);
     if (entries.some((item) => item.mappingStatus !== "mapped" || !item.columnMappings.length)) {
-      throw new Error("Every source table needs a complete saved field mapping.");
+      throw new Error("Every source table needs at least one included field mapping.");
     }
 
     const sourceConnection = await this.connect(source);
@@ -387,6 +720,19 @@ export class MigrationService {
       }
       await sourceConnection.query("START TRANSACTION WITH CONSISTENT SNAPSHOT");
       for (const item of ordered) {
+        const finalizedTablePlan = finalizedPlan.tables.find(
+          (candidate) => candidate.sourceTable === item.sourceTable
+        );
+        const currentMappings = item.columnMappings.map(({ sourceColumn, targetColumn }) => ({
+          sourceColumn,
+          targetColumn
+        }));
+        if (
+          !finalizedTablePlan ||
+          JSON.stringify(finalizedTablePlan.columnMappings) !== JSON.stringify(currentMappings)
+        ) {
+          throw new Error(`${item.sourceTable}: field mappings changed after finalization.`);
+        }
         const preview = await this.inspect(
           sourceConnection,
           targetConnection,
@@ -410,6 +756,33 @@ export class MigrationService {
         if (preview.sourceRows > copyLimit) {
           throw new Error(`${item.sourceTable}: table exceeds the ${copyLimit} row limit.`);
         }
+        if (!finalizedTablePlan)
+          throw new Error(`${item.sourceTable}: finalized plan entry is missing.`);
+        const [sourceSchema, targetSchema] = await Promise.all([
+          this.columns(sourceConnection, source.database, item.sourceTable),
+          this.columns(targetConnection, target.database, item.targetTable)
+        ]);
+        const sourceSchemaFingerprint = createHash("sha256")
+          .update(JSON.stringify(sourceSchema))
+          .digest("hex");
+        const targetSchemaFingerprint = createHash("sha256")
+          .update(JSON.stringify(targetSchema))
+          .digest("hex");
+        if (
+          sourceSchemaFingerprint !== finalizedTablePlan.sourceSchemaFingerprint ||
+          targetSchemaFingerprint !== finalizedTablePlan.targetSchemaFingerprint
+        ) {
+          throw new Error(`${item.sourceTable}: schema changed after the plan was finalized.`);
+        }
+        const sourceFingerprint = await this.fingerprintSourceRows(
+          sourceConnection,
+          item.sourceTable,
+          item.columnMappings,
+          preview.sourceRows
+        );
+        if (sourceFingerprint !== finalizedTablePlan.sourceFingerprint) {
+          throw new Error(`${item.sourceTable}: source data changed after the plan was finalized.`);
+        }
         await this.runs.markJobTableStatus(uuid, item.sourceTable, "running", actor);
         runIds.push({
           id: await this.runs.start(
@@ -423,7 +796,7 @@ export class MigrationService {
           rows: preview.sourceRows
         });
       }
-      await this.runs.markJobStatus(uuid, "running", actor);
+      await this.runs.beginFinalizedJob(uuid, finalizedPlan.hash, actor);
       await targetConnection.beginTransaction();
       try {
         for (const item of ordered) {
@@ -463,6 +836,7 @@ export class MigrationService {
         await this.runs.markJobTableStatus(uuid, run.sourceTable, "completed", actor);
       }
       await this.runs.markJobStatus(uuid, "completed", actor);
+      await this.runs.setJobQueryPlanStatus(uuid, "completed");
       return {
         completed: runIds.map(({ sourceTable, rows }) => ({
           table: sourceTable,
@@ -766,11 +1140,15 @@ export class MigrationService {
         table,
         sourceRows,
         targetRows,
+        exactMatches: null,
+        uniqueKeyConflicts: null,
         compatible: false,
         reason:
           "Source and destination tables must use InnoDB for consistent reads and atomic rollback."
       };
     }
+    let exactMatches: number | null = null;
+    let uniqueKeyConflicts: number | null = null;
     let mappings: MigrationColumnMapping[] = [];
     let reason: string | null = null;
     try {
@@ -786,14 +1164,106 @@ export class MigrationService {
         mappings,
         targetTable
       );
+      if (sourceRows <= copyLimit && targetRows <= copyLimit) {
+        const matches = await this.compareMappedRows(
+          sourceConnection,
+          targetConnection,
+          target.database,
+          table,
+          targetTable,
+          mappings,
+          sourceRows,
+          targetRows
+        );
+        exactMatches = matches.exactMatches;
+        uniqueKeyConflicts = matches.uniqueKeyConflicts;
+      }
     }
     const compatible = reason === null;
     return {
       table,
       sourceRows,
       targetRows,
+      exactMatches,
+      uniqueKeyConflicts,
       compatible,
       reason
+    };
+  }
+
+  private async compareMappedRows(
+    sourceConnection: Connection,
+    targetConnection: Connection,
+    targetDatabase: string,
+    sourceTable: string,
+    targetTable: string,
+    mappings: MigrationColumnMapping[],
+    expectedSourceRows: number,
+    expectedTargetRows: number
+  ) {
+    if (!mappings.length) return { exactMatches: null, uniqueKeyConflicts: null };
+    const [indexRows] = await targetConnection.query<RowDataPacket[]>(
+      `SELECT INDEX_NAME AS name, SEQ_IN_INDEX AS position, COLUMN_NAME AS columnName
+       FROM information_schema.STATISTICS
+       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND NON_UNIQUE = 0 AND COLUMN_NAME IS NOT NULL
+       ORDER BY INDEX_NAME, SEQ_IN_INDEX`,
+      [targetDatabase, targetTable]
+    );
+    const uniqueIndexes = new Map<string, string[]>();
+    for (const row of indexRows) {
+      const name = String(row.name);
+      const columns = uniqueIndexes.get(name) ?? [];
+      columns.push(String(row.columnName));
+      uniqueIndexes.set(name, columns);
+    }
+    const sourceByTarget = new Map(
+      mappings.map((mapping) => [mapping.targetColumn, mapping.sourceColumn])
+    );
+    const comparableIndexes = [...uniqueIndexes.values()].filter((columns) =>
+      columns.every((column) => sourceByTarget.has(column))
+    );
+    const targetUniqueColumns = [...new Set(comparableIndexes.flat())];
+    const [sourceResult, targetResult] = await Promise.all([
+      sourceConnection.query<RowDataPacket[]>(
+        `SELECT ${mappings.map((mapping) => quote(mapping.sourceColumn)).join(", ")} FROM ${quote(sourceTable)}`
+      ),
+      targetConnection.query<RowDataPacket[]>(
+        `SELECT ${[...new Set([...mappings.map((mapping) => mapping.targetColumn), ...targetUniqueColumns])].map(quote).join(", ")} FROM ${quote(targetTable)}`
+      )
+    ]);
+    if (
+      sourceResult[0].length !== expectedSourceRows ||
+      targetResult[0].length !== expectedTargetRows
+    ) {
+      return { exactMatches: null, uniqueKeyConflicts: null };
+    }
+    const targetSignatures = new Set(
+      targetResult[0].map((row) => mappedRowSignature(row, mappings, "targetColumn"))
+    );
+    const targetUniqueValues = comparableIndexes.map(
+      (columns) =>
+        new Set(
+          targetResult[0]
+            .map((row) => uniqueValueSignature(row, columns))
+            .filter((value): value is string => value !== null)
+        )
+    );
+    let exactMatches = 0;
+    let uniqueKeyConflicts = 0;
+    for (const row of sourceResult[0]) {
+      const exact = targetSignatures.has(mappedRowSignature(row, mappings, "sourceColumn"));
+      if (exact) exactMatches += 1;
+      const keyCollision = comparableIndexes.some((columns, index) => {
+        const sourceKey = JSON.stringify(
+          columns.map((column) => stableValue(row[sourceByTarget.get(column)!]))
+        );
+        return targetUniqueValues[index]?.has(sourceKey) ?? false;
+      });
+      if (keyCollision && !exact) uniqueKeyConflicts += 1;
+    }
+    return {
+      exactMatches,
+      uniqueKeyConflicts: comparableIndexes.length ? uniqueKeyConflicts : null
     };
   }
 
@@ -953,6 +1423,52 @@ function quote(identifier: string) {
   return `\`${identifier}\``;
 }
 
+function serializableRow(row: RowDataPacket): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [
+      key,
+      /password|secret|token|credential|api.?key|private.?key|cookie|authorization/iu.test(key)
+        ? "[redacted]"
+        : Buffer.isBuffer(value)
+          ? `[binary ${value.length} bytes]`
+          : value instanceof Date
+            ? value.toISOString()
+            : typeof value === "bigint"
+              ? value.toString()
+              : value
+    ])
+  );
+}
+
+function mappedRowSignature(
+  row: RowDataPacket,
+  mappings: MigrationColumnMapping[],
+  side: "sourceColumn" | "targetColumn"
+) {
+  return JSON.stringify(mappings.map((mapping) => stableValue(row[mapping[side]])));
+}
+
+function uniqueValueSignature(row: RowDataPacket, columns: string[]) {
+  const values = columns.map((column) => row[column]);
+  if (values.some((value) => value === null || value === undefined)) return null;
+  return JSON.stringify(values.map(stableValue));
+}
+
+function stableValue(value: unknown): unknown {
+  if (Buffer.isBuffer(value)) return `binary:${value.toString("base64")}`;
+  if (value instanceof Date) return `date:${value.toISOString()}`;
+  if (typeof value === "bigint") return `bigint:${value.toString()}`;
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, stableValue(item)])
+    );
+  }
+  return value;
+}
+
 function resolveMappings(
   sourceColumns: TableColumn[],
   targetColumns: TableColumn[],
@@ -987,8 +1503,7 @@ function resolveMappings(
     seenSource.add(mapping.sourceColumn);
     seenTarget.add(mapping.targetColumn);
   }
-  const unmappedSource = sourceColumns.find((column) => !seenSource.has(column.name));
-  if (unmappedSource) throw new Error(`Map source field ${unmappedSource.name} before importing.`);
+  if (mappings.length === 0) throw new Error("Include and map at least one source field.");
   const missingRequired = targetColumns.find(
     (column) => column.required && !seenTarget.has(column.name)
   );

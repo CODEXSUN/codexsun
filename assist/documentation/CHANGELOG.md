@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.41
+Current version: 1.1.42
 
-Release tag: v-1.1.41
+Release tag: v-1.1.42
 
-Changelog label: v 1.1.41
+Changelog label: v 1.1.42
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,26 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.42
+
+### [v 1.1.42] 2026-10-22 10:16 pm - Data Migration query plan safeguards and cross-app updates
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Added the master-schema `data_migration_job_query_plans` table for one persisted generated/finalized plan per migration job, with an actor, status, and timestamps. Existing tables and tenant schemas are unchanged.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.42.
+- Added independently paginated source and destination samples, a shared Columns menu, loaded-row comparison, and sample-only row selection to Migration Mapper.
+- Added source-field exclusions and included the selected fields, exclusions, schema fingerprints, and keyed source-data fingerprints in the review plan. Migration execution now requires explicit finalization and rejects stale plans or mapping changes; SQL templates remain informational while inserts are built and parameterized by the server.
+- Added read-only sample-data and query-plan API routes with Super Admin authorization and database-backed MariaDB E2E coverage for review, finalization, stale-source rejection, exclusions, rollback, and access denial.
+- Grouped Database Settings, Migration Mapper, and Migration Analysis under the Super Admin Data sync menu and opened Migration Mapper from the Super Admin Apps shortcut.
+- Exported the shared `WorkspaceColumnMenu` for read-only previews and included Data Migration web sources in UI utility scanning.
+- Updated Platform CRM reminder notifications to use the first line of schedule notes and the scheduled time while retaining the linked enquiry or task.
+- Updated Data Migration, Platform, and UI documentation and generated Docs references for the changed contracts and navigation.
 
 ## v-1.1.41
 

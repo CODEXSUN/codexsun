@@ -62,3 +62,9 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - `WorkspaceTable` accepts an owner-rendered `mobileRow`; narrow screens show those rows and applicable inline filters while retaining the existing sortable table at wider widths.
 - Empty and loading states remain visible in both presentations. No list-specific fields or actions were added to the shared package.
 - UI typecheck, lint, and build passed. Local browser visual verification remains open.
+
+### Reusable workspace column menu
+
+- Export the workspace list's checkbox Columns menu as `WorkspaceColumnMenu` so data-preview cards can use the same accessible multi-select menu and Show all behavior.
+- Keep the menu generic; callers own labels, selected state, and data projection.
+- UI typecheck, lint, and build passed. Data Migration web typecheck and lint passed. `npm run check:component-docs` passed.

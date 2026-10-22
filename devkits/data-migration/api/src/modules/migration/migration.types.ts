@@ -45,6 +45,45 @@ export type TablePreview = {
   table: string;
   sourceRows: number;
   targetRows: number;
+  exactMatches: number | null;
+  uniqueKeyConflicts: number | null;
   compatible: boolean;
   reason: string | null;
+};
+
+export type MigrationQueryPlan = {
+  id: string;
+  status: "generated" | "finalized" | "completed" | "stale";
+  hash: string;
+  generatedBy: string;
+  generatedAt: string;
+  finalizedBy: string | null;
+  finalizedAt: string | null;
+  canFinalize: boolean;
+  sourceDatabase: string;
+  targetDatabase: string;
+  totalSourceRows: number;
+  tables: Array<{
+    sourceTable: string;
+    targetTable: string;
+    sourceRows: number;
+    targetRows: number;
+    sourceFingerprint: string;
+    sourceSchemaFingerprint: string;
+    targetSchemaFingerprint: string;
+    columnMappings: MigrationColumnMapping[];
+    excludedSourceFields: string[];
+    selectSql: string;
+    insertSqlTemplate: string;
+    blockers: string[];
+  }>;
+  blockers: string[];
+};
+
+export type TableDataSample = {
+  sourceTable: string;
+  targetTable: string;
+  sourceRows: Array<Record<string, unknown>>;
+  targetRows: Array<Record<string, unknown>>;
+  limit: number;
 };

@@ -91,7 +91,7 @@ export function WorkspaceFilters({
           />
         ) : null}
         {columnOptions && columnOptions.length > 0 ? (
-          <ColumnMenu
+          <WorkspaceColumnMenu
             columnOptions={columnOptions}
             {...(onShowAllColumns ? { onShowAllColumns } : {})}
           />
@@ -161,7 +161,7 @@ function FilterMenu({
   );
 }
 
-function ColumnMenu({
+export function WorkspaceColumnMenu({
   columnOptions,
   onShowAllColumns
 }: {

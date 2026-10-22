@@ -44,6 +44,7 @@ This owner declares no internal workspace dependency in its package manifests.
 
 `workspace/navigation` exports `WorkspaceNavigationProvider`, `WorkspaceHeaderActions`, and `useWorkspaceQueryValue`. The host supplies its router search and header action target. The provider batches query changes made in one event.
 `workspace/list-tools` supplies column search controls and visibility state. Owning modules supply their column labels and record projections. It contains no business CRUD or permission decisions.
+The public `WorkspaceColumnMenu` reuses the accessible multi-select Columns menu for other read-only previews; callers own labels, selected state, and data projection.
 With an application header target, `WorkspaceUpsertDialog` renders a form panel in the workspace. Other hosts retain the existing dialog behavior.
 
 `WorkspaceTable` accepts an optional `mobileRow` renderer for owner-provided compact records on narrow screens. When supplied, the mobile rows and any inline filters appear below the medium breakpoint; the sortable table remains available at wider widths. Record fields and actions stay with the owning module.

@@ -35,8 +35,22 @@ export type MigrationPreview = {
   table: string;
   sourceRows: number;
   targetRows: number;
+  exactMatches: number | null;
+  uniqueKeyConflicts: number | null;
   compatible: boolean;
   reason: string | null;
+};
+export type MigrationTableSample = {
+  sourceTable: string;
+  targetTable: string;
+  sourceColumns: string[];
+  targetColumns: string[];
+  sourceRows: Array<Record<string, unknown>>;
+  targetRows: Array<Record<string, unknown>>;
+  source: { totalRows: number; page: number };
+  target: { totalRows: number; page: number };
+  pageSize: number;
+  selectedMapping?: { sourceColumn: string; targetColumn: string };
 };
 export type TransferSelection = {
   sourceId: number;
@@ -116,6 +130,34 @@ export type MigrationJob = {
   createdBy: string;
   createdAt: string;
   tableCount: number;
+};
+export type MigrationQueryPlan = {
+  id: string;
+  status: "generated" | "finalized" | "completed" | "stale";
+  hash: string;
+  generatedBy: string;
+  generatedAt: string;
+  finalizedBy: string | null;
+  finalizedAt: string | null;
+  canFinalize: boolean;
+  sourceDatabase: string;
+  targetDatabase: string;
+  totalSourceRows: number;
+  tables: Array<{
+    sourceTable: string;
+    targetTable: string;
+    sourceRows: number;
+    targetRows: number;
+    sourceFingerprint: string;
+    sourceSchemaFingerprint: string;
+    targetSchemaFingerprint: string;
+    columnMappings: MigrationColumnMapping[];
+    excludedSourceFields: string[];
+    selectSql: string;
+    insertSqlTemplate: string;
+    blockers: string[];
+  }>;
+  blockers: string[];
 };
 export type MigrationColumnOption = MigrationColumn & { defaultValue: unknown };
 export type MigrationTableSchema = {
