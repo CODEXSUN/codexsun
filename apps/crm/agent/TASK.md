@@ -1,5 +1,15 @@
 # CRM Delivery Tasks
 
+## CRM release 1.1.44 — 2026-10-22
+
+- [x] Bump the workspace to 1.1.44 and CRM Flutter to 1.1.44+144.
+- [x] Pass `npm run check`, `npm run check:versions`, `npm run dependencies:check`, Flutter analysis, and all 76 mobile tests.
+- [x] Build and verify signed TechMedia and Rainbow APKs for the production API. Both use Android version code 144 and version name 1.1.44.
+- [ ] Deploy API, Web, and Shop to Hostinger and verify health routes. No migrations or seeds are planned.
+
+APK SHA-256: TechMedia `6C6F4BE0C079D3196F39164DC224F39D1E14AE23192BC703457075BF17A7B170`; Rainbow `3510B28679CE767AFEE41B8952135A4A851BC020A1218039B774BEF6B757E4E4`.
+
+
 ## Frappe sync status and verification — 2026-10-22
 
 - [x] Add a shared green-confirmed, grey-waiting, red-error Frappe indicator and a Verify action to enquiry, contact, and call-log rows. Verify always queues a backend remote check and reports the result; call-log verification uses `crm.call-log.view`.

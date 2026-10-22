@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `d5469aebe268dc86c6ab1e18754bbba728a5a1898abcc21d0c6ad5088b88c8a1`
+Source SHA-256 (LF line endings): `14bb28878d7c2aaafddcb2e2e4a78dbd082a00fee0b34862cefd198787d9b3d2`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -10,6 +10,14 @@ Historical notes and unchecked plans retain their original status.
 
 ```markdown
 # Frappe tasks
+
+## CRM record verification indicators — 2026-10-22
+
+- [x] Reuse the existing queued remote verification API for enquiry, contact, and call-log row actions. The action only uses `mode: verify`; export policy remains unchanged.
+- [x] Keep outbound Contacts, Call Logs, Activities, and Tasks blocked. No new Frappe document mapping or transfer was introduced.
+- [x] Keep verified connections and remote credentials server-side; verification outcomes are returned through tenant-scoped export job status and batch record-status routes.
+
+The live VPS smoke test exercised the shared BullMQ + Redis queue with the non-business `queue.probe` job. It completed successfully. It did not create or verify a live Frappe document. Release 1.1.43 is deployed; public route checks passed, but authenticated browser behavior remains unverified.
 
 ## Queued CRM enquiry upserts — 2026-10-21
 
