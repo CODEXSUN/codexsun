@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.39
+Current version: 1.1.40
 
-Release tag: v-1.1.39
+Release tag: v-1.1.40
 
-Changelog label: v 1.1.39
+Changelog label: v 1.1.40
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,21 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.40
+
+### [v 1.1.40] 2026-10-22 9:51 pm - TechMedia and Rainbow mobile APKs
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.40.
+- Hide the Corporate ID field in client-branded builds and submit the configured tenant ID at sign-in.
+- Add a login widget test for embedded tenant IDs and email/password-only sign-in.
+- Build separate TechMedia and Rainbow debug APKs with tenant IDs `techmedia` and `RAINBOW`, connected to the CODEXSUN API.
 
 ## v-1.1.39
 

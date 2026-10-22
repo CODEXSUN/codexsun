@@ -55,7 +55,9 @@ class _LoginPageState extends State<LoginPage> {
     });
     try {
       final password = _password.text;
-      final corporateId = _corporateId.text.trim();
+      final corporateId = AppConfig.corporateId.isNotEmpty
+          ? AppConfig.corporateId
+          : _corporateId.text.trim();
       final session = await widget.api.signIn(
         email: _email.text.trim(),
         password: password,
@@ -109,22 +111,24 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      TextField(
-                        controller: _corporateId,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(
-                            Icons.business_outlined,
-                            size: 20,
+                      if (AppConfig.corporateId.isEmpty) ...[
+                        TextField(
+                          controller: _corporateId,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(
+                              Icons.business_outlined,
+                              size: 20,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            labelText: 'Corporate ID',
+                            hintText: 'e.g. CODEXSUN',
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          labelText: 'Corporate ID',
-                          hintText: 'e.g. CODEXSUN',
                         ),
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
+                      ],
                       TextField(
                         controller: _email,
                         keyboardType: TextInputType.emailAddress,
