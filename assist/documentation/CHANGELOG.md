@@ -40,6 +40,18 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Updated Platform CRM reminder notifications to use the first line of schedule notes and the scheduled time while retaining the linked enquiry or task.
 - Updated Data Migration, Platform, and UI documentation and generated Docs references for the changed contracts and navigation.
 
+#### Production Deployment
+
+- Deployed version 1.1.42 to the production Hostinger VPS from source commit `181dad4cc82a7166fbc565cec74ec59e0d3c67dc`.
+- Created and checksum-verified the pre-migration MariaDB backup at `/home/codexsun/.container/backups/codexsun-all-databases-20261022T165207Z.sql` (SHA-256 `0dd3ef28bf6307ea21271a04d3e6c5574a09ec136c6e340af6143414c34059a1`).
+- Production migration preflight passed for five tenant databases. Migrations and seeds completed; the Data Migration query-plan v6 migration and CRM schedule notes column were verified in the master database and all five tenant databases respectively.
+- CODEXSUN API, Web, and Shop containers run image tag 1.1.42 and report healthy. Public API health returned `ok`; the Application Overview route and Shop returned HTTP 200. The Application Overview check verified the route only, without an authenticated browser session.
+- The shared MariaDB, Redis, media, and Cloudflared containers were left in place; MariaDB, Redis, and media remained healthy and Cloudflared remained running.
+
+#### Verification Notes
+
+- The required `npm run check` passed. The optional `npm run test:migration-contract` still fails its workspace-wide legacy schema assertions across multiple applications; it also applies tenant owner-prefix assertions to the master-schema Data Migration tables. Production migration preflight, migrations, tenant-schema checks, and service health checks passed. The broader legacy migration-contract cleanup remains open.
+
 ## v-1.1.41
 
 ### [v 1.1.41] 2026-10-22 10:04 pm - CRM web review and charge retry safety
