@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/WORK-LOG.md`
 
-Source SHA-256 (LF line endings): `69d6d794aa2fd79c09fa538a7c26fb4b5f90d4b88af94d2c82431664c4476ce6`
+Source SHA-256 (LF line endings): `3c13b226e9eadfb984082e4b1ad203454da2f49fbd907db534f53e75bbcd0f01`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -135,4 +135,12 @@ Fixed duty report requests to pass query parameters separately from the URL path
 - WhatsApp handoff creation emits a transactional `whatsapp-handoff` work event. Ignored duplicate inserts do not repeat the event. Event failure rolls back the handoff.
 - WhatsApp database E2E passed for one matching action per retry and rollback on event failure. Work-report database E2E passed for saved checkpoint state and action permissions.
 - CRM API build, API/web lint, web typecheck, and module boundaries passed locally. No live deployment or mobile rebuild is claimed.
+
+## 2026-10-22: CRM release 1.1.44
+
+- Bumped the workspace to 1.1.44 and the CRM Flutter app to 1.1.44+144.
+- Root release checks passed. Flutter analysis passed and all 76 mobile tests passed.
+- Built signed TechMedia and Rainbow APKs. Both report version name 1.1.44 and version code 144; APK signature verification passed.
+- Deployed source commit `0f71e79455c981619660a15467fada7401f59e7b` to Hostinger API, Web, and Shop. All three containers are healthy; local health/ready and public API/Web/Shop routes returned HTTP 200.
+- No database migrations or seeds ran. Shared services were not recreated. No authenticated browser UX check was run.
 ```

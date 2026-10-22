@@ -33,7 +33,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Bumped workspace version to 1.1.44.
 - Set the CRM Flutter package to version 1.1.44 with Android build number 144.
 - Build signed TechMedia and Rainbow APKs for the production CODEXSUN API with their existing app IDs and Corporate IDs. Both APKs use Android version code 144 and version name 1.1.44. Signature verification passed.
-- Deploy the 1.1.44 API, Web, and Shop images to the Hostinger VPS. Run no database migrations or seeds.
+- Deploy API, Web, and Shop images from source commit `0f71e79455c981619660a15467fada7401f59e7b` to Hostinger. All three containers are healthy; local health/ready and public API/Web/Shop routes returned HTTP 200. No migrations or seeds ran. Shared services were not recreated. Browser UX was not tested.
 
 ## v-1.1.43
 

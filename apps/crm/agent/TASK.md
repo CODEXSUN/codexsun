@@ -5,9 +5,9 @@
 - [x] Bump the workspace to 1.1.44 and CRM Flutter to 1.1.44+144.
 - [x] Pass `npm run check`, `npm run check:versions`, `npm run dependencies:check`, Flutter analysis, and all 76 mobile tests.
 - [x] Build and verify signed TechMedia and Rainbow APKs for the production API. Both use Android version code 144 and version name 1.1.44.
-- [ ] Deploy API, Web, and Shop to Hostinger and verify health routes. No migrations or seeds are planned.
+- [x] Deploy API, Web, and Shop to Hostinger and verify health routes. No migrations or seeds ran.
 
-APK SHA-256: TechMedia `6C6F4BE0C079D3196F39164DC224F39D1E14AE23192BC703457075BF17A7B170`; Rainbow `3510B28679CE767AFEE41B8952135A4A851BC020A1218039B774BEF6B757E4E4`.
+VPS: source commit `0f71e79455c981619660a15467fada7401f59e7b` is live. API, Web, and Shop images are healthy; local health/ready and public API/Web/Shop routes returned HTTP 200. The release record is `/home/codexsun-releases/1.1.44-0f71e794/deployment.json`. Shared CXApp, MariaDB, Redis, media, and tunnel containers were not recreated. No database migration or seed ran. Browser UX and tenant authorization were not tested.\n\nAPK SHA-256: TechMedia `6C6F4BE0C079D3196F39164DC224F39D1E14AE23192BC703457075BF17A7B170`; Rainbow `3510B28679CE767AFEE41B8952135A4A851BC020A1218039B774BEF6B757E4E4`.
 
 
 ## Frappe sync status and verification — 2026-10-22
