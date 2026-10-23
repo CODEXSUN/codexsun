@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/crm_mobile_api.dart';
+import 'inline_select_field.dart';
 
 class TaskFormPage extends StatefulWidget {
   const TaskFormPage({required this.api, required this.session, super.key});
@@ -14,7 +15,6 @@ class TaskFormPage extends StatefulWidget {
 
 class _TaskFormPageState extends State<TaskFormPage> {
   final _formKey = GlobalKey<FormState>();
-  final _title = TextEditingController();
   final _description = TextEditingController();
   final _contactName = TextEditingController();
   final _contactPhone = TextEditingController();
@@ -25,7 +25,6 @@ class _TaskFormPageState extends State<TaskFormPage> {
   int? _assigneeId;
   int? _contactId;
   String? _matchedContact;
-  DateTime? _dueDate;
   bool _saving = false;
   bool _defaultsApplied = false;
 
@@ -37,7 +36,6 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   @override
   void dispose() {
-    _title.dispose();
     _description.dispose();
     _contactName.dispose();
     _contactPhone.dispose();
@@ -49,14 +47,17 @@ class _TaskFormPageState extends State<TaskFormPage> {
     appBar: AppBar(
       title: const Text('New task'),
       actions: [
-        TextButton(
-          onPressed: _saving ? null : _save,
-          child: _saving
-              ? const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Save'),
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: FilledButton(
+            onPressed: _saving ? null : _save,
+            child: _saving
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Save'),
+          ),
         ),
       ],
     ),
@@ -99,36 +100,12 @@ class _TaskFormPageState extends State<TaskFormPage> {
         return Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 32),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
             children: [
-              TextFormField(
-                controller: _title,
-                autofocus: true,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(labelText: 'Task title *'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Enter a task title.'
-                    : null,
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _description,
-                minLines: 3,
-                maxLines: 6,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Task details',
-                  alignLabelWithHint: true,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'Contact (optional)',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 10),
               TextField(
+                key: const ValueKey('task-mobile'),
                 controller: _contactPhone,
+                autofocus: true,
                 keyboardType: TextInputType.phone,
                 maxLength: 10,
                 onChanged: (_) => setState(() {
@@ -138,125 +115,80 @@ class _TaskFormPageState extends State<TaskFormPage> {
                 decoration: const InputDecoration(
                   labelText: 'Mobile number',
                   counterText: '',
+                  helperText: 'Use the 10-digit customer mobile number.',
                 ),
               ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: _lookupContact,
-                  icon: const Icon(Icons.person_search_outlined, size: 18),
-                  label: Text(
-                    _matchedContact == null
-                        ? 'Find contact'
-                        : '$_matchedContact matched',
-                  ),
+              if (_matchedContact != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  _matchedContact!,
+                  style: const TextStyle(color: Color(0xFF23824E)),
                 ),
-              ),
-              const SizedBox(height: 10),
+              ],
+              const SizedBox(height: 14),
               TextField(
                 controller: _contactName,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Contact name'),
-              ),
-              const SizedBox(height: 18),
-              DropdownButtonFormField<int?>(
-                initialValue: _listId,
-                decoration: const InputDecoration(labelText: 'List in'),
-                items: [
-                  const DropdownMenuItem<int?>(
-                    value: null,
-                    child: Text('No list'),
+                onChanged: (_) => setState(() {
+                  _contactId = null;
+                  _matchedContact = null;
+                }),
+                decoration: InputDecoration(
+                  labelText: 'Customer name (optional)',
+                  suffixIcon: IconButton(
+                    tooltip: 'Find contact for this phone number',
+                    onPressed: _lookupContact,
+                    icon: const Icon(Icons.person_search_outlined),
                   ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              InlineSelectField(
+                label: 'List',
+                value: _listId?.toString(),
+                options: [
+                  const InlineSelectOption(label: 'No list', value: null),
                   ...lists.map(
-                    (row) => DropdownMenuItem<int?>(
-                      value: _id(row),
-                      child: Text('${row['name'] ?? ''}'),
+                    (row) => InlineSelectOption(
+                      value: _id(row).toString(),
+                      label: '${row['name'] ?? ''}',
                     ),
                   ),
                 ],
-                onChanged: (value) => setState(() => _listId = value),
+                onChanged: (value) =>
+                    setState(() => _listId = int.tryParse(value ?? '')),
               ),
-              const SizedBox(height: 14),
-              DropdownButtonFormField<int?>(
-                initialValue: _assigneeId,
-                decoration: const InputDecoration(labelText: 'Assigned to'),
-                items: [
-                  const DropdownMenuItem<int?>(
-                    value: null,
-                    child: Text('Unassigned'),
-                  ),
+              const SizedBox(height: 16),
+              InlineSelectField(
+                label: 'Allocated',
+                value: _assigneeId?.toString(),
+                options: [
+                  const InlineSelectOption(label: 'Not allocated', value: null),
                   ...users.map(
-                    (row) => DropdownMenuItem<int?>(
-                      value: _id(row),
-                      child: Text('${row['name'] ?? row['email'] ?? ''}'),
+                    (row) => InlineSelectOption(
+                      value: _id(row).toString(),
+                      label: '${row['name'] ?? row['email'] ?? ''}',
                     ),
                   ),
                 ],
-                onChanged: (value) => setState(() => _assigneeId = value),
+                onChanged: (value) =>
+                    setState(() => _assigneeId = int.tryParse(value ?? '')),
               ),
-              const SizedBox(height: 14),
-              DropdownButtonFormField<int>(
-                initialValue: _priorityId,
-                decoration: const InputDecoration(labelText: 'Priority *'),
-                items: priorities
-                    .map(
-                      (row) => DropdownMenuItem<int>(
-                        value: _id(row),
-                        child: _OptionLabel(
-                          label: '${row['name'] ?? ''}',
-                          color: _priorityColor(
-                            '${row['code'] ?? row['name']}',
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-                validator: (value) =>
-                    value == null ? 'Choose a priority.' : null,
-                onChanged: (value) => setState(() => _priorityId = value),
-              ),
-              const SizedBox(height: 14),
-              DropdownButtonFormField<int>(
-                initialValue: _statusId,
-                decoration: const InputDecoration(labelText: 'Status *'),
-                items: statuses
-                    .map(
-                      (row) => DropdownMenuItem<int>(
-                        value: _id(row),
-                        child: _OptionLabel(
-                          label: '${row['name'] ?? ''}',
-                          color: _statusColor('${row['code'] ?? row['name']}'),
-                          ring: true,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                validator: (value) => value == null ? 'Choose a status.' : null,
-                onChanged: (value) => setState(() => _statusId = value),
-              ),
-              const SizedBox(height: 14),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Due date'),
-                subtitle: Text(
-                  _dueDate == null ? 'Not set' : _displayDate(_dueDate!),
+              const SizedBox(height: 16),
+              TextFormField(
+                key: const ValueKey('task-message'),
+                controller: _description,
+                minLines: 5,
+                maxLines: 8,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Task message',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(),
                 ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_dueDate != null)
-                      IconButton(
-                        tooltip: 'Clear due date',
-                        onPressed: () => setState(() => _dueDate = null),
-                        icon: const Icon(Icons.clear),
-                      ),
-                    IconButton(
-                      tooltip: 'Choose due date',
-                      onPressed: _chooseDueDate,
-                      icon: const Icon(Icons.calendar_month_outlined),
-                    ),
-                  ],
-                ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter a task message.'
+                    : null,
               ),
             ],
           ),
@@ -264,17 +196,6 @@ class _TaskFormPageState extends State<TaskFormPage> {
       },
     ),
   );
-
-  Future<void> _chooseDueDate() async {
-    final now = DateTime.now();
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: _dueDate ?? now,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 10),
-    );
-    if (selected != null) setState(() => _dueDate = selected);
-  }
 
   Future<void> _lookupContact() async {
     final phone = _contactPhone.text.replaceAll(RegExp(r'\D'), '');
@@ -346,6 +267,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
   }
 
   Future<void> _save() async {
+    if (_saving || _formKey.currentState == null) return;
     if (!_formKey.currentState!.validate() ||
         _priorityId == null ||
         _statusId == null)
@@ -363,13 +285,13 @@ class _TaskFormPageState extends State<TaskFormPage> {
             ? null
             : _contactName.text.trim(),
         'capturedPhone': phone.isEmpty ? null : phone,
-        'title': _title.text.trim(),
+        'title': _titleFromMessage(_description.text.trim()),
         'description': _description.text.trim(),
         'listInId': _listId,
         'priorityId': _priorityId,
         'statusId': _statusId,
         'assignedUserId': _assigneeId,
-        'dueDate': _dueDate == null ? null : _date(_dueDate!),
+        'dueDate': null,
       });
       if (mounted) Navigator.pop(context, true);
     } on CrmMobileApiException catch (error) {
@@ -400,69 +322,9 @@ class _TaskFormPageState extends State<TaskFormPage> {
     return _id(preferred ?? rows.first);
   }
 
-  static String _date(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
-  static String _displayDate(DateTime date) =>
-      '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}';
-
-  static Color _priorityColor(String code) => switch (code.toLowerCase()) {
-    'low' => const Color(0xFF03A9F4),
-    'normal' => const Color(0xFF00BFA5),
-    'high' => const Color(0xFFFF6D00),
-    'urgent' => const Color(0xFFFF1744),
-    _ => const Color(0xFF607D8B),
-  };
-
-  static Color _statusColor(String code) => switch (code.toLowerCase()) {
-    'new' => const Color(0xFF2962FF),
-    'open' => const Color(0xFF00A8E8),
-    'won' || 'closed' || 'completed' => const Color(0xFF00B881),
-    'lost' || 'rejected' => const Color(0xFFFF1744),
-    'hold_for_approval' || 'hold for approval' => const Color(0xFFFF8F00),
-    'long_hold' || 'long hold' => const Color(0xFF8E24FF),
-    _ => const Color(0xFFFF6D00),
-  };
-}
-
-class _OptionLabel extends StatelessWidget {
-  const _OptionLabel({
-    required this.label,
-    required this.color,
-    this.ring = false,
-  });
-
-  final String label;
-  final Color color;
-  final bool ring;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(
-        width: 14,
-        height: 14,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: ring ? Border.all(color: color, width: 1.8) : null,
-          color: ring ? Colors.transparent : color,
-        ),
-        child: ring
-            ? Center(
-                child: Container(
-                  width: 4,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              )
-            : null,
-      ),
-      const SizedBox(width: 9),
-      Text(label),
-    ],
-  );
+  static String _titleFromMessage(String message) {
+    final normalized = message.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.length <= 44) return normalized;
+    return '${normalized.substring(0, 43).trimRight()}…';
+  }
 }

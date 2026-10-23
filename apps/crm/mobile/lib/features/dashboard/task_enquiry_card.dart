@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/api/crm_mobile_api.dart';
+import 'task_status_badge.dart';
 
 class TaskEnquiryCard extends StatelessWidget {
   const TaskEnquiryCard({
@@ -28,20 +29,32 @@ class TaskEnquiryCard extends StatelessWidget {
     final title = normalizeCrmText('${task['title'] ?? ''}');
     final contact = normalizeCrmText('${task['contactName'] ?? ''}');
     final group = normalizeCrmText('${task['listIn'] ?? ''}');
-    final dueDate = task['dueDate']?.toString() ?? '';
+    final isNew = status.toLowerCase() == 'new';
     final runningStart = DateTime.tryParse(runningJobStartedAt ?? '')
         ?.toLocal();
     final createdBy = normalizeCrmText(
       '${task['creatorName'] ?? task['createdBy'] ?? ''}',
     );
-    final accent = pending ? const Color(0xFFF59E0B) : const Color(0xFF1596D2);
+    final accent = pending
+        ? const Color(0xFFF59E0B)
+        : runningStart != null
+        ? const Color(0xFF682A82)
+        : const Color(0xFF1596D2);
 
     return Card(
       margin: EdgeInsets.zero,
       elevation: 2,
-      color: pending ? const Color(0xFFFFF7ED) : Colors.white,
+      color: pending
+          ? const Color(0xFFFFF7ED)
+          : runningStart != null
+          ? const Color(0xFFFBF6FE)
+          : isNew
+          ? const Color(0xFFF1F8FF)
+          : Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: const Color(0x24140D1B),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: pending ? accent : const Color(0xFFE4DDE8)),
       ),
       clipBehavior: Clip.antiAlias,
@@ -57,28 +70,7 @@ class TaskEnquiryCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: pending
-                          ? const Color(0xFFFFE8C2)
-                          : const Color(0xFFEAF4FF),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Text(
-                      '#$id  ${pending ? 'Mark Completed' : status}',
-                      style: TextStyle(
-                        color: pending
-                            ? const Color(0xFF92400E)
-                            : const Color(0xFF126A9A),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
+                  TaskStatusBadge(status: status, number: id),
                   if (group.isNotEmpty) ...[
                     const SizedBox(width: 8),
                     Expanded(
@@ -105,14 +97,27 @@ class TaskEnquiryCard extends StatelessWidget {
                     ),
                     padding: EdgeInsets.zero,
                     onPressed: onActions,
-                    icon: const Icon(
-                      Icons.add_circle_rounded,
-                      size: 30,
-                      color: Color(0xFF682A82),
+                    style: IconButton.styleFrom(
+                      backgroundColor: const Color(0xFFF1DEF7),
+                      foregroundColor: const Color(0xFF682A82),
                     ),
+                    icon: const Icon(Icons.add, size: 24),
                   ),
                 ],
               ),
+              if (pending) ...[
+                const SizedBox(height: 6),
+                const Chip(
+                  avatar: Icon(
+                    Icons.notifications_active_outlined,
+                    size: 15,
+                    color: Color(0xFF92400E),
+                  ),
+                  label: Text('Mark Completed'),
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: Color(0xFFFFF7ED),
+                ),
+              ],
               if (contact.isNotEmpty) ...[
                 const SizedBox(height: 5),
                 Text(
@@ -134,10 +139,8 @@ class TaskEnquiryCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      [
-                        if (createdBy.isNotEmpty) 'Created by $createdBy',
-                        if (dueDate.isNotEmpty) 'Due $dueDate',
-                      ].join(' · '),
+                      [if (createdBy.isNotEmpty) 'Created by · $createdBy']
+                          .join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(

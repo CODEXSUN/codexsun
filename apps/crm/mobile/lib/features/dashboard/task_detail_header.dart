@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/crm_mobile_api.dart';
+import 'task_status_badge.dart';
 
 class TaskDetailHeader extends StatelessWidget {
   const TaskDetailHeader({
@@ -32,7 +33,7 @@ class TaskDetailHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              _TaskStatusBadge(status: status),
+              TaskStatusBadge(status: status, number: task['id'] as int?),
               const SizedBox(width: 8),
               if ('${task['listIn'] ?? ''}'.trim().isNotEmpty)
                 Text(
@@ -74,28 +75,6 @@ class TaskDetailHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-class _TaskStatusBadge extends StatelessWidget {
-  const _TaskStatusBadge({required this.status});
-  final String status;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-    decoration: BoxDecoration(
-      color: const Color(0xFFE7F4FF),
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: Text(
-      status,
-      style: const TextStyle(
-        color: Color(0xFF126A9A),
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-  );
 }
 
 class TaskRunningTimer extends StatelessWidget {

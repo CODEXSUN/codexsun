@@ -1,5 +1,21 @@
 # CRM mobile
 
+## Task and enquiry presentation
+
+New task follows New enquiry: mobile number, optional customer, List, Allocated,
+and one Task message. Priority and status use the saved Normal and New defaults;
+due date is hidden on creation. The full message is retained in task details,
+and a short preview supplies the required task title. Existing task data is unchanged.
+Task cards use the enquiry status palette, blue New background, purple action button,
+and separate orange completion-pending notice.
+
+## Signed TechMedia release 1.1.48
+
+TechMedia uses version 1.1.48, Android build 148, and the live cloud API.
+This release aligns Tasks and New task with the enquiry screens. No backend
+deployment or database migration is required. Flutter analysis and all 77 mobile
+tests passed. The APK retains the existing package ID and signing identity.
+
 ## Signed release 1.1.47
 
 TechMedia and Rainbow release APKs use Android build 147 and the production CODEXSUN API.

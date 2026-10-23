@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.47
+Current version: 1.1.48
 
-Release tag: v-1.1.47
+Release tag: v-1.1.48
 
-Changelog label: v 1.1.47
+Changelog label: v 1.1.48
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,27 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.48
+
+### [v 1.1.48] 2026-10-23 7:16 pm - Align mobile tasks with enquiries
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.48.
+- Match mobile task cards and task details to the enquiry status colors, blue New background, and purple action button.
+- Match New task to New enquiry: mobile number, optional customer, List, Allocated, and one message field.
+- Hide priority, status, and due date on task creation. Use saved defaults and retain the full message in task details.
+- Add a form regression test for message storage, optional contact, and hidden defaults.
+- Release TechMedia Android 1.1.48, build 148, with the existing package ID, signing identity, and live cloud API.
+- No VPS deployment is required. These changes affect the mobile client only.
+- Verification passed: Flutter analysis, 77 mobile tests, version consistency, dependency layout, and CRM module boundaries.
+- Verify the signed TechMedia APK metadata as `in.codexsun.techmedia_crm`, version `1.1.48`, build `148`. Install it on the emulator without clearing app data.
+- APK SHA-256: `898beb41483c17cb343fa7c20a5471bb57e13a60e207fe526a4e6652e71707c7`.
 
 ## v-1.1.47
 
