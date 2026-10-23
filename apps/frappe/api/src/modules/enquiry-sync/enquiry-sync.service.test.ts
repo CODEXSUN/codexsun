@@ -4,6 +4,7 @@ import type { Kysely } from "kysely";
 import type { EnquiryInput, EnquiryRecord } from "@codexsun/crm-api/enquiry-sync";
 import type { FrappeDatabase } from "../connection/index.js";
 import { FrappeEnquirySyncService } from "./enquiry-sync.service.js";
+import { enquiryCommentRemoteName } from "./enquiry-sync.comment-identity.js";
 
 const originalFetch = globalThis.fetch;
 afterEach(() => {
@@ -35,12 +36,15 @@ function database(
     contactId: number | null;
     assignedUserId: number | null;
     listInId: number | null;
-  }
+  },
+  outboundComments: Array<{ idempotency_key: string; remote_name: string | null }> = []
 ) {
   let saved = false;
+  let insertingTable = "";
   const query = (table: string) => {
     const builder = {
       selectAll: () => builder,
+      set: () => builder,
       select: () => builder,
       where: (...args: unknown[]) => {
         if (
@@ -51,7 +55,7 @@ function database(
         return builder;
       },
       innerJoin: () => builder,
-      execute: async () => [],
+      execute: async () => (table === "crm_enquiry_sync_events" ? outboundComments : []),
       executeTakeFirst: async () => {
         if (table === "frappe_connection_settings") return null;
         if (table === "frappe_enquiry_sync as sync") return link ?? null;
@@ -67,13 +71,17 @@ function database(
     values: () => insert,
     onDuplicateKeyUpdate: () => insert,
     execute: async () => {
-      saved = true;
+      if (insertingTable === "frappe_enquiry_sync") saved = true;
     }
   };
   return {
     value: {
       selectFrom: query,
-      insertInto: () => insert
+      updateTable: query,
+      insertInto: (table: string) => {
+        insertingTable = table;
+        return insert;
+      }
     } as unknown as Kysely<FrappeDatabase>,
     wasSaved: () => saved
   };
@@ -376,6 +384,53 @@ test("pull creates a local enquiry and records the remote identity", async () =>
   assert.equal(scope.wasSaved(), true);
 });
 
+test("pull accepts Q930 and keeps the remote document name as its link identity", async () => {
+  const scope = database();
+  let created: EnquiryInput | undefined;
+  globalThis.fetch = async () =>
+    Response.json({
+      data: {
+        name: "Q930",
+        creation: "2026-10-06 10:00:00",
+        modified: "2026-10-07 11:30:00",
+        title: "Current-format enquiry",
+        mobile: "9994885548",
+        date: "2026-10-06",
+        status: "New",
+        priority: "Normal"
+      }
+    });
+  const service = new FrappeEnquirySyncService(
+    {
+      database: scope.value,
+      createImportedEnquiry: async (input, source) => {
+        created = input;
+        assert.equal(source.enquiryNo, 930);
+        return { id: 930 } as EnquiryRecord;
+      },
+      createEnquiry: async () => {
+        throw new Error("Unexpected legacy create");
+      },
+      updateEnquiry: async () => {
+        throw new Error("Unexpected update");
+      },
+      localUserForEmployee: async () => null,
+      listInForName: async () => null
+    },
+    defaults,
+    "secret"
+  );
+
+  assert.deepEqual(await service.pull("Q930"), {
+    remoteName: "Q930",
+    enquiryId: 930,
+    status: "created"
+  });
+  assert.equal(created?.sourceReference, "Q930");
+  assert.equal(created?.title, "Current-format enquiry");
+  assert.equal(scope.wasSaved(), true);
+});
+
 test("pull repairs an imported enquiry missing its Frappe link and resumes comments", async () => {
   const scope = database(undefined, [], {
     id: 42,
@@ -389,6 +444,8 @@ test("pull repairs an imported enquiry missing its Frappe link and resumes comme
   const importedComments: string[] = [];
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
+    if (url.pathname === "/api/v2/method/frappe.client.get_list")
+      return Response.json({ message: [] });
     if (url.pathname.endsWith("/Comment"))
       return Response.json({
         data: [
@@ -492,7 +549,11 @@ test("pull translates Frappe status, priority, and Indian mobile formatting", as
 });
 
 test("pull imports Frappe comments with mapped author and source timestamp", async () => {
-  const scope = database();
+  const outboundKey = "comment-add:42:9:stable-retry-key";
+  const echoName = enquiryCommentRemoteName(defaults.baseUrl, outboundKey);
+  const scope = database(undefined, [], undefined, [
+    { idempotency_key: outboundKey, remote_name: null }
+  ]);
   const imported: Array<{
     enquiryId: number;
     comment: { id: string; content: string; author: string; createdAt: string };
@@ -501,6 +562,27 @@ test("pull imports Frappe comments with mapped author and source timestamp", asy
     const url = new URL(String(input));
     if (url.pathname.endsWith("/Customer/C123"))
       return Response.json({ data: { customer_name: "Example Customer" } });
+    if (url.pathname === "/api/v2/method/frappe.client.get_list")
+      return Response.json({
+        message: [
+          {
+            name: echoName,
+            job_type: "Enquiry",
+            job_id: "ENQ29",
+            comment: "Already stored locally",
+            creation: "2026-10-06 10:30:00"
+          },
+          {
+            name: "JOBCOM-1",
+            job_type: "Enquiry",
+            job_id: "ENQ29",
+            comment: "Source enquiry message",
+            owner: "agent@example.com",
+            creation: "2026-10-06 10:30:00",
+            mode: "Comment"
+          }
+        ]
+      });
     if (url.pathname.endsWith("/Comment"))
       return Response.json({
         data: [
@@ -521,16 +603,7 @@ test("pull imports Frappe comments with mapped author and source timestamp", asy
         owner: "agent@example.com",
         customer: "C123",
         mobile: "9994885548",
-        date: "2026-10-06",
-        enquiry_messages: [
-          {
-            name: "MESSAGE-1",
-            comment: "Source enquiry message",
-            owner: "agent@example.com",
-            creation: "2026-10-06 10:30:00",
-            mode: "Comment"
-          }
-        ]
+        date: "2026-10-06"
       }
     });
   };
@@ -562,8 +635,9 @@ test("pull imports Frappe comments with mapped author and source timestamp", asy
     {
       enquiryId: 42,
       comment: {
-        id: "MESSAGE-1",
+        id: "JOBCOM-1",
         content: "Source enquiry message",
+        parentSourceId: null,
         author: "local-agent@example.com",
         createdAt: "2026-10-06T05:00:00.000Z"
       }
@@ -586,6 +660,8 @@ test("live import filters by the Frappe-local modified time and preserves source
   let importedAt = "";
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
+    if (url.pathname === "/api/v2/method/frappe.client.get_list")
+      return Response.json({ message: [] });
     if (url.pathname.endsWith("/Comment")) return Response.json({ data: [] });
     if (url.pathname.endsWith("/Enquiry") && !url.pathname.endsWith("/ENQ27")) {
       listFilters = JSON.parse(url.searchParams.get("filters") ?? "null");

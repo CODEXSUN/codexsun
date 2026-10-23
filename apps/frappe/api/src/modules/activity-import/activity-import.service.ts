@@ -6,13 +6,14 @@ import type { FrappeActivityImportContext } from "./activity-import.types.js";
 
 type RemoteActivity = {
   name: string;
-  parent?: string | null;
+  job_type?: string | null;
+  job_id?: string | null;
   comment?: string | null;
   mode?: string | null;
   creation?: string | null;
   owner?: string | null;
 };
-const fields = ["name", "parent", "comment", "mode", "creation", "owner"];
+const fields = ["name", "job_type", "job_id", "comment", "mode", "creation", "owner"];
 const pageSize = 50;
 
 export class FrappeActivityImportService {
@@ -32,7 +33,7 @@ export class FrappeActivityImportService {
     const shown = remote.slice(0, pageSize);
     const names = shown.map((item) => item.name);
     const parents = shown
-      .map((item) => item.parent)
+      .map((item) => (item.job_type === "Enquiry" ? item.job_id : null))
       .filter((value): value is string => Boolean(value));
     const links = names.length
       ? await this.database
@@ -56,11 +57,12 @@ export class FrappeActivityImportService {
       hasMore: remote.length > pageSize,
       items: shown.map((item) => ({
         name: item.name,
-        enquiry: item.parent || null,
+        enquiry: item.job_type === "Enquiry" ? item.job_id || null : null,
         details: plainText(item.comment || ""),
         mode: item.mode || "Comment",
         createdAt: item.creation || null,
-        localEnquiryId: enquiryByName.get(item.parent || "") ?? null,
+        localEnquiryId:
+          (item.job_type === "Enquiry" ? enquiryByName.get(item.job_id || "") : undefined) ?? null,
         localActivityId: localByName.get(item.name) ?? null
       }))
     };
@@ -79,13 +81,14 @@ export class FrappeActivityImportService {
     const activity = matches[0];
     if (!activity || activity.name !== remoteName)
       throw AppError.notFound("Frappe activity was not found.");
-    const enquiry = activity.parent
-      ? await this.database
-          .selectFrom("frappe_enquiry_sync")
-          .select("enquiry_id")
-          .where("remote_name", "=", activity.parent)
-          .executeTakeFirst()
-      : null;
+    const enquiry =
+      activity.job_type === "Enquiry" && activity.job_id
+        ? await this.database
+            .selectFrom("frappe_enquiry_sync")
+            .select("enquiry_id")
+            .where("remote_name", "=", activity.job_id)
+            .executeTakeFirst()
+        : null;
     if (!enquiry)
       throw AppError.conflict("Import the activity's enquiry before importing its activity.");
     const details = plainText(activity.comment || "");
@@ -123,14 +126,9 @@ export class FrappeActivityImportService {
       "POST",
       settings,
       {
-        doctype: "Enquiry Message",
+        doctype: "Job Comments",
         fields,
-        filters: [
-          ["parenttype", "=", "Enquiry"],
-          ["parentfield", "=", "enquiry_messages"],
-          ...extraFilters
-        ],
-        parent: "Enquiry",
+        filters: [["job_type", "=", "Enquiry"], ...extraFilters],
         limit_start: offset,
         limit_page_length: limit,
         order_by: "creation asc"

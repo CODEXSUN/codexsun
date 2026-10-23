@@ -39,6 +39,7 @@ export type DutyAssignment = DutyAssignmentInput & {
   uuid: string;
   status: "active" | "inactive";
   frappeSyncStatus: "pending" | "processing" | "failed" | "synced" | null;
+  frappeSyncError?: string | null;
   assignedBy: string;
   sopCode: string;
   sopTitle: string;

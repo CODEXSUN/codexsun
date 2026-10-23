@@ -1,5 +1,12 @@
 # Platform
 
+Platform composes Data Bridge's `data-bridge.common-import` Queue Manager processor. Jobs carry the registered target tenant, operator, correlation ID, bounded retry policy, and a run reference. Data Bridge owns parent ordering, row audits, inserts, and combined reports. The Common Tables bulk action requires an enabled queue worker.
+
+Frappe enquiry scheduling honors the selected inbound-only or bidirectional mode.
+The first inbound queue job imports history. Later jobs start from the last successful source checkpoint.
+The enquiry outbox remains stored while inbound-only mode pauses automatic exports.
+See [Frappe](../frappe/README.md) for the migration, source data contract, and verification limits.
+
 Active, DNS-verified custom domains select their mapped tenant for login and password
 recovery. Corporate ID is hidden on those forms. Shared-host login, including
 `codexsun.com` and `app.codexsun.com`, still requires it;
@@ -45,7 +52,9 @@ scheduled time. Platform keeps the linked CRM enquiry or task as the destination
 ### Data Migration navigation
 
 The first Super Admin navigation group is Data sync. It links to Data Migration's
-Database Settings, Migration Mapper, and Migration Analysis pages in that order.
+Database Settings, Migration Mapper, Transfer Review, Migration Audit, Migration Queue,
+and Migration Analysis pages in that order. Data Bridge is a separate Super Admin side-menu
+entry and owns its landing page and future bridge workflows in the Data Bridge DevKit.
 Opening Data Migration from Super Admin Apps goes directly to Migration Mapper.
 Platform supplies the authenticated host and destination tenant contracts; the
 Data Migration DevKit owns connection settings and transfer behavior.

@@ -69,7 +69,7 @@ export const useEnquiryPage = (options: {
       options.dateRange
     ],
     refetchInterval: (query) =>
-      query.state.data?.items.some((record) => record.canViewFrappeSync === true) ? 3000 : 15000,
+      query.state.data?.items.some((record) => record.canViewFrappeSync === true) ? 1000 : 15000,
     queryFn: () => listEnquiryPage(options)
   });
 export const useEnquiryReport = (
@@ -139,14 +139,14 @@ export const useEnquiryDetail = (id: string) =>
   useQuery({
     queryKey: enquiryDetailQueryKey(id),
     queryFn: () => getEnquiry(id),
-    refetchInterval: 10000
+    refetchInterval: 1000
   });
 export const useEnquiryFrappeSync = (id: string, enabled: boolean) =>
   useQuery({
     queryKey: enquiryFrappeSyncQueryKey(id),
     queryFn: () => listEnquiryFrappeSync(id),
     enabled,
-    refetchInterval: 3000
+    refetchInterval: 1000
   });
 export const useEnquiryComments = (id: string) =>
   useQuery({

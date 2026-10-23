@@ -1,6 +1,6 @@
 {
   "name": "codexsun",
-  "version": "1.1.45",
+  "version": "1.1.46",
   "private": true,
   "packageManager": "npm@12.2.0",
   "description": "CODEXSUN",
@@ -89,6 +89,7 @@
     "test:e2e:frappe-mobile-customers": "npm run build -w @codexsun/framework && tsx --test tools/e2e/frappe-mobile-customers.e2e.ts",
     "test:e2e:crm-duties": "tsx --test tools/e2e/crm-duties.e2e.ts",
     "test:e2e:crm-frappe-sync-queue": "tsx --test tools/e2e/crm-frappe-sync-queue.e2e.ts",
+    "test:e2e:frappe-inbound-queue": "tsx --test tools/e2e/frappe-inbound-queue.e2e.ts",
     "test:e2e:project-manager": "tsx tools/e2e/project-manager-isolation.e2e.ts",
     "test:e2e:data-migration": "node --env-file=.env --import tsx --test tools/e2e/data-migration.e2e.ts",
     "test:e2e:project-manager-ideas": "tsx tools/e2e/project-manager-ideas.e2e.ts",

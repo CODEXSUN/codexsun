@@ -97,6 +97,8 @@ export type MigrationColumn = {
   nullable: boolean;
   required: boolean;
   generated: boolean;
+  reference?: { table: string; column: string };
+  foreignOptions?: string[];
 };
 export type MigrationColumnMapping = {
   id?: number;
@@ -158,6 +160,48 @@ export type MigrationQueryPlan = {
     blockers: string[];
   }>;
   blockers: string[];
+};
+export type MigrationAuditQueueSummary = {
+  id: string;
+  jobId: string;
+  planHash: string;
+  sessionName: string;
+  sourceTable: string;
+  targetTable: string;
+  selectedRows: number;
+  sourceDatabase: string;
+  targetDatabase: string;
+  status: "queued" | "reviewed" | "stale";
+  planStatus: "generated" | "finalized" | "completed" | "stale" | null;
+  migrationStatus: "draft" | "running" | "completed" | "failed";
+  queuedBy: string;
+  queuedAt: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+};
+
+export type MigrationAuditQueueItem = MigrationAuditQueueSummary & {
+  queryDump: string;
+  samples: Array<{ rowNumber: number; rowData: Record<string, unknown> }>;
+};
+export type MigrationQueryBatch = {
+  id: string;
+  sourceId: number;
+  sourceLabel: string;
+  sourceHost: string;
+  sourceDatabase: string;
+  sourceUser: string;
+  passwordStored: boolean;
+  status: string;
+  rows: Array<{
+    id: number;
+    sourceTable: string;
+    targetTable: string;
+    rowNumber: number;
+    rowData: Record<string, unknown>;
+    fieldValues: Record<string, { mode: "default" | "custom" | "foreign"; value: unknown }>;
+    status: string;
+  }>;
 };
 export type MigrationColumnOption = MigrationColumn & { defaultValue: unknown };
 export type MigrationTableSchema = {

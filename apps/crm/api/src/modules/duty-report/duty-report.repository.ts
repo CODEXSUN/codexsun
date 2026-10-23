@@ -43,7 +43,8 @@ export class DutyReportRepository {
         "item.department",
         "revision.instructions",
         "person.name as assignee_name",
-        "sync.status as frappe_sync_status"
+        "sync.status as frappe_sync_status",
+        "sync.last_error as frappe_sync_error"
       ]);
   }
   async list(
@@ -285,6 +286,7 @@ function map(row: SelectedReport): DutyReport {
     actions: row.actions,
     result: row.result,
     frappeSyncStatus: row.frappe_sync_status ?? null,
+    frappeSyncError: row.frappe_sync_error ?? null,
     issueDetails: row.issue_details,
     submittedBy: row.submitted_by,
     createdAt: new Date(row.created_at).toISOString(),

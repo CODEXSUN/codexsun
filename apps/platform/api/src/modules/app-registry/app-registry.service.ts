@@ -29,6 +29,7 @@ export const defaultTenantModuleKeys = [
 ] as const;
 
 export const platformAppRegistry: PlatformAppDefinition[] = [
+  {appId:"marketing",id:0,uuid:"",label:"Marketing",moduleKey:"marketing",stack:"marketing",alwaysEnabled:false,defaultLanding:false,description:"Tenant campaigns, capture and CRM handoff."},
   {
     appId: "sportsclub",
     id: 0,

@@ -53,6 +53,7 @@ export default defineConfig(({ command, mode }) => {
         "@codexsun/ui",
         "@codexsun/tconnect-web",
         "@codexsun/data-migration-web",
+        "@codexsun/data-bridge-web",
         "@codexsun/sportsclub-web",
         "@codexsun/qcafe-web",
         "@codexsun/qcafe-web/web",
@@ -131,6 +132,7 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       dedupe: ["react", "react-dom", "@tanstack/react-query"],
       alias: {
+        "@codexsun/marketing-web": resolve(configDir, "../../marketing/web/src"),
         "@codexsun/ui": resolve(configDir, "../../../packages/ui/src"),
         "@codexsun/core-web/modules/organisation/default-company/hooks": resolve(
           configDir,
@@ -189,6 +191,10 @@ export default defineConfig(({ command, mode }) => {
         "@codexsun/data-migration-web": resolve(
           configDir,
           "../../../devkits/data-migration/web/src/index.ts"
+        ),
+        "@codexsun/data-bridge-web": resolve(
+          configDir,
+          "../../../devkits/data-bridge/src/index.ts"
         ),
         "@codexsun/sportsclub-web": resolve(configDir, "../../sportsclub/web/src/index.ts"),
         "@codexsun/codexsun-web": resolve(configDir, "../../codexsun/web/src/index.ts"),
@@ -375,6 +381,7 @@ function platformDevelopmentServer(runtimeEnv: Record<string, string | undefined
           `/project-manager${path.replace(/^\/api\/project-manager/u, "") || "/"}`
       },
       "/api/data-migration": proxy,
+      "/api/data-bridge": proxy,
       "/api/zuno": {
         ...proxy,
         rewrite: (path: string) => `/zuno${path.replace(/^\/api\/zuno/u, "") || "/"}`

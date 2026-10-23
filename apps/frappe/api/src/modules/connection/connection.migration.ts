@@ -68,9 +68,51 @@ export const frappeTenantMigrationBatch: MigrationBatch<FrappeDatabase> = {
       description: "Scope Frappe customer document identity links to their source site.",
       version: 8,
       up: addCustomerIdentityLinks
+    },
+    {
+      name: "frappe.connection.inbound-checkpoint-v9",
+      checksum: "frappe.connection.inbound-checkpoint-v9",
+      description: "Add inbound direction, successful checkpoints, and retained source documents.",
+      version: 9,
+      up: addInboundCheckpoint
+    },
+    {
+      name: "frappe.connection.contact-export-start-v10",
+      checksum: "frappe.connection.contact-export-start-v10",
+      description: "Recover contact exports created or edited after this feature starts.",
+      version: 10,
+      up: async (database) => {
+        await sql`ALTER TABLE frappe_live_sync_settings ADD COLUMN IF NOT EXISTS contact_export_started_at DATETIME(3) NULL`.execute(database);
+        await sql`UPDATE frappe_live_sync_settings SET contact_export_started_at=UTC_TIMESTAMP(3) WHERE id=1 AND contact_export_started_at IS NULL`.execute(database);
+      }
     }
   ]
 };
+
+async function addInboundCheckpoint(database: Kysely<FrappeDatabase>) {
+  await sql`ALTER TABLE frappe_enquiry_sync
+    ADD COLUMN IF NOT EXISTS source_modified_at DATETIME(3) NULL`.execute(database);
+  await sql`ALTER TABLE frappe_live_sync_settings
+    ADD COLUMN IF NOT EXISTS direction VARCHAR(24) NOT NULL DEFAULT 'inbound',
+    ADD COLUMN IF NOT EXISTS inbound_base_url VARCHAR(2048) NULL,
+    ADD COLUMN IF NOT EXISTS inbound_checkpoint_at DATETIME NULL`.execute(database);
+  await sql`CREATE TABLE IF NOT EXISTS frappe_enquiry_snapshots (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    uuid CHAR(8) NOT NULL DEFAULT (LOWER(SUBSTRING(MD5(UUID()), 1, 8))) UNIQUE,
+    source_key CHAR(64) NOT NULL,
+    base_url VARCHAR(2048) NOT NULL,
+    remote_name VARCHAR(191) NOT NULL,
+    enquiry_id INT NULL,
+    document_json LONGTEXT NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'active',
+    created_by VARCHAR(191) NOT NULL DEFAULT 'system:frappe-import',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY frappe_snapshot_content (source_key),
+    KEY frappe_snapshot_remote (remote_name, id),
+    KEY frappe_snapshot_enquiry (enquiry_id, id)
+  ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`.execute(database);
+}
 
 export const frappeTenantMigrations = frappeTenantMigrationBatch.steps.map(
   ({ name, description }) => ({ name, description })

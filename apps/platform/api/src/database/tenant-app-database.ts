@@ -1,3 +1,4 @@
+import { migrateMarketing, seedMarketing, marketingMigrationBatch } from "@codexsun/marketing-api";
 import { seedTconnectPortalRole } from "../tconnect-identity.js";
 import { seedSportsclubPortalRole } from "../sportsclub-identity.js";
 import { migrateTconnect, seedTconnect, tconnectTenantMigrations } from "@codexsun/tconnect-api";
@@ -188,6 +189,7 @@ export function tenantDatabaseMigrationsFor(_tenant: Tenant) {
       name,
       statements
     })),
+    ...marketingMigrationBatch.steps.map(({description,name})=>({description,name,statements:[`RUN ${name}`]})),
     ...coreTenantMigrations.map((migration) => ({
       ...migration,
       statements: [`RUN ${migration.name}`]
@@ -298,6 +300,8 @@ export async function migrateSelectedTenantApps(database: Kysely<TenantDatabase>
   provisionedApps.push("qcafe");
 
   await migrateCoreTenantDatabase(tenant.dbName);
+  await migrateMarketing(database as never);
+  provisionedApps.push("marketing");
   await migrateEmployeeDatabase(database as unknown as Kysely<EmployeeDatabase>);
   await migrateAttendanceDatabase(database as unknown as Kysely<AttendanceDatabase>);
   provisionedApps.push("hrms");
@@ -356,6 +360,7 @@ export async function migrateSelectedTenantApps(database: Kysely<TenantDatabase>
 export async function seedSelectedTenantApps(database: Kysely<TenantDatabase>, tenant: Tenant) {
   const enabled = new Set(tenant.enabledModuleKeys);
   const seededApps = ["application"];
+  if(enabled.has("marketing")){await seedMarketing(database as never);seededApps.push("marketing");}
   if (enabled.has("codexsun")) {
     await seedCodexsunPermissions(database as unknown as Kysely<CodexsunDatabase>);
     seededApps.push("codexsun");

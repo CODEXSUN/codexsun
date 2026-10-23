@@ -43,6 +43,8 @@ const query = {
 test("live CRM query sends paged TechMedia enquiry filters to Frappe", async () => {
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
+    if (url.pathname === "/api/v2/method/frappe.client.get_list")
+      return Response.json({ message: [] });
     assert.equal(url.pathname, "/api/resource/Enquiry");
     if (url.searchParams.has("group_by")) {
       assert.equal(url.searchParams.get("group_by"), "status");
@@ -103,6 +105,8 @@ test("live enquiry creator and assignee display employee names with code fallbac
         ]
       });
     }
+    if (url.pathname === "/api/v2/method/frappe.client.get_list")
+      return Response.json({ message: [] });
     if (url.searchParams.has("group_by"))
       return Response.json({ data: [{ status: "New", count: 2 }] });
     return Response.json({
@@ -141,6 +145,21 @@ test("live enquiry creator and assignee display employee names with code fallbac
 test("live detail reloads one Frappe enquiry and resolves employee names", async () => {
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
+    if (url.pathname === "/api/v2/method/frappe.client.get_list")
+      return Response.json({
+        message: [
+          {
+            name: "JOBCOM-9",
+            job_type: "Enquiry",
+            job_id: "ENQ27",
+            comment: "Customer replied",
+            mode: "Reply",
+            parent_comment: "JOBCOM-8",
+            owner: "agent@example.com",
+            creation: "2026-10-07 12:30:00"
+          }
+        ]
+      });
     if (url.pathname === "/api/resource/Employee")
       return Response.json({ data: [{ name: "EMP-1", employee_name: "Vijay Anand" }] });
     if (url.pathname === "/api/method/frappe.desk.form.load.get_docinfo")
@@ -168,6 +187,15 @@ test("live detail reloads one Frappe enquiry and resolves employee names", async
   assert.equal(result.details, "Needs replacement motor");
   assert.equal(result.creator, "Vijay Anand");
   assert.equal(result.assignee, "EMP-2");
+  assert.deepEqual(result.messages, [
+    {
+      name: "JOBCOM-9",
+      body: "Customer replied",
+      parentName: "JOBCOM-8",
+      createdBy: "agent@example.com",
+      createdAt: "2026-10-07 12:30:00"
+    }
+  ]);
 });
 
 test("live detail denies a record outside the mapped employee", async () => {
@@ -318,6 +346,8 @@ test("live report drilldown applies group, assignee, status and date filters", a
 test("live column filters and grouped status use matching Frappe counts", async () => {
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
+    if (url.pathname === "/api/v2/method/frappe.client.get_list")
+      return Response.json({ message: [] });
     const filters = JSON.parse(url.searchParams.get("filters") ?? "[]");
     assert.deepEqual(filters.slice(0, 4), [
       ["customer", "like", "%Acme%"],

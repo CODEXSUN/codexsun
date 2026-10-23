@@ -26,11 +26,12 @@ export async function processCrmDutySync(
     .executeTakeFirst();
   const event = initial;
   if (!event) throw AppError.notFound("CRM Frappe sync queue event was not found.");
+  if (event.entity_type === "contact") throw AppError.validation("Use the contact export worker for contacts.");
   if (event.status === "synced" && event.remote_name)
     return { eventId, status: "synced", remoteName: event.remote_name };
   const claim = await database
     .updateTable("crm_frappe_sync_queue")
-    .set({ status: "processing", attempts: sql`attempts + 1`, last_error: null })
+    .set({ status: "processing", attempts: sql`attempts + 1` })
     .where("id", "=", eventId)
     .where("status", "=", "pending")
     .where("attempts", "<", 5)
@@ -76,7 +77,8 @@ export async function processCrmDutySync(
     await database
       .updateTable("crm_frappe_sync_queue")
       .set({
-        status: sql`CASE WHEN last_error = 'Sync requested while processing.' THEN 'pending' ELSE 'synced' END`,
+        status: sql`CASE WHEN dispatch_revision<>${claimed.dispatch_revision} THEN 'pending' ELSE 'synced' END`,
+        attempts: sql`CASE WHEN dispatch_revision<>${claimed.dispatch_revision} THEN 0 ELSE attempts END`,
         remote_name: resolvedName,
         last_error: null
       })
@@ -89,7 +91,9 @@ export async function processCrmDutySync(
     await database
       .updateTable("crm_frappe_sync_queue")
       .set({
-        status: claimed.attempts >= 5 ? "failed" : "pending",
+        status: sql`CASE WHEN dispatch_revision<>${claimed.dispatch_revision} OR attempts<5 THEN 'pending' ELSE 'failed' END`,
+        attempts: sql`CASE WHEN dispatch_revision<>${claimed.dispatch_revision} THEN 0 ELSE attempts END`,
+        available_at: sql`DATE_ADD(UTC_TIMESTAMP(), INTERVAL ${Math.min(300, 5 * 2 ** (claimed.attempts - 1))} SECOND)`,
         last_error: message.slice(0, 2000)
       })
       .where("id", "=", eventId)

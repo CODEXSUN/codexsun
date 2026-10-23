@@ -1,0 +1,55 @@
+# Data Bridge tasks
+
+## Common Core table import
+
+- [x] Keep Data Bridge as a separate Super Admin module and add Common Tables and Table Import Review subpages.
+- [x] List all 31 supported Core common tables with per-source/target availability, row counts, compatibility, and saved import state.
+- [x] Reuse saved external source connections and active MariaDB target tenants without returning credentials to the browser.
+- [x] Add paginated source/target previews, a saved snapshot in Data Bridge-owned tables, and an explicit import action.
+- [x] Preserve existing target records by skipping duplicate keys. Roll back other row errors.
+- [x] Verify Data Bridge and Platform API/web TypeScript, Data Bridge lint, component docs, module boundaries, and focused route tests.
+- [ ] Verify dependency layout and Platform lint/build gates.
+- [ ] Apply the additive master database migration and verify only against isolated disposable source/target databases.
+- [ ] Verify both pages in an authenticated browser; no real tenant import is part of acceptance.
+
+## Live lookup error correction
+
+- [x] Fix the saved-review lookup failure caused by legacy tables missing `row_count` and snapshot columns through a new tracked v2 migration.
+- [x] Apply and verify v2 in local `codexsun_master_db`; verify all 31 common table entries and the `core_bank_names` source/target preview in authenticated external Chrome for `sukraa_cloud_db` → `sukraa_db`.
+- [x] Pass five focused tests: three route tests plus fresh and legacy disposable database migration regressions. Verify preservation, saving, and repeat migration.
+
+## Current limits
+
+- [x] Add Common Tables action for queued audit/import of all missing records in discovered parent order, one persisted combined report, progress polling, source-row warning details, and attention-only filtering.
+- [x] Pass 11 focused tests, including a disposable 31-table bulk run, changed parent IDs, conflict highlighting, missing source table, repeat-run duplicate prevention, and denied bulk-route authorization.
+- [x] Verify the Common Tables action through authenticated external Chrome and the actual database Queue Manager worker: live `sukraa_cloud_db` → `sukraa_db` run completed with 31 successful tables, 520 existing records, zero inserts/duplicates, zero warnings; combined report persisted.
+- [ ] Complete full Platform production builds after concurrent CRM `frappeSyncError` type mismatches in duty-assignment, duty-report, and enquiry are resolved. Data Bridge API/web builds, lint, owner boundaries, and focused tests pass.
+
+- [x] With explicit user authorization, import missing local `sukraa_cloud_db` Core data into advanced `sukraa_db`: 31 tables, 144 inserts, 520 source business records verified, 376 pre-existing target rows unchanged, zero warnings or orphaned foreign keys. Persist per-table reports; save before-data snapshot and consolidated report under root `dist/.cache/verification/`.
+- [x] Resolve recursive foreign references using parent business unique keys and preserve SQL DATE values. Verify differing parent IDs, missing parents, ambiguity, and date audit round trips in disposable database tests.
+
+- [x] Add persisted per-row pre-import audit and final import report with existing, ready, conflict, inserted, warning, and rollback results. Verify missing inserts, duplicate skips, changed target conflicts, required audit, report persistence, and failed-transaction rollback against disposable databases.
+
+- [x] Save only selected source IDs and selected columns. Show exact persisted selected JSON before import, require visual confirmation, reject missing source rows and omitted required fields, and verify exact two-row insertion with omitted-column defaults in disposable databases.
+- [x] Verify the live save for `sukraa_cloud_db` → `sukraa_db`: two source rows, only `name` and `status`, target selection excluded, persisted JSON displayed, and import button gated by review confirmation. No tenant import was executed.
+
+- [x] Add live Table Import Review row checkboxes, selected-row review panel, shared Columns menu, visible-data comparison, match filters, Show data, and Refresh. Sort live pages and new snapshots by ID. Verify live `core_bank_names` against `sukraa_db`, column changes, filters, and selection; pass eight focused tests including database ordering/pagination and comparison semantics.
+
+- Each table is imported independently. Import referenced parent tables before children.
+- One review snapshot is limited to 10,000 rows. Previews show up to 100 rows per page.
+- Data Bridge does not update or merge matching target records, delete target records, or execute source-provided SQL.
+- Full source snapshots are retained in Platform master tables; do not use this workflow for secrets or credentials.
+
+## Combined report row details
+
+Each table has View row results with Imported, Existing, and Warning filters, pagination, source business data, matched target business data, and row messages. New runs persist these snapshots in the existing report JSON; older reports explicitly require a new audit for row details. IDs and sensitive metadata are excluded from the data snapshots. Disposable bulk tests verify inserted, existing, conflict values, and persisted snapshots.
+
+## Version 1.1.46 work log
+
+- [x] Record Common Tables, selected-row import, queued parent-order imports, and combined row verification in the versioned changelog.
+- [x] Verify row snapshots in disposable databases: imported values, existing values, differing conflict values, and persisted report reload.
+- [x] Verify Data Bridge API/web builds, typechecks, lint, module boundaries, component docs, and dependency layout.
+- [x] Confirm View row results buttons appear in authenticated live Chrome. Older runs correctly require a new audit for row snapshots.
+- [ ] Run a new live combined import to verify the new row-detail snapshot UI end to end; disposable database verification passed.
+
+- Version gate: `check:versions` passed for 1.1.46. Full `npm run check` stopped at missing Frappe `contact-export` role files after component documentation and cleanup tests passed.

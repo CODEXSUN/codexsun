@@ -57,11 +57,27 @@ test("Frappe navigation groups import, export, and connection pages", () => {
   );
   assert.deepEqual(
     menu[3]?.items?.map((item) => item.title),
-    ["Sync queue", "Frappe connection", "Frappe users", "User mapping"]
+    [
+      "Live sync",
+      "Live sync queue",
+      "Frappe connection",
+      "Frappe users",
+      "User mapping",
+      "Identity audit"
+    ]
+  );
+  assert.equal(
+    menu[3]?.items?.filter((item) => item.title.toLowerCase().includes("queue")).length,
+    1
   );
   menu[2]?.items?.[1]?.onSelect?.();
   menu[3]?.items?.[1]?.onSelect?.();
-  assert.deepEqual(selected, ["frappe.export.enquiries", "frappe.connection"]);
+  menu[3]?.items?.[2]?.onSelect?.();
+  assert.deepEqual(selected, [
+    "frappe.export.enquiries",
+    "frappe.live-sync-queue",
+    "frappe.connection"
+  ]);
 });
 
 test("Application access controls follow role permissions and navigate to their own page", () => {

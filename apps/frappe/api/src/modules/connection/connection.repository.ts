@@ -137,6 +137,7 @@ export class FrappeConnectionRepository {
       .select([
         "sync.enquiry_id as enquiryId",
         "sync.synced_at as syncedAt",
+        "sync.source_modified_at as sourceModifiedAt",
         "enquiry.updated_at as updatedAt",
         "enquiry.source as source",
         "enquiry.contact_id as contactId",
@@ -157,12 +158,25 @@ export class FrappeConnectionRepository {
     return new Map(links.map((link) => [link.remote_name, link.enquiry_id]));
   }
 
-  async save(enquiryId: number, remoteName: string) {
+  async save(enquiryId: number, remoteName: string, sourceModifiedAt?: string) {
     const syncedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
+    const sourceTimestamp = sourceModifiedAt
+      ? {
+          source_modified_at: new Date(sourceModifiedAt)
+            .toISOString()
+            .slice(0, 23)
+            .replace("T", " ")
+        }
+      : {};
     await this.database
       .insertInto("frappe_enquiry_sync")
-      .values({ enquiry_id: enquiryId, remote_name: remoteName })
-      .onDuplicateKeyUpdate({ remote_name: remoteName, synced_at: syncedAt })
+      .values({
+        enquiry_id: enquiryId,
+        remote_name: remoteName,
+        synced_at: syncedAt,
+        ...sourceTimestamp
+      })
+      .onDuplicateKeyUpdate({ remote_name: remoteName, synced_at: syncedAt, ...sourceTimestamp })
       .execute();
   }
 

@@ -53,6 +53,7 @@ export type ExportRouteCallbacks = {
     Array<{
       id: number;
       status: "pending" | "processing" | "failed" | "synced" | "unlinked" | null;
+      message?: string | null;
     }>
   >;
 };
@@ -69,6 +70,7 @@ export function registerFrappeExportRoutes(app: FastifyInstance, callbacks: Expo
           z.object({
             id: z.number().int().positive(),
             status: z.enum(["pending", "processing", "failed", "synced", "unlinked"]).nullable()
+            , message: z.string().nullable().optional()
           })
         )
       })

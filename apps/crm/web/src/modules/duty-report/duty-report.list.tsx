@@ -72,6 +72,7 @@ export function DutyReportList({
           cell: ({ row }) => (
             <FrappeSyncIndicator
               status={row.original.frappeSyncStatus}
+              error={row.original.frappeSyncError}
               onVerify={() => onVerify(row.original)}
             />
           )

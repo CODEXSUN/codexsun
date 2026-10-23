@@ -404,8 +404,9 @@ export class EnquiryRepository {
           })
           .execute();
       }
+      let initialCommentId: number | null = null;
       if (prepared.description?.trim()) {
-        await transaction
+        const comment = await transaction
           .insertInto("crm_enquiry_comments")
           .values({
             enquiry_id: enquiryId,
@@ -416,7 +417,8 @@ export class EnquiryRepository {
             created_at: sourceTimestamp ? utcDateTime(sourceTimestamp) : sql`UTC_TIMESTAMP()`,
             updated_at: sourceTimestamp ? utcDateTime(sourceTimestamp) : sql`UTC_TIMESTAMP()`
           })
-          .execute();
+          .executeTakeFirstOrThrow();
+        initialCommentId = Number(comment.insertId);
       }
       await insertEnquiryActivity(
         transaction,
@@ -438,9 +440,23 @@ export class EnquiryRepository {
             { actorEmail: actor, correlationId: `crm-enquiry:${enquiryId}:created`, enquiryId },
             transaction
           );
-      return { enquiryId, syncEventId };
+      const commentSyncEventId =
+        source || !initialCommentId
+          ? null
+          : await new EnquirySyncRepository(transaction).enqueue(
+              {
+                actorEmail: actor,
+                correlationId: `crm-enquiry:${enquiryId}:comment:${initialCommentId}`,
+                enquiryId,
+                entityId: initialCommentId,
+                eventType: "comment-add"
+              },
+              transaction
+            );
+      return { enquiryId, syncEventId, commentSyncEventId };
     });
     await this.dispatchSync(created.syncEventId);
+    await this.dispatchSync(created.commentSyncEventId);
     return this.get(created.enquiryId);
   }
 
@@ -537,6 +553,11 @@ export class EnquiryRepository {
     try {
       await this.dispatchFrappeSync(eventId);
     } catch (error) {
+      try {
+        await this.database.updateTable("crm_enquiry_sync_events")
+          .set({ last_error: error instanceof Error ? error.message.slice(0,4000) : "Queue dispatch failed." })
+          .where("id", "=", eventId).where("status", "in", ["pending", "retry"]).execute();
+      } catch { /* The outbox relay recovers after database access returns. */ }
       console.warn("[crm-enquiry-sync] immediate dispatch deferred", {
         eventId,
         message: error instanceof Error ? error.message : "Queue dispatch failed."
@@ -624,6 +645,16 @@ export class EnquiryRepository {
       .executeTakeFirst();
   }
 
+  async importedCommentId(enquiryId: number, requestId: string, localId?: number) {
+    let query = this.database
+      .selectFrom("crm_enquiry_comments")
+      .select("id")
+      .where("enquiry_id", "=", enquiryId);
+    query = localId ? query.where("id", "=", localId) : query.where("request_id", "=", requestId);
+    const row = await query.executeTakeFirst();
+    return row?.id ?? null;
+  }
+
   async addComment(
     enquiryId: number,
     parentId: number | null,
@@ -641,13 +672,29 @@ export class EnquiryRepository {
         .forUpdate()
         .executeTakeFirstOrThrow();
       if (requestId) {
-        const existing = await transaction
+        let existingQuery = transaction
           .selectFrom("crm_enquiry_comments")
           .selectAll()
-          .where("created_by", "=", actor)
-          .where("request_id", "=", requestId)
-          .executeTakeFirst();
+          .where("request_id", "=", requestId);
+        if (!sourceCreatedAt) existingQuery = existingQuery.where("created_by", "=", actor);
+        const existing = await existingQuery.executeTakeFirst();
         if (existing) {
+          if (sourceCreatedAt && existing.enquiry_id === enquiryId) {
+            const sourceTimestamp = utcDateTime(sourceCreatedAt);
+            await transaction
+              .updateTable("crm_enquiry_comments")
+              .set({
+                body,
+                body_format: bodyFormat,
+                parent_id: parentId,
+                created_by: actor,
+                created_at: sourceTimestamp,
+                updated_at: sourceTimestamp
+              })
+              .where("id", "=", existing.id)
+              .execute();
+            return { insertId: BigInt(existing.id), syncEventId: null };
+          }
           if (
             existing.enquiry_id !== enquiryId ||
             existing.parent_id !== parentId ||
@@ -657,15 +704,10 @@ export class EnquiryRepository {
             throw AppError.conflict(
               "This comment retry key was already used for different content."
             );
-          if (sourceCreatedAt) {
-            const sourceTimestamp = utcDateTime(sourceCreatedAt);
-            await transaction
-              .updateTable("crm_enquiry_comments")
-              .set({ created_at: sourceTimestamp, updated_at: sourceTimestamp })
-              .where("id", "=", existing.id)
-              .execute();
-          }
-          return { insertId: BigInt(existing.id) };
+          const event = sourceCreatedAt
+            ? null
+            : await new EnquirySyncRepository(transaction).commentSyncEvent(existing.id);
+          return { insertId: BigInt(existing.id), syncEventId: event?.id ?? null };
         }
       }
       const inserted = await transaction
@@ -695,8 +737,21 @@ export class EnquiryRepository {
         parentId ? "reply-added" : "comment-added",
         body
       );
-      return inserted;
+      const syncEventId = sourceCreatedAt
+        ? null
+        : await new EnquirySyncRepository(transaction).enqueue(
+            {
+              actorEmail: actor,
+              correlationId: `crm-enquiry:${enquiryId}:comment:${Number(inserted.insertId)}`,
+              enquiryId,
+              entityId: Number(inserted.insertId),
+              eventType: "comment-add"
+            },
+            transaction
+          );
+      return { ...inserted, syncEventId };
     });
+    await this.dispatchSync(result.syncEventId);
     const row = await this.database
       .selectFrom("crm_enquiry_comments")
       .selectAll()
@@ -754,12 +809,19 @@ export class EnquiryRepository {
       .where("id", "=", 1)
       .forUpdate()
       .executeTakeFirstOrThrow();
+    const existing = await database
+      .selectFrom("crm_enquiries")
+      .select("id")
+      .where("enquiry_no", "=", enquiryNo)
+      .executeTakeFirst();
+    // Remote identities can share a serial across Q/ENQ series or collide with local records.
+    const localNumber = existing ? sequence.next_no : enquiryNo;
     await database
       .updateTable("crm_enquiry_number_sequence")
-      .set({ next_no: Math.max(sequence.next_no, enquiryNo + 1) })
+      .set({ next_no: Math.max(sequence.next_no, localNumber + 1) })
       .where("id", "=", 1)
       .execute();
-    return enquiryNo;
+    return localNumber;
   }
 
   private detailQuery() {

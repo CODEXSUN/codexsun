@@ -3,6 +3,7 @@ export type QueueJobStatus = "cancelled" | "completed" | "failed" | "pending" | 
 
 export type QueueJobPayload = {
   actorEmail?: string;
+  dispatchImmediately?: boolean;
   availableAt?: string;
   correlationId?: string;
   idempotencyKey?: string;

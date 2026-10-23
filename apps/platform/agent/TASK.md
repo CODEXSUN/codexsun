@@ -1,5 +1,10 @@
 # Platform tasks
 
+## Data Bridge combined import queue
+
+- [x] Compose the Data Bridge bulk import processor through its public owner contract, with tenant/run context validation and a fixed Queue Manager payload for database and BullMQ backends.
+- [x] Verify the authenticated Common Tables button creates a real database queue job that completes with a persisted 31-table success report for local SUKRAA. BullMQ dispatch uses the same contract; live Redis execution was not tested.
+
 ## Marketing integration backlog — 2026-10-23
 
 Planning alignment is complete. The following implementation tasks remain open.
@@ -11,6 +16,16 @@ See [Marketing contracts and gaps](../../marketing/agent/PLAN.md#phase-0-decisio
 
 Acceptance requires the owner contract, denied-access cases, retry behavior, and exact evidence in this task log.
 No implementation or live validation is claimed by this planning update.
+
+## Inbound-only Frappe scheduling — 2026-10-23
+
+- [x] Schedule full enquiry history when no successful source checkpoint exists.
+- [x] Schedule incremental imports from that checkpoint with a replay overlap.
+- [x] Suppress scheduled enquiry exports and enquiry outbox dispatch in inbound mode.
+- [x] Preserve old queued outbound work without sending it in inbound mode.
+- [x] Keep manual inbound history imports separate from optional explicit exports.
+- [x] Test inbound policy and actual database queue retry behavior with retained source records.
+- [ ] Verify continuous scheduling and Redis delivery after deployment.
 
 ## CRM Frappe verification authorization — 2026-10-22
 
@@ -94,6 +109,7 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 ### Data sync navigation and unified CRM schedule notices
 
 - Moved Database Settings, Migration Mapper, and Migration Analysis under the first Super Admin Data sync group.
+- Added Transfer Review as a separate Data sync page for choosing a saved migration and reviewing its saved transfer plan.
 - Data Migration from Super Admin Apps opens Migration Mapper; Database Settings has no page shortcut to Migration Mapper.
 - Platform notification titles use the first line of CRM schedule notes, and notification dates use the scheduled time.
 - Passed the full repository check and the Platform CRM notification mapper tests. Production verification remains pending.

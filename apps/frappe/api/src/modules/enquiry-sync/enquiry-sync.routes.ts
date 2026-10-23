@@ -7,6 +7,7 @@ import type {} from "@codexsun/framework/api";
 import type { FrappeSettings } from "../connection/index.js";
 import { FrappeEnquirySyncService } from "./enquiry-sync.service.js";
 import type { EnquirySyncContext } from "./enquiry-sync.types.js";
+import { withEnquiryImportLock } from "./enquiry-sync.lock.js";
 
 const queueEventSchema = z.object({
   id: z.number().int().positive(),
@@ -83,7 +84,8 @@ export function registerFrappeEnquirySyncRoutes(
         total: z.number().int().nonnegative()
       })
     },
-    handler: async ({ query, request }) => (await service(request)).preview(query.page, query.pageSize)
+    handler: async ({ query, request }) =>
+      (await service(request)).preview(query.page, query.pageSize)
   });
   registerContractRoute(app, {
     method: "POST",
@@ -96,7 +98,12 @@ export function registerFrappeEnquirySyncRoutes(
         status: z.enum(["created", "updated", "linked"])
       })
     },
-    handler: async ({ body, request }) => (await service(request)).pull(body.remoteName)
+    handler: async ({ body, request }) => {
+      const scope = await context(request);
+      return withEnquiryImportLock(scope.database, () =>
+        new FrappeEnquirySyncService(scope, settings, encryptionSecret).pull(body.remoteName)
+      );
+    }
   });
   registerContractRoute(app, {
     method: "GET",
@@ -131,7 +138,7 @@ export function registerFrappeEnquirySyncRoutes(
           .enum(["all", "pending", "processing", "retry", "failed", "synced"])
           .default("all"),
         page: z.coerce.number().int().positive().default(1),
-        pageSize: z.coerce.number().int().min(1).max(100).default(25)
+        pageSize: z.coerce.number().int().min(1).max(200).default(200)
       }),
       response: z.object({
         items: z.array(queueEventSchema),

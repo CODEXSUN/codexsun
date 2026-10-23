@@ -8,6 +8,7 @@ export type DutyAssignment = {
   endDate: string | null;
   status: string;
   frappeSyncStatus: "pending" | "processing" | "failed" | "synced" | null;
+  frappeSyncError?: string | null;
   itemTitle: string;
   department: string;
   frequency: string;

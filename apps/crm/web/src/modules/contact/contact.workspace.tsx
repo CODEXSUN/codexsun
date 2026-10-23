@@ -34,7 +34,7 @@ import {
   updateContact
 } from "./contact.services";
 import { prepareContactPayloadForSave } from "./contact.schema";
-import { getFrappeRecordStatuses } from "../frappe-sync/frappe-sync.indicator";
+import { getFrappeRecordStates } from "../frappe-sync/frappe-sync.indicator";
 import type {
   ContactLookupCreate,
   ContactLookups,
@@ -180,9 +180,10 @@ export function CrmContactWorkspace({
   const syncIds = visibleRecords.map((record) => Number(record.id));
   const syncStatuses = useQuery({
     queryKey: ["crm", "frappe-sync", "contacts", syncIds],
-    queryFn: () => getFrappeRecordStatuses("contacts", syncIds),
+    queryFn: () => getFrappeRecordStates("contacts", syncIds),
     enabled: syncIds.length > 0 && visibleColumns.frappeSync !== false,
-    staleTime: 15_000
+    refetchInterval: 1000,
+    staleTime: 0
   });
   const activeColumnFilters = Object.values(columnFilters).filter((value) => value?.trim()).length;
   const save = useMutation({
@@ -191,6 +192,7 @@ export function CrmContactWorkspace({
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: contactsQueryKey }),
+        client.invalidateQueries({ queryKey: ["crm", "frappe-sync", "contacts"] }),
         client.invalidateQueries({ queryKey: enquiryContactsQueryKey })
       ]);
       toast.success("Contact saved");

@@ -26,6 +26,7 @@
 - [x] Simplify Migration Mapper headers and move New migration to the page header actions.
 - [x] Remove table-pair page headings and add a side-by-side source/target field mapping preview.
 - [x] Keep transfer execution off the table-mapping page and run it from a separate migration review step.
+- [x] List saved table mappings with Review/Edit actions and expose Transfer Review as a separate Data sync destination.
 - [x] Place Continue to migration in the page header and keep table selectors with Preview in one non-wrapping row.
 - [x] Show source and target field tables side by side with independent vertical scrolling and slim scrollbars.
 - [x] Keep Preview open on repeated clicks, scan Data Migration styles for Tailwind utilities, and show the preview columns side by side at desktop widths.
@@ -39,8 +40,19 @@
 - [x] Allow source fields to be included or excluded, retain required destination-field validation, and list exclusions in the transfer plan.
 - [x] Generate and persist a safe query plan, require explicit finalization, and verify its schema and source-data fingerprints before a batch run.
 - [x] Keep the generated SQL as a review template; execute only server-built parameterized statements.
+- [x] Generate a parameterized INSERT preview template from selected source samples and disclose that sample row positions cannot identify those exact records.
+- [x] Save selected row preview JSON and missing target field values under a query batch master/child schema; keep source credentials referenced and encrypted, not duplicated in plaintext.
 - [ ] Persist selected source row keys and make those selections part of the finalized transfer plan.
+- [x] Add a durable SQL dump audit queue, a separate Migration Audit page, and an operator-attributed review action. Queue review does not execute migration SQL.
+- [x] Split Migration Audit into a summary queue list and a detail page with raw SQL and persisted, redacted selected-row data.
+- [x] Add a separate Migration Queue page for reviewed audit items; allow Run now only for finalized plans and execute through the validated full-session migration path.
+- [x] Remove direct migration execution endpoints from Migration Analysis and Transfer Review so the reviewed Migration Queue is the only public run action.
+- [x] Add E2E regression checks proving legacy direct-run routes are unavailable and authorized job creation still denies access before resolving tenant data.
 - [ ] Verify a named live tenant transfer after separate operational review.
 - [ ] Add durable queued runs and resumable pagination for tables larger than 10,000 rows.
+- [ ] Re-read source samples server-side when saving audit evidence; do not treat browser-submitted preview JSON as authoritative.
+- [ ] Apply missing-field value choices consistently to the actual migration plan, or remove the misleading sample-only configuration UI.
+- [ ] Define a target-writer coordination contract so destination emptiness stays valid through commit.
+- [ ] Reconcile destination commits with master-ledger status after process or connectivity failure.
 
 Static checks and source presence do not establish deployed or live behavior. Record exact check results before closing the remaining tasks.

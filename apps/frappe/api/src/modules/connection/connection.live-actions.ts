@@ -8,6 +8,11 @@ import type {
   LiveEnquiryEstimate,
   LiveEnquiryEstimateInput
 } from "@codexsun/crm-api";
+import {
+  createEnquiryJobComment,
+  listEnquiryJobComments,
+  updateEnquiryJobComment
+} from "./connection.job-comments.js";
 import { requestFrappe } from "./connection.service.js";
 import type { FrappeSettings } from "./connection.types.js";
 
@@ -16,12 +21,6 @@ type Document = {
   user_employee?: string | null;
   assigned_to_employee?: string | null;
   status?: string | null;
-  enquiry_messages?: Array<{
-    name?: string;
-    comment?: string;
-    mode?: string;
-    parent_message?: string;
-  }>;
 };
 type JobDocument = {
   name: string;
@@ -94,7 +93,9 @@ export class LiveFrappeActions {
 
   async createOption(kind: "list-in" | "status" | "priority", name: string) {
     if (kind === "priority")
-      throw AppError.validation("Frappe priority choices are controlled by the Enquiry field configuration.");
+      throw AppError.validation(
+        "Frappe priority choices are controlled by the Enquiry field configuration."
+      );
     const doctype = kind === "list-in" ? "Enquiry Group" : "Enquiry Status";
     const field = kind === "list-in" ? "group_name" : "status_name";
     const response = await requestFrappe<{ data?: { name?: string } }>(
@@ -117,11 +118,14 @@ export class LiveFrappeActions {
       this.settings,
       {
         ...toFrappePayload(input),
-        user_employee: this.employeeCode,
-        enquiry_messages: [{ comment: input.details, mode: "Comment" }]
+        user_employee: this.employeeCode
       }
     );
     if (!response.data?.name) throw AppError.conflict("Frappe did not return the new enquiry.");
+    await createEnquiryJobComment(this.settings, {
+      enquiryName: response.data.name,
+      comment: input.details
+    });
     return response.data.name;
   }
 
@@ -131,44 +135,29 @@ export class LiveFrappeActions {
   }
 
   async addMessage(name: string, body: string, parentName: string | null) {
-    const document = await this.visibleDocument(name);
-    const messages = document.enquiry_messages ?? [];
-    if (parentName && !messages.some((message) => message.name === parentName))
+    await this.visibleDocument(name);
+    const comments = await listEnquiryJobComments(this.settings, [name]);
+    if (parentName && !comments.some((comment) => comment.name === parentName))
       throw AppError.validation("Reply target is not part of this enquiry.");
-    await requestFrappe(this.enquiryPath(name), "PUT", this.settings, {
-      enquiry_messages: [
-        ...messages.map((message) => ({
-          ...(message.name ? { name: message.name } : {}),
-          comment: message.comment || "",
-          mode: message.mode || (message.parent_message ? "Reply" : "Comment"),
-          ...(message.parent_message ? { parent_message: message.parent_message } : {})
-        })),
-        {
-          comment: body,
-          mode: parentName ? "Reply" : "Comment",
-          ...(parentName ? { parent_message: parentName } : {})
-        }
-      ]
+    await createEnquiryJobComment(this.settings, {
+      enquiryName: name,
+      comment: body,
+      mode: parentName ? "Reply" : "Comment",
+      parentName
     });
   }
 
   async suspendMessage(name: string, messageName: string) {
-    const document = await this.visibleDocument(name);
-    const messages = document.enquiry_messages ?? [];
-    const latest = messages.at(-1);
+    await this.visibleDocument(name);
+    const comments = await listEnquiryJobComments(this.settings, [name]);
+    const latest = comments.at(-1);
     if (!latest || latest.name !== messageName)
       throw AppError.conflict("Only the latest conversation entry can be suspended.");
     const comment = (latest.comment || "").trim();
     if (comment.startsWith("<s>") && comment.endsWith("</s>"))
       throw AppError.conflict("This conversation entry is already suspended.");
-    await requestFrappe(this.enquiryPath(name), "PUT", this.settings, {
-      enquiry_messages: messages.map((message) => ({
-        ...(message.name ? { name: message.name } : {}),
-        comment:
-          message.name === messageName ? `<s>${message.comment || ""}</s>` : message.comment || "",
-        mode: message.mode || (message.parent_message ? "Reply" : "Comment"),
-        ...(message.parent_message ? { parent_message: message.parent_message } : {})
-      }))
+    await updateEnquiryJobComment(this.settings, messageName, {
+      comment: `<s>${latest.comment || ""}</s>`
     });
   }
 
@@ -187,17 +176,10 @@ export class LiveFrappeActions {
     const options = await this.options();
     const open = options.statuses.find((status) => status.toLowerCase() === "open");
     if (!open) throw AppError.conflict("Frappe has no Open enquiry status.");
-    await requestFrappe(this.enquiryPath(name), "PUT", this.settings, {
-      status: open,
-      enquiry_messages: [
-        ...(document.enquiry_messages ?? []).map((message) => ({
-          ...(message.name ? { name: message.name } : {}),
-          comment: message.comment || "",
-          mode: message.mode || (message.parent_message ? "Reply" : "Comment"),
-          ...(message.parent_message ? { parent_message: message.parent_message } : {})
-        })),
-        { comment: "New call opened", mode: "Comment" }
-      ]
+    await requestFrappe(this.enquiryPath(name), "PUT", this.settings, { status: open });
+    await createEnquiryJobComment(this.settings, {
+      enquiryName: name,
+      comment: "New call opened"
     });
   }
 

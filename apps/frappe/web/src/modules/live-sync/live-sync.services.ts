@@ -3,7 +3,7 @@ import type { LiveSyncJob, LiveSyncKind, LiveSyncSettings } from "./live-sync.ty
 export const getLiveSyncSettings = () =>
   frappeRequest<LiveSyncSettings>("GET", "/frappe/live-sync");
 export const saveLiveSyncSettings = (
-  input: Pick<LiveSyncSettings, "enabled" | "paused" | "scheduleMinutes" | "modules">
+  input: Pick<LiveSyncSettings, "enabled" | "paused" | "direction" | "scheduleMinutes" | "modules">
 ) => frappeRequest<LiveSyncSettings>("PUT", "/frappe/live-sync", input);
 export const resyncLiveKind = (kind: LiveSyncKind) =>
   frappeRequest<{ id: number }>("POST", `/frappe/live-sync/${kind}/resync`, {});

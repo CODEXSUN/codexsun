@@ -14,6 +14,11 @@ Provider permission or Marketing activation never grants remote Frappe write aut
 
 ## Scope
 
+Enquiry live sync supports inbound-only delivery and optional bidirectional automatic export.
+The initial run imports history. A successful source checkpoint governs later polling and recovery.
+Retain complete source revisions before mapping, and preserve CRM-only fields during inbound updates.
+See the README for direction behavior, data coverage, and verification limits.
+
 Customer import now sources `Mobile Contact Customer` and validates its `Mobile Contact` and `Customer` references.
 Customer identity is connection-scoped, not phone-scoped. Core stores the Frappe document name as the contact code through `resolveExternalContactForDatabase`; Frappe stores the connection-scoped source mapping separately.
 See the README for source fields, existing-data compatibility, and test commands.

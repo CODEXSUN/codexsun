@@ -5,6 +5,7 @@ import { crmRequest } from "../../crm-request";
 import { toast } from "sonner";
 
 export type FrappeSyncStatus = "pending" | "processing" | "failed" | "synced" | "unlinked" | null;
+export type FrappeRecordState = { id: number; status: FrappeSyncStatus; message?: string | null };
 type VerifyKind = "contacts" | "enquiries" | "call-logs";
 
 type ExportJob = {
@@ -22,17 +23,19 @@ type ExportJob = {
 export function FrappeSyncIndicator({
   status,
   onVerify,
+  error,
   unsupported = false
 }: {
   status: FrappeSyncStatus;
+  error?: string | null;
   onVerify: () => Promise<FrappeSyncStatus>;
   unsupported?: boolean;
 }) {
   const [checking, setChecking] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState(status);
+  const [currentStatus, setCurrentStatus] = useState(error ? "failed" : status);
   useEffect(() => {
-    setCurrentStatus(status);
-  }, [status]);
+    setCurrentStatus(error ? "failed" : status);
+  }, [status, error]);
   const Icon =
     currentStatus === "synced"
       ? CheckCircle2
@@ -65,7 +68,8 @@ export function FrappeSyncIndicator({
     if (checking || unsupported) return;
     setChecking(true);
     try {
-      setCurrentStatus(await onVerify());
+      const verified = await onVerify();
+      setCurrentStatus(error ? "failed" : verified);
     } catch (error) {
       setCurrentStatus("failed");
       toast.error("Frappe verification failed", {
@@ -77,12 +81,15 @@ export function FrappeSyncIndicator({
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
+    <span className="inline-flex flex-wrap items-center gap-1.5" title={error || label} onClick={(event) => event.stopPropagation()}>
       <Icon
         className={`size-4 ${tone} ${checking || currentStatus === "processing" ? "animate-spin" : ""}`}
         aria-label={label}
       />
       <span className="sr-only">{label}</span>
+      {currentStatus === "failed" ? <span role="status" className="max-w-72 rounded border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700">
+        Export error{error ? `: ${error}` : ""}
+      </span> : null}
       <Button
         aria-label={unsupported ? label : `Verify ${label.toLowerCase()}`}
         className="h-7 px-2"
@@ -132,12 +139,17 @@ export async function getFrappeRecordStatuses(
   kind: VerifyKind,
   ids: number[]
 ): Promise<Record<number, FrappeSyncStatus>> {
-  if (!ids.length) return {};
-  const response = await crmRequest<{
-    items: Array<{ id: number; status: FrappeSyncStatus }>;
-  }>(`/frappe/export/${kind}/status`, {
-    method: "POST",
-    body: JSON.stringify({ ids })
-  });
-  return Object.fromEntries(response.items.map((item) => [item.id, item.status]));
+  const states = await getFrappeRecordStates(kind, ids);
+  return Object.fromEntries(Object.entries(states).map(([id, row]) => [id, row.status]));
+}
+
+export async function getFrappeRecordStates(kind: VerifyKind, ids: number[]): Promise<Record<number, FrappeRecordState>> {
+  const states: Record<number, FrappeRecordState> = {};
+  for (let start=0; start<ids.length; start+=100) {
+    const response = await crmRequest<{items:FrappeRecordState[]}>(`/frappe/export/${kind}/status`, {
+      method: "POST", body: JSON.stringify({ids:ids.slice(start,start+100)})
+    });
+    for(const row of response.items) states[row.id]=row;
+  }
+  return states;
 }

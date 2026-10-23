@@ -1,0 +1,2 @@
+import { z } from "zod";
+export const campaignSchema=z.strictObject({brandUuid:z.string().regex(/^[a-f0-9]{8}$/),name:z.string().trim().min(1).max(160),objective:z.string().trim().min(1).max(500),channel:z.enum(['website','facebook','instagram','whatsapp','linkedin','google-ads','google-business','youtube','threads','pinterest','x','telegram','email']),landingUrl:z.union([z.literal(''),z.url().startsWith('https://')]).default(''),status:z.enum(["active","inactive"])});

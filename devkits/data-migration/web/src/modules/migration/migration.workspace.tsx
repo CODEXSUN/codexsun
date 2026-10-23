@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Trash2, XCircle } from "lucide-react";
 import { Button } from "@codexsun/ui/components/button";
 import { Checkbox } from "@codexsun/ui/components/checkbox";
 import {
@@ -22,37 +22,43 @@ import {
   createJob,
   renameJob,
   listJobs,
-  listRuns,
   listSources,
   listTables,
   listTenants,
   getTableSchema,
   previewTransfer,
   readJobQueryPlan,
-  generateJobQueryPlan,
+  handoffJobToAuditQueue,
   finalizeJobQueryPlan,
+  readQueryBatch,
   saveJobTablePair,
-  runMigrationJob,
+  saveQueryBatch,
   readJobTables,
+  deleteJob,
+  deleteJobTablePair,
+  deleteQueryBatch,
   listTenantTables,
   sampleTableData,
   type MigrationColumnMapping,
   type MigrationTableSchema,
   type MigrationPreview,
   type MigrationTableSample,
-  type MigrationRun,
   type MigrationJob,
   type MigrationQueryPlan,
+  type MigrationQueryBatch,
   type SavedTableMapping,
   type SourceOption,
   type TenantOption
 } from "./migration.services.js";
-import { RunHistory } from "./migration.list.js";
 
 export function DataMigrationWorkspace({
-  initialSelection
+  initialSelection,
+  initialStep = "sessions",
+  onAuditHandoff
 }: {
   initialSelection?: { sourceId: number; targetTenantId: number; table: string } | undefined;
+  initialStep?: "sessions" | "transfer-list";
+  onAuditHandoff?: (() => void) | undefined;
 }) {
   const [tenants, setTenants] = useState<TenantOption[]>([]);
   const [sources, setSources] = useState<SourceOption[]>([]);
@@ -60,12 +66,13 @@ export function DataMigrationWorkspace({
   const [targetTables, setTargetTables] = useState<string[]>([]);
   const [jobTables, setJobTables] = useState<SavedTableMapping[]>([]);
   const [tablesLoading, setTablesLoading] = useState(false);
-  const [runs, setRuns] = useState<MigrationRun[]>([]);
   const [jobs, setJobs] = useState<MigrationJob[]>([]);
   const [queryPlan, setQueryPlan] = useState<MigrationQueryPlan | null>(null);
+  const [queryBatch, setQueryBatch] = useState<MigrationQueryBatch | null>(null);
+  const [selectedSampleRowIds, setSelectedSampleRowIds] = useState<number[]>([]);
   const [activeStep, setActiveStep] = useState<
-    "sessions" | "tables" | "fields" | "field-editor" | "migration"
-  >("sessions");
+    "sessions" | "transfer-list" | "tables" | "fields" | "field-editor" | "migration"
+  >(initialStep);
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
   const [jobId, setJobId] = useState("");
   const [sourceTenant, setSourceTenant] = useState("");
@@ -90,6 +97,7 @@ export function DataMigrationWorkspace({
   const [selectedTargetColumn, setSelectedTargetColumn] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (initialSelection) {
@@ -100,9 +108,6 @@ export function DataMigrationWorkspace({
       listTenants()
         .then(setTenants)
         .catch((reason: unknown) => setError(message(reason))),
-      listRuns()
-        .then(setRuns)
-        .catch((reason: unknown) => setError(message(reason))),
       listSources()
         .then(setSources)
         .catch((reason: unknown) => setError(message(reason))),
@@ -111,6 +116,25 @@ export function DataMigrationWorkspace({
         .catch((reason: unknown) => setError(message(reason)))
     ]);
   }, [initialSelection]);
+
+  useEffect(() => {
+    if (activeStep !== "migration" || !jobId) return;
+    let active = true;
+    void readQueryBatch(jobId)
+      .then((result) => {
+        if (active) setQueryBatch(result);
+      })
+      .catch((reason: unknown) => {
+        if (active) setError(message(reason));
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeStep, jobId]);
+
+  useEffect(() => {
+    setSelectedSampleRowIds(queryBatch?.rows.map((row) => row.id) ?? []);
+  }, [queryBatch?.id]);
 
   useEffect(() => {
     if (!initialSelection || target !== String(initialSelection.targetTenantId) || targetDatabase)
@@ -181,8 +205,10 @@ export function DataMigrationWorkspace({
   }, [initialSelection?.table, table, targetTable, targetTables]);
 
   useEffect(() => {
-    setJobTables([]);
-    if (!jobId) return;
+    if (!jobId) {
+      setJobTables([]);
+      return;
+    }
     let active = true;
     void readJobTables(jobId)
       .then((saved) => {
@@ -321,6 +347,22 @@ export function DataMigrationWorkspace({
       jobTables.some((item) => item.sourceTable === name && item.mappingStatus === "mapped")
     )
   );
+  const handoffRows = queryBatch?.rows.filter((row) => selectedSampleRowIds.includes(row.id)) ?? [];
+  const firstHandoffRow = handoffRows[0];
+  const handoffMapping = firstHandoffRow
+    ? jobTables.find((item) => item.sourceTable === firstHandoffRow.sourceTable)
+    : undefined;
+  const canHandoff = Boolean(
+    jobId &&
+    handoffRows.length > 0 &&
+    handoffRows.every(
+      (row) =>
+        row.sourceTable === firstHandoffRow?.sourceTable &&
+        row.targetTable === firstHandoffRow?.targetTable
+    ) &&
+    handoffMapping?.targetTable === firstHandoffRow?.targetTable &&
+    handoffMapping?.mappingStatus === "mapped"
+  );
   const targetDatabaseOptions = sources
     .filter((item) => item.database)
     .map((item) => ({
@@ -433,13 +475,19 @@ export function DataMigrationWorkspace({
     }
   }
 
-  async function generateQueryPlan() {
-    if (!jobId || !canRunJob) return;
+  async function handoffSelectedRows() {
+    if (!jobId || !canHandoff) return;
     setBusy(true);
     setError("");
     try {
-      setQueryPlan(await generateJobQueryPlan(jobId));
-      toast.success("Query plan generated. Review the tables and SQL before finalizing.");
+      await handoffJobToAuditQueue(
+        jobId,
+        handoffRows.map((row) => row.id)
+      );
+      toast.success(
+        `${handoffRows.length} saved row sample${handoffRows.length === 1 ? "" : "s"} handed off to Migration Audit.`
+      );
+      onAuditHandoff?.();
     } catch (reason) {
       setError(message(reason));
     } finally {
@@ -456,47 +504,6 @@ export function DataMigrationWorkspace({
       toast.success("Migration plan finalized. The run will verify it again before writing.");
     } catch (reason) {
       setError(message(reason));
-      setQueryPlan(await readJobQueryPlan(jobId).catch(() => queryPlan));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function runJob() {
-    if (!canRunJob || !jobId || queryPlan?.status !== "finalized") return;
-    const name = jobs.find((item) => item.id === jobId)?.sessionName ?? sessionName;
-    if (
-      !window.confirm(
-        `Migrate all mapped tables in “${name}”? Every destination table must be empty.`
-      )
-    )
-      return;
-    setBusy(true);
-    setError("");
-    try {
-      const result = await runMigrationJob(jobId);
-      const [updatedRuns, updatedTables, updatedJobs] = await Promise.all([
-        listRuns(),
-        readJobTables(jobId),
-        listJobs()
-      ]);
-      setRuns(updatedRuns);
-      setJobTables(updatedTables);
-      setJobs(updatedJobs);
-      setQueryPlan(await readJobQueryPlan(jobId));
-      toast.success(
-        `${result.completed.length} tables migrated · ${result.copiedRows} rows copied.`
-      );
-    } catch (reason) {
-      setError(message(reason));
-      const [updatedRuns, updatedTables, updatedJobs] = await Promise.all([
-        listRuns().catch(() => runs),
-        readJobTables(jobId).catch(() => jobTables),
-        listJobs().catch(() => jobs)
-      ]);
-      setRuns(updatedRuns);
-      setJobTables(updatedTables);
-      setJobs(updatedJobs);
       setQueryPlan(await readJobQueryPlan(jobId).catch(() => queryPlan));
     } finally {
       setBusy(false);
@@ -531,6 +538,91 @@ export function DataMigrationWorkspace({
     }
   }
 
+  async function removeMigration(item: MigrationJob) {
+    if (item.status !== "draft") return;
+    if (
+      !window.confirm(
+        `Delete draft migration “${item.sessionName}” and its saved mappings, samples, plans, and audit items? Source and target database rows are not affected.`
+      )
+    )
+      return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteJob(item.id);
+      setJobs((current) => current.filter((job) => job.id !== item.id));
+      if (jobId === item.id) {
+        setJobId("");
+        setJobTables([]);
+        setQueryBatch(null);
+        setQueryPlan(null);
+        setSelectedSampleRowIds([]);
+        setActiveStep("sessions");
+      }
+      toast.success("Draft migration and its saved data deleted.");
+    } catch (reason) {
+      setError(message(reason));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function removeSavedTable(item: SavedTableMapping) {
+    if (!jobId || jobs.find((job) => job.id === jobId)?.status !== "draft") return;
+    const sourceTable = item.sourceTable ?? item.table;
+    const targetName = item.targetTable ?? item.table;
+    if (
+      !window.confirm(
+        `Delete the saved mapping ${sourceTable} → ${targetName}, its selected samples, and related audit items? Database rows are not affected.`
+      )
+    )
+      return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteJobTablePair(jobId, sourceTable);
+      const [savedTables, savedJobs, batch] = await Promise.all([
+        readJobTables(jobId),
+        listJobs(),
+        readQueryBatch(jobId)
+      ]);
+      setJobTables(savedTables);
+      setJobs(savedJobs);
+      setQueryBatch(batch);
+      setQueryPlan(await readJobQueryPlan(jobId));
+      setSelectedSampleRowIds(batch?.rows.map((row) => row.id) ?? []);
+      toast.success(`Saved mapping ${sourceTable} → ${targetName} deleted.`);
+    } catch (reason) {
+      setError(message(reason));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function removeSavedSamples() {
+    if (!jobId || !queryBatch) return;
+    if (
+      !window.confirm(
+        `Delete all ${queryBatch.rows.length} saved row samples and audit queue items for this migration? Source and target database rows are not affected.`
+      )
+    )
+      return;
+    setDeleting(true);
+    setError("");
+    try {
+      const result = await deleteQueryBatch(jobId);
+      setQueryBatch(null);
+      setSelectedSampleRowIds([]);
+      toast.success(
+        `${result.deletedRows} saved row sample${result.deletedRows === 1 ? "" : "s"} deleted.`
+      );
+    } catch (reason) {
+      setError(message(reason));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   function selectJob(id: string) {
     const item = jobs.find((job) => job.id === id);
     if (!item) return;
@@ -540,6 +632,9 @@ export function DataMigrationWorkspace({
     setTarget(String(item.targetTenantId));
     setTargetDatabase(item.targetDatabase);
     setJobId(item.id);
+    setQueryBatch(null);
+    setSelectedSampleRowIds([]);
+    setJobTables([]);
     setQueryPlan(null);
     void readJobQueryPlan(item.id)
       .then(setQueryPlan)
@@ -551,7 +646,13 @@ export function DataMigrationWorkspace({
 
   return (
     <WorkspacePage
-      title="Migration Mapper"
+      title={
+        activeStep === "tables"
+          ? "Table Mapping"
+          : activeStep === "migration" || activeStep === "transfer-list"
+            ? "Transfer Review"
+            : "Migration Mapper"
+      }
       action={
         activeStep === "sessions" ? (
           <Button
@@ -574,7 +675,7 @@ export function DataMigrationWorkspace({
             disabled={!canRunJob || busy}
             onClick={() => void openMigrationReview()}
           >
-            Continue to migration
+            Continue to transfer review
           </Button>
         ) : null
       }
@@ -589,22 +690,34 @@ export function DataMigrationWorkspace({
           transfer.
         </p>
       ) : null}
-      {activeStep !== "sessions" ? (
+      {activeStep !== "sessions" && activeStep !== "transfer-list" ? (
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <Button type="button" variant="ghost" onClick={() => setActiveStep("sessions")}>
             Migrations
           </Button>
-          <span className="text-muted-foreground">/</span>
-          {activeStep === "fields" ||
-          activeStep === "field-editor" ||
-          activeStep === "migration" ? (
-            <Button type="button" variant="ghost" onClick={() => setActiveStep("tables")}>
-              Tables
-            </Button>
+          {activeStep === "tables" ? (
+            <>
+              <span className="text-muted-foreground">/</span>
+              <span className="font-medium">Table Mapping</span>
+            </>
           ) : null}
-          {activeStep === "fields" ||
-          activeStep === "field-editor" ||
-          activeStep === "migration" ? (
+          {activeStep === "migration" ? (
+            <>
+              <span className="text-muted-foreground">/</span>
+              <Button type="button" variant="ghost" onClick={() => setActiveStep("tables")}>
+                Table Mapping
+              </Button>
+            </>
+          ) : null}
+          {activeStep === "fields" || activeStep === "field-editor" ? (
+            <>
+              <span className="text-muted-foreground">/</span>
+              <Button type="button" variant="ghost" onClick={() => setActiveStep("tables")}>
+                Table Mapping
+              </Button>
+            </>
+          ) : null}
+          {activeStep === "fields" || activeStep === "field-editor" ? (
             <span className="text-muted-foreground">/</span>
           ) : null}
           {activeStep === "field-editor" ? (
@@ -616,10 +729,16 @@ export function DataMigrationWorkspace({
           <span className="font-medium">
             {jobs.find((item) => item.id === jobId)?.sessionName ?? sessionName}
           </span>
+          {activeStep === "migration" ? (
+            <>
+              <span className="text-muted-foreground">/</span>
+              <span className="font-medium">Transfer Review</span>
+            </>
+          ) : null}
         </div>
       ) : null}
       <section
-        className={`space-y-4 rounded-md border bg-card p-5 ${activeStep === "sessions" ? "" : "hidden"}`}
+        className={`space-y-4 p-5 ${activeStep === "sessions" || activeStep === "transfer-list" ? "" : "hidden"}`}
       >
         <Dialog open={sessionDialogOpen} onOpenChange={setSessionDialogOpen}>
           <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
@@ -748,7 +867,9 @@ export function DataMigrationWorkspace({
         </Dialog>
         {jobs.length ? (
           <div>
-            <h3 className="pb-2 text-sm font-semibold">Saved migrations</h3>
+            <h3 className="pb-2 text-sm font-semibold">
+              {activeStep === "transfer-list" ? "Migrations ready for review" : "Saved migrations"}
+            </h3>
             <WorkspaceTablePanel>
               <div className="workspace-scroll overflow-x-auto">
                 <table className="w-full min-w-[760px] border-collapse text-sm">
@@ -769,7 +890,7 @@ export function DataMigrationWorkspace({
                         className="cursor-pointer border-b last:border-0 hover:bg-muted/30"
                         onClick={() => {
                           selectJob(item.id);
-                          setActiveStep("tables");
+                          setActiveStep(activeStep === "transfer-list" ? "migration" : "tables");
                         }}
                       >
                         <td className="px-3 py-2">{item.sessionName}</td>
@@ -788,8 +909,20 @@ export function DataMigrationWorkspace({
                                 setActiveStep("tables");
                               }}
                             >
-                              Tables
+                              Table Mapping
                             </Button>
+                            {activeStep === "transfer-list" ? (
+                              <Button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  selectJob(item.id);
+                                  setActiveStep("migration");
+                                }}
+                              >
+                                Review transfer
+                              </Button>
+                            ) : null}
                             <Button
                               type="button"
                               variant="ghost"
@@ -801,6 +934,20 @@ export function DataMigrationWorkspace({
                             >
                               Rename
                             </Button>
+                            <Button
+                              type="button"
+                              size="icon-sm"
+                              variant="ghost"
+                              title="Delete draft migration and its saved data"
+                              aria-label={`Delete draft migration ${item.sessionName}`}
+                              disabled={deleting || item.status !== "draft"}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void removeMigration(item);
+                              }}
+                            >
+                              <Trash2 className="text-destructive" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -810,6 +957,10 @@ export function DataMigrationWorkspace({
               </div>
             </WorkspaceTablePanel>
           </div>
+        ) : activeStep === "transfer-list" ? (
+          <p className="rounded-md border px-4 py-8 text-center text-sm text-muted-foreground">
+            No saved migrations are available for review.
+          </p>
         ) : null}
       </section>
       <section
@@ -877,47 +1028,67 @@ export function DataMigrationWorkspace({
           </Button>
         </div>
         {jobTables.length ? (
-          <div className="pt-5">
+          <div className="space-y-2 pt-2">
+            <h2 className="text-sm font-semibold">Saved table mappings</h2>
             <WorkspaceTablePanel>
               <div className="workspace-scroll overflow-x-auto">
-                <table className="w-full min-w-[900px] border-collapse text-sm">
+                <table className="w-full min-w-[760px] border-collapse text-sm">
                   <thead className="bg-muted/50">
                     <tr>
                       <WorkspaceTableHeaderCell>Source table</WorkspaceTableHeaderCell>
                       <WorkspaceTableHeaderCell>Target table</WorkspaceTableHeaderCell>
                       <WorkspaceTableHeaderCell>Source rows</WorkspaceTableHeaderCell>
                       <WorkspaceTableHeaderCell>Target rows</WorkspaceTableHeaderCell>
-                      <WorkspaceTableHeaderCell>Mapping status</WorkspaceTableHeaderCell>
-                      <WorkspaceTableHeaderCell>Migration status</WorkspaceTableHeaderCell>
+                      <WorkspaceTableHeaderCell>Fields mapped</WorkspaceTableHeaderCell>
+                      <WorkspaceTableHeaderCell>Status</WorkspaceTableHeaderCell>
                       <WorkspaceTableHeaderCell>Action</WorkspaceTableHeaderCell>
                     </tr>
                   </thead>
                   <tbody>
                     {jobTables.map((item) => (
                       <tr
-                        key={item.id ?? item.sourceTable ?? item.table}
+                        key={
+                          item.id ??
+                          `${item.sourceTable ?? item.table}:${item.targetTable ?? item.table}`
+                        }
                         className="border-b last:border-0"
                       >
                         <td className="px-3 py-2">{item.sourceTable ?? item.table}</td>
                         <td className="px-3 py-2">{item.targetTable ?? item.table}</td>
-                        <td className="px-3 py-2">{item.sourceRows ?? 0}</td>
-                        <td className="px-3 py-2">{item.targetRows ?? 0}</td>
+                        <td className="px-3 py-2">{item.sourceRows ?? "—"}</td>
+                        <td className="px-3 py-2">{item.targetRows ?? "—"}</td>
+                        <td className="px-3 py-2">{item.columnMappings.length}</td>
                         <td className="px-3 py-2">{item.mappingStatus ?? "mapped"}</td>
-                        <td className="px-3 py-2">{item.migrationStatus ?? "pending"}</td>
                         <td className="px-3 py-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                              setTable(item.sourceTable ?? item.table);
-                              setTargetTable(item.targetTable ?? item.table);
-                              setError("");
-                              setCompatibilityCheck(null);
-                              setActiveStep("fields");
-                            }}
-                          >
-                            Open fields
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setTable(item.sourceTable ?? item.table);
+                                setTargetTable(item.targetTable ?? item.table);
+                                setMappingPreviewOpen(false);
+                                setCompatibilityCheck(null);
+                                setError("");
+                                setActiveStep("fields");
+                              }}
+                            >
+                              Review / edit
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon-sm"
+                              variant="ghost"
+                              title="Delete saved table mapping and related samples"
+                              aria-label={`Delete mapping ${item.sourceTable ?? item.table}`}
+                              disabled={
+                                deleting || jobs.find((job) => job.id === jobId)?.status !== "draft"
+                              }
+                              onClick={() => void removeSavedTable(item)}
+                            >
+                              <Trash2 className="text-destructive" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -946,59 +1117,211 @@ export function DataMigrationWorkspace({
         </section>
       ) : null}
       {activeStep === "migration" ? (
-        <section className="space-y-4 rounded-md border bg-card p-5">
-          <div>
-            <h2 className="text-base font-semibold">Migration review</h2>
-            <p className="pt-1 text-sm text-muted-foreground">
-              {jobs.find((item) => item.id === jobId)?.sessionName ?? sessionName} ·{" "}
-              {jobs.find((item) => item.id === jobId)?.sourceDatabase ?? "Source"} →{" "}
-              {targetDatabase} · {selectedTargetTenant?.label ?? "Target tenant"}
-            </p>
+        <section className="space-y-4">
+          <div className="text-sm text-muted-foreground">
+            {jobs.find((item) => item.id === jobId)?.sessionName ?? sessionName} ·{" "}
+            {jobs.find((item) => item.id === jobId)?.sourceDatabase ?? "Source"} → {targetDatabase}{" "}
+            · {selectedTargetTenant?.label ?? "Target tenant"}
           </div>
-          <WorkspaceTablePanel>
-            <div className="workspace-scroll overflow-x-auto">
-              <table className="w-full min-w-[720px] border-collapse text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <WorkspaceTableHeaderCell>Source table</WorkspaceTableHeaderCell>
-                    <WorkspaceTableHeaderCell>Target table</WorkspaceTableHeaderCell>
-                    <WorkspaceTableHeaderCell>Source rows</WorkspaceTableHeaderCell>
-                    <WorkspaceTableHeaderCell>Target rows</WorkspaceTableHeaderCell>
-                    <WorkspaceTableHeaderCell>Mapping status</WorkspaceTableHeaderCell>
-                    <WorkspaceTableHeaderCell>Migration status</WorkspaceTableHeaderCell>
-                  </tr>
-                </thead>
-                <tbody>
-                  {jobTables.map((item) => (
-                    <tr
-                      key={item.id ?? item.sourceTable ?? item.table}
-                      className="border-b last:border-0"
-                    >
-                      <td className="px-3 py-2">{item.sourceTable ?? item.table}</td>
-                      <td className="px-3 py-2">{item.targetTable ?? item.table}</td>
-                      <td className="px-3 py-2">{item.sourceRows ?? 0}</td>
-                      <td className="px-3 py-2">{item.targetRows ?? 0}</td>
-                      <td className="px-3 py-2">{item.mappingStatus ?? "mapped"}</td>
-                      <td className="px-3 py-2">{item.migrationStatus ?? "pending"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </WorkspaceTablePanel>
+          <section className="space-y-2" aria-label="Transfer overview">
+            <h3 className="text-sm font-semibold">Transfer overview</h3>
+            {jobTables.length ? (
+              <div className="space-y-3">
+                {jobTables.map((item) => (
+                  <WorkspaceTablePanel key={item.id ?? item.sourceTable ?? item.table}>
+                    <div className="flex items-center justify-between gap-3 px-4 pt-3">
+                      <h4 className="font-semibold">
+                        {item.sourceTable ?? item.table} → {item.targetTable ?? item.table}
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        {queryBatch ? <WorkspaceStatusBadge status={queryBatch.status} /> : null}
+                        <Button
+                          type="button"
+                          size="icon-sm"
+                          variant="ghost"
+                          title="Delete saved table mapping and related samples"
+                          aria-label={`Delete mapping ${item.sourceTable ?? item.table}`}
+                          disabled={
+                            deleting || jobs.find((job) => job.id === jobId)?.status !== "draft"
+                          }
+                          onClick={() => void removeSavedTable(item)}
+                        >
+                          <Trash2 className="text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="workspace-scroll overflow-x-auto p-3 pt-2">
+                      <table className="w-full min-w-[760px] table-fixed border-collapse text-sm">
+                        <colgroup>
+                          <col className="w-[13%]" />
+                          <col className="w-[37%]" />
+                          <col className="w-[13%]" />
+                          <col className="w-[37%]" />
+                        </colgroup>
+                        <tbody>
+                          <TransferOverviewRow
+                            leftLabel="Source database"
+                            leftValue={
+                              queryBatch?.sourceDatabase ??
+                              jobs.find((job) => job.id === jobId)?.sourceDatabase ??
+                              "—"
+                            }
+                            rightLabel="Source"
+                            rightValue={queryBatch?.sourceLabel ?? "—"}
+                          />
+                          <TransferOverviewRow
+                            leftLabel="Source table"
+                            leftValue={item.sourceTable ?? item.table}
+                            rightLabel="Host"
+                            rightValue={queryBatch?.sourceHost ?? "—"}
+                          />
+                          <TransferOverviewRow
+                            leftLabel="Source rows"
+                            leftValue={item.sourceRows ?? 0}
+                            rightLabel="Source user"
+                            rightValue={
+                              queryBatch
+                                ? `${queryBatch.sourceUser} · ${queryBatch.passwordStored ? "••••••••" : "No saved password"}`
+                                : "—"
+                            }
+                          />
+                          <TransferOverviewRow
+                            leftLabel="Target database"
+                            leftValue={targetDatabase}
+                            rightLabel="Mapping status"
+                            rightValue={item.mappingStatus ?? "mapped"}
+                          />
+                          <TransferOverviewRow
+                            leftLabel="Target table"
+                            leftValue={item.targetTable ?? item.table}
+                            rightLabel="Migration status"
+                            rightValue={item.migrationStatus ?? "pending"}
+                          />
+                          <TransferOverviewRow
+                            leftLabel="Target rows"
+                            leftValue={item.targetRows ?? 0}
+                            rightLabel="Saved rows"
+                            rightValue={queryBatch?.status ?? "—"}
+                          />
+                        </tbody>
+                      </table>
+                    </div>
+                  </WorkspaceTablePanel>
+                ))}
+              </div>
+            ) : (
+              <WorkspaceTablePanel>
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  No table mappings have been saved for this migration.
+                </p>
+              </WorkspaceTablePanel>
+            )}
+          </section>
+          {queryBatch ? (
+            <section className="space-y-2" aria-label="Saved row samples">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold">
+                  Saved row samples · {selectedSampleRowIds.length} selected of{" "}
+                  {queryBatch.rows.length}
+                </h3>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  title="Delete saved samples and related audit items"
+                  aria-label="Delete all saved row samples"
+                  disabled={deleting || jobs.find((job) => job.id === jobId)?.status !== "draft"}
+                  onClick={() => void removeSavedSamples()}
+                >
+                  <Trash2 className="text-destructive" />
+                </Button>
+              </div>
+              <WorkspaceTablePanel>
+                <div className="workspace-scroll overflow-x-auto">
+                  <table className="w-full min-w-[1000px] border-collapse text-sm">
+                    <thead className="sticky top-0 bg-muted/50">
+                      <tr>
+                        <WorkspaceTableHeaderCell>
+                          <Checkbox
+                            aria-label="Select all saved row samples"
+                            checked={
+                              queryBatch.rows.length > 0 &&
+                              selectedSampleRowIds.length === queryBatch.rows.length
+                            }
+                            onCheckedChange={(checked) =>
+                              setSelectedSampleRowIds(
+                                checked ? queryBatch.rows.map((row) => row.id) : []
+                              )
+                            }
+                          />
+                        </WorkspaceTableHeaderCell>
+                        <WorkspaceTableHeaderCell>Table pair</WorkspaceTableHeaderCell>
+                        <WorkspaceTableHeaderCell>Row</WorkspaceTableHeaderCell>
+                        <WorkspaceTableHeaderCell>Full JSON</WorkspaceTableHeaderCell>
+                        <WorkspaceTableHeaderCell>Status</WorkspaceTableHeaderCell>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {queryBatch.rows.map((row) => (
+                        <tr key={row.id} className="border-b last:border-0">
+                          <td className="w-12 px-3 py-2">
+                            <Checkbox
+                              aria-label={`Select ${row.sourceTable} row ${row.rowNumber}`}
+                              checked={selectedSampleRowIds.includes(row.id)}
+                              onCheckedChange={(checked) =>
+                                setSelectedSampleRowIds((current) =>
+                                  checked
+                                    ? [...new Set([...current, row.id])]
+                                    : current.filter((id) => id !== row.id)
+                                )
+                              }
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            {row.sourceTable} → {row.targetTable}
+                          </td>
+                          <td className="px-3 py-2">{row.rowNumber}</td>
+                          <td className="max-w-[48rem] px-3 py-2">
+                            <pre className="whitespace-pre-wrap break-all rounded-sm bg-muted/30 p-2 text-xs">
+                              {JSON.stringify(row.rowData, null, 2)}
+                            </pre>
+                          </td>
+                          <td className="px-3 py-2">{row.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </WorkspaceTablePanel>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
+                  Hand off the selected saved row samples and their mapped SQL template to audit.
+                </p>
+              </div>
+            </section>
+          ) : null}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              {jobTables.length} of {tables.length} source tables have saved mappings.
-            </p>
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
-                variant="outline"
-                disabled={!canRunJob || busy}
-                onClick={() => void generateQueryPlan()}
+                variant="default"
+                disabled={!canHandoff || busy}
+                onClick={() => void handoffSelectedRows()}
+                aria-label="Hand off selected rows to migration audit"
               >
-                {busy ? "Preparing…" : queryPlan ? "Regenerate query plan" : "Generate query plan"}
+                {busy ? "Handing off…" : "Hand off"}
               </Button>
+              {!canHandoff && !busy ? (
+                <span className="text-xs text-muted-foreground" role="status">
+                  {!queryBatch
+                    ? "Loading saved row samples…"
+                    : !queryBatch.rows.length
+                      ? "Save selected row samples first."
+                      : !handoffRows.length
+                        ? "Select at least one saved row sample."
+                        : "Save the source-to-target table mapping first."}
+                </span>
+              ) : null}
               {queryPlan?.status === "generated" ? (
                 <Button
                   type="button"
@@ -1009,20 +1332,10 @@ export function DataMigrationWorkspace({
                   Finalize plan
                 </Button>
               ) : null}
-              <Button
-                type="button"
-                disabled={!canRunJob || busy || queryPlan?.status !== "finalized"}
-                onClick={() => void runJob()}
-              >
-                {busy ? "Migrating…" : "Run migration"}
-              </Button>
             </div>
           </div>
           {queryPlan ? (
-            <section
-              className="space-y-3 rounded-md border p-4"
-              aria-label="Generated migration query plan"
-            >
+            <section className="space-y-3" aria-label="Generated migration query plan">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h3 className="font-semibold">Generated transfer plan</h3>
@@ -1033,13 +1346,11 @@ export function DataMigrationWorkspace({
                 </div>
                 <WorkspaceStatusBadge status={queryPlan.status} />
               </div>
-              <p className="text-sm text-muted-foreground">
-                This plan copies every row in each mapped table. The read-only sample row selections
-                do not limit the migration.
+              <p className="text-xs text-muted-foreground">
+                Sample rows are previews only; migration transfers all mapped rows.
               </p>
               {queryPlan.blockers.length ? (
                 <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-800 dark:text-amber-200">
-                  <p className="font-medium">Resolve these blockers before finalizing</p>
                   <ul className="mt-2 list-disc space-y-1 pl-5">
                     {queryPlan.blockers.map((blocker) => (
                       <li key={blocker}>{blocker}</li>
@@ -1047,10 +1358,7 @@ export function DataMigrationWorkspace({
                   </ul>
                 </div>
               ) : (
-                <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                  Preflight passed. Finalizing records this exact mapping and source data
-                  fingerprint.
-                </p>
+                <p className="text-sm text-emerald-700 dark:text-emerald-400">Preflight passed.</p>
               )}
               <WorkspaceTablePanel>
                 <div className="workspace-scroll overflow-x-auto">
@@ -1117,12 +1425,7 @@ export function DataMigrationWorkspace({
                 {queryPlan.finalizedBy ? ` · Finalized by ${queryPlan.finalizedBy}` : ""}
               </p>
             </section>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Generate a server-side query plan to review exact tables, fields, row counts, and
-              safety checks before finalizing.
-            </p>
-          )}
+          ) : null}
         </section>
       ) : null}
       {activeStep === "fields" && schema ? (
@@ -1260,12 +1563,22 @@ export function DataMigrationWorkspace({
             />
           ) : null}
           <TableDataSampleCard
+            jobId={jobId}
+            tablePairSaved={jobTables.some(
+              (item) =>
+                item.sourceTable === table &&
+                item.targetTable === targetTable &&
+                item.mappingStatus === "mapped"
+            )}
+            sourceInfo={sources.find((item) => item.id === Number(source))}
+            onSaved={() => setActiveStep("migration")}
             sample={tableSample}
             contextKey={sampleContextKey}
             loading={sampleLoading}
             mappingOptions={sampleColumnOptions}
             selectedMappings={selectedSampleFieldMappings}
             allFieldMappings={sampleFieldMappings}
+            targetColumns={schema.targetColumns}
             onShowAllColumns={() => setSampleMappingValues(null)}
             onShow={() => {
               setSampleRequested(true);
@@ -1522,12 +1835,22 @@ export function DataMigrationWorkspace({
             />
           ) : null}
           <TableDataSampleCard
+            jobId={jobId}
+            tablePairSaved={jobTables.some(
+              (item) =>
+                item.sourceTable === table &&
+                item.targetTable === targetTable &&
+                item.mappingStatus === "mapped"
+            )}
+            sourceInfo={sources.find((item) => item.id === Number(source))}
+            onSaved={() => setActiveStep("migration")}
             sample={tableSample}
             contextKey={sampleContextKey}
             loading={sampleLoading}
             mappingOptions={sampleColumnOptions}
             selectedMappings={selectedSampleFieldMappings}
             allFieldMappings={sampleFieldMappings}
+            targetColumns={schema.targetColumns}
             onShowAllColumns={() => setSampleMappingValues(null)}
             onShow={() => {
               setSampleRequested(true);
@@ -1543,9 +1866,6 @@ export function DataMigrationWorkspace({
             }
           />
         </section>
-      ) : null}
-      {activeStep === "sessions" ? (
-        <RunHistory runs={runs} sources={sources} tenants={tenants} />
       ) : null}
     </WorkspacePage>
   );
@@ -1803,23 +2123,33 @@ function CompatibilityReport({
 }
 
 function TableDataSampleCard({
+  jobId,
+  tablePairSaved,
+  sourceInfo,
+  onSaved,
   sample,
   contextKey,
   loading,
   mappingOptions,
   selectedMappings,
   allFieldMappings,
+  targetColumns,
   onShowAllColumns,
   onShow,
   onRefresh,
   onPage
 }: {
+  jobId: string;
+  tablePairSaved: boolean;
+  sourceInfo: SourceOption | undefined;
+  onSaved: () => void;
   sample: MigrationTableSample | null;
   contextKey: string;
   loading: boolean;
   mappingOptions: WorkspaceColumnOption[];
   selectedMappings: MigrationColumnMapping[] | null;
   allFieldMappings: MigrationColumnMapping[];
+  targetColumns: MigrationTableSchema["targetColumns"];
   onShowAllColumns: () => void;
   onShow: () => void;
   onRefresh: () => void;
@@ -1829,13 +2159,24 @@ function TableDataSampleCard({
   const [hideMatches, setHideMatches] = useState(false);
   const [hideUnmatched, setHideUnmatched] = useState(false);
   const [selectedRows, setSelectedRows] = useState<SelectedSampleRow[]>([]);
+  const [selectedRowsQuery, setSelectedRowsQuery] = useState<string | null>(null);
+  const [fieldValues, setFieldValues] = useState<
+    Record<string, { mode: "default" | "custom" | "foreign"; value: unknown }>
+  >({});
+  const [savingSelection, setSavingSelection] = useState(false);
   useEffect(() => {
     setComparisonActive(false);
     setHideMatches(false);
     setHideUnmatched(false);
     setSelectedRows([]);
+    setSelectedRowsQuery(null);
+    setFieldValues({});
   }, [contextKey]);
   const comparisonMappings = selectedMappings ?? allFieldMappings;
+  const missingFields = targetColumns.filter(
+    (column) =>
+      !column.generated && !allFieldMappings.some((mapping) => mapping.targetColumn === column.name)
+  );
   const selectedRowIds = useMemo(
     () => new Set(selectedRows.map((item) => item.id)),
     [selectedRows]
@@ -1939,11 +2280,12 @@ function TableDataSampleCard({
             hideUnmatched={comparisonActive && hideUnmatched}
             side="source"
             selectedRowIds={selectedRowIds}
-            onToggleRow={(item, checked) =>
+            onToggleRow={(item, checked) => {
+              setSelectedRowsQuery(null);
               setSelectedRows((current) =>
                 checked ? [...current, item] : current.filter((row) => row.id !== item.id)
-              )
-            }
+              );
+            }}
             totalRows={sample.source.totalRows}
             page={sample.source.page}
             pageSize={sample.pageSize}
@@ -1963,11 +2305,12 @@ function TableDataSampleCard({
             hideUnmatched={comparisonActive && hideUnmatched}
             side="target"
             selectedRowIds={selectedRowIds}
-            onToggleRow={(item, checked) =>
+            onToggleRow={(item, checked) => {
+              setSelectedRowsQuery(null);
               setSelectedRows((current) =>
                 checked ? [...current, item] : current.filter((row) => row.id !== item.id)
-              )
-            }
+              );
+            }}
             totalRows={sample.target.totalRows}
             page={sample.target.page}
             pageSize={sample.pageSize}
@@ -1983,8 +2326,91 @@ function TableDataSampleCard({
       {selectedRows.length > 0 ? (
         <SelectedRowsBanner
           rows={selectedRows}
-          onClear={() => setSelectedRows([])}
-          onRemove={(id) => setSelectedRows((current) => current.filter((item) => item.id !== id))}
+          jobId={jobId}
+          tablePairSaved={tablePairSaved}
+          sourceInfo={sourceInfo}
+          missingFields={missingFields}
+          fieldValues={fieldValues}
+          onFieldValueChange={(name, value) => {
+            setFieldValues((current) => ({ ...current, [name]: value }));
+            setSelectedRowsQuery(null);
+          }}
+          saving={savingSelection}
+          onSave={async () => {
+            if (!jobId || !sample) return;
+            setSavingSelection(true);
+            try {
+              const sourceRows = selectedRows.filter((row) => row.side === "source");
+              const result = await saveQueryBatch(jobId, {
+                rows: sourceRows.map((row) => ({
+                  sourceTable: sample.sourceTable,
+                  targetTable: sample.targetTable,
+                  rowNumber: row.rowNumber,
+                  rowData: row.values
+                })),
+                fieldValues: Object.fromEntries(
+                  missingFields.map((field) => [
+                    field.name,
+                    fieldValues[field.name] ?? {
+                      mode: field.reference ? "foreign" : field.required ? "custom" : "default",
+                      value: ""
+                    }
+                  ])
+                )
+              });
+              toast.success(`Saved ${result.savedRows} selected source rows for Transfer Review.`);
+              onSaved();
+            } catch (reason) {
+              toast.error(
+                reason instanceof Error ? reason.message : "Could not save selected rows."
+              );
+            } finally {
+              setSavingSelection(false);
+            }
+          }}
+          onClear={() => {
+            setSelectedRowsQuery(null);
+            setSelectedRows([]);
+          }}
+          onRemove={(id) => {
+            setSelectedRowsQuery(null);
+            setSelectedRows((current) => current.filter((item) => item.id !== id));
+          }}
+          onGenerateQuery={() => {
+            const sourceRowCount = selectedRows.filter((row) => row.side === "source").length;
+            const mappings = allFieldMappings.filter(
+              (mapping) => mapping.sourceColumn.trim() && mapping.targetColumn.trim()
+            );
+            if (!sourceRowCount || !sample || !mappings.length) {
+              setSelectedRowsQuery(null);
+              return;
+            }
+            const quote = (identifier: string) => `\`${identifier.replaceAll("`", "``")}\``;
+            const defaultsToWrite = missingFields.filter((field) => {
+              const mode =
+                fieldValues[field.name]?.mode ??
+                (field.reference ? "foreign" : field.required ? "custom" : "default");
+              return mode !== "default";
+            });
+            const columnCount = mappings.length + defaultsToWrite.length;
+            const targetColumns = [
+              ...mappings.map((mapping) => quote(mapping.targetColumn)),
+              ...defaultsToWrite.map((field) => quote(field.name))
+            ].join(", ");
+            const values = `(${Array.from({ length: columnCount }, () => "?").join(", ")})`;
+            setSelectedRowsQuery(
+              `INSERT INTO ${quote(sample.targetTable)} (${targetColumns})\n` +
+                `VALUES ${Array.from({ length: sourceRowCount }, () => values).join(",\n       ")};`
+            );
+          }}
+          canGenerateQuery={
+            Boolean(jobId) &&
+            selectedRows.some((row) => row.side === "source") &&
+            allFieldMappings.some(
+              (mapping) => mapping.sourceColumn.trim() && mapping.targetColumn.trim()
+            )
+          }
+          query={selectedRowsQuery}
         />
       ) : null}
     </section>
@@ -2152,12 +2578,37 @@ type SelectedSampleRow = {
 
 function SelectedRowsBanner({
   rows,
+  jobId,
+  tablePairSaved,
+  sourceInfo,
+  missingFields,
+  fieldValues,
+  onFieldValueChange,
+  saving,
+  onSave,
   onClear,
-  onRemove
+  onRemove,
+  onGenerateQuery,
+  canGenerateQuery,
+  query
 }: {
   rows: SelectedSampleRow[];
+  jobId: string;
+  tablePairSaved: boolean;
+  sourceInfo: SourceOption | undefined;
+  missingFields: MigrationTableSchema["targetColumns"];
+  fieldValues: Record<string, { mode: "default" | "custom" | "foreign"; value: unknown }>;
+  onFieldValueChange: (
+    name: string,
+    value: { mode: "default" | "custom" | "foreign"; value: unknown }
+  ) => void;
+  saving: boolean;
+  onSave: () => void;
   onClear: () => void;
   onRemove: (id: string) => void;
+  onGenerateQuery: () => void;
+  canGenerateQuery: boolean;
+  query: string | null;
 }) {
   return (
     <section
@@ -2171,35 +2622,27 @@ function SelectedRowsBanner({
           Clear selection
         </Button>
       </div>
-      <div className="workspace-scroll max-h-56 overflow-auto rounded-md border bg-card">
-        <table className="w-full min-w-max border-collapse text-xs">
-          <thead className="sticky top-0 bg-muted/50">
-            <tr>
-              <WorkspaceTableHeaderCell>SIDE</WorkspaceTableHeaderCell>
-              <WorkspaceTableHeaderCell>TABLE</WorkspaceTableHeaderCell>
-              <WorkspaceTableHeaderCell>ROW</WorkspaceTableHeaderCell>
-              <WorkspaceTableHeaderCell>SELECTED DATA</WorkspaceTableHeaderCell>
-              <WorkspaceTableHeaderCell>ACTION</WorkspaceTableHeaderCell>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className="border-b last:border-0">
-                <td className="px-3 py-2 capitalize">{row.side}</td>
-                <td className="px-3 py-2">{row.table}</td>
-                <td className="px-3 py-2 tabular-nums">{row.rowNumber}</td>
-                <td className="max-w-[36rem] px-3 py-2">
-                  <div className="flex flex-wrap gap-x-3 gap-y-1">
-                    {row.columns.map((column) => (
-                      <span key={column}>
-                        <span className="font-medium">{column}:</span>{" "}
-                        {sampleValue(row.values[column])}
-                      </span>
-                    ))}
-                    {!row.columns.length ? <span>No visible columns</span> : null}
-                  </div>
-                </td>
-                <td className="px-3 py-2">
+      <div className="flex justify-end">
+        <Button type="button" size="sm" disabled={!canGenerateQuery} onClick={onGenerateQuery}>
+          Generate query
+        </Button>
+      </div>
+      {!tablePairSaved ? (
+        <p className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+          Save this source → target table mapping before saving selected rows.
+        </p>
+      ) : null}
+      <div className="grid min-w-0 gap-3 lg:grid-cols-2">
+        <div className="workspace-scroll max-h-72 overflow-auto rounded-md border bg-card p-2">
+          <h5 className="px-2 pb-1 text-xs font-semibold">Data preview</h5>
+          {rows
+            .filter((row) => row.side === "source")
+            .map((row) => (
+              <div key={row.id} className="border-b p-2 last:border-0">
+                <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                  <span className="font-medium">
+                    {row.table} · row {row.rowNumber}
+                  </span>
                   <Button
                     type="button"
                     variant="outline"
@@ -2208,13 +2651,178 @@ function SelectedRowsBanner({
                   >
                     Remove
                   </Button>
-                </td>
-              </tr>
+                </div>
+                <pre className="overflow-x-auto whitespace-pre-wrap break-words text-xs">
+                  {JSON.stringify(row.values, null, 2)}
+                </pre>
+              </div>
             ))}
-          </tbody>
-        </table>
+        </div>
+        <div className="workspace-scroll max-h-72 overflow-auto rounded-md border bg-muted p-3">
+          <h5 className="pb-1 text-xs font-semibold">Query preview</h5>
+          {query ? (
+            <pre className="whitespace-pre-wrap break-words text-xs">
+              <code>{query}</code>
+            </pre>
+          ) : null}
+        </div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {missingFields.map((field) => {
+          const valueMode =
+            fieldValues[field.name]?.mode ??
+            (field.reference ? "foreign" : field.required ? "custom" : "default");
+          const options = field.foreignOptions ?? [];
+          const sqlType = field.type.toLowerCase();
+          const enumBody = /^enum\((.*)\)$/iu.exec(sqlType)?.[1];
+          const enumOptions = enumBody
+            ? [...enumBody.matchAll(/'((?:\\.|[^'])*)'/gu)].map((match) => match[1] ?? "")
+            : [];
+          const inputType = /\b(date|datetime|timestamp)\b/iu.test(sqlType)
+            ? sqlType.includes("time")
+              ? "datetime-local"
+              : "date"
+            : /\b(int|decimal|numeric|float|double|real)\b/iu.test(sqlType)
+              ? "number"
+              : "text";
+          return (
+            <label key={field.name} className="grid gap-1 text-xs">
+              <span>
+                {field.name} · {field.type}
+              </span>
+              <select
+                className="h-9 rounded-md border bg-background px-2"
+                value={valueMode}
+                onChange={(event) =>
+                  onFieldValueChange(field.name, {
+                    mode: event.target.value as "default" | "custom" | "foreign",
+                    value: fieldValues[field.name]?.value ?? ""
+                  })
+                }
+              >
+                {!field.required || field.defaultValue !== null ? (
+                  <option value="default">Database default</option>
+                ) : null}
+                {field.reference ? (
+                  <option value="foreign">
+                    Select {field.reference.table}.{field.reference.column}
+                  </option>
+                ) : null}
+                <option value="custom">Custom value</option>
+              </select>
+              {valueMode === "foreign" ? (
+                <select
+                  className="h-9 rounded-md border bg-background px-2"
+                  value={String(fieldValues[field.name]?.value ?? "")}
+                  onChange={(event) =>
+                    onFieldValueChange(field.name, { mode: "foreign", value: event.target.value })
+                  }
+                >
+                  <option value="">
+                    {options.length ? "Select value" : "No referenced values available"}
+                  </option>
+                  {options.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              ) : valueMode !== "default" && /tinyint\(1\)/iu.test(sqlType) ? (
+                <select
+                  className="h-9 rounded-md border bg-background px-2"
+                  value={String(fieldValues[field.name]?.value ?? "")}
+                  onChange={(event) =>
+                    onFieldValueChange(field.name, { mode: "custom", value: event.target.value })
+                  }
+                >
+                  <option value="">Select value</option>
+                  <option value="0">0 · false</option>
+                  <option value="1">1 · true</option>
+                </select>
+              ) : valueMode !== "default" && enumOptions.length ? (
+                <select
+                  className="h-9 rounded-md border bg-background px-2"
+                  value={String(fieldValues[field.name]?.value ?? "")}
+                  onChange={(event) =>
+                    onFieldValueChange(field.name, { mode: "custom", value: event.target.value })
+                  }
+                >
+                  <option value="">Select value</option>
+                  {enumOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              ) : valueMode !== "default" ? (
+                <Input
+                  type={inputType}
+                  value={String(fieldValues[field.name]?.value ?? "")}
+                  placeholder="Enter value"
+                  onChange={(event) =>
+                    onFieldValueChange(field.name, { mode: valueMode, value: event.target.value })
+                  }
+                />
+              ) : null}
+            </label>
+          );
+        })}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-xs text-muted-foreground">
+        <span>
+          {sourceInfo
+            ? `${sourceInfo.label} · ${sourceInfo.host}:${sourceInfo.port} · ${sourceInfo.database} · ${sourceInfo.user} · ••••••••`
+            : "Source connection unavailable"}
+        </span>
+        <Button
+          type="button"
+          disabled={
+            !jobId ||
+            !tablePairSaved ||
+            !query ||
+            !rows.some((row) => row.side === "source") ||
+            saving ||
+            missingFields.some((field) => {
+              const value = fieldValues[field.name];
+              const mode =
+                value?.mode ??
+                (field.reference ? "foreign" : field.required ? "custom" : "default");
+              return mode === "default"
+                ? field.required && field.defaultValue === null
+                : value?.value === undefined || value.value === null || value.value === "";
+            })
+          }
+          onClick={onSave}
+        >
+          {saving ? "Saving…" : "Save for Transfer Review"}
+        </Button>
       </div>
     </section>
+  );
+}
+
+function TransferOverviewRow({
+  leftLabel,
+  leftValue,
+  rightLabel,
+  rightValue
+}: {
+  leftLabel: string;
+  leftValue: string | number;
+  rightLabel: string;
+  rightValue: string | number;
+}) {
+  return (
+    <tr className="border-b last:border-0">
+      <th className="border-r bg-muted/30 px-3 py-2 text-left font-medium text-muted-foreground">
+        {leftLabel}
+      </th>
+      <td className="border-r px-3 py-2">{leftValue}</td>
+      <th className="border-r bg-muted/30 px-3 py-2 text-left font-medium text-muted-foreground">
+        {rightLabel}
+      </th>
+      <td className="px-3 py-2">{rightValue}</td>
+    </tr>
   );
 }
 

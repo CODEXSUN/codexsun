@@ -1,4 +1,6 @@
 export { DataMigrationWorkspace } from "./migration.workspace.js";
+export { MigrationAuditWorkspace } from "./migration.audit.workspace.js";
+export { MigrationRunQueueWorkspace } from "./migration.audit.workspace.js";
 export { DataMigrationSettings } from "./migration.settings.js";
 export {
   DataMigrationAnalysisWorkspace,

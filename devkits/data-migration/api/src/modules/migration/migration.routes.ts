@@ -1,11 +1,51 @@
 import type { FastifyInstance } from "fastify";
-import { ok } from "@codexsun/framework/http";
+import { ok, registerContractRoute } from "@codexsun/framework/http";
 import { z } from "zod";
 import type { DataMigrationHost } from "./migration.types.js";
 import { MigrationService } from "./migration.service.js";
 
 const idParams = z.object({ id: z.coerce.number().int().positive() }).strict();
 const jobParams = z.object({ id: z.string().uuid() }).strict();
+const auditQueueParams = z.object({ id: z.string().uuid() }).strict();
+const jobTableParams = z
+  .object({
+    id: z.string().uuid(),
+    sourceTable: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/u)
+  })
+  .strict();
+const auditQueueSummary = z
+  .object({
+    id: z.string().uuid(),
+    jobId: z.string().uuid(),
+    planHash: z.string().length(64),
+    sessionName: z.string(),
+    sourceTable: z.string(),
+    targetTable: z.string(),
+    selectedRows: z.number().int().nonnegative(),
+    sourceDatabase: z.string(),
+    targetDatabase: z.string(),
+    status: z.enum(["queued", "reviewed", "stale"]),
+    planStatus: z.enum(["generated", "finalized", "completed", "stale"]).nullable(),
+    migrationStatus: z.enum(["draft", "running", "completed", "failed"]),
+    queuedBy: z.string(),
+    queuedAt: z.string(),
+    reviewedBy: z.string().nullable(),
+    reviewedAt: z.string().nullable()
+  })
+  .strict();
+const auditQueueItem = auditQueueSummary
+  .extend({
+    queryDump: z.string(),
+    samples: z.array(
+      z
+        .object({
+          rowNumber: z.number().int().positive(),
+          rowData: z.record(z.string(), z.unknown())
+        })
+        .strict()
+    )
+  })
+  .strict();
 const jobInput = z
   .object({
     sessionName: z.string().trim().min(1).max(120),
@@ -134,6 +174,19 @@ export async function registerMigrationRoutes(app: FastifyInstance, host: DataMi
     const actor = await host.authorize(request);
     return ok(await service.createJob(input, actor), { requestId: request.id });
   });
+  registerContractRoute(app, {
+    method: "DELETE",
+    url: "/jobs/:id",
+    schemas: {
+      params: jobParams,
+      body: z.object({}).strict(),
+      response: z.object({ deleted: z.literal(true) }).strict()
+    },
+    handler: async ({ params, request }) => {
+      await host.authorize(request);
+      return service.deleteJob(params.id);
+    }
+  });
   app.patch("/jobs/:id", async (request) => {
     const { id } = jobParams.parse(request.params);
     const { sessionName } = z
@@ -154,6 +207,83 @@ export async function registerMigrationRoutes(app: FastifyInstance, host: DataMi
     await host.authorize(request);
     return ok(await service.getJobQueryPlan(id), { requestId: request.id });
   });
+  registerContractRoute(app, {
+    method: "POST",
+    url: "/jobs/:id/audit-handoff",
+    schemas: {
+      params: jobParams,
+      body: z.object({ rowIds: z.array(z.number().int().positive()).min(1).max(100) }).strict(),
+      response: auditQueueItem
+    },
+    handler: async ({ params, body, request }) => {
+      const actor = await host.authorize(request);
+      return service.handoffJobToAuditQueue(params.id, body.rowIds, actor);
+    }
+  });
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/audit-queue",
+    schemas: { response: z.array(auditQueueSummary) },
+    handler: async ({ request }) => {
+      await host.authorize(request);
+      return service.listAuditQueue();
+    }
+  });
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/audit-queue/:id",
+    schemas: { params: auditQueueParams, response: auditQueueItem },
+    handler: async ({ params, request }) => {
+      await host.authorize(request);
+      return service.getAuditQueueItem(params.id);
+    }
+  });
+  registerContractRoute(app, {
+    method: "POST",
+    url: "/audit-queue/:id/review",
+    schemas: {
+      params: auditQueueParams,
+      body: z.object({}).strict(),
+      response: auditQueueItem
+    },
+    handler: async ({ params, request }) => {
+      const actor = await host.authorize(request);
+      return service.markAuditQueueReviewed(params.id, actor);
+    }
+  });
+  registerContractRoute(app, {
+    method: "POST",
+    url: "/audit-queue/:id/run",
+    schemas: {
+      params: auditQueueParams,
+      body: z.object({}).strict(),
+      response: z
+        .object({
+          completed: z.array(
+            z.object({ table: z.string(), copiedRows: z.number().int().nonnegative() }).strict()
+          ),
+          copiedRows: z.number().int().nonnegative()
+        })
+        .strict()
+    },
+    handler: async ({ params, request }) => {
+      const actor = await host.authorize(request);
+      return service.runReviewedMigration(params.id, actor);
+    }
+  });
+  registerContractRoute(app, {
+    method: "DELETE",
+    url: "/audit-queue/:id",
+    schemas: {
+      params: auditQueueParams,
+      body: z.object({}).strict(),
+      response: z.object({ deleted: z.literal(true) }).strict()
+    },
+    handler: async ({ params, request }) => {
+      await host.authorize(request);
+      return service.deleteAuditQueueItem(params.id);
+    }
+  });
   app.post("/jobs/:id/query-plan/generate", async (request) => {
     const { id } = jobParams.parse(request.params);
     z.object({})
@@ -169,6 +299,56 @@ export async function registerMigrationRoutes(app: FastifyInstance, host: DataMi
       .parse(request.body ?? {});
     const actor = await host.authorize(request);
     return ok(await service.finalizeJobQueryPlan(id, actor), { requestId: request.id });
+  });
+  app.get("/jobs/:id/query-batch", async (request) => {
+    const { id } = jobParams.parse(request.params);
+    await host.authorize(request);
+    return ok(await service.getQueryBatch(id), { requestId: request.id });
+  });
+  app.post("/jobs/:id/query-batch", async (request) => {
+    const { id } = jobParams.parse(request.params);
+    const input = z
+      .object({
+        rows: z
+          .array(
+            z
+              .object({
+                sourceTable: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/u),
+                targetTable: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/u),
+                rowNumber: z.number().int().positive(),
+                rowData: z.record(z.string(), z.unknown())
+              })
+              .strict()
+          )
+          .min(1)
+          .max(100),
+        fieldValues: z.record(
+          z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/u),
+          z
+            .object({
+              mode: z.enum(["default", "custom", "foreign"]),
+              value: z.unknown()
+            })
+            .strict()
+        )
+      })
+      .strict()
+      .parse(request.body);
+    const actor = await host.authorize(request);
+    return ok(await service.saveQueryBatch(id, input, actor), { requestId: request.id });
+  });
+  registerContractRoute(app, {
+    method: "DELETE",
+    url: "/jobs/:id/query-batch",
+    schemas: {
+      params: jobParams,
+      body: z.object({}).strict(),
+      response: z.object({ deletedRows: z.number().int().nonnegative() }).strict()
+    },
+    handler: async ({ params, request }) => {
+      await host.authorize(request);
+      return service.deleteQueryBatch(params.id);
+    }
   });
   app.put("/jobs/:id/tables", async (request) => {
     const params = jobParams.parse(request.params);
@@ -196,46 +376,23 @@ export async function registerMigrationRoutes(app: FastifyInstance, host: DataMi
       }
     );
   });
-  app.post("/jobs/:id/migrate", async (request) => {
-    const id = jobParams.parse(request.params).id;
-    z.object({})
-      .strict()
-      .parse(request.body ?? {});
-    const actor = await host.authorize(request);
-    return ok(await service.migrateJob(id, actor), { requestId: request.id });
+  registerContractRoute(app, {
+    method: "DELETE",
+    url: "/jobs/:id/tables/:sourceTable",
+    schemas: {
+      params: jobTableParams,
+      body: z.object({}).strict(),
+      response: z.object({ deleted: z.literal(true) }).strict()
+    },
+    handler: async ({ params, request }) => {
+      await host.authorize(request);
+      return service.deleteJobTable(params.id, params.sourceTable);
+    }
   });
   app.post("/analysis", async (request) => {
     const input = analysisSelection.parse(request.body);
     await host.authorize(request);
     return ok(await service.analyze(input.sourceId, input.targetTenantId), {
-      requestId: request.id
-    });
-  });
-  app.post("/plan/read", async (request) => {
-    const input = analysisSelection.parse(request.body);
-    await host.authorize(request);
-    return ok(await service.getPlan(input.sourceId, input.targetTenantId), {
-      requestId: request.id
-    });
-  });
-  app.post("/plan/save", async (request) => {
-    const input = transfer.parse(request.body);
-    const actor = await host.authorize(request);
-    return ok(
-      await service.savePlan(
-        input.sourceId,
-        input.targetTenantId,
-        input.table,
-        input.columnMappings ?? [],
-        actor
-      ),
-      { requestId: request.id }
-    );
-  });
-  app.post("/plan/migrate", async (request) => {
-    const input = analysisSelection.parse(request.body);
-    const actor = await host.authorize(request);
-    return ok(await service.migratePlan(input.sourceId, input.targetTenantId, actor), {
       requestId: request.id
     });
   });
@@ -313,19 +470,6 @@ export async function registerMigrationRoutes(app: FastifyInstance, host: DataMi
       {
         requestId: request.id
       }
-    );
-  });
-  app.post("/runs", async (request) => {
-    const input = transfer.parse(request.body);
-    return ok(
-      await service.copy(
-        input.sourceId,
-        input.targetTenantId,
-        input.table,
-        await host.authorize(request),
-        input.columnMappings
-      ),
-      { requestId: request.id }
     );
   });
 }

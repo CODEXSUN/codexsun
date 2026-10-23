@@ -13,6 +13,24 @@
 Evidence: [CRM ownership decision](PLAN.md#marketing-integration-decision--2026-10-23) and [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review).
 No CRM schema, runtime behavior, or permission change is claimed here.
 
+## Retained inbound enquiry data — 2026-10-23
+
+- [x] Show retained Frappe source fields and paged revisions inside the enquiry Frappe sync tab.
+- [x] Preserve CRM-only captured email during source updates.
+- [x] Preserve exact source names when imported numeric serials collide.
+- [x] Reuse imported comment identities for edits and retain reply parents.
+- [x] Keep inbound imports from producing outbound echo events.
+- [x] Verify these paths with a disposable database and persisted queue retries.
+- [ ] Verify the source field panel in a browser after the additive Frappe migration.
+
+## Approved enquiry comments to Job Comments — 2026-10-23
+
+- [x] Save opening comments, subsequent comments, and replies with durable `comment-add` events; dispatch after commit.
+- [x] Preserve comment events when enquiry updates coalesce; forward mobile request IDs for retries.
+- [x] Suppress outbound events for imported comments. The Frappe worker owns remote retry identities, parent links, and inbound echo suppression.
+- [x] Verify the authenticated owner API and persisted queue live as Vijay: local enquiry `12` → `Q935`, three local/remote comments, repeated web/mobile POST reuse, and recovery after a lost remote comment response. See Frappe TASK for fixture and queue evidence.
+- [x] Enforce per-enquiry ordering when claiming an event. Live enquiry `13` → `Q936` verified an early comment delivery waits for its enquiry and succeeds on retry; three comments remain three after retries.
+
 ## CRM release 1.1.44 — 2026-10-22
 
 - [x] Bump the workspace to 1.1.44 and CRM Flutter to 1.1.44+144.
@@ -21,7 +39,6 @@ No CRM schema, runtime behavior, or permission change is claimed here.
 - [x] Deploy API, Web, and Shop to Hostinger and verify health routes. No migrations or seeds ran.
 
 VPS: source commit `0f71e79455c981619660a15467fada7401f59e7b` is live. API, Web, and Shop images are healthy; local health/ready and public API/Web/Shop routes returned HTTP 200. The release record is `/home/codexsun-releases/1.1.44-0f71e794/deployment.json`. Shared CXApp, MariaDB, Redis, media, and tunnel containers were not recreated. No database migration or seed ran. Browser UX and tenant authorization were not tested.\n\nAPK SHA-256: TechMedia `6C6F4BE0C079D3196F39164DC224F39D1E14AE23192BC703457075BF17A7B170`; Rainbow `3510B28679CE767AFEE41B8952135A4A851BC020A1218039B774BEF6B757E4E4`.
-
 
 ## Frappe sync status and verification — 2026-10-22
 
@@ -37,7 +54,7 @@ Verification: `npm run test:crm-frappe` passed 169 unit tests and the Duties, Fr
 
 - [x] Persist an enquiry upsert in the CRM outbox in the same transaction as local create/edit, then dispatch the committed event to the tenant queue without waiting for Frappe HTTP.
 - [x] Run the queued handler through the verified tenant Frappe connection; keep periodic relay recovery for durable pending events and retries.
-- [x] Add a Frappe sync status column and enquiry detail history/errors tab. Gate both by `crm.enquiry.frappe-sync.view` and the exact `admin@tenant.com` actor email.
+- [x] Add a Frappe sync status column and enquiry detail history/errors tab. Gate both by `crm.enquiry.frappe-sync.view`; Platform checks the permission for each request without an email-specific override.
 - [x] Pass automated regression checks and isolated database E2E verification before release. The queue E2E and all three CRM/Frappe database suites passed. Browser verification was not run. No live tenant records were changed.
 
 ## CRM own-record visibility and Team Head — 2026-10-21

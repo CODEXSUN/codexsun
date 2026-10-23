@@ -59,6 +59,7 @@ export type PlatformAppId =
   | "task-manager"
   | "blog"
   | "auditor"
+  | "marketing"
   | "crm"
   | "frappe"
   | "zetro"
@@ -85,6 +86,10 @@ export type PlatformAppRootPage =
   | "blog.overview"
   | "auditor.overview"
   | "auditor.clients"
+  | "marketing.brands"
+  | "marketing.campaigns"
+  | "marketing.captures"
+  | "marketing.connections"
   | "crm.overview"
   | "crm.sops"
   | "crm.tasks"
@@ -157,7 +162,8 @@ export type PlatformAppDefinition = {
     | "platform-task-manager"
     | "blog"
     | "auditor"
-    | "crm"
+    | "marketing"
+  | "crm"
     | "frappe"
     | "zetro"
     | "logicx-erp"
@@ -196,6 +202,7 @@ export const defaultTenantModuleKeys = [
 ] as const;
 
 export const platformAppRegistry: PlatformAppDefinition[] = [
+  {id:"marketing",label:"Marketing",moduleKey:"marketing",stack:"marketing",alwaysEnabled:false,defaultLanding:false,description:"Tenant campaigns and lead capture.",icon:Globe2Icon,accentClass:"bg-sky-600"},
   {
     id: "codexsun",
     label: "CODEXSUN",
@@ -531,6 +538,7 @@ export function defaultLandingApp(value: unknown, moduleKeys: string[]): Platfor
 
 export function appRootPage(appId: PlatformAppId): PlatformAppRootPage {
   if (appId === "codexsun") return "codexsun.frontdesk";
+  if (appId === "marketing") return "marketing.brands";
   if (appId === "sites") return "sites.overview";
   if (appId === "himsx") return "himsx.overview";
   if (appId === "docs") return "docs.overview";
@@ -1284,6 +1292,7 @@ export function appMenuItemsFor(
   chatCounts?: ChatNavigationCounts,
   crmTaskCount = 0
 ): SidemenuItem[] {
+  if(appId==="marketing") return ["brands","campaigns","captures","connections"].map(key=>({icon:Globe2Icon,title:key[0]!.toUpperCase()+key.slice(1),isActive:activePage===`marketing.${key}`,onSelect:()=>onSelect(`marketing.${key}`)}));
   if (appId === "codexsun") return codexsunMenuItems(activePage, onSelect);
   if (appId === "hrms")
     return [
@@ -1593,7 +1602,6 @@ export function appMenuItemsFor(
         isActive: [
           "frappe.live-sync",
           "frappe.live-sync-queue",
-          "frappe.enquiry-sync",
           "frappe.connection",
           "frappe.users",
           "frappe.user-mapping",
@@ -1612,12 +1620,6 @@ export function appMenuItemsFor(
             isActive: activePage === "frappe.live-sync-queue",
             onSelect: () => onSelect("frappe.live-sync-queue"),
             title: "Live sync queue"
-          },
-          {
-            icon: RefreshCwIcon,
-            isActive: activePage === "frappe.enquiry-sync",
-            onSelect: () => onSelect("frappe.enquiry-sync"),
-            title: "Sync queue"
           },
           {
             icon: Settings2Icon,

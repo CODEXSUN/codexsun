@@ -16,13 +16,13 @@ export class EnquirySyncRepository {
     const database = transaction ?? this.database;
     const current = await database
       .selectFrom("crm_enquiry_sync_events")
-      .select(["id", "status"])
+      .select(["id", "status", "event_type"])
       .where("enquiry_id", "=", input.enquiryId)
       .orderBy("id", "desc")
       .limit(1)
       .forUpdate()
       .executeTakeFirst();
-    if (current && ["pending", "retry"].includes(current.status)) {
+    if (current?.event_type === "enquiry-upsert" && ["pending", "retry"].includes(current.status)) {
       await database
         .updateTable("crm_enquiry_sync_events")
         .set({
@@ -155,6 +155,21 @@ export class EnquirySyncRepository {
     return new Map(rows.map((row) => [row.enquiryId, row.status]));
   }
 
+  async deliveryStates(enquiryIds: number[]) {
+    const statuses = await this.latestStatuses(enquiryIds);
+    const states = new Map([...statuses].map(([id, status]) => [id, { status, error: null as string | null }]));
+    if (!enquiryIds.length) return states;
+    const failures = await this.database.selectFrom("crm_enquiry_sync_events")
+      .select(["enquiry_id", "status", "last_error"])
+      .where("enquiry_id", "in", enquiryIds).where("status", "!=", "synced")
+      .where("last_error", "is not", null).orderBy("id", "desc").execute();
+    for (const row of failures) {
+      if (!states.get(row.enquiry_id)?.error)
+        states.set(row.enquiry_id, { status: row.status, error: row.last_error });
+    }
+    return states;
+  }
+
   async listQueue(
     status: "all" | "pending" | "processing" | "retry" | "failed" | "synced",
     page: number,
@@ -235,11 +250,12 @@ export class EnquirySyncRepository {
       .execute();
   }
 
-  dispatchableEvents(limit = 50) {
+  dispatchableEvents(limit = 50, enquiryId?: number) {
     return this.database
       .selectFrom("crm_enquiry_sync_events as event")
       .select(["event.id", "event.actor_email", "event.correlation_id", "event.attempts"])
       .where("event.status", "in", ["pending", "retry"])
+      .$if(enquiryId !== undefined, (query) => query.where("event.enquiry_id", "=", enquiryId!))
       .where(sql<boolean>`event.available_at <= UTC_TIMESTAMP()`)
       .where(
         sql<boolean>`NOT EXISTS (
@@ -272,14 +288,43 @@ export class EnquirySyncRepository {
       .executeTakeFirst();
   }
 
-  async markProcessing(id: number) {
-    const result = await this.database
-      .updateTable("crm_enquiry_sync_events")
-      .set({ status: "processing", updated_at: sql`UTC_TIMESTAMP()` })
-      .where("id", "=", id)
-      .where("status", "in", ["pending", "retry"])
+  commentForSync(enquiryId: number, commentId: number) {
+    return this.database
+      .selectFrom("crm_enquiry_comments")
+      .selectAll()
+      .where("id", "=", commentId)
+      .where("enquiry_id", "=", enquiryId)
+      .executeTakeFirst();
+  }
+
+  commentSyncEvent(commentId: number) {
+    return this.database
+      .selectFrom("crm_enquiry_sync_events")
+      .selectAll()
+      .where("event_type", "=", "comment-add")
+      .where("entity_id", "=", commentId)
+      .orderBy("id", "asc")
+      .executeTakeFirst();
+  }
+
+  commentSyncEvents(enquiryId: number) {
+    return this.database
+      .selectFrom("crm_enquiry_sync_events")
+      .select(["idempotency_key", "remote_name", "entity_id"])
+      .where("enquiry_id", "=", enquiryId)
+      .where("event_type", "=", "comment-add")
       .execute();
-    return result.some((item) => Number(item.numUpdatedRows) === 1);
+  }
+
+  async markProcessing(id: number) {
+    const result = await sql`UPDATE crm_enquiry_sync_events AS event
+      LEFT JOIN crm_enquiry_sync_events AS earlier
+        ON earlier.enquiry_id=event.enquiry_id AND earlier.id<event.id
+        AND earlier.status IN ('pending','processing','retry')
+      SET event.status='processing',event.updated_at=UTC_TIMESTAMP()
+      WHERE event.id=${id} AND event.status IN ('pending','retry')
+        AND earlier.id IS NULL`.execute(this.database);
+    return Number(result.numAffectedRows) === 1;
   }
 
   async markSynced(id: number, remoteName: string) {

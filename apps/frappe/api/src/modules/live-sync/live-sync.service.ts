@@ -12,11 +12,16 @@ export class FrappeLiveSyncService {
       .where("id", "=", 1)
       .executeTakeFirstOrThrow();
     const scheduleMinutes = (
-      [5, 15, 30, 60].includes(row.schedule_minutes) ? row.schedule_minutes : 15
+      [1, 5, 15, 30, 60].includes(row.schedule_minutes) ? row.schedule_minutes : 1
     ) as LiveSyncSettings["scheduleMinutes"];
     return {
       enabled: Boolean(row.enabled),
       paused: Boolean(row.paused),
+      direction: row.direction === "bidirectional" ? "bidirectional" : "inbound",
+      inboundBaseUrl: row.inbound_base_url,
+      inboundCheckpointAt: row.inbound_checkpoint_at
+        ? new Date(row.inbound_checkpoint_at).toISOString()
+        : null,
       scheduleMinutes,
       modules: {
         contacts: Boolean(row.contacts_enabled),
@@ -31,7 +36,10 @@ export class FrappeLiveSyncService {
     };
   }
   async save(
-    input: Pick<LiveSyncSettings, "enabled" | "paused" | "scheduleMinutes" | "modules">,
+    input: Pick<
+      LiveSyncSettings,
+      "enabled" | "paused" | "direction" | "scheduleMinutes" | "modules"
+    >,
     actorEmail: string
   ) {
     await this.database
@@ -39,6 +47,7 @@ export class FrappeLiveSyncService {
       .set({
         enabled: input.enabled,
         paused: input.paused,
+        direction: input.direction,
         schedule_minutes: input.scheduleMinutes,
         contacts_enabled: input.modules.contacts,
         enquiries_enabled: input.modules.enquiries,
@@ -50,6 +59,24 @@ export class FrappeLiveSyncService {
       .where("id", "=", 1)
       .execute();
     return this.settings();
+  }
+
+  async completeInbound(baseUrl: string, checkpointAt: string) {
+    const checkpoint = new Date(checkpointAt);
+    if (Number.isNaN(checkpoint.getTime())) throw new Error("Invalid inbound checkpoint.");
+    await this.database
+      .updateTable("frappe_live_sync_settings")
+      .set({ inbound_base_url: baseUrl, inbound_checkpoint_at: checkpoint })
+      .where("id", "=", 1)
+      .where((eb) =>
+        eb.or([
+          eb("inbound_base_url", "is", null),
+          eb("inbound_base_url", "!=", baseUrl),
+          eb("inbound_checkpoint_at", "is", null),
+          eb("inbound_checkpoint_at", "<", checkpoint)
+        ])
+      )
+      .execute();
   }
   async dueKinds(now = new Date()) {
     const settings = await this.settings();

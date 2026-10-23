@@ -46,6 +46,7 @@ import { ScheduleRecordList, useRecordSchedules } from "../scheduler";
 import { createEnquiryComment, startEnquiryJob, stopEnquiryJob } from "./enquiry.services";
 import { enquiryTableText } from "./enquiry.table-text";
 import { EnquiryFrappeSyncWorkspace } from "./enquiry.frappe-sync";
+import { EnquiryFrappeSource } from "./enquiry.frappe-source";
 import type { EnquiryLookup, EnquiryMasterLookup, EnquiryRecord } from "./enquiry.types";
 
 type EnquiryTab =
@@ -280,11 +281,14 @@ export function EnquiryShow({
               />
             ),
             content: (
-              <EnquiryFrappeSyncWorkspace
-                events={frappeSync.data ?? []}
-                loading={frappeSync.isLoading}
-                error={frappeSync.error?.message ?? ""}
-              />
+              <div className="space-y-4 p-3">
+                <EnquiryFrappeSource key={record.id} enquiryId={Number(record.id)} />
+                <EnquiryFrappeSyncWorkspace
+                  events={frappeSync.data ?? []}
+                  loading={frappeSync.isLoading}
+                  error={frappeSync.error?.message ?? ""}
+                />
+              </div>
             )
           }
         ]
@@ -355,6 +359,9 @@ export function EnquiryShow({
             mobile={mobile}
             closurePending={closure.data?.item?.status === "pending"}
           />
+          {record.frappeSyncError ? <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            Frappe export error: {record.frappeSyncError}
+          </p> : null}
           <WorkspaceAnimatedTabs
             keepMounted
             tabs={tabs}

@@ -21,6 +21,8 @@ export const queueManagerWorker = {
     "chat.telegram.sync",
     "client-artifact.prepare",
     "crm.enquiry.frappe-sync",
+    "crm.contact.frappe-sync",
+    "crm.sop.frappe-sync",
     "crm.call-log.frappe-sync",
     "database-maintenance.run",
     "frappe.enquiries.import",

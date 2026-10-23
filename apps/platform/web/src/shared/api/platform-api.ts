@@ -259,6 +259,7 @@ export function createSessionBoundGateway(desk: Desk) {
     sessionKey: slot ?? "signed-out",
     get: <T>(path: string) => boundRequest<T>(path, "GET"),
     post: <T>(path: string, body: unknown) => boundRequest<T>(path, "POST", body),
+    put: <T>(path: string, body: unknown) => boundRequest<T>(path, "PUT", body),
     patch: <T>(path: string, body: unknown) => boundRequest<T>(path, "PATCH", body)
   };
 }

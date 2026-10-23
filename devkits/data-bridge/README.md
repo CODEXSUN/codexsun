@@ -1,0 +1,36 @@
+# Data Bridge
+
+Data Bridge is a Super Admin DevKit for importing shared Core master data. Platform composes its pages and supplies authenticated tenant-registry access. Data Bridge owns its common-table import API, schema, review snapshots, and import status.
+
+## Scope
+
+- **Overview** is the Data Bridge landing page.
+- **Common Tables** lists 31 supported Core common tables with availability and schema compatibility for a selected saved source and registered target tenant.
+- **Audit & import all missing rows** creates a tenant-scoped Queue Manager job and one persisted combined report. The worker derives parent order from target foreign keys, selects shared business columns, resolves target parents, audits each source row, and imports only missing records. Existing data is preserved. Conflicts, unavailable tables, unsupported business keys, and missing parents are listed with source row IDs where available. Only affected tables/records are highlighted; **Needs attention only** filters the report. Completed runs refresh counts automatically. Repeating a run skips existing records.
+- **Table Import Review** shows paginated source and target data for one table, saves only selected source rows and columns, and previews that saved payload before import into the selected target.
+- Both previews and new snapshots sort by `id` ascending when available, then fall back to primary keys. The review toolbar supports multiple visible columns, comparison of the current pages and visible fields, and match/unmatched visibility filters. Redacted values do not produce match results. Saving captures only checked source row IDs and columns selected in the Columns menu. Target checkboxes are comparison only. Refresh clears the selection.
+- Existing external source credentials are resolved on the server through Data Migration's narrow internal source-access contract. Credentials are never returned to the browser or copied into Data Bridge records.
+- Imports use same-named target columns. Missing required fields or differing shared field types block the import. Duplicate keys remain unchanged and are counted as skipped. Other database errors roll back the table transaction.
+- Saved batches contain up to 10,000 selected source rows and are stored in Platform master tables owned by Data Bridge. The server fetches selected IDs, rejects missing rows or invalid/sensitive columns, and requires fields without target defaults. It stores only selected field values. The saved JSON preview and review checkbox precede import. Import referenced parent tables before dependent tables.
+- **Audit selected rows** checks every saved row against the current target using the selected values and complete selected unique keys. Exact matches and unique-key conflicts are skipped. The persisted report shows ready, existing, conflict, inserted, warning, and rollback outcomes with operator and timestamp. Import requires an audit and rechecks each row inside the target transaction. A per-review database lock serializes audit/import requests. Saving a new selection clears the old report.
+- Foreign references in selected fields are resolved through parent business unique keys, recursively matching the source parent to the target parent. Missing or ambiguous parent matches block saving; import parents first. Numeric source IDs are not assumed to identify the same target record. SQL dates remain date strings throughout snapshots and import.
+
+## Ownership
+
+Data Bridge owns common-table import behavior, snapshots, and lifecycle. Platform owns Super Admin authentication, navigation, composition, and active registry tenant resolution. Data Migration owns external source credentials and exposes a narrow server-side resolver contract; it does not own Data Bridge import behavior.
+
+The API lives under `api/src/modules/common-table-import/`; the two page workspaces and fixed API client live under `src/modules/common-table-import/`. Public package contracts are `@codexsun/data-bridge-api` and `@codexsun/data-bridge-web`.
+
+## Verification
+
+The tracked `data-bridge.common-table-import-snapshots-v2` migration upgrades older review tables with snapshot columns and row audit attribution. It preserves existing rows and counts. Legacy reviews without a schema snapshot must be saved again before import.
+
+Run the focused database regression with `node --env-file=.env --import tsx --test tools/e2e/data-bridge.e2e.ts`. It uses disposable databases to verify fresh installation, legacy upgrade, preserved snapshots, saving, and repeat migration.
+
+Run `tools/e2e/data-bridge-bulk.e2e.ts` and `tools/e2e/data-bridge-references.e2e.ts` with the same Node flags for combined parent-order, idempotency, warning, and foreign-reference checks. Combined reports require the additive v4 master migration and an enabled Queue Manager worker. Database and BullMQ backends use the same processor and tenant-bound payload.
+
+Run API/web typecheck and lint, `node tools/check-module-boundaries.mjs data-bridge`, Platform API/web checks, component documentation checks, dependency layout checks, and isolated MariaDB/browser verification. Never test an import against a real tenant.
+
+## Combined report row details
+
+Each table has View row results with Imported, Existing, and Warning filters, pagination, source business data, matched target business data, and row messages. New runs persist these snapshots in the existing report JSON; older reports explicitly require a new audit for row details. IDs and sensitive metadata are excluded from the data snapshots. Disposable bulk tests verify inserted, existing, conflict values, and persisted snapshots.

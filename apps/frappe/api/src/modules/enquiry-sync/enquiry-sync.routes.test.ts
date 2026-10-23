@@ -27,6 +27,7 @@ test("remote preview, selected pull, and import job routes are available", async
   const query = (table: string) => {
     const builder = {
       selectAll: () => builder,
+      set: () => builder,
       select: () => builder,
       where: () => builder,
       innerJoin: () => builder,
@@ -45,7 +46,18 @@ test("remote preview, selected pull, and import job routes are available", async
     execute: async () => {}
   };
   const database = {
+    connection: () => ({
+      execute: async (run: (connection: unknown) => Promise<unknown>) =>
+        run({
+          getExecutor: () => ({
+            transformQuery: (node: unknown) => node,
+            compileQuery: () => ({}),
+            executeQuery: async () => ({ rows: [{ acquired: 1 }] })
+          })
+        })
+    }),
     selectFrom: query,
+    updateTable: query,
     insertInto: () => insert
   } as unknown as Kysely<FrappeDatabase>;
   globalThis.fetch = async (input) =>
@@ -120,6 +132,63 @@ test("remote preview, selected pull, and import job routes are available", async
     });
     assert.equal(queued.statusCode, 200);
     assert.equal(queued.json().data.jobId, 7);
+  } finally {
+    await app.close();
+  }
+});
+
+test("enquiry sync queue accepts 200 rows and defaults to 200", async () => {
+  const requested: Array<{ status: string; page: number; pageSize: number }> = [];
+  const countFn = Object.assign(
+    (field: string) => ({ as: (alias: string) => ({ field, alias }) }),
+    {
+      count: (field: string) => ({ as: (alias: string) => ({ field, alias }) })
+    }
+  );
+  const selectFrom = () => {
+    const query = {
+      innerJoin: () => query,
+      select: () => query,
+      where: () => query,
+      orderBy: () => query,
+      limit: (pageSize: number) => {
+        requested.push({ status: "all", page: 1, pageSize });
+        return query;
+      },
+      offset: () => query,
+      $if: () => query,
+      execute: async () => [],
+      executeTakeFirstOrThrow: async () => ({ count: 0 })
+    };
+    return query;
+  };
+  const database = {
+    selectFrom,
+    fn: countFn
+  };
+  const app = Fastify();
+  registerFrappeEnquirySyncRoutes(
+    app,
+    async () => ({
+      database: database as never,
+      createEnquiry: async () => ({ id: 1 }) as EnquiryRecord,
+      updateEnquiry: async () => ({ id: 1 }) as EnquiryRecord,
+      localUserForEmployee: async () => null,
+      listInForName: async () => null
+    }),
+    { baseUrl: "https://frappe.example.com/", apiKey: "key", apiSecret: "secret", enabled: true },
+    "secret",
+    {
+      start: async () => ({ jobId: 1, status: "pending" }),
+      status: async () => ({ jobId: 1, status: "pending", progress: null, errorMessage: null }),
+      latest: async () => null
+    }
+  );
+  try {
+    const response = await app.inject({ method: "GET", url: "/frappe/enquiries/sync-queue" });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().data.pageSize, 200);
+    assert.deepEqual(requested, [{ status: "all", page: 1, pageSize: 200 }]);
   } finally {
     await app.close();
   }

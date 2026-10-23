@@ -2,12 +2,19 @@ import { AppError } from "@codexsun/framework/errors";
 import { createHash } from "node:crypto";
 import {
   FrappeConnectionRepository,
+  listChangedEnquiryJobComments,
+  listEnquiryJobComments,
   requestFrappe,
   type FrappeSettings
 } from "../connection/index.js";
 import type { EnquiryInput } from "@codexsun/crm-api/enquiry-sync";
+import { EnquirySyncRepository, type EnquiryDatabase } from "@codexsun/crm-api/enquiry-sync";
+import type { Kysely } from "kysely";
+import { enquiryCommentRemoteName } from "./enquiry-sync.comment-identity.js";
 import { normalizeFrappeEnquiryTitle } from "../export/enquiry-title.js";
 import type { EnquirySyncContext, ImportProgress, RemoteEnquiry } from "./enquiry-sync.types.js";
+import { EnquirySourceRepository } from "./enquiry-sync.source.repository.js";
+import { orderEnquiryJobComments } from "./enquiry-sync.comment-order.js";
 
 const pageSize = 50;
 const previewFields = [
@@ -20,16 +27,6 @@ const previewFields = [
   "modified",
   "creation",
   "owner"
-];
-const detailFields = [
-  ...previewFields,
-  "enquiry_details",
-  "customer",
-  "due_date",
-  "status_details",
-  "user_employee",
-  "assigned_to_employee",
-  "group"
 ];
 
 export class FrappeEnquirySyncService {
@@ -81,7 +78,8 @@ export class FrappeEnquirySyncService {
 
   async importUnlinked(
     report: (progress: ImportProgress) => Promise<void>,
-    expectedBaseUrl?: string
+    expectedBaseUrl?: string,
+    allowSourceOverwrite = true
   ) {
     const settings = await this.settings();
     if (expectedBaseUrl && settings.baseUrl !== expectedBaseUrl)
@@ -98,22 +96,22 @@ export class FrappeEnquirySyncService {
         throw AppError.conflict("The Frappe connection changed during this import.");
       const page = await this.listRemote(settings, start, pageSize);
       if (!page.length) break;
-      const names = page
-        .map((item) => item.name)
-        .filter((name): name is string => Boolean(name?.trim()));
+      const names = page.map((item) => item.name);
       for (const name of names) {
         progress.scanned += 1;
         try {
+          if (typeof name !== "string" || !name.trim())
+            throw AppError.validation("Frappe returned an enquiry without a document identity.");
           // A bulk import is explicitly source-directed: Frappe values, including
           // modified timestamps, are authoritative for this reconciliation pass.
-          const result = await this.pullWithSettings(name, settings, true);
+          const result = await this.pullWithSettings(name, settings, allowSourceOverwrite, true);
           if (result.status === "updated") progress.skipped += 1;
           else progress.created += 1;
         } catch (error) {
           progress.failed += 1;
           if (progress.failures.length < 100)
             progress.failures.push({
-              name,
+              name: typeof name === "string" && name.trim() ? name : "(missing identity)",
               message: error instanceof Error ? error.message : "Import failed."
             });
         }
@@ -145,16 +143,22 @@ export class FrappeEnquirySyncService {
         throw AppError.conflict("The Frappe connection changed during live import.");
       const page = await this.listRemote(settings, start, pageSize, modifiedAfter);
       for (const remote of page) {
-        if (!remote.name?.trim()) continue;
-        processed.add(remote.name);
         progress.scanned += 1;
         try {
+          if (typeof remote.name !== "string" || !remote.name.trim())
+            throw AppError.validation("Frappe returned an enquiry without a document identity.");
+          processed.add(remote.name);
           const linked = await this.repository.byRemoteName(remote.name);
           const sourceModified = normalizeSourceDateTime(remote.modified, remote.name, "modified");
-          if (linked && utcMillis(linked.syncedAt) >= utcMillis(sourceModified)) {
+          if (
+            linked?.sourceModifiedAt &&
+            utcMillis(linked.sourceModifiedAt) >= utcMillis(sourceModified)
+          ) {
+            await this.importEnquiryJobComments(linked.enquiryId, remote.name, settings);
+            await this.importComments(linked.enquiryId, remote.name, settings);
             progress.skipped += 1;
           } else {
-            const result = await this.pullWithSettings(remote.name, settings);
+            const result = await this.pullWithSettings(remote.name, settings, false, true);
             if (result.status === "created") progress.created += 1;
             else progress.skipped += 1;
           }
@@ -162,7 +166,10 @@ export class FrappeEnquirySyncService {
           progress.failed += 1;
           if (progress.failures.length < 100)
             progress.failures.push({
-              name: remote.name,
+              name:
+                typeof remote.name === "string" && remote.name.trim()
+                  ? remote.name
+                  : "(missing identity)",
               message: error instanceof Error ? error.message : "Live import failed."
             });
         }
@@ -205,27 +212,36 @@ export class FrappeEnquirySyncService {
       }
       if (response.data.length < 500) break;
     }
+    const changedJobComments = await listChangedEnquiryJobComments(
+      settings,
+      frappeLocalDateTime(modifiedAfter)
+    );
+    for (const comment of changedJobComments) {
+      if (comment.job_id && !processed.has(comment.job_id)) names.add(comment.job_id);
+    }
     for (const remoteName of names) {
       progress.scanned += 1;
       try {
         const linked = await this.repository.byRemoteName(remoteName);
         if (!linked) {
-          await this.pullWithSettings(remoteName, settings);
+          await this.pullWithSettings(remoteName, settings, false, true);
           progress.created += 1;
           continue;
         }
         const response = await requestFrappe<{ data?: RemoteEnquiry }>(
-          `/api/resource/Enquiry/${encodeURIComponent(remoteName)}?fields=${encodeURIComponent(JSON.stringify(detailFields))}`,
+          `/api/resource/Enquiry/${encodeURIComponent(remoteName)}`,
           "GET",
           settings
         );
         if (!response.data || response.data.name !== remoteName)
           throw AppError.validation(`Frappe enquiry ${remoteName} could not be read.`);
-        await this.importEnquiryMessages(
-          linked.enquiryId,
-          response.data.enquiry_messages ?? [],
-          settings
+        await new EnquirySourceRepository(this.context.database).retain(
+          settings.baseUrl,
+          remoteName,
+          { enquiry: response.data },
+          linked.enquiryId
         );
+        await this.importEnquiryJobComments(linked.enquiryId, remoteName, settings);
         await this.importComments(linked.enquiryId, remoteName, settings);
         progress.skipped += 1;
       } catch (error) {
@@ -275,10 +291,11 @@ export class FrappeEnquirySyncService {
   private async pullWithSettings(
     remoteName: string,
     settings: FrappeSettings,
-    allowSourceOverwrite = false
+    allowSourceOverwrite = false,
+    preserveLocalOrigin = false
   ) {
     const response = await requestFrappe<{ data?: RemoteEnquiry }>(
-      `/api/resource/Enquiry/${encodeURIComponent(remoteName)}?fields=${encodeURIComponent(JSON.stringify(detailFields))}`,
+      `/api/resource/Enquiry/${encodeURIComponent(remoteName)}`,
       "GET",
       settings
     );
@@ -309,9 +326,28 @@ export class FrappeEnquirySyncService {
           contactId: existing.contactId,
           assignedUserId: existing.assignedUserId,
           listInId: existing.listInId,
-          syncedAt: new Date().toISOString()
+          syncedAt: new Date().toISOString(),
+          sourceModifiedAt: null
         };
       }
+    }
+    const sourceRecords = new EnquirySourceRepository(this.context.database);
+    await sourceRecords.retain(
+      settings.baseUrl,
+      remoteName,
+      { enquiry: remote },
+      linked?.enquiryId ?? null
+    );
+    if (linked && linked.source !== "frappe" && preserveLocalOrigin) {
+      await sourceRecords.retain(
+        settings.baseUrl,
+        remoteName,
+        { enquiry: remote },
+        linked.enquiryId
+      );
+      await this.importEnquiryJobComments(linked.enquiryId, remoteName, settings);
+      await this.importComments(linked.enquiryId, remoteName, settings);
+      return { remoteName, enquiryId: linked.enquiryId, status: "updated" as const };
     }
     if (linked && linked.source !== "frappe")
       throw AppError.conflict("This enquiry originated locally. Post its changes to Frappe.");
@@ -327,14 +363,16 @@ export class FrappeEnquirySyncService {
         ? await this.context.updateImportedEnquiry(linked.enquiryId, input, source)
         : await this.context.updateEnquiry(linked.enquiryId, input)
       : await this.createFromFrappe(remote, input, settings);
-    await this.repository.save(local.id, remote.name);
+    await this.repository.save(local.id, remote.name, source.updatedAt);
+    await sourceRecords.retain(settings.baseUrl, remoteName, { enquiry: remote }, local.id);
+    await sourceRecords.link(settings.baseUrl, remoteName, local.id);
     if (source.externalCustomer && local.contactId && this.context.linkCustomerIdentity)
       await this.context.linkCustomerIdentity(
         source.externalCustomer.externalKey,
         source.externalCustomer.code,
         local.contactId
       );
-    await this.importEnquiryMessages(local.id, remote.enquiry_messages ?? [], settings);
+    await this.importEnquiryJobComments(local.id, remote.name, settings);
     await this.importComments(local.id, remote.name, settings);
     return {
       remoteName: remote.name,
@@ -355,7 +393,7 @@ export class FrappeEnquirySyncService {
   }
 
   private async sourceMetadata(remote: RemoteEnquiry, settings: FrappeSettings) {
-    const match = /^ENQ([1-9]\d*)$/u.exec(remote.name);
+    const match = /^(?:ENQ|Q)([1-9]\d*)$/u.exec(remote.name);
     const enquiryNo = match ? Number(match[1]) : NaN;
     if (!Number.isSafeInteger(enquiryNo))
       throw AppError.validation(
@@ -406,7 +444,7 @@ export class FrappeEnquirySyncService {
       ["Comment", "reference_doctype", "=", "Enquiry"],
       ["Comment", "reference_name", "=", remoteName]
     ]);
-    const fields = JSON.stringify(["name", "content", "owner", "creation", "comment_type"]);
+    const fields = JSON.stringify(["*"]);
     for (let start = 0; ; start += 500) {
       const path = `/api/resource/Comment?${new URLSearchParams({ filters, fields, order_by: "creation asc", limit_start: String(start), limit_page_length: "500" })}`;
       const response = await requestFrappe<{
@@ -420,6 +458,12 @@ export class FrappeEnquirySyncService {
       }>(path, "GET", settings);
       if (!Array.isArray(response.data))
         throw AppError.validation("Frappe returned an invalid enquiry comment list.");
+      await new EnquirySourceRepository(this.context.database).retain(
+        settings.baseUrl,
+        remoteName,
+        { timeline: response.data },
+        enquiryId
+      );
       for (const comment of response.data) {
         if (
           !comment.name ||
@@ -444,23 +488,50 @@ export class FrappeEnquirySyncService {
     }
   }
 
-  private async importEnquiryMessages(
+  private async importEnquiryJobComments(
     enquiryId: number,
-    messages: NonNullable<RemoteEnquiry["enquiry_messages"]>,
+    remoteName: string,
     settings: FrappeSettings
   ) {
     if (!this.context.importComment) return;
-    for (const message of messages) {
-      if (!message.name || !message.comment?.trim()) continue;
-      const author = message.owner?.trim()
-        ? ((await this.context.localActorForFrappeUser?.(message.owner.trim(), settings.baseUrl)) ??
-          message.owner.trim())
+    const comments = await listEnquiryJobComments(settings, [remoteName]);
+    await new EnquirySourceRepository(this.context.database).retain(
+      settings.baseUrl,
+      remoteName,
+      { jobComments: comments },
+      enquiryId
+    );
+    const outbound = await new EnquirySyncRepository(
+      this.context.database as unknown as Kysely<EnquiryDatabase>
+    ).commentSyncEvents(enquiryId);
+    const postedNames = new Set(
+      outbound.flatMap((event) => [
+        event.remote_name,
+        enquiryCommentRemoteName(settings.baseUrl, event.idempotency_key)
+      ])
+    );
+    for (const comment of orderEnquiryJobComments(comments)) {
+      if (postedNames.has(comment.name)) continue;
+      if (!comment.name || comment.job_id !== remoteName || !comment.comment?.trim()) continue;
+      const author = comment.owner?.trim()
+        ? ((await this.context.localActorForFrappeUser?.(comment.owner.trim(), settings.baseUrl)) ??
+          comment.owner.trim())
         : "frappe-import";
+      const localParent = comment.parent_comment
+        ? outbound.find(
+            (event) =>
+              event.remote_name === comment.parent_comment ||
+              enquiryCommentRemoteName(settings.baseUrl, event.idempotency_key) ===
+                comment.parent_comment
+          )?.entity_id
+        : null;
       await this.context.importComment(enquiryId, {
-        id: message.name,
-        content: message.comment,
+        id: comment.name,
+        content: comment.comment,
         author,
-        createdAt: normalizeSourceDateTime(message.creation, message.name, "message creation")
+        parentSourceId: comment.parent_comment ?? null,
+        ...(localParent ? { parentLocalId: localParent } : {}),
+        createdAt: normalizeSourceDateTime(comment.creation, comment.name, "Job Comments creation")
       });
     }
   }
@@ -509,7 +580,7 @@ export class FrappeEnquirySyncService {
       : null;
     const listInId = remote.group?.trim()
       ? await this.context.listInForName(remote.group.trim())
-      : (linked?.listInId ?? null);
+      : null;
     return {
       title:
         normalizeFrappeEnquiryTitle(remote.title) ||

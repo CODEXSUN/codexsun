@@ -39,8 +39,20 @@ const DataMigrationWorkspace = lazyWorkspace(() =>
 const DataMigrationAnalysisWorkspace = lazyWorkspace(() =>
   import("@codexsun/data-migration-web").then((module) => module.DataMigrationAnalysisWorkspace)
 );
+const MigrationAuditWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-migration-web").then((module) => module.MigrationAuditWorkspace)
+);
+const MigrationRunQueueWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-migration-web").then((module) => module.MigrationRunQueueWorkspace)
+);
 const DataMigrationSettings = lazyWorkspace(() =>
   import("@codexsun/data-migration-web").then((module) => module.DataMigrationSettings)
+);
+const DataBridgeWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-bridge-web").then((module) => module.DataBridgeWorkspace)
+);
+const CommonTableImportWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-bridge-web").then((module) => module.CommonTableImportWorkspace)
 );
 const ZetroAdminWorkspace = lazyWorkspace(() =>
   import("@codexsun/zetro-web/modules/admin").then((module) => module.ZetroAdminWorkspace)
@@ -129,7 +141,13 @@ type SaPage =
   | "project-manager-ideas"
   | "data-migration-analysis"
   | "data-migration-run"
+  | "data-migration-transfer-review"
+  | "data-migration-audit"
+  | "data-migration-queue"
   | "data-migration-settings"
+  | "data-bridge"
+  | "data-bridge-common-tables"
+  | "data-bridge-table-import"
   | "zuno"
   | SaZetroPage
   | "tenants"
@@ -162,6 +180,18 @@ export function SaDesk() {
     targetTenantId: number;
     table: string;
   }>();
+  const bridgeSearch = location.search as Record<string, unknown>;
+  const bridgeSelection =
+    typeof bridgeSearch.sourceId === "number" &&
+    typeof bridgeSearch.targetTenantId === "number" &&
+    typeof bridgeSearch.table === "string"
+      ? {
+          sourceId: bridgeSearch.sourceId,
+          targetTenantId: bridgeSearch.targetTenantId,
+          table: bridgeSearch.table,
+          ...(typeof bridgeSearch.importId === "string" ? { importId: bridgeSearch.importId } : {})
+        }
+      : undefined;
   const page = pageFromUrl(location.pathname);
   const tenantSearch = (location.search as Record<string, unknown>).tenant;
   const selectedZetroTenant = typeof tenantSearch === "string" ? tenantSearch : "";
@@ -182,6 +212,25 @@ export function SaDesk() {
       to: path,
       search:
         nextPage.startsWith("zetro/") && selectedZetroTenant ? { tenant: selectedZetroTenant } : {}
+    });
+  }
+
+  function openCommonTableImport(selection: {
+    sourceId: number;
+    targetTenantId: number;
+    table: string;
+    importId?: string;
+  }) {
+    setWorkspaceRevision((revision) => revision + 1);
+    void navigate({
+      params: { _splat: "data-bridge-table-import" },
+      search: {
+        sourceId: selection.sourceId,
+        targetTenantId: selection.targetTenantId,
+        table: selection.table,
+        ...(selection.importId ? { importId: selection.importId } : {})
+      },
+      to: "/sa/$"
     });
   }
 
@@ -241,9 +290,46 @@ export function SaDesk() {
           onSelect: () => selectPage("data-migration-run")
         },
         {
+          title: "Transfer Review",
+          isActive: page === "data-migration-transfer-review",
+          onSelect: () => selectPage("data-migration-transfer-review")
+        },
+        {
+          title: "Migration Audit",
+          isActive: page === "data-migration-audit",
+          onSelect: () => selectPage("data-migration-audit")
+        },
+        {
+          title: "Migration Queue",
+          isActive: page === "data-migration-queue",
+          onSelect: () => selectPage("data-migration-queue")
+        },
+        {
           title: "Migration Analysis",
           isActive: page === "data-migration-analysis",
           onSelect: () => selectPage("data-migration-analysis")
+        }
+      ]
+    },
+    {
+      title: "Data Bridge",
+      icon: WorkflowIcon,
+      isActive: page.startsWith("data-bridge"),
+      items: [
+        {
+          title: "Overview",
+          isActive: page === "data-bridge",
+          onSelect: () => selectPage("data-bridge")
+        },
+        {
+          title: "Common Tables",
+          isActive: page === "data-bridge-common-tables",
+          onSelect: () => selectPage("data-bridge-common-tables")
+        },
+        {
+          title: "Table Import Review",
+          isActive: page === "data-bridge-table-import",
+          onSelect: () => selectPage("data-bridge-table-import")
         }
       ]
     },
@@ -488,8 +574,19 @@ export function SaDesk() {
               <ProjectManagerWorkspaceHost workspaceId={page.slice("project-manager-".length)} />
             ) : null}
             {page === "data-migration-run" ? (
-              <DataMigrationWorkspace initialSelection={migrationSelection} />
+              <DataMigrationWorkspace
+                initialSelection={migrationSelection}
+                onAuditHandoff={() => selectPage("data-migration-audit")}
+              />
             ) : null}
+            {page === "data-migration-transfer-review" ? (
+              <DataMigrationWorkspace
+                initialStep="transfer-list"
+                onAuditHandoff={() => selectPage("data-migration-audit")}
+              />
+            ) : null}
+            {page === "data-migration-audit" ? <MigrationAuditWorkspace /> : null}
+            {page === "data-migration-queue" ? <MigrationRunQueueWorkspace /> : null}
             {page === "data-migration-analysis" ? (
               <DataMigrationAnalysisWorkspace
                 onOpenMigration={(selection) => {
@@ -499,6 +596,24 @@ export function SaDesk() {
               />
             ) : null}
             {page === "data-migration-settings" ? <DataMigrationSettings /> : null}
+            {page === "data-bridge" ? (
+              <DataBridgeWorkspace
+                onOpenCommonTables={() => selectPage("data-bridge-common-tables")}
+              />
+            ) : null}
+            {page === "data-bridge-common-tables" ? (
+              <CommonTableImportWorkspace view="tables" onOpenTable={openCommonTableImport} />
+            ) : null}
+            {page === "data-bridge-table-import" ? (
+              <CommonTableImportWorkspace
+                view="review"
+                {...(bridgeSelection ? { selection: bridgeSelection } : {})}
+                onBack={() => selectPage("data-bridge-common-tables")}
+                onOpenSaved={(importId) => {
+                  if (bridgeSelection) openCommonTableImport({ ...bridgeSelection, importId });
+                }}
+              />
+            ) : null}
             {page === "tenants" ? <TenantList onBack={() => selectPage("overview")} /> : null}
             {page === "domains" ? <TenantDomainList /> : null}
             {page === "plans" ? <PlanWorkspace /> : null}
@@ -544,7 +659,13 @@ function pageFromUrl(pathname: string): SaPage {
     page === "project-manager-ideas" ||
     page === "data-migration-analysis" ||
     page === "data-migration-run" ||
+    page === "data-migration-transfer-review" ||
+    page === "data-migration-audit" ||
+    page === "data-migration-queue" ||
     page === "data-migration-settings" ||
+    page === "data-bridge" ||
+    page === "data-bridge-common-tables" ||
+    page === "data-bridge-table-import" ||
     page === "zuno" ||
     page === "tenants" ||
     page === "domains" ||

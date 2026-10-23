@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceSelect } from "@codexsun/ui/workspace/select";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import {
   analyzeMigration,
-  migrateSavedPlan,
-  readMigrationPlan,
   listSources,
   listTenants,
   type MigrationAnalysis,
@@ -32,7 +29,6 @@ export function DataMigrationAnalysisWorkspace({
   const [analysis, setAnalysis] = useState<MigrationAnalysis | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [savedPlan, setSavedPlan] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -57,38 +53,8 @@ export function DataMigrationAnalysisWorkspace({
     setAnalysis(null);
     try {
       const selection = { sourceId: Number(sourceId), targetTenantId: Number(targetTenantId) };
-      const [result, plan] = await Promise.all([
-        analyzeMigration(selection),
-        readMigrationPlan(selection)
-      ]);
+      const result = await analyzeMigration(selection);
       setAnalysis(result);
-      setSavedPlan(plan.map((item) => item.table));
-    } catch (reason) {
-      setError(message(reason));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function migrate() {
-    if (
-      !analysis ||
-      !window.confirm(
-        `Run the saved plan for ${analysis.source.database} into ${analysis.target.database}?`
-      )
-    )
-      return;
-    setBusy(true);
-    setError("");
-    try {
-      const result = await migrateSavedPlan({
-        sourceId: Number(sourceId),
-        targetTenantId: Number(targetTenantId)
-      });
-      toast.success(
-        `Migration completed: ${result.completed.length} tables and ${result.copiedRows} rows.`
-      );
-      await inspect();
     } catch (reason) {
       setError(message(reason));
     } finally {
@@ -99,7 +65,7 @@ export function DataMigrationAnalysisWorkspace({
   return (
     <WorkspacePage
       title="Migration Analysis"
-      description="Compare source and destination tables, schemas, existing keys, and dependencies before copying."
+      description="Compare source and destination readiness. Map tables, review the transfer, and run it from Migration Queue after audit."
     >
       <section className="grid gap-4 rounded-md border bg-card p-5 md:grid-cols-[1fr_1fr_auto] md:items-end">
         <Field
@@ -143,22 +109,6 @@ export function DataMigrationAnalysisWorkspace({
             <Metric label="Exact matches" value={analysis.summary.exactRows} />
             <Metric label="Conflicting rows" value={analysis.summary.conflictingRows} />
             <Metric label="Ready tables" value={analysis.summary.ready} />
-          </section>
-          <section className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card p-4">
-            <p className="text-sm">
-              Saved mappings: {savedPlan.length} /{" "}
-              {analysis.tables.filter((item) => item.status !== "excluded").length} tables
-            </p>
-            <Button
-              disabled={
-                busy ||
-                savedPlan.length !==
-                  analysis.tables.filter((item) => item.status !== "excluded").length
-              }
-              onClick={() => void migrate()}
-            >
-              {busy ? "Running migration…" : "Preflight and migrate all tables"}
-            </Button>
           </section>
           {analysis.summary.blocked || analysis.summary.review ? (
             <p className="rounded-md border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm">
@@ -211,7 +161,7 @@ export function DataMigrationAnalysisWorkspace({
                             })
                           }
                         >
-                          {savedPlan.includes(item.table) ? "Edit mapping" : "Map fields"}
+                          "Map fields"
                         </Button>
                       ) : (
                         "—"

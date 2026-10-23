@@ -1,5 +1,5 @@
 import type { EnquiryDatabase } from "@codexsun/crm-api/enquiry-sync";
-import type { ColumnType } from "kysely";
+import type { ColumnType, Generated } from "kysely";
 
 export type FrappeSettings = {
   baseUrl: string;
@@ -33,6 +33,7 @@ export type FrappeSyncRow = {
   enquiry_id: number;
   remote_name: string;
   synced_at: ColumnType<string, string | undefined, string>;
+  source_modified_at: ColumnType<string | Date | null, string | undefined, string>;
 };
 
 export type FrappeDataSourceRow = {
@@ -91,7 +92,20 @@ export type FrappeDatabase = EnquiryDatabase & {
     activities_enabled: number | boolean;
     call_logs_enabled: number | boolean;
     last_scheduled_at: string | Date | null;
+    direction: "inbound" | "bidirectional";
+    inbound_base_url: string | null;
+    inbound_checkpoint_at: string | Date | null;
+    contact_export_started_at: string | Date | null;
     updated_by: string;
     updated_at: string | Date;
+  };
+  frappe_enquiry_snapshots: {
+    id: Generated<number>;
+    source_key: string;
+    base_url: string;
+    remote_name: string;
+    enquiry_id: number | null;
+    document_json: string;
+    created_at: ColumnType<string | Date, string | undefined, never>;
   };
 };

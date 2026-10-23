@@ -22,6 +22,10 @@ Core owns contact identity. Local CRM records remain authoritative for CRM opera
 
 ## Implementation rules
 
+The enquiry comment extension is explicitly approved: opening comments, new comments, and replies
+use the durable enquiry outbox and standalone Frappe Job Comments. Preserve retry identities,
+reply links, and suppression of import echoes. General Activities exports remain outside this scope.
+
 - For custom Frappe contracts, refer to [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git).
 - Read [the Frappe comparison](FRAPPE-COMPARISON.md) before changing CRM transfer contracts. Enquiry transfer uses the tenant's verified site and must preserve source timestamps, identity links, queue idempotency, and conflict checks.
 

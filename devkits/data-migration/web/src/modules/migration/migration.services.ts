@@ -11,7 +11,10 @@ import type {
   MigrationAnalysis,
   MigrationTableSchema,
   MigrationJob,
-  MigrationQueryPlan
+  MigrationQueryPlan,
+  MigrationQueryBatch,
+  MigrationAuditQueueSummary,
+  MigrationAuditQueueItem
 } from "./migration.types.js";
 import type { SavedTableMapping } from "./migration.types.js";
 export type {
@@ -28,7 +31,10 @@ export type {
   MigrationTableSchema,
   SavedTableMapping,
   MigrationJob,
-  MigrationQueryPlan
+  MigrationQueryPlan,
+  MigrationQueryBatch,
+  MigrationAuditQueueSummary,
+  MigrationAuditQueueItem
 } from "./migration.types.js";
 
 type Envelope<T> =
@@ -38,7 +44,7 @@ type Envelope<T> =
 async function request<T>(
   path: string,
   body?: unknown,
-  method?: "POST" | "PUT" | "PATCH"
+  method?: "POST" | "PUT" | "PATCH" | "DELETE"
 ): Promise<T> {
   const slot = sessionStorage.getItem("codexsun.auth.slot");
   const response = await fetch(`/api/data-migration${path}`, {
@@ -85,6 +91,7 @@ export const createJob = (input: {
 }) => request<{ id: string }>("/jobs", input);
 export const renameJob = (id: string, sessionName: string) =>
   request<{ id: string; sessionName: string }>(`/jobs/${id}`, { sessionName }, "PATCH");
+export const deleteJob = (id: string) => request<{ deleted: true }>(`/jobs/${id}`, {}, "DELETE");
 export const listTenantTables = (tenantId: number) =>
   request<string[]>(`/tenants/${tenantId}/tables`);
 export const getTenantDatabase = (tenantId: number) =>
@@ -93,10 +100,41 @@ export const readJobTables = (jobId: string) =>
   request<SavedTableMapping[]>(`/jobs/${jobId}/tables`);
 export const readJobQueryPlan = (jobId: string) =>
   request<MigrationQueryPlan | null>(`/jobs/${jobId}/query-plan`);
+export const readQueryBatch = (jobId: string) =>
+  request<MigrationQueryBatch | null>(`/jobs/${jobId}/query-batch`);
 export const generateJobQueryPlan = (jobId: string) =>
   request<MigrationQueryPlan>(`/jobs/${jobId}/query-plan/generate`, {});
+export const handoffJobToAuditQueue = (jobId: string, rowIds: number[]) =>
+  request<MigrationAuditQueueItem>(`/jobs/${jobId}/audit-handoff`, { rowIds });
+export const listMigrationAuditQueue = () => request<MigrationAuditQueueSummary[]>("/audit-queue");
+export const readMigrationAuditItem = (id: string) =>
+  request<MigrationAuditQueueItem>(`/audit-queue/${id}`);
+export const markMigrationAuditReviewed = (id: string) =>
+  request<MigrationAuditQueueItem>(`/audit-queue/${id}/review`, {});
+export const runReviewedMigration = (id: string) =>
+  request<{ completed: Array<{ table: string; copiedRows: number }>; copiedRows: number }>(
+    `/audit-queue/${id}/run`,
+    {}
+  );
+export const deleteMigrationAuditItem = (id: string) =>
+  request<{ deleted: true }>(`/audit-queue/${id}`, {}, "DELETE");
 export const finalizeJobQueryPlan = (jobId: string) =>
   request<MigrationQueryPlan | null>(`/jobs/${jobId}/query-plan/finalize`, {});
+export const saveQueryBatch = (
+  jobId: string,
+  input: {
+    rows: Array<{
+      sourceTable: string;
+      targetTable: string;
+      rowNumber: number;
+      rowData: Record<string, unknown>;
+    }>;
+    fieldValues: Record<string, { mode: "default" | "custom" | "foreign"; value: unknown }>;
+  }
+) =>
+  request<{ id: string; savedRows: number; status: "draft" }>(`/jobs/${jobId}/query-batch`, input);
+export const deleteQueryBatch = (jobId: string) =>
+  request<{ deletedRows: number }>(`/jobs/${jobId}/query-batch`, {}, "DELETE");
 export const saveJobTablePair = (
   jobId: string,
   input: { sourceTable: string; targetTable: string; columnMappings: MigrationColumnMapping[] }
@@ -113,10 +151,11 @@ export const saveJobTablePair = (
     },
     "PUT"
   );
-export const runMigrationJob = (jobId: string) =>
-  request<{ completed: Array<{ table: string; copiedRows: number }>; copiedRows: number }>(
-    `/jobs/${jobId}/migrate`,
-    {}
+export const deleteJobTablePair = (jobId: string, sourceTable: string) =>
+  request<{ deleted: true }>(
+    `/jobs/${jobId}/tables/${encodeURIComponent(sourceTable)}`,
+    {},
+    "DELETE"
   );
 export const previewTransfer = (selection: TransferSelection) =>
   request<MigrationPreview>("/preview", selection);
@@ -130,16 +169,5 @@ export const sampleTableData = (
 ) => request<MigrationTableSample>("/sample", selection);
 export const analyzeMigration = (selection: Omit<TransferSelection, "table">) =>
   request<MigrationAnalysis>("/analysis", selection);
-export const readMigrationPlan = (selection: Omit<TransferSelection, "table">) =>
-  request<SavedTableMapping[]>("/plan/read", selection);
-export const saveTableMapping = (selection: TransferSelection) =>
-  request<{ saved: boolean }>("/plan/save", selection);
-export const migrateSavedPlan = (selection: Omit<TransferSelection, "table">) =>
-  request<{ completed: Array<{ table: string; copiedRows: number }>; copiedRows: number }>(
-    "/plan/migrate",
-    selection
-  );
 export const getTableSchema = (selection: TransferSelection) =>
   request<MigrationTableSchema>("/schema", selection);
-export const executeTransfer = (selection: TransferSelection) =>
-  request<{ id: string; copiedRows: number }>("/runs", selection);

@@ -1,9 +1,9 @@
 import { sql, type Kysely } from "kysely";
 import { EnquirySyncRepository, type EnquiryDatabase } from "@codexsun/crm-api/enquiry-sync";
-import type { FrappeDatabase } from "@codexsun/frappe-api";
+import { FrappeLiveSyncService, type FrappeDatabase } from "@codexsun/frappe-api";
 import type { TenantDatabase } from "../../database/schema.js";
 import { TenantRepository } from "../tenant/tenant.repository.js";
-import { getTenantDatabase } from "../../database/tenant-database.js";
+import { getTenantDatabase, getTenantDatabaseByName } from "../../database/tenant-database.js";
 import type { QueueManagerService } from "./queue-manager.service.js";
 
 export async function enqueueCrmEnquirySync(
@@ -17,7 +17,11 @@ export async function enqueueCrmEnquirySync(
     correlationId?: string;
   }
 ) {
+  const sync = new EnquirySyncRepository(getTenantDatabaseByName(input.tenantDatabase) as unknown as Kysely<EnquiryDatabase>);
+  const event = await sync.getEvent(input.eventId);
+  if (!event || !(await sync.dispatchableEvents(1, event.enquiry_id)).some((row) => row.id === input.eventId)) return null;
   return queue.enqueue({
+    dispatchImmediately: true,
     actorEmail: input.actorEmail,
     correlationId: input.correlationId ?? `crm-enquiry:${input.eventId}`,
     idempotencyKey: `crm-enquiry-sync:${input.tenantId}:${input.eventId}:${input.attempts ?? 0}`,
@@ -57,6 +61,8 @@ export function startCrmEnquirySyncRelay(queue: QueueManagerService) {
             .where("id", "=", 1)
             .executeTakeFirst();
           if (!connection?.enabled || connection.verification_status !== "verified") continue;
+          const live = await new FrappeLiveSyncService(database).settings();
+          if (live.direction === "inbound" || !live.enabled || live.paused || !live.modules.enquiries) continue;
           const sync = new EnquirySyncRepository(database);
           await sync.requeueStaleProcessing();
           const events = await sync.dispatchableEvents();

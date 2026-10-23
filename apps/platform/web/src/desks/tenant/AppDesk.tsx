@@ -1,3 +1,4 @@
+import { MarketingHost } from "../../modules/marketing/marketing-host";
 import { tconnectGateway } from "../../modules/tconnect/tconnect-host";
 import { QCafeAppearance } from "./QCafeAppearance";
 import { WorkspaceNavigationProvider } from "@codexsun/ui/workspace/navigation";
@@ -224,11 +225,6 @@ const ZetroChatWorkspace = lazyWorkspace(() =>
 );
 const ZetroChatDrawer = lazyWorkspace(() =>
   import("@codexsun/zetro-web/modules/chat").then((module) => module.ZetroChatDrawer)
-);
-const FrappeEnquirySyncWorkspace = lazyWorkspace(() =>
-  import("@codexsun/frappe-web/modules/enquiry-sync").then(
-    (module) => module.FrappeEnquirySyncWorkspace
-  )
 );
 const FrappeEnquiryImportWorkspace = lazyWorkspace(() =>
   import("@codexsun/frappe-web/modules/enquiry-sync").then(
@@ -660,7 +656,6 @@ type AppPage =
   | "frappe.export.call-logs"
   | "frappe.live-sync"
   | "frappe.live-sync-queue"
-  | "frappe.enquiry-sync"
   | "frappe.connection"
   | "frappe.users"
   | "frappe.user-mapping"
@@ -1846,6 +1841,7 @@ export function AppDesk() {
                 onNavigate={requestListNavigation}
               />
             ) : null}
+            {safePage.startsWith("marketing.") ? <MarketingHost page={safePage} /> : null}
             {safePage.startsWith("sites.") ? (
               <SitesOverviewWorkspace
                 gateway={sitesOverviewGateway}
@@ -1938,7 +1934,6 @@ export function AppDesk() {
                 scopeKey={`${runtime?.tenant?.uuid ?? "tenant"}:${signedInUser.email}`}
               />
             ) : null}
-            {safePage === "frappe.enquiry-sync" ? <FrappeEnquirySyncWorkspace /> : null}
             {safePage === "frappe.contacts" ? <FrappeContactImportWorkspace /> : null}
             {safePage === "frappe.enquiries" ? <FrappeEnquiryImportWorkspace /> : null}
             {safePage === "frappe.activities" ? <FrappeActivityImportWorkspace /> : null}
@@ -2427,6 +2422,9 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     return "sportsclub.overview";
   }
 
+  if (app === "frappe" && children.length === 1 && children[0] === "enquiry-sync")
+    return "frappe.live-sync-queue";
+
   const key = `${app}.${children.filter(Boolean).join(".") || "overview"}`;
   if (
     key === "hrms.overview" ||
@@ -2456,7 +2454,6 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     key === "frappe.export.call-logs" ||
     key === "frappe.live-sync" ||
     key === "frappe.live-sync-queue" ||
-    key === "frappe.enquiry-sync" ||
     key === "frappe.connection" ||
     key === "frappe.users" ||
     key === "frappe.user-mapping" ||
@@ -2962,7 +2959,6 @@ function titleForPage(page: AppPage) {
     "frappe.export.call-logs": "Export call logs",
     "frappe.live-sync": "Live sync",
     "frappe.live-sync-queue": "Live sync queue",
-    "frappe.enquiry-sync": "Sync queue",
     "frappe.connection": "Frappe connection",
     "frappe.users": "Frappe users",
     "frappe.user-mapping": "User mapping",
@@ -3168,6 +3164,7 @@ function appFromPage(
     return enabledApps.includes("codexsun") ? "codexsun" : landingApp;
   if (page.startsWith("docs.")) return enabledApps.includes("docs") ? "docs" : landingApp;
   if (page.startsWith("himsx.")) return enabledApps.includes("himsx") ? "himsx" : landingApp;
+  if (page.startsWith("marketing.")) return enabledApps.includes("marketing") ? "marketing" : landingApp;
   if (page.startsWith("sites.")) return enabledApps.includes("sites") ? "sites" : landingApp;
   if (page.startsWith("qcafe")) return enabledApps.includes("qcafe") ? "qcafe" : landingApp;
   if (page.startsWith("frappe")) return enabledApps.includes("frappe") ? "frappe" : landingApp;

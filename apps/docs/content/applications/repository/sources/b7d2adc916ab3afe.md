@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/SKILLS.md`
 
-Source SHA-256 (LF line endings): `b255ef76e3b8deb20cac9c98aa2c89599133449b332d9a36360ee15068b73dbf`
+Source SHA-256 (LF line endings): `e0738e72e88a46299ad5f139e17ea2cd4423dddd2b348fd642eefd48f18ab57b`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -32,6 +32,10 @@ Scheduler owns CRM reminders and follow-up schedule records. Use typed links to 
 Core owns contact identity. Local CRM records remain authoritative for CRM operations. Imported enquiries retain source serials, timestamps, mapped user identity, comments, and source links. The explicitly approved enquiry live-sync contract posts local enquiry creates and updates to their verified Frappe links and imports remote changes. This approval does not extend to other CRM outbound transfers. Preserve assignment scope and activity history.
 
 ## Implementation rules
+
+The enquiry comment extension is explicitly approved: opening comments, new comments, and replies
+use the durable enquiry outbox and standalone Frappe Job Comments. Preserve retry identities,
+reply links, and suppression of import echoes. General Activities exports remain outside this scope.
 
 - For custom Frappe contracts, refer to [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git).
 - Read [the Frappe comparison](FRAPPE-COMPARISON.md) before changing CRM transfer contracts. Enquiry transfer uses the tenant's verified site and must preserve source timestamps, identity links, queue idempotency, and conflict checks.

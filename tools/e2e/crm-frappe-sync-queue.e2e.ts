@@ -130,7 +130,9 @@ test("local enquiry changes enter the Frappe queue in order and coalesce safely"
       const firstDispatch = await queue.dispatchableEvents(100);
       assert.ok(firstDispatch.some((event) => event.id === first));
       assert.ok(!firstDispatch.some((event) => event.id === second));
+      assert.equal(await queue.markProcessing(second), false);
       assert.equal(await queue.markProcessing(first), true);
+      assert.equal(await queue.markProcessing(second), false);
       assert.equal(await queue.markProcessing(first), false);
       await queue.markSynced(first, "ENQ-TEST");
 
@@ -174,6 +176,27 @@ test("local enquiry changes enter the Frappe queue in order and coalesce safely"
       );
       assert.equal(coalesced, failedUpdate);
       assert.equal((await queue.getEvent(failedUpdate))?.event_type, "enquiry-upsert");
+      const pendingComment = await queue.enqueue(
+        {
+          actorEmail: "sync-test@local.invalid",
+          correlationId: randomUUID(),
+          enquiryId,
+          eventType: "comment-add",
+          entityId: 2
+        },
+        transaction
+      );
+      const laterUpdate = await queue.enqueueUpsert(
+        {
+          actorEmail: "sync-test@local.invalid",
+          correlationId: randomUUID(),
+          enquiryId
+        },
+        transaction
+      );
+      assert.notEqual(laterUpdate, pendingComment);
+      assert.equal((await queue.getEvent(pendingComment))?.event_type, "comment-add");
+      assert.equal((await queue.getEvent(pendingComment))?.entity_id, 2);
       assert.equal((await queue.latestStatuses([enquiryId])).get(enquiryId), "pending");
       throw new Error("rollback sync test");
     }),

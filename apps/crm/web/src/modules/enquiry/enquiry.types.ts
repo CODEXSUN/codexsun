@@ -33,6 +33,7 @@ export type EnquiryRecord = EnquirySavePayload & {
   assignedToName: string | null;
   closurePending?: boolean;
   frappeSyncStatus?: "pending" | "processing" | "retry" | "failed" | "synced" | null;
+  frappeSyncError?: string | null;
   canViewFrappeSync?: boolean;
 };
 

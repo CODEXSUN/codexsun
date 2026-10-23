@@ -2,7 +2,10 @@ export type LiveSyncKind = "contacts" | "enquiries" | "activities" | "call-logs"
 export type LiveSyncSettings = {
   enabled: boolean;
   paused: boolean;
-  scheduleMinutes: 5 | 15 | 30 | 60;
+  direction: "inbound" | "bidirectional";
+  inboundBaseUrl: string | null;
+  inboundCheckpointAt: string | null;
+  scheduleMinutes: 1 | 5 | 15 | 30 | 60;
   modules: Record<LiveSyncKind, boolean>;
   lastScheduledAt: string | null;
   updatedAt: string;
@@ -22,5 +25,7 @@ export type LiveSyncJob = {
     created?: number;
     skipped?: number;
     failed: number;
+    failures?: Array<{ id?: number; name?: string; message: string }>;
+    results?: Array<{ id: number; outcome: string; message: string | null }>;
   } | null;
 };

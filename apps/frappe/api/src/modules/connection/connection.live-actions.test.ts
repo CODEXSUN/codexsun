@@ -94,7 +94,13 @@ for (const scenario of legacyWriteCases)
     globalThis.fetch = async (url, init) => {
       const path = new URL(String(url)).pathname;
       if (init?.method !== "GET" && path !== "/api/v2/method/frappe.client.get_list") writes++;
-      if (path === "/api/v2/method/frappe.client.get_list") return Response.json({ message: [] });
+      if (path === "/api/v2/method/frappe.client.get_list")
+        return Response.json({
+          message:
+            scenario.name === "reply"
+              ? [{ name: "MSG-1", job_type: "Enquiry", job_id: "ENQ-1", comment: "First" }]
+              : []
+        });
       if (path === "/api/resource/Employee/EMP-1")
         return Response.json({ data: { cost_per_hour: "150" } });
       if (path === "/api/resource/Enquiry/ENQ-1")
@@ -102,8 +108,7 @@ for (const scenario of legacyWriteCases)
           data: {
             name: "ENQ-1",
             user_employee: "EMP-1",
-            status: "New",
-            enquiry_messages: [{ name: "MSG-1", comment: "First", mode: "Comment" }]
+            status: "New"
           }
         });
       return Response.json({ data: [{ name: "Open", status_name: "Open" }] });

@@ -59,10 +59,19 @@ const lookups: readonly (readonly [CrmContactLookupName, string, string])[] = [
 
 export function registerCrmContactRoutes(
   app: FastifyInstance,
-  authorize: (request: FastifyRequest) => Promise<void>
+  authorize: (request: FastifyRequest) => Promise<void>,
+  onSaved?: (request: FastifyRequest, id: number) => Promise<void>
 ) {
   const service = new CrmContactService(app);
   const preHandler = async (request: FastifyRequest) => authorize(request);
+  const saved = async (request: FastifyRequest, value: unknown) => {
+    const identity = z.object({ id: z.coerce.number().int().positive() }).safeParse(value);
+    if (identity.success && onSaved) {
+      try { await onSaved(request, identity.data.id); }
+      catch (error) { request.log.warn({ error, contactId: identity.data.id }, "Contact saved; sync dispatch deferred to recovery."); }
+    }
+    return value;
+  };
   registerContractRoute(app, {
     handler: ({ query, request }) =>
       service.forward(
@@ -76,7 +85,7 @@ export function registerCrmContactRoutes(
     url: base
   });
   registerContractRoute(app, {
-    handler: ({ body: input, request }) => service.forward(request, "POST", CORE_CONTACTS, input),
+    handler: async ({ body: input, request }) => saved(request, await service.forward(request, "POST", CORE_CONTACTS, input)),
     method: "POST",
     preHandler,
     schemas: { body: contactSaveBody, response },
@@ -98,8 +107,8 @@ export function registerCrmContactRoutes(
     url: `${base}/:id`
   });
   registerContractRoute(app, {
-    handler: ({ body: input, params, request }) =>
-      service.forward(request, "PUT", `${CORE_CONTACTS}/${params.id}`, input),
+    handler: async ({ body: input, params, request }) =>
+      saved(request, await service.forward(request, "PUT", `${CORE_CONTACTS}/${params.id}`, input)),
     method: "PUT",
     preHandler,
     schemas: { body: contactSaveBody, params: idParams, response },

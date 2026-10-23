@@ -55,8 +55,19 @@ test("API watcher restarts only for changed source or environment content", asyn
       "apps/frappe/api/src/modules/connection/connection.live-enquiries.ts"
     ]);
     assert.ok(apiSourceDirectories(root).includes(join(root, "apps/frappe/api/src")));
+
+    const migrationApiDirectory = join(root, "devkits/data-migration/api/src/modules/migration");
+    await mkdir(migrationApiDirectory, { recursive: true });
+    const migrationApiFile = join(migrationApiDirectory, "migration.routes.ts");
+    await writeFile(migrationApiFile, "export const auditRoute = true;\n");
+    const migrationInputs = await captureApiInputs(root);
+    assert.deepEqual(changedApiInputs(frappeInputs, migrationInputs), [
+      "devkits/data-migration/api/src/modules/migration/migration.routes.ts"
+    ]);
+    assert.ok(apiSourceDirectories(root).includes(join(root, "devkits/data-migration/api/src")));
+
     await rm(sourceFile);
-    assert.deepEqual(changedApiInputs(frappeInputs, await captureApiInputs(root)), [
+    assert.deepEqual(changedApiInputs(migrationInputs, await captureApiInputs(root)), [
       "apps/platform/api/src/server.ts"
     ]);
   } finally {

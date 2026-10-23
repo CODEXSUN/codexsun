@@ -136,15 +136,32 @@ export class EnquiryService {
 
   async importComment(
     enquiryId: number,
-    comment: { id: string; content: string; author: string; createdAt: string }
+    comment: {
+      id: string;
+      content: string;
+      author: string;
+      createdAt: string;
+      parentSourceId?: string | null;
+      parentLocalId?: number;
+    }
   ) {
+    const key = (id: string) => `frappe:${createHash("sha256").update(id).digest("hex")}`;
+    const parentId = comment.parentSourceId
+      ? await this.repository.importedCommentId(
+          enquiryId,
+          key(comment.parentSourceId),
+          comment.parentLocalId
+        )
+      : null;
+    if (comment.parentSourceId && !parentId)
+      throw AppError.validation("Import the Frappe parent comment before its reply.");
     await this.repository.addComment(
       enquiryId,
-      null,
-      comment.content,
+      parentId,
+      sanitizeCommentHtml(comment.content),
       "html",
       comment.author,
-      `frappe:${createHash("sha256").update(comment.id).digest("hex")}`,
+      key(comment.id),
       comment.createdAt
     );
   }
@@ -168,14 +185,18 @@ export class EnquiryService {
           })
         : null;
     const current = await this.get(id);
-    const prepared = await this.prepare(input, current, true);
+    const prepared = await this.prepare(
+      { ...input, capturedEmail: current.capturedEmail },
+      current,
+      true
+    );
     const record = await this.repository.update(
       id,
       prepared,
       actor,
       "Enquiry updated from Frappe",
       current.statusId,
-      async () => ({ ...prepared, contactId: externalContact?.id ?? null }),
+      async () => ({ ...prepared, contactId: externalContact?.id ?? prepared.contactId }),
       false
     );
     if (!record) throw AppError.notFound("Enquiry was not found.");

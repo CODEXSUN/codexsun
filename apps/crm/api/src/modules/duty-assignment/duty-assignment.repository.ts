@@ -68,7 +68,8 @@ export class DutyAssignmentRepository {
         "revision.evidence_guidance",
         "person.name as assignee_name",
         "person.email as assignee_email",
-        "sync.status as frappe_sync_status"
+        "sync.status as frappe_sync_status",
+        "sync.last_error as frappe_sync_error"
       ]);
   }
   async create(input: DutyAssignmentInput, actor: string) {
@@ -254,6 +255,7 @@ function map(row: SelectedAssignment): DutyAssignment {
     endDate: row.end_date ? dateOnly(row.end_date) : null,
     status: row.status,
     frappeSyncStatus: row.frappe_sync_status ?? null,
+    frappeSyncError: row.frappe_sync_error ?? null,
     assignedBy: row.assigned_by,
     sopCode: row.sop_code,
     sopTitle: row.sop_title,

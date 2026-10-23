@@ -10,6 +10,25 @@ The CRM Lead intake, campaign lookup, effective contact-policy, and outcome cont
 See [CRM ownership](agent/PLAN.md#marketing-integration-decision--2026-10-23) and [Marketing Phase 0](../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review).
 This decision does not enable Marketing, migrate records, or expand Frappe export scope.
 
+## Inbound enquiry source fields
+
+Frappe imports retain complete source Enquiry documents and comment revisions in the local integration store.
+The enquiry **Frappe sync** tab shows these source fields and paged history after record visibility checks.
+This includes company, address, Mobile Contact Customer, status details, and additional returned fields.
+These source fields are read-only when CRM has no matching editor. Normal CRM field mappings remain editable through CRM workflows.
+Inbound updates preserve CRM-only email. Local-edit conflicts require review before overwriting mapped values.
+Q/ENQ identities remain exact. A source serial collision uses a free local enquiry number.
+The Frappe owner controls live-sync direction, source retention, and successful checkpoints.
+See [Frappe](../frappe/README.md) for defaults, limits, and queue verification.
+
+## Enquiry comment sync
+
+Enquiry creation, its opening comment, and subsequent comments/replies enter the durable Frappe
+outbox before queue delivery. The approved adapter writes standalone `Job Comments` and preserves
+reply links. Web/mobile request IDs reuse one local comment and outbox event. Imported comments
+do not emit outbound events. Queue retries reuse a stable remote identity; general Activities
+exports remain outside this approval.
+
 ## Record visibility
 
 Tenant Admin and Super Admin retain tenant-wide enquiry and task reads. Other roles see only
@@ -31,7 +50,7 @@ Use [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git) for custom
 Read the [CRM comparison](agent/FRAPPE-COMPARISON.md) and
 [complete DocType catalogue](../frappe/agent/LOGICX-CRM-REFERENCE.md) for the reviewed source snapshot.
 CRM remains locally authoritative for normal enquiries. Frappe-imported enquiries preserve their source timestamps and comments, and the approved Frappe live-sync path posts CRM enquiry changes back to the linked Frappe record. Reference parity does not authorize additional outbound integration beyond this explicit enquiry sync contract.
-Local enquiry creates and edits now append a durable upsert event in the same transaction, then dispatch it to the queue after commit. Queue retries and the periodic relay recover transient failures; the CRM save does not wait for the remote Frappe request. The Frappe sync status column and detail history are visible only to `admin@tenant.com` when that user also has `crm.enquiry.frappe-sync.view`.
+Local enquiry creates and edits now append a durable upsert event in the same transaction, then dispatch it to the queue after commit. Queue retries and the periodic relay recover transient failures; the CRM save does not wait for the remote Frappe request. The Frappe sync status column and detail history require `crm.enquiry.frappe-sync.view`; Platform checks this permission on every request.
 See the [implemented Duty bindings](../frappe/agent/CRM-DUTY-FIELD-MAPPING.md) for frequency, Department, Employee, and report fields.
 Run `npm run test:crm-frappe` for CRM/Frappe unit tests and isolated Duty API/database E2E.
 

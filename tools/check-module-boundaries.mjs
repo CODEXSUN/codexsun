@@ -4,6 +4,7 @@ import { join } from "node:path";
 const requestedApp = process.argv[2]?.trim();
 
 const moduleRoots = [
+  {app:"marketing-api",path:join(process.cwd(),"apps","marketing","api","src","modules")},
   { app: "tconnect-api", path: join(process.cwd(), "apps", "tconnect", "api", "src", "modules") },
   { app: "qcafe-api", path: join(process.cwd(), "apps", "qcafe", "api", "src", "modules") },
   { app: "codexsun-api", path: join(process.cwd(), "apps", "codexsun", "api", "src", "modules") },
@@ -59,6 +60,10 @@ const moduleRoots = [
   {
     app: "data-migration-api",
     path: join(process.cwd(), "devkits", "data-migration", "api", "src", "modules")
+  },
+  {
+    app: "data-bridge-api",
+    path: join(process.cwd(), "devkits", "data-bridge", "api", "src", "modules")
   },
   {
     app: "zuno-api",
@@ -172,6 +177,10 @@ const capabilityBackendRoles = new Map([
     "data-migration-api/migration",
     ["module", "service", "repository", "routes", "migration", "types", "secrets"]
   ],
+  [
+    "data-bridge-api/common-table-import",
+    ["module", "service", "repository", "routes", "migration", "types"]
+  ],
   ["zuno-api/diagnostics", ["module", "service", "repository", "routes", "types"]],
   ["zuno-api/cases", ["module", "service", "repository", "routes", "migration", "types"]],
   ["zuno-api/watch", ["module", "service", "repository", "routes", "types"]],
@@ -182,6 +191,7 @@ const capabilityBackendRoles = new Map([
   ],
   ["billing-api/opening-balance", reducedBackendRoles],
   ["crm-api/enquiry", reducedBackendRoles],
+  ...["brand","campaign","capture","connection"].map(name=>[`marketing-api/${name}`,reducedBackendRoles]),
   ["crm-api/task", reducedBackendRoles],
   ["crm-api/scheduler", reducedBackendRoles],
   ["crm-api/sop", reducedBackendRoles],
@@ -220,6 +230,7 @@ const capabilityBackendRoles = new Map([
 ]);
 
 const webModuleRoots = [
+  {app:"marketing-web",path:join(process.cwd(),"apps","marketing","web","src","modules")},
   { app: "tconnect-web", path: join(process.cwd(), "apps", "tconnect", "web", "src", "modules") },
   { app: "qcafe-web", path: join(process.cwd(), "apps", "qcafe", "web", "src", "modules") },
   { app: "codexsun-web", path: join(process.cwd(), "apps", "codexsun", "web", "src", "modules") },
@@ -281,6 +292,10 @@ const webModuleRoots = [
     path: join(process.cwd(), "devkits", "data-migration", "web", "src", "modules")
   },
   {
+    app: "data-bridge-web",
+    path: join(process.cwd(), "devkits", "data-bridge", "src", "modules")
+  },
+  {
     app: "zuno-web",
     path: join(process.cwd(), "devkits", "zuno", "web", "src", "modules")
   }
@@ -305,6 +320,8 @@ const capabilityFrontendRoles = new Map([
     "data-migration-web/migration",
     ["workspace", "settings", "list", "form", "services", "types", "schema"]
   ],
+  ["data-bridge-web/data-bridge", ["workspace"]],
+    ["data-bridge-web/common-table-import", ["workspace", "services", "types"]],
   ["docs-web/overview", ["workspace", "services", "hooks", "types"]],
   ["himsx-web/overview", ["workspace", "services", "hooks", "types"]],
   ["sites-web/overview", ["workspace", "services", "hooks", "types"]],

@@ -62,6 +62,7 @@ const recordSchema = inputSchema.extend({
     .nullable()
     .optional(),
   canViewFrappeSync: z.boolean().optional()
+  , frappeSyncError: z.string().nullable().optional()
 });
 const referenceSchema = z.string().trim().min(1).max(191);
 const viewInputSchema = inputSchema
@@ -277,7 +278,8 @@ export function registerEnquiryRoutes(
         body.body,
         body.parentId === null ? null : localId(body.parentId),
         current.scope.actorEmail,
-        body.bodyFormat
+        body.bodyFormat,
+        body.requestId
       );
       return localViewComment(saved);
     }
@@ -357,7 +359,7 @@ export function registerEnquiryRoutes(
       const page = await current.read.list(query);
       const canViewFrappeSync = current.scope.canViewFrappeSync === true;
       const statuses = canViewFrappeSync
-        ? await new EnquirySyncRepository(current.scope.database).latestStatuses(
+        ? await new EnquirySyncRepository(current.scope.database).deliveryStates(
             page.items.map((item) => Number(item.id))
           )
         : new Map();
@@ -366,7 +368,8 @@ export function registerEnquiryRoutes(
         items: page.items.map((item) => ({
           ...item,
           canViewFrappeSync,
-          ...(canViewFrappeSync ? { frappeSyncStatus: statuses.get(Number(item.id)) ?? null } : {})
+          ...(canViewFrappeSync ? { frappeSyncStatus: statuses.get(Number(item.id))?.status ?? null,
+            frappeSyncError: statuses.get(Number(item.id))?.error ?? null } : {})
         }))
       };
     }
@@ -452,13 +455,14 @@ export function registerEnquiryRoutes(
       const current = await service(request);
       const record = localViewRecord(await current.enquiry.get(localId(params.id)));
       if (!current.scope.canViewFrappeSync) return { ...record, canViewFrappeSync: false };
-      const statuses = await new EnquirySyncRepository(current.scope.database).latestStatuses([
+      const statuses = await new EnquirySyncRepository(current.scope.database).deliveryStates([
         Number(params.id)
       ]);
       return {
         ...record,
         canViewFrappeSync: true,
-        frappeSyncStatus: statuses.get(Number(params.id)) ?? null
+        frappeSyncStatus: statuses.get(Number(params.id))?.status ?? null,
+        frappeSyncError: statuses.get(Number(params.id))?.error ?? null
       };
     }
   });

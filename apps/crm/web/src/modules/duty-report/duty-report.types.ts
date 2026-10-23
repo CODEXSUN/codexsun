@@ -8,6 +8,7 @@ export type DutyReport = {
   actions: string;
   result: "completed" | "blocked";
   frappeSyncStatus: "pending" | "processing" | "failed" | "synced" | null;
+  frappeSyncError?: string | null;
   issueDetails: string;
   frequency: string;
   department: string;

@@ -5,7 +5,7 @@ import { WorkspaceProtectedIndicator } from "@codexsun/ui/workspace/protected-in
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { FrappeSyncIndicator, verifyFrappeRecord } from "../frappe-sync/frappe-sync.indicator";
-import type { FrappeSyncStatus } from "../frappe-sync/frappe-sync.indicator";
+import type { FrappeRecordState } from "../frappe-sync/frappe-sync.indicator";
 import {
   WorkspaceTableEmptyState,
   WorkspaceTableHeaderCell,
@@ -52,7 +52,7 @@ export function CrmContactList({
   onForceDelete: (record: ContactRecord) => void;
   onToggle: (record: ContactRecord) => void;
   records: ContactRecord[];
-  frappeSyncStatuses: Record<number, FrappeSyncStatus>;
+  frappeSyncStatuses: Record<number, FrappeRecordState>;
 }) {
   const shownColumns = columns.filter((column) => visibleColumns[column.id] !== false);
   return (
@@ -128,7 +128,8 @@ export function CrmContactList({
                   {visibleColumns.frappeSync !== false ? (
                     <td className="px-4 py-3">
                       <FrappeSyncIndicator
-                        status={frappeSyncStatuses[Number(record.id)] ?? null}
+                        status={frappeSyncStatuses[Number(record.id)]?.status ?? null}
+                        error={frappeSyncStatuses[Number(record.id)]?.message}
                         onVerify={() => verifyFrappeRecord("contacts", Number(record.id))}
                       />
                     </td>

@@ -19,13 +19,9 @@ export type RemoteEnquiry = {
   user_employee?: string | null;
   assigned_to_employee?: string | null;
   group?: string | null;
-  enquiry_messages?: Array<{
-    name: string;
-    comment?: string | null;
-    owner?: string | null;
-    creation?: string | null;
-    mode?: string | null;
-  }>;
+  mobile_customer?: string | null;
+  company_name?: string | null;
+  address?: string | null;
 };
 
 export type RemoteEnquiryComment = {
@@ -71,7 +67,14 @@ export type EnquirySyncContext = {
   localActorForEmployee?: (employeeCode: string, baseUrl: string) => Promise<string | null>;
   importComment?: (
     enquiryId: number,
-    comment: { id: string; content: string; author: string; createdAt: string }
+    comment: {
+      id: string;
+      content: string;
+      author: string;
+      createdAt: string;
+      parentSourceId?: string | null;
+      parentLocalId?: number;
+    }
   ) => Promise<void>;
   linkCustomerIdentity?: (
     sourceKey: string,

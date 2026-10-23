@@ -1,0 +1,2 @@
+import { z } from "zod";
+export const brandSchema=z.strictObject({name:z.string().trim().min(1).max(160),timezone:z.string().trim().min(1).max(80).refine(value => { try { new Intl.DateTimeFormat('en', { timeZone: value }); return true; } catch { return false; } }, 'Select a valid timezone.'),website:z.union([z.literal(''), z.url().startsWith('https://')]).default(''),status:z.enum(["active","inactive"])});

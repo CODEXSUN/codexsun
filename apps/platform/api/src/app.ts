@@ -1,4 +1,6 @@
+import { registerMarketingHost } from "./marketing-host.js";
 import { sitesDeliveryHost } from "./sites-delivery-host.js";
+import { canViewCrmEnquiryFrappeSync } from "./crm-enquiry-frappe-sync-access.js";
 import { getDefaultCompanyForDatabase, getCompanyForDatabase } from "@codexsun/core-api";
 import { deliverDutyUpdate } from "@codexsun/crm-api";
 import {
@@ -102,6 +104,7 @@ import {
 } from "@codexsun/logicx-erp-api";
 import {
   frappeConnectionModule,
+  processContactExport, requestContactExport, contactDeliveryStates,
   FrappeConnectionAccess,
   FrappeConnectionRepository,
   assertFrappeQueueWorkerEnabled,
@@ -207,6 +210,7 @@ import { registerAuthRequestContext } from "./auth/auth-request-context.js";
 import { TenantDomainRepository } from "./modules/tenant-domain/tenant-domain.repository.js";
 import { registerProjectManagerHost } from "./project-manager-host.js";
 import { registerDataMigrationHost } from "./data-migration-host.js";
+import { registerDataBridgeHost } from "./data-bridge-host.js";
 import { registerZunoHost } from "./zuno-host.js";
 import { registerCodexsunHost } from "./codexsun-host.js";
 import { resolvePlatformApiUrl } from "./api-url.js";
@@ -258,8 +262,10 @@ export async function createApp() {
   const queueService = new QueueManagerService();
   registerBillingComplianceHost(app, queueService);
   registerAuthRequestContext(app);
+  await registerMarketingHost(app);
   await registerProjectManagerHost(app);
-  await registerDataMigrationHost(app);
+  const dataMigrationHost = await registerDataMigrationHost(app);
+  await registerDataBridgeHost(app, dataMigrationHost);
   await registerZunoHost(app);
   await registerCodexsunHost(app);
   console.info("[platform.routes] Project Manager package ready");
@@ -831,14 +837,9 @@ export async function createApp() {
       if (!(error instanceof AppError) || error.code !== "FORBIDDEN") throw error;
     }
     let canViewFrappeSync = false;
-    if (context.actorEmail.trim().toLowerCase() === "admin@tenant.com") {
-      try {
-        await context.authorize("crm.enquiry.frappe-sync.view");
-        canViewFrappeSync = true;
-      } catch (error) {
-        if (!(error instanceof AppError) || error.code !== "FORBIDDEN") throw error;
-      }
-    }
+    canViewFrappeSync = await canViewCrmEnquiryFrappeSync(() =>
+      context.authorize("crm.enquiry.frappe-sync.view")
+    );
     return {
       workEvent: async (transaction, enquiryId, action, body) => {
         await recordWorkEvent(
@@ -884,12 +885,9 @@ export async function createApp() {
           .execute();
         if (enabled.length !== 2) return;
         const database = context.database as unknown as import("kysely").Kysely<FrappeDatabase>;
-        const connection = await new FrappeConnectionAccess(
-          database,
-          env.JWT_SECRET,
-          frappeSettings
-        ).exportCredentials();
-        if (!connection) return;
+        const live = await new FrappeLiveSyncService(database).settings();
+        if (live.direction === "inbound" || !live.enabled || live.paused || !live.modules.enquiries) return;
+        if (env.CODEXSUN_QUEUE_WORKER_ENABLED !== "1") throw new Error("The background queue worker is disabled.");
         await enqueueCrmEnquirySync(queueService, {
           tenantId: context.tenantId,
           tenantDatabase: context.tenantDatabase,
@@ -902,6 +900,27 @@ export async function createApp() {
   });
   crmContactModule.register(app, async (request) => {
     await crmAccess(request, "contact", "/crm/contacts");
+  }, async (request, id) => {
+    const context = tenantAccessContext(request);
+    const enabled = await context.database.selectFrom("app_module_settings").select("id")
+      .where("module_key", "=", "frappe").where("enabled", "=", true).where("status", "=", "active").executeTakeFirst();
+    if (!enabled) return;
+    const database = context.database as unknown as import("kysely").Kysely<import("@codexsun/frappe-api").ContactExportDatabase>;
+    const live = await new FrappeLiveSyncService(database).settings();
+    if (live.direction !== "bidirectional" || !live.modules.contacts) return;
+    const sync = await requestContactExport(database, id, context.actorEmail);
+    if (!sync) return;
+    try {
+      if (env.CODEXSUN_QUEUE_WORKER_ENABLED !== "1") throw new Error("The background queue worker is disabled.");
+      await queueService.enqueue({
+        dispatchImmediately: true, actorEmail: context.actorEmail, correlationId: request.id,
+        idempotencyKey: crmDutySyncIdempotencyKey(context.tenantId, sync.uuid, sync.attempts, sync.dispatch_revision),
+        jobName: "crm.contact.frappe-sync", maxAttempts: 1, queueName: "crm", sourceModule: "frappe.contact-export",
+        payload: { tenantDatabase: context.tenantDatabase, queueId: sync.id }, tenantId: context.tenantId
+      });
+    } catch (error) {
+      await new CrmFrappeSyncRepository(database).recordDispatchError(sync.id, error instanceof Error ? error.message : "Contact export could not be dispatched.");
+    }
   });
   registerContact360Modules(app, async (request, resource) => {
     const context = await crmAccess(request, resource, `/crm/${resource}`);
@@ -1141,18 +1160,26 @@ export async function createApp() {
     },
     recordStatuses: async (request, kind, ids) => {
       const context = tenantAccessContext(request);
-      await context.authorize("frappe.connection.manage");
+      if (kind !== "contacts") await context.authorize("frappe.connection.manage");
       await context.authorize(frappeExportReadPermission(kind));
       const validated = await new FrappeExportService(
         context.database as unknown as import("kysely").Kysely<FrappeDatabase>,
         env.JWT_SECRET,
         frappeSettings
-      ).validateSelection(kind, ids);
+      ).validateRecordIds(kind, ids);
       const statuses = new Map<
         number,
         "pending" | "processing" | "failed" | "synced" | "unlinked"
       >();
-      const requested = new Set(validated.ids);
+      const messages = new Map<number, string | null>();
+      if (kind === "contacts") {
+        const states = await contactDeliveryStates(context.database as unknown as import("kysely").Kysely<import("@codexsun/frappe-api").ContactExportDatabase>, validated);
+        for (const state of states) {
+          statuses.set(state.id, state.message ? "failed" : state.status);
+          messages.set(state.id, state.message);
+        }
+      }
+      const requested = new Set(validated);
       const jobs = await queueService.listJobs({
         jobName: "frappe.export",
         queueName: "reports",
@@ -1162,7 +1189,6 @@ export async function createApp() {
         if (
           job.payload.tenantDatabase !== context.tenantDatabase ||
           job.payload.kind !== kind ||
-          job.payload.mode !== "verify" ||
           !Array.isArray(job.payload.ids)
         )
           continue;
@@ -1181,19 +1207,21 @@ export async function createApp() {
           }
           if (job.status === "failed" || job.status === "cancelled") {
             statuses.set(id, "failed");
+            messages.set(id, job.errorMessage);
             continue;
           }
           const results = Array.isArray(job.result.results) ? job.result.results : [];
           const result = results.find(
             (item) => typeof item === "object" && item !== null && item.id === id
-          ) as { outcome?: unknown } | undefined;
-          if (result?.outcome === "linked" || result?.outcome === "matched")
+          ) as { outcome?: unknown; message?: string | null } | undefined;
+          messages.set(id, result?.message ?? null);
+          if (result?.outcome === "linked" || result?.outcome === "matched" || result?.outcome === "exported")
             statuses.set(id, "synced");
           else if (result?.outcome === "new") statuses.set(id, "unlinked");
           else statuses.set(id, "failed");
         }
       }
-      return validated.ids.map((id) => ({ id, status: statuses.get(id) ?? null }));
+      return validated.map((id) => ({ id, status: statuses.get(id) ?? null, message: messages.get(id) ?? null }));
     }
   });
   registerQueueJobProcessor("frappe.live-sync", async (job, report) => {
@@ -1207,7 +1235,10 @@ export async function createApp() {
     const settings = await new FrappeLiveSyncService(database).settings();
     if (
       job.payload.manual !== true &&
-      (!settings.enabled || settings.paused || !settings.modules[kind])
+      (!settings.enabled ||
+        settings.paused ||
+        settings.direction === "inbound" ||
+        !settings.modules[kind])
     )
       return { scanned: 0, exported: 0, failed: 0, failures: [], results: [] };
     const baseUrl =
@@ -1246,13 +1277,32 @@ export async function createApp() {
       const context = tenantAccessContext(request);
       await context.authorize("frappe.connection.manage");
       assertFrappeQueueWorkerEnabled(env.CODEXSUN_QUEUE_WORKER_ENABLED === "1");
+      const database = context.database as unknown as import("kysely").Kysely<FrappeDatabase>;
+      const settings = await new FrappeLiveSyncService(database).settings();
+      const inbound = settings.direction === "inbound";
+      if (inbound && kind !== "enquiries")
+        throw AppError.conflict("Only enquiries support scheduled Frappe-to-CRM import.");
+      const connection = await new FrappeConnectionAccess(
+        database,
+        env.JWT_SECRET,
+        frappeSettings
+      ).credentials();
+      if (!connection) throw AppError.conflict("Verify and enable the Frappe connection first.");
+      if (inbound && (!settings.enabled || settings.paused || !settings.modules.enquiries))
+        throw AppError.conflict("Enable and resume enquiry live sync before importing history.");
       const job = await queueService.enqueue({
         actorEmail: context.actorEmail,
         correlationId: request.id,
         idempotencyKey: `frappe-live-sync:${context.tenantId}:${kind}:${Date.now()}`,
-        jobName: "frappe.live-sync",
+        jobName: inbound ? frappeEnquiryImportJobName : "frappe.live-sync",
         maxAttempts: 3,
-        payload: { tenantDatabase: context.tenantDatabase, kind, manual: true },
+        payload: inbound
+          ? {
+              tenantDatabase: context.tenantDatabase,
+              baseUrl: connection.baseUrl,
+              checkpointAt: new Date().toISOString()
+            }
+          : { tenantDatabase: context.tenantDatabase, kind, manual: true },
         queueName: "reports",
         sourceModule: "frappe.live-sync",
         tenantId: context.tenantId
@@ -1417,9 +1467,10 @@ export async function createApp() {
             idempotencyKey: crmDutySyncIdempotencyKey(
               context.tenantId,
               sync.uuid,
-              sync.attempts + (sync.status === "processing" ? 1 : 0)
+              sync.attempts + (sync.status === "processing" ? 1 : 0), sync.dispatch_revision
             ),
             jobName: "crm.sop.frappe-sync",
+            dispatchImmediately: true,
             maxAttempts: 5,
             payload: { tenantDatabase: context.tenantDatabase, queueId: sync.id },
             queueName: "crm",
@@ -1576,6 +1627,12 @@ export async function createApp() {
       );
     });
   });
+  registerQueueJobProcessor("crm.contact.frappe-sync", async (job) => {
+    const tenant = await new TenantRepository().findByIdOrCode(job.tenantId ?? "");
+    if (!tenant || tenant.dbName !== job.payload.tenantDatabase || typeof job.payload.queueId !== "number")
+      throw AppError.conflict("Contact export tenant or queue event is invalid.");
+    return processContactExport(getTenantDatabase(tenant) as unknown as import("kysely").Kysely<import("@codexsun/frappe-api").ContactExportDatabase>, job.payload.queueId, env.JWT_SECRET, frappeSettings);
+  });
   registerQueueJobProcessor("crm.enquiry.frappe-sync", async (job) => {
     const tenant = await new TenantRepository().findByIdOrCode(job.tenantId ?? "");
     const eventId = Number(job.payload.eventId);
@@ -1589,6 +1646,8 @@ export async function createApp() {
     const database = getTenantDatabase(tenant) as unknown as import("kysely").Kysely<
       FrappeDatabase & TenantDatabase
     >;
+    if ((await new FrappeLiveSyncService(database).settings()).direction === "inbound")
+      throw AppError.conflict("Automatic enquiry export is paused: Frappe → CRM only.");
     const sync = new EnquirySyncRepository(
       database as unknown as import("kysely").Kysely<EnquiryDatabase>
     );
@@ -1602,13 +1661,22 @@ export async function createApp() {
         .execute();
       if (enabled.length !== 2)
         throw AppError.conflict("CRM and Frappe must both be enabled for enquiry export.");
-      return processLocalEnquirySync(
+      const result = await processLocalEnquirySync(
         database as unknown as import("kysely").Kysely<FrappeDatabase>,
         eventId,
         env.JWT_SECRET,
         frappeSettings
       );
+      if (result.status === "synced") {
+        const current = await sync.getEvent(eventId);
+        const next = current ? (await sync.dispatchableEvents(1, current.enquiry_id))[0] : null;
+        if (next) await enqueueCrmEnquirySync(queueService, { tenantId: tenant.uuid, tenantDatabase: tenant.dbName,
+          eventId: next.id, actorEmail: next.actor_email, attempts: next.attempts, correlationId: next.correlation_id });
+      }
+      return result;
     } catch (error) {
+      if ((await new FrappeLiveSyncService(database).settings()).direction === "inbound")
+        throw error;
       const event = await sync.getEvent(eventId);
       if (!event) throw error;
       if (event.status === "synced" || event.status === "failed")
@@ -1758,7 +1826,10 @@ export async function createApp() {
     )
       throw new Error("The Frappe enquiry backfill tenant or connection is no longer valid.");
     const database = getTenantDatabase(tenant);
-    if (typeof job.payload.modifiedAfter !== "string")
+    if (
+      typeof job.payload.modifiedAfter !== "string" &&
+      typeof job.payload.checkpointAt !== "string"
+    )
       await ensureFrappeImportOpen(database as unknown as import("kysely").Kysely<FrappeDatabase>);
     else {
       const liveSync = await new FrappeLiveSyncService(
@@ -1826,7 +1897,8 @@ export async function createApp() {
       env.JWT_SECRET,
       job.payload.baseUrl,
       typeof job.payload.modifiedAfter === "string" ? job.payload.modifiedAfter : undefined,
-      report
+      report,
+      typeof job.payload.checkpointAt === "string" ? job.payload.checkpointAt : undefined
     );
   });
   frappeEnquirySyncModule.register(

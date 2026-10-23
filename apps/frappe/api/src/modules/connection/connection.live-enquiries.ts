@@ -3,6 +3,7 @@ import type { Kysely } from "kysely";
 import { FrappeConnectionRepository } from "./connection.repository.js";
 import { requestFrappe } from "./connection.service.js";
 import { aggregateFrappeEnquiries } from "./connection.aggregate-enquiries.js";
+import { listEnquiryJobComments } from "./connection.job-comments.js";
 import type { FrappeDatabase, FrappeSettings } from "./connection.types.js";
 
 const fields = [
@@ -39,13 +40,6 @@ type RemoteEnquiry = {
   status_details?: string | null;
   creation?: string | null;
   modified?: string | null;
-  enquiry_messages?: Array<{
-    name?: string;
-    comment?: string;
-    parent_message?: string;
-    owner?: string;
-    creation?: string;
-  }>;
 };
 type RemoteEmployee = {
   name: string;
@@ -203,6 +197,17 @@ export async function listLiveFrappeEnquiries(
   const remote = response.data;
   const visible = remote.slice(0, query.pageSize);
   const employeeNames = await loadEmployeeNames(saved.settings ?? defaults, visible);
+  const comments = await listEnquiryJobComments(
+    saved.settings ?? defaults,
+    visible.map((item) => item.name)
+  );
+  const commentsByEnquiry = new Map<string, typeof comments>();
+  for (const comment of comments) {
+    if (!comment.job_id || comment.job_type !== "Enquiry") continue;
+    const items = commentsByEnquiry.get(comment.job_id) ?? [];
+    items.push(comment);
+    commentsByEnquiry.set(comment.job_id, items);
+  }
   return {
     source: "frappe" as const,
     page: query.page,
@@ -210,7 +215,9 @@ export async function listLiveFrappeEnquiries(
     hasMore: remote.length > query.pageSize,
     total,
     statusCounts,
-    items: visible.map((item) => mapLiveEnquiry(item, employeeNames))
+    items: visible.map((item) =>
+      mapLiveEnquiry(item, employeeNames, commentsByEnquiry.get(item.name) ?? [])
+    )
   };
 }
 
@@ -244,9 +251,10 @@ export async function getLiveFrappeEnquiry(
     record.assigned_to_employee !== employeeCode
   )
     throw AppError.forbidden("You cannot view this enquiry.");
+  const comments = await listEnquiryJobComments(settings, [name]);
   const employeeNames = await loadEmployeeNames(settings, [record]);
   return {
-    ...mapLiveEnquiry(record, employeeNames),
+    ...mapLiveEnquiry(record, employeeNames, comments),
     activity: await loadActivity(settings, name),
     canDelete: canViewAll
   };
@@ -294,7 +302,11 @@ async function loadActivity(settings: FrappeSettings, name: string) {
   return entries.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-function mapLiveEnquiry(item: RemoteEnquiry, employeeNames: Map<string, string>) {
+function mapLiveEnquiry(
+  item: RemoteEnquiry,
+  employeeNames: Map<string, string>,
+  comments: Awaited<ReturnType<typeof listEnquiryJobComments>>
+) {
   return {
     name: item.name,
     title: item.title || item.name,
@@ -314,13 +326,15 @@ function mapLiveEnquiry(item: RemoteEnquiry, employeeNames: Map<string, string>)
     modifiedAt: item.modified || null,
     creatorCode: item.user_employee || null,
     assigneeCode: item.assigned_to_employee || null,
-    messages: (item.enquiry_messages ?? []).map((message, index) => ({
-      name: message.name || `${item.name}-message-${index + 1}`,
-      body: message.comment || "",
-      parentName: message.parent_message || null,
-      createdBy: message.owner || null,
-      createdAt: message.creation || null
-    }))
+    messages: comments
+      .filter((comment) => comment.job_type === "Enquiry" && comment.job_id === item.name)
+      .map((comment) => ({
+        name: comment.name,
+        body: comment.comment || "",
+        parentName: comment.parent_comment || null,
+        createdBy: comment.owner || null,
+        createdAt: comment.creation || null
+      }))
   };
 }
 

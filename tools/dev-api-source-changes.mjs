@@ -4,12 +4,17 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
 export function apiSourceDirectories(root) {
-  const apps = join(root, "apps");
-  if (!existsSync(apps)) return [];
-  return readdirSync(apps, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => join(apps, entry.name, "api", "src"))
-    .filter((directory) => existsSync(directory));
+  const directories = [];
+  for (const workspaceGroup of ["apps", "devkits", "packages"]) {
+    const groupPath = join(root, workspaceGroup);
+    if (!existsSync(groupPath)) continue;
+    for (const entry of readdirSync(groupPath, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const directory = join(groupPath, entry.name, "api", "src");
+      if (existsSync(directory)) directories.push(directory);
+    }
+  }
+  return directories;
 }
 
 export async function captureApiInputs(root) {

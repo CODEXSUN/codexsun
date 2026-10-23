@@ -9,11 +9,10 @@ import { env } from "../../env.js";
 import { getTenantDatabase } from "../../database/tenant-database.js";
 import { TenantRepository } from "../tenant/tenant.repository.js";
 import type { QueueManagerService } from "./queue-manager.service.js";
-import { approvedFrappeAutomaticExports } from "./frappe-live-sync.policy.js";
-
-// Replaying a day protects inbound delivery when queue retries or a scheduler pass is delayed.
-// The importer skips enquiries already synced at an equal or newer Frappe modified timestamp.
-const inboundReplayWindowMs = 24 * 60 * 60_000;
+import {
+  approvedFrappeAutomaticExports,
+  frappeInboundModifiedAfter
+} from "./frappe-live-sync.policy.js";
 
 export function startFrappeLiveSyncScheduler(queue: QueueManagerService) {
   let running = false;
@@ -28,7 +27,8 @@ export function startFrappeLiveSyncScheduler(queue: QueueManagerService) {
           const liveSync = new FrappeLiveSyncService(database);
           const previous = await liveSync.settings();
           const kinds = await liveSync.dueKinds();
-          for (const kind of approvedFrappeAutomaticExports(kinds))
+          // Enquiry writes use the immediate outbox, avoiding a second competing creation path.
+          for (const kind of approvedFrappeAutomaticExports(kinds, previous.direction).filter((kind) => kind !== "enquiries"))
             await enqueue(queue, tenant.uuid, tenant.dbName, kind);
           if (kinds.includes("enquiries")) {
             const connection = await new FrappeConnectionAccess(database, env.JWT_SECRET, {
@@ -38,10 +38,7 @@ export function startFrappeLiveSyncScheduler(queue: QueueManagerService) {
               enabled: env.CODEXSUN_FRAPPE_ENABLED === "1"
             }).credentials();
             if (connection) {
-              const boundary = previous.lastScheduledAt
-                ? Date.parse(previous.lastScheduledAt)
-                : Date.now();
-              const modifiedAfter = new Date(boundary - inboundReplayWindowMs).toISOString();
+              const modifiedAfter = frappeInboundModifiedAfter(previous, connection.baseUrl);
               await enqueueInboundEnquiries(
                 queue,
                 tenant.uuid,
@@ -62,7 +59,7 @@ export function startFrappeLiveSyncScheduler(queue: QueueManagerService) {
       running = false;
     }
   };
-  const timer = setInterval(() => void dispatch(), 60_000);
+  const timer = setInterval(() => void dispatch(), 10_000);
   timer.unref?.();
   void dispatch();
   return () => clearInterval(timer);
@@ -73,16 +70,26 @@ async function enqueueInboundEnquiries(
   tenantId: string,
   tenantDatabase: string,
   baseUrl: string,
-  modifiedAfter: string
+  modifiedAfter: string | undefined
 ) {
-  const windowKey = Math.floor(Date.now() / (5 * 60_000));
+  const active = (await Promise.all(["pending", "running"].map((status) => queue.listJobs({
+    tenantId, jobName: "frappe.enquiries.import", queueName: "reports", status: status as "pending" | "running"
+  })))).flat().some((job) => job.payload.tenantDatabase === tenantDatabase && job.payload.baseUrl === baseUrl);
+  if (active) return;
+  const windowKey = Math.floor(Date.now() / 60_000);
   await queue.enqueue({
+    dispatchImmediately: true,
     actorEmail: "system:frappe-live-sync",
     correlationId: `frappe-live-import:enquiries:${tenantId}`,
     idempotencyKey: `frappe-live-import:${tenantId}:enquiries:${windowKey}`,
     jobName: "frappe.enquiries.import",
     maxAttempts: 3,
-    payload: { tenantDatabase, baseUrl, modifiedAfter },
+    payload: {
+      tenantDatabase,
+      baseUrl,
+      ...(modifiedAfter ? { modifiedAfter } : {}),
+      checkpointAt: new Date().toISOString()
+    },
     queueName: "reports",
     sourceModule: "frappe.live-sync",
     tenantId

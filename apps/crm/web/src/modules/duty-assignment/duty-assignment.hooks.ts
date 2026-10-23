@@ -8,6 +8,6 @@ export function useDutyAssignments(canViewAll: boolean | undefined) {
     queryKey: ["crm", "duties", canViewAll],
     queryFn: () => (canViewAll ? listDuties() : listOwnDuties()),
     enabled: canViewAll !== undefined,
-    refetchInterval: 15000
+    refetchInterval: 1000
   });
 }

@@ -320,10 +320,6 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
         { id: 2, new_label: "second", note: "local" }
       ]);
       assert.equal(await count(source, "mapped_sample"), 2);
-      await service.savePlan(sourceId, 2, "mapped_sample", mapping, "test@codexsun.app");
-      assert.deepEqual(await service.getPlan(sourceId, 2), [
-        { table: "mapped_sample", columnMappings: mapping }
-      ]);
       await source.query(
         "CREATE TABLE old_accounts (legacy_id INT NOT NULL, legacy_name VARCHAR(32) NOT NULL, created_by VARCHAR(32) NULL)"
       );
@@ -369,30 +365,10 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
       await source.query("DROP TABLE old_accounts");
       await source.query("DROP TABLE rollback_sample");
       await target.query("DROP TABLE rollback_sample");
-      await target.query("TRUNCATE TABLE sample");
-      await target.query("TRUNCATE TABLE mapped_sample");
       const sampleMapping = [
         { sourceColumn: "id", targetColumn: "id" },
         { sourceColumn: "label", targetColumn: "label" }
       ];
-      await service.savePlan(sourceId, 2, "sample", sampleMapping, "test@codexsun.app");
-      await target.query(
-        "CREATE TRIGGER fail_sample_insert BEFORE INSERT ON sample FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'planned batch failure'"
-      );
-      await assert.rejects(
-        service.migratePlan(sourceId, 2, "test@codexsun.app"),
-        /planned batch failure/u
-      );
-      assert.equal(await count(target, "mapped_sample"), 0);
-      assert.equal(await count(target, "sample"), 0);
-      await target.query("DROP TRIGGER fail_sample_insert");
-      const batch = await service.migratePlan(sourceId, 2, "test@codexsun.app");
-      assert.equal(batch.completed.length, 2);
-      assert.equal(batch.copiedRows, 4);
-      assert.equal(await count(source, "sample"), 2);
-      assert.equal(await count(source, "mapped_sample"), 2);
-      assert.equal(await count(target, "sample"), 2);
-      assert.equal(await count(target, "mapped_sample"), 2);
       await source.query(
         "CREATE TABLE old_accounts (legacy_id INT NOT NULL, legacy_name VARCHAR(32) NOT NULL, created_by VARCHAR(32) NULL)"
       );
@@ -423,6 +399,42 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
         },
         "test@codexsun.app"
       );
+      await jobTarget.query("ALTER TABLE sample ADD COLUMN extra VARCHAR(32) NULL");
+      const selectedBatch = await service.saveQueryBatch(
+        batchJobId,
+        {
+          rows: [
+            {
+              sourceTable: "sample",
+              targetTable: "sample",
+              rowNumber: 1,
+              rowData: { id: 1, label: "first" }
+            }
+          ],
+          fieldValues: { extra: { mode: "custom", value: "saved" } }
+        },
+        "test@codexsun.app"
+      );
+      assert.equal(selectedBatch.savedRows, 1);
+      await sqlAdmin(
+        admin,
+        names[2]!,
+        "ALTER TABLE data_migration_query_batches DROP COLUMN source_label"
+      );
+      await sqlAdmin(
+        admin,
+        names[2]!,
+        "DELETE FROM migration_schema WHERE scope = 'data-migration' AND name = 'data-migration.query-batch-source-snapshot-v8'"
+      );
+      await migrateDataMigrationDatabase(database);
+      const savedSelection = await service.getQueryBatch(batchJobId);
+      assert.equal(savedSelection?.rows[0]?.rowNumber, 1);
+      assert.deepEqual(savedSelection?.rows[0]?.rowData, { id: 1, label: "first" });
+      assert.deepEqual(savedSelection?.rows[0]?.fieldValues, {
+        extra: { mode: "custom", value: "saved" }
+      });
+      assert.equal(savedSelection?.sourceLabel, "Updated external source");
+      assert.equal(savedSelection?.passwordStored, true);
       const generatedPlan = await service.generateJobQueryPlan(batchJobId, "test@codexsun.app");
       assert.equal(generatedPlan.status, "generated");
       assert.equal(generatedPlan.canFinalize, true);
@@ -439,12 +451,208 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
       const queryPlanApi = Fastify();
       try {
         await registerDataMigrationApi(queryPlanApi, host(database, names, config));
+        const { id: partialJobId } = await service.createJob(
+          {
+            sessionName: "Partial table handoff",
+            sourceId,
+            sourceTenantId: null,
+            targetTenantId: 3
+          },
+          "test@codexsun.app"
+        );
+        await service.saveJobTable(
+          partialJobId,
+          { sourceTable: "sample", targetTable: "sample", mappings: sampleMapping },
+          "test@codexsun.app"
+        );
+        await service.saveQueryBatch(
+          partialJobId,
+          {
+            rows: [
+              {
+                sourceTable: "sample",
+                targetTable: "sample",
+                rowNumber: 1,
+                rowData: { id: 1, label: "first" }
+              }
+            ],
+            fieldValues: {}
+          },
+          "test@codexsun.app"
+        );
+        const partialBatch = await service.getQueryBatch(partialJobId);
+        const partialHandoff = await queryPlanApi.inject({
+          method: "POST",
+          url: `/api/data-migration/jobs/${partialJobId}/audit-handoff`,
+          payload: { rowIds: [partialBatch!.rows[0]!.id] }
+        });
+        assert.equal(partialHandoff.statusCode, 200, partialHandoff.body);
+        assert.equal(partialHandoff.json().data.sourceTable, "sample");
+        assert.equal(partialHandoff.json().data.selectedRows, 1);
+        const deletedAuditItem = await queryPlanApi.inject({
+          method: "DELETE",
+          url: `/api/data-migration/audit-queue/${partialHandoff.json().data.id}`,
+          payload: {}
+        });
+        assert.equal(deletedAuditItem.statusCode, 200, deletedAuditItem.body);
+        assert.equal(deletedAuditItem.json().data.deleted, true);
+        const removedPartialBatch = await queryPlanApi.inject({
+          method: "DELETE",
+          url: `/api/data-migration/jobs/${partialJobId}/query-batch`,
+          payload: {}
+        });
+        assert.equal(removedPartialBatch.statusCode, 200, removedPartialBatch.body);
+        assert.equal(removedPartialBatch.json().data.deletedRows, 1);
+        assert.equal(await service.getQueryBatch(partialJobId), null);
+        const deletedPartialJob = await queryPlanApi.inject({
+          method: "DELETE",
+          url: `/api/data-migration/jobs/${partialJobId}`,
+          payload: {}
+        });
+        assert.equal(deletedPartialJob.statusCode, 200, deletedPartialJob.body);
+        assert.equal(deletedPartialJob.json().data.deleted, true);
+        assert.equal(
+          (await service.listJobs()).some((item) => item.id === partialJobId),
+          false
+        );
+
+        const { id: mappingDeleteJobId } = await service.createJob(
+          {
+            sessionName: "Mapping delete check",
+            sourceId,
+            sourceTenantId: null,
+            targetTenantId: 3
+          },
+          "test@codexsun.app"
+        );
+        await service.saveJobTable(
+          mappingDeleteJobId,
+          { sourceTable: "sample", targetTable: "sample", mappings: sampleMapping },
+          "test@codexsun.app"
+        );
+        await service.saveQueryBatch(
+          mappingDeleteJobId,
+          {
+            rows: [
+              {
+                sourceTable: "sample",
+                targetTable: "sample",
+                rowNumber: 1,
+                rowData: { id: 1, label: "first" }
+              }
+            ],
+            fieldValues: {}
+          },
+          "test@codexsun.app"
+        );
+        const deletedMapping = await queryPlanApi.inject({
+          method: "DELETE",
+          url: `/api/data-migration/jobs/${mappingDeleteJobId}/tables/sample`,
+          payload: {}
+        });
+        assert.equal(deletedMapping.statusCode, 200, deletedMapping.body);
+        assert.equal(deletedMapping.json().data.deleted, true);
+        assert.deepEqual(await service.getJobTables(mappingDeleteJobId), []);
+        assert.equal((await service.getQueryBatch(mappingDeleteJobId))?.rows.length, 0);
+        await queryPlanApi.inject({
+          method: "DELETE",
+          url: `/api/data-migration/jobs/${mappingDeleteJobId}`,
+          payload: {}
+        });
+        const { id: unmappedBatchJobId } = await service.createJob(
+          {
+            sessionName: "Unmapped query batch",
+            sourceId,
+            sourceTenantId: null,
+            targetTenantId: 3
+          },
+          "test@codexsun.app"
+        );
+        const unmappedBatch = await queryPlanApi.inject({
+          method: "POST",
+          url: `/api/data-migration/jobs/${unmappedBatchJobId}/query-batch`,
+          payload: {
+            rows: [
+              {
+                sourceTable: "sample",
+                targetTable: "sample",
+                rowNumber: 1,
+                rowData: { id: 1, label: "first" }
+              }
+            ],
+            fieldValues: {}
+          }
+        });
+        assert.equal(unmappedBatch.statusCode, 409, unmappedBatch.body);
+        assert.match(
+          unmappedBatch.body,
+          /Save the table pair sample.*sample before saving selected rows/u
+        );
         const planRead = await queryPlanApi.inject({
           method: "GET",
           url: `/api/data-migration/jobs/${batchJobId}/query-plan`
         });
         assert.equal(planRead.statusCode, 200, planRead.body);
         assert.equal(planRead.json().data.hash, generatedPlan.hash);
+        const handoff = await queryPlanApi.inject({
+          method: "POST",
+          url: `/api/data-migration/jobs/${batchJobId}/audit-handoff`,
+          payload: { rowIds: [savedSelection!.rows[0]!.id] }
+        });
+        assert.equal(handoff.statusCode, 200, handoff.body);
+        const queuedDump = handoff.json().data;
+        assert.equal(queuedDump.status, "queued");
+        assert.equal(queuedDump.sourceTable, "sample");
+        assert.equal(queuedDump.selectedRows, 1);
+        assert.match(queuedDump.queryDump, /SELECT `id`, `label`/u);
+        assert.match(queuedDump.queryDump, /VALUES \(\?, \?, \?\)/u);
+        assert.deepEqual(queuedDump.samples, [
+          { rowNumber: 1, rowData: { id: 1, label: "first" } }
+        ]);
+        assert.equal(queuedDump.queryDump.includes("password"), false);
+        assert.equal(queuedDump.queryDump.includes('"first"'), false);
+        const auditQueue = await queryPlanApi.inject({
+          method: "GET",
+          url: "/api/data-migration/audit-queue"
+        });
+        assert.equal(auditQueue.statusCode, 200, auditQueue.body);
+        assert.equal(
+          auditQueue.json().data.some((item: { id: string }) => item.id === queuedDump.id),
+          true
+        );
+        const queueSummary = auditQueue
+          .json()
+          .data.find((item: { id: string }) => item.id === queuedDump.id);
+        assert.equal("queryDump" in queueSummary, false);
+        const auditDetail = await queryPlanApi.inject({
+          method: "GET",
+          url: `/api/data-migration/audit-queue/${queuedDump.id}`
+        });
+        assert.equal(auditDetail.statusCode, 200, auditDetail.body);
+        assert.deepEqual(auditDetail.json().data.samples, queuedDump.samples);
+        const auditReview = await queryPlanApi.inject({
+          method: "POST",
+          url: `/api/data-migration/audit-queue/${queuedDump.id}/review`,
+          payload: {}
+        });
+        assert.equal(auditReview.statusCode, 200, auditReview.body);
+        assert.equal(auditReview.json().data.status, "reviewed");
+        assert.equal(auditReview.json().data.planStatus, "generated");
+        assert.equal(auditReview.json().data.migrationStatus, "draft");
+        const runBeforeFinalize = await queryPlanApi.inject({
+          method: "POST",
+          url: `/api/data-migration/audit-queue/${queuedDump.id}/run`,
+          payload: {}
+        });
+        assert.equal(runBeforeFinalize.statusCode, 409, runBeforeFinalize.body);
+        assert.match(runBeforeFinalize.body, /Finalize the session migration plan/u);
+        const queryBatchRead = await queryPlanApi.inject({
+          method: "GET",
+          url: `/api/data-migration/jobs/${batchJobId}/query-batch`
+        });
+        assert.equal(queryBatchRead.statusCode, 200, queryBatchRead.body);
+        assert.equal(queryBatchRead.json().data.sourceLabel, "Updated external source");
+        assert.equal(queryBatchRead.json().data.rows.length, 1);
         const finalize = await queryPlanApi.inject({
           method: "POST",
           url: `/api/data-migration/jobs/${batchJobId}/query-plan/finalize`,
@@ -460,10 +668,20 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
         service.migrateJob(batchJobId, "test@codexsun.app"),
         /no longer current/u
       );
+      assert.equal(
+        (await service.listAuditQueue()).find((item) => item.jobId === batchJobId)?.status,
+        "stale"
+      );
       const refreshedPlan = await service.generateJobQueryPlan(batchJobId, "test@codexsun.app");
       assert.equal(refreshedPlan.canFinalize, true);
       await service.finalizeJobQueryPlan(batchJobId, "test@codexsun.app");
-      const jobBatch = await service.migrateJob(batchJobId, "test@codexsun.app");
+      const reviewedRun = await service.handoffJobToAuditQueue(
+        batchJobId,
+        [savedSelection!.rows[0]!.id],
+        "test@codexsun.app"
+      );
+      await service.markAuditQueueReviewed(reviewedRun.id, "test@codexsun.app");
+      const jobBatch = await service.runReviewedMigration(reviewedRun.id, "test@codexsun.app");
       assert.equal(jobBatch.completed.length, 3);
       assert.equal(jobBatch.copiedRows, 5);
       assert.equal(await count(source, "sample"), 2);
@@ -478,6 +696,16 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
           (item) => item.migrationStatus === "completed"
         ),
         true
+      );
+      await assert.rejects(service.deleteJob(batchJobId), /Only an unrun draft migration/u);
+      await assert.rejects(
+        service.deleteJobTable(batchJobId, "sample"),
+        /locked after a migration has started/u
+      );
+      await assert.rejects(service.deleteQueryBatch(batchJobId), /after a migration has started/u);
+      await assert.rejects(
+        service.deleteAuditQueueItem(reviewedRun.id),
+        /retained with its run history/u
       );
       assert.equal((await service.verifySource(sourceId, "test@codexsun.app")).verified, true);
       await service.deactivateSource(sourceId, "test@codexsun.app");
@@ -516,8 +744,13 @@ test("denies migration reads and writes before resolving a tenant", async () => 
     const reads = await app.inject({ method: "GET", url: "/api/data-migration/tenants" });
     const writes = await app.inject({
       method: "POST",
-      url: "/api/data-migration/runs",
-      payload: { sourceId: 1, targetTenantId: 2, table: "sample" }
+      url: "/api/data-migration/jobs",
+      payload: {
+        sessionName: "Denied session",
+        sourceId: 1,
+        sourceTenantId: null,
+        targetTenantId: 2
+      }
     });
     const settingsWrite = await app.inject({
       method: "PUT",
@@ -545,6 +778,16 @@ test("denies migration reads and writes before resolving a tenant", async () => 
       url: "/api/data-migration/plan/migrate",
       payload: { sourceId: 1, targetTenantId: 2 }
     });
+    const directJobRun = await app.inject({
+      method: "POST",
+      url: "/api/data-migration/jobs/00000000-0000-4000-8000-000000000001/migrate",
+      payload: {}
+    });
+    const directTableRun = await app.inject({
+      method: "POST",
+      url: "/api/data-migration/runs",
+      payload: { sourceId: 1, targetTenantId: 2, table: "sample" }
+    });
     const queryPlanRead = await app.inject({
       method: "GET",
       url: "/api/data-migration/jobs/00000000-0000-4000-8000-000000000001/query-plan"
@@ -559,15 +802,46 @@ test("denies migration reads and writes before resolving a tenant", async () => 
       url: "/api/data-migration/jobs/00000000-0000-4000-8000-000000000001/query-plan/finalize",
       payload: {}
     });
+    const auditHandoff = await app.inject({
+      method: "POST",
+      url: "/api/data-migration/jobs/00000000-0000-4000-8000-000000000001/audit-handoff",
+      payload: { rowIds: [1] }
+    });
+    const auditQueueRead = await app.inject({
+      method: "GET",
+      url: "/api/data-migration/audit-queue"
+    });
+    const auditedRun = await app.inject({
+      method: "POST",
+      url: "/api/data-migration/audit-queue/00000000-0000-4000-8000-000000000001/run",
+      payload: {}
+    });
+    const jobDelete = await app.inject({
+      method: "DELETE",
+      url: "/api/data-migration/jobs/00000000-0000-4000-8000-000000000001",
+      payload: {}
+    });
+    const auditDelete = await app.inject({
+      method: "DELETE",
+      url: "/api/data-migration/audit-queue/00000000-0000-4000-8000-000000000001",
+      payload: {}
+    });
     assert.equal(reads.statusCode, 403);
     assert.equal(writes.statusCode, 403);
     assert.equal(settingsWrite.statusCode, 403);
     assert.equal(databases.statusCode, 403);
-    assert.equal(planRead.statusCode, 403);
-    assert.equal(planRun.statusCode, 403);
+    assert.equal(planRead.statusCode, 404);
+    assert.equal(planRun.statusCode, 404);
+    assert.equal(directJobRun.statusCode, 404);
+    assert.equal(directTableRun.statusCode, 404);
     assert.equal(queryPlanRead.statusCode, 403);
     assert.equal(queryPlanGenerate.statusCode, 403);
     assert.equal(queryPlanFinalize.statusCode, 403);
+    assert.equal(auditHandoff.statusCode, 403);
+    assert.equal(auditQueueRead.statusCode, 403);
+    assert.equal(auditedRun.statusCode, 403);
+    assert.equal(jobDelete.statusCode, 403);
+    assert.equal(auditDelete.statusCode, 403);
     assert.equal(resolved, false);
   } finally {
     await app.close();

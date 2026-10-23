@@ -1,11 +1,19 @@
 import { sql, type Kysely } from "kysely";
+import { createHash } from "node:crypto";
 import { AppError } from "@codexsun/framework/errors";
-import { FrappeConnectionAccess, requestFrappe } from "../connection/index.js";
+import {
+  FrappeConnectionAccess,
+  createEnquiryJobComment,
+  listEnquiryJobComments,
+  requestFrappe,
+  updateEnquiryJobComment
+} from "../connection/index.js";
 import type { FrappeDatabase, FrappeSettings } from "../connection/index.js";
 import { mappedEmployeeCodeForLocalUser } from "../user-mapping/index.js";
 import type { FrappeUserMappingDatabase } from "../user-mapping/index.js";
 import { normalizeFrappeEnquiryTitle } from "./enquiry-title.js";
 import { assertFrappeExportAllowed } from "./export.policy.js";
+import { resolveEnquiryMobile } from "./enquiry-mobile.js";
 import type {
   ExportKind,
   ExportMode,
@@ -31,14 +39,19 @@ export class FrappeExportService {
   }
 
   async validateSelection(kind: ExportKind, ids: number[]) {
+    const unique = await this.validateRecordIds(kind, ids, 50);
+    const settings = await this.settings();
+    return { ids: unique, baseUrl: settings.baseUrl };
+  }
+
+  async validateRecordIds(kind: ExportKind, ids: number[], limit = 100) {
     const unique = [...new Set(ids)];
-    if (!unique.length || unique.length > 50) throw AppError.validation("Select 1 to 50 records.");
+    if (!unique.length || unique.length > limit) throw AppError.validation(`Select 1 to ${limit} records.`);
     for (const id of unique) {
       if (!Number.isSafeInteger(id) || id < 1 || !(await this.exists(kind, id)))
         throw AppError.notFound(`Local ${kind} record #${id} was not found.`);
     }
-    const settings = await this.settings();
-    return { ids: unique, baseUrl: settings.baseUrl };
+    return unique;
   }
 
   async exportSelection(
@@ -382,18 +395,7 @@ export class FrappeExportService {
     const activity = result.rows[0];
     if (!activity) throw AppError.notFound("Activity was not found.");
     if (!activity.enquiry_remote) throw AppError.conflict("Export the activity's enquiry first.");
-    const response = await requestFrappe<{
-      data?: {
-        enquiry_messages?: Array<{
-          name?: string;
-          comment?: string;
-          mode?: string;
-          creation?: string;
-        }>;
-      };
-    }>(`/api/resource/Enquiry/${encodeURIComponent(activity.enquiry_remote)}`, "GET", settings);
-    const messages = response.data?.enquiry_messages;
-    if (!messages) throw AppError.conflict("Frappe did not return enquiry messages.");
+    const messages = await listEnquiryJobComments(settings, [activity.enquiry_remote]);
     if (activity.remote_name) {
       if (!messages.some((message) => message.name === activity.remote_name))
         throw AppError.conflict("The linked Frappe activity is missing. Review before export.");
@@ -585,9 +587,10 @@ export class FrappeExportService {
       captured_name: string | null;
       source: string;
       created_by: string;
+      contact_id: number | null;
       remote_name: string | null;
     }>`SELECT e.title, e.description, e.captured_phone, e.status, e.priority,
-      e.enquired_at, e.due_date, e.captured_name, e.source, e.created_by,
+      e.enquired_at, e.due_date, e.captured_name, e.source, e.created_by, e.contact_id,
       link.remote_name FROM crm_enquiries e
       LEFT JOIN frappe_enquiry_sync link ON link.enquiry_id=e.id
       WHERE e.id=${id} LIMIT 1`.execute(this.database);
@@ -602,10 +605,42 @@ export class FrappeExportService {
       : await this.creatorEmployee(enquiry.created_by, settings);
     if (!linkedName && !enquiry.captured_phone?.trim())
       throw AppError.conflict("Add a mobile number before creating this enquiry in Frappe.");
+    let mobileLink: Awaited<ReturnType<typeof resolveEnquiryMobile>> | undefined;
+    if (!linkedName) {
+      let customer: string | null = null;
+      if (enquiry.contact_id) {
+        const identities = await this.database
+          .selectFrom("frappe_contact_customer_identity")
+          .select(["source_key", "remote_name"])
+          .where("local_contact_id", "=", enquiry.contact_id)
+          .execute();
+        const matches = identities.filter(
+          (identity) =>
+            identity.source_key ===
+            createHash("sha256")
+              .update(
+                JSON.stringify([
+                  new URL(settings.baseUrl).origin.toLowerCase(),
+                  "Mobile Contact Customer",
+                  "customer",
+                  identity.remote_name
+                ])
+              )
+              .digest("hex")
+        );
+        if (matches.length !== 1)
+          throw AppError.conflict(
+            "This enquiry's Customer has no unique identity on the connected Frappe site. Verify its Customer mapping before retrying."
+          );
+        customer = matches[0]!.remote_name;
+      }
+      mobileLink = await resolveEnquiryMobile(settings, enquiry.captured_phone!, customer);
+    }
     const payload = {
       title,
       enquiry_details: enquiry.description || title,
       mobile: enquiry.captured_phone || undefined,
+      ...mobileLink,
       date: dateOnly(enquiry.enquired_at),
       due_date: enquiry.due_date ? dateOnly(enquiry.due_date) : undefined,
       priority: titleCase(enquiry.priority),
@@ -649,36 +684,29 @@ export class FrappeExportService {
     if (!activity) throw AppError.notFound("Activity was not found.");
     if (!activity.enquiry_remote) throw AppError.conflict("Export the activity's enquiry first.");
     const linkedName = verifiedRemoteName ?? activity.remote_name;
-    const path = `/api/resource/Enquiry/${encodeURIComponent(activity.enquiry_remote)}`;
-    const remote = await requestFrappe<{
-      data?: {
-        enquiry_messages?: Array<{
-          name?: string;
-          comment?: string;
-          mode?: string;
-          parent_message?: string;
-        }>;
-      };
-    }>(path, "GET", settings);
-    const messages = remote.data?.enquiry_messages;
-    if (!messages) throw AppError.conflict("Frappe did not return enquiry messages.");
-    const next = messages.map((message) => ({
-      name: message.name,
-      comment: message.name === linkedName ? activity.details : message.comment || "",
-      mode: message.name === linkedName ? activity.action : message.mode || "Comment",
-      ...(message.parent_message ? { parent_message: message.parent_message } : {})
-    }));
-    if (!linkedName)
-      next.push({ name: undefined, comment: activity.details, mode: activity.action });
-    const updated = await requestFrappe<{ data?: { enquiry_messages?: Array<{ name?: string }> } }>(
-      path,
-      "PUT",
-      settings,
-      { enquiry_messages: next },
-      { allowExport: true }
-    );
-    const updatedMessages = updated.data?.enquiry_messages;
-    const remoteName = linkedName || updatedMessages?.at(-1)?.name;
+    const messages = await listEnquiryJobComments(settings, [activity.enquiry_remote]);
+    let remoteName = linkedName ?? "";
+    if (linkedName) {
+      if (!messages.some((message) => message.name === linkedName))
+        throw AppError.conflict("The linked Frappe activity is missing. Review before export.");
+      await updateEnquiryJobComment(
+        settings,
+        linkedName,
+        { comment: activity.details, mode: activity.action },
+        true
+      );
+    } else {
+      const created = await createEnquiryJobComment(
+        settings,
+        {
+          enquiryName: activity.enquiry_remote,
+          comment: activity.details,
+          mode: activity.action
+        },
+        true
+      );
+      remoteName = created.name;
+    }
     if (!remoteName) throw AppError.conflict("Frappe did not return the activity ID.");
     await sql`INSERT INTO frappe_activity_imports (remote_name, local_activity_id)
       VALUES (${remoteName}, ${id}) ON DUPLICATE KEY UPDATE remote_name=VALUES(remote_name)`.execute(

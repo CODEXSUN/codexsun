@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.45
+Current version: 1.1.46
 
-Release tag: v-1.1.45
+Release tag: v-1.1.46
 
-Changelog label: v 1.1.45
+Changelog label: v 1.1.46
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,29 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.46
+
+### [v 1.1.46] 2026-10-23 4:32 pm - Data Bridge common-table import and row verification reports
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Data Bridge owns persisted selected-row snapshots, per-row audits, and the additive v4 combined-import run table in the Platform master database.
+- New combined runs store source and matched target business values in report JSON. Existing reports remain readable; no extra schema change is needed for row details.
+- Bulk imports preserve existing records, translate foreign references by business keys, and process parents before children.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.46.
+- Add Common Tables and Table Import Review for 31 Core tables with selected source rows and columns, saved-data review, comparison controls, audit, and import results.
+- Add Audit & import all missing rows through the tenant-scoped Queue Manager worker, with one persisted combined report and attention-only filtering.
+- Add View row results for each table with Imported, Existing, and Warning filters, pagination, source data, matched target data, and record-specific messages. Highlight only warnings.
+- Record unavailable historical row details explicitly and flag incomplete worker-recovery snapshots for verification.
+- Verification: Data Bridge API/web typechecks, lint, builds, owner boundaries, component documentation checks, dependency layout, and disposable bulk database tests passed. Tests cover changed parent IDs, missing rows, existing rows, conflicts, persisted values, and duplicate-free repeats.
+- Live verification: Common Tables shows the drill-down buttons in authenticated Chrome. The earlier combined run checked 31 tables and 520 existing records with zero warnings; row snapshots require a new run.
+- Version update verification: `check:versions`, component documentation checks, two documentation tests, and four cleanup tests passed. Full `npm run check` stopped at missing required role files in the concurrently developed Frappe `contact-export` module; subsequent gates did not run.
+- Full Platform production builds were blocked by unrelated concurrent CRM type errors. No commit, tag, push, or deployment is part of this version update.
 
 ## v-1.1.45
 

@@ -37,6 +37,7 @@ export type TableColumn = {
   extra: string;
   defaultValue: unknown;
   required: boolean;
+  reference?: { table: string; column: string };
 };
 
 export type MigrationColumnMapping = { sourceColumn: string; targetColumn: string };
@@ -78,6 +79,44 @@ export type MigrationQueryPlan = {
     blockers: string[];
   }>;
   blockers: string[];
+};
+
+export type MigrationAuditQueueSummary = {
+  id: string;
+  jobId: string;
+  planHash: string;
+  sessionName: string;
+  sourceTable: string;
+  targetTable: string;
+  selectedRows: number;
+  sourceDatabase: string;
+  targetDatabase: string;
+  status: "queued" | "reviewed" | "stale";
+  planStatus: MigrationQueryPlan["status"] | null;
+  migrationStatus: "draft" | "running" | "completed" | "failed";
+  queuedBy: string;
+  queuedAt: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+};
+
+export type MigrationAuditQueueSample = {
+  rowNumber: number;
+  rowData: Record<string, unknown>;
+};
+
+export type MigrationAuditQueueItem = MigrationAuditQueueSummary & {
+  queryDump: string;
+  samples: MigrationAuditQueueSample[];
+};
+
+export type MigrationAuditTableDump = {
+  sourceTable: string;
+  targetTable: string;
+  selectedRowNumbers: number[];
+  samples: MigrationAuditQueueSample[];
+  selectSql: string;
+  insertSqlTemplate: string;
 };
 
 export type TableDataSample = {

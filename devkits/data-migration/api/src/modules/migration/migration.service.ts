@@ -9,7 +9,8 @@ import type {
   MigrationColumnMapping,
   TableColumn,
   TablePreview,
-  MigrationQueryPlan
+  MigrationQueryPlan,
+  MigrationAuditTableDump
 } from "./migration.types.js";
 import { MigrationRepository } from "./migration.repository.js";
 import { analyzeDatabases } from "./migration.analysis.js";
@@ -150,9 +151,25 @@ export class MigrationService {
         this.columns(targetConnection, target.database, targetTable)
       ]);
       if (!sourceColumns.length) throw new Error("Source table does not exist.");
+      const targetReferences = await this.foreignReferences(
+        targetConnection,
+        target.database,
+        targetTable
+      );
+      for (const column of targetColumns) {
+        const reference = targetReferences.get(column.name);
+        if (reference) column.reference = reference;
+      }
       return {
-        sourceColumns: sourceColumns.map(columnOption),
-        targetColumns: targetColumns.map(columnOption)
+        sourceColumns: sourceColumns.map((column) => columnOption(column)),
+        targetColumns: await Promise.all(
+          targetColumns.map(async (column) => {
+            const options = column.reference
+              ? await this.foreignValues(targetConnection, target.database, column.reference)
+              : [];
+            return columnOption(column, options);
+          })
+        )
       };
     } finally {
       await Promise.all([sourceConnection.end(), targetConnection.end()]);
@@ -300,12 +317,6 @@ export class MigrationService {
     }
   }
 
-  async getPlan(sourceId: number, targetId: number) {
-    await this.runs.resolveSource(sourceId, this.host.secretKey);
-    await this.host.resolveTenant(targetId);
-    return this.runs.getPlan(sourceId, targetId);
-  }
-
   async listJobs() {
     const [jobs, sources, tenants] = await Promise.all([
       this.runs.listJobs(),
@@ -346,6 +357,10 @@ export class MigrationService {
   async renameJob(uuid: string, sessionName: string, actor: string) {
     await this.runs.resolveJob(uuid);
     return this.runs.renameJob(uuid, sessionName, actor);
+  }
+
+  deleteJob(uuid: string) {
+    return this.runs.deleteJob(uuid);
   }
 
   async getJobTables(uuid: string) {
@@ -418,6 +433,12 @@ export class MigrationService {
     };
   }
 
+  async deleteJobTable(uuid: string, sourceTable: string) {
+    if (!identifierPattern.test(sourceTable))
+      throw AppError.validation("Invalid source table name.");
+    return this.runs.deleteJobTable(uuid, sourceTable);
+  }
+
   async generateJobQueryPlan(uuid: string, actor: string) {
     const plan = await this.buildJobQueryPlan(uuid, actor);
     return this.runs.saveJobQueryPlan(uuid, plan, actor);
@@ -444,6 +465,270 @@ export class MigrationService {
 
   async getJobQueryPlan(uuid: string) {
     return this.runs.getJobQueryPlan(uuid);
+  }
+
+  async handoffJobToAuditQueue(uuid: string, selectedRowIds: number[], actor: string) {
+    if (!selectedRowIds.length || selectedRowIds.length > 100) {
+      throw AppError.validation("Select between 1 and 100 saved rows before handoff.");
+    }
+    if (new Set(selectedRowIds).size !== selectedRowIds.length) {
+      throw AppError.validation("A saved row is selected more than once.");
+    }
+    const job = await this.runs.resolveJob(uuid);
+    await this.assertJobDatabases(job);
+    const [batch, tables] = await Promise.all([
+      this.runs.getQueryBatch(uuid),
+      this.runs.getJobTables(uuid)
+    ]);
+    if (!batch || batch.sourceDatabase !== job.sourceDatabase) {
+      throw AppError.conflict("Save selected source rows before handing off to audit.");
+    }
+    const selectedRows = selectedRowIds.map((id) => {
+      const row = batch.rows.find((item) => item.id === id);
+      if (!row) throw AppError.validation("A selected row is no longer in the saved row list.");
+      return row;
+    });
+    const first = selectedRows[0]!;
+    if (
+      selectedRows.some(
+        (row) => row.sourceTable !== first.sourceTable || row.targetTable !== first.targetTable
+      )
+    ) {
+      throw AppError.validation("Hand off saved rows for one table pair at a time.");
+    }
+    const mapping = tables.find((item) => item.sourceTable === first.sourceTable);
+    if (
+      !mapping ||
+      mapping.targetTable !== first.targetTable ||
+      mapping.mappingStatus !== "mapped"
+    ) {
+      throw AppError.conflict("Save this source to target table mapping before handoff.");
+    }
+    const sourceFields = mapping.columnMappings.map((field) => field.sourceColumn);
+    const targetFields = mapping.columnMappings.map((field) => field.targetColumn);
+    const extraFields = Object.entries(selectedRows[0]!.fieldValues)
+      .filter(([, configured]) => configured.mode !== "default")
+      .map(([name]) => name);
+    const insertFields = [
+      ...targetFields,
+      ...extraFields.filter((field) => !targetFields.includes(field))
+    ];
+    if (!sourceFields.length || !insertFields.length) {
+      throw AppError.conflict("Map at least one source field before handoff.");
+    }
+    const values = selectedRows.map(() => `(${insertFields.map(() => "?").join(", ")})`).join(", ");
+    const tableDump: MigrationAuditTableDump = {
+      sourceTable: first.sourceTable,
+      targetTable: first.targetTable,
+      selectedRowNumbers: selectedRows.map((row) => row.rowNumber),
+      samples: selectedRows.map((row) => ({
+        rowNumber: row.rowNumber,
+        rowData: redactAuditSample(row.rowData)
+      })),
+      selectSql: `SELECT ${sourceFields.map(quote).join(", ")} FROM ${quote(first.sourceTable)};`,
+      insertSqlTemplate: `INSERT INTO ${quote(first.targetTable)} (${insertFields.map(quote).join(", ")}) VALUES ${values};`
+    };
+    const hash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          jobId: uuid,
+          batchId: batch.id,
+          selectedRows: selectedRows.map(({ id, rowNumber, rowData }) => ({
+            id,
+            rowNumber,
+            rowData
+          })),
+          table: tableDump,
+          mappings: mapping.columnMappings,
+          fieldValues: selectedRows[0]!.fieldValues
+        })
+      )
+      .digest("hex");
+    return this.runs.saveAuditQueueItem(
+      uuid,
+      {
+        hash,
+        sourceDatabase: job.sourceDatabase,
+        targetDatabase: job.targetDatabase,
+        tables: [tableDump]
+      },
+      actor
+    );
+  }
+
+  listAuditQueue() {
+    return this.runs.listAuditQueue();
+  }
+
+  getAuditQueueItem(uuid: string) {
+    return this.runs.getAuditQueueItem(uuid);
+  }
+
+  markAuditQueueReviewed(uuid: string, actor: string) {
+    return this.runs.markAuditQueueReviewed(uuid, actor);
+  }
+
+  deleteAuditQueueItem(uuid: string) {
+    return this.runs.deleteAuditQueueItem(uuid);
+  }
+
+  async runReviewedMigration(auditId: string, actor: string) {
+    const audit = await this.runs.getAuditQueueItem(auditId);
+    if (audit.status !== "reviewed") {
+      throw AppError.conflict("Review this migration audit item before running it.");
+    }
+    const plan = await this.runs.getJobQueryPlan(audit.jobId);
+    if (!plan || plan.status !== "finalized") {
+      throw AppError.conflict("Finalize the session migration plan before running this migration.");
+    }
+    return this.migrateJob(audit.jobId, actor);
+  }
+
+  async getQueryBatch(uuid: string) {
+    const job = await this.runs.resolveJob(uuid);
+    await this.runs.resolveSource(job.sourceId, this.host.secretKey);
+    return this.runs.getQueryBatch(uuid);
+  }
+
+  deleteQueryBatch(uuid: string) {
+    return this.runs.deleteQueryBatch(uuid);
+  }
+
+  async saveQueryBatch(
+    uuid: string,
+    input: {
+      rows: Array<{
+        sourceTable: string;
+        targetTable: string;
+        rowNumber: number;
+        rowData: Record<string, unknown>;
+      }>;
+      fieldValues: Record<string, { mode: "default" | "custom" | "foreign"; value: unknown }>;
+    },
+    actor: string
+  ) {
+    if (!input.rows.length || input.rows.length > 100) {
+      throw AppError.validation("Select between 1 and 100 source sample rows before saving.");
+    }
+    const job = await this.runs.resolveJob(uuid);
+    if (job.status === "running") throw AppError.conflict("This migration is currently running.");
+    const [source, tables] = await Promise.all([
+      this.runs.resolveSource(job.sourceId, this.host.secretKey),
+      this.runs.getJobTables(uuid)
+    ]);
+    const mappings = new Map(tables.map((table) => [table.sourceTable, table]));
+    const firstRow = input.rows[0]!;
+    if (
+      input.rows.some(
+        (row) =>
+          row.sourceTable !== firstRow.sourceTable || row.targetTable !== firstRow.targetTable
+      )
+    ) {
+      throw AppError.validation(
+        "Save selected rows for one source and destination table pair at a time."
+      );
+    }
+    if (new Set(input.rows.map((row) => row.rowNumber)).size !== input.rows.length) {
+      throw AppError.validation("A source sample row is selected more than once.");
+    }
+    const savedTable = mappings.get(firstRow.sourceTable);
+    if (!savedTable || savedTable.targetTable !== firstRow.targetTable) {
+      throw AppError.conflict(
+        `Save the table pair ${firstRow.sourceTable} → ${firstRow.targetTable} before saving selected rows.`
+      );
+    }
+    const [schema, sourceTotal] = await Promise.all([
+      this.tableSchema(
+        job.sourceId,
+        job.targetTenantId,
+        firstRow.sourceTable,
+        firstRow.targetTable
+      ),
+      this.withConnection(source, async (connection) =>
+        this.count(connection, firstRow.sourceTable)
+      )
+    ]);
+    const sourceColumnNames = new Set(schema.sourceColumns.map((column) => column.name));
+    const mappedTargetNames = new Set(
+      savedTable.columnMappings.map((mapping) => mapping.targetColumn)
+    );
+    const targetColumnByName = new Map(schema.targetColumns.map((column) => [column.name, column]));
+    for (const [field, configured] of Object.entries(input.fieldValues)) {
+      const column = targetColumnByName.get(field);
+      if (!column || mappedTargetNames.has(field) || column.generated) {
+        throw AppError.validation(`Field ${field} is not an unmapped destination field.`);
+      }
+      if (configured.mode === "default" && column.required && column.defaultValue === null) {
+        throw AppError.validation(`Destination field ${field} has no database default.`);
+      }
+      if (configured.mode === "foreign") {
+        if (!column.reference)
+          throw AppError.validation(`Destination field ${field} is not a foreign key.`);
+        if (!(column.foreignOptions ?? []).includes(String(configured.value))) {
+          throw AppError.validation(
+            `Select a valid referenced value for destination field ${field}.`
+          );
+        }
+      }
+    }
+    for (const row of input.rows) {
+      const table = mappings.get(row.sourceTable);
+      if (!table || table.targetTable !== row.targetTable || table.mappingStatus !== "mapped") {
+        throw AppError.conflict(
+          "Save the source and destination table mapping before saving selected rows."
+        );
+      }
+      if (!Number.isSafeInteger(row.rowNumber) || row.rowNumber < 1) {
+        throw AppError.validation("A selected sample row has an invalid row number.");
+      }
+      if (row.rowNumber > sourceTotal)
+        throw AppError.conflict("A selected source row no longer exists. Refresh the table data.");
+      if (Object.keys(row.rowData).some((column) => !sourceColumnNames.has(column))) {
+        throw AppError.validation(
+          "Selected source data contains a field outside the source table schema. Refresh the table data."
+        );
+      }
+      if (JSON.stringify(row.rowData).length > 100_000) {
+        throw AppError.validation("A selected sample row exceeds the 100 KB preview limit.");
+      }
+    }
+    const totalBytes = input.rows.reduce((sum, row) => sum + JSON.stringify(row.rowData).length, 0);
+    if (totalBytes > 1_000_000)
+      throw AppError.validation("Selected preview data exceeds the 1 MB save limit.");
+    if (JSON.stringify(input.fieldValues).length > 100_000) {
+      throw AppError.validation("Destination field values exceed the 100 KB save limit.");
+    }
+    for (const [field, configured] of Object.entries(input.fieldValues)) {
+      if (
+        configured.mode !== "default" &&
+        (configured.value === null || configured.value === undefined || configured.value === "")
+      ) {
+        throw AppError.validation(`Set a value for destination field ${field}.`);
+      }
+      if (
+        configured.mode !== "default" &&
+        typeof configured.value !== "string" &&
+        typeof configured.value !== "number"
+      ) {
+        throw AppError.validation(`Destination field ${field} must use a text or numeric value.`);
+      }
+      if (typeof configured.value === "string" && configured.value.length > 2048) {
+        throw AppError.validation(`Destination field ${field} exceeds the 2 KB value limit.`);
+      }
+    }
+    return this.runs.saveQueryBatch(
+      {
+        jobId: job.id,
+        sourceId: job.sourceId,
+        sourceLabel: source.label,
+        sourceHost: source.host,
+        sourceDatabase: source.database,
+        sourceUser: source.user,
+        rows: input.rows,
+        fieldValues: input.fieldValues
+      },
+      actor
+    );
   }
 
   private async buildJobQueryPlan(uuid: string, actor: string): Promise<MigrationQueryPlan> {
@@ -862,149 +1147,6 @@ export class MigrationService {
     }
   }
 
-  async savePlan(
-    sourceId: number,
-    targetId: number,
-    table: string,
-    mappings: MigrationColumnMapping[],
-    actor: string
-  ) {
-    this.validateSelection(table);
-    const schema = await this.tableSchema(sourceId, targetId, table);
-    resolveMappings(
-      schema.sourceColumns.map((column) => ({
-        ...column,
-        nullable: column.nullable ? "YES" : "NO",
-        extra: column.generated ? "generated" : "",
-        defaultValue: column.defaultValue
-      })),
-      schema.targetColumns.map((column) => ({
-        ...column,
-        nullable: column.nullable ? "YES" : "NO",
-        extra: column.generated ? "generated" : "",
-        defaultValue: column.defaultValue
-      })),
-      mappings
-    );
-    await this.runs.savePlan(sourceId, targetId, table, mappings, actor);
-    return { saved: true };
-  }
-
-  async migratePlan(sourceId: number, targetId: number, actor: string) {
-    const [analysis, plan, source, target] = await Promise.all([
-      this.analyze(sourceId, targetId),
-      this.runs.getPlan(sourceId, targetId),
-      this.runs.resolveSource(sourceId, this.host.secretKey),
-      this.host.resolveTenant(targetId)
-    ]);
-    this.requireDatabase(source);
-    this.ensureDifferent(source, target);
-    const planByTable = new Map(plan.map((item) => [item.table, item.columnMappings]));
-    const sourceTables = await this.listTables(sourceId);
-    const pending = analysis.tables.filter(
-      (item) => item.sourceRows > 0 && item.status !== "excluded"
-    );
-    const missingMappings = sourceTables.filter((table) => !planByTable.has(table));
-    if (missingMappings.length)
-      throw new Error(`Save mappings for all source tables first: ${missingMappings.join(", ")}`);
-    const missingTargets = analysis.tables.filter(
-      (item) => item.status === "blocked" && !item.targetColumns.length
-    );
-    if (missingTargets.length)
-      throw new Error(
-        `Destination tables are missing: ${missingTargets.map((item) => item.table).join(", ")}`
-      );
-    const ordered = dependencyOrder(pending, analysis.tables);
-    const sourceConnection = await this.connect(source);
-    const targetConnection = await this.connect(target).catch(async (error: unknown) => {
-      await sourceConnection.end();
-      throw error;
-    });
-    const acquiredLocks: string[] = [];
-    const runIds: Array<{ id: string; table: string; rows: number }> = [];
-    let committed = false;
-    try {
-      for (const item of ordered) {
-        const lock = migrationLock(target, item.table);
-        const [rows] = await targetConnection.query<RowDataPacket[]>(
-          "SELECT GET_LOCK(?, 0) AS acquired",
-          [lock]
-        );
-        if (Number(rows[0]?.acquired) !== 1)
-          throw new Error(`Another transfer is using ${item.table}.`);
-        acquiredLocks.push(lock);
-      }
-      await sourceConnection.query("START TRANSACTION WITH CONSISTENT SNAPSHOT");
-      for (const item of ordered) {
-        const mapping = planByTable.get(item.table)!;
-        const preview = await this.inspect(
-          sourceConnection,
-          targetConnection,
-          source,
-          target,
-          item.table,
-          mapping
-        );
-        if (!preview.compatible)
-          throw new Error(`${item.table}: ${preview.reason ?? "preflight failed"}`);
-        if (preview.targetRows !== 0)
-          throw new Error(`${item.table}: destination table must be empty.`);
-        if (preview.sourceRows > copyLimit)
-          throw new Error(`${item.table}: table exceeds the ${copyLimit} row limit.`);
-        runIds.push({
-          id: await this.runs.start(sourceId, targetId, item.table, preview.sourceRows, actor),
-          table: item.table,
-          rows: preview.sourceRows
-        });
-      }
-      await targetConnection.beginTransaction();
-      try {
-        for (const item of ordered) {
-          const mapping = planByTable.get(item.table)!;
-          const projection = mapping.map((entry) => quote(entry.sourceColumn)).join(", ");
-          const targetColumns = mapping.map((entry) => quote(entry.targetColumn)).join(", ");
-          const [rows] = await sourceConnection.query<RowDataPacket[]>(
-            `SELECT ${projection} FROM ${quote(item.table)}`
-          );
-          const expected = runIds.find((entry) => entry.table === item.table)?.rows ?? 0;
-          if (rows.length !== expected)
-            throw new Error(
-              `${item.table}: source row count changed. No destination rows were committed.`
-            );
-          for (let offset = 0; offset < rows.length; offset += 250) {
-            const batch = rows.slice(offset, offset + 250);
-            const placeholders = batch.map(() => `(${mapping.map(() => "?").join(",")})`).join(",");
-            await targetConnection.query(
-              `INSERT INTO ${quote(item.table)} (${targetColumns}) VALUES ${placeholders}`,
-              batch.flatMap((row) => mapping.map((entry) => row[entry.sourceColumn]))
-            );
-          }
-        }
-        await targetConnection.commit();
-        committed = true;
-      } catch (error) {
-        await targetConnection.rollback();
-        throw error;
-      }
-      await sourceConnection.commit();
-      for (const run of runIds) await this.runs.finish(run.id, "completed", run.rows, null);
-      return {
-        completed: runIds.map(({ table, rows }) => ({ table, copiedRows: rows })),
-        copiedRows: runIds.reduce((sum, run) => sum + run.rows, 0)
-      };
-    } catch (error) {
-      await sourceConnection.rollback().catch(() => undefined);
-      if (!committed) {
-        for (const run of runIds) await this.runs.finish(run.id, "failed", 0, message(error));
-      }
-      throw error;
-    } finally {
-      for (const lock of acquiredLocks)
-        await targetConnection.query("SELECT RELEASE_LOCK(?)", [lock]).catch(() => undefined);
-      await Promise.all([sourceConnection.end(), targetConnection.end()]);
-    }
-  }
-
   async copy(
     sourceId: number,
     targetId: number,
@@ -1324,6 +1466,33 @@ export class MigrationService {
     })) as TableColumn[];
   }
 
+  private async foreignReferences(connection: Connection, database: string, table: string) {
+    const [rows] = await connection.query<RowDataPacket[]>(
+      `SELECT COLUMN_NAME AS columnName, REFERENCED_TABLE_NAME AS tableName,
+        REFERENCED_COLUMN_NAME AS referencedColumn FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL`,
+      [database, table]
+    );
+    return new Map(
+      rows.map((row) => [
+        String(row.columnName),
+        { table: String(row.tableName), column: String(row.referencedColumn) }
+      ])
+    );
+  }
+
+  private async foreignValues(
+    connection: Connection,
+    database: string,
+    reference: { table: string; column: string }
+  ) {
+    const [rows] = await connection.query<RowDataPacket[]>(
+      `SELECT DISTINCT ${quote(reference.column)} AS value FROM ${quote(database)}.${quote(reference.table)}
+       WHERE ${quote(reference.column)} IS NOT NULL ORDER BY ${quote(reference.column)} LIMIT 100`
+    );
+    return rows.map((row) => String(row.value));
+  }
+
   private async count(connection: Connection, table: string) {
     const [rows] = await connection.query<RowDataPacket[]>(
       `SELECT COUNT(*) AS count FROM ${quote(table)}`
@@ -1416,6 +1585,31 @@ export class MigrationService {
       throw new Error("Source and destination resolve to the same database.");
     }
   }
+}
+
+function redactAuditSample(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).map(([key, fieldValue]) => [
+      key,
+      /password|secret|token|credential|api.?key|private.?key|cookie|authorization/iu.test(key)
+        ? "[redacted]"
+        : redactAuditValue(fieldValue)
+    ])
+  );
+}
+
+function redactAuditValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redactAuditValue);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, nested]) => [
+      key,
+      /password|secret|token|credential|api.?key|private.?key|cookie|authorization/iu.test(key)
+        ? "[redacted]"
+        : redactAuditValue(nested)
+    ])
+  );
 }
 
 function quote(identifier: string) {
@@ -1513,14 +1707,15 @@ function resolveMappings(
   return mappings;
 }
 
-function columnOption(column: TableColumn) {
+function columnOption(column: TableColumn, foreignOptions: string[] = []) {
   return {
     name: column.name,
     type: column.type,
     nullable: column.nullable === "YES",
     required: column.required,
     generated: column.extra.toLowerCase().includes("generated"),
-    defaultValue: column.defaultValue
+    defaultValue: column.defaultValue,
+    ...(column.reference ? { reference: column.reference, foreignOptions } : {})
   };
 }
 
@@ -1567,30 +1762,6 @@ function migrationLock(target: MigrationTenant, table: string) {
     .update(`${target.host}:${target.port}:${target.database}:${table}`)
     .digest("hex")
     .slice(0, 40)}`;
-}
-
-function dependencyOrder(
-  pending: Array<{ table: string }>,
-  analysis: Awaited<ReturnType<MigrationService["analyze"]>>["tables"]
-) {
-  const pendingNames = new Set(pending.map((item) => item.table));
-  const dependencies = new Map(
-    analysis.map((item) => [item.table, item.dependencies.filter((name) => pendingNames.has(name))])
-  );
-  const ordered: Array<{ table: string }> = [];
-  const visiting = new Set<string>();
-  const visited = new Set<string>();
-  const visit = (table: string) => {
-    if (visited.has(table)) return;
-    if (visiting.has(table)) throw new Error(`Foreign key dependency cycle detected at ${table}.`);
-    visiting.add(table);
-    for (const dependency of dependencies.get(table) ?? []) visit(dependency);
-    visiting.delete(table);
-    visited.add(table);
-    ordered.push({ table });
-  };
-  for (const item of pending) visit(item.table);
-  return ordered;
 }
 
 async function jobDependencyOrder<

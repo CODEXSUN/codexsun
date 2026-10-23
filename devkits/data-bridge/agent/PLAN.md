@@ -1,0 +1,31 @@
+# Data Bridge plan
+
+## Ownership
+
+Data Bridge is an independent Super Admin DevKit. It owns common-table import behavior, row snapshots, and import status. Platform composes its routes and supplies authenticated actors and active tenant connections. Data Migration owns saved external sources and exposes a narrow server-only resolver contract; it does not own Data Bridge records or import behavior.
+
+## Workflow
+
+1. Select an existing source connection and an active registry tenant.
+2. Review all 31 fixed Core common table names and see whether each exists on both sides, its row counts, schema readiness, and saved import status.
+3. Open a table, compare source and target data, choose visible columns and source rows, and save only that selection as a frozen snapshot. Source IDs identify records independently of pagination and visible columns. The server validates and reads the selected records; target selections never enter the import.
+4. Review the saved selected JSON and confirm it before explicitly importing the snapshot. Matching unique records are skipped; inserts run atomically per table. Schema drift blocks import.
+5. From Common Tables, queue an audit/import for all missing business records. The module-owned worker discovers parent order and persists progress and one combined report. It highlights only warnings with table/source-row context. Queue Manager owns durable dispatch; Data Bridge owns all import decisions.
+
+## Safety and limits
+
+- Browser requests contain source IDs, registry tenant IDs, fixed table names, page numbers, saved batch IDs, selected source row IDs, and selected shared column names. They never contain database credentials, routing database names, SQL, or insert row values. The server validates field names against both live schemas and binds source IDs.
+- Table and field identifiers are fixed or validated; query values use parameters.
+- Imports copy only same-named fields supported by the target. Missing required fields and shared type mismatches block staging.
+- A saved snapshot is capped at 10,000 rows. Preview pages contain at most 100 rows.
+- Duplicate key errors skip that row without overwriting destination data. Other errors roll back the full table transaction and leave a visible failed status.
+- Individual reviews require the operator to import parents first. The all-table worker discovers parent order from target foreign keys and rejects cycles/unsupported parents. Saving translates selected foreign IDs by recursively resolving parent business unique keys; missing or ambiguous target parents block saving.
+- Imported snapshots are retained for review. No live import should be used as a test.
+
+## Verification
+
+Run component documentation, owner API/web typecheck and lint, module boundaries, Platform API/web typecheck/lint/build, dependency layout checks, isolated MariaDB migration/import integration tests, and authenticated browser navigation. Report each gate separately.
+
+## Combined report row details
+
+Each table has View row results with Imported, Existing, and Warning filters, pagination, source business data, matched target business data, and row messages. New runs persist these snapshots in the existing report JSON; older reports explicitly require a new audit for row details. IDs and sensitive metadata are excluded from the data snapshots. Disposable bulk tests verify inserted, existing, conflict values, and persisted snapshots.

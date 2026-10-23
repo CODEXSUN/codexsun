@@ -7,6 +7,7 @@ import type {} from "@codexsun/framework/api";
 import { FrappeConnectionService } from "./connection.service.js";
 import { FrappeConnectionRepository } from "./connection.repository.js";
 import type { FrappeDatabase, FrappeSettings } from "./connection.types.js";
+import { EnquirySourceRepository } from "../enquiry-sync/index.js";
 
 const idSchema = z.object({ id: z.coerce.number().int().positive() });
 const overviewQuerySchema = z.object({
@@ -175,5 +176,34 @@ export function registerFrappeRoutes(
     url: "/frappe/enquiries/:id/sync",
     schemas: { params: idSchema, response: statusSchema },
     handler: async ({ params, request }) => (await service(request)).status(params.id)
+  });
+  registerContractRoute(app, {
+    method: "GET",
+    url: "/frappe/enquiries/:id/source",
+    schemas: {
+      params: idSchema,
+      querystring: z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }),
+      response: z.array(
+        z.object({
+          revision: z.string(),
+          baseUrl: z.string(),
+          remoteName: z.string(),
+          documentJson: z.string(),
+          capturedAt: z.string()
+        })
+      )
+    },
+    handler: async ({ params, query, request }) => {
+      const scope = await context(request);
+      await scope.loadEnquiry(params.id);
+      const revisions = await new EnquirySourceRepository(scope.database).revisions(
+        params.id,
+        query.page
+      );
+      return revisions.map((row) => ({
+        ...row,
+        capturedAt: new Date(row.capturedAt).toISOString()
+      }));
+    }
   });
 }
