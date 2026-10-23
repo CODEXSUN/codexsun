@@ -45,6 +45,10 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Verification passed the full workspace check, 200 CRM/Frappe unit tests, three integration tests, the inbound checkpoint/retry integration test, and CRM/Frappe/Platform API builds.
 - Flutter analysis and all 77 mobile tests passed. APK Signature Scheme v2 verification passed for package `in.codexsun.techmedia_crm`, version 1.1.50, build 150.
 - TechMedia APK SHA-256: `926ce43fc83122f1183c83c46e49506139a93c883ad0613fd37efa12c2d099df`.
+- Deployed API, Web, and Shop 1.1.50 from commit `33905fa1773ca3d029d916bd29344f5795cccd42`. All three containers passed health checks. Public API, Application Overview, and Shop returned HTTP 200. Authenticated web displayed version 1.1.50.
+- Verified the full database backup checksum before rollout. No migration ran. Shared infrastructure and CXApp container identities remained unchanged.
+- Post-deployment Redis replay jobs 1329-1340 completed without new remote enquiries. Imports 1341 and 1342 each scanned nine, created zero, skipped nine, and failed zero. All nine linked records remained synced with zero unsent enquiry events.
+- Signed TechMedia 1.1.50 APK is built and verified. This release does not claim emulator installation or new mobile UI acceptance.
 
 ## v-1.1.49
 
