@@ -701,7 +701,9 @@ export class EnquiryRepository {
         if (sourceCreatedAt)
           existingQuery = existingQuery
             .where("enquiry_id", "=", enquiryId)
-            .orderBy(sql`CASE WHEN request_id=${persistedRequestId} THEN 0 ELSE 1 END`)
+            .orderBy(
+              sql`CASE WHEN request_id=${persistedRequestId} THEN 0 WHEN created_by=${actor} THEN 1 ELSE 2 END`
+            )
             .orderBy("id");
         else existingQuery = existingQuery.where("created_by", "=", actor);
         const existing = await existingQuery.executeTakeFirst();

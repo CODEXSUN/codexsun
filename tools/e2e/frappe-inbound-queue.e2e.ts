@@ -404,7 +404,7 @@ test(
       author: "changed-owner@example.test",
       createdAt: "2026-10-21T10:00:00.000Z"
     };
-    await db
+    const legacyDuplicate = await db
       .insertInto("crm_enquiry_comments")
       .values({
         request_id: legacyKey,
@@ -417,7 +417,7 @@ test(
         created_at: "2026-10-21 10:00:00",
         updated_at: "2026-10-21 10:00:00"
       })
-      .execute();
+      .executeTakeFirstOrThrow();
     await enquiries.importComment(q930.id, imported);
     await enquiries.importComment(q930.id, imported);
     await enquiries.importComment(q930.id, {
@@ -429,20 +429,18 @@ test(
     assert.equal(
       (await repository.listComments(q930.id)).find((row) => row.body === "Updated reply")
         ?.parentId,
-      parent.id,
+      Number(legacyDuplicate.insertId),
       "Replies prefer the migrated canonical parent over retained legacy duplicates"
     );
     assert.equal(
-      (await repository.listComments(q930.id)).filter(
-        (row) => row.body === "Legacy duplicate retained"
-      ).length,
-      1,
-      "Existing legacy content is preserved without blocking retries"
+      (await repository.listComments(q930.id)).find((row) => row.id === parent.id)?.body,
+      parent.body,
+      "The other legacy author's row stays unchanged"
     );
     assert.equal(
       (await repository.listComments(q930.id)).find((row) => row.body === imported.content)?.id,
-      parent.id,
-      "Legacy comment identity stays on its original row"
+      Number(legacyDuplicate.insertId),
+      "Legacy comment identity reuses the row with the matching source author"
     );
     await enquiries.importComment(other.id, imported);
     await enquiries.importComment(other.id, {
