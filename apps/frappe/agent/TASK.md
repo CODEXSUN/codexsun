@@ -9,10 +9,12 @@
 - [x] Verify immediate database queue dispatch, a lost Mobile Contact create response, duplicate-free retry, and a new edit after completion in an isolated database.
 - [x] Pass checkpoint/history, enquiry outbox, duty retry, unit, type, lint, build, component-doc, dependency-layout, and owner-boundary checks.
 - [x] Apply CRM queue v2 and Frappe v10 locally. Enable CODEXSUN bidirectional mode at one minute; preserve 56 existing enquiries.
-- [ ] Deploy these changes and verify the selected production Redis workers and browser behavior.
+- [x] Deploy 1.1.47, verify production Redis transfer/retry behavior against ERP1, and fix legacy comment-key collisions. See [release evidence](RELEASE-1.1.47.md).
+- [ ] Verify browser interaction separately.
 
-Remote responses in the new queue tests are controlled. This work does not claim a production
-write/readback, a hard one-minute completion guarantee during outages, or new mobile UI delivery.
+Remote responses in the isolated queue tests are controlled. The release evidence records the
+separate production write/readback. This work does not promise a hard one-minute completion
+deadline during outages or claim new mobile UI delivery.
 Contact export remains the existing Mobile Contact-only contract with an exact Customer/Supplier ID.
 
 ## Marketing integration backlog — 2026-10-23

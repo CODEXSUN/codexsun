@@ -1,0 +1,60 @@
+# CRM/Frappe release 1.1.47 — 2026-10-23
+
+## Deployment
+
+- Application source: `6fe54220`. API, Web, and Shop use `1.1.47` images from this source.
+- Host: the pinned CODEXSUN Hostinger VPS. Release Compose: `/home/codexsun-releases/1.1.47-6fe54220/compose.release.json`.
+- All three containers passed health checks. Public API, Web, and Shop returned HTTP 200.
+- Shared MariaDB, Redis, Media, CXApp, and Cloudflared were not recreated.
+- The existing TECHMEDIA connection remains `https://erp1.techmedia.in`, authenticated as `sundar@techmedia.in`. Local LogicX credentials were not copied to the cloud.
+- TECHMEDIA uses bidirectional sync, an inbound interval of one minute, and its existing BullMQ/Redis backend. The initial history pass can take longer than one minute.
+
+## Database safety
+
+- Full MariaDB backup: `codexsun-1.1.47-20261023T122828Z`. SHA-256 verification passed; the SQL file has mode 600.
+- Production preflight passed with the verified backup ID and checked all five tenant targets.
+- Applied CRM queue v2 and Frappe connection v9/v10 through their owner migration functions.
+- Enquiry counts before/after migration: CODEXSUN 30/30, TECHMEDIA 2035/2035, and zero/zero for RAINBOW, TENKASISPORTS, and TIRUPURCONNECT.
+- No tables, databases, or existing business records were deleted.
+
+## Live transfer and retry evidence
+
+- Production HTTP enquiry creation as Sundar produced local enquiry `2616`, exported as ERP1 `Q2057` through Redis jobs `948` and `949`. Customer and Mobile Contact Customer links were confirmed remotely.
+- Redis jobs `950`, `951`, and `952` exercised a controlled response loss after ERP1 committed Job Comments, then retry and replay. The retry reused the same remote name. Exactly one remote retry comment and one outbound enquiry were present.
+- The controlled fault used a dedicated verification queue with the deployed owner processor and real ERP1 writes. Normal enquiry/opening-comment delivery used the production CRM worker.
+- ERP1 fixture `Q2058` imported as CRM `2644`, including one Job Comment. Production Redis import job `953` completed with two scanned, two unchanged, and zero failed records after the historical pass had already imported the fixture.
+- Test fixtures remain labeled with `CODEXSUN release 1.1.47 smoke`. Temporary API sessions were revoked after verification.
+
+## Blockers found and fixed
+
+- The committed Platform baseline lacked Marketing page/app type members and production API build/resolver entries. Added the required declarations and packaging entries without including ongoing Marketing/Lead implementation.
+- Restrictive source file permissions prevented the non-root API user from reading copied runtime files. The Docker image now gives runtime files read access and directories traversal access.
+- Historical imports of `ENQ1994` and `ENQ1995` failed on legacy comment retry keys shared by Karthik and Vijay author rows. The checkpoint correctly remained unchanged.
+- Imported keys now include enquiry identity. Refresh prefers a canonical row, then an existing row with the current source author. Other legacy rows remain unchanged, and replies resolve the canonical parent.
+- Both affected enquiries passed two production HTTP pulls after deployment: six comments for `ENQ1994`, five for `ENQ1995`, and no comment-count increase on the second pull. The other legacy authors' rows were compared before/after and were unchanged.
+- Corrected historical Redis job `1070` completed on its first attempt: 2,049 scanned, 2,049 unchanged, zero failed. Incremental job `1071` then completed: 27 scanned, 27 unchanged, zero failed.
+- The successful checkpoint advanced to `2026-10-23T13:12:28Z` (6:42 pm IST). Settings remained enabled, unpaused, bidirectional, with a one-minute interval.
+
+## Mobile artifacts
+
+Both release APKs use `https://codexsun.com/api/platform`, version name `1.1.47`, and Android version code `147`.
+
+| Client | Android application ID | SHA-256 |
+| --- | --- | --- |
+| TechMedia | `in.codexsun.techmedia_crm` | `50c9e26cdc8185b04dd9d784a53ffe6f09b8d3fad289e5c5886075b62bae6200` |
+| Rainbow | `in.codexsun.rainbow_crm` | `7a032572e0250cb68b843a03bffd29939ae2218f80f2683312fedc2d897ca612` |
+
+`apksigner verify --verbose --print-certs` passed for both APKs with v2 signing.
+Certificate SHA-256: `9a08ed39cae38f349ee9d38bd524d2a56f8a119585568e1414be1405fa8e2fd1`, matching the prior release.
+Artifacts are under root `dist/apps/crm/mobile/app/outputs/flutter-apk/`.
+No emulator or physical-device installation was requested in this release step.
+
+## Local verification
+
+- Full root `npm run check` passed before the live correction.
+- A later working-tree root check stopped at an unrelated missing developer reference for the uncommitted CRM Contact Restrictions module. That module is excluded from the release. Release-snapshot documentation is checked separately.
+- The final focused CRM/Frappe run passed 194 tests, including the contact queue test with a lost create response.
+- The updated inbound database suite covers duplicate legacy author keys, stable row reuse, preserved other-author content, canonical reply parents, checkpoints, retries, and retained source revisions.
+- Affected types, lint, builds, and CRM/Frappe owner boundaries passed.
+- All 76 Flutter tests passed. Version and dependency-layout checks passed.
+- Browser UI acceptance was not performed. The live evidence above is API, queue, database, and remote readback evidence.

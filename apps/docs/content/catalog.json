@@ -4639,7 +4639,7 @@
       "title": "apps/crm/mobile/README.md",
       "summary": "CRM mobile — apps/crm/mobile/README.md",
       "sourcePath": "applications/repository/sources/0ae77671138d0395.md",
-      "sourceHash": "c0c30928d33b72577316e171dbf0bd0970ef49d6f41a3867bd3eb9bc4f157369",
+      "sourceHash": "b106ade28dd3ecfb7785d5c75131c002ccdc66aca6b9c2ffb7cb5fe6c6a79354",
       "sortOrder": 5000
     },
     {
@@ -4864,6 +4864,19 @@
       "sortOrder": 6200
     },
     {
+      "pageKey": "repository/sources/c05840bb5eb855a0",
+      "appKey": "repository",
+      "appLabel": "Repository",
+      "groupKey": "repository",
+      "groupLabel": "Repository references",
+      "moduleKey": "",
+      "title": "apps/frappe/agent/RELEASE-1.1.47.md",
+      "summary": "CRM/Frappe release 1.1.47 — 2026-10-23 — apps/frappe/agent/RELEASE-1.1.47.md",
+      "sourcePath": "applications/repository/sources/c05840bb5eb855a0.md",
+      "sourceHash": "62efa9eb2a1b37f8fa74a8d5587850ef2a9f8a10410b88057e38adf25cf70c7a",
+      "sortOrder": 6300
+    },
+    {
       "pageKey": "repository/sources/5726bb6f5eda1334",
       "appKey": "repository",
       "appLabel": "Repository",
@@ -4874,7 +4887,7 @@
       "summary": "Frappe working skills — apps/frappe/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/5726bb6f5eda1334.md",
       "sourceHash": "48008ede308d332bd8cc50437b71fa1be41fab1698407c008c4ef7a17b0d6312",
-      "sortOrder": 6300
+      "sortOrder": 6400
     },
     {
       "pageKey": "repository/sources/cceb4789abcaac9c-1",
@@ -4886,8 +4899,8 @@
       "title": "apps/frappe/agent/TASK.md (part 1/2)",
       "summary": "Frappe tasks — apps/frappe/agent/TASK.md",
       "sourcePath": "applications/repository/sources/cceb4789abcaac9c-1.md",
-      "sourceHash": "a83fd1e41ce9153375a9b90d3947aa475c6be3a386cd123f9160dba31de64636",
-      "sortOrder": 6400
+      "sourceHash": "a5092ef050b1cd4f4b457a33c9c155889285e7ac2f216028e628a7d3e6db89ec",
+      "sortOrder": 6500
     },
     {
       "pageKey": "repository/sources/cceb4789abcaac9c-2",
@@ -4899,8 +4912,8 @@
       "title": "apps/frappe/agent/TASK.md (part 2/2)",
       "summary": "Frappe tasks — apps/frappe/agent/TASK.md",
       "sourcePath": "applications/repository/sources/cceb4789abcaac9c-2.md",
-      "sourceHash": "49a9de03c8c4ee397beed68e1ff94789d99aca4fd4071785b30f51b2abb9c7d9",
-      "sortOrder": 6401
+      "sourceHash": "eadb54542037e9bb237770ff5fecc36a13a51589eff2d2b68bdd2892e54d2826",
+      "sortOrder": 6501
     },
     {
       "pageKey": "repository/sources/d621cdee198475a5",
@@ -4912,8 +4925,8 @@
       "title": "apps/frappe/README.md",
       "summary": "Frappe — apps/frappe/README.md",
       "sourcePath": "applications/repository/sources/d621cdee198475a5.md",
-      "sourceHash": "76ae1a183a73d4cf1bd8b2015f343b3df1cbfb7cb870dc972b68d334032aa18b",
-      "sortOrder": 6500
+      "sourceHash": "bf12703f67d361ba96b7fab2e6682422e75e04ed017cf43bd10cadab9a07c770",
+      "sortOrder": 6600
     },
     {
       "pageKey": "repository/sources/28b32c934bdea613",
@@ -4926,7 +4939,7 @@
       "summary": "HIMSX plan — apps/himsx/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/28b32c934bdea613.md",
       "sourceHash": "21e790818f693e789136b0ce487adeb39257d17ddd105e436e5ccf81d73b836a",
-      "sortOrder": 6600
+      "sortOrder": 6700
     },
     {
       "pageKey": "repository/sources/e37a3efb9f4c9e44",
@@ -4939,7 +4952,7 @@
       "summary": "HIMSX working skills — apps/himsx/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/e37a3efb9f4c9e44.md",
       "sourceHash": "c796ef1ecd6c21f5f11ae342d4e84acbef52b7f02c654e2e81d27e7ef502b5f6",
-      "sortOrder": 6700
+      "sortOrder": 6800
     },
     {
       "pageKey": "repository/sources/040a7cc11f9d1b52",
@@ -4952,7 +4965,7 @@
       "summary": "HIMSX tasks — apps/himsx/agent/TASK.md",
       "sourcePath": "applications/repository/sources/040a7cc11f9d1b52.md",
       "sourceHash": "9772ea3ee01ffa97237b5c73c47f2987984b752260c01f6a23db9e2244d6bce9",
-      "sortOrder": 6800
+      "sortOrder": 6900
     },
     {
       "pageKey": "repository/sources/c66c38b1a4cd02c2",
@@ -4965,7 +4978,7 @@
       "summary": "Himsx — apps/himsx/README.md",
       "sourcePath": "applications/repository/sources/c66c38b1a4cd02c2.md",
       "sourceHash": "6618e1b95220a598a1aa213f31c71fa56fa764941d231754adf80dd46e4f1a09",
-      "sortOrder": 6900
+      "sortOrder": 7000
     },
     {
       "pageKey": "repository/sources/5c0c7ded1bd0023e",
@@ -4978,7 +4991,7 @@
       "summary": "CODEXSUN HRMS Plan — apps/hrms/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/5c0c7ded1bd0023e.md",
       "sourceHash": "7edcd8ea79def728397685f8576bdcf64bb14d9e8743736a4ae75b861c4fbdbd",
-      "sortOrder": 7000
+      "sortOrder": 7100
     },
     {
       "pageKey": "repository/sources/81d0d2a479046e23",
@@ -4991,7 +5004,7 @@
       "summary": "HRMS working skills — apps/hrms/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/81d0d2a479046e23.md",
       "sourceHash": "b28039a1b8298d3b1204b6f7ba32df6f7fb940a2d89ac209d0fad5ef36f345a2",
-      "sortOrder": 7100
+      "sortOrder": 7200
     },
     {
       "pageKey": "repository/sources/458628e8add12086",
@@ -5004,7 +5017,7 @@
       "summary": "CODEXSUN HRMS Tasks — apps/hrms/agent/TASK.md",
       "sourcePath": "applications/repository/sources/458628e8add12086.md",
       "sourceHash": "0757cdba1b48e1c7cfc42ecd3c69cb5753b4a2599fd268656bca1347e9cbb254",
-      "sortOrder": 7200
+      "sortOrder": 7300
     },
     {
       "pageKey": "repository/sources/be7a87e32b868083",
@@ -5017,7 +5030,7 @@
       "summary": "HRMS — apps/hrms/README.md",
       "sourcePath": "applications/repository/sources/be7a87e32b868083.md",
       "sourceHash": "db73afce01b02a7b53d3a878ef49ed807f82e9d0512b77d4ff7272ca97ffae28",
-      "sortOrder": 7300
+      "sortOrder": 7400
     },
     {
       "pageKey": "repository/sources/d138359bfc1322b1",
@@ -5030,7 +5043,7 @@
       "summary": "LogicX ERP plan — apps/logicx-erp/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/d138359bfc1322b1.md",
       "sourceHash": "c21c1386542b3ce5af5926dc717fd7f5a1c077326034af62bf5c497125db7c09",
-      "sortOrder": 7400
+      "sortOrder": 7500
     },
     {
       "pageKey": "repository/sources/c729c05c23192cae",
@@ -5043,7 +5056,7 @@
       "summary": "LogicX ERP working skills — apps/logicx-erp/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/c729c05c23192cae.md",
       "sourceHash": "30430316ab677adc1e5b2d778d066e47dfdd201d7e811bcf27218702c31f79cd",
-      "sortOrder": 7500
+      "sortOrder": 7600
     },
     {
       "pageKey": "repository/sources/73c834661c1749b1",
@@ -5056,7 +5069,7 @@
       "summary": "LogicX ERP tasks — apps/logicx-erp/agent/TASK.md",
       "sourcePath": "applications/repository/sources/73c834661c1749b1.md",
       "sourceHash": "3c35343ab297c932d2c6275ade629395f08c033f521ee3054c2363fcc3ca6a3b",
-      "sortOrder": 7600
+      "sortOrder": 7700
     },
     {
       "pageKey": "repository/sources/b4b9086ac0d993ef",
@@ -5069,7 +5082,7 @@
       "summary": "LogicX ERP — apps/logicx-erp/README.md",
       "sourcePath": "applications/repository/sources/b4b9086ac0d993ef.md",
       "sourceHash": "119aaba830711aeb6b72a5258d6a51264ea1ac80d01a48281408b64154021702",
-      "sortOrder": 7700
+      "sortOrder": 7800
     },
     {
       "pageKey": "repository/sources/cf21d19c41639dc0",
@@ -5082,7 +5095,7 @@
       "summary": "Mail plan — apps/mail/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/cf21d19c41639dc0.md",
       "sourceHash": "7023177b0098c87dce38bf3311b52b452354f30fcbeca847c008feb530954cfc",
-      "sortOrder": 7800
+      "sortOrder": 7900
     },
     {
       "pageKey": "repository/sources/f04549fb89ef9507",
@@ -5095,7 +5108,7 @@
       "summary": "Mail working skills — apps/mail/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/f04549fb89ef9507.md",
       "sourceHash": "37d178cd71d682f52977c68e143ecd2ba80de629f5de330dcfb703c8831a2eb4",
-      "sortOrder": 7900
+      "sortOrder": 8000
     },
     {
       "pageKey": "repository/sources/46aa2fd4718fc004",
@@ -5108,7 +5121,7 @@
       "summary": "Mail tasks — apps/mail/agent/TASK.md",
       "sourcePath": "applications/repository/sources/46aa2fd4718fc004.md",
       "sourceHash": "44e1e9cb2cc6356326128a36a6e66a0ba7c5e8503c453f87895f28cc56ebd146",
-      "sortOrder": 8000
+      "sortOrder": 8100
     },
     {
       "pageKey": "repository/sources/6067d2407c594622",
@@ -5121,7 +5134,7 @@
       "summary": "Mail — apps/mail/README.md",
       "sourcePath": "applications/repository/sources/6067d2407c594622.md",
       "sourceHash": "56883202057a5aea6beb7b4a13e4b56419568793e8559fc8b599876aed4f369e",
-      "sortOrder": 8100
+      "sortOrder": 8200
     },
     {
       "pageKey": "repository/sources/e8ec86b53da6da65-1",
@@ -5134,7 +5147,7 @@
       "summary": "Digital Marketing Application Plan — apps/marketing/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/e8ec86b53da6da65-1.md",
       "sourceHash": "c43ca044c7421fb564300ae73d194bd2e10180bf3acddd8092e35689a37b57d4",
-      "sortOrder": 8200
+      "sortOrder": 8300
     },
     {
       "pageKey": "repository/sources/e8ec86b53da6da65-2",
@@ -5147,7 +5160,7 @@
       "summary": "Digital Marketing Application Plan — apps/marketing/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/e8ec86b53da6da65-2.md",
       "sourceHash": "0f6b3398a3d3cc4fd0aaaff5adc507362257f721bff2295c7a72d79b06a5624b",
-      "sortOrder": 8201
+      "sortOrder": 8301
     },
     {
       "pageKey": "repository/sources/e8ec86b53da6da65-3",
@@ -5160,7 +5173,7 @@
       "summary": "Digital Marketing Application Plan — apps/marketing/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/e8ec86b53da6da65-3.md",
       "sourceHash": "2d33bf61526658ffbf33d71a26630e0289fd90ca95f431c752750c456453a993",
-      "sortOrder": 8202
+      "sortOrder": 8302
     },
     {
       "pageKey": "repository/sources/b75f712ba1f89ea2",
@@ -5173,7 +5186,7 @@
       "summary": "Marketing Working Rules — apps/marketing/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/b75f712ba1f89ea2.md",
       "sourceHash": "8fc8762a84879ced2132f888ff2a23bf2566fe41ffa0c504a6a6e93b1a2bff17",
-      "sortOrder": 8300
+      "sortOrder": 8400
     },
     {
       "pageKey": "repository/sources/1f1725e7dfc50b89",
@@ -5186,7 +5199,7 @@
       "summary": "Marketing Delivery Tasks — apps/marketing/agent/TASK.md",
       "sourcePath": "applications/repository/sources/1f1725e7dfc50b89.md",
       "sourceHash": "d6379bb88b9ea892c9ff7d7004236c4fa8d3a661698dcc2a053f33824f562f02",
-      "sortOrder": 8400
+      "sortOrder": 8500
     },
     {
       "pageKey": "repository/sources/003f1ffafe193c07",
@@ -5199,7 +5212,7 @@
       "summary": "Marketing — apps/marketing/README.md",
       "sourcePath": "applications/repository/sources/003f1ffafe193c07.md",
       "sourceHash": "7e00b1a3af89060a274bae1e3691d874914f4a826c703b475b0354d477bc7cbe",
-      "sortOrder": 8500
+      "sortOrder": 8600
     },
     {
       "pageKey": "repository/sources/26acb8426d84589b",
@@ -5212,7 +5225,7 @@
       "summary": "Notes plan — apps/notes/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/26acb8426d84589b.md",
       "sourceHash": "845566f51019ad238b5b881e3d86720c09ff4e51a0a25b72adba502743c0d7b4",
-      "sortOrder": 8600
+      "sortOrder": 8700
     },
     {
       "pageKey": "repository/sources/6850db56c59d06b9",
@@ -5225,7 +5238,7 @@
       "summary": "Notes working skills — apps/notes/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/6850db56c59d06b9.md",
       "sourceHash": "b713154642fef4f46cb4ecb38d294c153dfecfe04b1cdd7abf76b0c9cfaba198",
-      "sortOrder": 8700
+      "sortOrder": 8800
     },
     {
       "pageKey": "repository/sources/904f6e288db59238",
@@ -5238,7 +5251,7 @@
       "summary": "Notes tasks — apps/notes/agent/TASK.md",
       "sourcePath": "applications/repository/sources/904f6e288db59238.md",
       "sourceHash": "3db875311db221aa6922a2b4e06400ffd0be5c702bc45b1e770714d09601a7b6",
-      "sortOrder": 8800
+      "sortOrder": 8900
     },
     {
       "pageKey": "repository/sources/5a0ff55fb052ae02",
@@ -5251,7 +5264,7 @@
       "summary": "Notes — apps/notes/README.md",
       "sourcePath": "applications/repository/sources/5a0ff55fb052ae02.md",
       "sourceHash": "e28e0499cd7d5e52d48aded635f7ede0db853ec7a2a68eab662ce68dd6b623f4",
-      "sortOrder": 8900
+      "sortOrder": 9000
     },
     {
       "pageKey": "repository/sources/dad41ea7f282f471",
@@ -5264,7 +5277,7 @@
       "summary": "Platform plan — apps/platform/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/dad41ea7f282f471.md",
       "sourceHash": "62f735542ce32c41c5c84c4b7b29ff225f8dc51c91504f1dea53bfa90274e687",
-      "sortOrder": 9000
+      "sortOrder": 9100
     },
     {
       "pageKey": "repository/sources/02eaac9fe91b79da",
@@ -5277,7 +5290,7 @@
       "summary": "Platform working skills — apps/platform/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/02eaac9fe91b79da.md",
       "sourceHash": "8cd2db1a32cfc6caf82a3e5d4f9686e97beb5e2c924e67cfea628e15da756138",
-      "sortOrder": 9100
+      "sortOrder": 9200
     },
     {
       "pageKey": "repository/sources/23a5e9f68daa78b2-1",
@@ -5290,7 +5303,7 @@
       "summary": "Platform tasks — apps/platform/agent/TASK.md",
       "sourcePath": "applications/repository/sources/23a5e9f68daa78b2-1.md",
       "sourceHash": "62e0840b03c4b3fe92c9807214c0c04336d0542feac7b7af3c95a4138ce63cef",
-      "sortOrder": 9200
+      "sortOrder": 9300
     },
     {
       "pageKey": "repository/sources/23a5e9f68daa78b2-2",
@@ -5303,7 +5316,7 @@
       "summary": "Platform tasks — apps/platform/agent/TASK.md",
       "sourcePath": "applications/repository/sources/23a5e9f68daa78b2-2.md",
       "sourceHash": "b07f2e00c2bf0f8790946a339c156205e31ef3fdd549865b7d333414595d1da4",
-      "sortOrder": 9201
+      "sortOrder": 9301
     },
     {
       "pageKey": "repository/sources/23a5e9f68daa78b2-3",
@@ -5316,7 +5329,7 @@
       "summary": "Platform tasks — apps/platform/agent/TASK.md",
       "sourcePath": "applications/repository/sources/23a5e9f68daa78b2-3.md",
       "sourceHash": "aa5c7b340bdd0296e6cf1c5a03e03f64ddf667bc7f187ab34a3fabdf7741b6ad",
-      "sortOrder": 9202
+      "sortOrder": 9302
     },
     {
       "pageKey": "repository/sources/a0ff6e2971a2d81e",
@@ -5329,7 +5342,7 @@
       "summary": "Storage Manager — apps/platform/api/src/modules/storage-manager/README.md",
       "sourcePath": "applications/repository/sources/a0ff6e2971a2d81e.md",
       "sourceHash": "4c21e4d6d8351e59358fb3591a16f9b33598dbf86a939c68f0872c7af0469d20",
-      "sortOrder": 9300
+      "sortOrder": 9400
     },
     {
       "pageKey": "repository/sources/5858dc5ad6ebc850",
@@ -5342,7 +5355,7 @@
       "summary": "Platform — apps/platform/README.md",
       "sourcePath": "applications/repository/sources/5858dc5ad6ebc850.md",
       "sourceHash": "498283c989659a40c9e8ff8a154cfa79117777e2f7afa1ec29c61c2db80f3032",
-      "sortOrder": 9400
+      "sortOrder": 9500
     },
     {
       "pageKey": "repository/sources/b13de4accafcbdfd",
@@ -5355,7 +5368,7 @@
       "summary": "CODEXSUN Windows Host — apps/platform/windows/README.md",
       "sourcePath": "applications/repository/sources/b13de4accafcbdfd.md",
       "sourceHash": "5ddb64f9bf7b852f12890aad9807f377135752a59b524631d6a80e09916888fa",
-      "sortOrder": 9500
+      "sortOrder": 9600
     },
     {
       "pageKey": "repository/sources/66142b12db0995f3",
@@ -5368,7 +5381,7 @@
       "summary": "QCafe plan — apps/qcafe/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/66142b12db0995f3.md",
       "sourceHash": "d01b8319ea3ebef19354efb68f1a8f6bb4fd272a097edb6223fc97734de154f0",
-      "sortOrder": 9600
+      "sortOrder": 9700
     },
     {
       "pageKey": "repository/sources/7ea20be5687b1dd1",
@@ -5381,7 +5394,7 @@
       "summary": "QCafe working skills — apps/qcafe/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/7ea20be5687b1dd1.md",
       "sourceHash": "c85f471ab9c25cde8f2f7932c95e8ba1ff6eb28872ce84e596769368042af849",
-      "sortOrder": 9700
+      "sortOrder": 9800
     },
     {
       "pageKey": "repository/sources/b1318c89d6b4be3d",
@@ -5394,7 +5407,7 @@
       "summary": "QCafe tasks — apps/qcafe/agent/TASK.md",
       "sourcePath": "applications/repository/sources/b1318c89d6b4be3d.md",
       "sourceHash": "97b975fcd47de2455d7297a238ce333e2f3bd613daf5b9c60c4c53a2209956cb",
-      "sortOrder": 9800
+      "sortOrder": 9900
     },
     {
       "pageKey": "repository/sources/833f0c66212667c8",
@@ -5407,7 +5420,7 @@
       "summary": "Q Cafe changelog — apps/qcafe/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/833f0c66212667c8.md",
       "sourceHash": "dffc136e9e88ec3efd5601545741abe0866f482a98620d54d5ab2dd4f4bfebd1",
-      "sortOrder": 9900
+      "sortOrder": 10000
     },
     {
       "pageKey": "repository/sources/340562434ea55d09",
@@ -5420,7 +5433,7 @@
       "summary": "Q Cafe Windows application — apps/qcafe/desktop/README.md",
       "sourcePath": "applications/repository/sources/340562434ea55d09.md",
       "sourceHash": "78065d5d33cbc31d58519afe6f546042c0323aaf8916cbfe42957eacfa3eac66",
-      "sortOrder": 10000
+      "sortOrder": 10100
     },
     {
       "pageKey": "repository/sources/75f14a0c2ed9fdd0",
@@ -5433,7 +5446,7 @@
       "summary": "QCafe in the CODEXSUN workspace — apps/qcafe/README.md",
       "sourcePath": "applications/repository/sources/75f14a0c2ed9fdd0.md",
       "sourceHash": "ef50a6717002ebdaf641c8a970b57621215152fa93c5ca17f09cff1fadb18b22",
-      "sortOrder": 10100
+      "sortOrder": 10200
     },
     {
       "pageKey": "repository/sources/eae9c367a0d8c896-1",
@@ -5446,7 +5459,7 @@
       "summary": "Site Studio plan — apps/sites/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/eae9c367a0d8c896-1.md",
       "sourceHash": "4eb259907369378f6c72f3f91c0506f03980371d8e4487ae730ba38ca97ddcf0",
-      "sortOrder": 10200
+      "sortOrder": 10300
     },
     {
       "pageKey": "repository/sources/eae9c367a0d8c896-2",
@@ -5459,7 +5472,7 @@
       "summary": "Site Studio plan — apps/sites/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/eae9c367a0d8c896-2.md",
       "sourceHash": "309ae7383f69ee1dadce687b75e35e4ef63f014ad578d9186db3ed10ea3a4a9b",
-      "sortOrder": 10201
+      "sortOrder": 10301
     },
     {
       "pageKey": "repository/sources/eae9c367a0d8c896-3",
@@ -5472,7 +5485,7 @@
       "summary": "Site Studio plan — apps/sites/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/eae9c367a0d8c896-3.md",
       "sourceHash": "68d9e055206bfa13f1ec41430b043229df586d886326e28fae8d771cbc200153",
-      "sortOrder": 10202
+      "sortOrder": 10302
     },
     {
       "pageKey": "repository/sources/eae9c367a0d8c896-4",
@@ -5485,7 +5498,7 @@
       "summary": "Site Studio plan — apps/sites/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/eae9c367a0d8c896-4.md",
       "sourceHash": "f261454157ab4e9f83a0213560e698389a8284822e67286cd7f6a7aa4822de7a",
-      "sortOrder": 10203
+      "sortOrder": 10303
     },
     {
       "pageKey": "repository/sources/05423eb49add458c",
@@ -5498,7 +5511,7 @@
       "summary": "Site Studio skills — apps/sites/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/05423eb49add458c.md",
       "sourceHash": "50d8e535babe7a1f032e0e0c94fe4155c6f0754a59ea68227758dc0283c05a07",
-      "sortOrder": 10300
+      "sortOrder": 10400
     },
     {
       "pageKey": "repository/sources/ac59dd8ccdaddccf-1",
@@ -5511,7 +5524,7 @@
       "summary": "Site Studio task and working rules — apps/sites/agent/TASK.md",
       "sourcePath": "applications/repository/sources/ac59dd8ccdaddccf-1.md",
       "sourceHash": "61b74c4bf08283bf604e4d32c309879985d311bc87e00abb3e61966a2606d8ca",
-      "sortOrder": 10400
+      "sortOrder": 10500
     },
     {
       "pageKey": "repository/sources/ac59dd8ccdaddccf-2",
@@ -5524,7 +5537,7 @@
       "summary": "Site Studio task and working rules — apps/sites/agent/TASK.md",
       "sourcePath": "applications/repository/sources/ac59dd8ccdaddccf-2.md",
       "sourceHash": "8fda44fc04dd5ed160ccba1c847c214b402f660ac4769dbf25f4b3c9e135513f",
-      "sortOrder": 10401
+      "sortOrder": 10501
     },
     {
       "pageKey": "repository/sources/ac59dd8ccdaddccf-3",
@@ -5537,7 +5550,7 @@
       "summary": "Site Studio task and working rules — apps/sites/agent/TASK.md",
       "sourcePath": "applications/repository/sources/ac59dd8ccdaddccf-3.md",
       "sourceHash": "5143972b959bf249fdd8bb4e284bc0638315fa4f0bd4e0bb543b570bc45a75ac",
-      "sortOrder": 10402
+      "sortOrder": 10502
     },
     {
       "pageKey": "repository/sources/0bad0eba70674a24",
@@ -5550,7 +5563,7 @@
       "summary": "Tirupur Connect textile artwork — apps/sites/agent/tirupurconnect-assets.md",
       "sourcePath": "applications/repository/sources/0bad0eba70674a24.md",
       "sourceHash": "2f6aa3cc5ed3315bac1f00ce7af19b644270785afb76eaa26f48e3ab6c8deb70",
-      "sortOrder": 10500
+      "sortOrder": 10600
     },
     {
       "pageKey": "repository/sources/05fe4ba810570a19",
@@ -5563,7 +5576,7 @@
       "summary": "Standards reference logos — apps/sites/agent/tirupurconnect-standards.md",
       "sourcePath": "applications/repository/sources/05fe4ba810570a19.md",
       "sourceHash": "e595992499cdbd900d86fc15a2c107ef97a979e13e0d339fa783a2000367a90c",
-      "sortOrder": 10600
+      "sortOrder": 10700
     },
     {
       "pageKey": "repository/sources/a88933b329243995-1",
@@ -5576,7 +5589,7 @@
       "summary": "Sites — Site Studio — apps/sites/README.md",
       "sourcePath": "applications/repository/sources/a88933b329243995-1.md",
       "sourceHash": "771f217ff17c338d338d06d89cd835f9b2053bca19e2bbcaf132c2618cd53c62",
-      "sortOrder": 10700
+      "sortOrder": 10800
     },
     {
       "pageKey": "repository/sources/a88933b329243995-2",
@@ -5589,7 +5602,7 @@
       "summary": "Sites — Site Studio — apps/sites/README.md",
       "sourcePath": "applications/repository/sources/a88933b329243995-2.md",
       "sourceHash": "1508682f8f849c1a453a3e4fd0633223bc8da3bebcce802beb48a081fa714be0",
-      "sortOrder": 10701
+      "sortOrder": 10801
     },
     {
       "pageKey": "repository/sources/0b04e4281db3609c",
@@ -5602,7 +5615,7 @@
       "summary": "Sportsclub Architecture and Master Plan — apps/sportsclub/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/0b04e4281db3609c.md",
       "sourceHash": "b75b390997b4c44b04b816be6030a15d337d2e013df259392fecab20a38e0e99",
-      "sortOrder": 10800
+      "sortOrder": 10900
     },
     {
       "pageKey": "repository/sources/457f86208dee72e9",
@@ -5615,7 +5628,7 @@
       "summary": "Sportsclub Skills and Guidelines — apps/sportsclub/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/457f86208dee72e9.md",
       "sourceHash": "fddde2fab51aa54e55ee03dc2e322b0f4483713d44a14d7943eab85e4822d0f3",
-      "sortOrder": 10900
+      "sortOrder": 11000
     },
     {
       "pageKey": "repository/sources/d001493706c49945",
@@ -5628,7 +5641,7 @@
       "summary": "Sportsclub Task and Working Rules — apps/sportsclub/agent/TASK.md",
       "sourcePath": "applications/repository/sources/d001493706c49945.md",
       "sourceHash": "eee4ed6f7d5ec98653d735aaf0d1dae591e42d2d67ad9f59867a603190805a02",
-      "sortOrder": 11000
+      "sortOrder": 11100
     },
     {
       "pageKey": "repository/sources/b6641efea5a6056e",
@@ -5641,7 +5654,7 @@
       "summary": "Sportsclub — Sports & Club Management — apps/sportsclub/README.md",
       "sourcePath": "applications/repository/sources/b6641efea5a6056e.md",
       "sourceHash": "f59a1cd238a2777d6dd24e194dde4a379b10f095edd131362a772a173d99aa9f",
-      "sortOrder": 11100
+      "sortOrder": 11200
     },
     {
       "pageKey": "repository/sources/c11cfb7576a89328",
@@ -5654,7 +5667,7 @@
       "summary": "TConnect plan — apps/tconnect/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/c11cfb7576a89328.md",
       "sourceHash": "0c097dd2ba3dc49c2b1f91d9750dcba93aa3947e2c34ecce9e7869d6ee243f37",
-      "sortOrder": 11200
+      "sortOrder": 11300
     },
     {
       "pageKey": "repository/sources/cb7effa1e03c53c4",
@@ -5667,7 +5680,7 @@
       "summary": "TConnect working rules — apps/tconnect/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/cb7effa1e03c53c4.md",
       "sourceHash": "6cb39fa277493be8932493d78c2e38faaacd7cc6a58c822efa8bafd5eae8a6ba",
-      "sortOrder": 11300
+      "sortOrder": 11400
     },
     {
       "pageKey": "repository/sources/ce1131630207f1dd",
@@ -5680,7 +5693,7 @@
       "summary": "TConnect tasks — apps/tconnect/agent/TASK.md",
       "sourcePath": "applications/repository/sources/ce1131630207f1dd.md",
       "sourceHash": "61f106c86648e3c933b8f4d10fd3d0412c86b7a5039b062cf9748a4774ae9aa3",
-      "sortOrder": 11400
+      "sortOrder": 11500
     },
     {
       "pageKey": "repository/sources/74336b26e0bbf8fc-1",
@@ -5693,7 +5706,7 @@
       "summary": "TConnect — apps/tconnect/README.md",
       "sourcePath": "applications/repository/sources/74336b26e0bbf8fc-1.md",
       "sourceHash": "75386eeff293ee27263e8c68fd603bd922caadde03c3311fb31733037902dfbd",
-      "sortOrder": 11500
+      "sortOrder": 11600
     },
     {
       "pageKey": "repository/sources/74336b26e0bbf8fc-2",
@@ -5706,7 +5719,7 @@
       "summary": "TConnect — apps/tconnect/README.md",
       "sourcePath": "applications/repository/sources/74336b26e0bbf8fc-2.md",
       "sourceHash": "1145cee2b4ea11ff419887ba8b2bd6dba66124880e35e6899fdde8e617bd4485",
-      "sortOrder": 11501
+      "sortOrder": 11601
     },
     {
       "pageKey": "repository/sources/65286948830d1931",
@@ -5719,7 +5732,7 @@
       "summary": "Zetro plan — apps/zetro/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/65286948830d1931.md",
       "sourceHash": "c1fea946b00dc34dc27ca1fa008f133058ecf7feeca2d33aa5ce961ab541f8b7",
-      "sortOrder": 11600
+      "sortOrder": 11700
     },
     {
       "pageKey": "repository/sources/f2b89c2f7c61922f",
@@ -5732,7 +5745,7 @@
       "summary": "Zetro agent — apps/zetro/agent/README.md",
       "sourcePath": "applications/repository/sources/f2b89c2f7c61922f.md",
       "sourceHash": "d77612089389e65390408033c214165487917ce529f3a7039f12478c053a4545",
-      "sortOrder": 11700
+      "sortOrder": 11800
     },
     {
       "pageKey": "repository/sources/5426b0a48ea162d0",
@@ -5745,7 +5758,7 @@
       "summary": "Zetro business rules — apps/zetro/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/5426b0a48ea162d0.md",
       "sourceHash": "f59583d25e5f0b3a77064d1e41894fea5b4f2b21e29ebdd9c7338de143ec8c61",
-      "sortOrder": 11800
+      "sortOrder": 11900
     },
     {
       "pageKey": "repository/sources/e8d299db290238cc",
@@ -5758,7 +5771,7 @@
       "summary": "Zetro tasks — apps/zetro/agent/TASK.md",
       "sourcePath": "applications/repository/sources/e8d299db290238cc.md",
       "sourceHash": "bc68db5ec5aff88e98be39e47e0f39fb60b8564b240738c7c7adf83c6df82d02",
-      "sortOrder": 11900
+      "sortOrder": 12000
     },
     {
       "pageKey": "repository/sources/137ae64b0592e7ab",
@@ -5771,7 +5784,7 @@
       "summary": "Zetro — apps/zetro/README.md",
       "sourcePath": "applications/repository/sources/137ae64b0592e7ab.md",
       "sourceHash": "f4a43bf0489d51b38bef6e525dc05b7ca2677b9bdd429448ed2937741c5a340d",
-      "sortOrder": 12000
+      "sortOrder": 12100
     },
     {
       "pageKey": "repository/sources/2b6c5e169aa2467b",
@@ -5784,7 +5797,7 @@
       "summary": "CODEXSUN Agent Guide — assist/AGENT-GUIDE.md",
       "sourcePath": "applications/repository/sources/2b6c5e169aa2467b.md",
       "sourceHash": "dfa823dd52fc3ad0c9098d6708a6009dc351b9854aa59d9990d8a7601f97427c",
-      "sortOrder": 12100
+      "sortOrder": 12200
     },
     {
       "pageKey": "repository/sources/ceb658bffa0983d0",
@@ -5797,7 +5810,7 @@
       "summary": "Agent Rules — assist/agents/agent-rules.md",
       "sourcePath": "applications/repository/sources/ceb658bffa0983d0.md",
       "sourceHash": "01b4b14a5b9da5e5302d537a3ed2af3c96e850129b6c59ffddab3bb22d1f6d98",
-      "sortOrder": 12200
+      "sortOrder": 12300
     },
     {
       "pageKey": "repository/sources/6187ec2a2720f171",
@@ -5810,7 +5823,7 @@
       "summary": "CODEIT Workflows — assist/agents/codeit-workflows.md",
       "sourcePath": "applications/repository/sources/6187ec2a2720f171.md",
       "sourceHash": "0caebbb49f9cf0bfb6678e7460e58a00c0267a4383bcfaaa681fc6b4b6a2c150",
-      "sortOrder": 12300
+      "sortOrder": 12400
     },
     {
       "pageKey": "repository/sources/823b76f3981c8bf5",
@@ -5823,7 +5836,7 @@
       "summary": "CODEIT Agent Instructions — assist/agents/codeit.md",
       "sourcePath": "applications/repository/sources/823b76f3981c8bf5.md",
       "sourceHash": "747f18f34511f3f106d4052383238a8e7c916aa2d1c9cce284709155ac83444b",
-      "sortOrder": 12400
+      "sortOrder": 12500
     },
     {
       "pageKey": "repository/sources/b4ae816fdb317853",
@@ -5836,7 +5849,7 @@
       "summary": "Vibe Coding Guide — assist/agents/vibe-coding.md",
       "sourcePath": "applications/repository/sources/b4ae816fdb317853.md",
       "sourceHash": "1a9416be6e785304e45624d1a2458880205692da8c313b1dc18d3870c2e76008",
-      "sortOrder": 12500
+      "sortOrder": 12600
     },
     {
       "pageKey": "repository/sources/a6b76a8e73758c97",
@@ -5849,7 +5862,7 @@
       "summary": "ZERO Business Assistant Instructions — assist/agents/zero.md",
       "sourcePath": "applications/repository/sources/a6b76a8e73758c97.md",
       "sourceHash": "d88ef4680b4e750255525ccf67e3f24db412bb345c31d78329fd60e55f22f13e",
-      "sortOrder": 12600
+      "sortOrder": 12700
     },
     {
       "pageKey": "repository/sources/258095192d98a90a",
@@ -5862,7 +5875,7 @@
       "summary": "Architecture Principles — assist/architecture/architecture-principles.md",
       "sourcePath": "applications/repository/sources/258095192d98a90a.md",
       "sourceHash": "748c40949f65acd905de2cd1e85fb3216a0d34f253aa9ae7bac3b8f13582c292",
-      "sortOrder": 12700
+      "sortOrder": 12800
     },
     {
       "pageKey": "repository/sources/a2f5ef72c68e6880",
@@ -5875,7 +5888,7 @@
       "summary": "Data Strategy — assist/architecture/data-strategy.md",
       "sourcePath": "applications/repository/sources/a2f5ef72c68e6880.md",
       "sourceHash": "105452be4d6265b1d847c59852576e27e3fd6aef16ee52489271a3c00f5ce4b3",
-      "sortOrder": 12800
+      "sortOrder": 12900
     },
     {
       "pageKey": "repository/sources/f2710b05bdd6ff67",
@@ -5888,7 +5901,7 @@
       "summary": "Deployment Model — assist/architecture/deployment-model.md",
       "sourcePath": "applications/repository/sources/f2710b05bdd6ff67.md",
       "sourceHash": "7a3eb2701341bec7c77bc20bad52b1584edf7dfb635b51a1e61f1ee867bc7a05",
-      "sortOrder": 12900
+      "sortOrder": 13000
     },
     {
       "pageKey": "repository/sources/6ebb703dd16611f7",
@@ -5901,7 +5914,7 @@
       "summary": "Enterprise Reference Architecture — assist/architecture/enterprise-reference-architecture.md",
       "sourcePath": "applications/repository/sources/6ebb703dd16611f7.md",
       "sourceHash": "a748fc2389fbee47f188e60f6785925b65ae75004462233cf1af22dd4516f217",
-      "sortOrder": 13000
+      "sortOrder": 13100
     },
     {
       "pageKey": "repository/sources/0aea48da7a64f8e0",
@@ -5914,7 +5927,7 @@
       "summary": "Events And Queues — assist/architecture/events-and-queues.md",
       "sourcePath": "applications/repository/sources/0aea48da7a64f8e0.md",
       "sourceHash": "a68b2a3cc8698e6b732aa8d885eff04956a16370cbbd81d9cd669f8fe0dfc67b",
-      "sortOrder": 13100
+      "sortOrder": 13200
     },
     {
       "pageKey": "repository/sources/505ecbeb08dbb1bd",
@@ -5927,7 +5940,7 @@
       "summary": "Frappe enquiry sync — assist/architecture/frappe-outbound-sync.md",
       "sourcePath": "applications/repository/sources/505ecbeb08dbb1bd.md",
       "sourceHash": "3225edbce98532d3afa3db25887d359735113423399016840c008a6b87c9545d",
-      "sortOrder": 13200
+      "sortOrder": 13300
     },
     {
       "pageKey": "repository/sources/1b1f73f759dcb59c",
@@ -5940,7 +5953,7 @@
       "summary": "Integration Strategy — assist/architecture/integration-strategy.md",
       "sourcePath": "applications/repository/sources/1b1f73f759dcb59c.md",
       "sourceHash": "a6a835b98c350542e045b11d2cc3e9e1d87b9f08ff9146f6b15f91f4950ae9ea",
-      "sortOrder": 13300
+      "sortOrder": 13400
     },
     {
       "pageKey": "repository/sources/29e485237a27f6d6-1",
@@ -5953,7 +5966,7 @@
       "summary": "Module Boundaries — assist/architecture/module-boundaries.md",
       "sourcePath": "applications/repository/sources/29e485237a27f6d6-1.md",
       "sourceHash": "be6aedfe0a09595a014ba0e6b0041a786dcf254c643c048be667507f4938e7fc",
-      "sortOrder": 13400
+      "sortOrder": 13500
     },
     {
       "pageKey": "repository/sources/29e485237a27f6d6-2",
@@ -5966,7 +5979,7 @@
       "summary": "Module Boundaries — assist/architecture/module-boundaries.md",
       "sourcePath": "applications/repository/sources/29e485237a27f6d6-2.md",
       "sourceHash": "06cc5dd60d317a7d4043cd9cecc3bb4720e8f1caf96afdcb098d062a75419685",
-      "sortOrder": 13401
+      "sortOrder": 13501
     },
     {
       "pageKey": "repository/sources/b83c73487c34b5ce",
@@ -5979,7 +5992,7 @@
       "summary": "Offline Sync — assist/architecture/offline-sync.md",
       "sourcePath": "applications/repository/sources/b83c73487c34b5ce.md",
       "sourceHash": "e55e64f6e85f25b2dde604e1ef512fd6533c65faee9ed00d3197acbab793f0e6",
-      "sortOrder": 13500
+      "sortOrder": 13600
     },
     {
       "pageKey": "repository/sources/1034765c8e4f3939",
@@ -5992,7 +6005,7 @@
       "summary": "Security And Compliance — assist/architecture/security-and-compliance.md",
       "sourcePath": "applications/repository/sources/1034765c8e4f3939.md",
       "sourceHash": "ad2de78abbc57d8bd8e47e450c034b9ca63935420abef8399cccd65ddd92e365",
-      "sortOrder": 13600
+      "sortOrder": 13700
     },
     {
       "pageKey": "repository/sources/b2f64f0f067ce8db",
@@ -6005,7 +6018,7 @@
       "summary": "Tenant Isolation — assist/architecture/tenant-isolation.md",
       "sourcePath": "applications/repository/sources/b2f64f0f067ce8db.md",
       "sourceHash": "8abf961cde0b64830aecbe5306cf74fa96d78e33c421b58627f262697682acff",
-      "sortOrder": 13700
+      "sortOrder": 13800
     },
     {
       "pageKey": "repository/sources/fba783729d720b71",
@@ -6018,7 +6031,7 @@
       "summary": "Tenant Readiness Track — assist/architecture/tenant-readiness-track.md",
       "sourcePath": "applications/repository/sources/fba783729d720b71.md",
       "sourceHash": "cca14b0f99c5d42c548818a42992b71a2d4260857c9d3add53d519746002bf72",
-      "sortOrder": 13800
+      "sortOrder": 13900
     },
     {
       "pageKey": "repository/sources/564acef7672c22c6",
@@ -6031,7 +6044,7 @@
       "summary": "Zetro business assistant — assist/architecture/zetro-chat.md",
       "sourcePath": "applications/repository/sources/564acef7672c22c6.md",
       "sourceHash": "8fa9571474f18ff859dbbdd493a4fdf446a909b2a426e19c5140c8fd1196b1bb",
-      "sortOrder": 13900
+      "sortOrder": 14000
     },
     {
       "pageKey": "repository/sources/5f21222c6c80ca45",
@@ -6044,7 +6057,7 @@
       "summary": "Decision Summary — assist/blueprint/decision-summary.md",
       "sourcePath": "applications/repository/sources/5f21222c6c80ca45.md",
       "sourceHash": "dd1c662bf220ca130d91dba92a648161284150948260cebb20b865f4d0d9428f",
-      "sortOrder": 14000
+      "sortOrder": 14100
     },
     {
       "pageKey": "repository/sources/886f247ea8c2a3f9",
@@ -6057,7 +6070,7 @@
       "summary": "First MVP — assist/blueprint/first-mvp.md",
       "sourcePath": "applications/repository/sources/886f247ea8c2a3f9.md",
       "sourceHash": "759dc966c48cd36528181dc26e29ce30a04a690d1e7f0a2fc118160d0dc3271f",
-      "sortOrder": 14100
+      "sortOrder": 14200
     },
     {
       "pageKey": "repository/sources/a14e53c9f8e9ea2d-1",
@@ -6070,7 +6083,7 @@
       "summary": "Foundation Blueprint — assist/blueprint/foundation-blueprint.md",
       "sourcePath": "applications/repository/sources/a14e53c9f8e9ea2d-1.md",
       "sourceHash": "ae905c3ff21a1522cf2e8a9d57fb86932d5a511c3d22a02d768eb59f2a6c0ed7",
-      "sortOrder": 14200
+      "sortOrder": 14300
     },
     {
       "pageKey": "repository/sources/a14e53c9f8e9ea2d-2",
@@ -6083,7 +6096,7 @@
       "summary": "Foundation Blueprint — assist/blueprint/foundation-blueprint.md",
       "sourcePath": "applications/repository/sources/a14e53c9f8e9ea2d-2.md",
       "sourceHash": "1107cff332fb59bf75f31fffe22194c544f7e715ad87a0b67eff99e4ffffd266",
-      "sortOrder": 14201
+      "sortOrder": 14301
     },
     {
       "pageKey": "repository/sources/7792df4fe8661a4c",
@@ -6096,7 +6109,7 @@
       "summary": "Framework Foundation — assist/blueprint/framework-foundation.md",
       "sourcePath": "applications/repository/sources/7792df4fe8661a4c.md",
       "sourceHash": "b181f00ca36e30fb016d2748c83dee6a4fcaccab39c53d8d257a040e632d38f3",
-      "sortOrder": 14300
+      "sortOrder": 14400
     },
     {
       "pageKey": "repository/sources/e7e9cf700afa74a2",
@@ -6109,7 +6122,7 @@
       "summary": "Platform Foundation — assist/blueprint/platform-foundation.md",
       "sourcePath": "applications/repository/sources/e7e9cf700afa74a2.md",
       "sourceHash": "78a6fa09ed65261f95da14345e646ea56ea62308613396fbd58772256b64f663",
-      "sortOrder": 14400
+      "sortOrder": 14500
     },
     {
       "pageKey": "repository/sources/83424f6375d02230",
@@ -6122,7 +6135,7 @@
       "summary": "UI Form Regression Guardrails — assist/devops/ui-form-regression-guardrails.md",
       "sourcePath": "applications/repository/sources/83424f6375d02230.md",
       "sourceHash": "3245c2b77b753d161b28d44d515dbd6e2d50b6eda4bb8813f8165ae7a9d27fd7",
-      "sortOrder": 14500
+      "sortOrder": 14600
     },
     {
       "pageKey": "repository/sources/fef854987afc037a",
@@ -6135,7 +6148,7 @@
       "summary": "App Bundle Structure — assist/documentation/app-bundle-structure.md",
       "sourcePath": "applications/repository/sources/fef854987afc037a.md",
       "sourceHash": "0d68f68c40526e82fa3370336692239ab49f66521dbb7ed978313cd761028727",
-      "sortOrder": 14600
+      "sortOrder": 14700
     },
     {
       "pageKey": "repository/sources/f7ffa27451465120",
@@ -6148,7 +6161,7 @@
       "summary": "App Operations — assist/documentation/app-orchestration.md",
       "sourcePath": "applications/repository/sources/f7ffa27451465120.md",
       "sourceHash": "2cfdf6f5b1c8c827a1853a76763a9294efe596b74600b2f6ec5c78b883482bfa",
-      "sortOrder": 14700
+      "sortOrder": 14800
     },
     {
       "pageKey": "repository/sources/c5dafc7c82bc2403-1",
@@ -6160,8 +6173,8 @@
       "title": "assist/documentation/CHANGELOG.md (part 1/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-1.md",
-      "sourceHash": "300c819df6fe56f4c710cfabd1a258c7028b6c9346bb682c42a8859e7914348b",
-      "sortOrder": 14800
+      "sourceHash": "717ee6c738d9f3ab174eac00d78a24598ee87f97391471cfdd484312c8362ec7",
+      "sortOrder": 14900
     },
     {
       "pageKey": "repository/sources/c5dafc7c82bc2403-2",
@@ -6173,8 +6186,8 @@
       "title": "assist/documentation/CHANGELOG.md (part 2/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-2.md",
-      "sourceHash": "8aa2b0b4a2c272d8d9dc4738f52515008d7c31af47030c519e9dcc873d4b534a",
-      "sortOrder": 14801
+      "sourceHash": "0777de12490c7da05bc72e539b9efe16c38e9bd2003d6ad76964c05df58d42a1",
+      "sortOrder": 14901
     },
     {
       "pageKey": "repository/sources/c5dafc7c82bc2403-3",
@@ -6186,8 +6199,8 @@
       "title": "assist/documentation/CHANGELOG.md (part 3/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-3.md",
-      "sourceHash": "046b9035600ffc21e101461377a110f44964f49cd9858ffe37907722ac2f3fa0",
-      "sortOrder": 14802
+      "sourceHash": "3625bccfda6d5bb328a49a7827762d55cb7a1ebff03566f38bcc19d19d48b53f",
+      "sortOrder": 14902
     },
     {
       "pageKey": "repository/sources/c5dafc7c82bc2403-4",
@@ -6199,8 +6212,8 @@
       "title": "assist/documentation/CHANGELOG.md (part 4/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-4.md",
-      "sourceHash": "61f4d85308b92dd084bdfbcb2aec1c70a84b8b15ca0e5f6333e4e0bd7eef2934",
-      "sortOrder": 14803
+      "sourceHash": "e5e3e4a77422403023322b55ec2f506278fd7e40a2a34ae0423ffdd2a082ceff",
+      "sortOrder": 14903
     },
     {
       "pageKey": "repository/sources/c5dafc7c82bc2403-5",
@@ -6212,8 +6225,8 @@
       "title": "assist/documentation/CHANGELOG.md (part 5/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-5.md",
-      "sourceHash": "230fb5cf55e0276af19b109ae686ecc516438daf881742a783c28e5772aa6dbc",
-      "sortOrder": 14804
+      "sourceHash": "4a3e18d05457e257cb6654b6e351e1fe310b4f45d33eaa5b8d663b658a1bfe0b",
+      "sortOrder": 14904
     },
     {
       "pageKey": "repository/sources/c5dafc7c82bc2403-6",
@@ -6225,8 +6238,8 @@
       "title": "assist/documentation/CHANGELOG.md (part 6/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-6.md",
-      "sourceHash": "b40a1efa541f71ef6d31c6ea8adfe173e26ce10c8bfd8066393d2e22c78c67bd",
-      "sortOrder": 14805
+      "sourceHash": "aade21e195f0c17da98289cfa85c52a446ad6a11657eee2997649f65ac87f769",
+      "sortOrder": 14905
     },
     {
       "pageKey": "repository/sources/c5dafc7c82bc2403-7",
@@ -6238,8 +6251,8 @@
       "title": "assist/documentation/CHANGELOG.md (part 7/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-7.md",
-      "sourceHash": "93d24fd1ffcbe52968ea4a39a760368bcd142027b0e4bf4e017634ec08b0730b",
-      "sortOrder": 14806
+      "sourceHash": "e85b7d39268dc1fd8f4b456c9a0ea3f699aa81eafca6dceaee3acd99ee0bf156",
+      "sortOrder": 14906
     },
     {
       "pageKey": "repository/sources/c5dafc7c82bc2403-8",
@@ -6251,8 +6264,8 @@
       "title": "assist/documentation/CHANGELOG.md (part 8/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-8.md",
-      "sourceHash": "2b13ca7a2c749f70babbea48450c0913c6c880ce8d280e8feb6d9470abb08549",
-      "sortOrder": 14807
+      "sourceHash": "44deaaa9bae855970254e4a10821ed162672d178e35ad93fea6d82692c9b0163",
+      "sortOrder": 14907
     },
     {
       "pageKey": "repository/sources/c5dafc7c82bc2403-9",
@@ -6264,8 +6277,8 @@
       "title": "assist/documentation/CHANGELOG.md (part 9/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-9.md",
-      "sourceHash": "ae132815f543c6852e5f9b12e9a46cbed0c3bb918d18036f97d43d1f714a3457",
-      "sortOrder": 14808
+      "sourceHash": "58aa6e39c9927bcb69087933e5f51559048387f236ec98a8d8a0bd45dd216c9b",
+      "sortOrder": 14908
     },
     {
       "pageKey": "repository/sources/c5dafc7c82bc2403-10",
@@ -6277,8 +6290,8 @@
       "title": "assist/documentation/CHANGELOG.md (part 10/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-10.md",
-      "sourceHash": "5e0c8bea74bc35fd147986908cedd651e2329dd4efdbff0301ac7aa8b9ed65be",
-      "sortOrder": 14809
+      "sourceHash": "61fd212d0930fe129fc297e4423e675352369069093c4f9d80bc1b5da23cb29b",
+      "sortOrder": 14909
     },
     {
       "pageKey": "repository/sources/c5dafc7c82bc2403-11",
@@ -6290,8 +6303,8 @@
       "title": "assist/documentation/CHANGELOG.md (part 11/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-11.md",
-      "sourceHash": "6be34f45339cb34d52596bf5b0e30361382c4d31131b0301e7ffaaae704abf34",
-      "sortOrder": 14810
+      "sourceHash": "d95e1b09a9e14009b22e0c63443610591aac7c0b9f8b8f733413bf5e9dafe126",
+      "sortOrder": 14910
     },
     {
       "pageKey": "repository/sources/b0ecc122aadc4e2e",
@@ -6304,7 +6317,7 @@
       "summary": "CRM Contact 360 — assist/documentation/crm-contact-360.md",
       "sourcePath": "applications/repository/sources/b0ecc122aadc4e2e.md",
       "sourceHash": "baf8b6985263e5089421116961c659e6247edbbc9033e130c2329e7c69a99351",
-      "sortOrder": 14900
+      "sortOrder": 15000
     },
     {
       "pageKey": "repository/sources/7ef9e0b5bbf81144",
@@ -6317,7 +6330,7 @@
       "summary": "CRM enquiry — assist/documentation/crm-enquiry.md",
       "sourcePath": "applications/repository/sources/7ef9e0b5bbf81144.md",
       "sourceHash": "0793a7ba539656bfe6373a643e7d169ba5892e9ef111e37b6d24f1cbfcedc684",
-      "sortOrder": 15000
+      "sortOrder": 15100
     },
     {
       "pageKey": "repository/sources/be0dd6eadf6bccc5",
@@ -6330,7 +6343,7 @@
       "summary": "Design System Helper — assist/documentation/design-system-helper.md",
       "sourcePath": "applications/repository/sources/be0dd6eadf6bccc5.md",
       "sourceHash": "b9f442575bd3639cdc361dba4b56c900aa5f76e0a180c73ef914e919edce26fd",
-      "sortOrder": 15100
+      "sortOrder": 15200
     },
     {
       "pageKey": "repository/sources/e62fe977515916cf",
@@ -6343,7 +6356,7 @@
       "summary": "CODEXSUN Project Inventory — assist/documentation/project-inventory.md",
       "sourcePath": "applications/repository/sources/e62fe977515916cf.md",
       "sourceHash": "f19b0f558f7ca9f795c68ea8cd2881685a1a7d5a07f05284e50b7235120100a8",
-      "sortOrder": 15200
+      "sortOrder": 15300
     },
     {
       "pageKey": "repository/sources/169697f042ad83cf",
@@ -6356,7 +6369,7 @@
       "summary": "CODEXSUN Billing, Accounting, Compliance, and Business Services Plan — assist/execution/planning.md",
       "sourcePath": "applications/repository/sources/169697f042ad83cf.md",
       "sourceHash": "8b85f4e036762a2346692d2c23655affe471403f0cd6849984519a418e969a19",
-      "sortOrder": 15300
+      "sortOrder": 15400
     },
     {
       "pageKey": "repository/sources/a787ecadc681bd15",
@@ -6369,7 +6382,7 @@
       "summary": "CODEXSUN Billing Deployment Setup — assist/execution/setup.md",
       "sourcePath": "applications/repository/sources/a787ecadc681bd15.md",
       "sourceHash": "128dccf049613e22c064f7e3671c0ff96dc7a405559b6c6a6b67d03c3b44c08e",
-      "sortOrder": 15400
+      "sortOrder": 15500
     },
     {
       "pageKey": "repository/sources/ad21985a69e1e334",
@@ -6382,7 +6395,7 @@
       "summary": "API Guidelines — assist/governance/api-guidelines.md",
       "sourcePath": "applications/repository/sources/ad21985a69e1e334.md",
       "sourceHash": "4d7e20487086050fd329c3a5945bd4eb9275fed11f7c58e0ed16590bfd27312d",
-      "sortOrder": 15500
+      "sortOrder": 15600
     },
     {
       "pageKey": "repository/sources/11e48d7381856a80",
@@ -6395,7 +6408,7 @@
       "summary": "Decision Log — assist/governance/decision-log.md",
       "sourcePath": "applications/repository/sources/11e48d7381856a80.md",
       "sourceHash": "3fe658d9b28f3b7fa8141e37d9ccdb2dd5ead8034ca15e8fcbdc015d4a9db17d",
-      "sortOrder": 15600
+      "sortOrder": 15700
     },
     {
       "pageKey": "repository/sources/a704a158b2ac94b7",
@@ -6408,7 +6421,7 @@
       "summary": "Engineering Standards — assist/governance/engineering-standards.md",
       "sourcePath": "applications/repository/sources/a704a158b2ac94b7.md",
       "sourceHash": "3be58f23c14fa9d2f4f39b734027c53778a082a640e37479c76a1d0f3a583070",
-      "sortOrder": 15700
+      "sortOrder": 15800
     },
     {
       "pageKey": "repository/sources/d30c7a701fcbf82d",
@@ -6421,7 +6434,7 @@
       "summary": "Glossary — assist/governance/glossary.md",
       "sourcePath": "applications/repository/sources/d30c7a701fcbf82d.md",
       "sourceHash": "3f39e03c201fce27700403f866e3ebf724b447c5221b515d62829f4064110917",
-      "sortOrder": 15800
+      "sortOrder": 15900
     },
     {
       "pageKey": "repository/sources/a818458994539f26",
@@ -6434,7 +6447,7 @@
       "summary": "Quality Gates — assist/governance/quality-gates.md",
       "sourcePath": "applications/repository/sources/a818458994539f26.md",
       "sourceHash": "4ecdd764bbccbad7fc901a0d035818d48249232a23036d335309b5c10af8cd3f",
-      "sortOrder": 15900
+      "sortOrder": 16000
     },
     {
       "pageKey": "repository/sources/cf44b5783aed639b",
@@ -6447,7 +6460,7 @@
       "summary": "Governance Rules — assist/governance/rules.md",
       "sourcePath": "applications/repository/sources/cf44b5783aed639b.md",
       "sourceHash": "dcb4a1e251e6cc3f9c5162553784f23599ac0860f72b281aeae3ca008d6557de",
-      "sortOrder": 16000
+      "sortOrder": 16100
     },
     {
       "pageKey": "repository/sources/b6603aa7c0ab004e",
@@ -6460,7 +6473,7 @@
       "summary": "Testing Strategy — assist/governance/testing-strategy.md",
       "sourcePath": "applications/repository/sources/b6603aa7c0ab004e.md",
       "sourceHash": "ba24c41f0cb6aea9ed5fd46f52432dc23d62d75130670419d9ecffe7826cd3ff",
-      "sortOrder": 16100
+      "sortOrder": 16200
     },
     {
       "pageKey": "repository/sources/943523e59bda6bc2",
@@ -6473,7 +6486,7 @@
       "summary": "Industry Model — assist/industries/industry-model.md",
       "sourcePath": "applications/repository/sources/943523e59bda6bc2.md",
       "sourceHash": "92803f103e34ae8406afb572d757a4d0f0544e17f0adfbc4e8c1999b4fcec30c",
-      "sortOrder": 16200
+      "sortOrder": 16300
     },
     {
       "pageKey": "repository/sources/a66859f61277c1b2",
@@ -6486,7 +6499,7 @@
       "summary": "Legacy Cutover — assist/migrations/legacy/_template/cutover.md",
       "sourcePath": "applications/repository/sources/a66859f61277c1b2.md",
       "sourceHash": "fcb7b6c80b28ce0c8d9171f164c90371ba5087418c0237d8e5adf5292256203b",
-      "sortOrder": 16300
+      "sortOrder": 16400
     },
     {
       "pageKey": "repository/sources/484ac88c1e46fafb",
@@ -6499,7 +6512,7 @@
       "summary": "Legacy Mapping — assist/migrations/legacy/_template/mapping.md",
       "sourcePath": "applications/repository/sources/484ac88c1e46fafb.md",
       "sourceHash": "dc8328a32a6246612d561587de5ad425f1b1653d73395751c8be2d1426ad431d",
-      "sortOrder": 16400
+      "sortOrder": 16500
     },
     {
       "pageKey": "repository/sources/d8c474b91e677002",
@@ -6512,7 +6525,7 @@
       "summary": "Legacy Source Inventory — assist/migrations/legacy/_template/source-inventory.md",
       "sourcePath": "applications/repository/sources/d8c474b91e677002.md",
       "sourceHash": "0eaa49eb4dc648bc58e54dc0d07c806b4a01ca7ef2d5f9a0d3c532642a7fec70",
-      "sortOrder": 16500
+      "sortOrder": 16600
     },
     {
       "pageKey": "repository/sources/5aa1e34615e56df2",
@@ -6525,7 +6538,7 @@
       "summary": "Legacy Validation — assist/migrations/legacy/_template/validation.md",
       "sourcePath": "applications/repository/sources/5aa1e34615e56df2.md",
       "sourceHash": "156527ae86532b6943904e7f3fab56d0357f8a67524a8d1c2dbcc7b7f241c1a3",
-      "sortOrder": 16600
+      "sortOrder": 16700
     },
     {
       "pageKey": "repository/sources/f599be3da6167056",
@@ -6538,7 +6551,7 @@
       "summary": "Backup And Disaster Recovery — assist/operations/backup-disaster-recovery.md",
       "sourcePath": "applications/repository/sources/f599be3da6167056.md",
       "sourceHash": "08d148f5c38b36620621b9a6ff656923f8f7df5fc844a7ad3905838907d4d410",
-      "sortOrder": 16700
+      "sortOrder": 16800
     },
     {
       "pageKey": "repository/sources/4aa33c256ee5bfe2",
@@ -6551,7 +6564,7 @@
       "summary": "Cloudflare demo Worker port — assist/operations/cloudflare-demo-worker-port.md",
       "sourcePath": "applications/repository/sources/4aa33c256ee5bfe2.md",
       "sourceHash": "60c3fc093d3c64d66ea075572c25e3cb995f63b0a894b40eacfc4d268596e913",
-      "sortOrder": 16800
+      "sortOrder": 16900
     },
     {
       "pageKey": "repository/sources/fff0236ce8ad0518",
@@ -6564,7 +6577,7 @@
       "summary": "Data Lifecycle — assist/operations/data-lifecycle.md",
       "sourcePath": "applications/repository/sources/fff0236ce8ad0518.md",
       "sourceHash": "13ab593a5ac998c5da0fffbe3a0bafcd5b9252f3be5eda66918f05c7e3928398",
-      "sortOrder": 16900
+      "sortOrder": 17000
     },
     {
       "pageKey": "repository/sources/18944177d43da7ab",
@@ -6577,7 +6590,7 @@
       "summary": "Database Backup Runbook — assist/operations/database-backup-runbook.md",
       "sourcePath": "applications/repository/sources/18944177d43da7ab.md",
       "sourceHash": "e84b12e1459af804e12bf88512f0fed6a7937a330ee15187b7f15f247f3edcf8",
-      "sortOrder": 17000
+      "sortOrder": 17100
     },
     {
       "pageKey": "repository/sources/333240f7a9b4d7b2",
@@ -6590,7 +6603,7 @@
       "summary": "Database Migration Runbook — assist/operations/database-migration-runbook.md",
       "sourcePath": "applications/repository/sources/333240f7a9b4d7b2.md",
       "sourceHash": "ca5bfb9611aef3a5f0e81fd247cc319e5890b68d119a060b75c70dae1dd90238",
-      "sortOrder": 17100
+      "sortOrder": 17200
     },
     {
       "pageKey": "repository/sources/bb90e9557381ab8a",
@@ -6603,7 +6616,7 @@
       "summary": "Environments — assist/operations/environments.md",
       "sourcePath": "applications/repository/sources/bb90e9557381ab8a.md",
       "sourceHash": "4ef9e550c739a65e82b4a8721d08d241e789361e4af6a11309128ddbaa6321cc",
-      "sortOrder": 17200
+      "sortOrder": 17300
     },
     {
       "pageKey": "repository/sources/4c69e4494c9c8864",
@@ -6616,7 +6629,7 @@
       "summary": "Legacy Client Migration Runbook — assist/operations/legacy-client-migration-runbook.md",
       "sourcePath": "applications/repository/sources/4c69e4494c9c8864.md",
       "sourceHash": "2db5d6d9b9e6cd566eeaf45c77ac185081ebc91795c7e074b3a1df1c22644eff",
-      "sortOrder": 17300
+      "sortOrder": 17400
     },
     {
       "pageKey": "repository/sources/3ff8871148cd62c6",
@@ -6629,7 +6642,7 @@
       "summary": "Observability — assist/operations/observability.md",
       "sourcePath": "applications/repository/sources/3ff8871148cd62c6.md",
       "sourceHash": "8f5e1890fe33d4d003b0bfb6562971d462241395257896ae27776b239c7d5dfe",
-      "sortOrder": 17400
+      "sortOrder": 17500
     },
     {
       "pageKey": "repository/sources/f686288d017039a4",
@@ -6642,7 +6655,7 @@
       "summary": "Performance And Capacity — assist/operations/performance-capacity.md",
       "sourcePath": "applications/repository/sources/f686288d017039a4.md",
       "sourceHash": "175a8f95daba6fb6560f88db789ac65990bfabb740839732eda2a98ce234788a",
-      "sortOrder": 17500
+      "sortOrder": 17600
     },
     {
       "pageKey": "repository/sources/371d240eb27f3600",
@@ -6655,7 +6668,7 @@
       "summary": "Release Checklist — assist/operations/release-checklist.md",
       "sourcePath": "applications/repository/sources/371d240eb27f3600.md",
       "sourceHash": "17889c7fad9fbbc148620a0ffc9cb361299941bdac50551e846a373cbfe5c341",
-      "sortOrder": 17600
+      "sortOrder": 17700
     },
     {
       "pageKey": "repository/sources/b080abbbd210dfac",
@@ -6668,7 +6681,7 @@
       "summary": "SLA And Support — assist/operations/sla-and-support.md",
       "sourcePath": "applications/repository/sources/b080abbbd210dfac.md",
       "sourceHash": "121b67d8cb4dd15f8e4d072429cb6c4ae67a6095affc5ef2afb61ca2b373216f",
-      "sortOrder": 17700
+      "sortOrder": 17800
     },
     {
       "pageKey": "repository/sources/0df076d725364968",
@@ -6681,7 +6694,7 @@
       "summary": "Tech Stack Notes — assist/operations/tech-stack.md",
       "sourcePath": "applications/repository/sources/0df076d725364968.md",
       "sourceHash": "e9a20867997784d91e74a09be09a927a9873aa469b084f49de544e048c68f819",
-      "sortOrder": 17800
+      "sortOrder": 17900
     },
     {
       "pageKey": "repository/sources/4c121f74418fbec1",
@@ -6694,7 +6707,7 @@
       "summary": "Versioning And Releases — assist/operations/versioning.md",
       "sourcePath": "applications/repository/sources/4c121f74418fbec1.md",
       "sourceHash": "162ac13c0789dd02e5bed3d180cacf1459f968f79106c6f29fd0beb46203a19b",
-      "sortOrder": 17900
+      "sortOrder": 18000
     },
     {
       "pageKey": "repository/sources/818b66a80a26b78e",
@@ -6707,7 +6720,7 @@
       "summary": "Customer Segments — assist/product/customer-segments.md",
       "sourcePath": "applications/repository/sources/818b66a80a26b78e.md",
       "sourceHash": "aecba23b15bf2112bd546e12ac8c4623b4a4b6355b3ee78d9b8158de9be1fedd",
-      "sortOrder": 18000
+      "sortOrder": 18100
     },
     {
       "pageKey": "repository/sources/d26edd80378a362c",
@@ -6720,7 +6733,7 @@
       "summary": "Domain Map — assist/product/domain-map.md",
       "sourcePath": "applications/repository/sources/d26edd80378a362c.md",
       "sourceHash": "359aac5e8b80752c2632d2b8d09180a60ddb4d6baa1756dc0023ddc6ec03c8c5",
-      "sortOrder": 18100
+      "sortOrder": 18200
     },
     {
       "pageKey": "repository/sources/edcf77cff9cdd5a4",
@@ -6733,7 +6746,7 @@
       "summary": "Enterprise Scope — assist/product/enterprise-scope.md",
       "sourcePath": "applications/repository/sources/edcf77cff9cdd5a4.md",
       "sourceHash": "b3e4a99fa845688cdf43734746ce7ecefa95f190df0001f69895ffec8cb5f5f7",
-      "sortOrder": 18200
+      "sortOrder": 18300
     },
     {
       "pageKey": "repository/sources/3e3d8a36dd4f8477",
@@ -6746,7 +6759,7 @@
       "summary": "Product Scope — assist/product/product-scope.md",
       "sourcePath": "applications/repository/sources/3e3d8a36dd4f8477.md",
       "sourceHash": "fbde3d51a7dd90920a5fb79682ff0ab9c44d2b7a690830b72fe5b0c448407c7a",
-      "sortOrder": 18300
+      "sortOrder": 18400
     },
     {
       "pageKey": "repository/sources/3dada21f9188c61b",
@@ -6759,7 +6772,7 @@
       "summary": "Roadmap — assist/product/roadmap.md",
       "sourcePath": "applications/repository/sources/3dada21f9188c61b.md",
       "sourceHash": "1616fd5700428de0cc4bdd7b40e5fb0d70d7b33998784356e650ea48332738fb",
-      "sortOrder": 18400
+      "sortOrder": 18500
     },
     {
       "pageKey": "repository/sources/9f2fa3bdf49b7cec",
@@ -6772,7 +6785,7 @@
       "summary": "CODEXSUN Assist Pack — assist/README.md",
       "sourcePath": "applications/repository/sources/9f2fa3bdf49b7cec.md",
       "sourceHash": "a2a65d9a5db29a11b8b9e4c156a32184c7cc1087e9176ff43e89f99e8254e484",
-      "sortOrder": 18500
+      "sortOrder": 18600
     },
     {
       "pageKey": "repository/sources/6e7527efa18e012e",
@@ -6785,7 +6798,7 @@
       "summary": "CODEXSUN Module Owner — assist/SKILL.md",
       "sourcePath": "applications/repository/sources/6e7527efa18e012e.md",
       "sourceHash": "ba06d0850727d974731a9d2ecfa988bcb6eda91ae0bc4be403ad9ae24426a226",
-      "sortOrder": 18600
+      "sortOrder": 18700
     },
     {
       "pageKey": "repository/sources/a3b736f2ac593e08",
@@ -6798,7 +6811,7 @@
       "summary": "Data Bridge plan — devkits/data-bridge/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/a3b736f2ac593e08.md",
       "sourceHash": "70cbe2bfaec1d99a954fb9313481c11df22e783f4ea4fe7e918a35cac27282c9",
-      "sortOrder": 18700
+      "sortOrder": 18800
     },
     {
       "pageKey": "repository/sources/f75a9b05982b70a9",
@@ -6811,7 +6824,7 @@
       "summary": "Data Bridge working rules — devkits/data-bridge/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/f75a9b05982b70a9.md",
       "sourceHash": "45e8ab9ad3725cf3030bb0cc87c106d6a6465740f1913b9417fe92a520fe069d",
-      "sortOrder": 18800
+      "sortOrder": 18900
     },
     {
       "pageKey": "repository/sources/4bced1c95596deb2",
@@ -6824,7 +6837,7 @@
       "summary": "Data Bridge tasks — devkits/data-bridge/agent/TASK.md",
       "sourcePath": "applications/repository/sources/4bced1c95596deb2.md",
       "sourceHash": "f58a8c45946f0b2348482512feac6f45820a5fab67f9d99579412c1243c4b6a9",
-      "sortOrder": 18900
+      "sortOrder": 19000
     },
     {
       "pageKey": "repository/sources/63f5cadd6c01b51f",
@@ -6837,7 +6850,7 @@
       "summary": "Data Bridge — devkits/data-bridge/README.md",
       "sourcePath": "applications/repository/sources/63f5cadd6c01b51f.md",
       "sourceHash": "6677596d8177971a599c2229be74aed51b0c2885853a7ad2748f10f6f4d82f90",
-      "sortOrder": 19000
+      "sortOrder": 19100
     },
     {
       "pageKey": "repository/sources/e16680b4c4d073c1",
@@ -6850,7 +6863,7 @@
       "summary": "Data Migration plan — devkits/data-migration/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/e16680b4c4d073c1.md",
       "sourceHash": "e170420ec0d229051aa32af6751cd4212cef95123d636b959acf6c66227331ba",
-      "sortOrder": 19100
+      "sortOrder": 19200
     },
     {
       "pageKey": "repository/sources/ceb0afd3992a163f",
@@ -6863,7 +6876,7 @@
       "summary": "Data Migration working rules — devkits/data-migration/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/ceb0afd3992a163f.md",
       "sourceHash": "2d34d434fe1c46013867a97ac9831f75b1e07340e55e4c04c4cc8f258fa25c80",
-      "sortOrder": 19200
+      "sortOrder": 19300
     },
     {
       "pageKey": "repository/sources/d5a28963f87162e8",
@@ -6876,7 +6889,7 @@
       "summary": "Data Migration tasks — devkits/data-migration/agent/TASK.md",
       "sourcePath": "applications/repository/sources/d5a28963f87162e8.md",
       "sourceHash": "4092c2e618131989b9dadb30acb1708104dad88276048f050a056f2d6e204562",
-      "sortOrder": 19300
+      "sortOrder": 19400
     },
     {
       "pageKey": "repository/sources/f8b9664db75a718c",
@@ -6889,7 +6902,7 @@
       "summary": "Data Migration — devkits/data-migration/README.md",
       "sourcePath": "applications/repository/sources/f8b9664db75a718c.md",
       "sourceHash": "f0f42b40ae8587cc6ca45fb2fb0e716d92c8df3d4b732d11350d0d017960cf4c",
-      "sortOrder": 19400
+      "sortOrder": 19500
     },
     {
       "pageKey": "repository/sources/3c63d3672c61e026",
@@ -6902,7 +6915,7 @@
       "summary": "Project Manager plan — devkits/project-manager/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/3c63d3672c61e026.md",
       "sourceHash": "631492979600c0413f29b8bf66e5b366961aa08472918970d1e3d5f68a6cc0c7",
-      "sortOrder": 19500
+      "sortOrder": 19600
     },
     {
       "pageKey": "repository/sources/6007d0c111aa427d",
@@ -6915,7 +6928,7 @@
       "summary": "Project Manager working skills — devkits/project-manager/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/6007d0c111aa427d.md",
       "sourceHash": "04ab91bfcce8816d2735f8fcc9073bd1bf0e149b91625d37a1d3d065ad28ccb8",
-      "sortOrder": 19600
+      "sortOrder": 19700
     },
     {
       "pageKey": "repository/sources/2a41b03f30952dce",
@@ -6928,7 +6941,7 @@
       "summary": "Project Manager tasks — devkits/project-manager/agent/TASK.md",
       "sourcePath": "applications/repository/sources/2a41b03f30952dce.md",
       "sourceHash": "003f8f98d4985e54ffc75cc774ee3fdf916f39b7a3f7e96eaacda9fa0b2fc1da",
-      "sortOrder": 19700
+      "sortOrder": 19800
     },
     {
       "pageKey": "repository/sources/3fc0f14fc9a87516",
@@ -6941,7 +6954,7 @@
       "summary": "Project Manager — devkits/project-manager/README.md",
       "sourcePath": "applications/repository/sources/3fc0f14fc9a87516.md",
       "sourceHash": "b455b2bf08651eb87e8ec3db481b63818b196f231496767fc96b919c9edb46c5",
-      "sortOrder": 19800
+      "sortOrder": 19900
     },
     {
       "pageKey": "repository/sources/9ab37d28fd35b031",
@@ -6954,7 +6967,7 @@
       "summary": "Sys Work plan — devkits/sys-work/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/9ab37d28fd35b031.md",
       "sourceHash": "d5fb5672e49572c2657c1b861c37ca6486260e2c7834119d640caa908986f7c3",
-      "sortOrder": 19900
+      "sortOrder": 20000
     },
     {
       "pageKey": "repository/sources/d30b20a7716cdb1c",
@@ -6967,7 +6980,7 @@
       "summary": "Sys Work working rules — devkits/sys-work/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/d30b20a7716cdb1c.md",
       "sourceHash": "7f6240321efd2d253e099dd52bc12eaf92e49408dccb373e6ee51f445b253e7d",
-      "sortOrder": 20000
+      "sortOrder": 20100
     },
     {
       "pageKey": "repository/sources/ffe54cbc51da1791",
@@ -6980,7 +6993,7 @@
       "summary": "Sys Work tasks — devkits/sys-work/agent/TASK.md",
       "sourcePath": "applications/repository/sources/ffe54cbc51da1791.md",
       "sourceHash": "611c8e0bb3170216fe9ee84932cd7fdbd6127e663183d889f79a1eeca15a55de",
-      "sortOrder": 20100
+      "sortOrder": 20200
     },
     {
       "pageKey": "repository/sources/d6c0049b7eb12052",
@@ -6993,7 +7006,7 @@
       "summary": "Sys Work — devkits/sys-work/README.md",
       "sourcePath": "applications/repository/sources/d6c0049b7eb12052.md",
       "sourceHash": "54e7933a2dab051ba8771712a0da57aec41e53b477df67f564c26048ffdd34c3",
-      "sortOrder": 20200
+      "sortOrder": 20300
     },
     {
       "pageKey": "repository/sources/f7d3e5a3c7e03af0",
@@ -7006,7 +7019,7 @@
       "summary": "UIUX plan — devkits/uiux/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/f7d3e5a3c7e03af0.md",
       "sourceHash": "2ff098f70d0d4d45c11e96109af76da610bfe1d9cfa3095b2affed6840c2a975",
-      "sortOrder": 20300
+      "sortOrder": 20400
     },
     {
       "pageKey": "repository/sources/74402bac71f13659",
@@ -7019,7 +7032,7 @@
       "summary": "UIUX working skills — devkits/uiux/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/74402bac71f13659.md",
       "sourceHash": "685ac1bfc12a0eb13b5a4768a125b65ae011b673efe80e2f427733088a6ba0ff",
-      "sortOrder": 20400
+      "sortOrder": 20500
     },
     {
       "pageKey": "repository/sources/9e6b9ed32bf6ef0d",
@@ -7032,7 +7045,7 @@
       "summary": "UIUX tasks — devkits/uiux/agent/TASK.md",
       "sourcePath": "applications/repository/sources/9e6b9ed32bf6ef0d.md",
       "sourceHash": "ddc96bf96d08cae2859afb842fc692e47cf4d98245c9f195671736e904470435",
-      "sortOrder": 20500
+      "sortOrder": 20600
     },
     {
       "pageKey": "repository/sources/bb3f3ea6b235fe8d",
@@ -7045,7 +7058,7 @@
       "summary": "UIUX Gallery — devkits/uiux/README.md",
       "sourcePath": "applications/repository/sources/bb3f3ea6b235fe8d.md",
       "sourceHash": "02469b5c5e7d848522a438a450db190be2a143f5d44516634145395d6efe72f5",
-      "sortOrder": 20600
+      "sortOrder": 20700
     },
     {
       "pageKey": "repository/sources/2ce3baa7eda664d9",
@@ -7058,7 +7071,7 @@
       "summary": "Zuno plan — devkits/zuno/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/2ce3baa7eda664d9.md",
       "sourceHash": "fd4b769cc55a93d1143acb24d40fe36e16d87c0d35ae1a084f28f9250133a8b7",
-      "sortOrder": 20700
+      "sortOrder": 20800
     },
     {
       "pageKey": "repository/sources/24687a0c8ab409ba",
@@ -7071,7 +7084,7 @@
       "summary": "Zuno working skills — devkits/zuno/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/24687a0c8ab409ba.md",
       "sourceHash": "0a9c160e35f5eabdd3f06c10233f0a31048882523044d19087e5f193367a92ca",
-      "sortOrder": 20800
+      "sortOrder": 20900
     },
     {
       "pageKey": "repository/sources/9a9399e3bae3a6b9",
@@ -7084,7 +7097,7 @@
       "summary": "Zuno tasks — devkits/zuno/agent/TASK.md",
       "sourcePath": "applications/repository/sources/9a9399e3bae3a6b9.md",
       "sourceHash": "05ae2248c66dee755078c73828e5dcc0ec32ee36544e73e79bc2268b147a1120",
-      "sortOrder": 20900
+      "sortOrder": 21000
     },
     {
       "pageKey": "repository/sources/4ac7a6bff3a5c30c",
@@ -7097,7 +7110,7 @@
       "summary": "Zuno — devkits/zuno/README.md",
       "sourcePath": "applications/repository/sources/4ac7a6bff3a5c30c.md",
       "sourceHash": "031820e8598f60c85f651e8cf44f59085363fa62c73249776a507d25a073a485",
-      "sortOrder": 21000
+      "sortOrder": 21100
     },
     {
       "pageKey": "repository/sources/fd903c0dc3f4b1be",
@@ -7110,7 +7123,7 @@
       "summary": "Cloudflare Tunnel for MariaDB — docs/cloudflare.md",
       "sourcePath": "applications/repository/sources/fd903c0dc3f4b1be.md",
       "sourceHash": "16feae3efe21482fc75a2c494f5ee21bb61e31f5f943084b5bcfeb6f42adf1f6",
-      "sortOrder": 21100
+      "sortOrder": 21200
     },
     {
       "pageKey": "repository/sources/2dbbdca81576759c",
@@ -7123,7 +7136,7 @@
       "summary": "Cloudflared TCP Client Tunnel — docs/cloudflared.md",
       "sourcePath": "applications/repository/sources/2dbbdca81576759c.md",
       "sourceHash": "ed968d8c54459e0a7a6c9778014154136ab29b5161aeecdb14f3b5d279c5fd0b",
-      "sortOrder": 21200
+      "sortOrder": 21300
     },
     {
       "pageKey": "repository/sources/dddb653676d228ae",
@@ -7136,7 +7149,7 @@
       "summary": "Framework plan — packages/framework/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/dddb653676d228ae.md",
       "sourceHash": "df848428db24397ea049e3e2f4690a6639e8058d5933fb277d16c6290bc5bdaf",
-      "sortOrder": 21300
+      "sortOrder": 21400
     },
     {
       "pageKey": "repository/sources/0968570678d9bfaf",
@@ -7149,7 +7162,7 @@
       "summary": "Framework working skills — packages/framework/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/0968570678d9bfaf.md",
       "sourceHash": "252da47e60fd18d6176a95bbd3c5723852f1cd1469ee9719c1884055969b5849",
-      "sortOrder": 21400
+      "sortOrder": 21500
     },
     {
       "pageKey": "repository/sources/df56e5ee94bb0969",
@@ -7162,7 +7175,7 @@
       "summary": "Framework tasks — packages/framework/agent/TASK.md",
       "sourcePath": "applications/repository/sources/df56e5ee94bb0969.md",
       "sourceHash": "3dedb91930563575083d060019399b532bc2990d7243f2da57a26cbf91a016ee",
-      "sortOrder": 21500
+      "sortOrder": 21600
     },
     {
       "pageKey": "repository/sources/1c8fb8c9c4f7b27e",
@@ -7175,7 +7188,7 @@
       "summary": "Framework — packages/framework/README.md",
       "sourcePath": "applications/repository/sources/1c8fb8c9c4f7b27e.md",
       "sourceHash": "4d897ce1e914eea2558c46140e133fe26953df2f5a8d5bb0dd5c3ffd890a5c0e",
-      "sortOrder": 21600
+      "sortOrder": 21700
     },
     {
       "pageKey": "repository/sources/c0571c2118074232",
@@ -7188,7 +7201,7 @@
       "summary": "UI plan — packages/ui/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/c0571c2118074232.md",
       "sourceHash": "49d50f6785a7f902088e87ccf5eadbb6053b6badf0cd37d8b9eca7db1a899833",
-      "sortOrder": 21700
+      "sortOrder": 21800
     },
     {
       "pageKey": "repository/sources/b4479f825ffcd364",
@@ -7201,7 +7214,7 @@
       "summary": "UI working skills — packages/ui/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/b4479f825ffcd364.md",
       "sourceHash": "2c0ae0060edb9bf3a501d1bad8b3917b69ebdb2df13b457cc3d472a30076742c",
-      "sortOrder": 21800
+      "sortOrder": 21900
     },
     {
       "pageKey": "repository/sources/61916d75792f2ab4",
@@ -7214,7 +7227,7 @@
       "summary": "UI tasks — packages/ui/agent/TASK.md",
       "sourcePath": "applications/repository/sources/61916d75792f2ab4.md",
       "sourceHash": "fa3566de9fa213060239d3fdce84e403e03fae95407c1f7306c89a200b5e69f2",
-      "sortOrder": 21900
+      "sortOrder": 22000
     },
     {
       "pageKey": "repository/sources/0c5cfd3909673f57",
@@ -7227,7 +7240,7 @@
       "summary": "UI — packages/ui/README.md",
       "sourcePath": "applications/repository/sources/0c5cfd3909673f57.md",
       "sourceHash": "4ea1158372416cdb0528efff3ed638137cfa017af06f1c62044420f0cba0b353",
-      "sortOrder": 22000
+      "sortOrder": 22100
     },
     {
       "pageKey": "repository/sources/ad1a8c03ecdf3494",
@@ -7240,7 +7253,7 @@
       "summary": "Authentication Blocks — packages/ui/src/blocks/auth/README.md",
       "sourcePath": "applications/repository/sources/ad1a8c03ecdf3494.md",
       "sourceHash": "844c3652e330f5a7dd38f3a87453e78d0e70b86b27d0ad0b3206d3c913424e5c",
-      "sortOrder": 22100
+      "sortOrder": 22200
     },
     {
       "pageKey": "repository/sources/06cb2972adc45ced",
@@ -7253,7 +7266,7 @@
       "summary": "Execution Status — packages/ui/src/blocks/execution-status/README.md",
       "sourcePath": "applications/repository/sources/06cb2972adc45ced.md",
       "sourceHash": "f40fd23b1a82e66525cde94642bb0144f81aa1000fd5be33e8c3396ef64a0f08",
-      "sortOrder": 22200
+      "sortOrder": 22300
     },
     {
       "pageKey": "repository/sources/4d7c696ecbccf3b2",
@@ -7266,7 +7279,7 @@
       "summary": "Mascot block — packages/ui/src/blocks/mascot/README.md",
       "sourcePath": "applications/repository/sources/4d7c696ecbccf3b2.md",
       "sourceHash": "1a8ab19957bbc6f784baff2f5fae910004873541aeeb54bb6c2376083e4977b9",
-      "sortOrder": 22300
+      "sortOrder": 22400
     },
     {
       "pageKey": "repository/sources/527b3171ed3053be",
@@ -7279,7 +7292,7 @@
       "summary": "Master List — packages/ui/src/blocks/master-list/README.md",
       "sourcePath": "applications/repository/sources/527b3171ed3053be.md",
       "sourceHash": "c8b0deb9d3db909390890db2b8ccbc81e3700655fa295850c7956858a45464f5",
-      "sortOrder": 22400
+      "sortOrder": 22500
     },
     {
       "pageKey": "repository/sources/c69176d3e9212da1",
@@ -7292,7 +7305,7 @@
       "summary": "Notification Blocks — packages/ui/src/blocks/notifications/README.md",
       "sourcePath": "applications/repository/sources/c69176d3e9212da1.md",
       "sourceHash": "657d67a729790aaff86c9164274b07159246cc404beb902e7543db087de635b6",
-      "sortOrder": 22500
+      "sortOrder": 22600
     },
     {
       "pageKey": "repository/sources/58a1409c5e4a3643",
@@ -7305,7 +7318,7 @@
       "summary": "Documentation Workspace — packages/ui/src/layouts/documentation-workspace/README.md",
       "sourcePath": "applications/repository/sources/58a1409c5e4a3643.md",
       "sourceHash": "2fb7e76252f097c6e257964c868aff2c3cf4c9f2903b42d84b7bb922557ecd4e",
-      "sortOrder": 22600
+      "sortOrder": 22700
     },
     {
       "pageKey": "repository/sources/fb868983a8a84918",
@@ -7318,7 +7331,7 @@
       "summary": "Main Layout — packages/ui/src/layouts/main-layouts/README.md",
       "sourcePath": "applications/repository/sources/fb868983a8a84918.md",
       "sourceHash": "c72e6d690099010171a521a866614a1add19aea82b3170421dd8159b96e05feb",
-      "sortOrder": 22700
+      "sortOrder": 22800
     },
     {
       "pageKey": "repository/sources/b335630551682c19",
@@ -7331,7 +7344,7 @@
       "summary": "CODEXSUN — README.md",
       "sourcePath": "applications/repository/sources/b335630551682c19.md",
       "sourceHash": "d435d0d662ce6bbcd064a5d7b60214f026aaa5123a75113e9a7aae38a65c9957",
-      "sortOrder": 22800
+      "sortOrder": 22900
     },
     {
       "pageKey": "repository/sources/7994cd0c76c8f362",
@@ -7344,7 +7357,7 @@
       "summary": "Hostinger Deploy plan — tools/hostinger-deploy/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/7994cd0c76c8f362.md",
       "sourceHash": "e2353db9e1c0f5f73c6f93fa24d37963ce155f6c1224902dba4885264a8e3fc6",
-      "sortOrder": 22900
+      "sortOrder": 23000
     },
     {
       "pageKey": "repository/sources/02905461ab4e9c31",
@@ -7357,7 +7370,7 @@
       "summary": "Hostinger Deploy working skills — tools/hostinger-deploy/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/02905461ab4e9c31.md",
       "sourceHash": "fd4c8e2ebdfaed7cd7a6899b1ac10badb43aa68ba142e748cd9e5019cf69b311",
-      "sortOrder": 23000
+      "sortOrder": 23100
     },
     {
       "pageKey": "repository/sources/adcea576aca987c8",
@@ -7370,7 +7383,7 @@
       "summary": "Hostinger Deploy tasks — tools/hostinger-deploy/agent/TASK.md",
       "sourcePath": "applications/repository/sources/adcea576aca987c8.md",
       "sourceHash": "ec60b0cc191be26015321c3836cdaf7739172053fc4fed97a7462b05a7bf1913",
-      "sortOrder": 23100
+      "sortOrder": 23200
     },
     {
       "pageKey": "repository/sources/8662682f08098bb1",
@@ -7383,7 +7396,7 @@
       "summary": "Hostinger deployment connection — tools/hostinger-deploy/README.md",
       "sourcePath": "applications/repository/sources/8662682f08098bb1.md",
       "sourceHash": "b6a8ba04f4e0bb6d9f620a3eeb072356e84472c8bc37cb1519f2769dce1eb10f",
-      "sortOrder": 23200
+      "sortOrder": 23300
     },
     {
       "pageKey": "repository/sources/4fc20644f2d06121",
@@ -7396,7 +7409,7 @@
       "summary": "Version Tools plan — tools/version/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/4fc20644f2d06121.md",
       "sourceHash": "a0cc0b4241eb5f6fced4c6b3dbf784fd56fc5084ab2b58b2ccf8913f3e754072",
-      "sortOrder": 23300
+      "sortOrder": 23400
     },
     {
       "pageKey": "repository/sources/707d0b22c7d262e6",
@@ -7409,7 +7422,7 @@
       "summary": "Version Tools working skills — tools/version/agent/SKILLS.md",
       "sourcePath": "applications/repository/sources/707d0b22c7d262e6.md",
       "sourceHash": "e77dc6cacec60781fce01bd402e5bb208e141bff3c0e5afbfb90e43f059493d1",
-      "sortOrder": 23400
+      "sortOrder": 23500
     },
     {
       "pageKey": "repository/sources/96eabe8059e9cd2f",
@@ -7422,7 +7435,7 @@
       "summary": "Version Tools tasks — tools/version/agent/TASK.md",
       "sourcePath": "applications/repository/sources/96eabe8059e9cd2f.md",
       "sourceHash": "52c9c22d6bf7aa55c9f3e80e2ad1963f2e0319f367b728b3ee231eb1005a38f2",
-      "sortOrder": 23500
+      "sortOrder": 23600
     },
     {
       "pageKey": "repository/sources/b46ff18caf3a3e81",
@@ -7435,7 +7448,7 @@
       "summary": "Version Tools — tools/version/README.md",
       "sourcePath": "applications/repository/sources/b46ff18caf3a3e81.md",
       "sourceHash": "54b566684bf64e0823c7c033a208951ddefdbf648316daa68c19cfd1e2559840",
-      "sortOrder": 23600
+      "sortOrder": 23700
     }
   ]
 }

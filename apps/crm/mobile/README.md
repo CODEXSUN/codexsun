@@ -1,5 +1,13 @@
 # CRM mobile
 
+## Signed release 1.1.47
+
+TechMedia and Rainbow release APKs use Android build 147 and the production CODEXSUN API.
+Both app IDs and the existing signing certificate are preserved. Signature and package metadata
+checks passed, and all 76 Flutter tests passed. Artifacts are in root
+`dist/apps/crm/mobile/app/outputs/flutter-apk/`.
+See [release evidence](../../frappe/agent/RELEASE-1.1.47.md) for checksums and live sync scope.
+
 This generic CRM Flutter app uses the CODEXSUN Platform API. Its default app name is `CRM` and its Android application ID is `in.codexsun.crm_app`. Client branding remains available as an optional build input.
 
 Run from the repository root with Flutter installed:

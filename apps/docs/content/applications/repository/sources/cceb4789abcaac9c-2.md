@@ -2,14 +2,14 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `7263f00e98c37a5a603dfbd07028a1e35f7200d0d76c75e951f1a055dd363b39`
+Source SHA-256 (LF line endings): `9637aec8c9643d55e9bc4e82b614d46068dd4818259c5cd95a98e310bc9737ed`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
 Historical notes and unchecked plans retain their original status.
 
 ```markdown
-ocal browser/API queue test against the live Frappe site, not a production deployment.
+; the exact remote test document and local CRM fixture were then removed and absence verified. CRM did not create another Frappe Customer or Supplier. This was a local browser/API queue test against the live Frappe site, not a production deployment.
 
 ## Enquiry live sync and source timestamps - 2026-10-18
 

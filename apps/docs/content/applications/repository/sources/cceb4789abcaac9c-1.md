@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `7263f00e98c37a5a603dfbd07028a1e35f7200d0d76c75e951f1a055dd363b39`
+Source SHA-256 (LF line endings): `9637aec8c9643d55e9bc4e82b614d46068dd4818259c5cd95a98e310bc9737ed`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -20,10 +20,12 @@ Historical notes and unchecked plans retain their original status.
 - [x] Verify immediate database queue dispatch, a lost Mobile Contact create response, duplicate-free retry, and a new edit after completion in an isolated database.
 - [x] Pass checkpoint/history, enquiry outbox, duty retry, unit, type, lint, build, component-doc, dependency-layout, and owner-boundary checks.
 - [x] Apply CRM queue v2 and Frappe v10 locally. Enable CODEXSUN bidirectional mode at one minute; preserve 56 existing enquiries.
-- [ ] Deploy these changes and verify the selected production Redis workers and browser behavior.
+- [x] Deploy 1.1.47, verify production Redis transfer/retry behavior against ERP1, and fix legacy comment-key collisions. See [release evidence](RELEASE-1.1.47.md).
+- [ ] Verify browser interaction separately.
 
-Remote responses in the new queue tests are controlled. This work does not claim a production
-write/readback, a hard one-minute completion guarantee during outages, or new mobile UI delivery.
+Remote responses in the isolated queue tests are controlled. The release evidence records the
+separate production write/readback. This work does not promise a hard one-minute completion
+deadline during outages or claim new mobile UI delivery.
 Contact export remains the existing Mobile Contact-only contract with an exact Customer/Supplier ID.
 
 ## Marketing integration backlog — 2026-10-23
@@ -207,5 +209,5 @@ The live VPS smoke test exercised the shared BullMQ + Redis queue with the non-b
       CRM documentation approves automatic outbound transfer only for SOP and Duty records.
 - [x] Verify both Contact directions and the queued CRM-to-Frappe export through the browser.
       Evidence: `npm run test:e2e:frappe-contacts-live` on `logicx.tmnext.in` imported Customer `C9138` into disposable local Core storage, confirmed the same local ID on retry, then created and read back one unique Mobile Contact using only `mobile_number`; repeat export updated that same document and cleanup deleted it. The mismatch path remained blocked.
-      The local browser export page verified Customer `C9138`, showed “Create Mobile Contact” and “Ready · mobile number only”, queued the export, and completed with 1 exported and 0 failed. Remote readback confirmed the Mobile Contact ID and `mobile_number` were `6886246988`; the exact remote test document and local CRM fixture were then removed and absence verified. CRM did not create another Frappe Customer or Supplier. This was a l
+      The local browser export page verified Customer `C9138`, showed “Create Mobile Contact” and “Ready · mobile number only”, queued the export, and completed with 1 exported and 0 failed. Remote readback confirmed the Mobile Contact ID and `mobile_number` were `6886246988`
 ```

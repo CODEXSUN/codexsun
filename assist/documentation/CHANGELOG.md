@@ -39,7 +39,12 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Live ERP1 history exposed legacy comment retry-key collisions. Scope imported keys by enquiry, preserve existing rows and legacy duplicates, and resolve reply parents through the scoped identity. Database regression tests cover author changes and repeated imports.
 - Web contacts, enquiries, duties, and reports show persisted export errors during retries. Tasks stay local with a Not configured badge.
 - Added missing Data Bridge and Marketing API build/resolver entries required by the already committed Platform baseline.
-- Local verification: 193 unit/integration checks, separate checkpoint/outbox/duty database suites, affected type checks, lint, builds, and owner boundaries passed. Deployment and signed mobile results are recorded after verification.
+- Final focused verification: 194 CRM/Frappe checks, the updated inbound database regression suite, affected types/lint/builds, owner boundaries, and 76 Flutter tests passed. Full root check passed before the live correction; a later working-tree rerun was blocked by an unrelated uncommitted Contact Restrictions documentation gap.
+- Deployed API, Web, and Shop 1.1.47 from source `6fe54220` with healthy containers and public HTTP 200 checks. A SHA-256-verified full MariaDB backup and production preflight preceded the additive owner migrations. Existing tenant enquiry counts were preserved during migration. Shared infrastructure was not recreated.
+- Verified real BullMQ/Redis delivery against the existing TECHMEDIA ERP1 connection as Sundar: CRM 2616 exported to Q2057; Q2058 imported to CRM 2644 with Job Comments. A simulated lost response, retry, and replay left one remote comment. Repeated ENQ1994/ENQ1995 pulls preserved legacy rows and added no duplicate comments.
+- Built and verified signed TechMedia and Rainbow APKs at 1.1.47+147 using their existing app IDs, production API URL, and signing certificate. See `apps/frappe/agent/RELEASE-1.1.47.md` for job IDs, hashes, exact evidence, and scope.
+
+- Corrected full historical Redis job 1070 completed with 2,049 scanned and zero failures. Incremental job 1071 completed with 27 scanned and zero failures; the successful checkpoint advanced to 2026-10-23T13:12:28Z.
 
 ## v-1.1.46
 
