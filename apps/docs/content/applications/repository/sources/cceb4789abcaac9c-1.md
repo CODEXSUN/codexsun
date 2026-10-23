@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `d9d4cf928ef3b0ddcbfd49215001e4790e8f8d29c8324c1a6835d0d3d60286a0`
+Source SHA-256 (LF line endings): `1c94014c63cd705e71850d3ca73f253b2d044f15f1c87f2f1792363ceac7a7d4`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.

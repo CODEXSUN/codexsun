@@ -30,6 +30,9 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Completed the approved TECHMEDIA data repair for nine enquiries. Reused existing Customers C2083, C3663, and C9325. Added eight Mobile Contacts and eight Customer associations.
 - Matched CRM numbers 2065-2073 to Q2065-Q2073 while preserving stable record IDs, messages, dates, and assignees.
 
+- Follow-up test cleanup: closed eight labeled test enquiries and Tasks 1-3 through approval with one test-completion comment each. Deactivated the test SOP, item, and duty assignment. Preserved business records and collection history.
+- Confirmed all eight Frappe enquiries are Closed with one matching Job Comments note each and zero unsent enquiry events. Retained test SOP/report records with completion notes.
+
 #### App Codebase Changes
 
 - Bumped workspace version to 1.1.50.
@@ -49,6 +52,9 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Verified the full database backup checksum before rollout. No migration ran. Shared infrastructure and CXApp container identities remained unchanged.
 - Post-deployment Redis replay jobs 1329-1340 completed without new remote enquiries. Imports 1341 and 1342 each scanned nine, created zero, skipped nine, and failed zero. All nine linked records remained synced with zero unsent enquiry events.
 - Signed TechMedia 1.1.50 APK is built and verified. This release does not claim emulator installation or new mobile UI acceptance.
+- Follow-up emulator verification: installed signed TechMedia 1.1.50, build 150, over 1.1.48 without clearing app data. Confirmed installed package metadata and the preserved Vijay session.
+- Verified all eight closed test enquiries are absent across 668 active cloud records. The installed app showed zero active tasks and duties, while Show all retained the three Closed tasks.
+- Recorded test identities, retirement limits, evidence locations, and scope protection in `apps/crm/agent/RELEASE-1.1.50-VERIFICATION.md`. No new version, schema migration, runtime code, or deployment is required by this documentation update.
 
 ## v-1.1.49
 

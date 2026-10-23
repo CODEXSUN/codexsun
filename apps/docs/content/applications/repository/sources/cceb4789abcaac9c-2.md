@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `d9d4cf928ef3b0ddcbfd49215001e4790e8f8d29c8324c1a6835d0d3d60286a0`
+Source SHA-256 (LF line endings): `1c94014c63cd705e71850d3ca73f253b2d044f15f1c87f2f1792363ceac7a7d4`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -143,4 +143,12 @@ Frappe writes and reads used the saved connection API. This does not claim Frapp
 - [x] Verify green web indicators for all nine, Frappe Desk Q2066, and mobile assigned enquiry 2071. Other assignees retain their existing visibility.
 
 The previous blocked checklist records the earlier state. These repairs supersede that blocker. No new Customer or LogicX source change was required. Tasks remain local.
+
+## Test record cleanup verified — 2026-10-23
+
+- [x] Verify Q2057, Q2058, Q2060-Q2064, and Q2067 are Closed with one matching Job Comments closure note each.
+- [x] Confirm zero unsent enquiry events after cleanup. Verify Q2062 Closed in Frappe Desk.
+- [x] Retain SOP-14, ASSIGN3, and REPORTING353 with test-completion notes. SOP Item and SOP Assigned have no Closed field.
+
+See [CRM cleanup and emulator evidence](../../crm/agent/RELEASE-1.1.50-VERIFICATION.md). Tasks remain local. Existing business enquiries, Customers, and collection history remain intact.
 ```

@@ -700,3 +700,14 @@ Existing local business row counts were preserved. No commit, push, or deploymen
 
 Focused owner typecheck, lint, build, and module boundaries passed for the email policy continuation.
 Marketing database tests verify exact UTC timestamps and near-expiry rejection alongside tenant and owner policy checks.
+
+## Test cleanup and TechMedia 1.1.50 emulator verification — 2026-10-23
+
+- [x] Close eight confirmed test enquiries and Tasks 1-3 through approval, with one test-completion comment each.
+- [x] Verify all eight enquiry closures and Job Comments in Frappe, with zero unsent enquiry events.
+- [x] Retire the test SOP, SOP Item, and Duty Assignment. Preserve the completed report and add closure notes locally and remotely.
+- [x] Install signed TechMedia 1.1.50, build 150, on emulator-5554 without clearing app data. Confirm package metadata and preserved Vijay session.
+- [x] Verify active enquiries exclude all eight closed fixtures across 668 records. Verify zero active tasks and duties in the installed app.
+- [x] Verify Show all retains three Closed tasks. Restore the active view and normal search.
+
+See [the cleanup and emulator verification report](RELEASE-1.1.50-VERIFICATION.md) for identities, scope protection, evidence, and limits.
