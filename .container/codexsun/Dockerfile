@@ -70,7 +70,8 @@ COPY --from=api-build /app/apps/qcafe/api ./apps/qcafe/api
 COPY --from=api-build /app/dist ./dist
 COPY --chmod=644 tools/register-production-package-resolution.mjs ./tools/register-production-package-resolution.mjs
 COPY .container/codexsun/api-entrypoint.sh /usr/local/bin/codexsun-api-entrypoint
-RUN chmod +x /usr/local/bin/codexsun-api-entrypoint && chmod 755 /app/tools
+RUN chmod +x /usr/local/bin/codexsun-api-entrypoint \
+  && chmod -R a+rX /app/packages /app/apps /app/dist /app/tools
 ENV NODE_ENV=production
 USER node
 EXPOSE ${PLATFORM_API_PORT}
