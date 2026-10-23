@@ -68,7 +68,7 @@ COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=api-build /app/packages/framework ./packages/framework
 COPY --from=api-build /app/apps/qcafe/api ./apps/qcafe/api
 COPY --from=api-build /app/dist ./dist
-COPY tools/register-production-package-resolution.mjs ./tools/register-production-package-resolution.mjs
+COPY --chmod=644 tools/register-production-package-resolution.mjs ./tools/register-production-package-resolution.mjs
 COPY .container/codexsun/api-entrypoint.sh /usr/local/bin/codexsun-api-entrypoint
 RUN chmod +x /usr/local/bin/codexsun-api-entrypoint
 ENV NODE_ENV=production
