@@ -1,5 +1,17 @@
 # Sportsclub Task and Working Rules
 
+## Marketing integration backlog — 2026-10-23
+
+Planning alignment is complete. The following implementation tasks remain open.
+See [Marketing contracts and gaps](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), G11.
+
+- [ ] Define optional enquiry-only projection, source identity, consent evidence, and duplicate-safe handoff.
+- [ ] Specify permitted guardian/minor contact rules before promotional enrollment.
+- [ ] Test tenant isolation and exclusion of medical data, member photos, and private roster/training records.
+
+Acceptance requires the owner contract, denied-access cases, retry behavior, and exact evidence in this task log.
+No implementation or live validation is claimed by this planning update.
+
 ## Purpose and Scope
 
 `apps/sportsclub` establishes a dedicated multi-tenant application for sports club business records, memberships, master assignments, syllabus tracking, session attendance, progress grading, events, enquiries, and role-based member portals.
@@ -9,6 +21,7 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
 ## Task Inventory and Status
 
 ### Phase 1: Audit and Governance Alignment (Completed by AGR-5)
+
 - [x] Read `assist/AGENT-GUIDE.md`, `assist/governance/rules.md`, and component documentation.
 - [x] Read-only audit of AGR-1..4 outputs under `apps/sites`.
 - [x] Identify architectural boundaries, tenant isolation requirements, role grants, and legacy unit test failures.
@@ -16,6 +29,7 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
 - [x] Create canonical component documentation: `apps/sportsclub/README.md`, `agent/TASK.md`, `agent/PLAN.md`, `agent/SKILLS.md`.
 
 ### Phase 2: Sportsclub Multi-Tenant App Foundation (Completed by AGR-1..2)
+
 - [x] Create `apps/sportsclub/api` (`package.json`, `tsconfig.json`, exports `./contracts`, `./types`, `./migration`, `./seed`).
 - [x] Create `apps/sportsclub/web` (`package.json`, `tsconfig.json`, `@codexsun/sportsclub-web`).
 - [x] Multi-leaf API architecture with 8 discrete modules: `program`, `master`, `member`, `session`, `attendance`, `progress`, `event`, and `enquiry`.
@@ -25,6 +39,7 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
 - [x] Platform test suite: `apps/platform/api/src/sportsclub-platform.test.ts` passed 8/8 tests.
 
 ### Phase 3: Sites Public Content & Logo Fidelity (Completed by AGR-3..4)
+
 - [x] Ingest exact logo and branding assets for Tenkasi Sports.
 - [x] Update `apps/sites/api/src/modules/site/page/page.sports-content.ts` with authentic Veerathamilan Traditional Sivakalai Gurukulam curriculum from the student handbook (Silambam basics, Varmam traditions, Asan T. Veerapandian).
 - [x] Ensure no invented credentials, medical claims, schedules, fees, or addresses are published.
@@ -32,14 +47,16 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
 - [x] Add Cloudflare Worker configuration (`wrangler.tenkasisports.jsonc`, `tenkasisports.mjs`) and test suite (`tenkasisports.worker.test.ts` passed 7/7).
 
 ### Phase 4: Migration & Safe Cleanup of Sites Misplaced Code (Completed by AGR-5)
+
 - [x] Verify `apps/sportsclub` API and Web modules build, pass boundary checks, and pass unit/integration tests.
 - [x] Safely remove `apps/sites/api/src/modules/site/member/` and `apps/sites/web/src/modules/site/member/`.
 - [x] Clean up dead member routes from `apps/sites/api/src/modules/site/site.routes.ts`, `site.migration.ts`, `site.types.ts`, and `overview.types.ts`.
 - [x] Clean up dead member gateway and studio tab injections from `apps/sites/web/src/modules/site/site.studio.tsx`, `site.services.ts`, `site.types.ts`, and `overview.workspace.tsx`.
 - [x] Cleanly eliminate the failing legacy Sites member test without leaving orphaned code or tests.
-- [x] Ensure source cleanup preserves existing Sites client code (LogicX, Ramu Tex, Tirupur Connect). *Note: Zero actual user data loss cannot be asserted on live MariaDB databases because live migrations were not executed, and local MariaDB integration tests were skipped due to absent test DB configuration.*
+- [x] Ensure source cleanup preserves existing Sites client code (LogicX, Ramu Tex, Tirupur Connect). _Note: Zero actual user data loss cannot be asserted on live MariaDB databases because live migrations were not executed, and local MariaDB integration tests were skipped due to absent test DB configuration._
 
 ### Phase 5: Verification and Final Reporting (Completed by AGR-5)
+
 - [x] Execute `npm run check:component-docs` and `npm run test:component-docs` (30 owners verified).
 - [x] Execute `node tools/check-module-boundaries.mjs sportsclub` (passed).
 - [x] Execute `node tools/check-module-boundaries.mjs sites` (passed).
@@ -72,6 +89,7 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
 ### 1. Scoped File Breakdown
 
 #### Group A: Exclusively Sportsclub & Tenkasi Sports (Safe to Commit in Isolation)
+
 - `apps/sportsclub/` (Complete application: 8 backend API leaves, 9 frontend Web workspaces, component docs).
 - `apps/sites/clients/public/tenkasisports/` & `apps/sites/clients/src/clients/tenkasisports/` (Tenkasi Sports public site).
 - `apps/sites/api/src/modules/site/page/page.sports-content.ts` (Sivakalai Gurukulam curriculum content).
@@ -85,6 +103,7 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
 - `apps/platform/web/src/modules/sportsclub/`.
 
 #### Group B: Mixed Files with Interleaved Hunks (Requires Hunk-Level Extraction)
+
 - `apps/platform/api/src/app.ts`:
   - Contains `registerSportsclubHost(app)` (Sportsclub) alongside concurrent `registerDataMigrationHost(app)` (Data Migration).
 - `package-lock.json`:
@@ -95,6 +114,7 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
   - Interleaved inventory records for both Sportsclub and Data Migration.
 
 #### Group C: Unrelated Concurrent In-Flight Work (Strictly Excluded)
+
 - `apps/crm/` (14 API & Web files + `tools/e2e/crm-work-reports.e2e.ts`).
 - `apps/core/` (`README.md`, `TASK.md`, `tenant-permission.seed.ts`).
 - `apps/docs/` (17 sources + `catalog.json`).
@@ -121,6 +141,7 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
   - `assist/documentation/CHANGELOG.md` in the working copy contains uncommitted entries for Core/CRM reads and was excluded from the sportsclub ref to prevent merge conflicts.
 
 ### Phase 6: CRM-Tone Full-Page Entity Redesign & Platform App Header Integration (In Progress by AGR-2)
+
 - [x] Read `assist/documentation/design-system-helper.md`, `assist/AGENT-GUIDE.md`, and `assist/governance/rules.md`.
 - [x] Detailed audit of `apps/crm/web/src/modules/enquiry` interaction pattern (`WorkspaceUpsertPage`, `WorkspaceFilters` with `toolbarAction` inline filter toggle, column chooser, header portalling with `WorkspaceHeaderActions`, conditional pagination).
 - [x] Author comprehensive UI Redesign Plan (`sportsclub-ui-redesign-plan.md`) covering all 8 entities (`member`, `master`, `program`, `session`, `attendance`, `progress`, `event`, `enquiry`) plus `overview`.
@@ -133,6 +154,7 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
 - [ ] Maintain local-only constraint: zero cloud deployment, zero VPS cutover, zero remote push, no mutation of live tenant data.
 
 ### Phase 7: Backend Server-Side List Pagination Contract (Completed by AGR-1 — 2026-10-19)
+
 - [x] Implement shared strict pagination contract in `apps/sportsclub/api/src/sportsclub.pagination.ts`:
   - Exactly 100 rows per page (`DEFAULT_PAGE_SIZE = 100`).
   - Strict invariant: `calculatePagination(total, page)` returns `null` when `total <= 100`.
@@ -166,6 +188,7 @@ Platform manages identity, Corporate ID tenant selection (`TENKASISPORTS`), role
 - [x] Local-only constraints preserved: zero cloud deployment, zero remote push, zero mutation of live tenant data.
 
 ### Phase 8: Server-Side List Pagination & Detail Routes for Remaining 4 Leaves (Completed by AGR-5 — 2026-10-19)
+
 - [x] Complete backend list pagination and detail contracts across the 4 assigned leaves:
   - `attendance`:
     - List route: `GET /sportsclub/attendance?page=1&pageSize=100&search=&sessionUuid=&memberUuid=&attendanceDate=&sessionDate=&status=&columns=`

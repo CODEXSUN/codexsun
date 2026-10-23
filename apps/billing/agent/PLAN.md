@@ -1,5 +1,16 @@
 # Billing plan
 
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G08, delivery phase 6.
+
+Billing remains the sole owner of financial facts. Marketing never creates sales or settlements to complete attribution.
+Existing outstanding and period reads do not establish a campaign-linked revenue contract.
+Add a minimal explicit-source outcome projection with company, financial year, currency, source UUID, version, and reversal evidence.
+Require Billing permission independently of Marketing report access. Do not match revenue by contact/date alone.
+Keep refunds, cancellations, receipts, and invoice outcomes distinct and reconciled.
+
 ## Scope
 
 Tenant billing entries, quotations, purchases, sales, receipts, payments, opening balances, and outstanding reports.

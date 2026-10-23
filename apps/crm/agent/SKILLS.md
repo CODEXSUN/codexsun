@@ -8,6 +8,12 @@ This file is component guidance. It does not install a global Codex skill or gra
 
 ## Domain responsibilities
 
+Marketing owns Campaign and promotional consent. CRM owns sales/service contact restrictions and operational preferences.
+Follow the reconciled boundary in [PLAN](PLAN.md#marketing-integration-decision--2026-10-23).
+Do not implement CRM Campaign CRUD or infer promotional opt-in from Contact Preferences.
+Add fixed idempotent Lead/follow-up contracts and minimized outcome projections before Marketing consumes them.
+Marketing-origin intake does not authorize Frappe export or broader CRM visibility.
+
 Local enquiries, contact activity, follow-up tasks, SOPs, duty assignments, and duty reporting across web and mobile.
 
 Scheduler owns CRM reminders and follow-up schedule records. Use typed links to source records and preserve each source module's read permissions. Platform composes due CRM reminders into its main-menu notification control; this is an in-app web surface and does not imply SMS, email, or operating-system push delivery.

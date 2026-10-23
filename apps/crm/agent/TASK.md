@@ -1,5 +1,18 @@
 # CRM Delivery Tasks
 
+## Marketing ownership and integration planning — 2026-10-23
+
+- [x] Reconcile planning: Marketing Campaign/promotional consent, CRM sales/service restrictions, Core identity, and Mail delivery-safety suppression.
+- [x] Replace planned CRM Campaign CRUD and generic Consent work without marking any runtime feature complete.
+- [ ] Implement fixed idempotent Marketing submission-to-Lead intake, duplicate review, source references, and permitted assignment.
+- [ ] Implement Lead-linked follow-up and scheduler support with stable retry keys and source/record authorization.
+- [ ] Publish minimized qualification/outcome projections with durable versions and no broader CRM record access.
+- [ ] Implement effective CRM restriction lookup while retaining existing Contact Preferences and no inferred promotional opt-in.
+- [ ] Test source-aware Marketing-origin Frappe export blocking and preserve current approved transfers.
+
+Evidence: [CRM ownership decision](PLAN.md#marketing-integration-decision--2026-10-23) and [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review).
+No CRM schema, runtime behavior, or permission change is claimed here.
+
 ## CRM release 1.1.44 — 2026-10-22
 
 - [x] Bump the workspace to 1.1.44 and CRM Flutter to 1.1.44+144.
@@ -229,8 +242,9 @@ owner, public contract, permission boundary, tenant scope, and migration path.
 - [ ] **1.10** Complete Call Log with selected mobile calls, local comments,
       supported record links, atomic deduplication, and retry behavior. Do not create
       an external sync event.
-- [ ] **1.11** Complete Consent with purpose, channel, source, capture time, expiry,
-      and withdrawal history.
+- [ ] **1.11** Complete CRM sales/service contact restrictions and preferences with purpose,
+      channel, source, capture time, expiry, and withdrawal history. Marketing owns promotional consent.
+      Preserve existing Contact Preferences and add public effective-policy checks without duplicating Marketing grant history.
 - [ ] **1.12** Complete Attachment metadata, access checks, retention policy, and
       authorized download behavior.
 - [ ] **1.13** Complete Saved View with tenant-scoped filters, columns, sort order,
@@ -297,8 +311,8 @@ share the local contracts, and migration reconciliation passes.
 
 ## Phase 2: Sales Intake
 
-- [ ] **2.1** Build Campaign for source, audience, dates, owner, targets, measured
-      spend, and lifecycle history.
+- [ ] **2.1** Consume Marketing-owned Campaign through a permitted lookup and stable source reference.
+      Preserve campaign UUID and source label on CRM Leads. Campaign CRUD, audiences, and measured spend remain in Marketing.
 - [ ] **2.2** Build Lead for prospect identity, campaign source, consent, import
       key, qualification facts, duplicate review, and disqualification reason.
 - [ ] **2.3** Add explicit Lead qualification, disqualification, match, and

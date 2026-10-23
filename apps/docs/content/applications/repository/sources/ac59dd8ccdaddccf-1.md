@@ -2,7 +2,7 @@
 
 Repository source: `apps/sites/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `50c2c4f22321c3d300050fbb929ed1fae80fe4d35bf99b0d91b4eb2e74ba0b17`
+Source SHA-256 (LF line endings): `4c0c6cc971bd2286c0f0793a6fde860d1648f859f679ecd16e49f7a88151662c`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -10,6 +10,18 @@ Historical notes and unchecked plans retain their original status.
 
 ```markdown
 # Site Studio task and working rules
+
+## Marketing integration backlog — 2026-10-23
+
+Planning alignment is complete. The following implementation tasks remain open.
+See [Marketing contracts and gaps](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), G03.
+
+- [ ] Define the Sites-to-Marketing source binding, consent notice mapping, outbox, receipt, and retry contract.
+- [ ] Plan Node/SQLite and Worker/D1 forwarding separately, including worker scheduling, secrets, retention, and interrupted delivery.
+- [ ] Verify saved enquiry survives unavailable upstream, repeated forwarding creates one submission, and wrong-site/tenant forwarding fails.
+
+Acceptance requires the owner contract, denied-access cases, retry behavior, and exact evidence in this task log.
+No implementation or live validation is claimed by this planning update.
 
 ## Tenkasi District Sports Club page refinement — October 19, 2026
 
@@ -242,17 +254,5 @@ Implemented:
 
 Verification includes isolated SQLite enquiry persistence, wrong-site/tenant checks, snapshot integrity, stale/conflicting imports, idempotency, rate limits, retention, and HTTP serving.
 Packaged server tests verify rendered HTML, metadata, assets, private-file denial, origin checks, restart persistence, and blog withdrawal.
-Browser checks verify contact validation and saving, map consent controls, WhatsApp links, canonical metadata, hydration, and responsive page widths.
-All browser test enquiries use temporary databases and are removed after verification.
-
-The prepared artifacts are local. No domain, certificate, external server, Docker engine, or systemd host was changed.
-Mail notification and automatic enquiry transfer back to Studio are not implemented.
-
-Final verification for this preparation:
-
-- 14 CMS, authorization, runtime, and live isolated MariaDB tests passed without skips.
-- Five SQLite unit tests and the packaged HTTP integration test passed.
-- Both packaged sites passed six-page mobile browser checks, hydration, contact saving, and WhatsApp link checks. Production pages exclude development controls.
-- Private status, enquiry listing, and SQLite backup commands passed against temporary databases.
-- Sites type checks and lint, Sites module b
+Browser checks verify contact validation and saving, map consent controls, WhatsApp links, canonical metadata, hydration, and respo
 ```

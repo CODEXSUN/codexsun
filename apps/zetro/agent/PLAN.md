@@ -1,5 +1,16 @@
 # Zetro plan
 
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G13, delivery phase deferred.
+
+Marketing assistance remains deferred. Current runtime rules prohibit chat writes, sends, approvals, and publishing.
+User-provided content may support drafts under existing rules. This plan adds no Marketing record query or action skill.
+Any future Marketing read skill needs a fixed owner contract, live grants, record scope, audit, and reviewed backend tests.
+Sending/publishing would require separate explicit runtime-rule, backend capability, approval, and test changes.
+Do not edit agent/SKILLS.md or register draft capabilities merely to mirror Marketing's future action plan.
+
 ## Scope
 
 A permission-aware tenant business coworker with reviewed read skills and configurable model providers.

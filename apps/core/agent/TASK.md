@@ -1,5 +1,17 @@
 # Core tasks
 
+## Marketing integration backlog — 2026-10-23
+
+Planning alignment is complete. The following implementation tasks remain open.
+See [Marketing contracts and gaps](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), G02.
+
+- [ ] Define permitted company/contact/product lookup responses and UUID references for Marketing.
+- [ ] Add deliberate match/resolve with ambiguous shared-phone review and stable retry identity.
+- [ ] Verify denied tenant/company access and exclusion of bank, tax, and unrelated contact fields.
+
+Acceptance requires the owner contract, denied-access cases, retry behavior, and exact evidence in this task log.
+No implementation or live validation is claimed by this planning update.
+
 ## Team Head workspace reads — 2026-10-21
 
 - Extended the repeatable Core workspace read grant to `team-head` so the new role can load CRM setup and contact lookups.

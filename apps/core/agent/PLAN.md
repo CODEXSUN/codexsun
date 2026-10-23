@@ -1,5 +1,15 @@
 # Core plan
 
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G02, delivery phase 1.
+
+Core remains the owner of contact, company, and product identity. Marketing Brand is a communication identity, not a duplicate Core product Brand.
+Existing public resolvers do not establish a complete Marketing identity contract.
+Add a fixed UUID-based, purpose-scoped lookup and deliberate match/resolve contract with minimal fields and duplicate review.
+Preserve shared-phone rules and Frappe external identity. Do not infer consent from identity or reuse a Frappe key for a Marketing submission.
+
 ## Scope
 
 Shared tenant masters, contact and product identity, organization records, and geographic relationships.

@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `14bb28878d7c2aaafddcb2e2e4a78dbd082a00fee0b34862cefd198787d9b3d2`
+Source SHA-256 (LF line endings): `afdc6f16a30a74e7b38b3e8c56612e3d3a5f249efe20f99e80ca8fc71c4c2918`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -10,6 +10,18 @@ Historical notes and unchecked plans retain their original status.
 
 ```markdown
 # Frappe tasks
+
+## Marketing integration backlog — 2026-10-23
+
+Planning alignment is complete. The following implementation tasks remain open.
+See [Marketing contracts and gaps](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), G12.
+
+- [ ] Review CRM intake against enquiry outbox generation, import echo rules, and tenant sync direction.
+- [ ] Specify source-origin export blocking and approved opt-in policy without changing current record behavior.
+- [ ] Test Marketing intake cannot trigger unapproved remote transfers or use Frappe as a campaign/contact-consent read source.
+
+Acceptance requires the owner contract, denied-access cases, retry behavior, and exact evidence in this task log.
+No implementation or live validation is claimed by this planning update.
 
 ## CRM record verification indicators — 2026-10-22
 

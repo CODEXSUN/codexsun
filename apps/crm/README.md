@@ -1,5 +1,15 @@
 # CRM
 
+## Marketing integration planning — 2026-10-23
+
+Marketing owns Campaign, raw capture submissions, promotional consent, subscriptions, and nurturing.
+CRM owns sales Leads, qualification, enquiries, assignments, follow-up, and sales/service contact restrictions.
+Core owns contacts. Mail owns email delivery-safety suppression.
+Existing Contact Preferences do not establish promotional opt-in.
+The CRM Lead intake, campaign lookup, effective contact-policy, and outcome contracts remain planned work.
+See [CRM ownership](agent/PLAN.md#marketing-integration-decision--2026-10-23) and [Marketing Phase 0](../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review).
+This decision does not enable Marketing, migrate records, or expand Frappe export scope.
+
 ## Record visibility
 
 Tenant Admin and Super Admin retain tenant-wide enquiry and task reads. Other roles see only

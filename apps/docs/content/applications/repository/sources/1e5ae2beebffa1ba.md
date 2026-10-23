@@ -2,7 +2,7 @@
 
 Repository source: `apps/chat/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `52e2fee5f8df4d80d9c67ece2f2a69f29e11914050bf7af19c05363e9b19a170`
+Source SHA-256 (LF line endings): `1a32e89af17e58b5bca7f93076304a48330cb96e6271afa93d478c315188547f`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -10,6 +10,17 @@ Historical notes and unchecked plans retain their original status.
 
 ```markdown
 # Chat plan
+
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G06, delivery phase 5.
+
+Chat retains internal messages, current Telegram account-session credentials, dialogs, polling, and their permissions.
+The reviewed Telegram integration uses phone/code/password sessions. It is not a ready Bot API connector.
+Chat must own a separately reviewed bot adapter, credentials, destinations, webhook, send/status contract, and provider receipts.
+Marketing owns publishing intent and campaign-linked inbox projections. Do not duplicate Chat message storage or raw account dialogs.
+Do not expose existing personal account sessions to Marketing automation or create a second bot webhook consumer.
 
 ## Scope
 

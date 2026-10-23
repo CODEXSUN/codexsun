@@ -1,5 +1,16 @@
 # Ecommerce plan
 
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G09, delivery phase 6 optional.
+
+Ecommerce retains storefront catalog extensions, promotion cards, and Campaign Events presentation.
+Marketing owns acquisition Campaign. Add an optional explicit campaign UUID link without replacing Ecommerce promotion records.
+Core product Brand remains Core-owned. Marketing brand/company scope does not alter catalog identity.
+The browser basket does not establish checkout, order completion, or recoverable abandoned-cart events.
+Require explicit consent and source contracts before any storefront marketing capture. Do not infer purchase or trigger cart recovery emails.
+
 ## Scope
 
 Staff catalog management, matching and publishing controls, and the public storefront.

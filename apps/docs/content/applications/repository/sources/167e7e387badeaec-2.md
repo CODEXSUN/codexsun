@@ -2,14 +2,75 @@
 
 Repository source: `apps/crm/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `fa8355a1ab8c240208312b7d35643269dc2051b4007ec7a9ca565c866a234a99`
+Source SHA-256 (LF line endings): `9c1ef01c8215b9c0da5d577d4b75e4c6f13a3e7adcdd1770d4feb675bdc8fdcc`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
 Historical notes and unchecked plans retain their original status.
 
 ```markdown
-calation paths.
+y after verification passes. Keep collection follow-
+    up open when Billing still reports an amount due.
+13. A failed verification creates a rework cycle with a reason and owner.
+14. A warranty or repeat issue can create a new request linked to prior service
+    history. Do not reopen a closed request by changing its history.
+15. Create activity and audit records for each lifecycle change.
+
+### Service Measures
+
+- Requests by type, channel, asset, location, priority, and owner.
+- First response, diagnosis, estimate, quote, schedule, and resolution time.
+- SLA warning, pause, breach, and escalation counts.
+- Material readiness, schedule adherence, utilization, and repeat visits.
+- First-time fix, verification pass, rework, and warranty rates.
+- Outstanding collection follow-ups from Billing balances.
+- Agreement renewal and recurring work completion.
+
+## Shared Commercial Rules
+
+1. Sales Estimate, Service Estimate, Billing Quote, and accepted Billing Order
+   are distinct records. CRM owns the first two as scope and cost proposals;
+   Billing owns customer-facing quotations and orders.
+2. Existing vendor estimates remain procurement or enquiry-cost records. Do not
+   reuse them as customer estimates. Sales and Service estimates also remain
+   separate because their costing and approval rules differ.
+3. Read products, units, tax, currency, and work-order types from their owning
+   module contracts.
+4. Snapshot approved item, price, tax, discount, and terms on each sent document.
+5. Make sent quote revisions immutable. Accept one revision for an order.
+6. Record scope or price changes as a change request and a new estimate or quote
+   revision. A new estimate revision is required when scope or cost changes before
+   the quote is issued.
+7. Billing owns invoices, receipts, payment allocations, and posted balances.
+8. CRM collection follow-up stores promises and next actions. It does not post
+   payments or decide that an invoice is settled.
+9. Separate sale status, work status, verification status, and payment status.
+10. Do not use a single status field to imply both work completion and payment.
+
+### Lifecycle and Handoff Rules
+
+- Keep lead qualification, Sales Enquiry outcome, quote decision, order state,
+  delivery state, Service Request state, work state, verification, and payment as
+  separate lifecycles with explicit transitions and terminal outcomes.
+- Every handoff records the source record, destination record, actor, timestamp,
+  and outcome. Retries must be idempotent and must not create duplicate orders,
+  requests, work, or follow-ups.
+- Require reason codes for disqualification, loss, cancellation, quote rejection,
+  service closure without work, SLA pause, no-show, failed verification, and
+  rework. Keep free-text explanation where a code alone is insufficient.
+- Define which transitions require approval, who may approve, and whether the
+  approver can be the initiating user before implementation.
+
+## Service Terms and Scheduling
+
+### Service Agreement and Entitlement
+
+- Define covered customers, contacts, assets, products, channels, locations, and
+  dates.
+- Track included cases or hours, usage, remaining coverage, expiry, suspension,
+  cancellation, and renewal.
+- Define response and resolution targets with business calendars, time zones,
+  holidays, pause rules, warnings, and escalation paths.
 - Snapshot the terms applied to each Service Request. Later agreement edits must
   not change historical commitments.
 - Recurring agreements create planned work from a versioned schedule. Each
@@ -153,7 +214,7 @@ one public contract, and one migration path.
 4. Preserve record links, IDs, creators, timestamps, comments, and activity order.
 5. Preserve current vendor estimates and define their migration separately from
    Sales and Service Estimates.
-6. Complete Consent, Attachment, Saved View, Notification, and operational Report
+6. Complete Service Contact Policy, Attachment, Saved View, Notification, and operational Report
    modules only where the current CRM workflow needs them.
 7. Define SOP, SOP Item, Duty Assignment, Duty Report, and Duty Reporting
    boundaries and permissions in `DUTIES-SOP-PLAN.md` before implementation.
@@ -165,7 +226,7 @@ rules, permissions, and migration order.
 
 ### Phase 2: Sales Intake
 
-1. Add Campaign and Lead modules.
+1. Add the CRM Lead module and a read-only Marketing Campaign reference contract.
 2. Migrate Enquiry to Sales Enquiry without losing history.
 3. Add qualification, pipeline stage, close reason, assignment, and next action.
 4. Add sales lists, follow-up queues, and source conversion reports.

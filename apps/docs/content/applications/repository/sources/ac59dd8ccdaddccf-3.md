@@ -2,14 +2,21 @@
 
 Repository source: `apps/sites/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `50c2c4f22321c3d300050fbb929ed1fae80fe4d35bf99b0d91b4eb2e74ba0b17`
+Source SHA-256 (LF line endings): `4c0c6cc971bd2286c0f0793a6fde860d1648f859f679ecd16e49f7a88151662c`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
 Historical notes and unchecked plans retain their original status.
 
 ```markdown
-rors. Screenshots are under `dist/apps/sites/cloudflare`.
+89`.
+- Both releases were rebuilt from current local source. The prior LogicX cloud artifact was preserved under root dist.
+- Added explicit site entry points and one shared Worker transport. Each client retains its own host, publication, and D1 identity checks.
+- Both Wrangler dry runs and deployments passed. Ramu Tex DNS resolves and HTTPS works.
+- Live verification passed all 45 routes, 25 homepage assets, canonical metadata, sitemap, robots, health, 404, and rejected cross-origin/invalid enquiries.
+- A Ramu Tex browser enquiry returned `85d55516-7225-4f5e-99fa-056a8ba1edc4`. Remote D1 confirmed storage, and LogicX contained zero records with that reference.
+- Only that synthetic enquiry was marked spam and moved to recoverable trash.
+- Both sites rendered in Chrome with no captured browser errors. Screenshots are under `dist/apps/sites/cloudflare`.
 - Sites API/Web/Clients typechecks and lint, module boundaries, two Worker transport tests, three D1 tests, and component documentation checks/tests passed.
 - Dependency-layout validation still reports the pre-existing `apps/tconnect/web/dist` directory.
 - Ramu Tex Studio domain metadata could not be updated: local API port 7010 stopped responding after export, and the web proxy returned 502.

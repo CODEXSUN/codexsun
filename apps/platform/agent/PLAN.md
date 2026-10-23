@@ -1,5 +1,19 @@
 # Platform plan
 
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G07, delivery phase 1.
+
+Compose Marketing activation, Plan Access/entitlement, permissions, navigation, migrations, queue processors, and infrastructure contracts.
+Marketing owns Campaign, Consent, Capture, connector business lifecycle, and business validation.
+Add only minimal server-owned provider account claims/callback routing metadata. Keep tokens and business content in tenant databases.
+Validate tenant registry state for HTTP, OAuth callbacks, webhook routing, jobs, files, exports, and live updates.
+Use revocable tenant automation principals with bounded grants. Browser logout must not transfer authority or bypass revocation.
+Review existing CRM/Frappe activation coupling. Marketing must not depend on Frappe as a source or bypass current activation checks.
+Optional app loss stops that integration while preserving submissions and unrelated Marketing capabilities.
+Keep cross-client management outside tenant Marketing. Future support access requires a separate owner and audited scope.
+
 ## Scope
 
 The authenticated runtime, tenant routing, application composition, entitlements, permissions, queues, storage, administration, and Windows host.

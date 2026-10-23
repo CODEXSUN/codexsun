@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.44
+Current version: 1.1.45
 
-Release tag: v-1.1.44
+Release tag: v-1.1.45
 
-Changelog label: v 1.1.44
+Changelog label: v 1.1.45
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,23 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.45
+
+### [v 1.1.45] 2026-10-23 4:23 pm - Marketing Phase 0 ownership and integration plan
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.45.
+- Add the Marketing application plan, phased delivery tasks, tenant isolation requirements, and CRM-style list, Show, and upsert contracts.
+- Reconcile Marketing Campaign/promotional consent ownership with CRM sales/service contact policy, Core identity, and Mail delivery-safety suppression.
+- Record 14 integration gaps, fixed contract proposals, owner backlogs, provider readiness gates, and two-tenant acceptance scenarios.
+- Preserve existing Sites SQLite/D1 enquiries, Chat Telegram account-session transport, Ecommerce promotions, domain-app records, and approved Frappe transfer scope.
+- Planning verification: component documentation checks and two tests, formatting across 30 documents, local file links, and diff whitespace checks passed. No runtime capability or live provider validation is claimed.
 
 ## v-1.1.44
 

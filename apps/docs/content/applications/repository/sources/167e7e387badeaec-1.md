@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `fa8355a1ab8c240208312b7d35643269dc2051b4007ec7a9ca565c866a234a99`
+Source SHA-256 (LF line endings): `9c1ef01c8215b9c0da5d577d4b75e4c6f13a3e7adcdd1770d4feb675bdc8fdcc`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -94,12 +94,49 @@ creating a separate CRM implementation for each industry.
 
 ## Ownership and Integration Boundaries
 
+### Marketing integration decision — 2026-10-23
+
+Planning is reconciled with [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review).
+Marketing owns the canonical Campaign, raw capture submissions, promotional consent ledger, subscriptions, and nurturing sequences.
+CRM owns canonical sales Leads, qualification, Sales Enquiries, sales assignments, tasks, schedules, and service-contact restrictions.
+Core owns contacts. Mail owns email delivery-safety suppression.
+This is a planning change only. No schemas, runtime behavior, or existing permission grants change here.
+
+No dedicated CRM Campaign, Lead, or Consent leaf was found in the reviewed module inventory.
+Existing Contact Preferences records remain in place. Their communicationPermission field must not imply promotional opt-in.
+Replace the planned generic CRM Consent module with a sales/service contact-policy contract.
+Do not duplicate Marketing's promotional grant history inside CRM.
+CRM may display effective Marketing permission through a public read contract without acquiring ownership of that ledger.
+
+Lead intake needs a fixed idempotent operation keyed by Marketing submission UUID and source identity.
+Return created, linked, or duplicate-review status with the permitted Lead UUID.
+Store campaign UUID and original source label. Retain those references when Marketing retires a campaign.
+Keep Leads separate from Core Contacts until deliberate resolution or qualification permits contact creation.
+Campaign ownership does not grant CRM-wide visibility. Outcome projections require a minimized, explicit reporting policy.
+
+Follow-up requests need stable retry keys, supported source links, current assignment policy, and CRM authorization.
+Scheduler currently supports existing CRM source types. Add Lead support explicitly before promising Lead reminders.
+Marketing must not create a shadow Task or Scheduler module.
+Prepare durable qualification/outcome events with version, correlation, and receipt identity for Marketing consumers.
+
+Promotional delivery requires current Marketing opt-in, no applicable CRM contact restriction, and no Mail/channel safety block.
+Unknown or unavailable permission evidence blocks promotions. Service messages need their own approved purpose policy.
+Marketing withdrawal stops relevant marketing work. CRM restrictions remain enforceable when Marketing is disabled.
+Do not turn an old CRM preference, form privacy checkbox, or Frappe-imported contact into a promotional grant.
+
+Marketing-origin Leads and enquiries must not automatically enter the existing Frappe export path.
+Implement and test a source-aware export rule before enabling the intake bridge.
+Preserve existing approved Frappe direction and transfer behavior for its current records.
+
+Dependency order: CRM Lead and policy contracts -> Marketing durable handoff -> CRM follow-up/outcome projections.
+See Marketing G01/G12 and its contract/fixture tables for acceptance gates.
+
 | Capability                                                                                           | Owner                                    | CRM relationship                                                                                                  |
 | ---------------------------------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Customer, contact, organization, address, and user identity                                          | Core                                     | Use public lookups and stable public IDs.                                                                         |
 | Product, unit, tax, and work-order type masters                                                      | Core                                     | Read through public contracts.                                                                                    |
 | Customer quotation, accepted sales order, invoice, receipt, payment, tax, and balance                | Billing                                  | Create or read through Billing contracts. Never duplicate commercial or financial records.                        |
-| Lead, Sales Enquiry, Service Request, campaign, customer asset history, and CRM activity             | CRM                                      | Store in tenant CRM tables and module-owned APIs.                                                                 |
+| Lead, Sales Enquiry, Service Request, customer asset history, and CRM activity                       | CRM                                      | Store in tenant CRM tables and module-owned APIs.                                                                 |
 | Sales Estimate and Service Estimate                                                                  | CRM                                      | Keep separate estimate records and rules. Keep vendor or purchase estimates separate.                             |
 | CRM follow-up, assignment, tasks, calls, saved views, and CRM reports                                | CRM                                      | Store in CRM and enforce CRM permissions.                                                                         |
 | Sales Delivery Work and Service Work Order, scheduling, dispatch, material request, and verification | CRM, until a dedicated owner exists      | Keep sales delivery and service execution as separate modules. Do not treat Core work-order types as work orders. |
@@ -111,43 +148,43 @@ contract, and tests together. A menu label alone does not transfer ownership.
 
 ## Core CRM Modules
 
-| Module               | Owns                                                                           | Required behavior                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| Customer 360         | Unified customer history                                                       | Shows permitted sales, service, quotation, work, calls, and follow-up records.                                      |
-| Campaign             | Source, audience, dates, owner, targets, and measured spend                    | Creates leads and reports source conversion.                                                                        |
-| Lead                 | Unqualified prospect, source identity, and qualification facts                 | Qualify, disqualify, merge, or convert to Sales Enquiry.                                                            |
-| Sales Enquiry        | Confirmed need, pipeline stage, value, owner, close date, and outcome          | Progress through a sales pipeline with a next action.                                                               |
-| Service Request      | Customer issue, location, asset, channel, priority, and owner                  | Progress through diagnosis, delivery, verification, and resolution.                                                 |
-| Service Timeline     | User-authored diagnosis notes, customer updates, and decisions                 | Keep an ordered, permission-checked history linked to its Service Request. System state changes remain in Activity. |
-| Sales Estimate       | Proposed sales scope, quantity, price basis, assumptions, and validity         | Create customer estimate revisions; hand approved versions to Billing for quotation.                                |
-| Service Estimate     | Labor, parts, diagnosis, coverage, and service scope                           | Cost service work separately; preserve covered or no-charge decisions and approval evidence.                        |
-| Sales Delivery Work  | Accepted sales scope requiring tracked delivery                                | Track milestones and acceptance; do not reuse service work states.                                                  |
-| Service Work Order   | Authorized service execution for a request or agreement                        | Track visits, resources, labor, materials, checklists, and completion evidence.                                     |
-| Service Agreement    | Versioned recurring service commitment                                         | Generate planned Service Requests only from active, approved agreement versions.                                    |
-| Entitlement          | Coverage limits for a customer, asset, product, or location                    | Check eligibility and consumption without changing historical request snapshots.                                    |
-| SLA Policy           | Response and resolution targets, calendars, pauses, and escalations            | Snapshot the applied policy and track warnings, pauses, breaches, and reasons.                                      |
-| Incident Template    | Reusable diagnostic, safety, task, and checklist guidance                      | Version templates and snapshot the version used on each request or work order.                                      |
-| Resource             | Service worker, skills, territory, availability, and capacity                  | Expose scheduling data through permission-checked resource contracts.                                               |
-| Booking              | Time window and assigned resource for a work record                            | Track booking changes separately from work-order state.                                                             |
-| Material Request     | Required parts or materials for a work record                                  | Track demand and fulfillment reference; Inventory owns stock and issue.                                             |
-| Verification         | Required checks and customer acceptance for completed work                     | Record checklist version, evidence, result, verifier, and rework link.                                              |
-| Service Outcome      | Resolution, closure, cancellation, or rework decision                          | Require a permitted outcome and reason; preserve the closed request history.                                        |
-| Collection Follow-up | Promise, owner, next action, and reminder for an unpaid balance                | Read Billing status; never post or allocate money.                                                                  |
-| Assignment           | Owner, team, queue, territory, and reassignment history                        | Apply explicit rules and retain allocation history.                                                                 |
-| SOP                  | Procedure identity, purpose, ownership, lifecycle, and revision policy         | Own reusable procedures and their published revisions inside CRM.                                                   |
-| SOP Item             | Ordered instruction, frequency, department, and evidence guidance              | Own versioned steps; assignments and reports reference a stable published item revision.                            |
-| Duty Assignment      | SOP Item allocation to a CRM user or team, order, active dates, and recurrence | Provide each employee's current duty list and retain assignment history.                                            |
-| Duty Report          | A user's completion report for one assigned SOP Item                           | Store report date, actions, author, timestamps, and immutable SOP revision context.                                 |
-| Duty Reporting       | Searchable report history and completion measures                              | Query Duty Reports with date, user, SOP, department, and frequency filters under the same CRM permissions.          |
-| Activity             | Immutable business events                                                      | Store actor, action, record, timestamp, and safe summary.                                                           |
-| Task                 | Follow-up, due date, owner, priority, recurrence, and completion               | Link to a supported CRM record.                                                                                     |
-| Call Log             | Manually selected mobile call and local comments                               | Use idempotency keys and link to a customer or supported CRM record.                                                |
-| Customer Asset       | Installed equipment and service identity                                       | Track serial, location, model, warranty, and service history.                                                       |
-| Attachment           | Business documents and evidence metadata                                       | Enforce tenant scope, record access, retention, and audit.                                                          |
-| Consent              | CRM campaign and service communication purpose and channel preference          | Track source, time, expiry, and withdrawal. Core remains the owner of Contact identity.                             |
-| Saved View           | Filters, columns, sorting, and sharing                                         | Store tenant-scoped preferences with owner and permissions.                                                         |
-| Notification         | Assignment and due-work alerts                                                 | Create from persisted events and permitted recipients.                                                              |
-| Report               | Sales and Service operational measures                                         | Query source modules with the same tenant and permission scope as record views.                                     |
+| Module                       | Owns                                                                           | Required behavior                                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Customer 360                 | Unified customer history                                                       | Shows permitted sales, service, quotation, work, calls, and follow-up records.                                        |
+| Marketing Campaign reference | Read-only source link and historical label, owned by Marketing                 | Resolve permitted campaign lookups. Do not implement CRM Campaign CRUD.                                               |
+| Lead                         | Unqualified prospect, source identity, and qualification facts                 | Qualify, disqualify, merge, or convert to Sales Enquiry.                                                              |
+| Sales Enquiry                | Confirmed need, pipeline stage, value, owner, close date, and outcome          | Progress through a sales pipeline with a next action.                                                                 |
+| Service Request              | Customer issue, location, asset, channel, priority, and owner                  | Progress through diagnosis, delivery, verification, and resolution.                                                   |
+| Service Timeline             | User-authored diagnosis notes, customer updates, and decisions                 | Keep an ordered, permission-checked history linked to its Service Request. System state changes remain in Activity.   |
+| Sales Estimate               | Proposed sales scope, quantity, price basis, assumptions, and validity         | Create customer estimate revisions; hand approved versions to Billing for quotation.                                  |
+| Service Estimate             | Labor, parts, diagnosis, coverage, and service scope                           | Cost service work separately; preserve covered or no-charge decisions and approval evidence.                          |
+| Sales Delivery Work          | Accepted sales scope requiring tracked delivery                                | Track milestones and acceptance; do not reuse service work states.                                                    |
+| Service Work Order           | Authorized service execution for a request or agreement                        | Track visits, resources, labor, materials, checklists, and completion evidence.                                       |
+| Service Agreement            | Versioned recurring service commitment                                         | Generate planned Service Requests only from active, approved agreement versions.                                      |
+| Entitlement                  | Coverage limits for a customer, asset, product, or location                    | Check eligibility and consumption without changing historical request snapshots.                                      |
+| SLA Policy                   | Response and resolution targets, calendars, pauses, and escalations            | Snapshot the applied policy and track warnings, pauses, breaches, and reasons.                                        |
+| Incident Template            | Reusable diagnostic, safety, task, and checklist guidance                      | Version templates and snapshot the version used on each request or work order.                                        |
+| Resource                     | Service worker, skills, territory, availability, and capacity                  | Expose scheduling data through permission-checked resource contracts.                                                 |
+| Booking                      | Time window and assigned resource for a work record                            | Track booking changes separately from work-order state.                                                               |
+| Material Request             | Required parts or materials for a work record                                  | Track demand and fulfillment reference; Inventory owns stock and issue.                                               |
+| Verification                 | Required checks and customer acceptance for completed work                     | Record checklist version, evidence, result, verifier, and rework link.                                                |
+| Service Outcome              | Resolution, closure, cancellation, or rework decision                          | Require a permitted outcome and reason; preserve the closed request history.                                          |
+| Collection Follow-up         | Promise, owner, next action, and reminder for an unpaid balance                | Read Billing status; never post or allocate money.                                                                    |
+| Assignment                   | Owner, team, queue, territory, and reassignment history                        | Apply explicit rules and retain allocation history.                                                                   |
+| SOP                          | Procedure identity, purpose, ownership, lifecycle, and revision policy         | Own reusable procedures and their published revisions inside CRM.                                                     |
+| SOP Item                     | Ordered instruction, frequency, department, and evidence guidance              | Own versioned steps; assignments and reports reference a stable published item revision.                              |
+| Duty Assignment              | SOP Item allocation to a CRM user or team, order, active dates, and recurrence | Provide each employee's current duty list and retain assignment history.                                              |
+| Duty Report                  | A user's completion report for one assigned SOP Item                           | Store report date, actions, author, timestamps, and immutable SOP revision context.                                   |
+| Duty Reporting               | Searchable report history and completion measures                              | Query Duty Reports with date, user, SOP, department, and frequency filters under the same CRM permissions.            |
+| Activity                     | Immutable business events                                                      | Store actor, action, record, timestamp, and safe summary.                                                             |
+| Task                         | Follow-up, due date, owner, priority, recurrence, and completion               | Link to a supported CRM record.                                                                                       |
+| Call Log                     | Manually selected mobile call and local comments                               | Use idempotency keys and link to a customer or supported CRM record.                                                  |
+| Customer Asset               | Installed equipment and service identity                                       | Track serial, location, model, warranty, and service history.                                                         |
+| Attachment                   | Business documents and evidence metadata                                       | Enforce tenant scope, record access, retention, and audit.                                                            |
+| Service Contact Policy       | CRM sales/service restrictions and operational channel preferences             | Preserve purpose, source, time, expiry, and withdrawal. Promotional consent belongs to Marketing. Core owns identity. |
+| Saved View                   | Filters, columns, sorting, and sharing                                         | Store tenant-scoped preferences with owner and permissions.                                                           |
+| Notification                 | Assignment and due-work alerts                                                 | Create from persisted events and permitted recipients.                                                                |
+| Report                       | Sales and Service operational measures                                         | Query source modules with the same tenant and permission scope as record views.                                       |
 
 ### Shared Record Rules
 
@@ -236,66 +273,5 @@ Service Request → Check Coverage and SLA → Diagnose
     has started or finished.
 11. Track travel, time, materials used, checklist results, attachments, and
     customer acceptance on the work record.
-12. Close operational work only after verification passes. Keep collection follow-
-    up open when Billing still reports an amount due.
-13. A failed verification creates a rework cycle with a reason and owner.
-14. A warranty or repeat issue can create a new request linked to prior service
-    history. Do not reopen a closed request by changing its history.
-15. Create activity and audit records for each lifecycle change.
-
-### Service Measures
-
-- Requests by type, channel, asset, location, priority, and owner.
-- First response, diagnosis, estimate, quote, schedule, and resolution time.
-- SLA warning, pause, breach, and escalation counts.
-- Material readiness, schedule adherence, utilization, and repeat visits.
-- First-time fix, verification pass, rework, and warranty rates.
-- Outstanding collection follow-ups from Billing balances.
-- Agreement renewal and recurring work completion.
-
-## Shared Commercial Rules
-
-1. Sales Estimate, Service Estimate, Billing Quote, and accepted Billing Order
-   are distinct records. CRM owns the first two as scope and cost proposals;
-   Billing owns customer-facing quotations and orders.
-2. Existing vendor estimates remain procurement or enquiry-cost records. Do not
-   reuse them as customer estimates. Sales and Service estimates also remain
-   separate because their costing and approval rules differ.
-3. Read products, units, tax, currency, and work-order types from their owning
-   module contracts.
-4. Snapshot approved item, price, tax, discount, and terms on each sent document.
-5. Make sent quote revisions immutable. Accept one revision for an order.
-6. Record scope or price changes as a change request and a new estimate or quote
-   revision. A new estimate revision is required when scope or cost changes before
-   the quote is issued.
-7. Billing owns invoices, receipts, payment allocations, and posted balances.
-8. CRM collection follow-up stores promises and next actions. It does not post
-   payments or decide that an invoice is settled.
-9. Separate sale status, work status, verification status, and payment status.
-10. Do not use a single status field to imply both work completion and payment.
-
-### Lifecycle and Handoff Rules
-
-- Keep lead qualification, Sales Enquiry outcome, quote decision, order state,
-  delivery state, Service Request state, work state, verification, and payment as
-  separate lifecycles with explicit transitions and terminal outcomes.
-- Every handoff records the source record, destination record, actor, timestamp,
-  and outcome. Retries must be idempotent and must not create duplicate orders,
-  requests, work, or follow-ups.
-- Require reason codes for disqualification, loss, cancellation, quote rejection,
-  service closure without work, SLA pause, no-show, failed verification, and
-  rework. Keep free-text explanation where a code alone is insufficient.
-- Define which transitions require approval, who may approve, and whether the
-  approver can be the initiating user before implementation.
-
-## Service Terms and Scheduling
-
-### Service Agreement and Entitlement
-
-- Define covered customers, contacts, assets, products, channels, locations, and
-  dates.
-- Track included cases or hours, usage, remaining coverage, expiry, suspension,
-  cancellation, and renewal.
-- Define response and resolution targets with business calendars, time zones,
-  holidays, pause rules, warnings, and es
+12. Close operational work onl
 ````

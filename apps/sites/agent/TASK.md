@@ -1,5 +1,17 @@
 # Site Studio task and working rules
 
+## Marketing integration backlog — 2026-10-23
+
+Planning alignment is complete. The following implementation tasks remain open.
+See [Marketing contracts and gaps](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), G03.
+
+- [ ] Define the Sites-to-Marketing source binding, consent notice mapping, outbox, receipt, and retry contract.
+- [ ] Plan Node/SQLite and Worker/D1 forwarding separately, including worker scheduling, secrets, retention, and interrupted delivery.
+- [ ] Verify saved enquiry survives unavailable upstream, repeated forwarding creates one submission, and wrong-site/tenant forwarding fails.
+
+Acceptance requires the owner contract, denied-access cases, retry behavior, and exact evidence in this task log.
+No implementation or live validation is claimed by this planning update.
+
 ## Tenkasi District Sports Club page refinement — October 19, 2026
 
 - [x] Set Tenkasi District Sports Club as the public brand. Keep Sivakalai Gurukulam in the home page content.
@@ -289,7 +301,6 @@ Verification: client typecheck, lint, production build, and packaging passed. Br
 
 2026-10-17: Fixed local client preview HTTP 431 errors by setting a bounded 256 KiB Node header limit in the LogicX, Ramu Tex, and standard portfolio dev scripts and Studio runtime launch. All five runtime tests passed, including a real request with a 32 KiB cookie header.
 
-
 2026-10-17: Completed the corrected abstract green LogicX design and replaced the masterplan reference image.
 All implementation remains inside Sites. The design includes a tilted software panel, curved service carousel, dark approach section, catalogue, workflow examples, industries, engagement options, FAQ, CTA, and footer.
 All new marketing sections now use an optional typed Page content field and a matching Studio editor.
@@ -317,48 +328,35 @@ Final Studio polish: image and service controls show friendly choices. Browser s
 2026-10-17: Integrated the user-supplied LogicX SVG mark from logo 2.svg. Preserved its three paths and navy/blue colors. Added branded header and footer lockups, a light footer variant, dashboard mark, favicons, app icons, and sharing image. The deploy asset generator reads the Sites-owned vector source so builds retain it. Client typecheck, lint, packaging, and desktop/mobile browser branding checks passed. No page content or enquiry data changed.
 
 ### 2026-10-17 — LogicX logo palette
+
 - Applied approved forest green (#004632) and mint (#60DFA0) to generated logos, marks, favicons, app icons and sharing image. Original SVG geometry and master remain preserved.
 - Verified deployment build, all branding assets, desktop/mobile rendering and browser errors with the packaged runtime.
 
-
 2026-10-17: Matched Platform public-page interaction tone in LogicX. Hero text cycles through the saved hero and first two service descriptions while visual and CTAs stay fixed. Trusted technologies now uses a full-width labelled marquee from saved marketing data. Added slide selection, pause, focus/hover pause and reduced-motion support. Client typecheck/lint and packaged desktop/mobile checks passed, including slide selection and reduced-motion marquee behaviour. All source changes remain in apps/sites.
-
 
 2026-10-17: Removed shared title-row spacing from hero slides. Each description follows its own heading with a consistent 20px gap; overlaid slides retain stable overall height. Updated hero headings to Segoe UI Display with medium weight and balanced wrapping. Packaged browser checks verified all three slides at 1280, 768 and 390px: stable CTA position, consistent heading/description gaps, two-line descriptions and no horizontal overflow. Screenshots reviewed locally.
 
-
 2026-10-17: Replaced positional technology symbols with explicit name-to-logo mapping for Frappe, ERPNext, React, Tailwind CSS, Python and Node.js. Vendor SVGs are stored locally in public/logicx/technologies; sources.json records official upstream URLs. Unmapped technology names display text only. Typecheck, lint, deployment build and packaged browser checks passed for all six loaded logos and mobile overflow.
-
 
 2026-10-17: Services carousel shows four full cards and 20 percent of the fifth on desktop. At the end it shows the previous card peek on the left, with boundary arrows disabled correctly. Replaced positional service icons with name-based mappings and official Frappe, ERPNext and React assets. Packaged browser geometry checks, logo loading, desktop screenshot and mobile overflow checks passed; typecheck and lint passed.
 
-
 2026-10-17: Added 20px desktop service-card gaps, more heading/card padding and section breathing room. Preserved four full cards plus 20 percent preview and boundary controls. Added once-only scroll reveals, hover lift, border/shadow and link-arrow motion with reduced-motion support. Packaged geometry, hover/reveal, responsive and browser-error checks passed; client typecheck and lint passed.
-
 
 2026-10-17: Homepage application collection now shows only CRM, Billing, Accounts, Ecommerce, Q Cafe, HRMS, Chat and Zetro in that order. Cards render saved publication summaries and matching app-registry icons, with the CRM brand asset copied into Sites public assets. Full catalogue remains available through existing links. Client typecheck, lint, deployment build and packaged browser assertions passed for exact list, descriptions, icons, eight detail routes and mobile overflow. Temporary browser-test database cleanup encountered Windows EPERM after assertions completed.
 
-
 2026-10-17: Applications catalogue now shares the exact eight-app collection, ordering, labels and app icons with the homepage. Categories and result counts derive only from those eight apps. Saved CMS descriptions remain the source. Typecheck, lint, deployment build and browser assertions passed for homepage/catalogue parity, count, search, Finance filter, all selected detail links and mobile overflow.
-
 
 2026-10-17: Homepage and Applications now render one shared application-card component with consistent icons, saved descriptions, title sizing and enquiry/detail links. Refined padding, card gaps, equal row heights and mobile layout. Added once-only staggered scroll reveals, hover lift, soft border/shadow and arrow movement with reduced-motion support. Typecheck, lint, deployment build and packaged browser assertions passed for catalogue/home description parity, eight-app order, search/filter, detail routes, reveal/hover and mobile overflow.
 
-
 2026-10-17: Redesigned Software in practice, Built around real operations and A practical way forward. Added four editable workflow stories (textiles, handloom/knitting, CRM and digital/social presence), a navy/copper industry section, and an indigo-accented discovery/delivery/evolution sequence. Spacious responsive typography, pastel diagrams, once-only scroll reveals, hover details and reduced-motion support are implemented. Updated only the six corresponding marketing fields through PageService in the verified local LogicX workspace; saved/published revision 17 and exported publication sequence 12. Other client/profile/application data was preserved. Client/API typecheck and lint, deployment packaging and browser checks passed; CMS tests: 13 passed, one optional MariaDB integration test skipped. Verified desktop/tablet/mobile, 11 panels, enquiry URLs, reveal/hover and no browser errors. Existing manually launched 7131 preview has an unbound Studio public-content route (404); packaged SQLite delivery is verified. No external deployment performed.
-
 
 2026-10-17: Used the supplied images as inspiration only. Added an original generated textile-workshop photo, optimized to a 92 KB WebP, plus soft architectural backdrops on the existing three growth sections. Text remains HTML over masked decorative imagery; existing layouts and animations are preserved. Added allowlisted optional backdrop fields and Studio image/hide controls. Saved/published only these three fields in local LogicX revision 18, publication sequence 13. Client/Web/API typechecks and lint passed; CMS tests 13 passed, optional MariaDB integration test skipped. Packaged desktop/mobile screenshots, three loaded backdrop assets, responsive layout, enquiry links and reduced-motion checks passed. No external deployment performed.
 
-
 2026-10-17: Replaced Software in practice step lists with original Sites-owned circuit/beam workflow boards inspired by the supplied snippets and screenshot. No registry component or dependency was installed. Nodes follow the saved ordered steps, map known steps to appropriate icons, resize with their container and connect with SVG traces and travelling light beams. Added per-board play/pause, off-screen suspension, accessible ordered labels and reduced-motion static rendering. Generated a new connected-workspace backdrop, optimized it locally, added it to the media allowlist and published only the practice backdrop in local revision 19 / sequence 14. Client/API typecheck and lint passed; CMS tests 13 passed with one optional integration test skipped. Packaged browser checks verified 4 boards, 16 step labels, beams, pause/play, reduced motion, new image, links and responsive fit. All implementation stays in apps/sites.
-
 
 2026-10-17: Refined Software in practice with distinct straight, curved, inward-return and arc beam patterns. Added navy canvases, blue/purple/amber/emerald neon gradients, glowing nodes and varied node shapes. Saved step ordering, accurate icons, pause/play, off-screen suspension and reduced-motion static rendering remain intact. Client typecheck/lint, deployment build and packaged desktop/mobile board checks passed.
 
-
 2026-10-17: Removed Connected workflow labels and compacted board controls. Reviewed homepage copy across hero, services, approach, applications, workflow stories, industries, delivery, FAQ, CTA and footer. Replaced generic/repeated prose with concise LogicX-specific software, ERP, automation and support content. Preserved profile/contact identity, eight-app selection, image choices and saved workflow steps. Removed duplicate visible technology wordmarks and shortened the HRMS summary consistently. Saved/published local LogicX revision 21 and export sequence 16. Client/API typecheck/lint, packaging, CMS tests (13 passed, one optional integration skipped) and full-page/desktop/mobile browser checks passed. No external deployment.
-
 
 ### 2026-10-17 — Ramu Tex portfolio presentation
 
@@ -423,8 +421,8 @@ Future automated hosting must use queued, auditable deployment jobs and preserve
 - Root dependency checks remain blocked by the existing apps/tconnect/web/dist folder.
 - No database migration, live CMS write, external deployment, or DNS change was required or performed.
 - Published article rendering is implemented, but no live published Ramu Tex article was available for browser verification.
-Final presentation checks: reduced-motion emulation disabled image transitions. Saved mobile and desktop screenshots of the production client build. Restored the working preview to desktop size.
-The local Studio content API on 7010 was unavailable during these checks. Preview content used the existing brochure fallback. Live CMS delivery and published article verification remain unverified.
+  Final presentation checks: reduced-motion emulation disabled image transitions. Saved mobile and desktop screenshots of the production client build. Restored the working preview to desktop size.
+  The local Studio content API on 7010 was unavailable during these checks. Preview content used the existing brochure fallback. Live CMS delivery and published article verification remain unverified.
 
 2026-10-17: Completed a Sites public-delivery performance audit and fixes. Cold mobile lab medians improved FCP 7.404s to 1.880s and LCP 7.420s to 2.060s; subresource transfer fell 74 percent to 345772 bytes, CLS remained zero. Replaced the app-wide UI stylesheet, reduced font payloads, deferred animation features, kept SSR content visible, added responsive hero media, removed duplicate bootstrap fetch, and added gzip/static caching. Client checks, five runtime unit tests, explicit packaged HTTP checks for LogicX/Ramu Tex and browser contact/no-JS/mobile checks passed. Detailed scope, method and remaining blockers are recorded in PLAN.md. Root dependency check remains blocked by pre-existing apps/tconnect/web/dist. No external deployment performed.
 

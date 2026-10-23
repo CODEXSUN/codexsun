@@ -1,5 +1,17 @@
 # Billing tasks
 
+## Marketing integration backlog — 2026-10-23
+
+Planning alignment is complete. The following implementation tasks remain open.
+See [Marketing contracts and gaps](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), G08.
+
+- [ ] Define explicit CRM/campaign-to-commercial source links and minimized Billing outcome projection.
+- [ ] Specify authorization, currency/timezone/FY rules, reversal events, and reconciliation.
+- [ ] Verify denied access, cancellation/refund corrections, and no inferred attribution from outstanding balances.
+
+Acceptance requires the owner contract, denied-access cases, retry behavior, and exact evidence in this task log.
+No implementation or live validation is claimed by this planning update.
+
 ## Responsibility
 
 Tenant billing entries, quotations, purchases, sales, receipts, payments, opening balances, and outstanding reports.

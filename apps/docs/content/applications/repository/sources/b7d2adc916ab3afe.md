@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/SKILLS.md`
 
-Source SHA-256 (LF line endings): `cbb8549c7e5e6491b3eb5e039dc7c4ffd4cd8afb61ec86bcdb3c57b17d2c549d`
+Source SHA-256 (LF line endings): `b255ef76e3b8deb20cac9c98aa2c89599133449b332d9a36360ee15068b73dbf`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -18,6 +18,12 @@ Read [the README](../README.md), [TASK.md](TASK.md), and [PLAN.md](PLAN.md) firs
 This file is component guidance. It does not install a global Codex skill or grant a runtime capability.
 
 ## Domain responsibilities
+
+Marketing owns Campaign and promotional consent. CRM owns sales/service contact restrictions and operational preferences.
+Follow the reconciled boundary in [PLAN](PLAN.md#marketing-integration-decision--2026-10-23).
+Do not implement CRM Campaign CRUD or infer promotional opt-in from Contact Preferences.
+Add fixed idempotent Lead/follow-up contracts and minimized outcome projections before Marketing consumes them.
+Marketing-origin intake does not authorize Frappe export or broader CRM visibility.
 
 Local enquiries, contact activity, follow-up tasks, SOPs, duty assignments, and duty reporting across web and mobile.
 

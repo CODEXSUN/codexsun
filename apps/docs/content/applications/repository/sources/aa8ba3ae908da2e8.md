@@ -2,7 +2,7 @@
 
 Repository source: `apps/core/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `2590750b602fc6a75664bc91029ed2451f79e433341b99bfd24005da2909d125`
+Source SHA-256 (LF line endings): `3e44b23ce787d65d1fbc7edafef3d111c1670106748f83dcb9aaffb2b4e742b4`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -10,6 +10,16 @@ Historical notes and unchecked plans retain their original status.
 
 ```markdown
 # Core plan
+
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G02, delivery phase 1.
+
+Core remains the owner of contact, company, and product identity. Marketing Brand is a communication identity, not a duplicate Core product Brand.
+Existing public resolvers do not establish a complete Marketing identity contract.
+Add a fixed UUID-based, purpose-scoped lookup and deliberate match/resolve contract with minimal fields and duplicate review.
+Preserve shared-phone rules and Frappe external identity. Do not infer consent from identity or reuse a Frappe key for a Marketing submission.
 
 ## Scope
 

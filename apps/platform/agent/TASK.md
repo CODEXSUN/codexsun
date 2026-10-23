@@ -1,5 +1,17 @@
 # Platform tasks
 
+## Marketing integration backlog — 2026-10-23
+
+Planning alignment is complete. The following implementation tasks remain open.
+See [Marketing contracts and gaps](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), G07.
+
+- [ ] Plan Marketing registration, entitlement, permissions, ordered migration/seed composition, and bounded automation principal.
+- [ ] Design tenant-safe provider account claim registry, OAuth state, callback mapping, file projections, and secret rotation.
+- [ ] Specify queue fencing, cancellation, tenant fairness, activation dependencies, suspension, and forged-context tests.
+
+Acceptance requires the owner contract, denied-access cases, retry behavior, and exact evidence in this task log.
+No implementation or live validation is claimed by this planning update.
+
 ## CRM Frappe verification authorization — 2026-10-22
 
 - [x] Authorize Frappe call-log verification with the CRM call-log read permission, while retaining connection management authorization and server-side tenant/connection checks.

@@ -1,5 +1,17 @@
 # Site Studio plan
 
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G03, delivery phase 1.
+
+Sites owns existing public presentation, published content, and its persisted SQLite/D1 enquiries.
+Marketing owns new capture definitions and Marketing submissions. Existing intake records do not change owners.
+Add an authenticated, tenant/site-bound outbox bridge from existing intake to Marketing with stable source UUID/revision and receipt.
+Preserve local saving, abuse controls, retention, and offline retry when Marketing is unavailable.
+Current remote enquiry transport and remote D1 inbox sync are not established by the documented runtime.
+Do not imply a client deploy updates automatically or that a privacy consent checkbox grants promotional opt-in.
+
 ## Tenkasi Sports public client and Cloudflare delivery — October 19, 2026
 
 - **Ownership Boundaries**:
@@ -20,7 +32,7 @@
   3. Static typing and linting: `@codexsun/sites-clients`, `@codexsun/sites-api`, `@codexsun/sites-web`.
   4. Module boundaries check: `node tools/check-module-boundaries.mjs sites`.
   5. Static build: `npm run build:tenkasisports -w @codexsun/sites-clients`.
-  5a. Inspect both language variants without JavaScript, hydrate both in a browser, and verify canonical, `hreflang`, sitemap, and response security headers on the live Worker.
+     5a. Inspect both language variants without JavaScript, hydrate both in a browser, and verify canonical, `hreflang`, sitemap, and response security headers on the live Worker.
   6. Coordinator gate: Await backend deployment on `codexsun.com` before Cloudflare Worker production deployment.
 
 ## Tirupur Connect content management — October 17, 2026
@@ -72,19 +84,19 @@ Application links do not establish production readiness or grant access to a lis
 
 ### 2. Visual system
 
-| Element | Planned treatment |
-| --- | --- |
-| Palette | White and warm neutral surfaces, near-black text, deep forest green, restrained mint accents |
-| Starting colors | Ink `#101713`, forest `#003e2f`, accent `#087347`, mint `#60dfa0`, muted `#626b68` |
-| Typography | Keep self-hosted Geist initially. Match the reference with large, tightly spaced headings and clear body text |
-| Desktop sizing | Hero heading about 64–84 px, section headings 42–56 px, body 16–18 px |
-| Mobile sizing | Hero heading 38–48 px, section headings 30–36 px, body at least 16 px |
-| Layout | Centered 1280–1360 px content width, fluid side padding, deliberate vertical rhythm |
-| Buttons | Rounded pills, deep green primary action, outlined secondary action, small directional arrows |
-| Dividers | Fine neutral lines and open layouts. Avoid repeated heavy boxes and shadows |
-| Icons | One consistent line-icon family. Use official technology marks where permitted |
-| Photography | Architectural crops and foliage inside curved diagonal shapes, with white space and deep green ribbon forms |
-| Motion | Short eased fades and small translations. Preserve content when animation is unavailable |
+| Element         | Planned treatment                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------------- |
+| Palette         | White and warm neutral surfaces, near-black text, deep forest green, restrained mint accents                  |
+| Starting colors | Ink `#101713`, forest `#003e2f`, accent `#087347`, mint `#60dfa0`, muted `#626b68`                            |
+| Typography      | Keep self-hosted Geist initially. Match the reference with large, tightly spaced headings and clear body text |
+| Desktop sizing  | Hero heading about 64–84 px, section headings 42–56 px, body 16–18 px                                         |
+| Mobile sizing   | Hero heading 38–48 px, section headings 30–36 px, body at least 16 px                                         |
+| Layout          | Centered 1280–1360 px content width, fluid side padding, deliberate vertical rhythm                           |
+| Buttons         | Rounded pills, deep green primary action, outlined secondary action, small directional arrows                 |
+| Dividers        | Fine neutral lines and open layouts. Avoid repeated heavy boxes and shadows                                   |
+| Icons           | One consistent line-icon family. Use official technology marks where permitted                                |
+| Photography     | Architectural crops and foliage inside curved diagonal shapes, with white space and deep green ribbon forms   |
+| Motion          | Short eased fades and small translations. Preserve content when animation is unavailable                      |
 
 Treat these values as implementation starting points. Compare rendered screenshots with the reference before finalizing them.
 Use separate desktop and mobile image crops. Do not embed headings or buttons into a background image.
@@ -92,21 +104,21 @@ Preserve readable text over photography with a controlled white or dark overlay.
 
 ### 3. Homepage composition
 
-| Order | Section | Design and behavior |
-| --- | --- | --- |
-| 1 | Header | LX mark and LogicX wordmark, Services, Applications, About, Insights, Support, and project CTA |
-| 2 | Photographic hero | Large left-aligned headline, short introduction, two actions, and an oversized tilted software panel inside curved diagonal layers |
-| 3 | Trust context | Keep the corrected composition free of business statistics. Use capability labels on service detail pages |
-| 4 | Technology strip | Frappe, ERPNext, React, Tailwind CSS, Python, and Node.js in a restrained monochrome treatment |
-| 5 | Services overview | Full-width heading and introduction, carousel controls, and four curved cards visible on desktop |
-| 6 | Approach banner | Deep green flowing surfaces, foliage and concrete crops, curved upper edge, introduction, CTA, and three numbered steps |
-| 7 | Application collection | Curated app previews with concise outcomes and links to the full catalogue |
-| 8 | Software in practice | Clearly labeled example workflows or verified project stories. Do not imply fictional customer work |
-| 9 | Industries | Manufacturing and textiles, retail and ecommerce, professional services, and growing businesses |
-| 10 | Engagement options | Custom build, ERP and automation, and ongoing support with enquiry actions |
-| 11 | FAQ | Accessible expandable answers about scope, integration, cost planning, delivery, and maintenance |
-| 12 | Closing CTA | One strong invitation to discuss a project, with phone and WhatsApp alternatives |
-| 13 | Footer | Brand, services, applications, company links, saved contact details, privacy, and copyright |
+| Order | Section                | Design and behavior                                                                                                                |
+| ----- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Header                 | LX mark and LogicX wordmark, Services, Applications, About, Insights, Support, and project CTA                                     |
+| 2     | Photographic hero      | Large left-aligned headline, short introduction, two actions, and an oversized tilted software panel inside curved diagonal layers |
+| 3     | Trust context          | Keep the corrected composition free of business statistics. Use capability labels on service detail pages                          |
+| 4     | Technology strip       | Frappe, ERPNext, React, Tailwind CSS, Python, and Node.js in a restrained monochrome treatment                                     |
+| 5     | Services overview      | Full-width heading and introduction, carousel controls, and four curved cards visible on desktop                                   |
+| 6     | Approach banner        | Deep green flowing surfaces, foliage and concrete crops, curved upper edge, introduction, CTA, and three numbered steps            |
+| 7     | Application collection | Curated app previews with concise outcomes and links to the full catalogue                                                         |
+| 8     | Software in practice   | Clearly labeled example workflows or verified project stories. Do not imply fictional customer work                                |
+| 9     | Industries             | Manufacturing and textiles, retail and ecommerce, professional services, and growing businesses                                    |
+| 10    | Engagement options     | Custom build, ERP and automation, and ongoing support with enquiry actions                                                         |
+| 11    | FAQ                    | Accessible expandable answers about scope, integration, cost planning, delivery, and maintenance                                   |
+| 12    | Closing CTA            | One strong invitation to discuss a project, with phone and WhatsApp alternatives                                                   |
+| 13    | Footer                 | Brand, services, applications, company links, saved contact details, privacy, and copyright                                        |
 
 The reference shows the top of the homepage. Lower sections must continue its restrained visual language.
 Remove duplicate introductory blocks, repeated process sections, and competing banners from the current homepage.
@@ -134,20 +146,20 @@ On small screens, replace the broad curve with a shallow curve that does not cli
 
 ### 4. Whole-site page system
 
-| Page | Required content and design |
-| --- | --- |
-| Home `/` | Complete sequence above with the photographic hero and clear enquiry journey |
-| Services `/services` | Minimal open rows with a distinct image for each service, smooth hover previews, and visible mobile previews |
-| Service details | Service-specific hero, problems addressed, deliverables, integrations, process, related apps, FAQ, and prefilled enquiry |
-| Applications `/apps` | Current catalogue, search, category filters, truthful capability descriptions, and clear enquiry links |
-| Application details | Purpose, intended users, capabilities, setup and integration considerations, support scope, and enquiry CTA |
-| About `/about` | Company introduction, working principles, delivery approach, technology expertise, and contact invitation |
-| Insights `/blogs` | Published posts with useful empty, loading, and error states |
-| Article details | Readable article width, heading structure, metadata, image alt text, and related enquiry link |
-| Support `/support` | Support scope, request preparation, maintenance options, contact channels, and support enquiry CTA |
-| Contact `/contact` | Existing functional form, saved phone/email, map only where meaningful, WhatsApp, success receipt, and errors |
-| Privacy `/privacy` | Accurate explanation of collected enquiry data, purpose, retention, and contact channel |
-| Unknown paths | Useful 404 with Services, Applications, and Contact links |
+| Page                 | Required content and design                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Home `/`             | Complete sequence above with the photographic hero and clear enquiry journey                                             |
+| Services `/services` | Minimal open rows with a distinct image for each service, smooth hover previews, and visible mobile previews             |
+| Service details      | Service-specific hero, problems addressed, deliverables, integrations, process, related apps, FAQ, and prefilled enquiry |
+| Applications `/apps` | Current catalogue, search, category filters, truthful capability descriptions, and clear enquiry links                   |
+| Application details  | Purpose, intended users, capabilities, setup and integration considerations, support scope, and enquiry CTA              |
+| About `/about`       | Company introduction, working principles, delivery approach, technology expertise, and contact invitation                |
+| Insights `/blogs`    | Published posts with useful empty, loading, and error states                                                             |
+| Article details      | Readable article width, heading structure, metadata, image alt text, and related enquiry link                            |
+| Support `/support`   | Support scope, request preparation, maintenance options, contact channels, and support enquiry CTA                       |
+| Contact `/contact`   | Existing functional form, saved phone/email, map only where meaningful, WhatsApp, success receipt, and errors            |
+| Privacy `/privacy`   | Accurate explanation of collected enquiry data, purpose, retention, and contact channel                                  |
+| Unknown paths        | Useful 404 with Services, Applications, and Contact links                                                                |
 
 Preserve the current public URLs and all generated service and application routes.
 Recalculate the route inventory from the publication during verification rather than hard-coding the previous count of 39.
@@ -158,14 +170,14 @@ A separate case-study route and editor require their own content contract and sc
 
 ### 5. Image and brand asset plan
 
-| Asset | Requirement |
-| --- | --- |
-| Hero workspace | Original or licensed high-resolution photograph, desktop and mobile crops, optimized AVIF/WebP with fallback |
-| Monitor display | Clean product demonstration visual with readable composition and fictional, labeled data |
-| Approach photograph | Dark architectural scene that supports white copy and the curved boundary |
-| Service visuals | Eight distinct subjects: code, ERP modules, React, mobile, automation, integrations, ecommerce, and support |
-| Brand assets | Matching `logo.svg`, `logo-dark.svg`, favicon, touch icon, and social sharing image |
-| Technology marks | Approved official assets or text wordmarks. Do not imply vendor partnership or certification |
+| Asset               | Requirement                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Hero workspace      | Original or licensed high-resolution photograph, desktop and mobile crops, optimized AVIF/WebP with fallback |
+| Monitor display     | Clean product demonstration visual with readable composition and fictional, labeled data                     |
+| Approach photograph | Dark architectural scene that supports white copy and the curved boundary                                    |
+| Service visuals     | Eight distinct subjects: code, ERP modules, React, mobile, automation, integrations, ecommerce, and support  |
+| Brand assets        | Matching `logo.svg`, `logo-dark.svg`, favicon, touch icon, and social sharing image                          |
+| Technology marks    | Approved official assets or text wordmarks. Do not imply vendor partnership or certification                 |
 
 Use the current distinct service illustrations as a fallback until the final artwork is ready.
 Do not reuse one dashboard with different colors for all services.
@@ -239,14 +251,14 @@ Generated builds, archives, test captures, and caches belong under the root `dis
 
 ### 9. Delivery phases and review gates
 
-| Phase | Work | Gate before the next phase |
-| --- | --- | --- |
-| 0. Plan | Record this masterplan and preserve the reference | User reviews the direction before implementation starts |
-| 1. Visual foundation | Finalize asset compositions, palette, type, header, hero, mobile crop, technology strip, services, and approach | Compare desktop and mobile screenshots with the supplied design |
-| 2. Homepage completion | Recompose catalogue, examples, industries, engagement options, FAQ, closing CTA, and footer | All links work, sections have distinct purposes, and no unsupported claims appear |
-| 3. Full page family | Restyle services, service details, applications, app details, company, blog, support, contact, privacy, and 404 | Every route uses the same system and preserves its function |
-| 4. Editorial connection | Add typed content contracts, Studio fields, defaults, and publication support | Draft, publish, SQLite import, reload, and cross-client isolation checks pass |
-| 5. Verification and package | Run relevant checks, optimize assets, inspect SSR/SEO, verify enquiries, and create a new release package | Evidence below is complete, with skipped external checks named |
+| Phase                       | Work                                                                                                            | Gate before the next phase                                                        |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 0. Plan                     | Record this masterplan and preserve the reference                                                               | User reviews the direction before implementation starts                           |
+| 1. Visual foundation        | Finalize asset compositions, palette, type, header, hero, mobile crop, technology strip, services, and approach | Compare desktop and mobile screenshots with the supplied design                   |
+| 2. Homepage completion      | Recompose catalogue, examples, industries, engagement options, FAQ, closing CTA, and footer                     | All links work, sections have distinct purposes, and no unsupported claims appear |
+| 3. Full page family         | Restyle services, service details, applications, app details, company, blog, support, contact, privacy, and 404 | Every route uses the same system and preserves its function                       |
+| 4. Editorial connection     | Add typed content contracts, Studio fields, defaults, and publication support                                   | Draft, publish, SQLite import, reload, and cross-client isolation checks pass     |
+| 5. Verification and package | Run relevant checks, optimize assets, inspect SSR/SEO, verify enquiries, and create a new release package       | Evidence below is complete, with skipped external checks named                    |
 
 Implementation is authorized. Preserve existing drafts and client data during the redesign.
 When implementation is requested, deliver complete phases in this order and show concrete screenshots at visual review gates.
@@ -702,7 +714,6 @@ LogicX uses a white, green, and charcoal visual system inspired by https://theme
 
 LogicX marketing sections describe enquiry-led software projects, ERP integration, and support engagements. Avoid invented customer statistics, testimonials, prices, delivery guarantees, or checkout claims. Use distinct original local artwork for each service and preserve keyboard, touch, and reduced-motion behavior.
 
-
 ## Corrected LogicX redesign implementation record — 2026-10-17
 
 The current source replaces the old laptop illustration, service grid, repeated process sections, and duplicate banner styles.
@@ -734,8 +745,8 @@ The earlier monitor-and-desk generated images were not used in this design.
 Studio media and service selectors use friendly labels. File paths and service slugs remain internal publication values.
 
 ### 2026-10-17 growth-section refinement
-Implemented editorial workflow stories, navy/copper industry expertise, and an indigo delivery sequence. Content is editable through the existing marketing collections in Studio and published locally at revision 17. Responsive packaged-browser and content checks passed. The manually launched preview still needs Studio Start binding for live public-content reads; external deployment is not verified.
 
+Implemented editorial workflow stories, navy/copper industry expertise, and an indigo delivery sequence. Content is editable through the existing marketing collections in Studio and published locally at revision 17. Responsive packaged-browser and content checks passed. The manually launched preview still needs Studio Start binding for live public-content reads; external deployment is not verified.
 
 ## Cloudflare Worker delivery - 17-10-2026
 
@@ -766,16 +777,17 @@ Scope: Sites client delivery, LogicX homepage and route composition, styles/font
 
 Measured with packaged Node/SQLite delivery in isolated headless Chrome: 390x844 viewport, 4x CPU slowdown, 150ms latency, 200000 bytes/second download, disabled HTTP cache, three fresh contexts per build. Measurements are local lab medians, not field data or production guarantees. Long-task totals use a five-second observer window and are not Lighthouse TBT or real-user INP.
 
-| Metric | Before | After |
-| --- | ---: | ---: |
-| First contentful paint | 7.404s | 1.880s |
-| Largest contentful paint | 7.420s | 2.060s |
-| Transferred subresources | 1,347,134 bytes | 345,772 bytes |
-| Layout shift | 0 | 0 |
-| Render-blocking CSS, raw | 357,525 bytes | about 55,900 bytes |
-| Main JavaScript, raw | 531,277 bytes | about 472,000 bytes |
+| Metric                   |          Before |               After |
+| ------------------------ | --------------: | ------------------: |
+| First contentful paint   |          7.404s |              1.880s |
+| Largest contentful paint |          7.420s |              2.060s |
+| Transferred subresources | 1,347,134 bytes |       345,772 bytes |
+| Layout shift             |               0 |                   0 |
+| Render-blocking CSS, raw |   357,525 bytes |  about 55,900 bytes |
+| Main JavaScript, raw     |   531,277 bytes | about 472,000 bytes |
 
 Fixed:
+
 - Public clients no longer import the Platform-wide stylesheet and scan unrelated apps. Added a small public reset and one locally hosted Latin font with optional display; retained font licensing.
 - Deferred Motion animation features into their own chunk with LazyMotion. Content remains rendered and visible before animation code arrives.
 - Removed hidden SSR states from service, application and growth cards. Kept a gentle transform reveal and hover effects after hydration.
@@ -785,12 +797,14 @@ Fixed:
 - Added gzip negotiation for eligible text responses, bounded static-file caching and reusable compressed static buffers. Preserved no-store HTML/content and immutable hashed assets. Added proxy gzip configuration.
 
 Verification:
+
 - Client typecheck/lint, root component-document checks and five SQLite/runtime unit tests passed.
 - Explicitly enabled packaged HTTP test passed for LogicX and Ramu Tex: route rendering, origin rejection, enquiry persistence/idempotency/isolation, restart recovery, publication replacement and gzip negotiation.
 - Browser checks passed for hydration, mobile overflow, responsive image selection, eight application cards, contact-form submission, cache headers, gzip;q=0 and visible content with JavaScript disabled. Desktop and mobile screenshots reviewed.
 - DevTools MCP tools were available but its Chrome profile was locked by another session. Used a separate Chrome instance with Playwright/CDP throttling and PerformanceObserver instead.
 
 Remaining limits and blockers:
+
 - dependencies:check reports the existing apps/tconnect/web/dist directory. It was not modified or removed.
 - The manually launched development preview still needs authorized Studio Start binding for live content reads. Packaged SQLite delivery is working; this is separate from production page speed.
 - Main JavaScript still includes React, schema validation and several route templates. Further route/island splitting is a follow-up, with SSR/hydration compatibility tests required. It was not reduced by weakening validation.
@@ -814,6 +828,7 @@ The guide stays in its template and does not modify a client's immutable publica
 Images are illustrative material and application studies. Order suitability, processing routes, and finishes require a sample brief.
 
 Reference reading:
+
 - https://cottonworks.com/learning-hub/knitting/single-and-double-knits/
 - https://cottonworks.com/product-innovation/digital-cotton-basics/
 - https://cottonworks.com/learning-hub/quality-assurance/shrinking-and-skewing/

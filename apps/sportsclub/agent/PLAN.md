@@ -1,14 +1,25 @@
 # Sportsclub Architecture and Master Plan
 
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G11, delivery phase 6 optional.
+
+Sportsclub retains sports enquiries, members, training, and registration. Sites retains public presentation.
+An optional bridge may forward only approved enquiry fields and campaign evidence through a tenant-bound durable contract.
+Do not use membership, registration consent, guardian relationships, or roster visibility as promotional permission.
+Exclude medical information, private member photos, attendance, and private roster data from audiences and campaign reports.
+Approve any guardian/minor communication rules before collecting promotional consent. No such permission is created by this plan.
+
 ## 1. Architectural Strategy and Boundaries
 
 `apps/sportsclub` is designed as a first-class modular multi-tenant application within CODEXSUN, adhering to the mandatory module-owned pattern:
 
-| Boundary | Owner | Responsibilities |
-| --- | --- | --- |
-| **Platform** | `apps/platform` | Authenticated session context, Corporate ID resolution (`TENKASISPORTS`), tenant database connection pooling, user credentials, role grants, and desk layout composition (`AppLayout`, `/app/sportsclub/student`). |
-| **Sportsclub** | `apps/sportsclub` | All sports club business entities, tenant MariaDB tables, lifecycle state machines, master-student relationships, session attendance, training progress evaluations, and authenticated desk workspaces. |
-| **Sites** | `apps/sites` | Public marketing presentation, public client template (`tenkasisports`), Cloudflare Worker deployment, and read-only consumption of Sportsclub public contracts. |
+| Boundary       | Owner             | Responsibilities                                                                                                                                                                                                   |
+| -------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Platform**   | `apps/platform`   | Authenticated session context, Corporate ID resolution (`TENKASISPORTS`), tenant database connection pooling, user credentials, role grants, and desk layout composition (`AppLayout`, `/app/sportsclub/student`). |
+| **Sportsclub** | `apps/sportsclub` | All sports club business entities, tenant MariaDB tables, lifecycle state machines, master-student relationships, session attendance, training progress evaluations, and authenticated desk workspaces.            |
+| **Sites**      | `apps/sites`      | Public marketing presentation, public client template (`tenkasisports`), Cloudflare Worker deployment, and read-only consumption of Sportsclub public contracts.                                                   |
 
 ### Tenancy and Routing Contract
 
@@ -27,6 +38,7 @@
 Persistence uses unprefixed tables in the tenant's isolated MariaDB:
 
 ### Backend Leaf Modules (`apps/sportsclub/api/src/modules/`)
+
 1. **`program`** (`sportsclub_programs`):
    - Disciplines (Silambam, athletics, martial arts), difficulty levels, age groups, public visibility, sort order.
 2. **`master`** (`sportsclub_masters`):
@@ -45,7 +57,9 @@ Persistence uses unprefixed tables in the tenant's isolated MariaDB:
    - External visitor messages, program inquiries, response status, resolution tracking.
 
 ### Frontend Leaf Modules (`apps/sportsclub/web/src/modules/`)
+
 Each leaf module follows the 8-file frontend CRUD standard (`workspace.tsx`, `list.tsx`, `form.tsx`, `services.ts`, `hooks.ts`, `schema.ts`, `types.ts`, `index.ts`):
+
 - `attendance`, `enquiry`, `event`, `master`, `member`, `overview`, `program`, `progress`, and `session`.
 - Exported entry point: `SportsclubWorkspace` rendered by Platform `AppDesk` for tenant users.
 
@@ -76,25 +90,30 @@ flowchart TD
 ```
 
 ### Phase 1: Planning and Component Documentation (Completed)
+
 - Authored canonical component docs: `README.md`, `agent/TASK.md`, `agent/PLAN.md`, `agent/SKILLS.md`.
 - Component documentation verified (30 owners).
 
 ### Phase 2: Multi-Leaf Sportsclub Foundation (Completed)
+
 - API and Web packages scaffolded with 8 backend leaves and 9 frontend leaves.
 - Platform desk integration verified via `apps/platform/api/src/sportsclub-platform.test.ts` (10/10 passed).
 
 ### Phase 3: Sites Presentation & Public Worker (Completed)
+
 - Authentic Sivakalai Gurukulam Silambam curriculum integrated into Sites.
 - Cloudflare Worker configuration and tests verified via `tenkasisports.worker.test.ts` (7/7 passed).
 - Public portal links mapped to `https://app.codexsun.com/login?desk=tenant&app=sportsclub&corporateId=TENKASISPORTS`.
 
 ### Phase 4: Migration & Safe Removal of Sites Code (Completed)
+
 - Misplaced `apps/sites/.../member` code removed.
 - Temporary route and tab injections cleaned from `site.routes.ts`, `site.migration.ts`, `site.studio.tsx`, `site.types.ts`.
 - Legacy failing member test eliminated cleanly.
 - Source-level cleanup verified locally. Note: zero actual user data loss cannot be claimed on live MariaDB databases without live migration execution; local MariaDB integration tests were skipped due to unconfigured test DB.
 
 ### Phase 5: Verification & Boundary Audits (Completed)
+
 - Both `sites` and `sportsclub` pass `node tools/check-module-boundaries.mjs`.
 - Sites packages pass TypeScript typecheck and `npm run test:cms` (13 passed, 1 opt-in MariaDB test skipped).
 - Live network audited: `tenkasisports.com` returns Hostinger/LiteSpeed PHP 8.3 response; live backend endpoint `codexsun.com/api/sportsclub/v1/*` returns 404 (SPA HTML fallback). Full live verification and production proof are explicitly disclaimed.

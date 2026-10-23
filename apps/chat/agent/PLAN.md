@@ -1,5 +1,16 @@
 # Chat plan
 
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G06, delivery phase 5.
+
+Chat retains internal messages, current Telegram account-session credentials, dialogs, polling, and their permissions.
+The reviewed Telegram integration uses phone/code/password sessions. It is not a ready Bot API connector.
+Chat must own a separately reviewed bot adapter, credentials, destinations, webhook, send/status contract, and provider receipts.
+Marketing owns publishing intent and campaign-linked inbox projections. Do not duplicate Chat message storage or raw account dialogs.
+Do not expose existing personal account sessions to Marketing automation or create a second bot webhook consumer.
+
 ## Scope
 
 Tenant channels, direct and group messaging, attachments, realtime delivery, and the optional Telegram integration.

@@ -1,5 +1,19 @@
 # Mail plan
 
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G04/G05, delivery phase 3.
+
+Mail owns transport credentials, sender connections, message delivery, provider feedback, and delivery-safety suppression.
+Marketing owns campaign content, audience snapshots, promotional consent/subscriptions, approval, and recipient business state.
+Current SMTP compose/send/sync and system-send are not campaign dispatch contracts.
+Add per-recipient campaign dispatch/status/cancel operations with sender binding, purpose, revision, approval, and retry identity.
+Check Marketing consent, CRM restrictions, and Mail safety before enqueue and execution. Unavailable eligibility blocks promotions.
+Campaign sends must not silently use the existing environment/shared sender fallback after tenant SMTP failure.
+Add authenticated bounce/complaint feedback, unsubscribe propagation, revocation, bounded batches, and uncertain-result reconciliation.
+This plan does not change existing non-campaign fallback or authorize live sends.
+
 ## Scope
 
 Tenant mail API operations and app-owned mail workspaces.

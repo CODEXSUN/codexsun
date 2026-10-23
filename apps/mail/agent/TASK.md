@@ -1,5 +1,17 @@
 # Mail tasks
 
+## Marketing integration backlog — 2026-10-23
+
+Planning alignment is complete. The following implementation tasks remain open.
+See [Marketing contracts and gaps](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), G04/G05.
+
+- [ ] Define campaign sender/approval/recipient dispatch, delivery event, and unsent-cancel contracts.
+- [ ] Select a suitable bulk provider and verify sender/domain, feedback, quotas, cost limits, and safe suppression storage.
+- [ ] Block campaign shared-sender fallback and test withdrawal/complaint races, duplicate requests, and ambiguous provider acceptance.
+
+Acceptance requires the owner contract, denied-access cases, retry behavior, and exact evidence in this task log.
+No implementation or live validation is claimed by this planning update.
+
 ## Responsibility
 
 Tenant mail API operations and app-owned mail workspaces.

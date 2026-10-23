@@ -1,5 +1,16 @@
 # TConnect plan
 
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G10, delivery phase 6 optional.
+
+TConnect retains enquiries, buyer/seller identity, registration, participant conversations, messages, and quotations.
+Marketing may receive only an explicitly permitted, minimized source projection with stable enquiry UUID and campaign evidence.
+Privacy/registration consent is not promotional opt-in. Public directory membership is not an audience enrollment grant.
+Keep participant-only quotes/messages and competitor offers outside Marketing audiences and reports.
+Preserve TIRUPURCONNECT tenant guards, source lifecycle, and existing Sites public presentation.
+
 ## Sites public client ownership — October 17, 2026
 
 Public pages, assets, metadata and the frontend Worker belong to the Sites client `tirupurconnect`. TConnect retains business contracts, authentication integration and private workspaces. Use `@codexsun/tconnect-web/public` for public business access. The local Sites registry includes this client on port 7040; no remote Studio registry record is claimed. The frontend requires the dedicated `TIRUPURCONNECT` context from codexsun.com. A CODEXSUN response must remain blocked. VPS setup is separate.

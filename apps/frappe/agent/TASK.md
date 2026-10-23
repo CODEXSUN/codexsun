@@ -1,5 +1,17 @@
 # Frappe tasks
 
+## Marketing integration backlog — 2026-10-23
+
+Planning alignment is complete. The following implementation tasks remain open.
+See [Marketing contracts and gaps](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), G12.
+
+- [ ] Review CRM intake against enquiry outbox generation, import echo rules, and tenant sync direction.
+- [ ] Specify source-origin export blocking and approved opt-in policy without changing current record behavior.
+- [ ] Test Marketing intake cannot trigger unapproved remote transfers or use Frappe as a campaign/contact-consent read source.
+
+Acceptance requires the owner contract, denied-access cases, retry behavior, and exact evidence in this task log.
+No implementation or live validation is claimed by this planning update.
+
 ## CRM record verification indicators — 2026-10-22
 
 - [x] Reuse the existing queued remote verification API for enquiry, contact, and call-log row actions. The action only uses `mode: verify`; export policy remains unchanged.

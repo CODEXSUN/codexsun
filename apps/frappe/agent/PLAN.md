@@ -1,5 +1,17 @@
 # Frappe plan
 
+## Marketing integration planning — 2026-10-23
+
+Status: design only. No runtime capability or provider access is added.
+See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G12, delivery phase 1.
+
+Marketing does not add a Frappe read source, Campaign export, Consent export, or new outbound capability.
+Preserve current tenant-specific verified connection, inbound/bidirectional direction, mappings, and approved transfer scopes.
+Marketing intake could create CRM records that enter existing enquiry outbox logic.
+Define a source-aware export policy before enabling Marketing-to-CRM intake. Default new Marketing-origin export to blocked until explicitly approved.
+Do not silently modify the existing exports for current records. Record origin and suppress integration echo loops.
+Provider permission or Marketing activation never grants remote Frappe write authority.
+
 ## Scope
 
 Customer import now sources `Mobile Contact Customer` and validates its `Mobile Contact` and `Customer` references.

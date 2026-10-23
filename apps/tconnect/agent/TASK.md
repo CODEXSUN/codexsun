@@ -1,5 +1,17 @@
 # TConnect tasks
 
+## Marketing integration backlog — 2026-10-23
+
+Planning alignment is complete. The following implementation tasks remain open.
+See [Marketing contracts and gaps](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), G10.
+
+- [ ] Define optional source handoff with explicit field allowlist, consent mapping, source UUID/version, and durable receipt.
+- [ ] Keep private participant negotiation and directory harvesting outside Marketing access.
+- [ ] Verify wrong-tenant denial and absence of competitor quotes, private messages, and implied promotional grants.
+
+Acceptance requires the owner contract, denied-access cases, retry behavior, and exact evidence in this task log.
+No implementation or live validation is claimed by this planning update.
+
 ## Sites public client ownership — October 17, 2026
 
 Public pages, assets, metadata and the frontend Worker belong to the Sites client `tirupurconnect`. TConnect retains business contracts, authentication integration and private workspaces. Use `@codexsun/tconnect-web/public` for public business access. The local Sites registry includes this client on port 7040; no remote Studio registry record is claimed. The frontend requires the dedicated `TIRUPURCONNECT` context from codexsun.com. A CODEXSUN response must remain blocked. VPS setup is separate.
