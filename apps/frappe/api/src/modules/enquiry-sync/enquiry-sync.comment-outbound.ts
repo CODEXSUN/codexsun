@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import type { Kysely } from "kysely";
 import { enquiryCommentRemoteName } from "./enquiry-sync.comment-identity.js";
-import { EnquirySyncRepository, type EnquiryDatabase } from "@codexsun/crm-api/enquiry-sync";
+import {
+  EnquirySyncRepository,
+  scopedFrappeCommentKey,
+  type EnquiryDatabase
+} from "@codexsun/crm-api/enquiry-sync";
 import {
   createEnquiryJobComment,
   FrappeConnectionRepository,
@@ -31,9 +35,14 @@ export async function postEnquiryComment(
     if (parentEvent?.status === "synced") parentName = parentEvent.remote_name;
     if (!parentName && parent.request_id?.startsWith("frappe:")) {
       parentName =
-        comments.find(
-          (remote) =>
-            `frappe:${createHash("sha256").update(remote.name).digest("hex")}` === parent.request_id
+        comments.find((remote) =>
+          [
+            `frappe:${createHash("sha256").update(remote.name).digest("hex")}`,
+            scopedFrappeCommentKey(
+              event.enquiry_id,
+              `frappe:${createHash("sha256").update(remote.name).digest("hex")}`
+            )
+          ].includes(parent.request_id!)
         )?.name ?? null;
     }
     if (!parentName) throw new Error("Sync the parent comment before posting this reply.");

@@ -16,6 +16,7 @@ import type {
   EnquirySearchColumn
 } from "./enquiry.types.js";
 import { sanitizeCommentHtml } from "./enquiry.comment-html.js";
+import { scopedFrappeCommentKey } from "./enquiry.comment-source.js";
 import { EnquirySyncRepository } from "./enquiry.sync.repository.js";
 
 type PersistedRow = Selectable<EnquiryRow> & {
@@ -554,10 +555,18 @@ export class EnquiryRepository {
       await this.dispatchFrappeSync(eventId);
     } catch (error) {
       try {
-        await this.database.updateTable("crm_enquiry_sync_events")
-          .set({ last_error: error instanceof Error ? error.message.slice(0,4000) : "Queue dispatch failed." })
-          .where("id", "=", eventId).where("status", "in", ["pending", "retry"]).execute();
-      } catch { /* The outbox relay recovers after database access returns. */ }
+        await this.database
+          .updateTable("crm_enquiry_sync_events")
+          .set({
+            last_error:
+              error instanceof Error ? error.message.slice(0, 4000) : "Queue dispatch failed."
+          })
+          .where("id", "=", eventId)
+          .where("status", "in", ["pending", "retry"])
+          .execute();
+      } catch {
+        /* The outbox relay recovers after database access returns. */
+      }
       console.warn("[crm-enquiry-sync] immediate dispatch deferred", {
         eventId,
         message: error instanceof Error ? error.message : "Queue dispatch failed."
@@ -650,7 +659,14 @@ export class EnquiryRepository {
       .selectFrom("crm_enquiry_comments")
       .select("id")
       .where("enquiry_id", "=", enquiryId);
-    query = localId ? query.where("id", "=", localId) : query.where("request_id", "=", requestId);
+    query = localId
+      ? query.where("id", "=", localId)
+      : query
+          .where("request_id", "in", [requestId, scopedFrappeCommentKey(enquiryId, requestId)])
+          .orderBy(
+            sql`CASE WHEN request_id=${scopedFrappeCommentKey(enquiryId, requestId)} THEN 0 ELSE 1 END`
+          )
+          .orderBy("id");
     const row = await query.executeTakeFirst();
     return row?.id ?? null;
   }
@@ -664,6 +680,8 @@ export class EnquiryRepository {
     requestId?: string,
     sourceCreatedAt?: string
   ) {
+    const persistedRequestId =
+      sourceCreatedAt && requestId ? scopedFrappeCommentKey(enquiryId, requestId) : requestId;
     const result = await this.database.transaction().execute(async (transaction) => {
       await transaction
         .selectFrom("crm_enquiries")
@@ -675,8 +693,17 @@ export class EnquiryRepository {
         let existingQuery = transaction
           .selectFrom("crm_enquiry_comments")
           .selectAll()
-          .where("request_id", "=", requestId);
-        if (!sourceCreatedAt) existingQuery = existingQuery.where("created_by", "=", actor);
+          .where(
+            "request_id",
+            "in",
+            sourceCreatedAt ? [requestId, persistedRequestId!] : [requestId]
+          );
+        if (sourceCreatedAt)
+          existingQuery = existingQuery
+            .where("enquiry_id", "=", enquiryId)
+            .orderBy(sql`CASE WHEN request_id=${persistedRequestId} THEN 0 ELSE 1 END`)
+            .orderBy("id");
+        else existingQuery = existingQuery.where("created_by", "=", actor);
         const existing = await existingQuery.executeTakeFirst();
         if (existing) {
           if (sourceCreatedAt && existing.enquiry_id === enquiryId) {
@@ -688,6 +715,7 @@ export class EnquiryRepository {
                 body_format: bodyFormat,
                 parent_id: parentId,
                 created_by: actor,
+                request_id: persistedRequestId!,
                 created_at: sourceTimestamp,
                 updated_at: sourceTimestamp
               })
@@ -713,7 +741,7 @@ export class EnquiryRepository {
       const inserted = await transaction
         .insertInto("crm_enquiry_comments")
         .values({
-          request_id: requestId ?? null,
+          request_id: persistedRequestId ?? null,
           enquiry_id: enquiryId,
           parent_id: parentId,
           body,

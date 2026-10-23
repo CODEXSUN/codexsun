@@ -81,6 +81,10 @@ Missing due date, group, and assignee stay empty. Unknown statuses and invalid d
 CRM-only captured email survives source updates. Newer local enquiry edits block automatic overwrites for review.
 Exact Q/ENQ names remain distinct when their numeric serials collide. CRM assigns a free local number when needed.
 Imported comment edits update the same local row. Replies retain parent links, and source revisions preserve earlier content.
+Imported comment retry keys include the local enquiry identity. On refresh, legacy rows retain
+their row IDs and move to the scoped key. Existing legacy duplicates remain preserved; replies
+prefer the scoped parent. Author changes and source IDs reused under another enquiry cannot
+collide with the global comment retry index.
 Per-database import locks serialize selected and queued imports.
 
 Run `npm run test:e2e:frappe-inbound-queue` for disposable database and queue verification.

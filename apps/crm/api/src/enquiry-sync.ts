@@ -1,4 +1,5 @@
 export { EnquiryRepository } from "./modules/enquiry/enquiry.repository.js";
+export { scopedFrappeCommentKey } from "./modules/enquiry/enquiry.comment-source.js";
 export { EnquiryService } from "./modules/enquiry/enquiry.service.js";
 export { EnquirySyncRepository } from "./modules/enquiry/enquiry.sync.repository.js";
 export type {

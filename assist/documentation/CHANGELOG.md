@@ -36,6 +36,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Added a one-minute inbound interval, immediate outbound queue dispatch, and ordered enquiry/opening-comment delivery.
 - Bidirectional enquiry reads retain CRM source identity, creator, email, and date precision; unsent local changes block reverse updates.
 - Contact-mobile export requires an exact existing Customer/Supplier identity. Retries recover a lost create response without duplicate Mobile Contacts.
+- Live ERP1 history exposed legacy comment retry-key collisions. Scope imported keys by enquiry, preserve existing rows and legacy duplicates, and resolve reply parents through the scoped identity. Database regression tests cover author changes and repeated imports.
 - Web contacts, enquiries, duties, and reports show persisted export errors during retries. Tasks stay local with a Not configured badge.
 - Added missing Data Bridge and Marketing API build/resolver entries required by the already committed Platform baseline.
 - Local verification: 193 unit/integration checks, separate checkpoint/outbox/duty database suites, affected type checks, lint, builds, and owner boundaries passed. Deployment and signed mobile results are recorded after verification.

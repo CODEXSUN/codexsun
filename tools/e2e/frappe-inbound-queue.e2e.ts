@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { test } from "node:test";
 import { createConnection } from "mysql2/promise";
 import { sql, type Kysely } from "kysely";
@@ -390,5 +390,83 @@ test(
     assert.equal(deferred?.attempts, 0, "Pausing does not consume the outbox retry budget");
     rows = await db.selectFrom("crm_enquiries").selectAll().execute();
     assert.equal(rows.length, 2);
+    const other = rows.find((row) => row.id !== q930.id)!;
+    const legacyKey = `frappe:${createHash("sha256").update("JC-parent").digest("hex")}`;
+    const parent = (await repository.listComments(q930.id)).find((row) => row.parentId === null)!;
+    await db
+      .updateTable("crm_enquiry_comments")
+      .set({ request_id: legacyKey })
+      .where("id", "=", parent.id)
+      .execute();
+    const imported = {
+      id: "JC-parent",
+      content: "Retained comment",
+      author: "changed-owner@example.test",
+      createdAt: "2026-10-21T10:00:00.000Z"
+    };
+    await db
+      .insertInto("crm_enquiry_comments")
+      .values({
+        request_id: legacyKey,
+        enquiry_id: q930.id,
+        parent_id: null,
+        body: "Legacy duplicate retained",
+        body_format: "html",
+        created_by: imported.author,
+        status: "active",
+        created_at: "2026-10-21 10:00:00",
+        updated_at: "2026-10-21 10:00:00"
+      })
+      .execute();
+    await enquiries.importComment(q930.id, imported);
+    await enquiries.importComment(q930.id, imported);
+    await enquiries.importComment(q930.id, {
+      ...imported,
+      id: "JC-reply",
+      content: "Updated reply",
+      parentSourceId: "JC-parent"
+    });
+    assert.equal(
+      (await repository.listComments(q930.id)).find((row) => row.body === "Updated reply")
+        ?.parentId,
+      parent.id,
+      "Replies prefer the migrated canonical parent over retained legacy duplicates"
+    );
+    assert.equal(
+      (await repository.listComments(q930.id)).filter(
+        (row) => row.body === "Legacy duplicate retained"
+      ).length,
+      1,
+      "Existing legacy content is preserved without blocking retries"
+    );
+    assert.equal(
+      (await repository.listComments(q930.id)).find((row) => row.body === imported.content)?.id,
+      parent.id,
+      "Legacy comment identity stays on its original row"
+    );
+    await enquiries.importComment(other.id, imported);
+    await enquiries.importComment(other.id, {
+      ...imported,
+      id: "JC-reply",
+      content: "Retained reply",
+      parentSourceId: "JC-parent"
+    });
+    await enquiries.importComment(other.id, { ...imported, author: "another-owner@example.test" });
+    await enquiries.importComment(other.id, {
+      ...imported,
+      id: "JC-reply",
+      content: "Retained reply",
+      parentSourceId: "JC-parent"
+    });
+    const scoped = await repository.listComments(other.id);
+    assert.equal(
+      scoped.length,
+      2,
+      "Cross-enquiry source IDs and author changes do not duplicate comments"
+    );
+    assert.equal(
+      scoped.find((row) => row.body === "Retained reply")?.parentId,
+      scoped.find((row) => row.body === imported.content)?.id
+    );
   }
 );

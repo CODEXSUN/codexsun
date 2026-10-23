@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { scopedFrappeCommentKey } from "@codexsun/crm-api/enquiry-sync";
 import { afterEach, test } from "node:test";
 import type { Kysely } from "kysely";
 import type { FrappeDatabase } from "../connection/index.js";
@@ -128,4 +130,22 @@ test("a reply cannot use a parent from another enquiry", async () => {
     { ...comment, id: 6, enquiry_id: 99 }
   ]);
   await assert.rejects(postEnquiryComment(db, event.id, settings), /not part of this enquiry/);
+});
+
+test("a reply resolves an imported parent with an enquiry-scoped source key", async () => {
+  globalThis.fetch = async (input, init) => {
+    if (new URL(String(input)).pathname.endsWith("frappe.client.get_list"))
+      return Response.json({
+        message: [{ name: "JC-source", job_type: "Enquiry", job_id: "Q930" }]
+      });
+    const body = JSON.parse(String(init?.body));
+    assert.equal(body.parent_comment, "JC-source");
+    return Response.json({ data: body });
+  };
+  const sourceKey = `frappe:${createHash("sha256").update("JC-source").digest("hex")}`;
+  const db = database([
+    { ...comment, parent_id: 6 },
+    { ...comment, id: 6, request_id: scopedFrappeCommentKey(42, sourceKey) }
+  ]);
+  await postEnquiryComment(db, event.id, settings);
 });
