@@ -78,6 +78,7 @@ export type PlatformAppsTable = {
     | "platform-task-manager"
     | "blog"
     | "auditor"
+    | "marketing"
     | "crm"
     | "frappe"
     | "zetro"

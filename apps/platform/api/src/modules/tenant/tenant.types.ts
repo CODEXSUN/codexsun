@@ -21,6 +21,7 @@ export type Tenant = {
     | "task-manager"
     | "blog"
     | "auditor"
+    | "marketing"
     | "crm"
     | "frappe"
     | "zetro"
