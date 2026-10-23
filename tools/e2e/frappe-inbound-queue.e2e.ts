@@ -220,12 +220,12 @@ test(
         return Response.json({
           data: [
             { name: "Q930", modified },
-            { name: "ENQ930", modified }
+            { name: "ENQ931", modified }
           ]
         });
       }
       const remoteName = url.pathname.split("/").at(-1);
-      assert.ok(["Q930", "ENQ930"].includes(remoteName ?? ""));
+      assert.ok(["Q930", "ENQ931"].includes(remoteName ?? ""));
       assert.equal(url.searchParams.get("fields"), null, "Read complete source documents");
       return Response.json({
         data: {
@@ -281,7 +281,7 @@ test(
     assert.equal(
       new Set(rows.map((row) => row.enquiry_no)).size,
       2,
-      "Q930 and ENQ930 retain separate identities despite serial collision"
+      "Q930 and ENQ931 retain their exact source serials"
     );
     const q930 = rows.find((row) => row.source_reference === "Q930")!;
     const sourceLink = await connection.byRemoteName("Q930");

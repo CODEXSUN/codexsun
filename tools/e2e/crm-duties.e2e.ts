@@ -472,15 +472,17 @@ test("CRM SOP publishing, assignment, mobile reporting, and outbound queue persi
           processCrmDutySync(database as never, event.id, settings, async () => "HR-EMP-00001"),
           processCrmDutySync(database as never, event.id, settings, async () => "HR-EMP-00001")
         ]);
-        assert.equal(
-          results.filter((result) => result.status === "synced").length,
-          1,
-          "atomic queue claim allows one worker to send the event"
+        assert.ok(results.some((result) => result.status === "synced"));
+        assert.ok(
+          results.every((result) => result.status === "synced" || result.status === "skipped"),
+          "a concurrent worker skips processing or returns the already synced identity"
         );
         assert.equal(
-          results.filter((result) => result.status === "skipped").length,
+          outbound.filter(
+            (request) => new URL(request.url).pathname === "/api/resource/SOP%20Reporting"
+          ).length,
           1,
-          "a concurrent worker skips an already claimed event"
+          "atomic queue claim sends the report only once"
         );
       } else
         await processCrmDutySync(database as never, event.id, settings, async () => "HR-EMP-00001");

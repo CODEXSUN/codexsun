@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.49
+Current version: 1.1.50
 
-Release tag: v-1.1.49
+Release tag: v-1.1.50
 
-Changelog label: v 1.1.49
+Changelog label: v 1.1.50
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,32 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.50
+
+### [v 1.1.50] 2026-10-23 9:12 pm - Preserve enquiry assignments and align Frappe identities
+
+#### Database Changes
+
+- Database update: No (manual). No schema migration is required.
+- Completed the approved TECHMEDIA data repair for nine enquiries. Reused existing Customers C2083, C3663, and C9325. Added eight Mobile Contacts and eight Customer associations.
+- Matched CRM numbers 2065-2073 to Q2065-Q2073 while preserving stable record IDs, messages, dates, and assignees.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.50.
+
+- Export enquiry assignees through verified site-scoped Employee mappings. Reject missing and ambiguous mappings instead of clearing assignments.
+- Resolve the installed Frappe Enquiry Status before export. Preserve CRM-only lists when remote groups are empty.
+- Reconcile linked enquiry numbers transactionally with collision checks and activity history. Support exact Q and ENQ identities.
+- Authorize failed enquiry retries with the CRM update permission and verified bidirectional settings.
+- Live repair verification passed twelve Redis export replays and two imports with zero creations or failures. The enquiry outbox had zero unsent events.
+- Web showed green sync indicators for all nine records. TechMedia mobile verified Vijay's assigned enquiry 2071. Frappe Desk verified Q2066 and its Customer link.
+- Build TechMedia Android 1.1.50, build 150, with the existing release signing identity and live cloud API.
+- Correct the Duty concurrency test to accept an already-synced worker response while asserting exactly one remote report request.
+- Verification passed the full workspace check, 200 CRM/Frappe unit tests, three integration tests, the inbound checkpoint/retry integration test, and CRM/Frappe/Platform API builds.
+- Flutter analysis and all 77 mobile tests passed. APK Signature Scheme v2 verification passed for package `in.codexsun.techmedia_crm`, version 1.1.50, build 150.
+- TechMedia APK SHA-256: `926ce43fc83122f1183c83c46e49506139a93c883ad0613fd37efa12c2d099df`.
 
 ## v-1.1.49
 

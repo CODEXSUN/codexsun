@@ -8,6 +8,8 @@ import type { FrappeSettings } from "../connection/index.js";
 import { FrappeEnquirySyncService } from "./enquiry-sync.service.js";
 import type { EnquirySyncContext } from "./enquiry-sync.types.js";
 import { withEnquiryImportLock } from "./enquiry-sync.lock.js";
+import { FrappeConnectionAccess } from "../connection/index.js";
+import { FrappeLiveSyncService } from "../live-sync/index.js";
 
 const queueEventSchema = z.object({
   id: z.number().int().positive(),
@@ -163,9 +165,28 @@ export function registerFrappeEnquirySyncRoutes(
       response: z.object({ id: z.number().int().positive(), status: z.literal("pending") })
     },
     handler: async ({ params, request }) => {
-      await context(request);
-      void params;
-      throw AppError.conflict("Sending CRM enquiries to Frappe is disabled.");
+      const scope = await context(request);
+      const live = await new FrappeLiveSyncService(scope.database).settings();
+      if (
+        !live.enabled ||
+        live.paused ||
+        live.direction !== "bidirectional" ||
+        !live.modules.enquiries
+      )
+        throw AppError.conflict("Enable bidirectional enquiry sync before retrying exports.");
+      if (
+        !(await new FrappeConnectionAccess(
+          scope.database,
+          encryptionSecret,
+          settings
+        ).exportCredentials())
+      )
+        throw AppError.conflict("Verify and enable the Frappe connection before retrying exports.");
+      const repository = new EnquirySyncRepository(scope.database);
+      const event = await repository.getEvent(params.eventId);
+      if (event && !["enquiry-upsert", "comment-add"].includes(event.event_type))
+        throw AppError.conflict("This Frappe sync action is not supported.");
+      return repository.retry(params.eventId);
     }
   });
   registerContractRoute(app, {

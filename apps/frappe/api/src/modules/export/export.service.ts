@@ -3,17 +3,22 @@ import { createHash } from "node:crypto";
 import { AppError } from "@codexsun/framework/errors";
 import {
   FrappeConnectionAccess,
+  FrappeConnectionRepository,
   createEnquiryJobComment,
   listEnquiryJobComments,
   requestFrappe,
   updateEnquiryJobComment
 } from "../connection/index.js";
 import type { FrappeDatabase, FrappeSettings } from "../connection/index.js";
-import { mappedEmployeeCodeForLocalUser } from "../user-mapping/index.js";
+import {
+  mappedEmployeeCodeForLocalUser,
+  mappedLocalUserForEmployeeCode
+} from "../user-mapping/index.js";
 import type { FrappeUserMappingDatabase } from "../user-mapping/index.js";
 import { normalizeFrappeEnquiryTitle } from "./enquiry-title.js";
 import { assertFrappeExportAllowed } from "./export.policy.js";
 import { resolveEnquiryMobile } from "./enquiry-mobile.js";
+import { resolveEnquiryStatus } from "./enquiry-status.js";
 import type {
   ExportKind,
   ExportMode,
@@ -582,6 +587,7 @@ export class FrappeExportService {
       description: string | null;
       captured_phone: string | null;
       status: string;
+      status_name: string;
       priority: string;
       enquired_at: string | Date;
       due_date: string | Date | null;
@@ -589,13 +595,17 @@ export class FrappeExportService {
       source: string;
       created_by: string;
       contact_id: number | null;
+      assigned_user_id: number | null;
+      assignee_email: string | null;
       remote_name: string | null;
-    }>`SELECT e.title, e.description, e.captured_phone, status_master.code AS status, priority_master.name AS priority,
+    }>`SELECT e.title, e.description, e.captured_phone, status_master.code AS status, status_master.name AS status_name, priority_master.name AS priority,
       e.enquired_at, e.due_date, e.captured_name, e.source, e.created_by, e.contact_id,
+      e.assigned_user_id, assignee.email AS assignee_email,
       link.remote_name FROM crm_enquiries e
       INNER JOIN crm_enquiry_statuses status_master ON status_master.id=e.status_id
       INNER JOIN crm_enquiry_priorities priority_master ON priority_master.id=e.priority_id
       LEFT JOIN frappe_enquiry_sync link ON link.enquiry_id=e.id
+      LEFT JOIN app_users assignee ON assignee.id=e.assigned_user_id AND assignee.status='active'
       WHERE e.id=${id} LIMIT 1`.execute(this.database);
     const enquiry = result.rows[0];
     if (!enquiry) throw AppError.notFound("Enquiry was not found.");
@@ -603,6 +613,28 @@ export class FrappeExportService {
     if (!title)
       throw AppError.validation("Add readable text to the enquiry title before exporting.");
     const linkedName = verifiedRemoteName ?? enquiry.remote_name;
+    const assignee = enquiry.assigned_user_id
+      ? await mappedEmployeeCodeForLocalUser(
+          this.database as Kysely<FrappeUserMappingDatabase>,
+          enquiry.assignee_email ?? "",
+          settings.baseUrl
+        )
+      : null;
+    if (enquiry.assigned_user_id && !assignee)
+      throw AppError.conflict(
+        "Map this enquiry's assignee to one active Frappe employee before export."
+      );
+    if (
+      assignee &&
+      (await mappedLocalUserForEmployeeCode(
+        this.database as Kysely<FrappeUserMappingDatabase>,
+        assignee,
+        settings.baseUrl
+      )) !== enquiry.assigned_user_id
+    )
+      throw AppError.conflict(
+        "This Frappe employee has ambiguous CRM user mappings. Resolve the assignee mapping before export."
+      );
     const creator = linkedName
       ? undefined
       : await this.creatorEmployee(enquiry.created_by, settings);
@@ -647,8 +679,9 @@ export class FrappeExportService {
       date: dateOnly(enquiry.enquired_at),
       due_date: enquiry.due_date ? dateOnly(enquiry.due_date) : undefined,
       priority: titleCase(enquiry.priority),
-      status: frappeStatus(enquiry.status),
-      user_employee: creator
+      status: await resolveEnquiryStatus(settings, enquiry.status_name),
+      user_employee: creator,
+      assigned_to_employee: assignee
     };
     const response = await requestFrappe<{ data?: { name?: string } }>(
       linkedName
@@ -661,10 +694,7 @@ export class FrappeExportService {
     );
     const remoteName = response.data?.name || linkedName;
     if (!remoteName) throw AppError.conflict("Frappe did not return the enquiry ID.");
-    await sql`INSERT INTO frappe_enquiry_sync (enquiry_id, remote_name) VALUES (${id}, ${remoteName})
-      ON DUPLICATE KEY UPDATE remote_name=VALUES(remote_name), synced_at=UTC_TIMESTAMP()`.execute(
-      this.database
-    );
+    await new FrappeConnectionRepository(this.database).save(id, remoteName);
     return remoteName;
   }
 
@@ -778,14 +808,6 @@ function frappeDateTime(value: string | Date) {
 
 function titleCase(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1).replaceAll("_", " ");
-}
-
-function frappeStatus(value: string) {
-  const status = value.toLowerCase().replace(/[-_]/gu, " ");
-  if (status === "open") return "Pending";
-  if (status === "long hold" || status === "hold") return "Hold";
-  if (["won", "lost", "closed"].includes(status)) return "Closed";
-  return titleCase(value);
 }
 
 function normalized(value: string | null | undefined) {

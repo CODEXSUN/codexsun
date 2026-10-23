@@ -4717,7 +4717,7 @@
       "title": "apps/crm/README.md",
       "summary": "CRM — apps/crm/README.md",
       "sourcePath": "applications/repository/sources/9d12b67de5811df0.md",
-      "sourceHash": "402abbc44f023984336eeb5a1c46bd21f467cc784f0d057d5bc5773b13b486d7",
+      "sourceHash": "9c22cfb45351a655507803045d7c1510a37d53594d73de4347546c8defa7f266",
       "sortOrder": 5100
     },
     {
@@ -4964,7 +4964,7 @@
       "title": "apps/frappe/agent/TASK.md (part 1/2)",
       "summary": "Frappe tasks — apps/frappe/agent/TASK.md",
       "sourcePath": "applications/repository/sources/cceb4789abcaac9c-1.md",
-      "sourceHash": "a5092ef050b1cd4f4b457a33c9c155889285e7ac2f216028e628a7d3e6db89ec",
+      "sourceHash": "c9352ae36af4af5ae320c908855ba19544d63fe045163eb8e2a0b565433e07f8",
       "sortOrder": 6500
     },
     {
@@ -4977,7 +4977,7 @@
       "title": "apps/frappe/agent/TASK.md (part 2/2)",
       "summary": "Frappe tasks — apps/frappe/agent/TASK.md",
       "sourcePath": "applications/repository/sources/cceb4789abcaac9c-2.md",
-      "sourceHash": "eadb54542037e9bb237770ff5fecc36a13a51589eff2d2b68bdd2892e54d2826",
+      "sourceHash": "42bf87b21867ac9f0634cdad8e51ed89a9171cd8bf137eaf13ff34b9ebb7d8e6",
       "sortOrder": 6501
     },
     {
@@ -4990,7 +4990,7 @@
       "title": "apps/frappe/README.md",
       "summary": "Frappe — apps/frappe/README.md",
       "sourcePath": "applications/repository/sources/d621cdee198475a5.md",
-      "sourceHash": "bf12703f67d361ba96b7fab2e6682422e75e04ed017cf43bd10cadab9a07c770",
+      "sourceHash": "aaa5b1abea89f28fc6fb1f30ef099cbbcbe40b5673abc0fab008ec10b483e1c9",
       "sortOrder": 6600
     },
     {
@@ -5432,7 +5432,7 @@
       "title": "apps/platform/README.md",
       "summary": "Platform — apps/platform/README.md",
       "sourcePath": "applications/repository/sources/5858dc5ad6ebc850.md",
-      "sourceHash": "1d70787f34082961c7bf6c8b4132f5b777b4287dc760043e292a48bfe306f9bd",
+      "sourceHash": "e4f76be1aff2fe6ffd3775cf20720f2e26261735cb34b2871aeeb5b8b7ec6ad1",
       "sortOrder": 9500
     },
     {
@@ -6251,7 +6251,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 1/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-1.md",
-      "sourceHash": "c8a62c8fdcfc0402f627eed35327a25c1999016fb7a12297bcf248b4d2274797",
+      "sourceHash": "315f3fe0b127ee37f736c5557f906233de4e7ffc14208244a1b2554dbb6ef1f6",
       "sortOrder": 14900
     },
     {
@@ -6264,7 +6264,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 2/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-2.md",
-      "sourceHash": "c1fb132c4833312653a6db50647bc2cf661436664ae4b955394230f513fa03ed",
+      "sourceHash": "c25f4e7d0e35687280f28a5316a62c2bacd452c528fa62f42b1f41bebdcc8c45",
       "sortOrder": 14901
     },
     {
@@ -6277,7 +6277,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 3/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-3.md",
-      "sourceHash": "85c5c797acf4fe8dee7191404b2f9690e47677e8df1e783b1f0a8d0cf3749e9d",
+      "sourceHash": "c1c1cc391e63599ec48109f38c23d7c4308f8b94a216680338495a1bfa23ae4c",
       "sortOrder": 14902
     },
     {
@@ -6290,7 +6290,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 4/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-4.md",
-      "sourceHash": "a1aacb731dafcf376f01ff0ec454ec64fc1aa52c9efd6076b056fbdb5fd2686d",
+      "sourceHash": "03967d4a717f136f638ff6f5692c8ab25c41c1a8275c9c1db67d988149a386f4",
       "sortOrder": 14903
     },
     {
@@ -6303,7 +6303,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 5/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-5.md",
-      "sourceHash": "a702725790224df0330f41b497791f659f0e9428f3ebb7adf95d55f19b74b5ce",
+      "sourceHash": "3d29c3c2d0bd07f7698d9d656df3d6f2fe57ca1403972df66d65e13238442464",
       "sortOrder": 14904
     },
     {
@@ -6316,7 +6316,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 6/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-6.md",
-      "sourceHash": "526ff1342ad8da271235bef2c493f680ee077e222de06e3be120e901d101a606",
+      "sourceHash": "679589baf6b011bfe626320adaa63960261251ed7e0c2aa4be7ea33e9f4e3f64",
       "sortOrder": 14905
     },
     {
@@ -6329,7 +6329,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 7/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-7.md",
-      "sourceHash": "e9d74995967d24ad0b698cccee63fde726d708c09a1705497c81fe4b0c1145a5",
+      "sourceHash": "716ec4feb9438c2c6652fcd42bc95878059412dbf1c17a0db050452ccc2f9c1e",
       "sortOrder": 14906
     },
     {
@@ -6342,7 +6342,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 8/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-8.md",
-      "sourceHash": "c068cbe6cd182fe30f7dd2738beed5625df98670706a86198569fc3a1ec68f93",
+      "sourceHash": "ce3e3daa8bc464554291abe55b6188c18254c680fb3d834f06d0bdfe84096fc0",
       "sortOrder": 14907
     },
     {
@@ -6355,7 +6355,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 9/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-9.md",
-      "sourceHash": "d88dade4f89dbf9c89f8e3695f5c02c344085df26d515c825bd73b58f1d7d0e7",
+      "sourceHash": "cd202f8256110e9079f958b4f4c523c8c284f4d18bee9c4b7bfc2883806886f0",
       "sortOrder": 14908
     },
     {
@@ -6368,7 +6368,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 10/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-10.md",
-      "sourceHash": "e6775df9b56cdfff169d0ff8dcea424cec8f2c9cb48e1f9e0ab115e53339948a",
+      "sourceHash": "5cd9a38b6df083d3c6a30cc4df445a4c57cc222aca3efeec027249710f232995",
       "sortOrder": 14909
     },
     {
@@ -6381,7 +6381,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 11/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-11.md",
-      "sourceHash": "63bbca36c1f6721cd0029316140b6dc143fdfef23c592b660538e1be2e7f2bf7",
+      "sourceHash": "d12403cee887f1d7acebe5f784a5136e93a8a7d892028e0644a9f068bd7e3de2",
       "sortOrder": 14910
     },
     {

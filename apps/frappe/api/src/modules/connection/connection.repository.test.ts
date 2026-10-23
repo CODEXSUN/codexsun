@@ -15,7 +15,8 @@ test("saving an enquiry link stores a MariaDB DATETIME value", async () => {
     execute: async () => undefined
   };
   const database = {
-    insertInto: () => insert
+    insertInto: () => insert,
+    selectFrom: () => ({ select: () => ({ execute: async () => [] }) })
   } as unknown as Kysely<FrappeDatabase>;
 
   await new FrappeConnectionRepository(database).save(42, "ENQ27");

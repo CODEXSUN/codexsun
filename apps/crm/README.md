@@ -95,6 +95,10 @@ assignment page.
 
 ## Enquiry contacts and closure approvals
 
+Bidirectional Frappe enquiry sync exports mapped assignees and adopts the serial Frappe returns after posting.
+Number changes keep stable record IDs and append activity history. Unknown remote Employee mappings block import without clearing allocation.
+Remote source snapshots retain fields that have no CRM editor. Tasks remain local with no Frappe contract.
+
 Enquiries use the same Core contact IDs as the CRM contact form.
 Contact changes refresh the enquiry customer lookup. The enquiry Customer tab links to its saved contact.
 The Closure approvals tab shows the closure request and its review actions.

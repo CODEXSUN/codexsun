@@ -1,0 +1,64 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { planEnquiryNumbers } from "./enquiry.numbering.js";
+
+test("Frappe serials replace CRM serials without losing colliding local records", () => {
+  const records = [
+    { id: 1, enquiryNo: 2075 },
+    { id: 2, enquiryNo: 2060 },
+    { id: 3, enquiryNo: 930 }
+  ];
+  const links = [
+    { enquiryId: 1, remoteName: "Q2060" },
+    { enquiryId: 3, remoteName: "ENQ27" }
+  ];
+  const plan = planEnquiryNumbers(records, links, 2076);
+  assert.equal(plan.moves.find((move) => move.id === 1)?.after, 2060);
+  assert.equal(plan.moves.find((move) => move.id === 2)?.after, 2076);
+  assert.equal(plan.moves.find((move) => move.id === 3)?.after, 27);
+  const final = records.map((row) => ({
+    ...row,
+    enquiryNo: plan.moves.find((move) => move.id === row.id)?.after ?? row.enquiryNo
+  }));
+  assert.equal(new Set(final.map((row) => row.enquiryNo)).size, 3);
+  assert.deepEqual(planEnquiryNumbers(final, links, plan.nextNumber).moves, []);
+});
+
+test("swapped serials use distinct temporary numbers and preserve Q930", () => {
+  const plan = planEnquiryNumbers(
+    [
+      { id: 1, enquiryNo: 1 },
+      { id: 2, enquiryNo: 930 }
+    ],
+    [
+      { enquiryId: 1, remoteName: "Q930" },
+      { enquiryId: 2, remoteName: "Q1" }
+    ],
+    931
+  );
+  assert.deepEqual(
+    plan.moves.map((move) => move.after),
+    [930, 1]
+  );
+  assert.equal(new Set(plan.moves.map((move) => move.temporary)).size, 2);
+  assert.ok(plan.moves.every((move) => move.temporary > 930));
+});
+
+test("ambiguous Q and ENQ serials block renumbering instead of guessing", () => {
+  assert.throws(
+    () =>
+      planEnquiryNumbers(
+        [],
+        [
+          { enquiryId: 1, remoteName: "Q930" },
+          { enquiryId: 2, remoteName: "ENQ930" }
+        ],
+        931
+      ),
+    /share enquiry number/
+  );
+  assert.throws(
+    () => planEnquiryNumbers([], [{ enquiryId: 1, remoteName: "Q999999999999" }], 1),
+    /unsupported number/
+  );
+});

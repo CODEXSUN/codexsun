@@ -3,7 +3,11 @@ import type { FrappeDatabase } from "./connection.types.js";
 import type { FrappeConnectionInput } from "./connection.types.js";
 import { decryptFrappeCredential, encryptFrappeCredential } from "./connection.secrets.js";
 import { sql } from "kysely";
-import type { EnquiryListOptions } from "@codexsun/crm-api/enquiry-sync";
+import {
+  EnquiryNumbering,
+  type EnquiryDatabase,
+  type EnquiryListOptions
+} from "@codexsun/crm-api/enquiry-sync";
 
 export class FrappeConnectionRepository {
   constructor(private readonly database: Kysely<FrappeDatabase>) {}
@@ -178,6 +182,13 @@ export class FrappeConnectionRepository {
       })
       .onDuplicateKeyUpdate({ remote_name: remoteName, synced_at: syncedAt, ...sourceTimestamp })
       .execute();
+    const links = await this.database
+      .selectFrom("frappe_enquiry_sync")
+      .select(["enquiry_id as enquiryId", "remote_name as remoteName"])
+      .execute();
+    await new EnquiryNumbering(this.database as unknown as Kysely<EnquiryDatabase>).reconcile(
+      links
+    );
   }
 
   async overview(

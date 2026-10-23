@@ -5,10 +5,88 @@ import type { Kysely } from "kysely";
 import type { EnquiryRecord } from "@codexsun/crm-api/enquiry-sync";
 import type { FrappeDatabase } from "../connection/index.js";
 import { registerFrappeEnquirySyncRoutes } from "./enquiry-sync.routes.js";
+import { encryptFrappeCredential } from "../connection/connection.secrets.js";
 
 const originalFetch = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = originalFetch;
+});
+
+test("retry requires bidirectional sync, a verified connection, and a failed supported event", async () => {
+  for (const scenario of ["inbound", "unverified", "unsupported", "synced", "allowed"]) {
+    let updates = 0;
+    let authorized = 0;
+    const query = (table: string) => {
+      const builder = {
+        selectAll: () => builder,
+        select: () => builder,
+        where: () => builder,
+        set: () => builder,
+        executeTakeFirstOrThrow: async () => ({
+          enabled: true,
+          paused: false,
+          direction: scenario === "inbound" ? "inbound" : "bidirectional",
+          enquiries_enabled: true,
+          schedule_minutes: 1,
+          updated_at: new Date(),
+          updated_by: "test"
+        }),
+        executeTakeFirst: async () =>
+          table === "frappe_connection_settings"
+            ? {
+                enabled: true,
+                verification_status: scenario === "unverified" ? "unverified" : "verified",
+                base_url: "https://frappe.example/",
+                api_key_ciphertext: encryptFrappeCredential("key", "secret", "key"),
+                api_secret_ciphertext: encryptFrappeCredential("api-secret", "secret", "secret")
+              }
+            : {
+                id: 1,
+                status: scenario === "synced" ? "synced" : "failed",
+                event_type: scenario === "unsupported" ? "job-upsert" : "enquiry-upsert"
+              },
+        execute: async () => {
+          updates++;
+          return [{ numUpdatedRows: 1n }];
+        }
+      };
+      return builder;
+    };
+    const app = Fastify();
+    registerFrappeEnquirySyncRoutes(
+      app,
+      async () => {
+        authorized++;
+        return {
+          database: { selectFrom: query, updateTable: query } as never,
+          createEnquiry: async () => ({ id: 1 }) as EnquiryRecord,
+          updateEnquiry: async () => ({ id: 1 }) as EnquiryRecord,
+          localUserForEmployee: async () => null,
+          listInForName: async () => null
+        };
+      },
+      { baseUrl: "", apiKey: "", apiSecret: "", enabled: false },
+      "secret",
+      {
+        start: async () => ({ jobId: 1, status: "pending" }),
+        status: async () => ({ jobId: 1, status: "pending", progress: null, errorMessage: null }),
+        latest: async () => null
+      }
+    );
+    try {
+      const response = await app.inject({
+        method: "POST",
+        url: "/frappe/enquiries/sync-queue/1/retry",
+        payload: {}
+      });
+      assert.equal(authorized, 1);
+      assert.equal(updates, scenario === "allowed" ? 1 : 0);
+      if (scenario === "allowed") assert.equal(response.statusCode, 200);
+      else assert.ok(response.statusCode >= 400);
+    } finally {
+      await app.close();
+    }
+  }
 });
 
 test("remote preview, selected pull, and import job routes are available", async () => {

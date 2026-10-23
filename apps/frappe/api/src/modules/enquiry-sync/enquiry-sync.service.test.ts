@@ -568,6 +568,67 @@ test("bidirectional imports update linked CRM enquiries but block unsent local e
   }
 });
 
+test("bidirectional assignee changes map exactly and unknown employees never erase allocation", async () => {
+  for (const employee of ["HR-EMP-00011", null, "HR-EMP-UNKNOWN"]) {
+    const scope = database({
+      enquiryId: 42,
+      syncedAt: "2026-10-07 10:00:00",
+      updatedAt: "2026-10-06 11:00:00",
+      source: "manual",
+      contactId: null,
+      assignedUserId: 7,
+      listInId: 9
+    });
+    globalThis.fetch = async (input) =>
+      String(input).includes("/Enquiry/")
+        ? Response.json({
+            data: {
+              name: "Q930",
+              creation: "2026-10-06 10:00:00",
+              modified: "2026-10-07 11:30:00",
+              title: "Allocation test",
+              mobile: "9994885548",
+              date: "2026-10-06",
+              status: "New",
+              priority: "Normal",
+              assigned_to_employee: employee
+            }
+          })
+        : Response.json({ data: [], message: [] });
+    let updates = 0;
+    const service = new FrappeEnquirySyncService(
+      {
+        database: scope.value,
+        createEnquiry: async () => {
+          throw new Error("Unexpected create");
+        },
+        updateEnquiry: async (id, input) => {
+          updates++;
+          assert.equal(input.assignedUserId, employee ? 8 : null);
+          assert.equal(
+            input.listInId,
+            9,
+            "Deferred outbound group mapping must not clear a local list"
+          );
+          return { id } as EnquiryRecord;
+        },
+        localUserForEmployee: async (code) => (code === "HR-EMP-00011" ? 8 : null),
+        listInForName: async () => null
+      },
+      defaults,
+      "secret",
+      true
+    );
+    if (employee === "HR-EMP-UNKNOWN") {
+      await assert.rejects(service.pull("Q930"), /Map Frappe employee/);
+      assert.equal(updates, 0);
+    } else {
+      await service.pull("Q930");
+      assert.equal(updates, 1);
+    }
+  }
+});
+
 test("pull translates Frappe status, priority, and Indian mobile formatting", async () => {
   const lookups: string[] = [];
   const scope = database(undefined, lookups);

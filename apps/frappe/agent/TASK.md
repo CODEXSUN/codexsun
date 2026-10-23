@@ -301,3 +301,34 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - [x] Delete twelve test documents and confirm no labelled remote documents or disposable databases remain.
       Evidence: `npm run test:e2e:crm-duties-live`; eight mapping tests and isolated Duty E2E also passed.
       Direct worker dispatch was used. Background relay scheduling was not tested.
+
+## Enquiry assignment and numbering round trip — 2026-10-23
+
+- [x] Export the assignee through the verified site-scoped Employee mapping. Block missing or ambiguous mappings.
+- [x] Reject unmapped inbound Employee assignments before updating CRM. Keep explicit remote unassignment supported.
+- [x] Preserve a CRM-originated enquiry list when the remote group is empty and the outbound group contract remains deferred.
+- [x] Resolve exports against installed Enquiry Status names. The live ERP uses Open and rejects the old Pending alias.
+- [x] Adopt the serial returned by Frappe after posting. Reconcile existing links in a transaction with collision relocation and activity history.
+- [x] Gate failed-event retry by the existing authorized context, bidirectional settings, verified credentials, and supported event types.
+- [x] Pass 127 CRM enquiry and Frappe tests, the isolated inbound checkpoint/retry database test, API builds, lint, boundaries, and dependency layout.
+- [x] Deploy the scoped API patch to TECHMEDIA's existing erp1.techmedia.in connection. Verify all eight deployed JavaScript checksums and public health.
+- [x] Verify web enquiry Q2062, mobile enquiry Q2063, and Frappe-origin enquiry Q2064. Confirm number, mobile, customer association, message, assignee, status, priority, and the tested due date.
+- [x] Verify mobile Job Comments export and remote comments import. Repeat Redis exports and two imports without duplicate enquiries or comments.
+- [x] Observe automatic import jobs 1242-1245 one minute apart, each completed with zero failures and advancing checkpoints.
+- [ ] Resolve missing Frappe Mobile Contact Customer associations for nine older CRM enquiries, currently numbered 2083-2091. Retry checks report missing identities rather than guessing Customers.
+
+The backup is /home/codexsun/.container/backups/techmedia-before-enquiry-align-20261023T1435.sql with a verified SHA-256 sidecar.
+The API image is codexsun/api:1.1.47-enquiry-align. Web remains 1.1.47 and the emulator uses TechMedia 1.1.48.
+Tasks remain local. No LogicX source, Customer record, customer association, or shared infrastructure was changed.
+Frappe writes and reads used the saved connection API. This does not claim Frappe Desk UI verification.
+
+## Nine enquiry repairs completed — 2026-10-23
+
+- [x] Resolve the earlier nine association blockers through existing Customers. Use user-selected C2083 for seven enquiries, C3663 for Need Printer, and exact unique match C9325 for Need latest camera.
+- [x] Create eight minimum Mobile Contacts and eight associations. Preserve original Customer details and local record history.
+- [x] Verify all nine synced records and remote links, with matching serials 2065-2073.
+- [x] Replay twelve exports through Redis/BullMQ jobs 1296-1307. All reused existing remote identities.
+- [x] Repeat imports 1308-1309: each scanned nine, created zero, skipped nine, and failed zero. Verify zero unsent enquiry events.
+- [x] Verify green web indicators for all nine, Frappe Desk Q2066, and mobile assigned enquiry 2071. Other assignees retain their existing visibility.
+
+The previous blocked checklist records the earlier state. These repairs supersede that blocker. No new Customer or LogicX source change was required. Tasks remain local.

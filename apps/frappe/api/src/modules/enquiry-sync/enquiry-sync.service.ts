@@ -592,9 +592,15 @@ export class FrappeEnquirySyncService {
           settings.baseUrl
         )
       : null;
+    if (remote.assigned_to_employee?.trim() && !mappedAssignee)
+      throw AppError.conflict(
+        `Map Frappe employee ${remote.assigned_to_employee.trim()} to one active CRM user before importing this enquiry.`
+      );
     const listInId = remote.group?.trim()
       ? await this.context.listInForName(remote.group.trim())
-      : null;
+      : linked?.source !== "frappe"
+        ? (linked?.listInId ?? null)
+        : null;
     return {
       title:
         normalizeFrappeEnquiryTitle(remote.title) ||

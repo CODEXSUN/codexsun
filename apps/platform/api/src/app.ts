@@ -2007,6 +2007,8 @@ export async function createApp() {
       await context.authorize("crm.enquiry.view-all");
       if (request.method === "POST") {
         const path = request.url.split("?")[0];
+        if (/^\/frappe\/enquiries\/sync-queue\/\d+\/retry$/u.test(path ?? ""))
+          await context.authorize("crm.enquiry.update");
         if (path === "/frappe/enquiries/pull") {
           await context.authorize("crm.enquiry.create");
           await context.authorize("crm.enquiry.update");

@@ -10,6 +10,7 @@ atomically; Redis delivery uses the selected BullMQ backend. Queue startup also 
 The first inbound queue job imports history. Later jobs start from the last successful source checkpoint.
 The enquiry outbox remains stored while inbound-only mode pauses automatic exports.
 See [Frappe](../frappe/README.md) for the migration, source data contract, and verification limits.
+Enquiry export retries require `crm.enquiry.update`, Frappe connection management, and enquiry view-all access.
 
 Active, DNS-verified custom domains select their mapped tenant for login and password
 recovery. Corporate ID is hidden on those forms. Shared-host login, including

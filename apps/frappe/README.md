@@ -40,7 +40,23 @@ Live sync defaults to **Frappe → CRM only** after migration `frappe.connection
 Select **Both directions (enquiries and contact mobiles)** to allow automatic exports.
 Inbound mode also pauses the CRM enquiry outbox relay and previously queued automatic enquiry exports.
 Pending outbox events remain stored. Explicit manual exports remain separate, permission-protected operations.
-This change does not add the deferred outbound group, assignee, or status-details mappings.
+Enquiry exports send the assignee through the verified, site-scoped Employee mapping.
+Unmapped or ambiguous assignees block export. An unmapped remote Employee blocks import
+without clearing the saved CRM allocation. Explicit remote unassignment still clears allocation.
+Group and status-details exports remain deferred. An absent remote group preserves the list
+on CRM-originated enquiries.
+
+Status exports use the installed Enquiry Status names before considering supported legacy aliases.
+They do not send `Pending` when the site supports `Open` instead.
+
+Frappe assigns the enquiry number during creation. CRM adopts the returned `Q<number>` or
+`ENQ<number>` serial after linking, rather than predicting the next remote counter value.
+Reconciliation uses a transaction, temporary serials for swaps, and an activity entry for each change.
+Record IDs, links, comments, and timestamps remain intact. Local records occupying a remote serial
+move to an unused CRM serial. Conflicting Q/ENQ serials block reconciliation for review.
+
+Failed enquiry and comment events can be retried through the authorized queue API only while
+bidirectional enquiry sync and the verified connection are enabled. Unsupported event types stay blocked.
 
 Enable the verified connection, queue worker, Live sync, and Enquiries. Select the interval, starting at one minute.
 The scheduler checks every ten seconds. The interval controls when a pass becomes due;
