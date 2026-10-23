@@ -41,11 +41,17 @@ export class QueueManagerService {
     if (job) {
       const backend = await this.repository.backend();
       if (backend === "bullmq-redis") await publishBullMqJob(job);
-      else if (input.dispatchImmediately && env.CODEXSUN_QUEUE_WORKER_ENABLED === "1" &&
-        job.status === "pending" && Date.parse(job.availableAt) <= Date.now()) {
+      else if (
+        input.dispatchImmediately &&
+        env.CODEXSUN_QUEUE_WORKER_ENABLED === "1" &&
+        job.status === "pending" &&
+        Date.parse(job.availableAt) <= Date.now()
+      ) {
         void this.runJob(job.id).catch((error) => {
-          console.warn("[queue] immediate dispatch deferred to worker", { jobId: job.id,
-            message: error instanceof Error ? error.message : "Dispatch failed." });
+          console.warn("[queue] immediate dispatch deferred to worker", {
+            jobId: job.id,
+            message: error instanceof Error ? error.message : "Dispatch failed."
+          });
         });
       }
     }

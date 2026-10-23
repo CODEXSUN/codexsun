@@ -86,7 +86,7 @@ test(
     await seedPriorityMaster(db);
     await runMigrationBatch(db, {
       ...frappeTenantMigrationBatch,
-      steps: frappeTenantMigrationBatch.steps.slice(0, -1)
+      steps: frappeTenantMigrationBatch.steps.filter((step) => step.version <= 8)
     });
     await sql`UPDATE frappe_live_sync_settings SET schedule_minutes=30 WHERE id=1`.execute(db);
     await migrateFrappeTenantDatabase(db);

@@ -17,7 +17,8 @@ export async function processLocalEnquirySync(
   if (!event) throw new Error("CRM enquiry sync event was not found.");
   if (event.status === "synced" || event.status === "failed")
     return { eventId, status: event.status, remoteName: event.remote_name };
-  if ((await new FrappeLiveSyncService(database).settings()).direction === "inbound") {
+  const live = await new FrappeLiveSyncService(database).settings();
+  if (live.direction === "inbound" || !live.enabled || live.paused || !live.modules.enquiries) {
     throw new Error("Automatic enquiry export is paused: Frappe → CRM only.");
   }
   if (!["enquiry-upsert", "comment-add"].includes(event.event_type)) {

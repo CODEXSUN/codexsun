@@ -10,7 +10,7 @@ import {
   type FrappeSettings
 } from "../connection/index.js";
 import { FrappeLiveSyncService } from "../live-sync/index.js";
-import { FrappeExportService } from "../export/index.js";
+import { FrappeExportService } from "./export.service.js";
 
 export type ContactExportDatabase = FrappeDatabase & CrmFrappeSyncDatabase;
 
@@ -49,7 +49,8 @@ export async function processContactExport(
   secret: string,
   defaults: FrappeSettings
 ) {
-  if ((await new FrappeLiveSyncService(database).settings()).direction !== "bidirectional")
+  const live = await new FrappeLiveSyncService(database).settings();
+  if (live.direction !== "bidirectional" || !live.enabled || live.paused || !live.modules.contacts)
     throw new Error("Automatic contact export is paused: Frappe → CRM only.");
   const event = await database
     .selectFrom("crm_frappe_sync_queue")

@@ -320,7 +320,7 @@ test("closed status is applied only by closure approval", async () => {
 });
 
 test("Frappe imports preserve closed status while local updates still require approval", async () => {
-  const current = record();
+  const current = { ...record(), source: "frappe", sourceReference: "ENQ7" };
   let saved: EnquiryInput | undefined;
   let sourceMetadataSaved = false;
   const repository = {
@@ -356,6 +356,50 @@ test("Frappe imports preserve closed status while local updates still require ap
     service.updateProperties(7, { statusId: 5, closedReason: "Finished" }, "creator@example.com"),
     /closure approval workflow/i
   );
+});
+
+test("reverse sync preserves local enquiry identity, audit metadata, email and date precision", async () => {
+  const current = {
+    ...record(),
+    capturedEmail: "local@example.test",
+    sourceReference: "web-form",
+    enquiredAt: "2026-10-07T09:45:00.000Z"
+  };
+  let saved: EnquiryInput | undefined;
+  let metadataWrites = 0;
+  const repository = {
+    get: async () => current,
+    update: async (_id: number, input: EnquiryInput) => {
+      saved = input;
+      return { ...current, ...input };
+    },
+    setImportedSourceMetadata: async () => {
+      metadataWrites++;
+    }
+  } as unknown as EnquiryRepository;
+  const service = new EnquiryService(repository, relations, {
+    actorEmail: "system:frappe-import",
+    actorUserId: null,
+    canViewAll: true
+  });
+  const result = await service.updateImported(
+    7,
+    { ...record(), title: "Updated remotely", source: "frappe", sourceReference: "Q930" },
+    "system:frappe-import",
+    {
+      createdAt: "2026-10-06T00:00:00.000Z",
+      updatedAt: "2026-10-08T00:00:00.000Z",
+      createdBy: "remote@example.test"
+    }
+  );
+  assert.equal(saved?.title, "Updated remotely");
+  assert.equal(saved?.source, current.source);
+  assert.equal(saved?.sourceReference, current.sourceReference);
+  assert.equal(saved?.capturedEmail, current.capturedEmail);
+  assert.equal(saved?.enquiredAt, current.enquiredAt);
+  assert.equal(result.createdBy, current.createdBy);
+  assert.equal(result.createdAt, current.createdAt);
+  assert.equal(metadataWrites, 0);
 });
 
 test("Frappe import keeps ambiguous contacts on the enquiry snapshot without linking arbitrarily", async () => {

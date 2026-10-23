@@ -26,7 +26,8 @@ export async function processCrmDutySync(
     .executeTakeFirst();
   const event = initial;
   if (!event) throw AppError.notFound("CRM Frappe sync queue event was not found.");
-  if (event.entity_type === "contact") throw AppError.validation("Use the contact export worker for contacts.");
+  if (event.entity_type === "contact")
+    throw AppError.validation("Use the contact export worker for contacts.");
   if (event.status === "synced" && event.remote_name)
     return { eventId, status: "synced", remoteName: event.remote_name };
   const claim = await database
@@ -34,6 +35,7 @@ export async function processCrmDutySync(
     .set({ status: "processing", attempts: sql`attempts + 1` })
     .where("id", "=", eventId)
     .where("status", "=", "pending")
+    .where("dispatch_revision", "=", event.dispatch_revision)
     .where("attempts", "<", 5)
     .executeTakeFirst();
   if (Number(claim.numUpdatedRows) !== 1) {
@@ -46,11 +48,7 @@ export async function processCrmDutySync(
       return { eventId, status: "synced", remoteName: current.remote_name };
     return { eventId, status: "skipped" };
   }
-  const claimed = await database
-    .selectFrom("crm_frappe_sync_queue")
-    .selectAll()
-    .where("id", "=", eventId)
-    .executeTakeFirstOrThrow();
+  const claimed = { ...event, attempts: event.attempts + 1 };
   try {
     const { path, payload, remoteName } = await buildDocument(
       database,

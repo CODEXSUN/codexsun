@@ -118,7 +118,7 @@ export function FrappeLiveSyncWorkspace() {
               }
             >
               <option value="inbound">Frappe → CRM only</option>
-              <option value="bidirectional">Both directions (enquiries)</option>
+              <option value="bidirectional">Both directions (enquiries and contact mobiles)</option>
             </select>
           </label>
           <label className="grid gap-1 text-sm">
@@ -160,14 +160,19 @@ export function FrappeLiveSyncWorkspace() {
           </span>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          {(["enquiries"] as const).map((kind) => (
+          {(draft.direction === "bidirectional"
+            ? (["enquiries", "contacts"] as const)
+            : (["enquiries"] as const)
+          ).map((kind) => (
             <WorkspaceSwitchCard
               key={kind}
               label={labels[kind]}
               description={
-                draft.direction === "inbound"
-                  ? "Import Frappe enquiries and comments. Scheduled CRM exports are off."
-                  : "Import Frappe enquiries and comments, and export approved CRM enquiry changes."
+                kind === "contacts"
+                  ? "Export supported mobile links immediately after a CRM contact save."
+                  : draft.direction === "inbound"
+                    ? "Import Frappe enquiries and comments. Scheduled CRM exports are off."
+                    : "Import Frappe enquiries and comments, and export approved CRM enquiry changes."
               }
               checked={draft.modules[kind]}
               disabled={save.isPending || !draft.enabled}
@@ -322,7 +327,11 @@ export function FrappeLiveSyncQueueWorkspace() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {(Object.keys(labels) as LiveSyncKind[])
-                  .filter((kind) => kind === "enquiries")
+                  .filter(
+                    (kind) =>
+                      kind === "enquiries" ||
+                      (kind === "contacts" && settings.data?.direction === "bidirectional")
+                  )
                   .map((kind) => (
                     <DropdownMenuItem key={kind} onSelect={() => run.mutate(kind)}>
                       {settings.data?.direction === "inbound"

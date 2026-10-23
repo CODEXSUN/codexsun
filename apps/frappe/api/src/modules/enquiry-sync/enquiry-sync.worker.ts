@@ -17,8 +17,10 @@ export async function processFrappeEnquiryImportJob(
 ) {
   return withEnquiryImportLock(context.database, async () => {
     const liveSync = new FrappeLiveSyncService(context.database);
+    let allowLinkedUpdates = false;
     if (checkpointAt) {
       const settings = await liveSync.settings();
+      allowLinkedUpdates = settings.direction === "bidirectional";
       if (!settings.enabled || settings.paused || !settings.modules.enquiries)
         return { scanned: 0, created: 0, skipped: 0, failed: 0, failures: [] };
       if (settings.inboundBaseUrl && settings.inboundBaseUrl !== expectedBaseUrl) {
@@ -40,7 +42,12 @@ export async function processFrappeEnquiryImportJob(
       if (!connection || connection.baseUrl !== expectedBaseUrl)
         throw new Error("Verify and enable the same Frappe connection before live import.");
     }
-    const service = new FrappeEnquirySyncService(context, defaults, encryptionSecret);
+    const service = new FrappeEnquirySyncService(
+      context,
+      defaults,
+      encryptionSecret,
+      allowLinkedUpdates
+    );
     const progress = modifiedAfter
       ? await service.importModifiedSince(modifiedAfter, report, expectedBaseUrl)
       : await service.importUnlinked(report, expectedBaseUrl, !checkpointAt);

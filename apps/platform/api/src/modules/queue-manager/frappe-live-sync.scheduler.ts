@@ -28,7 +28,9 @@ export function startFrappeLiveSyncScheduler(queue: QueueManagerService) {
           const previous = await liveSync.settings();
           const kinds = await liveSync.dueKinds();
           // Enquiry writes use the immediate outbox, avoiding a second competing creation path.
-          for (const kind of approvedFrappeAutomaticExports(kinds, previous.direction).filter((kind) => kind !== "enquiries"))
+          for (const kind of approvedFrappeAutomaticExports(kinds, previous.direction).filter(
+            (kind) => kind !== "enquiries"
+          ))
             await enqueue(queue, tenant.uuid, tenant.dbName, kind);
           if (kinds.includes("enquiries")) {
             const connection = await new FrappeConnectionAccess(database, env.JWT_SECRET, {
@@ -72,9 +74,22 @@ async function enqueueInboundEnquiries(
   baseUrl: string,
   modifiedAfter: string | undefined
 ) {
-  const active = (await Promise.all(["pending", "running"].map((status) => queue.listJobs({
-    tenantId, jobName: "frappe.enquiries.import", queueName: "reports", status: status as "pending" | "running"
-  })))).flat().some((job) => job.payload.tenantDatabase === tenantDatabase && job.payload.baseUrl === baseUrl);
+  const active = (
+    await Promise.all(
+      ["pending", "running"].map((status) =>
+        queue.listJobs({
+          tenantId,
+          jobName: "frappe.enquiries.import",
+          queueName: "reports",
+          status: status as "pending" | "running"
+        })
+      )
+    )
+  )
+    .flat()
+    .some(
+      (job) => job.payload.tenantDatabase === tenantDatabase && job.payload.baseUrl === baseUrl
+    );
   if (active) return;
   const windowKey = Math.floor(Date.now() / 60_000);
   await queue.enqueue({

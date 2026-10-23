@@ -2,7 +2,7 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `5a1085f148a66f32cfb70f386aa22c0b6ae96f025cef4a8801300a6f7f9bf751`
+Source SHA-256 (LF line endings): `7263f00e98c37a5a603dfbd07028a1e35f7200d0d76c75e951f1a055dd363b39`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -10,6 +10,21 @@ Historical notes and unchecked plans retain their original status.
 
 ```markdown
 # Frappe tasks
+
+## Bidirectional delivery and visible failures — 2026-10-23
+
+- [x] Support a one-minute inbound interval and immediate post-save enquiry/contact-mobile queue dispatch.
+- [x] Apply reverse updates to linked CRM enquiries in bidirectional mode, preserving local identity and audit fields. Block unsent local enquiry changes.
+- [x] Preserve first delivery errors during pending retries for contacts, enquiries, duties, and reports.
+- [x] Keep Tasks local with **Not configured**, as explicitly selected by the user.
+- [x] Verify immediate database queue dispatch, a lost Mobile Contact create response, duplicate-free retry, and a new edit after completion in an isolated database.
+- [x] Pass checkpoint/history, enquiry outbox, duty retry, unit, type, lint, build, component-doc, dependency-layout, and owner-boundary checks.
+- [x] Apply CRM queue v2 and Frappe v10 locally. Enable CODEXSUN bidirectional mode at one minute; preserve 56 existing enquiries.
+- [ ] Deploy these changes and verify the selected production Redis workers and browser behavior.
+
+Remote responses in the new queue tests are controlled. This work does not claim a production
+write/readback, a hard one-minute completion guarantee during outages, or new mobile UI delivery.
+Contact export remains the existing Mobile Contact-only contract with an exact Customer/Supplier ID.
 
 ## Marketing integration backlog — 2026-10-23
 
@@ -192,23 +207,5 @@ The live VPS smoke test exercised the shared BullMQ + Redis queue with the non-b
       CRM documentation approves automatic outbound transfer only for SOP and Duty records.
 - [x] Verify both Contact directions and the queued CRM-to-Frappe export through the browser.
       Evidence: `npm run test:e2e:frappe-contacts-live` on `logicx.tmnext.in` imported Customer `C9138` into disposable local Core storage, confirmed the same local ID on retry, then created and read back one unique Mobile Contact using only `mobile_number`; repeat export updated that same document and cleanup deleted it. The mismatch path remained blocked.
-      The local browser export page verified Customer `C9138`, showed “Create Mobile Contact” and “Ready · mobile number only”, queued the export, and completed with 1 exported and 0 failed. Remote readback confirmed the Mobile Contact ID and `mobile_number` were `6886246988`; the exact remote test document and local CRM fixture were then removed and absence verified. CRM did not create another Frappe Customer or Supplier. This was a local browser/API queue test against the live Frappe site, not a production deployment.
-
-## Enquiry live sync and source timestamps - 2026-10-18
-
-- [x] Enforce the approved outbound scope at the Frappe export service boundary: enquiries may be
-      exported; contacts, activities, and call logs are blocked for both manual and queued requests.
-      Verification remains available for every kind. Imports and stored data are unchanged.
-      Regression: `export.policy.test.ts`.
-
-- [x] Limit scheduled CRM-to-Frappe exports to Enquiries; do not automatically export Contacts,
-      Activities, or Call Logs without separate approval. Regression:
-      `frappe-live-sync.policy.test.ts` (2/2).
-- [ ] Deploy the current sync changes. Production preflight is blocked because the guarded updater
-      expects Compose project `codexsun-billing` / service `platform-api`, while the live API is
-      owned by project `codexsun` / service `codexsun-api`; the checked-in updater's deployment
-      environment also does not match the active release. Preflight stopped before backup or
-      container changes. CXApp and all current application containers remained running.
-- [ ] Preserve exact Frappe creation/modified timestamps and comment timestamps when importing or
-      reconciling enquiries. Incrementally receive Frappe changes and post CRM enqui
+      The local browser export page verified Customer `C9138`, showed “Create Mobile Contact” and “Ready · mobile number only”, queued the export, and completed with 1 exported and 0 failed. Remote readback confirmed the Mobile Contact ID and `mobile_number` were `6886246988`; the exact remote test document and local CRM fixture were then removed and absence verified. CRM did not create another Frappe Customer or Supplier. This was a l
 ```

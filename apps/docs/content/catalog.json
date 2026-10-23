@@ -3876,6 +3876,71 @@
       "sortOrder": 200
     },
     {
+      "pageKey": "marketing/modules/brand",
+      "appKey": "marketing",
+      "appLabel": "marketing",
+      "groupKey": "modules",
+      "groupLabel": "Modules",
+      "moduleKey": "brand",
+      "title": "brand",
+      "summary": "Source contract for brand.",
+      "sourcePath": "applications/marketing/modules/brand.md",
+      "sourceHash": "289ef1bfa0160e10b0d75e0ce7b7af2b1b3e2349d5bd21912b3a8983cd8f9378",
+      "sortOrder": 100
+    },
+    {
+      "pageKey": "marketing/modules/campaign",
+      "appKey": "marketing",
+      "appLabel": "marketing",
+      "groupKey": "modules",
+      "groupLabel": "Modules",
+      "moduleKey": "campaign",
+      "title": "campaign",
+      "summary": "Source contract for campaign.",
+      "sourcePath": "applications/marketing/modules/campaign.md",
+      "sourceHash": "c304438ecaccae39f00efe4abf2cbd7bf6a77a2a9dc047e3faa1ce7046d44ad9",
+      "sortOrder": 100
+    },
+    {
+      "pageKey": "marketing/modules/capture",
+      "appKey": "marketing",
+      "appLabel": "marketing",
+      "groupKey": "modules",
+      "groupLabel": "Modules",
+      "moduleKey": "capture",
+      "title": "capture",
+      "summary": "Source contract for capture.",
+      "sourcePath": "applications/marketing/modules/capture.md",
+      "sourceHash": "3ee24c58bac184d25d5c1c603ecc1ea35013295cae40338108bb8fca0ca3505a",
+      "sortOrder": 100
+    },
+    {
+      "pageKey": "marketing/modules/connection",
+      "appKey": "marketing",
+      "appLabel": "marketing",
+      "groupKey": "modules",
+      "groupLabel": "Modules",
+      "moduleKey": "connection",
+      "title": "connection",
+      "summary": "Source contract for connection.",
+      "sourcePath": "applications/marketing/modules/connection.md",
+      "sourceHash": "392729c4a35136e4feddf2257b3943a99fbef82fdfdae829b0ac7ba43343b6e2",
+      "sortOrder": 100
+    },
+    {
+      "pageKey": "data-bridge/modules/common-table-import",
+      "appKey": "data-bridge",
+      "appLabel": "data-bridge",
+      "groupKey": "modules",
+      "groupLabel": "Modules",
+      "moduleKey": "common-table-import",
+      "title": "common-table-import",
+      "summary": "Source contract for common-table-import.",
+      "sourcePath": "applications/data-bridge/modules/common-table-import.md",
+      "sourceHash": "7ea2e8a83e969f592d781269cadae90b715919f5559c7cc6fde172a0556c0b26",
+      "sortOrder": 100
+    },
+    {
       "pageKey": "repository/sources/fd7a8c5d23af0f32",
       "appKey": "repository",
       "appLabel": "Repository",
@@ -4457,7 +4522,7 @@
       "title": "apps/crm/agent/TASK.md (part 1/3)",
       "summary": "CRM Delivery Tasks — apps/crm/agent/TASK.md",
       "sourcePath": "applications/repository/sources/190edf653cf55c8f-1.md",
-      "sourceHash": "d2407a0058b701da54a24b5ceed659eb98d81ffb2630114cd90a3364b6bf46be",
+      "sourceHash": "8506893695d117dd6528799974893d2a27f357398a487321bce18d75dbd4093a",
       "sortOrder": 4300
     },
     {
@@ -4470,7 +4535,7 @@
       "title": "apps/crm/agent/TASK.md (part 2/3)",
       "summary": "CRM Delivery Tasks — apps/crm/agent/TASK.md",
       "sourcePath": "applications/repository/sources/190edf653cf55c8f-2.md",
-      "sourceHash": "9d99fe56e864471e96fe3f96309f83427022746c6ae93fe460bead8d340e10f9",
+      "sourceHash": "6e662c74cda3a538157d4f7a7ab3d7c881afa4e31fd39cd79e2fb346df2f799b",
       "sortOrder": 4301
     },
     {
@@ -4483,7 +4548,7 @@
       "title": "apps/crm/agent/TASK.md (part 3/3)",
       "summary": "CRM Delivery Tasks — apps/crm/agent/TASK.md",
       "sourcePath": "applications/repository/sources/190edf653cf55c8f-3.md",
-      "sourceHash": "02e4505cc9f5bab2564947247eab79e1be1700a254115eacd18436c3360d7b27",
+      "sourceHash": "7a562e298f1797230864ff54ec48b5f475944483e28fdb23610168adc3b9a87c",
       "sortOrder": 4302
     },
     {
@@ -4587,7 +4652,7 @@
       "title": "apps/crm/README.md",
       "summary": "CRM — apps/crm/README.md",
       "sourcePath": "applications/repository/sources/9d12b67de5811df0.md",
-      "sourceHash": "a4d58c4f0422a73dfbe2415627ca52a46304adcb8710cddebf5c242ffec229a5",
+      "sourceHash": "5a159c1f36382e567c5867deca657278e509b268490fcbf0f135d0a9d2397b92",
       "sortOrder": 5100
     },
     {
@@ -4821,7 +4886,7 @@
       "title": "apps/frappe/agent/TASK.md (part 1/2)",
       "summary": "Frappe tasks — apps/frappe/agent/TASK.md",
       "sourcePath": "applications/repository/sources/cceb4789abcaac9c-1.md",
-      "sourceHash": "735001681598a05073153939746ceea3820b239cdfd749039fe793557c2ecdb3",
+      "sourceHash": "a83fd1e41ce9153375a9b90d3947aa475c6be3a386cd123f9160dba31de64636",
       "sortOrder": 6400
     },
     {
@@ -4834,7 +4899,7 @@
       "title": "apps/frappe/agent/TASK.md (part 2/2)",
       "summary": "Frappe tasks — apps/frappe/agent/TASK.md",
       "sourcePath": "applications/repository/sources/cceb4789abcaac9c-2.md",
-      "sourceHash": "da0f799a77cc83e965d921e46bac82b28d7afe60f0bd6fcd7c7ed50e091adbd2",
+      "sourceHash": "49a9de03c8c4ee397beed68e1ff94789d99aca4fd4071785b30f51b2abb9c7d9",
       "sortOrder": 6401
     },
     {
@@ -4847,7 +4912,7 @@
       "title": "apps/frappe/README.md",
       "summary": "Frappe — apps/frappe/README.md",
       "sourcePath": "applications/repository/sources/d621cdee198475a5.md",
-      "sourceHash": "8489229174398e1d1a1253e405645130ae82b43bd4cdbccfda3d8ebaed562f60",
+      "sourceHash": "76ae1a183a73d4cf1bd8b2015f343b3df1cbfb7cb870dc972b68d334032aa18b",
       "sortOrder": 6500
     },
     {
@@ -5276,7 +5341,7 @@
       "title": "apps/platform/README.md",
       "summary": "Platform — apps/platform/README.md",
       "sourcePath": "applications/repository/sources/5858dc5ad6ebc850.md",
-      "sourceHash": "d795b0c9b6b39155f442b17fd322e785d9173284385d21173419fc0f2d212723",
+      "sourceHash": "498283c989659a40c9e8ff8a154cfa79117777e2f7afa1ec29c61c2db80f3032",
       "sortOrder": 9400
     },
     {
@@ -6095,7 +6160,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 1/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-1.md",
-      "sourceHash": "da6e305a669f0b3dfbb3263df6d75457e31619b0dad4ac15aa8289123c03239f",
+      "sourceHash": "300c819df6fe56f4c710cfabd1a258c7028b6c9346bb682c42a8859e7914348b",
       "sortOrder": 14800
     },
     {
@@ -6108,7 +6173,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 2/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-2.md",
-      "sourceHash": "bfbb584ee0459f016531ea6c0535573957c9cc62d2e4d41badbcc47d7bb1354f",
+      "sourceHash": "8aa2b0b4a2c272d8d9dc4738f52515008d7c31af47030c519e9dcc873d4b534a",
       "sortOrder": 14801
     },
     {
@@ -6121,7 +6186,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 3/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-3.md",
-      "sourceHash": "4152ccfac46a10a5653cee42c9ca25407a07024b38257a14127a753b34f5814e",
+      "sourceHash": "046b9035600ffc21e101461377a110f44964f49cd9858ffe37907722ac2f3fa0",
       "sortOrder": 14802
     },
     {
@@ -6134,7 +6199,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 4/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-4.md",
-      "sourceHash": "1ffcfc165bdea48594718ba240b82bcd1c666f68f29bdfc4dfe25853197151ef",
+      "sourceHash": "61f4d85308b92dd084bdfbcb2aec1c70a84b8b15ca0e5f6333e4e0bd7eef2934",
       "sortOrder": 14803
     },
     {
@@ -6147,7 +6212,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 5/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-5.md",
-      "sourceHash": "171d32d1ca06ada145043a0a6c4bbe59441373624043debb0db57a8ad885e715",
+      "sourceHash": "230fb5cf55e0276af19b109ae686ecc516438daf881742a783c28e5772aa6dbc",
       "sortOrder": 14804
     },
     {
@@ -6160,7 +6225,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 6/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-6.md",
-      "sourceHash": "dc06d5ec673cecb6a4c78aa1758681148f939ac0e4386d5ee58f435ce639d4e2",
+      "sourceHash": "b40a1efa541f71ef6d31c6ea8adfe173e26ce10c8bfd8066393d2e22c78c67bd",
       "sortOrder": 14805
     },
     {
@@ -6173,7 +6238,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 7/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-7.md",
-      "sourceHash": "780e6bdc28a544321e209c26ad77993454e9af7cc5fbce6aab3d0e385ec3a601",
+      "sourceHash": "93d24fd1ffcbe52968ea4a39a760368bcd142027b0e4bf4e017634ec08b0730b",
       "sortOrder": 14806
     },
     {
@@ -6186,7 +6251,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 8/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-8.md",
-      "sourceHash": "d77897a17994b436d1cf96867bba41053d0161173a104091c41cb5a89a97c83a",
+      "sourceHash": "2b13ca7a2c749f70babbea48450c0913c6c880ce8d280e8feb6d9470abb08549",
       "sortOrder": 14807
     },
     {
@@ -6199,7 +6264,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 9/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-9.md",
-      "sourceHash": "39a3d4b9a483bec6745eee88644cdd6a873ae436e6d899c6e2f9f23825a35ece",
+      "sourceHash": "ae132815f543c6852e5f9b12e9a46cbed0c3bb918d18036f97d43d1f714a3457",
       "sortOrder": 14808
     },
     {
@@ -6212,7 +6277,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 10/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-10.md",
-      "sourceHash": "8038592f9ac48ee30d800e77a643cc6237e08ab1d89209fa01cc0146df3c2591",
+      "sourceHash": "5e0c8bea74bc35fd147986908cedd651e2329dd4efdbff0301ac7aa8b9ed65be",
       "sortOrder": 14809
     },
     {
@@ -6225,7 +6290,7 @@
       "title": "assist/documentation/CHANGELOG.md (part 11/11)",
       "summary": "Changelog — assist/documentation/CHANGELOG.md",
       "sourcePath": "applications/repository/sources/c5dafc7c82bc2403-11.md",
-      "sourceHash": "5e0834113bdff712c8af5b2ee77b83ae574109acbeb2fbe85b61d84751679fd3",
+      "sourceHash": "6be34f45339cb34d52596bf5b0e30361382c4d31131b0301e7ffaaae704abf34",
       "sortOrder": 14810
     },
     {
@@ -6732,7 +6797,7 @@
       "title": "devkits/data-bridge/agent/PLAN.md",
       "summary": "Data Bridge plan — devkits/data-bridge/agent/PLAN.md",
       "sourcePath": "applications/repository/sources/a3b736f2ac593e08.md",
-      "sourceHash": "15d1971d16f51c15fa9dacb526671f8bcabd7c1a4ac9c97ecad958ec5006b57d",
+      "sourceHash": "70cbe2bfaec1d99a954fb9313481c11df22e783f4ea4fe7e918a35cac27282c9",
       "sortOrder": 18700
     },
     {
@@ -6758,7 +6823,7 @@
       "title": "devkits/data-bridge/agent/TASK.md",
       "summary": "Data Bridge tasks — devkits/data-bridge/agent/TASK.md",
       "sourcePath": "applications/repository/sources/4bced1c95596deb2.md",
-      "sourceHash": "4bce9230b85493f1bfe6a2fb14afc5b21580b236818d722f205c3dc8da9f6de6",
+      "sourceHash": "f58a8c45946f0b2348482512feac6f45820a5fab67f9d99579412c1243c4b6a9",
       "sortOrder": 18900
     },
     {
@@ -6771,7 +6836,7 @@
       "title": "devkits/data-bridge/README.md",
       "summary": "Data Bridge — devkits/data-bridge/README.md",
       "sourcePath": "applications/repository/sources/63f5cadd6c01b51f.md",
-      "sourceHash": "9a46e711407fada0594187791ebbe6791c7f33d3c695e7e448ad7bf4388a0774",
+      "sourceHash": "6677596d8177971a599c2229be74aed51b0c2885853a7ad2748f10f6f4d82f90",
       "sortOrder": 19000
     },
     {

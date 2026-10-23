@@ -22,6 +22,7 @@ RUN npm run build -w @codexsun/framework \
   && npm run build -w @codexsun/codexsun-api \
   && npm run build -w @codexsun/core-api \
   && npm run build -w @codexsun/crm-api \
+  && npm run build -w @codexsun/data-bridge-api \
   && npm run build -w @codexsun/data-migration-api \
   && npm run build -w @codexsun/docs-api \
   && npm run build -w @codexsun/ecommerce-api \
@@ -30,6 +31,7 @@ RUN npm run build -w @codexsun/framework \
   && npm run build -w @codexsun/hrms-api \
   && npm run build -w @codexsun/logicx-erp-api \
   && npm run build -w @codexsun/mail-api \
+  && npm run build -w @codexsun/marketing-api \
   && npm run build -w @codexsun/notes-api \
   && npm run build -w @codexsun/project-manager-api \
   && npm run build -w @codexsun/qcafe-api \

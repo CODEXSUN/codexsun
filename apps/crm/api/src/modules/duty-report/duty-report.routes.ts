@@ -27,7 +27,7 @@ const row = z.object({
   actions: z.string(),
   result: z.enum(["completed", "blocked"]),
   frappeSyncStatus: z.enum(["pending", "processing", "failed", "synced"]).nullable(),
-  frappeSyncError: z.string().nullable(),
+  frappeSyncError: z.string().nullable().optional(),
   issueDetails: z.string(),
   submittedBy: z.string(),
   createdAt: z.string(),

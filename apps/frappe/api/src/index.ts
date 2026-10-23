@@ -29,7 +29,13 @@ export {
   frappeCallLogSyncModule
 } from "./modules/call-log-sync/index.js";
 export { frappeContactImportModule } from "./modules/contact-import/index.js";
-export { processContactExport, contactDeliveryStates, requestContactExport, recoverContactExports, type ContactExportDatabase } from "./modules/contact-export/index.js";
+export {
+  processContactExport,
+  contactDeliveryStates,
+  requestContactExport,
+  recoverContactExports,
+  type ContactExportDatabase
+} from "./modules/export/export.contact.js";
 export { linkEnquiryCustomerIdentity } from "./modules/contact-import/contact-import.service.js";
 export { frappeActivityImportModule } from "./modules/activity-import/index.js";
 export {

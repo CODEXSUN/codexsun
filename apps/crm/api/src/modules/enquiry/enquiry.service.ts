@@ -185,8 +185,22 @@ export class EnquiryService {
           })
         : null;
     const current = await this.get(id);
+    const localOrigin = current.source !== "frappe";
     const prepared = await this.prepare(
-      { ...input, capturedEmail: current.capturedEmail },
+      {
+        ...input,
+        capturedEmail: current.capturedEmail,
+        ...(localOrigin
+          ? {
+              source: current.source,
+              sourceReference: current.sourceReference,
+              enquiredAt:
+                input.enquiredAt.slice(0, 10) === current.enquiredAt.slice(0, 10)
+                  ? current.enquiredAt
+                  : input.enquiredAt
+            }
+          : {})
+      },
       current,
       true
     );
@@ -200,6 +214,7 @@ export class EnquiryService {
       false
     );
     if (!record) throw AppError.notFound("Enquiry was not found.");
+    if (localOrigin) return record;
     const metadata = {
       createdAt: source.createdAt,
       updatedAt: source.updatedAt,

@@ -18,7 +18,7 @@ export function startQueueManagerWorker(app: FastifyInstance, service = new Queu
   }
   let running = false;
   let cleanupTicks = 0;
-  queueWorkerTimer = setInterval(() => {
+  const dispatch = () => {
     if (running) return;
     running = true;
     void service
@@ -35,6 +35,9 @@ export function startQueueManagerWorker(app: FastifyInstance, service = new Queu
             service.runJob(queueJobId, { fromWorker: true })
           );
           startBullMqWorker("mail", (queueJobId) =>
+            service.runJob(queueJobId, { fromWorker: true })
+          );
+          startBullMqWorker("marketing", (queueJobId) =>
             service.runJob(queueJobId, { fromWorker: true })
           );
           startBullMqWorker("reports", (queueJobId) =>
@@ -63,7 +66,9 @@ export function startQueueManagerWorker(app: FastifyInstance, service = new Queu
       .finally(() => {
         running = false;
       });
-  }, env.CODEXSUN_QUEUE_WORKER_INTERVAL_MS);
+  };
+  queueWorkerTimer = setInterval(dispatch, env.CODEXSUN_QUEUE_WORKER_INTERVAL_MS);
+  dispatch();
   queueWorkerTimer.unref();
   app.addHook("onClose", async () => {
     if (queueWorkerTimer) {

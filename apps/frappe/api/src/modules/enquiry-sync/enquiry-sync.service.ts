@@ -36,7 +36,8 @@ export class FrappeEnquirySyncService {
   constructor(
     private readonly context: EnquirySyncContext,
     private readonly defaults: FrappeSettings,
-    private readonly encryptionSecret: string
+    private readonly encryptionSecret: string,
+    private readonly allowLinkedUpdates = false
   ) {
     this.repository = new FrappeConnectionRepository(context.database);
   }
@@ -338,7 +339,7 @@ export class FrappeEnquirySyncService {
       { enquiry: remote },
       linked?.enquiryId ?? null
     );
-    if (linked && linked.source !== "frappe" && preserveLocalOrigin) {
+    if (linked && linked.source !== "frappe" && preserveLocalOrigin && !this.allowLinkedUpdates) {
       await sourceRecords.retain(
         settings.baseUrl,
         remoteName,
@@ -349,8 +350,21 @@ export class FrappeEnquirySyncService {
       await this.importComments(linked.enquiryId, remoteName, settings);
       return { remoteName, enquiryId: linked.enquiryId, status: "updated" as const };
     }
-    if (linked && linked.source !== "frappe")
+    if (linked && linked.source !== "frappe" && !this.allowLinkedUpdates)
       throw AppError.conflict("This enquiry originated locally. Post its changes to Frappe.");
+    if (linked && this.allowLinkedUpdates) {
+      const unsent = await this.context.database
+        .selectFrom("crm_enquiry_sync_events")
+        .select("id")
+        .where("enquiry_id", "=", linked.enquiryId)
+        .where("event_type", "=", "enquiry-upsert")
+        .where("status", "!=", "synced")
+        .executeTakeFirst();
+      if (unsent)
+        throw AppError.conflict(
+          "This enquiry has unsent CRM changes. Finish its export before applying Frappe changes."
+        );
+    }
     if (linked && !allowSourceOverwrite && utcMillis(linked.updatedAt) > utcMillis(linked.syncedAt))
       throw AppError.conflict(
         "The local enquiry changed after its last sync. Review it before pulling."

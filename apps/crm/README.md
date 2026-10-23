@@ -1,5 +1,10 @@
 # CRM
 
+Frappe sync errors remain visible on contacts, enquiries, duties, and duty reports while retries
+are pending. Web views refresh these states every second. Tasks remain local and show
+**Not configured**. Supported contact-mobile and enquiry exports dispatch after the local save;
+the durable queue remains the recovery source. See [Frappe](../frappe/README.md) for the contract.
+
 ## Marketing integration planning — 2026-10-23
 
 Marketing owns Campaign, raw capture submissions, promotional consent, subscriptions, and nurturing.

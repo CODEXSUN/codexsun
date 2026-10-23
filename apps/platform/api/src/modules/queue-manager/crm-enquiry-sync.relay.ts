@@ -17,9 +17,15 @@ export async function enqueueCrmEnquirySync(
     correlationId?: string;
   }
 ) {
-  const sync = new EnquirySyncRepository(getTenantDatabaseByName(input.tenantDatabase) as unknown as Kysely<EnquiryDatabase>);
+  const sync = new EnquirySyncRepository(
+    getTenantDatabaseByName(input.tenantDatabase) as unknown as Kysely<EnquiryDatabase>
+  );
   const event = await sync.getEvent(input.eventId);
-  if (!event || !(await sync.dispatchableEvents(1, event.enquiry_id)).some((row) => row.id === input.eventId)) return null;
+  if (
+    !event ||
+    !(await sync.dispatchableEvents(1, event.enquiry_id)).some((row) => row.id === input.eventId)
+  )
+    return null;
   return queue.enqueue({
     dispatchImmediately: true,
     actorEmail: input.actorEmail,
@@ -62,7 +68,13 @@ export function startCrmEnquirySyncRelay(queue: QueueManagerService) {
             .executeTakeFirst();
           if (!connection?.enabled || connection.verification_status !== "verified") continue;
           const live = await new FrappeLiveSyncService(database).settings();
-          if (live.direction === "inbound" || !live.enabled || live.paused || !live.modules.enquiries) continue;
+          if (
+            live.direction === "inbound" ||
+            !live.enabled ||
+            live.paused ||
+            !live.modules.enquiries
+          )
+            continue;
           const sync = new EnquirySyncRepository(database);
           await sync.requeueStaleProcessing();
           const events = await sync.dispatchableEvents();

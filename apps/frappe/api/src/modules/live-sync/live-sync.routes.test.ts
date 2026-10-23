@@ -36,14 +36,14 @@ test("manual live sync rejects export kinds outside the approved policy before q
     jobs: async () => []
   });
   try {
-    for (const kind of ["contacts", "call-logs"] as const) {
+    for (const kind of ["activities", "call-logs"] as const) {
       const response = await app.inject({
         method: "POST",
         url: `/frappe/live-sync/${kind}/resync`,
         payload: {}
       });
       assert.equal(response.statusCode, 403);
-      assert.match(response.body, /Only enquiries can be exported/u);
+      assert.match(response.body, /Only enquiries and contact mobiles can be exported/u);
     }
     const response = await app.inject({
       method: "POST",
@@ -56,7 +56,7 @@ test("manual live sync rejects export kinds outside the approved policy before q
       enabled: true,
       paused: false,
       direction: "inbound",
-      scheduleMinutes: 5,
+      scheduleMinutes: 1,
       modules: { contacts: false, enquiries: true, activities: false, "call-logs": false }
     };
     const saved = await app.inject({ method: "PUT", url: "/frappe/live-sync", payload: input });

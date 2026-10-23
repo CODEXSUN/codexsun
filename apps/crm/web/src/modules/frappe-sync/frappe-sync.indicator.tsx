@@ -27,7 +27,7 @@ export function FrappeSyncIndicator({
   unsupported = false
 }: {
   status: FrappeSyncStatus;
-  error?: string | null;
+  error?: string | null | undefined;
   onVerify: () => Promise<FrappeSyncStatus>;
   unsupported?: boolean;
 }) {
@@ -81,15 +81,24 @@ export function FrappeSyncIndicator({
   }
 
   return (
-    <span className="inline-flex flex-wrap items-center gap-1.5" title={error || label} onClick={(event) => event.stopPropagation()}>
+    <span
+      className="inline-flex flex-wrap items-center gap-1.5"
+      title={error || label}
+      onClick={(event) => event.stopPropagation()}
+    >
       <Icon
         className={`size-4 ${tone} ${checking || currentStatus === "processing" ? "animate-spin" : ""}`}
         aria-label={label}
       />
       <span className="sr-only">{label}</span>
-      {currentStatus === "failed" ? <span role="status" className="max-w-72 rounded border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700">
-        Export error{error ? `: ${error}` : ""}
-      </span> : null}
+      {currentStatus === "failed" ? (
+        <span
+          role="status"
+          className="max-w-72 rounded border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700"
+        >
+          Export error{error ? `: ${error}` : ""}
+        </span>
+      ) : null}
       <Button
         aria-label={unsupported ? label : `Verify ${label.toLowerCase()}`}
         className="h-7 px-2"
@@ -143,13 +152,20 @@ export async function getFrappeRecordStatuses(
   return Object.fromEntries(Object.entries(states).map(([id, row]) => [id, row.status]));
 }
 
-export async function getFrappeRecordStates(kind: VerifyKind, ids: number[]): Promise<Record<number, FrappeRecordState>> {
+export async function getFrappeRecordStates(
+  kind: VerifyKind,
+  ids: number[]
+): Promise<Record<number, FrappeRecordState>> {
   const states: Record<number, FrappeRecordState> = {};
-  for (let start=0; start<ids.length; start+=100) {
-    const response = await crmRequest<{items:FrappeRecordState[]}>(`/frappe/export/${kind}/status`, {
-      method: "POST", body: JSON.stringify({ids:ids.slice(start,start+100)})
-    });
-    for(const row of response.items) states[row.id]=row;
+  for (let start = 0; start < ids.length; start += 100) {
+    const response = await crmRequest<{ items: FrappeRecordState[] }>(
+      `/frappe/export/${kind}/status`,
+      {
+        method: "POST",
+        body: JSON.stringify({ ids: ids.slice(start, start + 100) })
+      }
+    );
+    for (const row of response.items) states[row.id] = row;
   }
   return states;
 }

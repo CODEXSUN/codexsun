@@ -1,5 +1,20 @@
 # Frappe tasks
 
+## Bidirectional delivery and visible failures — 2026-10-23
+
+- [x] Support a one-minute inbound interval and immediate post-save enquiry/contact-mobile queue dispatch.
+- [x] Apply reverse updates to linked CRM enquiries in bidirectional mode, preserving local identity and audit fields. Block unsent local enquiry changes.
+- [x] Preserve first delivery errors during pending retries for contacts, enquiries, duties, and reports.
+- [x] Keep Tasks local with **Not configured**, as explicitly selected by the user.
+- [x] Verify immediate database queue dispatch, a lost Mobile Contact create response, duplicate-free retry, and a new edit after completion in an isolated database.
+- [x] Pass checkpoint/history, enquiry outbox, duty retry, unit, type, lint, build, component-doc, dependency-layout, and owner-boundary checks.
+- [x] Apply CRM queue v2 and Frappe v10 locally. Enable CODEXSUN bidirectional mode at one minute; preserve 56 existing enquiries.
+- [ ] Deploy these changes and verify the selected production Redis workers and browser behavior.
+
+Remote responses in the new queue tests are controlled. This work does not claim a production
+write/readback, a hard one-minute completion guarantee during outages, or new mobile UI delivery.
+Contact export remains the existing Mobile Contact-only contract with an exact Customer/Supplier ID.
+
 ## Marketing integration backlog — 2026-10-23
 
 Planning alignment is complete. The following implementation tasks remain open.

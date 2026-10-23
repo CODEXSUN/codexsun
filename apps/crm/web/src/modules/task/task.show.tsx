@@ -333,6 +333,9 @@ export function TaskShow({
   ];
   return (
     <WorkspacePage title="" technicalName="page.crm.tasks.show">
+      <p className="inline-flex rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+        Frappe sync: Not configured
+      </p>
       <section
         className={`rounded-xl border border-border/70 bg-card px-3 py-3 shadow-sm ring-2 sm:rounded-md sm:px-4 sm:py-4 ${statusRing(row.status)}`}
       >

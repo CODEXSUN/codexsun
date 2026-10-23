@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { assertFrappeExportAllowed } from "./export.policy.js";
 
-test("only enquiry records may be exported to Frappe", () => {
+test("only enquiries and contact mobiles may be exported to Frappe", () => {
   assert.doesNotThrow(() => assertFrappeExportAllowed("enquiries", "export"));
-  for (const kind of ["contacts", "activities", "call-logs"] as const) {
+  assert.doesNotThrow(() => assertFrappeExportAllowed("contacts", "export"));
+  for (const kind of ["activities", "call-logs"] as const) {
     assert.throws(() => assertFrappeExportAllowed(kind, "export"), /not approved/u);
   }
 });

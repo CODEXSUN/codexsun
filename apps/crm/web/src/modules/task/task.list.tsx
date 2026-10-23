@@ -123,7 +123,9 @@ export function TaskList({
           title="CRM Tasks are not linked to a Frappe DocType."
         >
           <CloudOff className="size-4" aria-hidden="true" />
-          <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-800">Not configured</span>
+          <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-800">
+            Not configured
+          </span>
           <span className="sr-only">Frappe sync is not supported for CRM Tasks</span>
         </span>
       )

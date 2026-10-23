@@ -3,6 +3,10 @@
 Platform composes Data Bridge's `data-bridge.common-import` Queue Manager processor. Jobs carry the registered target tenant, operator, correlation ID, bounded retry policy, and a run reference. Data Bridge owns parent ordering, row audits, inserts, and combined reports. The Common Tables bulk action requires an enabled queue worker.
 
 Frappe enquiry scheduling honors the selected inbound-only or bidirectional mode.
+The inbound interval supports one minute. The scheduler checks due work every ten seconds and
+avoids adding another import while one is pending or running for the same tenant and site.
+Supported post-save exports request immediate dispatch. Database workers still claim each job
+atomically; Redis delivery uses the selected BullMQ backend. Queue startup also dispatches once.
 The first inbound queue job imports history. Later jobs start from the last successful source checkpoint.
 The enquiry outbox remains stored while inbound-only mode pauses automatic exports.
 See [Frappe](../frappe/README.md) for the migration, source data contract, and verification limits.

@@ -1,5 +1,13 @@
 # CRM Delivery Tasks
 
+## Frappe delivery feedback — 2026-10-23
+
+- [x] Show persisted export errors on web contact, enquiry, duty, and report records during retry.
+- [x] Keep Task records local; show **Not configured** on the list and detail view.
+- [x] Refresh supported web delivery states every second.
+- [x] Preserve CRM-origin enquiry identity, creator, email, and date precision during reverse updates.
+- [x] Pass focused regression and isolated queue tests. See Frappe TASK.md for evidence and deployment limits.
+
 ## Marketing ownership and integration planning — 2026-10-23
 
 - [x] Reconcile planning: Marketing Campaign/promotional consent, CRM sales/service restrictions, Core identity, and Mail delivery-safety suppression.
@@ -668,3 +676,14 @@ browser, mobile, and end-to-end results separately.
 - WhatsApp handoff creation emits a transactional `whatsapp-handoff` work event. Ignored duplicate inserts do not repeat the event. Event failure rolls back the handoff.
 - WhatsApp database E2E passed for one matching action per retry and rollback on event failure. Work-report database E2E passed for saved checkpoint state and action permissions.
 - CRM API build, API/web lint, web typecheck, and module boundaries passed locally. No live deployment or mobile rebuild is claimed.
+
+## Marketing Lead intake local continuation, 23-10-2026
+
+CRM now owns a canonical Marketing Lead intake contract and a review-only Lead list/Show surface.
+Intake uses company and submission identity, preserves the original campaign snapshot, and creates one assigned Task in the same transaction.
+Leads remain under review. No email/phone match automatically merges a Core identity.
+Marketing handoff creates no Enquiry and does not enter the Enquiry/Frappe export queue.
+Disposable two-database tests verified one Lead/Task result, denied scope, and no Enquiry/Frappe queue row.
+CRM API/web typecheck, lint, and API build passed locally. The full authenticated Lead browser journey remains open.
+Qualification, contact matching, conversion, outcome projection, and structured communication restrictions remain open.
+No existing customer database migration or cloud deployment was performed.

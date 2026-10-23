@@ -27,9 +27,11 @@ const apiPackages = new Map([
   ["@codexsun/zetro-api", "zetro"],
   ["@codexsun/project-manager-api", "project-manager"],
   ["@codexsun/zuno-api", "zuno"],
-  ["@codexsun/mail-api", "mail"]
+  ["@codexsun/mail-api", "mail"],
+  ["@codexsun/marketing-api", "marketing"]
 ]);
 const productionApiAliases = new Map([
+  ["@codexsun/data-bridge-api", resolve(root, "dist", "devkits", "data-bridge", "api", "index.js")],
   [
     "@codexsun/data-migration-api",
     resolve(root, "dist", "devkits", "data-migration", "api", "index.js")

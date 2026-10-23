@@ -2,14 +2,32 @@
 
 Repository source: `apps/frappe/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `5a1085f148a66f32cfb70f386aa22c0b6ae96f025cef4a8801300a6f7f9bf751`
+Source SHA-256 (LF line endings): `7263f00e98c37a5a603dfbd07028a1e35f7200d0d76c75e951f1a055dd363b39`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
 Historical notes and unchecked plans retain their original status.
 
 ```markdown
-ry creates and
+ocal browser/API queue test against the live Frappe site, not a production deployment.
+
+## Enquiry live sync and source timestamps - 2026-10-18
+
+- [x] Enforce the approved outbound scope at the Frappe export service boundary: enquiries may be
+      exported; contacts, activities, and call logs are blocked for both manual and queued requests.
+      Verification remains available for every kind. Imports and stored data are unchanged.
+      Regression: `export.policy.test.ts`.
+
+- [x] Limit scheduled CRM-to-Frappe exports to Enquiries; do not automatically export Contacts,
+      Activities, or Call Logs without separate approval. Regression:
+      `frappe-live-sync.policy.test.ts` (2/2).
+- [ ] Deploy the current sync changes. Production preflight is blocked because the guarded updater
+      expects Compose project `codexsun-billing` / service `platform-api`, while the live API is
+      owned by project `codexsun` / service `codexsun-api`; the checked-in updater's deployment
+      environment also does not match the active release. Preflight stopped before backup or
+      container changes. CXApp and all current application containers remained running.
+- [ ] Preserve exact Frappe creation/modified timestamps and comment timestamps when importing or
+      reconciling enquiries. Incrementally receive Frappe changes and post CRM enquiry creates and
       updates to the verified linked Frappe document through the live queue.
 - [ ] Verify queue worker operation, one safe live create/update/readback, and inbound reconciliation
       on the configured tenant. Record production evidence only after remote and local values match.

@@ -37,7 +37,8 @@ function database(
     assignedUserId: number | null;
     listInId: number | null;
   },
-  outboundComments: Array<{ idempotency_key: string; remote_name: string | null }> = []
+  outboundComments: Array<{ idempotency_key: string; remote_name: string | null }> = [],
+  unsentUpsert = false
 ) {
   let saved = false;
   let insertingTable = "";
@@ -60,6 +61,7 @@ function database(
         if (table === "frappe_connection_settings") return null;
         if (table === "frappe_enquiry_sync as sync") return link ?? null;
         if (table === "crm_enquiries") return existing ?? null;
+        if (table === "crm_enquiry_sync_events") return unsentUpsert ? { id: 99 } : null;
         if (table === "crm_enquiry_statuses") return { id: 2, code: "new" };
         if (table === "crm_enquiry_priorities") return { id: 3 };
         return null;
@@ -508,6 +510,62 @@ test("pull repairs an imported enquiry missing its Frappe link and resumes comme
   assert.equal(updated, true);
   assert.deepEqual(importedComments, ["COMM-1"]);
   assert.equal(scope.wasSaved(), true);
+});
+
+test("bidirectional imports update linked CRM enquiries but block unsent local edits", async () => {
+  globalThis.fetch = async () =>
+    Response.json({
+      data: {
+        name: "Q930",
+        creation: "2026-10-06 10:00:00",
+        modified: "2026-10-07 11:30:00",
+        title: "Remote edit",
+        mobile: "9994885548",
+        date: "2026-10-06",
+        status: "New",
+        priority: "Normal"
+      }
+    });
+  for (const unsent of [false, true]) {
+    const scope = database(
+      {
+        enquiryId: 42,
+        syncedAt: "2026-10-07 10:00:00",
+        updatedAt: "2026-10-06 11:00:00",
+        source: "manual",
+        contactId: null,
+        assignedUserId: null,
+        listInId: null
+      },
+      [],
+      undefined,
+      [],
+      unsent
+    );
+    let updates = 0;
+    const service = new FrappeEnquirySyncService(
+      {
+        database: scope.value,
+        createEnquiry: async () => {
+          throw new Error("Unexpected create");
+        },
+        updateEnquiry: async (id, input) => {
+          updates++;
+          assert.equal(id, 42);
+          assert.equal(input.title, "Remote edit");
+          return { id } as EnquiryRecord;
+        },
+        localUserForEmployee: async () => null,
+        listInForName: async () => null
+      },
+      defaults,
+      "secret",
+      true
+    );
+    if (unsent) await assert.rejects(service.pull("Q930"), /unsent CRM changes/);
+    else assert.equal((await service.pull("Q930")).status, "updated");
+    assert.equal(updates, unsent ? 0 : 1);
+  }
 });
 
 test("pull translates Frappe status, priority, and Indian mobile formatting", async () => {

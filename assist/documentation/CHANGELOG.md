@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.46
+Current version: 1.1.47
 
-Release tag: v-1.1.46
+Release tag: v-1.1.47
 
-Changelog label: v 1.1.46
+Changelog label: v 1.1.47
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,26 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.47
+
+### [v 1.1.47] 2026-10-23 5:55 pm - Bidirectional CRM Frappe sync and mobile release
+
+#### Database Changes
+
+- Database update: Yes. This release includes the existing inbound checkpoint/source-history and delivery-revision migrations introduced after the deployed 1.1.44 baseline.
+- CRM queue revision fencing preserves edits received during an export. The contact activation timestamp limits automatic recovery to recent changes.
+- Local migration verification preserved all 56 enquiries. Production changes require a checksum-verified backup and migration preflight.
+
+#### App Codebase Changes
+
+- Updated lockstep packages to 1.1.47 and CRM Android to 1.1.47+147.
+- Added a one-minute inbound interval, immediate outbound queue dispatch, and ordered enquiry/opening-comment delivery.
+- Bidirectional enquiry reads retain CRM source identity, creator, email, and date precision; unsent local changes block reverse updates.
+- Contact-mobile export requires an exact existing Customer/Supplier identity. Retries recover a lost create response without duplicate Mobile Contacts.
+- Web contacts, enquiries, duties, and reports show persisted export errors during retries. Tasks stay local with a Not configured badge.
+- Added missing Data Bridge and Marketing API build/resolver entries required by the already committed Platform baseline.
+- Local verification: 193 unit/integration checks, separate checkpoint/outbox/duty database suites, affected type checks, lint, builds, and owner boundaries passed. Deployment and signed mobile results are recorded after verification.
 
 ## v-1.1.46
 

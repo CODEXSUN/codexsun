@@ -46,7 +46,8 @@ export class FrappeExportService {
 
   async validateRecordIds(kind: ExportKind, ids: number[], limit = 100) {
     const unique = [...new Set(ids)];
-    if (!unique.length || unique.length > limit) throw AppError.validation(`Select 1 to ${limit} records.`);
+    if (!unique.length || unique.length > limit)
+      throw AppError.validation(`Select 1 to ${limit} records.`);
     for (const id of unique) {
       if (!Number.isSafeInteger(id) || id < 1 || !(await this.exists(kind, id)))
         throw AppError.notFound(`Local ${kind} record #${id} was not found.`);
@@ -589,9 +590,11 @@ export class FrappeExportService {
       created_by: string;
       contact_id: number | null;
       remote_name: string | null;
-    }>`SELECT e.title, e.description, e.captured_phone, e.status, e.priority,
+    }>`SELECT e.title, e.description, e.captured_phone, status_master.code AS status, priority_master.name AS priority,
       e.enquired_at, e.due_date, e.captured_name, e.source, e.created_by, e.contact_id,
       link.remote_name FROM crm_enquiries e
+      INNER JOIN crm_enquiry_statuses status_master ON status_master.id=e.status_id
+      INNER JOIN crm_enquiry_priorities priority_master ON priority_master.id=e.priority_id
       LEFT JOIN frappe_enquiry_sync link ON link.enquiry_id=e.id
       WHERE e.id=${id} LIMIT 1`.execute(this.database);
     const enquiry = result.rows[0];
