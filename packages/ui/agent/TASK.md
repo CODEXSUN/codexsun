@@ -68,3 +68,10 @@ Do not treat documentation, a build, or a model response as proof of live persis
 - Export the workspace list's checkbox Columns menu as `WorkspaceColumnMenu` so data-preview cards can use the same accessible multi-select menu and Show all behavior.
 - Keep the menu generic; callers own labels, selected state, and data projection.
 - UI typecheck, lint, and build passed. Data Migration web typecheck and lint passed. `npm run check:component-docs` passed.
+
+## Marketing style composition, 23-10-2026
+
+Shared Tailwind scanning includes the Marketing web source.
+Marketing uses the existing workspace list, pagination, lookup, Show, upsert, and navigation contracts.
+The local Brand browser fixture exercised those controls against disposable MariaDB records.
+Platform web production compilation passed. This is not a production tenant or full-shell browser acceptance result.

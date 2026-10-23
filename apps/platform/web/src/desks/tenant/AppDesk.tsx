@@ -1,3 +1,5 @@
+import { LeadWorkspace } from "@codexsun/crm-web";
+import { marketingPageFromPath } from "../../modules/marketing/marketing-navigation";
 import { MarketingHost } from "../../modules/marketing/marketing-host";
 import { tconnectGateway } from "../../modules/tconnect/tconnect-host";
 import { QCafeAppearance } from "./QCafeAppearance";
@@ -715,6 +717,8 @@ type AppPage =
   | "sites.guide"
   | "logicx-erp.overview"
   | "logicx-erp.schemes"
+  | "marketing.consents"
+  | "marketing.submissions"
   | "marketing.brands"
   | "marketing.campaigns"
   | "marketing.captures"
@@ -726,6 +730,7 @@ type AppPage =
   | "crm.closures"
   | "crm.call-logs"
   | "crm.sops"
+  | "crm.leads"
   | "crm.tasks"
   | "crm.schedules"
   | "crm.reminders"
@@ -1069,63 +1074,66 @@ export function AppDesk() {
     staleTime: 5 * 60 * 1_000
   });
   const appSafePage =
-    page.startsWith("tconnect.") && !switchableApps.includes("tconnect")
+    page.startsWith("marketing.") && !switchableApps.includes("marketing")
       ? pageForApp(landingApp)
-      : page.startsWith("sportsclub.") && !switchableApps.includes("sportsclub")
+      : page.startsWith("tconnect.") && !switchableApps.includes("tconnect")
         ? pageForApp(landingApp)
-        : page.startsWith("devkit") || page.startsWith("project-manager")
+        : page.startsWith("sportsclub.") && !switchableApps.includes("sportsclub")
           ? pageForApp(landingApp)
-          : page.startsWith("hrms.") && !switchableApps.includes("hrms")
+          : page.startsWith("devkit") || page.startsWith("project-manager")
             ? pageForApp(landingApp)
-            : page.startsWith("codexsun.") && !switchableApps.includes("codexsun")
+            : page.startsWith("hrms.") && !switchableApps.includes("hrms")
               ? pageForApp(landingApp)
-              : page.startsWith("docs.") && !switchableApps.includes("docs")
+              : page.startsWith("codexsun.") && !switchableApps.includes("codexsun")
                 ? pageForApp(landingApp)
-                : page.startsWith("himsx.") && !switchableApps.includes("himsx")
+                : page.startsWith("docs.") && !switchableApps.includes("docs")
                   ? pageForApp(landingApp)
-                  : page.startsWith("sites.") && !switchableApps.includes("sites")
+                  : page.startsWith("himsx.") && !switchableApps.includes("himsx")
                     ? pageForApp(landingApp)
-                    : page.startsWith("qcafe") && !switchableApps.includes("qcafe")
+                    : page.startsWith("sites.") && !switchableApps.includes("sites")
                       ? pageForApp(landingApp)
-                      : page.startsWith("ecommerce") && !switchableApps.includes("ecommerce")
+                      : page.startsWith("qcafe") && !switchableApps.includes("qcafe")
                         ? pageForApp(landingApp)
-                        : page.startsWith("auditor") && !switchableApps.includes("auditor")
+                        : page.startsWith("ecommerce") && !switchableApps.includes("ecommerce")
                           ? pageForApp(landingApp)
-                          : page.startsWith("logicx-erp") && !switchableApps.includes("logicx-erp")
+                          : page.startsWith("auditor") && !switchableApps.includes("auditor")
                             ? pageForApp(landingApp)
-                            : page.startsWith("logicx-erp.schemes") &&
-                                !enabledApps.includes("billing")
-                              ? "logicx-erp.overview"
-                              : page.startsWith("zetro") && !switchableApps.includes("zetro")
-                                ? pageForApp(landingApp)
-                                : page.startsWith("frappe") && !switchableApps.includes("frappe")
+                            : page.startsWith("logicx-erp") &&
+                                !switchableApps.includes("logicx-erp")
+                              ? pageForApp(landingApp)
+                              : page.startsWith("logicx-erp.schemes") &&
+                                  !enabledApps.includes("billing")
+                                ? "logicx-erp.overview"
+                                : page.startsWith("zetro") && !switchableApps.includes("zetro")
                                   ? pageForApp(landingApp)
-                                  : page.startsWith("task-manager") &&
-                                      !switchableApps.includes("task-manager")
+                                  : page.startsWith("frappe") && !switchableApps.includes("frappe")
                                     ? pageForApp(landingApp)
-                                    : page.startsWith("mail") && !switchableApps.includes("mail")
+                                    : page.startsWith("task-manager") &&
+                                        !switchableApps.includes("task-manager")
                                       ? pageForApp(landingApp)
-                                      : page.startsWith("notes") &&
-                                          !switchableApps.includes("notes")
+                                      : page.startsWith("mail") && !switchableApps.includes("mail")
                                         ? pageForApp(landingApp)
-                                        : page.startsWith("chat") &&
-                                            !switchableApps.includes("chat")
+                                        : page.startsWith("notes") &&
+                                            !switchableApps.includes("notes")
                                           ? pageForApp(landingApp)
-                                          : page.startsWith("crm") &&
-                                              !switchableApps.includes("crm")
+                                          : page.startsWith("chat") &&
+                                              !switchableApps.includes("chat")
                                             ? pageForApp(landingApp)
-                                            : page.startsWith("blog") &&
-                                                !switchableApps.includes("blog")
+                                            : page.startsWith("crm") &&
+                                                !switchableApps.includes("crm")
                                               ? pageForApp(landingApp)
-                                              : page.startsWith("accounts") &&
-                                                  !switchableApps.includes("accounts")
+                                              : page.startsWith("blog") &&
+                                                  !switchableApps.includes("blog")
                                                 ? pageForApp(landingApp)
-                                                : (page.startsWith("billing") ||
-                                                      (page.startsWith("core") &&
-                                                        !page.startsWith("core.organisation"))) &&
-                                                    !switchableApps.includes("billing")
+                                                : page.startsWith("accounts") &&
+                                                    !switchableApps.includes("accounts")
                                                   ? pageForApp(landingApp)
-                                                  : page;
+                                                  : (page.startsWith("billing") ||
+                                                        (page.startsWith("core") &&
+                                                          !page.startsWith("core.organisation"))) &&
+                                                      !switchableApps.includes("billing")
+                                                    ? pageForApp(landingApp)
+                                                    : page;
   const safePage = resolveBillingFeaturePage(appSafePage, billingSettingsQuery.data?.features);
   const sportsclubTitle = sportsclubPageTitle(safePage, location.pathname);
   const activePageTitle =
@@ -1718,6 +1726,7 @@ export function AppDesk() {
           safePage.startsWith("qcafe.") ||
           activeApp === "ecommerce" ||
           activeApp === "crm" ||
+          activeApp === "marketing" ||
           activeApp === "hrms" ||
           activeApp === "chat" ||
           activeApp === "frappe" ||
@@ -1845,7 +1854,9 @@ export function AppDesk() {
                 onNavigate={requestListNavigation}
               />
             ) : null}
-            {safePage.startsWith("marketing.") ? <MarketingHost page={safePage} /> : null}
+            {safePage.startsWith("marketing.") ? (
+              <MarketingHost page={safePage} companyId={activeDefaultCompany?.companyId ?? null} />
+            ) : null}
             {safePage.startsWith("sites.") ? (
               <SitesOverviewWorkspace
                 gateway={sitesOverviewGateway}
@@ -2024,6 +2035,7 @@ export function AppDesk() {
             {safePage === "crm.sops" ? <SopWorkspace /> : null}
             {safePage === "crm.schedules" ? <SchedulerWorkspace view="schedules" /> : null}
             {safePage === "crm.reminders" ? <SchedulerWorkspace view="reminders" /> : null}
+            {safePage === "crm.leads" ? <LeadWorkspace /> : null}
             {safePage === "crm.tasks" ? (
               <TaskWorkspace
                 key={`${safePage}:${location.pathname}:${crmListRevision}`}
@@ -2302,6 +2314,8 @@ function isCrmListPage(page: AppPage) {
 }
 
 function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPage {
+  const marketingPage = marketingPageFromPath(pathname);
+  if (marketingPage) return marketingPage;
   const [, , app, ...children] = pathname.split("/");
   if (!app) return pageForApp(landingApp ?? "application");
   if (
@@ -2484,6 +2498,7 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     key === "crm.overview" ||
     key === "crm.reports" ||
     key === "crm.enquiries" ||
+    key === "crm.leads" ||
     key === "crm.tasks" ||
     key === "crm.activities" ||
     key === "crm.closures" ||
@@ -2929,6 +2944,12 @@ function renderOwnedCommonMasterPage(page: AppPage) {
 
 function titleForPage(page: AppPage) {
   const labels: Partial<Record<AppPage, string>> = {
+    "marketing.consents": "Consent",
+    "marketing.brands": "Brands",
+    "marketing.campaigns": "Campaigns",
+    "marketing.captures": "Capture forms",
+    "marketing.submissions": "Submissions",
+    "marketing.connections": "Connections",
     "hrms.overview": "HRMS",
     "hrms.employees": "Employees",
     "hrms.attendance": "Attendance",
@@ -3002,6 +3023,7 @@ function titleForPage(page: AppPage) {
     "crm.overview": "Overview",
     "crm.reports": "List in",
     "crm.enquiries": "All Enquiries",
+    "crm.leads": "Leads",
     "crm.tasks": "Tasks",
     "crm.activities": "Activities",
     "crm.closures": "Closure Approvals",
@@ -3168,7 +3190,8 @@ function appFromPage(
     return enabledApps.includes("codexsun") ? "codexsun" : landingApp;
   if (page.startsWith("docs.")) return enabledApps.includes("docs") ? "docs" : landingApp;
   if (page.startsWith("himsx.")) return enabledApps.includes("himsx") ? "himsx" : landingApp;
-  if (page.startsWith("marketing.")) return enabledApps.includes("marketing") ? "marketing" : landingApp;
+  if (page.startsWith("marketing."))
+    return enabledApps.includes("marketing") ? "marketing" : landingApp;
   if (page.startsWith("sites.")) return enabledApps.includes("sites") ? "sites" : landingApp;
   if (page.startsWith("qcafe")) return enabledApps.includes("qcafe") ? "qcafe" : landingApp;
   if (page.startsWith("frappe")) return enabledApps.includes("frappe") ? "frappe" : landingApp;

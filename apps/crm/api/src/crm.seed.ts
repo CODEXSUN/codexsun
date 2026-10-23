@@ -1,3 +1,5 @@
+import { seedContactRestrictionPermissions } from "./modules/contact-restriction/index.js";
+import { seedLead } from "./modules/lead/index.js";
 import type { Kysely } from "kysely";
 import { seedContact360Database } from "./contact-360.seed.js";
 import { seedCallLogPermissions } from "./modules/call-log/index.js";
@@ -16,6 +18,7 @@ import { seedTaskPermissions } from "./modules/task/index.js";
 import { seedSchedulerPermissions } from "./modules/scheduler/index.js";
 
 export async function seedCrmTenantDatabase(database: Kysely<EnquiryDatabase>) {
+  await seedContactRestrictionPermissions(database as never);
   await seedListInMaster(database as unknown as Kysely<ListInDatabase>);
   await seedStatusMaster(database as unknown as Kysely<StatusDatabase>);
   await seedPriorityMaster(database as unknown as Kysely<PriorityDatabase>);
@@ -35,4 +38,5 @@ export async function seedCrmTenantDatabase(database: Kysely<EnquiryDatabase>) {
     database as unknown as Kysely<import("./modules/scheduler/index.js").SchedulerDatabase>
   );
   await seedContact360Database(database);
+  await seedLead(database as never);
 }

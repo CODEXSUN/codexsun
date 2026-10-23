@@ -51,6 +51,9 @@ const DataMigrationSettings = lazyWorkspace(() =>
 const DataBridgeWorkspace = lazyWorkspace(() =>
   import("@codexsun/data-bridge-web").then((module) => module.DataBridgeWorkspace)
 );
+const TransferWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-bridge-web").then((module) => module.TransferWorkspace)
+);
 const CommonTableImportWorkspace = lazyWorkspace(() =>
   import("@codexsun/data-bridge-web").then((module) => module.CommonTableImportWorkspace)
 );
@@ -146,6 +149,12 @@ type SaPage =
   | "data-migration-queue"
   | "data-migration-settings"
   | "data-bridge"
+  | "data-bridge-connections"
+  | "data-bridge-tables"
+  | "data-bridge-fields"
+  | "data-bridge-prepare"
+  | "data-bridge-confirm"
+  | "data-bridge-results"
   | "data-bridge-common-tables"
   | "data-bridge-table-import"
   | "zuno"
@@ -215,6 +224,22 @@ export function SaDesk() {
     });
   }
 
+  const bridgeStages: SaPage[] = [
+    "data-bridge-connections",
+    "data-bridge-tables",
+    "data-bridge-fields",
+    "data-bridge-prepare",
+    "data-bridge-confirm",
+    "data-bridge-results"
+  ];
+  const transferId = typeof bridgeSearch.transfer === "string" ? bridgeSearch.transfer : undefined;
+  function openBridgeStage(stage: number, id?: string) {
+    void navigate({
+      to: "/sa/$",
+      params: { _splat: bridgeStages[stage - 1]! },
+      search: id ? { transfer: id } : {}
+    });
+  }
   function openCommonTableImport(selection: {
     sourceId: number;
     targetTenantId: number;
@@ -321,6 +346,18 @@ export function SaDesk() {
           isActive: page === "data-bridge",
           onSelect: () => selectPage("data-bridge")
         },
+        ...[
+          "Database Connections",
+          "Table Mapping",
+          "Field Mapping",
+          "Import Preparation",
+          "Confirm Import",
+          "Import Results"
+        ].map((title, index) => ({
+          title,
+          isActive: page === bridgeStages[index],
+          onSelect: () => openBridgeStage(index + 1, transferId)
+        })),
         {
           title: "Common Tables",
           isActive: page === "data-bridge-common-tables",
@@ -599,6 +636,14 @@ export function SaDesk() {
             {page === "data-bridge" ? (
               <DataBridgeWorkspace
                 onOpenCommonTables={() => selectPage("data-bridge-common-tables")}
+                onStartImport={() => openBridgeStage(1)}
+              />
+            ) : null}
+            {bridgeStages.includes(page) ? (
+              <TransferWorkspace
+                stage={bridgeStages.indexOf(page) + 1}
+                {...(transferId ? { id: transferId } : {})}
+                onNavigate={openBridgeStage}
               />
             ) : null}
             {page === "data-bridge-common-tables" ? (
@@ -663,6 +708,12 @@ function pageFromUrl(pathname: string): SaPage {
     page === "data-migration-audit" ||
     page === "data-migration-queue" ||
     page === "data-migration-settings" ||
+    page === "data-bridge-connections" ||
+    page === "data-bridge-tables" ||
+    page === "data-bridge-fields" ||
+    page === "data-bridge-prepare" ||
+    page === "data-bridge-confirm" ||
+    page === "data-bridge-results" ||
     page === "data-bridge" ||
     page === "data-bridge-common-tables" ||
     page === "data-bridge-table-import" ||

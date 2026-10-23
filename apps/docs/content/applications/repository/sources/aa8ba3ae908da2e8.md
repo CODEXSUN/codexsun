@@ -2,7 +2,7 @@
 
 Repository source: `apps/core/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `3e44b23ce787d65d1fbc7edafef3d111c1670106748f83dcb9aaffb2b4e742b4`
+Source SHA-256 (LF line endings): `539d49ee85bc6a7b6f1215cf144aed9c976ade86fb4ff25cdb2f2438cd55dc44`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -63,4 +63,12 @@ Source presence is not release evidence. Confirm executable behavior before desc
 Use `npm run check:component-docs` and the relevant root checks.
 Run database, browser, native, and deployment checks when the changed behavior needs them.
 Do not mark an untested phase or planned feature complete.
+
+## Local email policy continuation, 23-10-2026
+
+The public `contactIdsForEmailPolicy` lookup returns every matching recipient identity ID, including inactive/deleted identities.
+It reads only Core-owned email fields. CRM consumes these IDs to check restrictions without merging contacts.
+Platform selects the trusted tenant database before calling the contract. No new public HTTP search or write permission is added.
+
+See Marketing TASK for the current scope and local verification. No campaign delivery or deployment is enabled.
 ```

@@ -687,3 +687,16 @@ Disposable two-database tests verified one Lead/Task result, denied scope, and n
 CRM API/web typecheck, lint, and API build passed locally. The full authenticated Lead browser journey remains open.
 Qualification, contact matching, conversion, outcome projection, and structured communication restrictions remain open.
 No existing customer database migration or cloud deployment was performed.
+
+## Local email policy evidence, 23-10-2026
+
+CRM now owns append-only company-scoped email contact restrictions and a public policy check.
+The check also reads Contact Preferences for every matching Core identity. Unknown legacy preferences require review.
+Explicit operational allowance never grants promotional consent. Restriction changes require `crm.contact-restrictions.manage`.
+Policy reads require `crm.contact-restrictions.check`. Only Admin receives these new grants by default.
+
+The two-disposable-database Marketing suite verifies denied grants, tenant/company isolation, legacy CRM restrictions, Mail complaint/bounce blocking, and owner outages.
+Existing local business row counts were preserved. No commit, push, or deployment was performed for this work.
+
+Focused owner typecheck, lint, build, and module boundaries passed for the email policy continuation.
+Marketing database tests verify exact UTC timestamps and near-expiry rejection alongside tenant and owner policy checks.

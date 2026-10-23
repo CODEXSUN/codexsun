@@ -1,0 +1,1833 @@
+{
+  "at": "2026-10-23T13:44:52.122Z",
+  "source": "altex_cloud_db",
+  "target": "altex_db",
+  "mode": "Authorized live import through Queue Manager",
+  "tables": [
+    {
+      "table": "core_address_types",
+      "sourceRows": 6,
+      "inserted": 6,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "2210af2a-59b8-41bf-b1b8-b0c5386fda9d"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 6
+    },
+    {
+      "table": "core_bank_names",
+      "sourceRows": 158,
+      "inserted": 158,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "eccc2dee-8d55-423d-834d-2a770ac69050"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 158
+    },
+    {
+      "table": "core_brands",
+      "sourceRows": 2,
+      "inserted": 2,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "9fe6c7d2-ee16-449f-91bc-ab661f88d2bc"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 2
+    },
+    {
+      "table": "core_colours",
+      "sourceRows": 6,
+      "inserted": 6,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "f7417346-40e5-4e21-882d-203e8bad2c0b"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 6
+    },
+    {
+      "table": "core_companies",
+      "sourceRows": 1,
+      "inserted": 1,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "adb1213e-0e99-439a-a95e-01e9fe3b43c5"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 1
+    },
+    {
+      "table": "core_companies_addresses",
+      "sourceRows": 0,
+      "inserted": 0,
+      "existing": 0,
+      "warnings": 0,
+      "status": "empty",
+      "sessions": [],
+      "issues": [],
+      "targetAfter": 0
+    },
+    {
+      "table": "core_companies_bank_accounts",
+      "sourceRows": 0,
+      "inserted": 0,
+      "existing": 0,
+      "warnings": 0,
+      "status": "empty",
+      "sessions": [],
+      "issues": [],
+      "targetAfter": 0
+    },
+    {
+      "table": "core_companies_emails",
+      "sourceRows": 0,
+      "inserted": 0,
+      "existing": 0,
+      "warnings": 0,
+      "status": "empty",
+      "sessions": [],
+      "issues": [],
+      "targetAfter": 0
+    },
+    {
+      "table": "core_companies_phones",
+      "sourceRows": 0,
+      "inserted": 0,
+      "existing": 0,
+      "warnings": 0,
+      "status": "empty",
+      "sessions": [],
+      "issues": [],
+      "targetAfter": 0
+    },
+    {
+      "table": "core_companies_social_links",
+      "sourceRows": 0,
+      "inserted": 0,
+      "existing": 0,
+      "warnings": 0,
+      "status": "empty",
+      "sessions": [],
+      "issues": [],
+      "targetAfter": 0
+    },
+    {
+      "table": "core_contact_groups",
+      "sourceRows": 3,
+      "inserted": 3,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "4e811109-55ef-47eb-a7a7-f92353bce07b"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 3
+    },
+    {
+      "table": "core_contact_types",
+      "sourceRows": 6,
+      "inserted": 6,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "79db0e8d-1d6d-437a-a3db-c1136916c339"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 6
+    },
+    {
+      "table": "core_contacts",
+      "sourceRows": 62,
+      "inserted": 62,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "1ffaed84-afff-49cf-b672-c635c1bddd6c"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 62
+    },
+    {
+      "table": "core_contacts_bank_accounts",
+      "sourceRows": 0,
+      "inserted": 0,
+      "existing": 0,
+      "warnings": 0,
+      "status": "empty",
+      "sessions": [],
+      "issues": [],
+      "targetAfter": 0
+    },
+    {
+      "table": "core_contacts_emails",
+      "sourceRows": 0,
+      "inserted": 0,
+      "existing": 0,
+      "warnings": 0,
+      "status": "empty",
+      "sessions": [],
+      "issues": [],
+      "targetAfter": 0
+    },
+    {
+      "table": "core_contacts_phones",
+      "sourceRows": 17,
+      "inserted": 17,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "f113cc65-8b52-4a81-b420-b6fb72c11b25"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 17
+    },
+    {
+      "table": "core_contacts_social_links",
+      "sourceRows": 0,
+      "inserted": 0,
+      "existing": 0,
+      "warnings": 0,
+      "status": "empty",
+      "sessions": [],
+      "issues": [],
+      "targetAfter": 0
+    },
+    {
+      "table": "core_countries",
+      "sourceRows": 6,
+      "inserted": 6,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "f3bbaf22-56ab-458d-814d-87f88b904d4c"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 6
+    },
+    {
+      "table": "core_currencies",
+      "sourceRows": 3,
+      "inserted": 3,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "1b7d573d-ee7c-45b2-b424-01889759fb59"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 3
+    },
+    {
+      "table": "core_destinations",
+      "sourceRows": 2,
+      "inserted": 2,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "b7be6980-af82-44ae-953a-fbc3641ed69b"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 2
+    },
+    {
+      "table": "core_financial_years",
+      "sourceRows": 1,
+      "inserted": 1,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "5ebe0267-6b2b-4969-bf6e-a7e9c0fecb7d"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 1
+    },
+    {
+      "table": "core_default_company_settings",
+      "sourceRows": 1,
+      "inserted": 1,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "22443dda-6284-43af-8f76-29e184c1533c"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 1
+    },
+    {
+      "table": "core_hsn_codes",
+      "sourceRows": 3,
+      "inserted": 3,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "0ed84e49-2477-469e-9d31-1485833c6ad3"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 3
+    },
+    {
+      "table": "core_ledger_groups",
+      "sourceRows": 2,
+      "inserted": 2,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "623b0751-77af-43a0-bff1-7ef0908078a6"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 2
+    },
+    {
+      "table": "core_ledgers",
+      "sourceRows": 2,
+      "inserted": 2,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "467923ea-463e-4436-a612-c8c464f40456"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 2
+    },
+    {
+      "table": "core_months",
+      "sourceRows": 13,
+      "inserted": 13,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "b70ce2bb-a1cc-46b6-addd-d6ebf80d5b81"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 13
+    },
+    {
+      "table": "core_payment_terms",
+      "sourceRows": 4,
+      "inserted": 4,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "a258c8e0-7be6-46c7-8cf0-660720d5e72b"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 4
+    },
+    {
+      "table": "core_priorities",
+      "sourceRows": 4,
+      "inserted": 4,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "f42d138c-dc49-48a4-b489-278a24858612"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 4
+    },
+    {
+      "table": "core_product_categories",
+      "sourceRows": 3,
+      "inserted": 3,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "f2341b8f-0bc4-4ce0-93dc-e709222b49dc"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 3
+    },
+    {
+      "table": "core_product_groups",
+      "sourceRows": 2,
+      "inserted": 2,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "92721fb9-fa3d-4f7e-9fd2-0a72c1d3b9bc"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 2
+    },
+    {
+      "table": "core_product_types",
+      "sourceRows": 3,
+      "inserted": 3,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "582e5359-dd5e-4da2-806b-93527e855da1"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 3
+    },
+    {
+      "table": "core_sales_types",
+      "sourceRows": 3,
+      "inserted": 3,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "cf645165-dd90-499f-b7c2-5d549803d057"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 3
+    },
+    {
+      "table": "core_sizes",
+      "sourceRows": 2,
+      "inserted": 2,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "d2493908-c81a-417e-b8a3-c5bab5f653c3"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 2
+    },
+    {
+      "table": "core_states",
+      "sourceRows": 38,
+      "inserted": 38,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "4260d011-4bfe-4a70-976a-f933c7f0c996"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 38
+    },
+    {
+      "table": "core_districts",
+      "sourceRows": 40,
+      "inserted": 40,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "f26f0308-3fd5-40ee-b1b1-29f6a3a2bac6"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 40
+    },
+    {
+      "table": "core_cities",
+      "sourceRows": 30,
+      "inserted": 30,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "aba58a0e-ace4-4b63-93db-d70c0953f978"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 30
+    },
+    {
+      "table": "core_pincodes",
+      "sourceRows": 42,
+      "inserted": 42,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "d634b0a1-ed14-4609-ad30-dffac6b71c93"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 42
+    },
+    {
+      "table": "core_contacts_addresses",
+      "sourceRows": 62,
+      "inserted": 62,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "97ee7d3a-bb8e-4ecb-8fe4-7bf819eeaeda"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 62
+    },
+    {
+      "table": "core_stock_rejection_types",
+      "sourceRows": 3,
+      "inserted": 3,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "344b0571-1042-4c04-a308-a92d97c14fd5"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 3
+    },
+    {
+      "table": "core_styles",
+      "sourceRows": 2,
+      "inserted": 2,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "cdeaf4df-1fd4-411a-bc21-d8783d791526"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 2
+    },
+    {
+      "table": "core_taxes",
+      "sourceRows": 5,
+      "inserted": 5,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "2d9921d0-dd57-4767-a1d2-4d534bc6014c"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 5
+    },
+    {
+      "table": "core_transports",
+      "sourceRows": 2,
+      "inserted": 2,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "b36cd066-fe85-46e7-ad31-e4c92bb43d1b"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 2
+    },
+    {
+      "table": "core_units",
+      "sourceRows": 6,
+      "inserted": 6,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "3ff1d7c0-8f2a-4b8c-bba6-a5f641d3d5d3"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 6
+    },
+    {
+      "table": "core_products",
+      "sourceRows": 34,
+      "inserted": 34,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "a3b2ef90-8efe-47ed-90ef-2dd2bf6260a6"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 34
+    },
+    {
+      "table": "core_warehouses",
+      "sourceRows": 2,
+      "inserted": 2,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "791aedcd-65e3-4549-8c18-332933598ab6"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 2
+    },
+    {
+      "table": "core_work_orders",
+      "sourceRows": 76,
+      "inserted": 76,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "63074c82-7309-4035-9a66-6ced8b6f39a2"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 76
+    },
+    {
+      "table": "core_work_order_types",
+      "sourceRows": 2,
+      "inserted": 2,
+      "existing": 0,
+      "warnings": 0,
+      "status": "success",
+      "sessions": [
+        "2857da0a-9a52-4ca4-9128-891cb49994c0"
+      ],
+      "issues": [],
+      "verification": "all mapped values match saved target data",
+      "targetAfter": 2
+    }
+  ],
+  "sourceUnchanged": true,
+  "order": [
+    "core_address_types",
+    "core_bank_names",
+    "core_brands",
+    "core_colours",
+    "core_companies",
+    "core_companies_addresses",
+    "core_companies_bank_accounts",
+    "core_companies_emails",
+    "core_companies_phones",
+    "core_companies_social_links",
+    "core_contact_groups",
+    "core_contact_types",
+    "core_contacts",
+    "core_contacts_bank_accounts",
+    "core_contacts_emails",
+    "core_contacts_phones",
+    "core_contacts_social_links",
+    "core_countries",
+    "core_currencies",
+    "core_destinations",
+    "core_financial_years",
+    "core_default_company_settings",
+    "core_hsn_codes",
+    "core_ledger_groups",
+    "core_ledgers",
+    "core_months",
+    "core_payment_terms",
+    "core_priorities",
+    "core_product_categories",
+    "core_product_groups",
+    "core_product_types",
+    "core_sales_types",
+    "core_sizes",
+    "core_states",
+    "core_districts",
+    "core_cities",
+    "core_pincodes",
+    "core_contacts_addresses",
+    "core_stock_rejection_types",
+    "core_styles",
+    "core_taxes",
+    "core_transports",
+    "core_units",
+    "core_products",
+    "core_warehouses",
+    "core_work_orders",
+    "core_work_order_types"
+  ],
+  "before": {
+    "core_address_types": {
+      "source": {
+        "count": 6,
+        "hash": "dc5b2a843ff2c1596b5e958c328bc7e1d288b597d35a17e88c5cff48f602c300"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_bank_names": {
+      "source": {
+        "count": 158,
+        "hash": "ee7760fee41e9b71930aaf8f1ddd2328d7d279852bb1d597b933c64549d44443"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_brands": {
+      "source": {
+        "count": 2,
+        "hash": "ddef66919cfe197b1f841ab9a0597303577173df94d4f3f835f6069a70a1b90d"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_colours": {
+      "source": {
+        "count": 6,
+        "hash": "576387b702d03cb68705c6acd90281c830f42771d3c765c29dc02b5a706bc355"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_companies": {
+      "source": {
+        "count": 1,
+        "hash": "a4bab266820a77b279daebcdb50e0bac32a9247f3435129491d5ed5ac9474c71"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_companies_addresses": {
+      "source": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_companies_bank_accounts": {
+      "source": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_companies_emails": {
+      "source": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_companies_phones": {
+      "source": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_companies_social_links": {
+      "source": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_contact_groups": {
+      "source": {
+        "count": 3,
+        "hash": "e19ece8d542decfa21e6b108bbbd530dfa6fc5b7f6dddea39f1b14a8d39f8a6a"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_contact_types": {
+      "source": {
+        "count": 6,
+        "hash": "02d81f3c7a52456528498c9537d5f9a90527d127468966c9a6a1d33a726f9bf8"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_contacts": {
+      "source": {
+        "count": 62,
+        "hash": "d440c3723d3004b6637a29d047ea8a725403c51c9c5386e9acd7091f550e6ace"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_contacts_bank_accounts": {
+      "source": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_contacts_emails": {
+      "source": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_contacts_phones": {
+      "source": {
+        "count": 17,
+        "hash": "6358ec4a75528ba091cd5efe3fb9b316b38189a83faa8e0e2c5e63cbb15974ab"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_contacts_social_links": {
+      "source": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_countries": {
+      "source": {
+        "count": 6,
+        "hash": "2c97bd745e1f2308b5f85c5f07be28e71b852076066285bf729cdb641d094fbb"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_currencies": {
+      "source": {
+        "count": 3,
+        "hash": "5f5cf6638240e24068f930f53c5acd7044e13a09d407c03693b69c9e2027d6d2"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_destinations": {
+      "source": {
+        "count": 2,
+        "hash": "8d4fd8d4f10c0d45f60f03763fed464d07d3c107cf7691673158961ba1ba218a"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_financial_years": {
+      "source": {
+        "count": 1,
+        "hash": "9d7648517b9d2ab5f400b9f6a22ca3ea7092c87a115a7cc0e183839feec1993c"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_default_company_settings": {
+      "source": {
+        "count": 1,
+        "hash": "cf0a86a1e11a605138c278d37aba5f835bac7a7b0ecabb80fc9a14f27f77c9e1"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_hsn_codes": {
+      "source": {
+        "count": 3,
+        "hash": "96f8cc4acd1caf0d1fce2be85c19ab0aa9996ea00761f7052f64f4cfa6d8dcd6"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_ledger_groups": {
+      "source": {
+        "count": 2,
+        "hash": "8b717f34fe2cea09a5785a7a15966177f00d6dfc1eccccaac0986b39f2e343e3"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_ledgers": {
+      "source": {
+        "count": 2,
+        "hash": "43e3875884b32486760d14e9b5f66a5e4f9e886fa471630199fd3e351406cb09"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_months": {
+      "source": {
+        "count": 13,
+        "hash": "a84ec966a0df60724b67d5b7f1930bb6474969d3b63bdfa59484f6df78285b19"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_payment_terms": {
+      "source": {
+        "count": 4,
+        "hash": "c94eb1af567ee5199a12efcfe1e0e86d12b62f75b892dce30adb9dcdb4adb588"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_priorities": {
+      "source": {
+        "count": 4,
+        "hash": "d302e82cf89e543c0bb11db5796cb0db5989efcfb7133631cb5763fe8cc181cb"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_product_categories": {
+      "source": {
+        "count": 3,
+        "hash": "d23de907e0337f2f9677d794e05c79c623c47ebc4525561803a1f1ecd820907a"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_product_groups": {
+      "source": {
+        "count": 2,
+        "hash": "2ad2888bb8895f29bc3175d4d9f0f7fdf7e1ec7d1a13d854fdf2296a6b2fc167"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_product_types": {
+      "source": {
+        "count": 3,
+        "hash": "0c6385f29283fe2dfa0f7c9622346281b5281472c39d9ecf80e51b00b0e96a40"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_sales_types": {
+      "source": {
+        "count": 3,
+        "hash": "994824dfd035d333bf53a01788a9028b0d1f7d0921e6d9978c5457752bb0a602"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_sizes": {
+      "source": {
+        "count": 2,
+        "hash": "dd00cc89ce63a0442c81ee24ec9132018809cf6eed302f4411bf7f91aea26692"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_states": {
+      "source": {
+        "count": 38,
+        "hash": "3cd8c4b38e25d862ac65b0304f7b6c93161a6ea8aaa9777d1bcc1240caf60eed"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_districts": {
+      "source": {
+        "count": 40,
+        "hash": "181cdc722e59351a812eb015b40b01974661bd190bdddb7777d51a1b2fdd4930"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_cities": {
+      "source": {
+        "count": 30,
+        "hash": "3e1c91698ae0c55e5dd4e667f655ca91600a3697d7dbabe09ae5414bbb19a32b"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_pincodes": {
+      "source": {
+        "count": 42,
+        "hash": "ae44f6634c6e197ca48eed2795a70950cd3582791f53ec077422e849c7066914"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_contacts_addresses": {
+      "source": {
+        "count": 62,
+        "hash": "97a9d1dd11c9c874ff68aabc837e1630fbca13b06a505fdb4402a75e3be359fa"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_stock_rejection_types": {
+      "source": {
+        "count": 3,
+        "hash": "5b314f323019eaff5c52d329ebf8b53870ab49032f9bf9e1087140fbd1301f28"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_styles": {
+      "source": {
+        "count": 2,
+        "hash": "fd8c191caa99ee580dd3cb5f8dd8727389315b58bc872683d8db939fde4e68de"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_taxes": {
+      "source": {
+        "count": 5,
+        "hash": "de6b14ce5fa8f3ed6893fa5fe0ff651671f9ecb565398979f3ddde43b75671c6"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_transports": {
+      "source": {
+        "count": 2,
+        "hash": "9defe85f4e905b401e534e56d0d6c5fcef29b6e1cde7cb9e508d38c86a3e185b"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_units": {
+      "source": {
+        "count": 6,
+        "hash": "1305daef9044296f327bc836ee0b30e5244aae5b9d734aef9eeb9de85c9dc27a"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_products": {
+      "source": {
+        "count": 34,
+        "hash": "f47376a7b33cd5830e48dc117993d03f9ee4c9743d488dbf4eef95c58c12d4a3"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_warehouses": {
+      "source": {
+        "count": 2,
+        "hash": "cbf43baf052d5e188fb20361b0f241331c826975e9f2d84668813589e57b96f8"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_work_orders": {
+      "source": {
+        "count": 76,
+        "hash": "c383016416f15e4251c4c8a9d024683e367d48bc2eadc86626c9431b58fdd02a"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "core_work_order_types": {
+      "source": {
+        "count": 2,
+        "hash": "7ffbfb721d5067255d700cc4a4676d10e71039b11bd8ed8eac5c1eb7e1ee70b7"
+      },
+      "target": {
+        "count": 0,
+        "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    }
+  },
+  "changedSourceTables": [],
+  "summary": {
+    "tables": 47,
+    "sourceRows": 659,
+    "inserted": 659,
+    "existing": 0,
+    "warnings": 0,
+    "failed": 0,
+    "attentionTables": []
+  },
+  "completedAt": "2026-10-23T13:48:06.499Z",
+  "foreignKeys": [
+    {
+      "child": "core_cities",
+      "field": "district_id",
+      "parent": "core_districts",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_companies_addresses",
+      "field": "parent_id",
+      "parent": "core_companies",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_companies_bank_accounts",
+      "field": "parent_id",
+      "parent": "core_companies",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_companies_emails",
+      "field": "parent_id",
+      "parent": "core_companies",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_companies_phones",
+      "field": "parent_id",
+      "parent": "core_companies",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_companies_social_links",
+      "field": "parent_id",
+      "parent": "core_companies",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts",
+      "field": "group_id",
+      "parent": "core_contact_groups",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts",
+      "field": "type_id",
+      "parent": "core_contact_types",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_addresses",
+      "field": "city_id",
+      "parent": "core_cities",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_addresses",
+      "field": "country_id",
+      "parent": "core_countries",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_addresses",
+      "field": "district_id",
+      "parent": "core_districts",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_addresses",
+      "field": "parent_id",
+      "parent": "core_contacts",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_addresses",
+      "field": "pincode_id",
+      "parent": "core_pincodes",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_addresses",
+      "field": "state_id",
+      "parent": "core_states",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_addresses",
+      "field": "address_type_id",
+      "parent": "core_address_types",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_bank_accounts",
+      "field": "bank_name_id",
+      "parent": "core_bank_names",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_bank_accounts",
+      "field": "parent_id",
+      "parent": "core_contacts",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_emails",
+      "field": "parent_id",
+      "parent": "core_contacts",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_phones",
+      "field": "parent_id",
+      "parent": "core_contacts",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_contacts_social_links",
+      "field": "parent_id",
+      "parent": "core_contacts",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_default_company_settings",
+      "field": "company_id",
+      "parent": "core_companies",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_default_company_settings",
+      "field": "financial_year_id",
+      "parent": "core_financial_years",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_districts",
+      "field": "state_id",
+      "parent": "core_states",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_ledgers",
+      "field": "ledger_group_id",
+      "parent": "core_ledger_groups",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_pincodes",
+      "field": "city_id",
+      "parent": "core_cities",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_products",
+      "field": "product_category_id",
+      "parent": "core_product_categories",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_products",
+      "field": "hsn_code_id",
+      "parent": "core_hsn_codes",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_products",
+      "field": "gst_tax_id",
+      "parent": "core_taxes",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_products",
+      "field": "product_type_id",
+      "parent": "core_product_types",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_products",
+      "field": "unit_id",
+      "parent": "core_units",
+      "parentField": "id",
+      "orphans": 0
+    },
+    {
+      "child": "core_states",
+      "field": "country_id",
+      "parent": "core_countries",
+      "parentField": "id",
+      "orphans": 0
+    }
+  ],
+  "queueJobs": [
+    {
+      "table": "core_address_types",
+      "transfer": "2210af2a-59b8-41bf-b1b8-b0c5386fda9d",
+      "jobs": [
+        {
+          "uuid": "ad504c9f",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_bank_names",
+      "transfer": "eccc2dee-8d55-423d-834d-2a770ac69050",
+      "jobs": [
+        {
+          "uuid": "71b85bc5",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_brands",
+      "transfer": "9fe6c7d2-ee16-449f-91bc-ab661f88d2bc",
+      "jobs": [
+        {
+          "uuid": "11d9268c",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_colours",
+      "transfer": "f7417346-40e5-4e21-882d-203e8bad2c0b",
+      "jobs": [
+        {
+          "uuid": "98fd766b",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_companies",
+      "transfer": "adb1213e-0e99-439a-a95e-01e9fe3b43c5",
+      "jobs": [
+        {
+          "uuid": "7e386fb0",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_contact_groups",
+      "transfer": "4e811109-55ef-47eb-a7a7-f92353bce07b",
+      "jobs": [
+        {
+          "uuid": "5a4c1a0a",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_contact_types",
+      "transfer": "79db0e8d-1d6d-437a-a3db-c1136916c339",
+      "jobs": [
+        {
+          "uuid": "9fd7b9d2",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_contacts",
+      "transfer": "1ffaed84-afff-49cf-b672-c635c1bddd6c",
+      "jobs": [
+        {
+          "uuid": "58b63bce",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_contacts_phones",
+      "transfer": "f113cc65-8b52-4a81-b420-b6fb72c11b25",
+      "jobs": [
+        {
+          "uuid": "de0371cd",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_countries",
+      "transfer": "f3bbaf22-56ab-458d-814d-87f88b904d4c",
+      "jobs": [
+        {
+          "uuid": "73d4d86d",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_currencies",
+      "transfer": "1b7d573d-ee7c-45b2-b424-01889759fb59",
+      "jobs": [
+        {
+          "uuid": "9c119707",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_destinations",
+      "transfer": "b7be6980-af82-44ae-953a-fbc3641ed69b",
+      "jobs": [
+        {
+          "uuid": "07626302",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_financial_years",
+      "transfer": "5ebe0267-6b2b-4969-bf6e-a7e9c0fecb7d",
+      "jobs": [
+        {
+          "uuid": "b23cdc5b",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_default_company_settings",
+      "transfer": "22443dda-6284-43af-8f76-29e184c1533c",
+      "jobs": [
+        {
+          "uuid": "678f946f",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_hsn_codes",
+      "transfer": "0ed84e49-2477-469e-9d31-1485833c6ad3",
+      "jobs": [
+        {
+          "uuid": "165b9c88",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_ledger_groups",
+      "transfer": "623b0751-77af-43a0-bff1-7ef0908078a6",
+      "jobs": [
+        {
+          "uuid": "c53088b3",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_ledgers",
+      "transfer": "467923ea-463e-4436-a612-c8c464f40456",
+      "jobs": [
+        {
+          "uuid": "78597899",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_months",
+      "transfer": "b70ce2bb-a1cc-46b6-addd-d6ebf80d5b81",
+      "jobs": [
+        {
+          "uuid": "c39fa105",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_payment_terms",
+      "transfer": "a258c8e0-7be6-46c7-8cf0-660720d5e72b",
+      "jobs": [
+        {
+          "uuid": "a3837ae8",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_priorities",
+      "transfer": "f42d138c-dc49-48a4-b489-278a24858612",
+      "jobs": [
+        {
+          "uuid": "f34f8dbd",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_product_categories",
+      "transfer": "f2341b8f-0bc4-4ce0-93dc-e709222b49dc",
+      "jobs": [
+        {
+          "uuid": "60314769",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_product_groups",
+      "transfer": "92721fb9-fa3d-4f7e-9fd2-0a72c1d3b9bc",
+      "jobs": [
+        {
+          "uuid": "05e1c53f",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_product_types",
+      "transfer": "582e5359-dd5e-4da2-806b-93527e855da1",
+      "jobs": [
+        {
+          "uuid": "f11493ce",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_sales_types",
+      "transfer": "cf645165-dd90-499f-b7c2-5d549803d057",
+      "jobs": [
+        {
+          "uuid": "18bd9001",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_sizes",
+      "transfer": "d2493908-c81a-417e-b8a3-c5bab5f653c3",
+      "jobs": [
+        {
+          "uuid": "e98232c5",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_states",
+      "transfer": "4260d011-4bfe-4a70-976a-f933c7f0c996",
+      "jobs": [
+        {
+          "uuid": "9a11e1eb",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_districts",
+      "transfer": "f26f0308-3fd5-40ee-b1b1-29f6a3a2bac6",
+      "jobs": [
+        {
+          "uuid": "bb2d790d",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_cities",
+      "transfer": "aba58a0e-ace4-4b63-93db-d70c0953f978",
+      "jobs": [
+        {
+          "uuid": "aab44a1c",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_pincodes",
+      "transfer": "d634b0a1-ed14-4609-ad30-dffac6b71c93",
+      "jobs": [
+        {
+          "uuid": "8b31dcb2",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_contacts_addresses",
+      "transfer": "97ee7d3a-bb8e-4ecb-8fe4-7bf819eeaeda",
+      "jobs": [
+        {
+          "uuid": "d56cdb9b",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_stock_rejection_types",
+      "transfer": "344b0571-1042-4c04-a308-a92d97c14fd5",
+      "jobs": [
+        {
+          "uuid": "b7957869",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_styles",
+      "transfer": "cdeaf4df-1fd4-411a-bc21-d8783d791526",
+      "jobs": [
+        {
+          "uuid": "0fad0d1e",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_taxes",
+      "transfer": "2d9921d0-dd57-4767-a1d2-4d534bc6014c",
+      "jobs": [
+        {
+          "uuid": "d467972e",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_transports",
+      "transfer": "b36cd066-fe85-46e7-ad31-e4c92bb43d1b",
+      "jobs": [
+        {
+          "uuid": "477cfd06",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_units",
+      "transfer": "3ff1d7c0-8f2a-4b8c-bba6-a5f641d3d5d3",
+      "jobs": [
+        {
+          "uuid": "22738efe",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_products",
+      "transfer": "a3b2ef90-8efe-47ed-90ef-2dd2bf6260a6",
+      "jobs": [
+        {
+          "uuid": "90f05113",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_warehouses",
+      "transfer": "791aedcd-65e3-4549-8c18-332933598ab6",
+      "jobs": [
+        {
+          "uuid": "69e05a2d",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_work_orders",
+      "transfer": "63074c82-7309-4035-9a66-6ced8b6f39a2",
+      "jobs": [
+        {
+          "uuid": "d3fa0b28",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "table": "core_work_order_types",
+      "transfer": "2857da0a-9a52-4ca4-9128-891cb49994c0",
+      "jobs": [
+        {
+          "uuid": "463e9049",
+          "status": "completed",
+          "attempts": 1
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "orphanReferences": 0,
+    "relationshipsChecked": 31,
+    "queueJobs": 39,
+    "allJobsCompleted": true,
+    "allSavedValuesMatch": true,
+    "allCountsMatch": true
+  }
+}

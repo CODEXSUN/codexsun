@@ -1,3 +1,7 @@
+import {
+  forwardSiteEnquiries,
+  marketingCaptureResponse
+} from "@codexsun/sites-api/enquiry-runtime";
 import { gzipSync } from "node:zlib";
 const compressedBodies = new WeakMap();
 import { createServer } from "node:http";
@@ -64,6 +68,23 @@ export function createSiteServer({ releaseDirectory, databasePath, origin, trust
   const service = enquiryModule(store.database);
   const enquiries = new EnquiryRepository(store.database);
   const cleanup = setInterval(() => enquiries.expire(), 3600000);
+  let forwarding = false;
+  const relay = setInterval(() => {
+    if (forwarding || !process.env.CODEXSUN_MARKETING_CAPTURE_URL) return;
+    forwarding = true;
+    void forwardSiteEnquiries(
+      enquiries,
+      process.env.CODEXSUN_MARKETING_CAPTURE_URL,
+      origin,
+      release.siteUuid
+    )
+      .catch(() => console.error("Sites Marketing forwarding failed."))
+      .finally(() => {
+        forwarding = false;
+      });
+  }, 15000);
+  relay.unref();
+
   cleanup.unref();
   const staticFiles = new Map();
   const server = createServer(async (request, response) => {
@@ -79,6 +100,40 @@ export function createSiteServer({ releaseDirectory, databasePath, origin, trust
       if (request.headers.host !== parsedOrigin.host)
         throw Object.assign(new Error("Unrecognized website host."), { status: 421 });
       const path = decodeURIComponent(new URL(request.url, origin).pathname);
+      if (
+        [
+          "/marketing/capture",
+          "/content/v1/marketing-capture",
+          "/content/v1/marketing-capture.js"
+        ].includes(path)
+      ) {
+        const chunks = [];
+        let size = 0;
+        if (request.method === "POST")
+          for await (const chunk of request) {
+            size += chunk.length;
+            if (size > 16384)
+              throw Object.assign(new Error("The capture payload is too large."), { status: 413 });
+            chunks.push(chunk);
+          }
+        const body = Buffer.concat(chunks).toString("utf8");
+        const incoming = new Request(new URL(request.url, origin), {
+          method: request.method,
+          headers: {
+            "content-type": String(request.headers["content-type"] ?? ""),
+            origin: String(request.headers.origin ?? "")
+          },
+          ...(body ? { body } : {})
+        });
+        const result = await marketingCaptureResponse(
+          incoming,
+          process.env.CODEXSUN_MARKETING_CAPTURE_URL ?? "",
+          origin
+        );
+        for (const [key, value] of result.headers) response.setHeader(key, value);
+        response.writeHead(result.status);
+        return response.end(await result.text());
+      }
       if (request.method === "POST" && path === "/content/v1/enquiries") {
         let address = request.socket.remoteAddress || "unknown";
         const forwarded = request.headers["x-forwarded-for"];
@@ -196,6 +251,7 @@ export function createSiteServer({ releaseDirectory, databasePath, origin, trust
     enquiries,
     close: async () => {
       clearInterval(cleanup);
+      clearInterval(relay);
       await new Promise((resolve) => server.close(resolve));
       store.close();
     }
@@ -209,7 +265,8 @@ function send(response, status, type, body, request) {
     const encodings = String(request.headers["accept-encoding"] || "").split(",");
     const gzip = encodings.find((entry) => entry.trim().split(";")[0] === "gzip");
     if (gzip && !/;\s*q=0(?:\.0*)?(?:\s|$)/.test(gzip)) {
-      if (!compressedBodies.has(payload)) compressedBodies.set(payload, gzipSync(payload, { level: 4 }));
+      if (!compressedBodies.has(payload))
+        compressedBodies.set(payload, gzipSync(payload, { level: 4 }));
       payload = compressedBodies.get(payload);
       response.setHeader("Content-Encoding", "gzip");
     }

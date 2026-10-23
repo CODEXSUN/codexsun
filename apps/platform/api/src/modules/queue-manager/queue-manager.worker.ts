@@ -31,9 +31,10 @@ export const queueManagerWorker = {
     "mail.send",
     "mail.sync",
     "mail.system-send",
+    "marketing.submission.handoff",
     "queue.probe"
   ],
-  queues: ["chat", "crm", "maintenance", "mail", "reports", "system"]
+  queues: ["chat", "crm", "maintenance", "mail", "marketing", "reports", "system"]
 } as const;
 
 export function queueJobCanRunInline(job: QueueJobRecord) {

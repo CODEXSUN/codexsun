@@ -7,7 +7,9 @@ Read [README](../README.md), [PLAN](PLAN.md), and [TASK](TASK.md) before plannin
 Read affected app documents before modifying CRM, Sites, Mail, Chat, Core, Billing, Platform, or Zetro.
 This document guides development. It does not grant runtime permissions, provider access, or deployment approval.
 
-Current authorization is documentation only. Do not create API/Web packages, migrations, connectors, or runtime code for this task.
+Current authorization permits Phase 1 implementation and verification locally.
+Do not deploy, commit, push, or change versions until the user requests it.
+Preserve unrelated and concurrent working-tree changes.
 
 ## Product boundaries
 
@@ -60,6 +62,8 @@ Use governance public `uuid` identifiers and validate authorization independentl
 
 Read `assist/documentation/design-system-helper.md` before UI work.
 Use CRM Enquiry list, Show, and upsert as the visual and interaction reference.
+Marketing list and upsert modes must render separate page views. Never render a list behind an upsert form.
+Place Filters and Columns in the search toolbar. Preserve filter and column state in the page URL.
 Use `@codexsun/ui` primitives with the same density, spacing, typography, tones, buttons, forms, and activity rhythm.
 Customize domain fields, channel previews, tabs, and useful calendar behavior inside Marketing.
 Do not import private CRM UI or create a generic metadata-driven business workspace.
@@ -99,10 +103,20 @@ Do not use scraping, login bots, cookie capture, or arbitrary mass direct messag
 ## Verification and reporting
 
 For documentation, run root component-document checks and formatting checks.
-For future implementation, run focused lint, API/Web typecheck, boundaries, builds, dependencies, and relevant database tests.
+For implementation, run focused lint, API/Web typecheck, boundaries, builds, dependencies, and relevant database tests.
 Run browser acceptance and authorized provider pilots separately from mocked connector tests.
 Always test two tenants and forged context, swapped identifiers, OAuth confusion, webhook replay, and queue restoration.
 Test consent and suppression races, revoked grants, tenant suspension, and edits after approval.
 Record exact evidence in TASK and keep unfinished tasks unchecked.
 Do not claim production, browser, persistence, provider, or delivery verification from compilation or documentation checks.
 Do not bump versions, publish, send campaigns, connect client accounts, or deploy as part of a documentation-only task.
+
+## Promotional evidence and current eligibility
+
+Email is the first supported promotional eligibility channel. Reject unsupported channels and purposes.
+Consent evidence is append-only. Preserve withdrawals and require later evidence for re-consent.
+Missing authorities, grants, activation, or migrations must block eligibility.
+Check every matching Core identity through its public lookup. Do not merge recipients or bypass existing CRM preferences.
+Never clear Mail complaint, bounce, or policy suppression from Marketing.
+An eligibility result is an assessment at check time. It cannot authorize a future queued send by itself.
+Do not add promotional dispatch to existing SMTP or system-send paths without the planned execution contract.

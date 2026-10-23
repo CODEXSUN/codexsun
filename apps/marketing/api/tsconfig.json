@@ -7,11 +7,7 @@
     "rootDir": "src",
     "outDir": "../../../dist/apps/marketing/api",
     "preserveSymlinks": true,
-    "types": [
-      "node"
-    ]
+    "types": ["node"]
   },
-  "include": [
-    "src/**/*.ts"
-  ]
+  "include": ["src/**/*.ts"]
 }

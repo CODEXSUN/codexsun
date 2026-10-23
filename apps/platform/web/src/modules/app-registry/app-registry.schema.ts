@@ -16,6 +16,7 @@ export const appRegistrySchema = z.object({
     "platform-task-manager",
     "blog",
     "auditor",
+    "marketing",
     "crm",
     "frappe",
     "logicx-erp",

@@ -52,3 +52,11 @@ Source presence is not release evidence. Confirm executable behavior before desc
 Use `npm run check:component-docs` and the relevant root checks.
 Run database, browser, native, and deployment checks when the changed behavior needs them.
 Do not mark an untested phase or planned feature complete.
+
+## Local email policy continuation, 23-10-2026
+
+The public `contactIdsForEmailPolicy` lookup returns every matching recipient identity ID, including inactive/deleted identities.
+It reads only Core-owned email fields. CRM consumes these IDs to check restrictions without merging contacts.
+Platform selects the trusted tenant database before calling the contract. No new public HTTP search or write permission is added.
+
+See Marketing TASK for the current scope and local verification. No campaign delivery or deployment is enabled.

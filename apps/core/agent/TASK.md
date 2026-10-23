@@ -107,3 +107,15 @@ Do not treat documentation, a build, or a model response as proof of live persis
 ## 2026-10-17: Live CRM workspace acceptance
 
 Core workspace read seeds now include Admin, Super Admin, and Manager. Reconciled both live tenant databases. Master write grants remain Admin-only.
+
+## Local email policy evidence, 23-10-2026
+
+The public `contactIdsForEmailPolicy` lookup returns every matching recipient identity ID, including inactive/deleted identities.
+It reads only Core-owned email fields. CRM consumes these IDs to check restrictions without merging contacts.
+Platform selects the trusted tenant database before calling the contract. No new public HTTP search or write permission is added.
+
+The two-disposable-database Marketing suite verifies denied grants, tenant/company isolation, legacy CRM restrictions, Mail complaint/bounce blocking, and owner outages.
+Existing local business row counts were preserved. No commit, push, or deployment was performed for this work.
+
+Focused owner typecheck, lint, build, and module boundaries passed for the email policy continuation.
+Marketing database tests verify exact UTC timestamps and near-expiry rejection alongside tenant and owner policy checks.

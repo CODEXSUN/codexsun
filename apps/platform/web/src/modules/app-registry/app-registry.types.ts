@@ -18,6 +18,7 @@ export type PlatformApp = {
     | "platform-task-manager"
     | "blog"
     | "auditor"
+    | "marketing"
     | "crm"
     | "frappe"
     | "logicx-erp"

@@ -1,3 +1,4 @@
+import { migrateProviderAccountClaims } from "../modules/app-registry/app-registry.account-claims.js";
 import { Kysely, MysqlDialect } from "kysely";
 import { createPool, type PoolOptions } from "mysql2";
 import { createConnection } from "mysql2/promise";
@@ -76,6 +77,7 @@ let platformDatabase: Kysely<PlatformDatabase> | null = null;
 let bootstrapped = false;
 
 const platformMasterMigrationSteps = [
+  {description:"Provider account ownership routing without tenant credentials.",migrate:migrateProviderAccountClaims,name:"platform.provider-account-claims.v1"},
   {
     description: appRegistryMigration.description,
     migrate: migrateAppRegistryModule,

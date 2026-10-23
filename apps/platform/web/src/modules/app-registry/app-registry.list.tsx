@@ -17,6 +17,7 @@ export const appRegistryFields: RegistryField<PlatformApp>[] = [
       { label: "Billing", value: "billing" },
       { label: "Accounts", value: "accounts" },
       { label: "CRM", value: "crm" },
+      { label: "Marketing", value: "marketing" },
       { label: "Frappe", value: "frappe" },
       { label: "Blog", value: "blog" },
       { label: "Auditor", value: "auditor" },

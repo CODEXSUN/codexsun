@@ -26,6 +26,9 @@ export function migrateEnquiry(database: DatabaseSync) {
  CREATE INDEX IF NOT EXISTS sites_enquiry_activity_reference ON sites_enquiry_activity(reference,id);
  CREATE INDEX IF NOT EXISTS sites_enquiries_inbox ON sites_enquiries(deleted_at,status,created_at);
  INSERT OR IGNORE INTO migration_schema VALUES('sites.enquiry.v2',CURRENT_TIMESTAMP);`);
+    database.exec(`CREATE TABLE IF NOT EXISTS sites_marketing_outbox(reference TEXT PRIMARY KEY REFERENCES sites_enquiries(reference) ON DELETE CASCADE,status TEXT NOT NULL DEFAULT 'pending',receipt TEXT,attempts INTEGER NOT NULL DEFAULT 0,available_at INTEGER NOT NULL DEFAULT 0);
+    CREATE TRIGGER IF NOT EXISTS sites_marketing_capture AFTER INSERT ON sites_enquiries BEGIN INSERT OR IGNORE INTO sites_marketing_outbox(reference) VALUES(NEW.reference); END;
+    INSERT OR IGNORE INTO migration_schema VALUES('sites.marketing-outbox.v1',CURRENT_TIMESTAMP);`);
     database.exec("COMMIT");
   } catch (error) {
     database.exec("ROLLBACK");

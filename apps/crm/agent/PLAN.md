@@ -567,3 +567,12 @@ every result traceable to source records.
 - [Service entitlements](https://learn.microsoft.com/en-us/dynamics365/customer-service/administer/create-entitlement-define-support-terms-customer)
 - [Service work orders](https://learn.microsoft.com/en-us/dynamics365/field-service/field-service-architecture)
 - [Recurring service agreements](https://learn.microsoft.com/en-us/dynamics365/field-service/agreements-overview)
+
+## Local email policy continuation, 23-10-2026
+
+CRM now owns append-only company-scoped email contact restrictions and a public policy check.
+The check also reads Contact Preferences for every matching Core identity. Unknown legacy preferences require review.
+Explicit operational allowance never grants promotional consent. Restriction changes require `crm.contact-restrictions.manage`.
+Policy reads require `crm.contact-restrictions.check`. Only Admin receives these new grants by default.
+
+See Marketing TASK for the current scope and local verification. No campaign delivery or deployment is enabled.

@@ -80,3 +80,9 @@ Report database, browser, native, and deployment checks separately.
 Organisation, Common Master, Contact, Product, and Work Order lists use compact shared table controls. New actions render in the host application header.
 Each leaf owns its columns and filtering projection. Shared UI owns toolbar state, column visibility, and the host navigation adapter. Search and list controls use the query string.
 Core New/Edit routes retain their existing paths. Sidebar navigation returns to the list after the host's draft confirmation. Default Company remains a singleton settings screen.
+
+## Local promotional email policy integration, 23-10-2026
+
+The public `contactIdsForEmailPolicy` lookup returns every matching recipient identity ID, including inactive/deleted identities.
+It reads only Core-owned email fields. CRM consumes these IDs to check restrictions without merging contacts.
+Platform selects the trusted tenant database before calling the contract. No new public HTTP search or write permission is added.

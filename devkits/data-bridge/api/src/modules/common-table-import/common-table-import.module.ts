@@ -1,3 +1,4 @@
+import { registerTransferRoutes } from "./common-table-import.transfer.routes.js";
 import type { FastifyInstance } from "fastify";
 import { registerCommonTableImportRoutes } from "./common-table-import.routes.js";
 import type { CommonTableImportHost } from "./common-table-import.types.js";
@@ -8,5 +9,6 @@ export const commonTableImportModule = {
   register(app: FastifyInstance, host: CommonTableImportHost) {
     registerCommonTableImportRoutes(app, host);
     registerCommonBulkRoutes(app, host);
+    registerTransferRoutes(app, host);
   }
 };

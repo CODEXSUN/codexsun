@@ -153,6 +153,19 @@ const migrationBatch: MigrationBatch<unknown> = {
           )
           .execute(database);
       }
+    },
+    {
+      checksum: "data-bridge.transfers-v5",
+      name: "data-bridge.transfers-v5",
+      description: "Persist verified staged table and field transfers.",
+      version: 5,
+      up: async (database) => {
+        await sql
+          .raw(
+            `CREATE TABLE IF NOT EXISTS data_bridge_transfers (id INT AUTO_INCREMENT PRIMARY KEY,uuid CHAR(36) NOT NULL UNIQUE,body JSON NOT NULL,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+          )
+          .execute(database);
+      }
     }
   ]
 };

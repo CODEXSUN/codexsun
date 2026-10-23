@@ -2,7 +2,7 @@
 
 ## Tracking rules
 
-Baseline: 2026-10-23. This task creates planning documents only.
+Baseline: 2026-10-23. Phase 0 created planning documents. The user subsequently authorized local Phase 1 implementation.
 All implementation tasks remain unchecked until exact acceptance evidence exists.
 Do not mark a feature complete because its directory, button, route, or mocked response exists.
 Record source checks, automated checks, database behavior, browser behavior, provider behavior, and deployment separately.
@@ -49,6 +49,9 @@ These are live readiness gates, not completed planning evidence. They cannot be 
 
 ## Phase 1: Tenant foundation and capture MVP
 
+Status: in progress locally. The broad exit gate remains open.
+The implementation log below separates source, automated database tests, browser checks, and live readiness.
+
 - [ ] 1.1 Register tenant Marketing activation, permissions, routes, migrations, seeds, and menu through public composition points.
 - [ ] 1.2 Implement tenant/company/brand-scoped context for requests, storage, caches, reports, exports, and jobs.
 - [ ] 1.3 Build shared CRM-style list, Show, and upsert surfaces for brands, campaigns, connections, and submissions.
@@ -63,6 +66,8 @@ These are live readiness gates, not completed planning evidence. They cannot be 
 - [ ] 1.12 Add source-aware CRM/Frappe export policy so Marketing-origin intake cannot trigger an unapproved remote transfer.
 - [ ] 1.13 Add Sites-owned durable forwarding for existing SQLite/D1 enquiries without transferring their owner or promising remote inbox sync.
 - [ ] 1.14 Implement effective promotional eligibility across Marketing consent, CRM restrictions, and transport safety with fail-closed behavior.
+- [x] 1.14a Implement and locally verify the promotional email evidence/check slice across Marketing, CRM, Core identity lookup, and Mail safety.
+- [ ] 1.14b Add other channel authorities and bind future promotional dispatch to repeated execution checks when those transports are implemented.
 
 Exit evidence: identical client screens on separate databases, permitted form-to-CRM flow, and duplicate-safe retry after restart.
 CRM canonical Lead readiness is a dependency, not permission to hide a second Lead implementation inside Marketing.
@@ -178,3 +183,155 @@ Exit evidence: reconciled reports, tenant recovery drill, operational review, an
 
 For later work, record phase/task, command or live scenario, tenant fixtures, date, result, and remaining limitation.
 Never store credentials, recipient lists, or private message content in this evidence log.
+
+## Local implementation and verification log
+
+### 23-10-2026: Phase 1 foundation, local work only
+
+The user resumed local implementation after stopping cloud deployment.
+No new commit, push, version bump, cloud operation, or existing customer migration was performed during this local continuation.
+Unrelated CRM, Frappe, Platform, and other working-tree changes were preserved.
+
+Implemented source:
+
+- Tenant Marketing registration, opt-in activation, permission seeds, additive migrations, and Platform menu composition.
+- Separate tenant databases, saved default-company context, creator-owned brands, and an explicit manage-all grant.
+- Brands, campaigns, capture forms, and connection setup with required validation, audited status changes, and revision checks.
+- Shared CRM-style list, Show, upsert, relationship lookups, status filters, pagination, direct links, and browser refresh state.
+- Campaign tracking identity and inactive duplication. Duplication does not authorize publication or sending.
+- Google OAuth with PKCE, session-bound single-use state, verified channel selection, encrypted grants, account claims, and local disconnect.
+- Public capture bindings for verified tenant domains, source validation, bounded payloads, notice evidence, and abuse limits.
+- Strict JSON import preview and resumable results. Privacy consent remains separate from promotional consent.
+- Durable submission storage before queue enqueue. Queue payloads contain references, trusted tenant identity, and company scope.
+- Platform handoff processor, expired-job recovery, and rotating pending scans. A revoked actor cannot permanently block later pending records.
+- CRM-owned canonical Lead intake, stable source receipts, review-only identity, assignment, and one transactional follow-up task.
+- CRM Lead list and Show with a link to the assigned follow-up task. No automatic Contact merge or Enquiry/Frappe export.
+- Sites-owned public capture rendering and durable SQLite/D1 forwarding. Existing enquiry ownership and source receipts remain unchanged.
+- Framework request telemetry omits query values. Shared Tailwind scanning includes Marketing source.
+
+Local evidence:
+
+- Disposable MariaDB tests ran against two separate databases and removed only the verified disposable database names.
+- Tested persisted records, company/brand scope, tenant swaps, foreign identifiers, denied grants, and strict forged payload rejection.
+- Tested duplicate source replay, changed-payload conflict, pending intent after enqueue failure, and one CRM Lead/follow-up result.
+- Verified Marketing intake created no CRM Enquiry or Frappe sync queue row.
+- Tested OAuth session mismatch, callback replay, unverified account selection, encrypted storage, and disconnect with a simulated provider.
+- Tested public origin rejection, token tampering, unavailable tenant context, inactive parent, duplicate receipt, and stale-edit conflict.
+- Eight focused Sites tests passed for SQLite/D1 intake, durable forwarding, retry, safe rendering, forged scope/origin rejection, and Worker scheduled execution context.
+- Framework query-redaction and Marketing desk-route regression tests passed.
+- Cross-tenant provider account collisions and another tenant's release attempt were rejected in a disposable registry fixture.
+- Full `npm run check` passed: component documentation, cleanup, boundaries, add-ons, synchronized Docs, 113 typecheck/build prerequisite tasks, and 59 lint tasks.
+- Docs synchronization verified 574 pages across 29 groups. Added references cover the new Marketing and CRM Lead modules.
+- Dependency layout passed. The Git HEAD remained `37310270` throughout this local continuation.
+- Marketing, CRM, Platform, and Sites API/web typechecks passed at the recorded checks.
+- Marketing, CRM, Sites, Framework, and Platform API lint passed. Platform web lint passed after the Lead render composition correction.
+- Marketing, CRM, Sites, and Platform API builds and the Platform web production build passed locally.
+- Module boundary and root dependency-layout checks passed.
+- The Chrome fixture journey exercised the real Brand workspace against its disposable database API: validation, create, Show, refresh, Edit, Cancel, and a 390-pixel viewport without document overflow.
+
+Coverage limits and remaining Phase 1 acceptance:
+
+- The browser fixture is not a signed Platform-login or entitlement-activation test. Verify the complete authenticated desk separately.
+- Repeat browser acceptance across Campaign, Capture, Connection, Submission, and CRM Lead workflows and configured tenant branding.
+- Complete authorized export, advanced column controls, safe bulk actions, and retention/redaction acceptance under 1.4.
+- Complete configurable import mapping and duplicate decisions under 1.8.
+- Complete Core identity match review and CRM qualification/link decisions under 1.10.
+- Complete the effective promotional eligibility contract across Marketing consent, CRM restrictions, and Mail suppression under 1.14.
+- No promotional execution path is enabled. Do not interpret capture consent or imported data as permission to send campaigns.
+- Complete full Platform queue restart/activation tests, browser tenant switching, and tenant suspension/revocation race tests under 1.2 and 1.11.
+- Google live authorization, refresh/revocation policy, key rotation, and actual provider capability pilots remain unverified.
+- Other social connectors and email campaign transport belong to their planned later phases. Setup records do not establish live connections.
+- Public capture through a Sites proxy shares the proxy source-IP quota. Review this before client rollout.
+- Existing customer migrations, tenant enablement, live credentials, remote D1 migration, cloud deployment, commit, and push were not performed.
+
+Keep Phase 1 unchecked until its broader exit gates pass. Source presence and a successful build do not close those gates.
+
+### 23-10-2026: Local app-loader and tenant desk wiring
+
+Added Marketing to the App Catalog stack type, validation, and selection control.
+The tenant desk checks Marketing activation for direct routes and uses the CRM sidebar branding treatment.
+Platform health lists all five public Marketing module keys.
+Loader regression tests cover opt-in activation, launcher selection, catalog validation, and all five menu destinations.
+
+Enabled only the local development CODEXSUN tenant after verified SQL backups of its tenant database and local registry.
+Backup dumps, SHA256 checksums, before/after metadata, and preservation assertions are under the ignored local directory
+`dist/.cache/codexsun-marketing-loader-backup-1792758599585`.
+Ran additive Marketing and CRM Lead migrations and permission seeds through public owner exports.
+Added audited tenant exceptions for Marketing and the already enabled CRM dependency.
+Existing enabled modules, landing app, non-Marketing module settings, and checked CRM/Core/user row counts stayed unchanged.
+The other local tenant registry metadata stayed unchanged. No business sample records were created.
+
+Signed-session checks used the actual local Platform frontend and API with the CODEXSUN tenant admin session:
+
+- Application overview displayed Marketing and the Apps menu included Marketing.
+- All five sidebar routes opened their own lists with the shared header, filters, and pagination.
+- Brand, Campaign, Capture, and Connection upsert forms opened. Submission capture and import dialogs opened.
+- Forms and dialogs were closed without creating customer data or initiating provider authorization.
+- Authenticated list requests succeeded for all five Marketing entities and CRM Leads.
+- Reloading the Connections URL preserved the signed session and selected workspace. Authenticated list requests then passed again.
+- The running local health endpoint reported all five Marketing modules.
+- Marketing/Platform API and Platform web typechecks passed. Focused loader/navigation tests, lint, and module boundaries passed.
+- Platform web production build passed, with existing bundle-size and HRMS import warnings. Component documentation and synchronized Docs checks passed.
+
+The prior disposable browser test remains the write/Show/Edit evidence.
+This real tenant preview does not prove every signed-session write, browser tenant-switch race, live provider, or queue restart case.
+A transient local API watcher restart required a list refresh during verification.
+No commit, push, version bump, or deployment was performed for this wiring.
+
+Next Phase 1 work: complete task 1.14 with Marketing-owned promotional evidence, CRM restriction checks, and Mail safety checks.
+Missing or unavailable authority must deny promotional eligibility. Continue lifecycle/import/identity and queue acceptance afterward.
+Keep external campaign delivery disabled until its execution and readiness gates pass.
+
+### 23-10-2026: Promotional email eligibility and separate upsert pages
+
+Implemented an append-only consent leaf with company/brand scope, explicit evidence, notice version, expiry, request replay, withdrawal, and stale-grant rejection.
+CRM owns append-only email restrictions. Mail owns append-only complaint, hard-bounce, and delivery-policy suppression.
+A public Core lookup returns all recipient identity IDs without merging records or exposing contact details.
+The injected eligibility contract reads all authorities and fails closed on missing data, disabled access, permission denial, or owner failure.
+A withdrawal during the check invalidates its result. Consent is read again before returning the assessment.
+Eligibility does not enqueue or send email. Other channels and non-promotional purposes are rejected.
+
+Added the Consents sidebar page, list, standalone evidence form, immutable Show/activity, and fresh eligibility action.
+Brand, Campaign, Capture, Connection, and Submission upserts now render separate page views using CRM-style shared primitives.
+The list is absent during form mode. Edit/create URL state and Cancel behavior remain available.
+All six Marketing lists put Filters and Columns beside search. Column selections use URL state and restore through navigation.
+
+Applied only additive consent/restriction/suppression migrations and their new permission seeds to local development CODEXSUN.
+Verified full local registry/tenant SQL backups and SHA256 manifests are stored under ignored root output:
+`dist/.cache/codexsun-marketing-consent-backup-1792760438027`.
+Checked business row counts, module settings, enabled modules, landing settings, and other tenant registry metadata stayed unchanged.
+The local Mail entitlement remains absent. A missing Mail authority must block eligibility until explicitly configured.
+No customer sample records, new provider grant, external send, commit, push, version change, or deployment was created.
+
+Local database and browser evidence:
+
+- The disposable two-database suite passed with persisted consent, exact request replay, changed-key conflict, expiry, withdrawal, later re-consent, and stale grant rejection.
+- CRM do-not-contact and legacy preference review blocked eligibility. Core identities were checked without a merge.
+- Mail complaint and hard-bounce blocks survived new promotional grants. Missing CRM/Mail authority blocked checks.
+- A withdrawal between owner checks blocked the result. Forged scope fields, denied grants, foreign identifiers, company changes, and another brand owner were rejected.
+- The Chrome fixture passed standalone Brand/consent form validation, persisted create, Show, reload, fresh eligibility, uncached allow results, Edit, Cancel, and a 390-pixel viewport.
+- The signed local CODEXSUN desk displayed the Consents list/form, required-field errors, and CRM-style search-toolbar Filters and Columns.
+
+Remaining limits:
+
+- Email is the implemented eligibility channel. Other social/message authorities remain in their planned phases.
+- Provider feedback verification, public unsubscribe tokens, approved suppression release, campaign dispatch, and complete batch suspension races remain open.
+- A manual evidence reference records an authorized operator assertion. It does not prove client notice approval or live provider permission.
+- Complete the broader lifecycle, authorized exports, import mapping/duplicate decisions, identity review, and queue restart gates before closing Phase 1.
+
+Final checks for the consent/page continuation:
+
+- Typecheck passed for Marketing API/Web, CRM API, Mail API, Core API, and Platform API/Web.
+- Lint passed for the same affected owners. Module boundaries passed for Marketing, CRM, Mail, Core, and Platform.
+- Focused loader/navigation regression tests passed. Component-document checks/tests and root dependency layout passed.
+- Production builds passed for Marketing API/Web, CRM API, Mail API, Core API, and Platform API/Web.
+- Platform web build warnings concern existing bundle size and the HRMS static/dynamic import combination.
+- Docs synchronization and coverage include the three new owner module references.
+- The two-database suite also verifies exact UTC evidence/audit timestamps and a grant that expired one second before the check.
+- Repositories write UTC strings and UTC audit values explicitly, avoiding driver-local Date conversion. Existing applied migration steps were not rewritten.
+- Inactive brands reject grants but still accept authorized withdrawals.
+- Signed-session checks opened all six standalone forms without a list behind them. Brand column selection survived a full reload through URL state.
+- Real customer business records were not used for the browser write journey. Its generated screenshots use disposable test data under root `dist`.
+- Full monorepo `npm run check`, live provider feedback, public unsubscribe, campaign dispatch, browser tenant switching, and full batch suspension tests were not repeated or completed for this slice.
+
+Next Phase 1 priority: controlled import mapping and explicit duplicate/provenance decisions under 1.8, followed by remaining identity and lifecycle acceptance.

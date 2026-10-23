@@ -47,3 +47,10 @@ Report database, browser, native, and deployment checks separately.
 
 - `@codexsun/mail-api`: `.`, `./modules/mail`.
 - `@codexsun/mail-web`: `.`, `./modules/mail`.
+
+## Local promotional email policy integration, 23-10-2026
+
+Mail now owns append-only company-scoped email suppression evidence for hard bounce, complaint, and delivery policy.
+The public safety check never clears a block because Marketing records a new grant.
+New permissions are `mail.suppression.check` and `mail.suppression.record`, granted only to Admin by default.
+Authenticated provider feedback, suppression release, and campaign dispatch remain open. Existing SMTP sends do not consume this assessment automatically.

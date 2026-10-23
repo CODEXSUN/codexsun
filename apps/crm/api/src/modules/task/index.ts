@@ -4,3 +4,4 @@ export { seedTaskPermissions } from "./task.seed.js";
 export type { TaskDatabase, TaskContext, TaskRecord, TaskInput } from "./task.types.js";
 
 export { taskPermissionForRequest } from "./task.access.js";
+export { createLeadFollowUp } from "./task.lead-intake.js";

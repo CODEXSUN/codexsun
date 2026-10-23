@@ -5,6 +5,33 @@ import { AppError } from "@codexsun/framework/errors";
 import { randomBytes } from "node:crypto";
 export class EnquiryRepository {
   constructor(private readonly database: DatabaseSync) {}
+  marketingPending(now: number) {
+    return this.database
+      .prepare(
+        "SELECT e.reference,e.name,e.email,e.phone,e.message,e.consented_at FROM sites_marketing_outbox o JOIN sites_enquiries e ON e.reference=o.reference WHERE o.status='pending' AND o.attempts<8 AND o.available_at<=? AND e.deleted_at IS NULL ORDER BY e.created_at LIMIT 20"
+      )
+      .all(now)
+      .map((row) => ({
+        reference: String(row.reference),
+        name: String(row.name),
+        email: String(row.email),
+        phone: String(row.phone),
+        message: String(row.message),
+        consented_at: String(row.consented_at)
+      }));
+  }
+  marketingDelivered(reference: string, receipt: string) {
+    this.database
+      .prepare("UPDATE sites_marketing_outbox SET status='delivered',receipt=? WHERE reference=?")
+      .run(receipt, reference);
+  }
+  marketingFailed(reference: string, now: number) {
+    this.database
+      .prepare(
+        "UPDATE sites_marketing_outbox SET attempts=attempts+1,available_at=? WHERE reference=? AND status='pending'"
+      )
+      .run(now + 60000, reference);
+  }
   secret() {
     this.database
       .prepare("INSERT OR IGNORE INTO sites_enquiry_settings VALUES('rate-secret',?)")
@@ -31,6 +58,11 @@ export class EnquiryRepository {
       this.database
         .prepare(
           "DELETE FROM sites_enquiry_activity WHERE reference IN (SELECT reference FROM sites_enquiries WHERE created_at < ?)"
+        )
+        .run(now - 90 * 86400000);
+      this.database
+        .prepare(
+          "DELETE FROM sites_marketing_outbox WHERE reference IN (SELECT reference FROM sites_enquiries WHERE created_at < ?)"
         )
         .run(now - 90 * 86400000);
       this.database
@@ -146,6 +178,11 @@ export class EnquiryRepository {
   }
   expire(now = Date.now()) {
     this.transaction(() => {
+      this.database
+        .prepare(
+          "DELETE FROM sites_marketing_outbox WHERE reference IN (SELECT reference FROM sites_enquiries WHERE created_at < ?)"
+        )
+        .run(now - 90 * 86400000);
       this.database
         .prepare(
           "DELETE FROM sites_enquiry_activity WHERE reference IN (SELECT reference FROM sites_enquiries WHERE created_at < ?)"

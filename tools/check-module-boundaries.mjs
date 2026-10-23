@@ -4,7 +4,7 @@ import { join } from "node:path";
 const requestedApp = process.argv[2]?.trim();
 
 const moduleRoots = [
-  {app:"marketing-api",path:join(process.cwd(),"apps","marketing","api","src","modules")},
+  { app: "marketing-api", path: join(process.cwd(), "apps", "marketing", "api", "src", "modules") },
   { app: "tconnect-api", path: join(process.cwd(), "apps", "tconnect", "api", "src", "modules") },
   { app: "qcafe-api", path: join(process.cwd(), "apps", "qcafe", "api", "src", "modules") },
   { app: "codexsun-api", path: join(process.cwd(), "apps", "codexsun", "api", "src", "modules") },
@@ -191,7 +191,13 @@ const capabilityBackendRoles = new Map([
   ],
   ["billing-api/opening-balance", reducedBackendRoles],
   ["crm-api/enquiry", reducedBackendRoles],
-  ...["brand","campaign","capture","connection"].map(name=>[`marketing-api/${name}`,reducedBackendRoles]),
+  ["crm-api/lead", reducedBackendRoles],
+  ["crm-api/contact-restriction", reducedBackendRoles],
+  ["mail-api/suppression", reducedBackendRoles],
+  ...["brand", "campaign", "capture", "connection", "consent"].map((name) => [
+    `marketing-api/${name}`,
+    reducedBackendRoles
+  ]),
   ["crm-api/task", reducedBackendRoles],
   ["crm-api/scheduler", reducedBackendRoles],
   ["crm-api/sop", reducedBackendRoles],
@@ -230,7 +236,7 @@ const capabilityBackendRoles = new Map([
 ]);
 
 const webModuleRoots = [
-  {app:"marketing-web",path:join(process.cwd(),"apps","marketing","web","src","modules")},
+  { app: "marketing-web", path: join(process.cwd(), "apps", "marketing", "web", "src", "modules") },
   { app: "tconnect-web", path: join(process.cwd(), "apps", "tconnect", "web", "src", "modules") },
   { app: "qcafe-web", path: join(process.cwd(), "apps", "qcafe", "web", "src", "modules") },
   { app: "codexsun-web", path: join(process.cwd(), "apps", "codexsun", "web", "src", "modules") },
@@ -305,6 +311,7 @@ const requiredFrontendRoles = ["workspace", "list", "form", "services", "hooks",
 const shellOnlyFrontendModules = new Set();
 const shellOnlyFrontendRoles = ["module", "workspace", "services", "hooks", "types"];
 const capabilityFrontendRoles = new Map([
+  ["crm-web/lead", ["workspace", "list", "show", "services", "hooks", "types"]],
   ["tconnect-web/conversation", ["workspace", "list", "services", "hooks", "types", "schema"]],
   [
     "tconnect-web/buyer",
@@ -321,7 +328,7 @@ const capabilityFrontendRoles = new Map([
     ["workspace", "settings", "list", "form", "services", "types", "schema"]
   ],
   ["data-bridge-web/data-bridge", ["workspace"]],
-    ["data-bridge-web/common-table-import", ["workspace", "services", "types"]],
+  ["data-bridge-web/common-table-import", ["workspace", "services", "types"]],
   ["docs-web/overview", ["workspace", "services", "hooks", "types"]],
   ["himsx-web/overview", ["workspace", "services", "hooks", "types"]],
   ["sites-web/overview", ["workspace", "services", "hooks", "types"]],

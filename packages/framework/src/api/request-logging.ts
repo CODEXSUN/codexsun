@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { requestLogUrl } from "./request-log-url.js";
 import { createStructuredLog } from "../logger/logger.js";
 
 const requestStartTimes = new WeakMap<object, [number, number]>();
@@ -9,7 +10,7 @@ export function registerRequestLogging(app: FastifyInstance): void {
 
     const log = createStructuredLog({
       level: "info",
-      message: `Incoming request: ${request.method} ${request.url}`,
+      message: `Incoming request: ${request.method} ${requestLogUrl(request.url)}`,
       requestId: request.id,
       action: "request"
     });
@@ -22,7 +23,7 @@ export function registerRequestLogging(app: FastifyInstance): void {
 
     writeConsoleLog(log, {
       method: request.method,
-      url: request.url
+      url: requestLogUrl(request.url)
     });
     request.log.info(log);
   });
@@ -37,7 +38,7 @@ export function registerRequestLogging(app: FastifyInstance): void {
 
     const log = createStructuredLog({
       level: reply.statusCode >= 500 ? "error" : reply.statusCode >= 400 ? "warn" : "info",
-      message: `Request completed: ${request.method} ${request.url} - Status ${reply.statusCode}`,
+      message: `Request completed: ${request.method} ${requestLogUrl(request.url)} - Status ${reply.statusCode}`,
       requestId: request.id,
       action: "response"
     });
@@ -54,7 +55,7 @@ export function registerRequestLogging(app: FastifyInstance): void {
     writeConsoleLog(log, {
       method: request.method,
       statusCode: reply.statusCode,
-      url: request.url
+      url: requestLogUrl(request.url)
     });
     if (reply.statusCode >= 500) {
       request.log.error(log);

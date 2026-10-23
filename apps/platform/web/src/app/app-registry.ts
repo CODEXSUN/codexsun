@@ -86,12 +86,15 @@ export type PlatformAppRootPage =
   | "blog.overview"
   | "auditor.overview"
   | "auditor.clients"
+  | "marketing.consents"
+  | "marketing.submissions"
   | "marketing.brands"
   | "marketing.campaigns"
   | "marketing.captures"
   | "marketing.connections"
   | "crm.overview"
   | "crm.sops"
+  | "crm.leads"
   | "crm.tasks"
   | "frappe.overview"
   | "zetro.chat"
@@ -163,7 +166,7 @@ export type PlatformAppDefinition = {
     | "blog"
     | "auditor"
     | "marketing"
-  | "crm"
+    | "crm"
     | "frappe"
     | "zetro"
     | "logicx-erp"
@@ -202,7 +205,17 @@ export const defaultTenantModuleKeys = [
 ] as const;
 
 export const platformAppRegistry: PlatformAppDefinition[] = [
-  {id:"marketing",label:"Marketing",moduleKey:"marketing",stack:"marketing",alwaysEnabled:false,defaultLanding:false,description:"Tenant campaigns and lead capture.",icon:Globe2Icon,accentClass:"bg-sky-600"},
+  {
+    id: "marketing",
+    label: "Marketing",
+    moduleKey: "marketing",
+    stack: "marketing",
+    alwaysEnabled: false,
+    defaultLanding: false,
+    description: "Tenant campaigns and lead capture.",
+    icon: Globe2Icon,
+    accentClass: "bg-sky-600"
+  },
   {
     id: "codexsun",
     label: "CODEXSUN",
@@ -880,6 +893,11 @@ export function appMenuFor(
           onSelect: () => onSelect("crm.my-calls")
         },
         {
+          title: "Leads",
+          isActive: activePage === "crm.leads",
+          onSelect: () => onSelect("crm.leads")
+        },
+        {
           title: "All Enquiries",
           count: crmCounts?.all,
           isActive: activePage === "crm.enquiries",
@@ -1292,7 +1310,15 @@ export function appMenuItemsFor(
   chatCounts?: ChatNavigationCounts,
   crmTaskCount = 0
 ): SidemenuItem[] {
-  if(appId==="marketing") return ["brands","campaigns","captures","connections"].map(key=>({icon:Globe2Icon,title:key[0]!.toUpperCase()+key.slice(1),isActive:activePage===`marketing.${key}`,onSelect:()=>onSelect(`marketing.${key}`)}));
+  if (appId === "marketing")
+    return ["brands", "campaigns", "captures", "submissions", "connections", "consents"].map(
+      (key) => ({
+        icon: Globe2Icon,
+        title: key[0]!.toUpperCase() + key.slice(1),
+        isActive: activePage === `marketing.${key}`,
+        onSelect: () => onSelect(`marketing.${key}`)
+      })
+    );
   if (appId === "codexsun") return codexsunMenuItems(activePage, onSelect);
   if (appId === "hrms")
     return [
@@ -1662,6 +1688,12 @@ export function appMenuItemsFor(
         isActive: activePage === "crm.contacts",
         onSelect: () => onSelect("crm.contacts"),
         title: "Contact"
+      },
+      {
+        icon: ClipboardListIcon,
+        title: "Leads",
+        isActive: activePage === "crm.leads",
+        onSelect: () => onSelect("crm.leads")
       },
       {
         icon: ClipboardListIcon,

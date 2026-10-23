@@ -1,4 +1,9 @@
-import { D1EnquiryRepository, D1EnquiryService } from "@codexsun/sites-api/enquiry-d1";
+import {
+  D1EnquiryRepository,
+  D1EnquiryService,
+  marketingCaptureResponse,
+  forwardSiteEnquiries
+} from "@codexsun/sites-api/enquiry-d1";
 
 export function createSiteWorker(publication, origin) {
   const routes = new Set(publication.routes);
@@ -11,12 +16,37 @@ export function createSiteWorker(publication, origin) {
       "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src https://www.google.com; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'"
   };
   return {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
       try {
         const url = new URL(request.url);
         if (url.origin !== origin) return json({ success: false }, 421);
-        if (url.pathname === "/content/v1/enquiries" && request.method === "POST")
-          return secure(await submit(request, env));
+        if (
+          [
+            "/marketing/capture",
+            "/content/v1/marketing-capture",
+            "/content/v1/marketing-capture.js"
+          ].includes(url.pathname)
+        )
+          return await marketingCaptureResponse(
+            request,
+            env.CODEXSUN_MARKETING_CAPTURE_URL ?? "",
+            origin
+          );
+        if (url.pathname === "/content/v1/enquiries" && request.method === "POST") {
+          const response = secure(await submit(request, env));
+          if (env.CODEXSUN_MARKETING_CAPTURE_URL && ctx)
+            ctx.waitUntil(
+              forwardSiteEnquiries(
+                repository(env),
+                env.CODEXSUN_MARKETING_CAPTURE_URL,
+                origin,
+                publication.content.siteUuid
+              ).catch(() =>
+                console.error(JSON.stringify({ event: "sites.marketing.forward-failed" }))
+              )
+            );
+          return response;
+        }
         if (!["GET", "HEAD"].includes(request.method)) return json({ success: false }, 405);
         if (url.pathname === "/health") {
           await repository(env).verifyIdentity();
@@ -64,10 +94,20 @@ export function createSiteWorker(publication, origin) {
         );
       }
     },
-    async scheduled(_event, env) {
+    async scheduled(_event, env, ctx) {
       const store = repository(env);
       await store.verifyIdentity();
       await store.expire();
+      if (env.CODEXSUN_MARKETING_CAPTURE_URL) {
+        const work = forwardSiteEnquiries(
+          store,
+          env.CODEXSUN_MARKETING_CAPTURE_URL,
+          origin,
+          publication.content.siteUuid
+        );
+        if (ctx) ctx.waitUntil(work);
+        else await work;
+      }
     }
   };
   function repository(env) {

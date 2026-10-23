@@ -1,4 +1,5 @@
 import { registerMarketingHost } from "./marketing-host.js";
+import { marketingApiModuleKeys } from "@codexsun/marketing-api";
 import { sitesDeliveryHost } from "./sites-delivery-host.js";
 import { canViewCrmEnquiryFrappeSync } from "./crm-enquiry-frappe-sync-access.js";
 import { getDefaultCompanyForDatabase, getCompanyForDatabase } from "@codexsun/core-api";
@@ -264,7 +265,7 @@ export async function createApp() {
   const queueService = new QueueManagerService();
   registerBillingComplianceHost(app, queueService);
   registerAuthRequestContext(app);
-  await registerMarketingHost(app);
+  await registerMarketingHost(app, queueService);
   await registerProjectManagerHost(app);
   const dataMigrationHost = await registerDataMigrationHost(app);
   await registerDataBridgeHost(app, dataMigrationHost);
@@ -299,6 +300,7 @@ export async function createApp() {
         details: {
           modules: [
             ...coreApiModuleKeys,
+            ...marketingApiModuleKeys,
             enquiryModule.key,
             auditorClientModule.key,
             ecommerceOverviewModule.key,

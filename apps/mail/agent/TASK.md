@@ -43,3 +43,16 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 Use `npm run check:component-docs` for this documentation contract.
 Run applicable tests before marking implementation work complete.
 Do not treat documentation, a build, or a model response as proof of live persistence or deployment.
+
+## Local email policy evidence, 23-10-2026
+
+Mail now owns append-only company-scoped email suppression evidence for hard bounce, complaint, and delivery policy.
+The public safety check never clears a block because Marketing records a new grant.
+New permissions are `mail.suppression.check` and `mail.suppression.record`, granted only to Admin by default.
+Authenticated provider feedback, suppression release, and campaign dispatch remain open. Existing SMTP sends do not consume this assessment automatically.
+
+The two-disposable-database Marketing suite verifies denied grants, tenant/company isolation, legacy CRM restrictions, Mail complaint/bounce blocking, and owner outages.
+Existing local business row counts were preserved. No commit, push, or deployment was performed for this work.
+
+Focused owner typecheck, lint, build, and module boundaries passed for the email policy continuation.
+Marketing database tests verify exact UTC timestamps and near-expiry rejection alongside tenant and owner policy checks.

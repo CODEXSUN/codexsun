@@ -28,6 +28,22 @@ test("Data Bridge gates lookup routes with the Super Admin host authorization", 
       payload: { sourceId: 1, targetTenantId: 7 }
     });
     assert.equal(deniedBulk.statusCode, 403);
+    for (const url of [
+      "/api/data-bridge/transfers",
+      "/api/data-bridge/transfers/00000000-0000-4000-8000-000000000001"
+    ]) {
+      assert.equal((await app.inject({ method: "GET", url })).statusCode, 403);
+    }
+    assert.equal(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/data-bridge/transfers",
+          payload: { sourceId: 1, targetTenantId: 7 }
+        })
+      ).statusCode,
+      403
+    );
 
     denied = false;
     const sources = await app.inject({ method: "GET", url: "/api/data-bridge/sources" });

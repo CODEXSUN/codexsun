@@ -1,20 +1,47 @@
 import { ArrowRightIcon, DatabaseIcon, ClipboardCheckIcon } from "lucide-react";
+import { Button } from "@codexsun/ui/components/button";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 
 const setupSteps = [
   {
-    title: "Review common tables",
-    description: "Compare table availability, row counts, and schema readiness.",
+    title: "Database Connections",
+    description: "Verify the saved source and active destination tenant.",
     icon: DatabaseIcon
   },
   {
-    title: "Review and import one table",
-    description: "Preview both databases, save a source snapshot, and import it to the target.",
+    title: "Table Mapping",
+    description: "Choose source and destination tables independently.",
+    icon: DatabaseIcon
+  },
+  {
+    title: "Field Mapping",
+    description: "Map fields, defaults, generated values, and target parents.",
+    icon: ClipboardCheckIcon
+  },
+  {
+    title: "Import Preparation",
+    description: "Select source rows and audit the exact destination data.",
+    icon: ClipboardCheckIcon
+  },
+  {
+    title: "Confirm Import",
+    description: "Verify the prepared records and queue the import.",
+    icon: ClipboardCheckIcon
+  },
+  {
+    title: "Import Results",
+    description: "Review inserted, existing, and warning records.",
     icon: ClipboardCheckIcon
   }
 ];
 
-export function DataBridgeWorkspace({ onOpenCommonTables }: { onOpenCommonTables: () => void }) {
+export function DataBridgeWorkspace({
+  onOpenCommonTables,
+  onStartImport
+}: {
+  onOpenCommonTables: () => void;
+  onStartImport: () => void;
+}) {
   return (
     <WorkspacePage
       title="Data Bridge"
@@ -23,13 +50,16 @@ export function DataBridgeWorkspace({ onOpenCommonTables }: { onOpenCommonTables
       <div className="mx-auto w-full max-w-5xl space-y-4">
         <section className="rounded-md border bg-card p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Common data import
+            Guided data import
           </p>
-          <h2 className="mt-2 text-lg font-semibold">Core common tables</h2>
+          <h2 className="mt-2 text-lg font-semibold">Source to destination</h2>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Bring shared Core master records from a saved database source into an active tenant.
-            Existing target rows are preserved.
+            Bring mapped records from a saved database source into an active tenant. Existing target
+            rows are preserved.
           </p>
+          <Button className="mt-4 mr-2" onClick={onStartImport}>
+            New import
+          </Button>
           <button
             type="button"
             className="mt-4 h-9 rounded-md bg-primary px-3 text-sm text-primary-foreground"

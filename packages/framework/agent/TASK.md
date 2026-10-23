@@ -33,3 +33,9 @@ These tasks define acceptance for a change. Unchecked items are not claims of mi
 Use `npm run check:component-docs` for this documentation contract.
 Run applicable tests before marking implementation work complete.
 Do not treat documentation, a build, or a model response as proof of live persistence or deployment.
+
+## Query privacy in request telemetry, 23-10-2026
+
+Request/error telemetry omits query values so limited-purpose bindings, OAuth query values, and personal search input do not enter these log lines.
+A focused redaction regression test and Framework build/lint passed locally.
+Business routes, query validation, permissions, and response data remain owned by the applications.

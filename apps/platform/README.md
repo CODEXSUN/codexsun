@@ -196,3 +196,7 @@ Credential review permissions require explicit staff-role assignment. Buyer and 
 The tenant list reads the Platform registry only. It includes inactive, unconnected tenants
 and preserves each record's configured landing app. Opening the list does not inspect
 tenant company records or create, connect, or provision tenant databases.
+
+## Data Bridge guided import composition
+
+Platform composes six Super Admin routes and sidebar entries: Database Connections, Table Mapping, Field Mapping, Import Preparation, Confirm Import, and Import Results. A transfer UUID in the URL resumes the saved owner session. Platform queues `data-bridge.mapped-import` with tenant, actor, correlation, retry, and idempotency context; Data Bridge owns mapping validation, snapshots, execution, and reports. API/web typechecks and production builds passed. Authenticated Chrome and the database Queue Manager worker completed a local SUKRAA review-only session with two existing rows and no target inserts. No real-tenant missing-row import was executed for this workflow.

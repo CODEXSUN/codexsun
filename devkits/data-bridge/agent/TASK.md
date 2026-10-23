@@ -53,3 +53,36 @@ Each table has View row results with Imported, Existing, and Warning filters, pa
 - [ ] Run a new live combined import to verify the new row-detail snapshot UI end to end; disposable database verification passed.
 
 - Version gate: `check:versions` passed for 1.1.46. Full `npm run check` stopped at missing Frappe `contact-export` role files after component documentation and cleanup tests passed.
+
+## Guided six-stage import
+
+Database Connections -> Table Mapping -> Field Mapping -> Import Preparation -> Confirm Import -> Import Results.
+
+Each stage has a separate URL and Super Admin sidebar entry. A persisted transfer UUID resumes progress after reload. Tables and fields can have different names. Source tables are discovered from the saved source; destinations are discovered from the selected target database. Table selection, field types, required fields, business unique keys, defaults, generated UUID/time values, and target parents are checked on the server. Foreign fields resolve declared source parents by business data or use an explicit existing destination parent; source IDs are never treated as target parent IDs. No automatic conversion or arbitrary SQL is supported.
+
+The additive v5 master migration stores staged transfer sessions and row snapshots in `data_bridge_transfers`. Earlier changes clear prepared data. Revision checks and database locks reject concurrent or stale edits. Preparation captures only selected records and mapped fields, then audits current destination records. Confirmation queues a tenant-scoped `data-bridge.mapped-import` job. The worker rechecks schemas and duplicates, writes one table transaction, preserves existing/conflicting rows, and persists row outcomes. Each batch supports up to 1,000 selected source IDs; previews and results use 100-row pages. Queued/completed sessions are immutable. Common Tables remains available as the existing shortcut.
+
+Disposable database verification covers different names, invalid stages, sensitive-field exclusion, stale revisions, existing/missing/conflicting records, saved values, wrong-target denial, and idempotent worker repeats. Live stage verification is recorded separately from real-tenant commit verification.
+
+### Six-stage verification evidence (23-10-2026)
+
+- [x] Add all six separate routes and sidebar links, saved-session resume, server stage/revision checks, and invalidation of later prepared data.
+- [x] Support different source/target table and field names, target defaults, generated UUID/time, custom values, and verified existing target parents. Metadata is optional when the destination supplies defaults.
+- [x] Run nine focused Data Bridge tests. The mapped-transfer regression also checks target-parent validation, case-only data conflicts, rollback of a partly processed batch, and refusal to insert a row that was not approved as missing.
+- [x] Pass Data Bridge API/web typechecks, lint, builds, owner boundaries, component docs, dependency layout, full root `npm run check`, and Platform API/web production builds and typechecks.
+- [x] Verify all six stages in authenticated external Chrome using `sukraa_cloud_db` -> `sukraa_db`, selected `core_colours` source IDs 2 and 3. Review-only Queue Manager job completed on its first attempt: two existing records, zero inserted, zero warnings. Persisted session `b2d2935c-ce43-46f1-b4ea-2b3957c44904` and completed queue status were checked directly in the master database. No tenant records were written.
+- [x] Save browser and SQL proof under root `dist/.cache/verification/data-bridge-six-stage-results.jpg` and `data-bridge-six-stage-live.json`.
+- [x] Complete the explicitly authorized live Altex missing-row import. All 659 records saved and verified. See RELEASE-1.1.49.md.
+
+## All destination tables and Altex acceptance
+
+- [x] Replace the guided Core-only catalog and parent restrictions with validated source/destination metadata. Keep the fixed Common Tables shortcut unchanged.
+- [x] Add declared-parent resolution across differently named tables and fields, unambiguous full-business-record fallback, nullable parent matching, generated-column handling, sensitive-required-field blocking, and destination-table worker serialization.
+- [x] Extend disposable regressions for custom targets outside Core, no-business-index rows and parents, parallel duplicate prevention, renamed foreign fields, missing parents, generated columns, and required secrets.
+- [x] Provision local `altex_db` with the current 47-table Core schema; register ALTEX and encrypted `altex_cloud` source without importing client records.
+- [x] Verify the six-stage UI before commit with `core_colours` -> `codexsun_bridge_verify_colours`, `name` -> `target_label`, and `status` -> `target_status`. Required mapping errors and explicit confirmation gates work. Results stays locked before commit.
+- [x] Read-only audit all 47 Core schemas / 659 rows. The empty destination has 331 ready rows and 328 missing-parent warnings.
+- [x] Import all 659 current Altex Core records into a disposable target in parent order: zero warnings/failures. Repeat: 659 existing, zero inserted, zero warnings. Remove the disposable databases.
+- [x] Verify source Core checksums unchanged, no queued job for the live prepared session, and zero business rows in the real destination and renamed verification table.
+- [x] Pass all 12 focused tests, Platform API/web production builds, and full root check (59 tasks).
+- [x] Complete the authorized live Altex import: 47 tables, 659 inserted, zero warnings/failures, 39 completed queue jobs, and 31 foreign-key relationships without orphans. Saved values/counts match and source checksums remain unchanged.

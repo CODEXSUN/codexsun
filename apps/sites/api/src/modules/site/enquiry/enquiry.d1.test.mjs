@@ -123,3 +123,56 @@ test("D1 duplicate insert cannot consume rate quota or replace a prior message",
     sqlite.close();
   }
 });
+
+test("Worker scheduled forwarding registers its work with the execution context", async () => {
+  const { createSiteWorker } = await import("../../../../../clients/cloudflare/worker.mjs");
+  const statements = [];
+  const database = {
+    prepare(text) {
+      return {
+        bind() {
+          return this;
+        },
+        async first() {
+          return { site_uuid: "c0de0002", site_key: "a".repeat(64) };
+        },
+        async run() {
+          statements.push(text);
+          return {};
+        },
+        async all() {
+          return { results: [] };
+        }
+      };
+    },
+    async batch(items) {
+      return Promise.all(items.map((item) => item.run()));
+    }
+  };
+  const worker = createSiteWorker(
+    {
+      routes: [],
+      content: { siteUuid: "c0de0002", siteSlug: "fixture" },
+      siteKey: "a".repeat(64),
+      sequence: 1
+    },
+    "https://site.example"
+  );
+  const work = [];
+  await worker.scheduled(
+    {},
+    {
+      CODEXSUN_SITES_DB: database,
+      CODEXSUN_MARKETING_CAPTURE_URL:
+        "https://app.codexsun.com/api/platform/public/marketing/captures?token=" + "a".repeat(48)
+    },
+    {
+      waitUntil(promise) {
+        work.push(promise);
+      }
+    }
+  );
+  assert.equal(work.length, 1);
+  await Promise.all(work);
+  assert.ok(statements.some((statement) => statement.includes("DELETE")));
+});

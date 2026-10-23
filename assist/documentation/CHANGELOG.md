@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.48
+Current version: 1.1.49
 
-Release tag: v-1.1.48
+Release tag: v-1.1.49
 
-Changelog label: v 1.1.48
+Changelog label: v 1.1.49
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,27 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.49
+
+### [v 1.1.49] 2026-10-23 7:19 pm - Data Bridge all-table imports and verified live Altex transfer
+
+#### Database Changes
+
+- Database update: Yes (manual).
+
+- Data Bridge uses the additive v5 master transfer table for saved stages, selected data, and row outcomes. No new tenant schema migration is required by this version bump.
+- Completed the authorized local `altex_cloud_db` to `altex_db` import in parent order: 47 Core tables, 659 inserted records, zero existing records, zero warnings, and zero failed tables.
+- Verified saved business values and row counts for every table. All 31 foreign-key relationships have zero orphan references. Source checksums remain unchanged.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.49.
+- Guided Data Bridge imports discover all destination tables and support different table and field names. The Common Tables shortcut retains its 31-table list.
+- Resolve declared parents by business identity, preserve existing records, handle generated columns, and serialize destination imports to prevent duplicate races.
+- Verified 39 completed live Queue Manager jobs and authenticated Chrome import results. Eight source tables were empty.
+- Retain the per-table report, parent order, source hashes, queue results, and browser proof in `devkits/data-bridge/agent/verification/`. See `devkits/data-bridge/agent/RELEASE-1.1.49.md`.
+- Earlier verification passed 12 focused tests, Platform API/web builds, and the full workspace check. Disposable repeat import found 659 existing records without duplicate inserts.
 
 ## v-1.1.48
 
@@ -47,11 +68,24 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 #### Database Changes
 
+- Provision local ALTEX with the current 47-table Core schema and an encrypted Altex source registration. Keep real target business data empty pending import confirmation.
+- Verify all 659 Altex Core records in parent order in a disposable destination: 659 inserted, zero warnings; repeat finds 659 existing with no duplicate inserts. Source checksums remain unchanged.
+
+- Data Bridge adds the tracked v5 `data_bridge_transfers` master table for saved stage state, field rules, prepared row data, and import outcomes. No tenant schema changes are required.
+
 - Database update: Yes. This release includes the existing inbound checkpoint/source-history and delivery-revision migrations introduced after the deployed 1.1.44 baseline.
 - CRM queue revision fencing preserves edits received during an export. The contact activation timestamp limits automatic recovery to recent changes.
 - Local migration verification preserved all 56 enquiries. Production changes require a checksum-verified backup and migration preflight.
 
 #### App Codebase Changes
+
+- Discover all destination tables in guided Data Bridge transfers. Support renamed tables and fields, declared parent resolution, business-record duplicate fallback, generated columns, and serialized destination imports.
+- Verify the Altex renamed-field preview live before commit. Pass 12 focused tests, Platform builds, and the full workspace check.
+
+- Data Bridge now has six individual pages and sidebar links: Database Connections, Table Mapping, Field Mapping, Import Preparation, Confirm Import, and Import Results.
+- Guided transfers support differently named source tables and fields, validated Core destinations, optional metadata, destination defaults, custom values, generated UUID/time values, and explicit destination parent selection. Earlier edits clear later prepared data.
+- Add versioned saved progress, schema/required-field checks, selected-row audit, explicit confirmation, tenant-bound Queue Manager import, transactional rollback, duplicate/conflict preservation, and persisted source/target row results.
+- Verification: nine focused Data Bridge tests, full root check, Data Bridge and Platform API/web typechecks/builds, lint, boundaries, and docs checks passed. Disposable tests cover renamed mappings, existing/missing/conflicting rows, invalid stages, stale edits, target parents, rollback, and idempotency. External Chrome completed all six stages for SUKRAA with two existing records, zero inserts, zero warnings, and a persisted completed queue job; real client data was not imported.
 
 - Updated lockstep packages to 1.1.47 and CRM Android to 1.1.47+147.
 - Added a one-minute inbound interval, immediate outbound queue dispatch, and ordered enquiry/opening-comment delivery.

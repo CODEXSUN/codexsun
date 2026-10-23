@@ -2,12 +2,20 @@
 
 ## Baseline and delivery constraints
 
-Date: 2026-10-23. Status: documentation only. Implementation is not authorized by this planning task.
+Date: 2026-10-23. Status: Phase 1 implementation is in progress locally.
+The user authorized implementation after the Phase 0 planning checkpoint.
+Cloud deployment, new commits, pushes, and version changes are on hold until the user requests them.
+See [the local implementation log](TASK.md#local-implementation-and-verification-log) for evidence and remaining exit gates.
+The local promotional email slice now has immutable Marketing evidence and live CRM/Mail policy composition.
+Standalone upsert page views replace the list-plus-form layout. Filters and Columns share the list search toolbar.
+See the current eligibility scope in README. The full Phase 1 exit gate remains open.
+
 Build one shared tenant application with one business database per client.
 Keep TikTok outside scope. Reserve all-client management for a separate future Super Admin application.
 
 Current CRM documents cover local enquiries, tasks, contacts, and schedules.
-Dedicated Lead and Campaign work remains planned in the CRM task list.
+CRM now has an initial canonical Lead intake and review surface. Marketing owns Campaign source.
+Contact qualification and full campaign execution remain open.
 The CRM WhatsApp history records a manual handoff. It does not prove provider delivery or customer readership.
 Mail currently declares SMTP transport. This does not establish readiness for bulk marketing email.
 Existing source and documentation do not prove production readiness or live provider access.

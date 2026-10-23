@@ -106,3 +106,19 @@ export type {
   ScheduleSourceType,
   ScheduleStatus
 } from "./modules/scheduler/index.js";
+
+export {
+  leadModule,
+  migrateLead,
+  seedLead,
+  acceptMarketingLead,
+  leadIntakeSchema
+} from "./modules/lead/index.js";
+export type { LeadContext, LeadIntake, LeadRecord } from "./modules/lead/index.js";
+export {
+  migrateContactRestrictions,
+  seedContactRestrictionPermissions,
+  recordContactRestriction,
+  checkContactRestrictions,
+  registerContactRestrictionRoutes
+} from "./modules/contact-restriction/index.js";

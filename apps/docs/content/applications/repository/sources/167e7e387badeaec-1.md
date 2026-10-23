@@ -2,7 +2,7 @@
 
 Repository source: `apps/crm/agent/PLAN.md`
 
-Source SHA-256 (LF line endings): `9c1ef01c8215b9c0da5d577d4b75e4c6f13a3e7adcdd1770d4feb675bdc8fdcc`
+Source SHA-256 (LF line endings): `89eb7d1a18708152082b5f9885197e02a2379ae9eb78613cd6f25e9d1cd36d1b`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.

@@ -51,6 +51,7 @@ export default defineConfig(({ command, mode }) => {
     optimizeDeps: {
       exclude: [
         "@codexsun/ui",
+        "@codexsun/marketing-web",
         "@codexsun/tconnect-web",
         "@codexsun/data-migration-web",
         "@codexsun/data-bridge-web",

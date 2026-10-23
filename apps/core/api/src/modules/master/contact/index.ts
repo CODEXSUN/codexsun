@@ -2,6 +2,7 @@ export { contactModule } from "./contact.module.js";
 export { migrateContactModule } from "./contact.migration.js";
 export { seedContactModule } from "./contact.seed.js";
 export {
+  contactIdsForEmailPolicy,
   getActiveContactForDatabase,
   findContactIdentityForDatabase,
   findContactIdentityByIdForDatabase,

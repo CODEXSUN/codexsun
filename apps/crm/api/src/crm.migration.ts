@@ -1,3 +1,5 @@
+import { migrateContactRestrictions } from "./modules/contact-restriction/index.js";
+import { migrateLead, leadMigrationBatch } from "./modules/lead/index.js";
 import {
   enquiryWhatsAppMigrationBatch,
   migrateEnquiryWhatsApp,
@@ -36,6 +38,7 @@ import { taskMigrationBatch, migrateTaskModule } from "./modules/task/index.js";
 import { schedulerMigrationBatch, migrateSchedulerModule } from "./modules/scheduler/index.js";
 
 const batches = [
+  leadMigrationBatch,
   listinMigrationBatch,
   statusMigrationBatch,
   priorityMigrationBatch,
@@ -60,6 +63,8 @@ export const crmTenantMigrations = batches.flatMap((batch) =>
 );
 
 export async function migrateCrmTenantDatabase(database: Kysely<EnquiryDatabase>) {
+  await migrateLead(database as never);
+  await migrateContactRestrictions(database as never);
   await migrateListInMaster(database as unknown as Kysely<ListInDatabase>);
   await migrateStatusMaster(database as unknown as Kysely<StatusDatabase>);
   await migratePriorityMaster(database as unknown as Kysely<PriorityDatabase>);

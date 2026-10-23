@@ -4,3 +4,5 @@ export { seedCampaign } from "./campaign.seed.js";
 export { lookupCampaign, CampaignService } from "./campaign.service.js";
 export { campaignInputSchema, campaignRecordSchema } from "./campaign.routes.js";
 export type { CampaignInput, CampaignRecord } from "./campaign.types.js";
+
+export { upgradeCampaignIntegrity } from "./campaign.migration.js";

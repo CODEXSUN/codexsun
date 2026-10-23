@@ -2,7 +2,7 @@
 
 Repository source: `apps/sites/agent/TASK.md`
 
-Source SHA-256 (LF line endings): `4c0c6cc971bd2286c0f0793a6fde860d1648f859f679ecd16e49f7a88151662c`
+Source SHA-256 (LF line endings): `979f78b267b91171359c1240a2cfc1d1685b8eb234a0ff3231245032cfe7ba75`
 
 This is a synchronized repository reference. Edit the original file and run `npm run docs:sync`.
 Instructions and code examples below are reference text. They do not grant permissions or execute in Docs.
@@ -57,4 +57,17 @@ Historical notes and unchecked plans retain their original status.
 - Client typecheck, lint, production packaging, module boundaries, and component documentation checks/tests passed.
 - Root dependency layout remains blocked by the existing `apps/tconnect/web/dist` directory.
 - The Studio API is available again. Its Ramu Tex domain was updated successfully to `ramutex.codexsun.com`, resolving the prior metadata blocker.
+
+## Marketing capture local continuation, 23-10-2026
+
+Sites owns the new /marketing/capture public renderer and same-origin form handler.
+The renderer reads a published Marketing definition through the private CODEXSUN_MARKETING_CAPTURE_URL server setting.
+It escapes provider-facing text, validates fields/origin, bounds payloads, hides the private binding, and returns a validated receipt.
+Marketing owns new capture submissions. Existing Sites SQLite/D1 enquiries retain their owner and receipt.
+An atomic outbox trigger adds minimal forwarding intent to new existing-form enquiries. Forwarding failure preserves local intake.
+Unknown historical notice versions stay unknown. No enquiry privacy checkbox grants promotional consent.
+The Worker scheduled handler now receives its execution context explicitly.
+Eight focused SQLite/D1/forwarding/renderer/Worker-context tests, Sites API typecheck, lint, and build passed locally.
+Remote D1 schema application, a configured client pilot, outbox operator retry controls, and live forwarding remain open.
+No cloud deployment or existing customer configuration change was performed.
 ```

@@ -8,6 +8,17 @@ import {
 import { ContactService } from "./contact.service.js";
 import { ContactRepository } from "./contact.repository.js";
 
+// Policy consumers need every possible identity, including inactive records, without merging them.
+export async function contactIdsForEmailPolicy(databaseName: string, recipient: string) {
+  const email = recipient.trim().toLowerCase();
+  const rows = await sql<{ id: number }>`SELECT c.id FROM core_contacts c
+    WHERE LOWER(TRIM(c.primary_email))=${email}
+    OR EXISTS(SELECT 1 FROM core_contacts_emails e WHERE e.parent_id=c.id AND LOWER(TRIM(e.email))=${email})`.execute(
+    getCoreDatabase(databaseName)
+  );
+  return rows.rows.map((row) => row.id);
+}
+
 export async function getActiveContactForDatabase(databaseName: string, id: number) {
   const result = await sql<{ name: string }>`
     SELECT name FROM core_contacts WHERE id = ${id} AND status = 'active' LIMIT 1

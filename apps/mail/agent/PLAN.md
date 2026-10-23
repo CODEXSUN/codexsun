@@ -2,7 +2,8 @@
 
 ## Marketing integration planning — 2026-10-23
 
-Status: design only. No runtime capability or provider access is added.
+Phase 0 baseline: design only. The local email safety continuation below adds suppression storage and a public check.
+Campaign dispatch and live provider access remain open.
 See [Marketing Phase 0](../../marketing/agent/PLAN.md#phase-0-decisions-and-contract-review), gap G04/G05, delivery phase 3.
 
 Mail owns transport credentials, sender connections, message delivery, provider feedback, and delivery-safety suppression.
@@ -56,3 +57,12 @@ Source presence is not release evidence. Confirm executable behavior before desc
 Use `npm run check:component-docs` and the relevant root checks.
 Run database, browser, native, and deployment checks when the changed behavior needs them.
 Do not mark an untested phase or planned feature complete.
+
+## Local email policy continuation, 23-10-2026
+
+Mail now owns append-only company-scoped email suppression evidence for hard bounce, complaint, and delivery policy.
+The public safety check never clears a block because Marketing records a new grant.
+New permissions are `mail.suppression.check` and `mail.suppression.record`, granted only to Admin by default.
+Authenticated provider feedback, suppression release, and campaign dispatch remain open. Existing SMTP sends do not consume this assessment automatically.
+
+See Marketing TASK for the current scope and local verification. No campaign delivery or deployment is enabled.

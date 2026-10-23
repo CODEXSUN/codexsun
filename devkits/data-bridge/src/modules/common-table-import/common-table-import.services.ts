@@ -11,7 +11,7 @@ type Envelope<T> =
   | { success: true; data: T }
   | { success: false; error: { message: string }; meta?: { requestId?: string } };
 
-async function request<T>(path: string, body?: unknown) {
+export async function request<T>(path: string, body?: unknown) {
   const slot = sessionStorage.getItem("codexsun.auth.slot");
   const response = await fetch(`/api/data-bridge${path}`, {
     method: body === undefined ? "GET" : "POST",

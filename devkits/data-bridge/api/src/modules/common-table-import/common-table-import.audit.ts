@@ -1,12 +1,15 @@
 import type { Connection, RowDataPacket } from "mysql2/promise";
-import type { CommonTableName, ImportRowReport } from "./common-table-import.types.js";
+import type { ImportRowReport } from "./common-table-import.types.js";
 
 export class CommonTableRowAudit {
   constructor(
     private readonly database: Connection,
-    private readonly table: CommonTableName,
+    private readonly table: string,
     private readonly columns: string[]
-  ) {}
+  ) {
+    if (!/^[A-Za-z_][A-Za-z0-9_ -]*$/u.test(table))
+      throw new Error("Invalid audit table identifier.");
+  }
 
   async uniqueKeys() {
     const [indexes] = await this.database.query<RowDataPacket[]>(

@@ -6,6 +6,30 @@ export class D1EnquiryRepository {
     this.siteUuid = siteUuid;
     this.siteKey = siteKey;
   }
+  async marketingPending(now) {
+    await this.verifyIdentity();
+    const result = await this.database
+      .prepare(
+        "SELECT e.reference,e.name,e.email,e.phone,e.message,e.consented_at FROM sites_marketing_outbox o JOIN sites_enquiries e ON e.reference=o.reference WHERE o.status='pending' AND o.attempts<8 AND o.available_at<=? AND e.deleted_at IS NULL ORDER BY e.created_at LIMIT 20"
+      )
+      .bind(now)
+      .all();
+    return result.results;
+  }
+  async marketingDelivered(reference, receipt) {
+    await this.database
+      .prepare("UPDATE sites_marketing_outbox SET status='delivered',receipt=? WHERE reference=?")
+      .bind(receipt, reference)
+      .run();
+  }
+  async marketingFailed(reference, now) {
+    await this.database
+      .prepare(
+        "UPDATE sites_marketing_outbox SET attempts=attempts+1,available_at=? WHERE reference=? AND status='pending'"
+      )
+      .bind(now + 60000, reference)
+      .run();
+  }
   async verifyIdentity() {
     const row = await this.database
       .prepare("SELECT site_uuid,site_key FROM sites_delivery_identity WHERE id=1")

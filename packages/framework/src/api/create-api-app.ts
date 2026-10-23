@@ -1,4 +1,5 @@
 import cookie from "@fastify/cookie";
+import { requestLogUrl } from "./request-log-url.js";
 import cors from "@fastify/cors";
 import type { IncomingMessage } from "node:http";
 import Fastify, { type FastifyInstance } from "fastify";
@@ -57,7 +58,7 @@ export async function createApiApp(options: CreateApiAppOptions): Promise<Fastif
 
   app.setErrorHandler((error, request, reply) => {
     console.error(
-      `[request.error] ${request.method} ${request.url} request=${request.id} ${errorMessage(error)}`
+      `[request.error] ${request.method} ${requestLogUrl(request.url)} request=${request.id} ${errorMessage(error)}`
     );
     if (isAppError(error)) {
       return reply.code(error.statusCode).send(

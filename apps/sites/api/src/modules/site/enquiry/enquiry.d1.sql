@@ -34,3 +34,6 @@ BEGIN
     ON CONFLICT(key) DO UPDATE SET hits=hits+1;
   INSERT INTO sites_enquiry_activity(reference,action,actor,at) VALUES(NEW.reference,'received','website',NEW.consented_at);
 END;
+
+CREATE TABLE IF NOT EXISTS sites_marketing_outbox(reference TEXT PRIMARY KEY REFERENCES sites_enquiries(reference) ON DELETE CASCADE,status TEXT NOT NULL DEFAULT 'pending',receipt TEXT,attempts INTEGER NOT NULL DEFAULT 0,available_at INTEGER NOT NULL DEFAULT 0);
+CREATE TRIGGER IF NOT EXISTS sites_marketing_capture AFTER INSERT ON sites_enquiries BEGIN INSERT OR IGNORE INTO sites_marketing_outbox(reference) VALUES(NEW.reference); END;
