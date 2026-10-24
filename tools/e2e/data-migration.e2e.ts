@@ -133,6 +133,13 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
           payload: { ...copyPayload, label: "Blocked copy", database: names[2] }
         });
         assert.notEqual(rejectedCopy.statusCode, 200);
+        const changedServer = await api.inject({
+          method: "POST",
+          url: `/api/data-migration/sources/${sourceId}/copy`,
+          payload: { ...copyPayload, label: "Different host", host: "untrusted.invalid" }
+        });
+        assert.notEqual(changedServer.statusCode, 200);
+        assert.match(changedServer.body, /Enter a password/u);
         await service.removeSource(copiedId, "test@codexsun.app");
       } finally {
         await api.close();

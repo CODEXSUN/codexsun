@@ -77,6 +77,16 @@ export class MigrationService {
 
   async copySource(id: number, input: MigrationSourceUpdate, actor: string) {
     const saved = await this.runs.resolveSource(id, this.host.secretKey);
+    if (
+      !input.password &&
+      (input.host !== saved.host ||
+        input.port !== saved.port ||
+        input.user !== saved.user ||
+        input.tlsMode !== saved.tlsMode)
+    )
+      throw AppError.validation(
+        "Enter a password to copy this connection to a different server or security setting."
+      );
     return this.addSource({ ...input, password: input.password ?? saved.password }, actor);
   }
 
