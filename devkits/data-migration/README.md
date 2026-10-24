@@ -27,6 +27,20 @@ This is a bounded, one-way batch-copy workflow, not ongoing bidirectional sync. 
 
 ## Verification
 
+Production web proxies must preserve `/api/data-migration` and `/api/data-bridge` when forwarding to Platform.
+Read [the 1.1.55 proxy repair log](agent/RELEASE-1.1.55.md) for local verification and cloud deployment scope.
+These APIs already include `/api` in their server routes. Do not strip it or send these requests to the SPA fallback.
+The CODEXSUN, Billing, and demo Nginx templates include these routes.
+Changing the repository templates requires a later web-image rebuild and deployment to affect a VPS.
+The frontend reports non-JSON responses, unavailable gateways, and malformed JSON without exposing response bodies.
+Normal API errors retain their request IDs.
+
+`migration.services.test.ts` covers source lookup, authenticated context, mutations, and response diagnostics.
+`tools/e2e/data-migration-proxy.e2e.ts` exercises real local Nginx against all three web templates.
+Set `CODEXSUN_TEST_NGINX_BINARY` to an available Nginx executable before running it with `node --import tsx --test`.
+The proxy test is explicitly skipped when that executable is unavailable.
+It uses local disposable ports and files and never contacts a VPS or writes business records.
+
 From the repository root run `npm run typecheck -w @codexsun/data-migration-api`, `npm run typecheck -w @codexsun/data-migration-web`, `npm run lint -w @codexsun/data-migration-api`, `npm run lint -w @codexsun/data-migration-web`, and the Platform API/web checks. Verify fresh and existing master migration, a real two-database transfer, denied access, rollback, and browser navigation before production use.
 
 `npm run test:e2e:data-migration` uses configured local MariaDB credentials to create three uniquely named disposable schemas. It checks the tracked source and ledger migration, encrypted source setup, preview, copy, repeat-copy rejection, failed-insert rollback, and denied API access, then removes those schemas.

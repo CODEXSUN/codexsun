@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.54
+Current version: 1.1.55
 
-Release tag: v-1.1.54
+Release tag: v-1.1.55
 
-Changelog label: v 1.1.54
+Changelog label: v 1.1.55
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,24 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.55
+
+### [v 1.1.55] 2026-10-24 2:21 pm - Data Migration production API proxy repair
+
+#### Database Changes
+
+- Database update: No (manual).
+- Add no schema, credential, or business-data change for this proxy repair.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.55.
+- Route Data Migration and Data Bridge API prefixes to Platform in CODEXSUN, Billing, and demo Nginx templates instead of returning the HTML app page.
+- Preserve API paths, query strings, POST bodies, authentication cookies, and tab-slot headers without changing existing API alias rewrites.
+- Validate Data Migration response content type, JSON, and envelopes. Retain request IDs and report safe routing or gateway diagnostics.
+- Pass seven frontend regressions and real local Nginx coverage of all three templates. Reproduce the old HTML fallback and verify protected JSON responses from the actual local API.
+- Add the scoped proxy repair release log. Leave cloud deployment and web-image rollout to the operator.
 
 ## v-1.1.54
 

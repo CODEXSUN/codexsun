@@ -56,7 +56,7 @@ async function request<T>(
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) })
   });
-  const envelope = (await response.json()) as Envelope<T>;
+  const envelope = await readResponse<T>(response);
   if (!response.ok || !envelope.success) {
     const serverMessage = envelope.success
       ? `Request failed (${response.status}).`
@@ -65,6 +65,41 @@ async function request<T>(
     throw new Error(requestId ? `${serverMessage} (Request ID: ${requestId})` : serverMessage);
   }
   return envelope.data;
+}
+
+async function readResponse<T>(response: Response): Promise<Envelope<T>> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    const message =
+      response.status === 502 || response.status === 503 || response.status === 504
+        ? "The Data Migration API is unavailable. Check the Platform API and web proxy."
+        : "The Data Migration API returned a non-JSON response. Check that /api/data-migration is routed to the Platform API instead of the web app.";
+    throw new Error(`${message} (HTTP ${response.status})`);
+  }
+  let value: unknown;
+  try {
+    value = await response.json();
+  } catch {
+    throw new Error(`The Data Migration API returned invalid JSON (HTTP ${response.status}).`);
+  }
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !("success" in value) ||
+    (value.success !== true && value.success !== false) ||
+    (value.success === true && !("data" in value)) ||
+    (value.success === false &&
+      (!("error" in value) ||
+        !value.error ||
+        typeof value.error !== "object" ||
+        !("message" in value.error) ||
+        typeof value.error.message !== "string"))
+  ) {
+    throw new Error(
+      `The Data Migration API returned an invalid response (HTTP ${response.status}).`
+    );
+  }
+  return value as Envelope<T>;
 }
 
 export const listTenants = () => request<TenantOption[]>("/tenants");

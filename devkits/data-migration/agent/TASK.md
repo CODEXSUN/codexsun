@@ -1,5 +1,16 @@
 # Data Migration tasks
 
+## Local production API routing repair
+
+Source release 1.1.55 records this scoped repair. Read [RELEASE-1.1.55.md](RELEASE-1.1.55.md) for evidence and deployment ownership.
+
+- [x] Preserve Data Migration and Data Bridge API prefixes in CODEXSUN, Billing, and demo web proxies.
+- [x] Replace raw JSON parsing failures with clear, body-safe diagnostics while preserving request IDs.
+- [x] Pass seven frontend transport regressions and a real local Nginx integration test across all three templates.
+- [x] Reproduce HTML fallback with the old route configuration and confirm the repaired API receives paths, queries, POST data, and authentication context.
+- [x] Forward both API prefixes through local Nginx to the actual local Platform API and confirm unauthenticated requests receive protected JSON errors rather than HTML.
+- [ ] Rebuild and deploy the corrected web image on the VPS when explicitly requested. No cloud change is included in this local repair.
+
 - [x] Add a Super Admin-only Migration desk.
 - [x] Add Migration Settings for saved external MariaDB host, port, database, user, TLS, and encrypted password management.
 - [x] Add searchable saved-source choices and Create actions for non-secret fields, with common MariaDB port choices.
