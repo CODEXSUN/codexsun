@@ -15,3 +15,5 @@ export function billingTableNames(names: string[]) {
     )
     .sort();
 }
+
+export const billingInvoiceTables = ["billing_sales", "billing_export_sales"] as const;

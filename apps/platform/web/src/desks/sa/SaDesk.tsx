@@ -670,6 +670,7 @@ export function SaDesk() {
             {page === "data-bridge" || page === "data-bridge-connections" ? (
               <DatabaseConnectionWorkspace
                 onManageSources={() => selectPage("data-migration-settings")}
+                onOpenBusinessReport={(id) => openBridgeReport("business", id)}
               />
             ) : null}
             {page === "data-bridge-common-tables" ? (

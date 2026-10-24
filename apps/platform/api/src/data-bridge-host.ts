@@ -6,6 +6,7 @@ import {
   registerDataBridgeApi,
   CommonBulkService,
   TransferService,
+  businessImportWorker,
   type CommonTableImportHost
 } from "@codexsun/data-bridge-api";
 import { AppError } from "@codexsun/framework/errors";
@@ -42,6 +43,25 @@ export async function registerDataBridgeHost(
           label: `${tenant.tenantName} (${tenant.tenantCode})`,
           database: tenant.dbName
         }));
+    },
+    async enqueueBusiness(input) {
+      if (env.CODEXSUN_QUEUE_WORKER_ENABLED !== "1")
+        throw AppError.validation("Enable the Queue Manager worker before starting this import.");
+      const tenant = await tenants.findByIdOrCode(String(input.targetTenantId));
+      if (!tenant || tenant.status !== "active")
+        throw AppError.validation("The target tenant is unavailable.");
+      const job = await queue.enqueue({
+        jobName: "data-bridge.business-import",
+        queueName: "system",
+        sourceModule: "data-bridge.business-import",
+        tenantId: String(tenant.id),
+        actorEmail: input.actor,
+        correlationId: input.correlationId,
+        maxAttempts: 2,
+        idempotencyKey: `data-bridge:business:${input.runId}`,
+        payload: { runId: input.runId, targetTenantId: input.targetTenantId }
+      });
+      if (!job) throw AppError.validation("The business import could not be queued.");
     },
     async enqueueTransfer(input) {
       if (env.CODEXSUN_QUEUE_WORKER_ENABLED !== "1")
@@ -133,6 +153,19 @@ export async function registerDataBridgeHost(
       job.payload.targetTenantId
     );
     return { runId: result.id, status: result.status, rows: result.rows.length };
+  });
+  const processBusinessImport = businessImportWorker(host);
+  registerQueueJobProcessor("data-bridge.business-import", async (job, progress) => {
+    const result = await processBusinessImport(job, progress);
+    return {
+      runId: result.id,
+      status: result.status,
+      tables: result.tables.length,
+      inserted: result.tables.reduce((n, t) => n + t.imported, 0),
+      warnings: result.tables.reduce((n, t) => n + t.warnings, 0),
+      invoices: result.invoiceCount,
+      invoiceWarnings: result.invoiceWarnings
+    };
   });
   await registerDataBridgeApi(app, host);
 }

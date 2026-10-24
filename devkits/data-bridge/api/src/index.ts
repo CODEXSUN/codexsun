@@ -13,7 +13,8 @@ export const dataBridgeApiModuleKeys = [
   "data-bridge.common-tables",
   "data-bridge.master-tables",
   "data-bridge.billing-tables",
-  "data-bridge.report"
+  "data-bridge.report",
+  "data-bridge.business-import"
 ] as const;
 
 export async function registerDataBridgeApi(app: FastifyInstance, host: CommonTableImportHost) {
@@ -30,3 +31,5 @@ export async function registerDataBridgeApi(app: FastifyInstance, host: CommonTa
 
 export { TransferService } from "./modules/transfer-session/transfer-session.service.js";
 export { ConflictResolutionService } from "./modules/report/report.resolution.service.js";
+
+export { BusinessImportService, businessImportWorker } from "./modules/business-import/index.js";

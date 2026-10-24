@@ -1,7 +1,19 @@
 # Data Bridge tasks
 
-Current release: 1.1.52. Read [HANDOFF.md](HANDOFF.md) for the current operating state and approved warnings.
+Current release: 1.1.53. Read [HANDOFF.md](HANDOFF.md) for the current operating state and approved warnings.
 Earlier sections below retain historical implementation and verification notes. Unchecked historical entries do not replace the latest release gates.
+
+## Ordered business import live acceptance
+
+- [x] Verify fresh backups and disposable restores for both approved connection pairs.
+- [x] Run the actual external Chrome action in Common → Masters → Billing order.
+- [x] Confirm SUKRAA has 1,978 existing rows and only its two approved warnings.
+- [x] Confirm ALTEX has 5,471 existing rows and no warnings.
+- [x] Verify all 321 invoices, 1,211 item rows, business compliance children, and target foreign IDs.
+- [x] Preserve five deleted ALTEX invoices and their children.
+- [x] Verify every report tab, live invoice pagination, target-scoped queue jobs, and source/target preservation.
+- [x] Pass 14 focused tests and align the lockstep source version to 1.1.53.
+- [x] Record sanitized evidence in RELEASE-1.1.53.md.
 
 ## Common Core table import
 

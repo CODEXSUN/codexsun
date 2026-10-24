@@ -1,3 +1,4 @@
+import { BusinessImportAction } from "../business-import/index.js";
 import { useEffect, useState } from "react";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
 import { Button } from "@codexsun/ui/components/button";
@@ -8,7 +9,13 @@ import {
 } from "./database-connection.services.js";
 import { saveBridgeConnection, useBridgeConnection } from "./database-connection.store.js";
 import type { SourceOption, TenantOption } from "./database-connection.types.js";
-export function DatabaseConnectionWorkspace({ onManageSources }: { onManageSources: () => void }) {
+export function DatabaseConnectionWorkspace({
+  onManageSources,
+  onOpenBusinessReport
+}: {
+  onManageSources: () => void;
+  onOpenBusinessReport: (id: string) => void;
+}) {
   const connection = useBridgeConnection();
   const [sources, setSources] = useState<SourceOption[]>([]),
     [tenants, setTenants] = useState<TenantOption[]>([]);
@@ -102,9 +109,14 @@ export function DatabaseConnectionWorkspace({ onManageSources }: { onManageSourc
           <p className="mt-1 text-sm">
             {connection.sourceDatabase} → {connection.targetDatabase}
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Use this pair in Common Tables, Master Tables, or Billing Tables.
-          </p>
+          <BusinessImportAction
+            sourceId={connection.sourceId}
+            targetTenantId={connection.targetTenantId}
+            enabled={
+              !busy && sourceId === connection.sourceId && targetId === connection.targetTenantId
+            }
+            onOpen={onOpenBusinessReport}
+          />
         </section>
       ) : null}
     </WorkspacePage>

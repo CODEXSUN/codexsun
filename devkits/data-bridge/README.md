@@ -28,8 +28,26 @@ Preserve existing target conflicts as warnings. Use the separate explicit correc
 Normal transfers use saved source snapshots and recheck schema and destination values during execution.
 Reprepare when source, parents, mappings, or routing change. Correction plans apply stronger fingerprint checks.
 Current imports commit per table. Verify complete invoice aggregates after all related tables finish.
-There is no claim of a single cross-table invoice transaction or automatic parent/child selection.
+There is no single cross-table invoice transaction. Guided transfers require explicit child selection.
 Private snapshots and backups never belong in Git.
+
+## Ordered business import
+
+Database Connection has one **Audit and import missing business data** action for the verified pair.
+The worker runs Common → Masters → Billing in parent order and verifies invoice children afterward.
+Saved verified mappings support different table and field names.
+One report has Summary, Common, Masters, Billing, Invoices, and Warnings tabs.
+Internal chunk sessions stay inside this report.
+Conflicts remain unchanged. Missing mappings and unresolved parents require review.
+Commits remain per table. Automatic import includes eligible business children.
+Individual guided transfers retain explicit row selection.
+Read the API and frontend `business-import/SKILLS.md` files for the operating contract.
+
+Release 1.1.53 verified the actual button for local SUKRAA and ALTEX.
+All 321 invoices and 1,211 item rows matched their target business data.
+Both targets were complete, so missing-only processing inserted zero rows.
+SUKRAA retained two approved warnings. ALTEX completed without warnings.
+Read [the live release evidence](agent/RELEASE-1.1.53.md).
 
 ## Reference material
 

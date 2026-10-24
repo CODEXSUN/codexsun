@@ -7,7 +7,11 @@ import { DatabaseImportLock } from "../database-connection/index.js";
 import type { CommonTableImportHost } from "../import-review/index.js";
 import { TransferRepository } from "./transfer-session.repository.js";
 import { TransferDatabase, identifier } from "./transfer-session.database.js";
-import type { TransferSession, TransferField } from "./transfer-session.types.js";
+import type {
+  TransferSession,
+  TransferField,
+  TransferParentMapping
+} from "./transfer-session.types.js";
 export class TransferService {
   private readonly repository: TransferRepository;
   private readonly locks: DatabaseImportLock;
@@ -15,8 +19,8 @@ export class TransferService {
     this.repository = new TransferRepository(host.database);
     this.locks = new DatabaseImportLock(host.database);
   }
-  list() {
-    return this.repository.list();
+  async list() {
+    return (await this.repository.list()).filter((session) => !session.context?.businessRunId);
   }
   get(id: string) {
     return this.repository.get(id);
@@ -149,7 +153,13 @@ export class TransferService {
       return rows.map((r) => ({ id: Number(r.id), label: String(r.label ?? r.id) }));
     });
   }
-  async prepare(id: string, revision: number, ids: number[], actor: string) {
+  async prepare(
+    id: string,
+    revision: number,
+    ids: number[],
+    actor: string,
+    options?: { parents?: TransferParentMapping[]; blocked?: Map<number, string> }
+  ) {
     return this.change(id, revision, async (session) => {
       if (session.stage < 4) throw AppError.validation("Verify fields before preparing data.");
       await this.connect(session, async (db) => {
@@ -169,7 +179,7 @@ export class TransferService {
         if (rows.length !== new Set(ids).size)
           throw AppError.validation("Selected source rows changed. Refresh the preview.");
         session.rows = [];
-        const references = new TransferReferences(db);
+        const references = new TransferReferences(db, options?.parents);
         for (const source of rows) {
           const data: Record<string, unknown> = {};
           for (const field of session.fields) {
@@ -203,6 +213,10 @@ export class TransferService {
               schema.target
             );
             await db.audit(session.targetTable, row, session.fields);
+            if (row.status === "ready" && options?.blocked?.has(row.sourceId)) {
+              row.status = "warning";
+              row.message = options.blocked.get(row.sourceId)!;
+            }
           } catch (error) {
             row.status = "warning";
             row.message =
@@ -255,6 +269,28 @@ export class TransferService {
       }
       return session;
     });
+  }
+  // Execute a saved chunk inside an already authenticated, target-scoped parent queue job.
+  async executePrepared(id: string, revision: number, targetTenantId: number, actor: string) {
+    await this.locks.withImportLock(`transfer:${id}`, async () => {
+      const session = await this.get(id);
+      if (session.targetTenantId !== targetTenantId)
+        throw AppError.forbidden("Wrong import target context.");
+      if (["queued", "completed"].includes(session.status)) return;
+      this.editable(session, revision);
+      if (session.stage !== 5 || session.status !== "prepared" || !session.rows.length)
+        throw AppError.validation("Prepare selected rows before worker execution.");
+      const schema = await this.connect(session, (db) =>
+        db.verify(session.sourceTable, session.targetTable, session.fields)
+      );
+      if (schema.hash !== session.schemaHash)
+        throw AppError.validation("Schema changed. Prepare this table again.");
+      session.status = "queued";
+      session.stage = 6;
+      session.actor = actor;
+      await this.repository.save(session);
+    });
+    return this.run(id, targetTenantId);
   }
   async run(id: string, targetTenantId: number) {
     return this.locks.withImportLock(`transfer:${id}`, async () => {

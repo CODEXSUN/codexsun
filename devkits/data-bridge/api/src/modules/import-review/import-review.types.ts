@@ -28,6 +28,12 @@ export type CommonTableImportHost = {
   listTenants(): Promise<Array<{ id: number; label: string; database?: string }>>;
   resolveTenant(id: number): Promise<MigrationTenant>;
   dataMigration: DataMigrationBridgeAccess;
+  enqueueBusiness?: (input: {
+    runId: string;
+    targetTenantId: number;
+    actor: string;
+    correlationId: string;
+  }) => Promise<void>;
   enqueueTransfer?: (input: {
     runId: string;
     targetTenantId: number;

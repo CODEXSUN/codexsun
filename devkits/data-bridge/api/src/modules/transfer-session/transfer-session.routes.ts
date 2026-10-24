@@ -34,7 +34,8 @@ export const transferSessionSchema = z
     context: z
       .object({
         group: z.enum(["common", "masters", "billing"]),
-        targetTables: z.array(z.string())
+        targetTables: z.array(z.string()),
+        businessRunId: z.string().uuid().optional()
       })
       .strict()
       .optional(),

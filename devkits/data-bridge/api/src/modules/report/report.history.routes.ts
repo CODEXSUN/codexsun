@@ -13,7 +13,7 @@ export function registerReportHistoryRoutes(app: FastifyInstance, host: CommonTa
         z
           .object({
             id: z.string().uuid(),
-            type: z.enum(["transfer", "review", "bulk"]),
+            type: z.enum(["transfer", "review", "bulk", "business"]),
             group: z.string(),
             sourceDatabase: z.string(),
             targetDatabase: z.string(),

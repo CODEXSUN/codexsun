@@ -1,5 +1,15 @@
 # Data Bridge plan
 
+## Ordered business import addition
+
+Add one queued action for the verified pair: Common → Masters → Billing, in parent order.
+Use saved verified mappings and target business identity for foreign IDs.
+Verify complete eligible invoice descendants and detect source drift afterward.
+Keep one report with Summary, Common, Masters, Billing, Invoices, and Warnings tabs.
+Do not expose internal chunk sessions as separate user reports.
+Retain per-table transaction boundaries and preserve target conflicts.
+Use disposable integration tests before live execution.
+
 ## Current delivery
 
 The grouped migration workflow and local acceptance are complete for this release.

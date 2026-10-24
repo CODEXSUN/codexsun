@@ -185,6 +185,10 @@ const capabilityBackendRoles = new Map([
   ["data-bridge-api/billing-tables", ["module", "routes", "service", "policy"]],
   ["data-bridge-api/import-review", ["module", "service", "repository", "routes", "types"]],
   ["data-bridge-api/transfer-session", ["module", "service", "repository", "routes", "types"]],
+  [
+    "data-bridge-api/business-import",
+    ["module", "migration", "repository", "routes", "service", "types", "worker"]
+  ],
   ["data-bridge-api/report", ["module", "service", "repository", "routes", "types"]],
   ["zuno-api/diagnostics", ["module", "service", "repository", "routes", "types"]],
   ["zuno-api/cases", ["module", "service", "repository", "routes", "migration", "types"]],
@@ -340,6 +344,7 @@ const capabilityFrontendRoles = new Map([
   ["data-bridge-web/billing-tables", ["workspace", "services"]],
   ["data-bridge-web/import-review", ["workspace", "services", "types"]],
   ["data-bridge-web/transfer-session", ["workspace", "services", "types"]],
+  ["data-bridge-web/business-import", ["workspace", "services", "types", "hooks"]],
   ["data-bridge-web/report", ["workspace", "services", "types"]],
   ["data-bridge-web/transport", ["request"]],
   ["docs-web/overview", ["workspace", "services", "hooks", "types"]],

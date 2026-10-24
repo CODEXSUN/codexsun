@@ -23,6 +23,7 @@ Data Bridge owns preparation, import decisions, saved snapshots, conflicts, and 
 | transfer-session    | Own shared technical inspection, mapping, selection, preparation, and queued transfer records. |
 | import-review       | Own selected snapshots, legacy saved reviews, and public reference/audit contracts.            |
 | report              | Own combined results, row details, historical summaries, and explicit correction plans.        |
+| business-import     | Own ordered business runs, checkpointed chunks, invoice verification, and split report tabs.   |
 | data-bridge         | Compose API modules and retain the original migration ledger.                                  |
 | transport           | Frontend HTTP envelope, authentication slot, and error handling only.                          |
 
@@ -169,6 +170,10 @@ Automation must resolve the approved pair and current metadata on each run.
 Do not rerun a live import merely to reproduce release screenshots or version checks.
 
 ## Manual page sequence
+
+For an approved whole-business missing-only import, use the Database Connection action instead of repeating every guided group.
+Read the API and frontend `business-import/SKILLS.md` files before extending this worker or its split report.
+Use the guided pages for unsupported mappings, custom business constants, or specific row selection.
 
 1. Verify a pair in Database Connection.
 2. Open the relevant business group.

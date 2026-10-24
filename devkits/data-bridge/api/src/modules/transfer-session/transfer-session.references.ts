@@ -1,10 +1,17 @@
 import type { RowDataPacket } from "mysql2/promise";
 import { AppError } from "@codexsun/framework/errors";
 import { identifier, compatibleType, type TransferDatabase } from "./transfer-session.database.js";
-import type { TransferColumn, TransferField } from "./transfer-session.types.js";
+import type {
+  TransferColumn,
+  TransferField,
+  TransferParentMapping
+} from "./transfer-session.types.js";
 export class TransferReferences {
   private readonly cache = new Map<string, number>();
-  constructor(private readonly database: TransferDatabase) {}
+  constructor(
+    private readonly database: TransferDatabase,
+    private readonly mappings: TransferParentMapping[] = []
+  ) {}
   async translate(
     data: Record<string, unknown>,
     fields: TransferField[],
@@ -41,7 +48,7 @@ export class TransferReferences {
       throw AppError.validation(
         "Circular or too deep parent mapping. Select a target parent explicitly."
       );
-    const schema = await this.database.schema(sourceTable, targetTable);
+    let schema = await this.database.schema(sourceTable, targetTable);
     if (
       !schema.source.some((c) => c.name === "id" && c.primary) ||
       !schema.target.some((c) => c.name === "id" && c.primary)
@@ -53,6 +60,28 @@ export class TransferReferences {
     );
     if (!records[0])
       throw AppError.validation(`Source parent ${sourceTable} (${String(id)}) is missing.`);
+    const constants = new Set<string>();
+    const mapping = this.mappings.find(
+      (item) => item.sourceTable === sourceTable && item.targetTable === targetTable
+    );
+    if (mapping) {
+      const columns: TransferColumn[] = [];
+      const values: Record<string, unknown> = {};
+      for (const field of mapping.fields) {
+        const destination = schema.target.find((column) => column.name === field.target);
+        const origin = schema.source.find((column) => column.name === field.source);
+        if (field.mode === "source" && origin) {
+          columns.push({ ...origin, name: field.target });
+          values[field.target] = records[0]![field.source!];
+        } else if (field.mode === "value" && destination) {
+          constants.add(field.target);
+          columns.push({ ...destination, parent: null });
+          values[field.target] = field.value;
+        }
+      }
+      Object.assign(records[0]!, values);
+      schema = { ...schema, source: columns };
+    }
     const [indexes] = await this.database.target.query<RowDataPacket[]>(
       `SHOW INDEX FROM ${identifier(targetTable)} WHERE Non_unique=0`
     );
@@ -113,7 +142,7 @@ export class TransferReferences {
         let value: unknown = records[0]![name];
         const from = schema.source.find((c) => c.name === name);
         const to = schema.target.find((c) => c.name === name);
-        if (to?.parent && value !== null) {
+        if (to?.parent && value !== null && !constants.has(name)) {
           if (!from?.parent)
             throw AppError.validation(`Map ${targetTable}.${name} parent explicitly.`);
           value = await this.resolve(from.parent, to.parent, value, new Set([...path, key]));

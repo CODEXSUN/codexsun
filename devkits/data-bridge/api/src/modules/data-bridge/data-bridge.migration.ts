@@ -1,3 +1,4 @@
+import { migrateBusinessImport } from "../business-import/business-import.migration.js";
 import { sql } from "kysely";
 import type { Kysely } from "kysely";
 import { runMigrationBatch, type MigrationBatch } from "@codexsun/framework/db";
@@ -166,6 +167,13 @@ const migrationBatch: MigrationBatch<unknown> = {
           )
           .execute(database);
       }
+    },
+    {
+      checksum: "data-bridge.business-import-v6",
+      name: "data-bridge.business-import-v6",
+      description: "Persist ordered business import runs and invoice verification reports.",
+      version: 6,
+      up: migrateBusinessImport
     }
   ]
 };

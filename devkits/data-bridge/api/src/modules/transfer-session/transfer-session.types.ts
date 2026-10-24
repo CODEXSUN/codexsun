@@ -21,7 +21,11 @@ export type TransferRow = {
   message: string;
 };
 export type TransferSession = {
-  context?: { group: "common" | "masters" | "billing"; targetTables: string[] };
+  context?: {
+    group: "common" | "masters" | "billing";
+    targetTables: string[];
+    businessRunId?: string;
+  };
   selectedRows?: number;
   warningRows?: number;
   id: string;
@@ -40,4 +44,10 @@ export type TransferSession = {
   actor: string;
   updatedAt: string;
   message: string;
+};
+
+export type TransferParentMapping = {
+  sourceTable: string;
+  targetTable: string;
+  fields: TransferField[];
 };

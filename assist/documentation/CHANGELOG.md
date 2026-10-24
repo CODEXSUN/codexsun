@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.52
+Current version: 1.1.53
 
-Release tag: v-1.1.52
+Release tag: v-1.1.53
 
-Changelog label: v 1.1.52
+Changelog label: v 1.1.53
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -20,7 +20,50 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.1.53
+
+### [v 1.1.53] 2026-10-24 10:37 am - Data Bridge ordered business imports verified live
+
+#### Database Changes
+
+- Database update: Yes (manual).
+- Add Data Bridge v6 run and invoice verification tables without changing earlier migration checksums.
+- Verify fresh backups and restored copies of four local databases across 545 tables.
+- Run the live missing-only button for SUKRAA and ALTEX in Common → Masters → Billing order.
+- SUKRAA: preserve 1,978 existing rows and the two approved differences. ALTEX: preserve 5,471 existing rows without warnings.
+- Insert zero rows because both targets already contain all source business records. Independent checks found zero missing rows.
+- Verify all 321 invoices, 1,211 item rows, ten e-invoices, and nine e-way bills after target ID translation.
+- Retain five deleted ALTEX invoices and their children. Verify zero broken references across 354 Core/Billing relationships.
+- Confirm all source data and pre-existing target business rows remain unchanged against fresh backup hashes.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.53.
+- Add one queued business import action and separate Summary, Common, Masters, Billing, Invoices, and Warnings tabs.
+- Support saved renamed table/field mappings, recursive target parent resolution, checkpointed chunks, and final source-drift checks.
+- Verify both actual external Chrome button runs, all report tabs, invoice pagination, deleted history, and foreign ID drill-down.
+- Complete both target-scoped jobs on their first attempt. Preserve per-table transaction boundaries and exclude system/runtime data.
+- Pass 14 focused Data Bridge tests, including disposable inserts, nested invoice assets, repeat imports, conflicts, and source drift.
+- Update module skills, operating documentation, and sanitized live verification evidence.
+
 ## v-1.1.52
+
+### Ordered Data Bridge business import addition
+
+#### Database Changes
+
+- Add v6 run and invoice verification tables. Preserve earlier migration keys and checksums.
+- Store chunk checkpoints and invoice-specific child IDs for exact report drill-down.
+
+#### App Codebase Changes
+
+- Add one verified-pair action for Common → Masters → Billing in parent order.
+- Reuse saved renamed-field mappings and resolve target foreign IDs through business identity.
+- Preserve target conflicts and deleted business history. Exclude runtime jobs and system access data.
+- Verify saved data, source drift, invoice descendants, and target relationships.
+- Split one report into Summary, Common, Masters, Billing, Invoices, and Warnings tabs.
+- Add disposable database tests for 103 invoices, nested assets, pagination, preservation, and repeat imports.
+- Keep per-table commits. This addition does not claim a new live client migration or release.
 
 ### [v 1.1.52] 2026-10-24 9:32 am - Data Bridge grouped migration and verified Billing handoff
 

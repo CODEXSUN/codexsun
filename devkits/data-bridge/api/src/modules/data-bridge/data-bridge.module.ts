@@ -1,3 +1,4 @@
+import { registerBusinessImport } from "../business-import/business-import.module.js";
 import { registerDatabaseConnection } from "../database-connection/database-connection.module.js";
 import { registerCommonTables } from "../common-tables/common-tables.module.js";
 import { registerMasterTables } from "../master-tables/master-tables.module.js";
@@ -18,5 +19,6 @@ export const dataBridgeModule = {
     registerMasterTables(app, host);
     registerBillingTables(app, host);
     registerReport(app, host);
+    registerBusinessImport(app, host);
   }
 };

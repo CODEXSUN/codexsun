@@ -1,3 +1,4 @@
+import { BusinessReportWorkspace } from "../business-import/index.js";
 import { formatDateTime } from "@codexsun/ui/workspace/utils";
 import { useEffect, useState } from "react";
 import { WorkspacePage } from "@codexsun/ui/workspace/page";
@@ -58,6 +59,19 @@ export function ReportWorkspace({
       active = false;
     };
   }, [recordId, kind, reload]);
+  if (recordId && kind === "business")
+    return (
+      <WorkspacePage
+        title="Business import report"
+        actions={
+          <Button variant="outline" onClick={() => onOpen()}>
+            Back to reports
+          </Button>
+        }
+      >
+        <BusinessReportWorkspace key={recordId} id={recordId} />
+      </WorkspacePage>
+    );
   if (review)
     return (
       <TableImportReviewWorkspace
@@ -110,6 +124,7 @@ export function ReportWorkspace({
               <option value="common">Common Tables</option>
               <option value="masters">Master Tables</option>
               <option value="billing">Billing Tables</option>
+              <option value="business">All business data</option>
               <option value="legacy">Legacy imports</option>
             </select>
           </div>
@@ -144,7 +159,9 @@ export function ReportWorkspace({
                             ? "Common Tables"
                             : record.group === "billing"
                               ? "Billing Tables"
-                              : "Legacy"}
+                              : record.group === "business"
+                                ? "All business data"
+                                : "Legacy"}
                       </td>
                       <td className="p-3">
                         {record.sourceDatabase} → {record.targetDatabase}

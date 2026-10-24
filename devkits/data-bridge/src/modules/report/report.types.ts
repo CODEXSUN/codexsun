@@ -1,6 +1,6 @@
 export type BridgeReportSummary = {
   id: string;
-  type: "transfer" | "review" | "bulk";
+  type: "transfer" | "review" | "bulk" | "business";
   group: string;
   sourceDatabase: string;
   targetDatabase: string;
