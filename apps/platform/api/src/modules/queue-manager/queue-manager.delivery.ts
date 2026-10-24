@@ -30,3 +30,10 @@ export function verifyQueueDelivery(
   if (!job || job.uuid !== expectedUuid)
     throw new Error("Queue delivery does not match the persisted job identity.");
 }
+
+export function queueDeliveryDelay(availableAt: string, now = Date.now()) {
+  const available = Date.parse(availableAt);
+  if (!Number.isFinite(available))
+    throw new Error("Queue delivery requires a valid availability time.");
+  return Math.max(0, available - now);
+}

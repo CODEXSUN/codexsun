@@ -10,11 +10,19 @@ import {
   startBullMqWorker
 } from "./queue-manager.bullmq.js";
 import {
+  queueDeliveryDelay,
   readQueueDelivery,
   redisQueuePrefix,
   verifyQueueDelivery
 } from "./queue-manager.delivery.js";
 import type { QueueJobRecord } from "./queue-manager.types.js";
+
+test("recovered deliveries retain their scheduled availability", () => {
+  const now = Date.parse("2026-10-24T10:00:00Z");
+  assert.equal(queueDeliveryDelay("2026-10-24T10:00:01Z", now), 1000);
+  assert.equal(queueDeliveryDelay("2026-10-24T09:59:59Z", now), 0);
+  assert.throws(() => queueDeliveryDelay("invalid", now));
+});
 
 test("Redis queues separate master databases and normalize host casing", () => {
   const database = { host: "DB", port: 3306, name: "codexsun_master_db" };
@@ -81,7 +89,7 @@ test(
       idempotencyKey: randomUUID(),
       payload: { queueJobId: 999, queueJobUuid: "forged" },
       actorEmail: "test@codexsun.local",
-      availableAt: new Date().toISOString(),
+      availableAt: new Date(Date.now() + 300).toISOString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       completedAt: null,
@@ -95,6 +103,7 @@ test(
     };
     const own = startBullMqWorker(name, async (id, uuid) => {
       assert.equal(id, record.id);
+      assert.ok(Date.now() >= Date.parse(record.availableAt));
       verifyQueueDelivery(uuid, record);
       ownCalls++;
       return { processed: true };

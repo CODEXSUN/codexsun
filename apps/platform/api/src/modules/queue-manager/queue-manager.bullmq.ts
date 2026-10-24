@@ -2,7 +2,11 @@ import { createHash } from "node:crypto";
 import { Queue, Worker, type JobsOptions } from "bullmq";
 import { env } from "../../env.js";
 import type { QueueJobRecord } from "./queue-manager.types.js";
-import { readQueueDelivery, redisQueuePrefix } from "./queue-manager.delivery.js";
+import {
+  queueDeliveryDelay,
+  readQueueDelivery,
+  redisQueuePrefix
+} from "./queue-manager.delivery.js";
 
 export const queueRedisPrefix = redisQueuePrefix({
   host: env.DB_HOST,
@@ -20,6 +24,7 @@ export async function publishBullMqJob(job: QueueJobRecord) {
     backoff: { delay: 5000, type: "exponential" },
     jobId: bullMqJobId(job),
     priority: job.priority,
+    delay: queueDeliveryDelay(job.availableAt),
     removeOnComplete: false,
     removeOnFail: false
   };
