@@ -5,7 +5,11 @@
 - [x] Build signed TechMedia (`techmedia-v1.1.57.apk`) and Rainbow (`rainbow-v1.1.57.apk`) APKs as version 1.1.57, build 157, using their tenant IDs and the live Platform API URL.
 - [x] Verify package IDs, version metadata, matching release certificates, and APK Signature Scheme v2 signatures.
 - [x] Commit `8f47b54` and push to `origin/main`; leave unrelated worktree changes unstaged.
-- [ ] Deploy the latest web image. Hold VPS replacement until API compatibility and required migration authorization are resolved.
+- [x] Deploy API and Web only from pushed source `1a4816b88f7744934837d6688b3efed3775658ff` as `1.1.57-1a4816b8`; Shop and shared containers were left unchanged.
+- [x] Create full MariaDB backup `codexsun-1.1.57-pre-migration-20261024T164530`; checksum verified. The 71 MB dump and checksum are protected in the VPS backup volume.
+- [x] Production migration preflight passed for seven tenant targets; `migrations:run` completed successfully. No migration checksum drift was reported.
+- [x] API and Web containers report healthy on the expected image tags and source revision. Local API/Web health and public `https://codexsun.com/api/platform/health` returned HTTP 200. Public `api.codexsun.com` DNS is not configured; API health was verified through the public Web proxy.
+- [x] Both signed APKs are version 1.1.57/build 157; APK paths and signing evidence are recorded above.
 
 ## TechMedia and Rainbow release APKs — 2026-10-24
 
