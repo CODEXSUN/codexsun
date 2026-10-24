@@ -4,8 +4,8 @@
 
 - [x] Build signed TechMedia (`techmedia-v1.1.57.apk`) and Rainbow (`rainbow-v1.1.57.apk`) APKs as version 1.1.57, build 157, using their tenant IDs and the live Platform API URL.
 - [x] Verify package IDs, version metadata, matching release certificates, and APK Signature Scheme v2 signatures.
-- [ ] Commit and push the focused CRM release log and Flutter version metadata; preserve unrelated working-tree changes.
-- [ ] Deploy and verify the latest web image on the VPS without replacing unrelated/shared containers.
+- [x] Commit `8f47b54` and push to `origin/main`; leave unrelated worktree changes unstaged.
+- [ ] Deploy the latest web image. Hold VPS replacement until API compatibility and required migration authorization are resolved.
 
 ## TechMedia and Rainbow release APKs — 2026-10-24
 
