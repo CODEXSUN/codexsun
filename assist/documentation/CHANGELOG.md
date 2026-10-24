@@ -39,6 +39,31 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Link the final owner log and existing live verification reports. This source release does not deploy new containers.
 - Exclude ecommerce, Codeit, CRM, generated Docs, and unrelated implementation changes.
 
+### [v 1.1.57] 2026-10-24 4:30 pm - CRM timestamp correction and mobile releases
+
+#### Database Changes
+
+- Database update: No. Existing timestamps remain unchanged.
+
+#### App Codebase Changes
+
+- Keep generated job and checkpoint timestamps as UTC ISO values and format them consistently in the web and mobile clients.
+- Build signed TechMedia and Rainbow CRM APKs as version 1.1.57, build 157.
+
+## v-1.1.56
+
+### [v 1.1.56] 2026-10-24 3:38 pm - CRM work timestamp fix and TechMedia/Rainbow mobile releases
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.56.
+- Preserve UTC ISO timestamps for generated job and checkpoint comments; format work timestamps consistently in web and mobile local time.
+- Build signed TechMedia and Rainbow CRM Android APKs as version 1.1.56, build 156.
+
 ## v-1.1.55
 
 ### [v 1.1.55] 2026-10-24 4:05 pm - Verify Redis delivery and cloud ALTEX import

@@ -1,5 +1,19 @@
 # CRM Delivery Tasks
 
+## CRM timestamp correction and TechMedia/Rainbow release — 2026-10-24
+
+- [x] Build signed TechMedia (`techmedia-v1.1.57.apk`) and Rainbow (`rainbow-v1.1.57.apk`) APKs as version 1.1.57, build 157, using their tenant IDs and the live Platform API URL.
+- [x] Verify package IDs, version metadata, matching release certificates, and APK Signature Scheme v2 signatures.
+- [ ] Commit and push the focused CRM release log and Flutter version metadata; preserve unrelated working-tree changes.
+- [ ] Deploy and verify the latest web image on the VPS without replacing unrelated/shared containers.
+
+## TechMedia and Rainbow release APKs — 2026-10-24
+
+- [x] Bump the lockstep workspace and Flutter app version to 1.1.56, build 156; `npm run check:versions` passes.
+- [x] Build TechMedia (`in.codexsun.techmedia_crm`) and Rainbow (`in.codexsun.rainbow.crm`) signed release APKs with the live Platform API URL and their tenant IDs.
+- [x] Verify each APK reports version 1.1.56/build 156 and passes APK Signature Scheme v2 verification with the same release certificate.
+- [x] Keep artifacts local. No emulator install, cloud deployment, tag, commit, or push was requested or performed.
+
 ## Work timestamp consistency — 2026-10-24
 
 - [x] Preserve UTC instants in generated job-cycle and checkpoint comments; avoid preformatting to timezone-less UTC text.
