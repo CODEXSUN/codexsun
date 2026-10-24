@@ -67,3 +67,25 @@ The original source record and encrypted secret stay unchanged. The response ret
 Private pre-cutover backups and repeat dumps are retained under:
 `/home/codexsun-backups/data-bridge/20261024T100232Z-redis-cutover/`.
 No customer dumps, credentials, or tokens belong in Git.
+
+## Final deployed scheduling and recovery check
+
+Preserve the persisted availableAt time as BullMQ delay when publishing or recovering deliveries.
+Reject invalid availability timestamps. Never run future scheduled jobs early during reconciliation.
+All four tests pass against temporary queues on VPS Redis, including an actual delayed delivery and duplicate publication.
+
+Deploy final API revision f11f31d5 after confirming no Data Bridge imports are active.
+Keep web revision ef5b3b35 because this final adjustment changes only the API. Reload Nginx upstream resolution and verify both services healthy.
+
+Fresh authenticated master audit job 2612, UUID c599b8d7, run f804096a-3c27-4194-8dad-4c54970300c8 completes automatically in one attempt.
+Both Redis and database report success. It checks 47 tables and 726 existing Core records, with zero inserts or attention rows.
+The persisted delivery ID, UUID, and run result agree. No delivery exists in the legacy prefix. Redis remains the live backend.
+
+The source full-dump hash remains unchanged.
+All 70 SUKRAA business-table INSERT statements remain byte-identical, with SHA-256:
+5b8c26465f853ac685a6def07042d25bbd6ee2d3a36b3a87004d021aaa1564b5.
+Some Core next-ID counters advance during the audit. No table definition changes beyond those counters, no business-row changes, and no duplicate rows occur.
+Do not describe this final master audit as an unchanged whole-database or unchanged-counter snapshot.
+
+ALTEX final business job 2602 also completes automatically through isolated Redis in one attempt.
+Its 184 invoice audits pass. See devkits/data-bridge/agent/CLOUD-ALTEX-2026-10-24.md for the approved corrections, saved-data proof, and source preservation.

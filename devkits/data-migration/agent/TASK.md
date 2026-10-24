@@ -73,4 +73,4 @@ Static checks and source presence do not establish deployed or live behavior. Re
 - [x] Copy a saved connection through a strict authenticated setup contract without returning its password.
 - [x] Preserve the original record, verify the new database, and retain system/master database exclusions.
 - [x] Verify copying, connection reuse, original preservation, and denied access in the disposable MariaDB E2E suite.
-- [ ] Verify a distinct ALTEX source in the live browser while keeping SUKRAA routing unchanged.
+- [x] Verify distinct live ALTEX source ID 2 and unchanged SUKRAA source ID 1. Both source databases retain their original checksums.

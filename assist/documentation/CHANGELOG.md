@@ -22,6 +22,26 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 ## v-1.1.55
 
+### [v 1.1.55] 2026-10-24 4:05 pm - Verify Redis delivery and cloud ALTEX import
+
+#### Database Changes
+
+- Import 5,090 missing ALTEX business rows from altex_db to registered target altexlabs_v2_db in Common, Masters, then Billing order.
+- Commit only the approved product-unit and default-company corrections through fingerprinted authenticated plans. Preserve existing target records and deleted history.
+- Verify all 5,472 prepared records, 184 invoice headers, 690 invoice lines, five deleted invoices with seven lines, and 156 relationships without warnings or orphan references.
+- Preserve exact full-source hashes for SUKRAA and ALTEX. Verify unchanged SUKRAA business row data after zero-insert Redis repeats.
+- Retain checksum-verified private backups and remove only owned disposable rehearsal databases. No schema migration is added.
+
+#### App Codebase Changes
+
+- Deploy database-specific Redis namespaces, persisted delivery UUID checks, pending reconciliation, and preserved availability times.
+- Pass all four actual Redis tests, including legacy-worker isolation, duplicate publication, protected identities, and delayed delivery.
+- Verify live Redis jobs 2584 and 2612 without duplicate business rows or a database-backend fallback. Verify ALTEX final job 2602 in the same isolated namespace.
+- Preserve the SUKRAA source connection while saving a separate ALTEX source through the authenticated Copy action.
+- Record final split report-tab checks, invoice pagination, deployed revision, source hashes, and audit evidence in owner logs and handoff files.
+- Leave ecommerce, Codeit, and their pending package-version work outside this release.
+
+
 ### [v 1.1.55] 2026-10-24 3:32 pm - Isolate Redis delivery by master database
 
 #### Database Changes

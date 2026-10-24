@@ -47,4 +47,4 @@ From the repository root run `npm run typecheck -w @codexsun/data-migration-api`
 
 Database Settings can copy an existing saved source into a new connection record.
 The API reuses the encrypted password on the server when no replacement is supplied, tests the selected database, and encrypts the new record separately.
-The original connection and its migration history stay unchanged. Super Admin authorization and system/master database exclusions still apply.
+The original connection and its migration history stay unchanged. Reuse without a replacement password is limited to the same host, port, user, and TLS settings. Super Admin authorization and system/master database exclusions still apply.

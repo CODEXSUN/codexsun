@@ -3,15 +3,21 @@
 ## Start here
 
 Read [SKILLS.md](SKILLS.md), [PLAN.md](PLAN.md), and the matching module-local SKILLS file before changing behavior.
-Read [the current cloud handoff](RELEASE-1.1.54.md) for deployment ownership and remote acceptance gates.
+Read [the SUKRAA cloud proof](CLOUD-SUKRAA-2026-10-24.md), [the ALTEX cloud proof](CLOUD-ALTEX-2026-10-24.md), and [the Redis delivery proof](../../../apps/platform/agent/REDIS-DELIVERY-2026-10-24.md) for current remote acceptance.
+Release 1.1.54 retains the original cloud handoff and acceptance gates.
 Read [the local runtime release](RELEASE-1.1.53.md) for verified database and browser evidence.
 Release 1.1.52 remains historical evidence for the earlier initial migration.
 The manual and automation protocol is metadata-driven. Client values in evidence are not a future field-mapping recipe.
 
 ## Delivered state
 
-Version 1.1.54 prepares the verified runtime for cloud staging. Remote deployment and import remain pending.
-The operator will deploy and configure remote connections before the next cloud verification session.
+Cloud runtime 1.1.55 verifies SUKRAA and ALTEX business imports with unchanged source checksums.
+All 321 invoice headers and 1,211 item rows match. Both final business reports have zero warnings or orphan references.
+The approved two-field corrections for each target use the authenticated fingerprinted correction contract.
+Redis delivery now uses a master-database-specific namespace, persisted job UUID checks, pending reconciliation, and preserved scheduling times.
+Fresh business and master jobs complete through Redis in one attempt without duplicate business rows or a backend fallback.
+Keep separate saved source records for each database. Use Copy rather than repointing a connection referenced by earlier work.
+The private backup locations and exact run IDs are in the cloud proof files. Disposable verification databases were removed.
 
 Release 1.1.53 adds one ordered business import action and six separate report tabs.
 Its v6 migration adds run and invoice verification storage without changing earlier ledger entries.

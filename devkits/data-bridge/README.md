@@ -50,7 +50,8 @@ SUKRAA retained two approved warnings. ALTEX completed without warnings.
 Read [the live release evidence](agent/RELEASE-1.1.53.md).
 Version 1.1.54 prepares this runtime for cloud staging verification.
 Read [the cloud handoff](agent/RELEASE-1.1.54.md) before deployment or remote imports.
-Cloud connectivity, queue execution, backups, and invoice verification remain pending until tested there.
+The initial handoff kept cloud acceptance pending. Live acceptance is now complete for SUKRAA and ALTEX.
+Read [the SUKRAA proof](agent/CLOUD-SUKRAA-2026-10-24.md), [the ALTEX proof](agent/CLOUD-ALTEX-2026-10-24.md), and [the isolated Redis verification](../../apps/platform/agent/REDIS-DELIVERY-2026-10-24.md).
 
 ## Reference material
 
