@@ -132,3 +132,8 @@ Never commit full customer dumps, raw invoice payloads, private snapshots, passw
 No deployment or new mobile artifact is included in this release.
 The user authorized committing all current workspace changes, including separate Codeit integration and formatting already present.
 Those changes pass the shared release gates but are not part of the Data Bridge live migration proof.
+
+## Final cloud acceptance release 1.1.57
+
+Read [the final release log](RELEASE-1.1.57.md) for current scope and verification proof.
+The source version is 1.1.57. Live containers retain their verified 1.1.55 revisions until a separate deployment.
