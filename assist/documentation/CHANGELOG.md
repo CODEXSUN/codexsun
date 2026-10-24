@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.51
+Current version: 1.1.52
 
-Release tag: v-1.1.51
+Release tag: v-1.1.52
 
-Changelog label: v 1.1.51
+Changelog label: v 1.1.52
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -20,7 +20,46 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.1.52
+
+### [v 1.1.52] 2026-10-24 9:32 am - Data Bridge grouped migration and verified Billing handoff
+
+#### Database Changes
+
+- Database update: Yes. Applied repository Billing schema to approved local SUKRAA and ALTEX targets while preserving Core and existing business rows.
+- Import 1,253 missing SUKRAA Billing records and 4,812 missing ALTEX Billing records in parent order. Preserve source databases and existing targets.
+- Verify 140 business tables, 354 relationships, 321 complete invoices, and 1,211 invoice items. Find zero missing source records or orphan references.
+- Retain five ALTEX deleted invoices with their children. Preserve the two approved SUKRAA warnings: product deletion state and existing Billing numbering/layout settings.
+- Preserve Data Bridge migration checksums and saved records. Group scopes and summaries use existing JSON without a new Data Bridge schema step.
+
+#### App Codebase Changes
+
+- Bump all workspace manifests, internal dependency ranges, lockfile, and desktop/deployment samples to 1.1.52.
+- Consolidate Data Bridge into five sidebar pages and five persisted workflow tabs per business group. Separate Common, Master, Billing, and technical record ownership.
+- Discover parent-first catalog order, exclude Billing runtime history, use destination identity defaults, and keep completed row warnings visible in Report.
+- Record all 106 completed target-scoped import jobs, live browser stage checks, sanitized invoice proof, and recovery checks.
+- Finish the ownership audit by moving report/correction frontend types into Report, removing unused legacy clients and polling, and standardizing internal module symbols.
+- Add reusable owner and module-local SKILLS guidance, a detailed handoff, current limits, and the 1.1.52 release log. Keep private dumps and one-off client scripts outside Git.
+- Retain the separately authored Codeit launcher integration and existing formatting changes under the user's commit-all request. Data Bridge live proof does not certify Codeit live behavior.
+- Current imports commit per table. Invoice aggregate verification does not claim a single cross-table transaction.
+- Pass 13 Data Bridge regressions, the included Codeit contract, full workspace checks, API/web builds, version alignment, module boundaries, Docs coverage, and dependency checks.
+
 ## v-1.1.51
+
+### [v 1.1.51] 2026-10-24 - Data Bridge grouped workspaces
+
+#### Database Changes
+
+- Preserve existing migration checksums, saved reviews, transfer sessions, and combined reports.
+- Store new server-created group scopes in existing transfer JSON. No schema migration is required.
+
+#### App Codebase Changes
+
+- Consolidate the sidebar into Database Connection, Common Tables, Master Tables, Billing Tables, and Report.
+- Add five tabs to each table group. Keep group policies, fixed API clients, and workspaces in separate folders.
+- Keep shared transfer mechanics behind public technical contracts. Retain hidden legacy routes for saved links.
+- Verify all 13 focused tests and repository checks. Test renamed Billing fields and parent ID translation in disposable databases.
+- Verify live SUKRAA connection, group catalogs, preparation, saved report history, and browser tab persistence without a tenant import.
 
 ### [v 1.1.51] 2026-10-24 8:09 am - Data Bridge source collections and verified SUKRAA target mapping
 

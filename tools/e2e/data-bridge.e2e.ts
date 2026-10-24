@@ -4,9 +4,9 @@ import test from "node:test";
 import { Kysely, MysqlDialect, sql } from "kysely";
 import { createPool } from "mysql2";
 import { createConnection } from "mysql2/promise";
-import { migrateDataBridgeDatabase } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.migration.js";
-import { CommonTableImportRepository } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.repository.js";
-import { CommonTableImportService } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.service.js";
+import { migrateDataBridgeDatabase } from "../../devkits/data-bridge/api/src/modules/data-bridge/data-bridge.migration.js";
+import { CommonTableImportRepository } from "../../devkits/data-bridge/api/src/modules/import-review/import-review.repository.js";
+import { CommonTableImportService } from "../../devkits/data-bridge/api/src/modules/import-review/import-review.service.js";
 
 for (const legacy of [false, true]) {
   test(`Data Bridge snapshot migration preserves ${legacy ? "legacy" : "fresh"} reviews`, async () => {

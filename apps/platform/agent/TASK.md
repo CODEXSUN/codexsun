@@ -592,3 +592,8 @@ The real local signed session opened all six standalone Marketing forms without 
 
 - [x] Add the Super Admin Core Masters sidebar route and preserve owner-controlled table review navigation.
 - [x] Reuse the existing tenant-bound Data Bridge bulk queue processor for scoped 47-table master imports.
+
+## Data Bridge grouped navigation
+
+The Super Admin sidebar composes five Data Bridge pages. Group pages own their five workflow tabs.
+Legacy stage URLs remain hidden compatibility routes. Database credentials remain server-side.

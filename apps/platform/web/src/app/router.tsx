@@ -100,15 +100,15 @@ const LoginPage = lazy(() =>
   import("../public/login/LoginPage").then((module) => ({ default: module.LoginPage }))
 );
 const SessionRefreshPage = lazy(() =>
-  import("../public/session-refresh").then((module) => ({ default: module.SessionRefreshPage }))
+  import("../public/session-refresh/index").then((module) => ({ default: module.SessionRefreshPage }))
 );
 const ForgotPasswordPage = lazy(() =>
-  import("../public/password-recovery").then((module) => ({
+  import("../public/password-recovery/index").then((module) => ({
     default: module.ForgotPasswordPage
   }))
 );
 const ResetPasswordPage = lazy(() =>
-  import("../public/password-recovery").then((module) => ({
+  import("../public/password-recovery/index").then((module) => ({
     default: module.ResetPasswordPage
   }))
 );

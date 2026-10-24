@@ -96,6 +96,14 @@ The root development command owns only Platform API `7010` and Platform Web `702
 Mail, Framework, and UI are npm workspace packages composed into those two processes. No product
 package may introduce a standalone API or web listener.
 
+Codeit is an explicitly separate developer-kit shell, like the UIUX gallery.
+`npm run dev:codeit` starts its loopback web listener on `CODEXSUN_CODEIT_WEB_PORT`, default 7070.
+The Platform stack does not start it. Codeit runs without Platform API or Web.
+Platform registers its optional catalog entry and read-only tenant launch pages only.
+Codeit has no tenant data, authentication, filesystem, or command execution capability in this shell release.
+For a separately hosted Codeit site, configure `CODEXSUN_CODEIT_WEB_URL` before building Platform Web.
+Its static build output is `dist/devkits/codeit`.
+
 Changing Framework, Platform, Core, or another public foundation contract is intentionally wider work:
 `npm run stack:impact -- <changed files>` lists every product verification gate that must run. A change
 to shared foundation code impacts all product stacks.

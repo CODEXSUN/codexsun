@@ -1,3 +1,4 @@
+import { CodeitOverview, CodeitSettings } from "@codexsun/codeit";
 import { LeadWorkspace } from "@codexsun/crm-web";
 import { marketingPageFromPath } from "../../modules/marketing/marketing-navigation";
 import { MarketingHost } from "../../modules/marketing/marketing-host";
@@ -103,7 +104,7 @@ import { ZetroLogo } from "@codexsun/zetro-web/logo";
 import { landingAppChoices } from "./landing-app-choices";
 import { CrmContactApplicationHeader } from "./crm-contact-application-header";
 import { SchedulerWorkspace } from "@codexsun/crm-web/modules/scheduler";
-import { usePlatformNotifications } from "../../modules/notifications";
+import { usePlatformNotifications } from "../../modules/notifications/index";
 import { newEnquiryFormId, type EnquiryReportFilters } from "@codexsun/crm-web/modules/enquiry";
 import { TaskWorkspace, useTaskNavigationCount } from "@codexsun/crm-web/modules/task";
 import { auditorClientGateway } from "../../modules/auditor/auditor-host";
@@ -342,7 +343,7 @@ const billingWorkspacePreloaders = [
 ] as const;
 
 const TaskManagerWorkspace = lazyWorkspace(() =>
-  import("../../modules/task-manager").then((module) => module.TaskManagerWorkspace)
+  import("../../modules/task-manager/index").then((module) => module.TaskManagerWorkspace)
 );
 
 const AddressTypesWorkspace = lazyWorkspace(() =>
@@ -618,29 +619,33 @@ const QCafeWebApp = lazy(() =>
   import("@codexsun/qcafe-web/web").then((module) => ({ default: module.WebApp }))
 );
 const TenantUserWorkspace = lazy(() =>
-  import("../../modules/tenant-user").then((module) => ({ default: module.TenantUserWorkspace }))
+  import("../../modules/tenant-user/index").then((module) => ({
+    default: module.TenantUserWorkspace
+  }))
 );
 const TenantRoleWorkspace = lazy(() =>
-  import("../../modules/tenant-role").then((module) => ({ default: module.TenantRoleWorkspace }))
+  import("../../modules/tenant-role/index").then((module) => ({
+    default: module.TenantRoleWorkspace
+  }))
 );
 const TenantPermissionWorkspace = lazy(() =>
-  import("../../modules/tenant-permission").then((module) => ({
+  import("../../modules/tenant-permission/index").then((module) => ({
     default: module.TenantPermissionWorkspace
   }))
 );
 const TenantUserRoleWorkspace = lazy(() =>
-  import("../../modules/tenant-user-role").then((module) => ({
+  import("../../modules/tenant-user-role/index").then((module) => ({
     default: module.TenantUserRoleWorkspace
   }))
 );
 const TenantRolePermissionWorkspace = lazy(() =>
-  import("../../modules/tenant-role-permission").then((module) => ({
+  import("../../modules/tenant-role-permission/index").then((module) => ({
     default: module.TenantRolePermissionWorkspace
   }))
 );
 
 const TenantAccessControlWorkspace = lazy(() =>
-  import("../../modules/tenant-role-permission").then((module) => ({
+  import("../../modules/tenant-role-permission/index").then((module) => ({
     default: module.TenantAccessControlWorkspace
   }))
 );
@@ -709,6 +714,8 @@ type AppPage =
   | "docs.overview"
   | "docs.guide"
   | "docs.library"
+  | "codeit.overview"
+  | "codeit.settings"
   | "himsx.overview"
   | "himsx.guide"
   | "sites.overview"
@@ -1074,66 +1081,72 @@ export function AppDesk() {
     staleTime: 5 * 60 * 1_000
   });
   const appSafePage =
-    page.startsWith("marketing.") && !switchableApps.includes("marketing")
+    page.startsWith("codeit.") && !switchableApps.includes("codeit")
       ? pageForApp(landingApp)
-      : page.startsWith("tconnect.") && !switchableApps.includes("tconnect")
+      : page.startsWith("marketing.") && !switchableApps.includes("marketing")
         ? pageForApp(landingApp)
-        : page.startsWith("sportsclub.") && !switchableApps.includes("sportsclub")
+        : page.startsWith("tconnect.") && !switchableApps.includes("tconnect")
           ? pageForApp(landingApp)
-          : page.startsWith("devkit") || page.startsWith("project-manager")
+          : page.startsWith("sportsclub.") && !switchableApps.includes("sportsclub")
             ? pageForApp(landingApp)
-            : page.startsWith("hrms.") && !switchableApps.includes("hrms")
+            : page.startsWith("devkit") || page.startsWith("project-manager")
               ? pageForApp(landingApp)
-              : page.startsWith("codexsun.") && !switchableApps.includes("codexsun")
+              : page.startsWith("hrms.") && !switchableApps.includes("hrms")
                 ? pageForApp(landingApp)
-                : page.startsWith("docs.") && !switchableApps.includes("docs")
+                : page.startsWith("codexsun.") && !switchableApps.includes("codexsun")
                   ? pageForApp(landingApp)
-                  : page.startsWith("himsx.") && !switchableApps.includes("himsx")
+                  : page.startsWith("docs.") && !switchableApps.includes("docs")
                     ? pageForApp(landingApp)
-                    : page.startsWith("sites.") && !switchableApps.includes("sites")
+                    : page.startsWith("himsx.") && !switchableApps.includes("himsx")
                       ? pageForApp(landingApp)
-                      : page.startsWith("qcafe") && !switchableApps.includes("qcafe")
+                      : page.startsWith("sites.") && !switchableApps.includes("sites")
                         ? pageForApp(landingApp)
-                        : page.startsWith("ecommerce") && !switchableApps.includes("ecommerce")
+                        : page.startsWith("qcafe") && !switchableApps.includes("qcafe")
                           ? pageForApp(landingApp)
-                          : page.startsWith("auditor") && !switchableApps.includes("auditor")
+                          : page.startsWith("ecommerce") && !switchableApps.includes("ecommerce")
                             ? pageForApp(landingApp)
-                            : page.startsWith("logicx-erp") &&
-                                !switchableApps.includes("logicx-erp")
+                            : page.startsWith("auditor") && !switchableApps.includes("auditor")
                               ? pageForApp(landingApp)
-                              : page.startsWith("logicx-erp.schemes") &&
-                                  !enabledApps.includes("billing")
-                                ? "logicx-erp.overview"
-                                : page.startsWith("zetro") && !switchableApps.includes("zetro")
-                                  ? pageForApp(landingApp)
-                                  : page.startsWith("frappe") && !switchableApps.includes("frappe")
+                              : page.startsWith("logicx-erp") &&
+                                  !switchableApps.includes("logicx-erp")
+                                ? pageForApp(landingApp)
+                                : page.startsWith("logicx-erp.schemes") &&
+                                    !enabledApps.includes("billing")
+                                  ? "logicx-erp.overview"
+                                  : page.startsWith("zetro") && !switchableApps.includes("zetro")
                                     ? pageForApp(landingApp)
-                                    : page.startsWith("task-manager") &&
-                                        !switchableApps.includes("task-manager")
+                                    : page.startsWith("frappe") &&
+                                        !switchableApps.includes("frappe")
                                       ? pageForApp(landingApp)
-                                      : page.startsWith("mail") && !switchableApps.includes("mail")
+                                      : page.startsWith("task-manager") &&
+                                          !switchableApps.includes("task-manager")
                                         ? pageForApp(landingApp)
-                                        : page.startsWith("notes") &&
-                                            !switchableApps.includes("notes")
+                                        : page.startsWith("mail") &&
+                                            !switchableApps.includes("mail")
                                           ? pageForApp(landingApp)
-                                          : page.startsWith("chat") &&
-                                              !switchableApps.includes("chat")
+                                          : page.startsWith("notes") &&
+                                              !switchableApps.includes("notes")
                                             ? pageForApp(landingApp)
-                                            : page.startsWith("crm") &&
-                                                !switchableApps.includes("crm")
+                                            : page.startsWith("chat") &&
+                                                !switchableApps.includes("chat")
                                               ? pageForApp(landingApp)
-                                              : page.startsWith("blog") &&
-                                                  !switchableApps.includes("blog")
+                                              : page.startsWith("crm") &&
+                                                  !switchableApps.includes("crm")
                                                 ? pageForApp(landingApp)
-                                                : page.startsWith("accounts") &&
-                                                    !switchableApps.includes("accounts")
+                                                : page.startsWith("blog") &&
+                                                    !switchableApps.includes("blog")
                                                   ? pageForApp(landingApp)
-                                                  : (page.startsWith("billing") ||
-                                                        (page.startsWith("core") &&
-                                                          !page.startsWith("core.organisation"))) &&
-                                                      !switchableApps.includes("billing")
+                                                  : page.startsWith("accounts") &&
+                                                      !switchableApps.includes("accounts")
                                                     ? pageForApp(landingApp)
-                                                    : page;
+                                                    : (page.startsWith("billing") ||
+                                                          (page.startsWith("core") &&
+                                                            !page.startsWith(
+                                                              "core.organisation"
+                                                            ))) &&
+                                                        !switchableApps.includes("billing")
+                                                      ? pageForApp(landingApp)
+                                                      : page;
   const safePage = resolveBillingFeaturePage(appSafePage, billingSettingsQuery.data?.features);
   const sportsclubTitle = sportsclubPageTitle(safePage, location.pathname);
   const activePageTitle =
@@ -1512,7 +1525,7 @@ export function AppDesk() {
   }
 
   if (bootstrapLoading) {
-    return <GlobalLoader message="Preparing your workspace…" />;
+    return <GlobalLoader message="Preparing your workspaceâ€¦" />;
   }
 
   return (
@@ -1739,14 +1752,17 @@ export function AppDesk() {
         onLogout={handleLogout}
         onOpenSettings={() =>
           requestListNavigation(
-            activeApp === "qcafe"
-              ? "qcafe.settings"
-              : telegramWorkspace
-                ? "chat.telegram.settings"
-                : "application.settings"
+            activeApp === "codeit"
+              ? "codeit.settings"
+              : activeApp === "qcafe"
+                ? "qcafe.settings"
+                : telegramWorkspace
+                  ? "chat.telegram.settings"
+                  : "application.settings"
           )
         }
         settingsActive={
+          safePage === "codeit.settings" ||
           safePage === "qcafe.settings" ||
           safePage === "application.settings" ||
           safePage === "chat.telegram.settings"
@@ -1801,7 +1817,7 @@ export function AppDesk() {
               <GlobalLoader
                 className="min-h-[32rem]"
                 fullScreen={false}
-                message={`Loading ${activeWorkspaceTitle.toLowerCase()}…`}
+                message={`Loading ${activeWorkspaceTitle.toLowerCase()}â€¦`}
               />
             }
           >
@@ -2103,11 +2119,20 @@ export function AppDesk() {
             ) : null}
             {safePage === "crm.status" ? <StatusWorkspace key={safePage} /> : null}
             {safePage === "crm.priority" ? <PriorityWorkspace key={safePage} /> : null}
+            {safePage === "codeit.overview" ? (
+              <CodeitOverview
+                standaloneUrl={codeitStandaloneUrl()}
+                onOpenSettings={() => requestListNavigation("codeit.settings")}
+              />
+            ) : null}
+            {safePage === "codeit.settings" ? (
+              <CodeitSettings standaloneUrl={codeitStandaloneUrl()} />
+            ) : null}
             {safePage === "application.overview" ? (
               <ApplicationOverview
-                companyName={selectedCompany ? companyBrandName(selectedCompany) : "—"}
-                financialYear={selectedFinancialYear?.name ?? "—"}
-                tenantName={runtime?.tenant?.tenantName ?? "—"}
+                companyName={selectedCompany ? companyBrandName(selectedCompany) : "â€”"}
+                financialYear={selectedFinancialYear?.name ?? "â€”"}
+                tenantName={runtime?.tenant?.tenantName ?? "â€”"}
                 signedInEmail={signedInUser.email}
                 enabledApps={switchableApps}
                 landingApp={landingApp}
@@ -2126,11 +2151,11 @@ export function AppDesk() {
             {safePage === "application.profile" ? <ApplicationProfile /> : null}
             {safePage === "application.settings" ? (
               <ApplicationSettings
-                companyName={selectedCompany ? companyBrandName(selectedCompany) : "—"}
-                financialYear={selectedFinancialYear?.name ?? "—"}
+                companyName={selectedCompany ? companyBrandName(selectedCompany) : "â€”"}
+                financialYear={selectedFinancialYear?.name ?? "â€”"}
                 onNavigate={requestListNavigation}
                 signedInEmail={signedInUser.email}
-                tenantName={runtime?.tenant?.tenantName ?? "—"}
+                tenantName={runtime?.tenant?.tenantName ?? "â€”"}
                 zetroEnabled={switchableApps.includes("zetro")}
               />
             ) : null}
@@ -2454,6 +2479,8 @@ function pageFromUrl(landingApp: PlatformAppId | null, pathname: string): AppPag
     key === "docs.overview" ||
     key === "docs.guide" ||
     key === "docs.library" ||
+    key === "codeit.overview" ||
+    key === "codeit.settings" ||
     key === "himsx.overview" ||
     key === "himsx.guide" ||
     key === "sites.overview" ||
@@ -2959,6 +2986,8 @@ function titleForPage(page: AppPage) {
     "docs.overview": "Docs",
     "docs.guide": "Getting Started",
     "docs.library": "Developer documentation",
+    "codeit.overview": "Codeit",
+    "codeit.settings": "Codeit Settings",
     "himsx.overview": "Himsx",
     "himsx.guide": "Getting Started",
     "sites.overview": "Site Studio",
@@ -3185,6 +3214,7 @@ function appFromPage(
   landingApp: PlatformAppId,
   enabledApps: PlatformAppId[]
 ): PlatformAppId {
+  if (page.startsWith("codeit.")) return enabledApps.includes("codeit") ? "codeit" : landingApp;
   if (page.startsWith("hrms.")) return enabledApps.includes("hrms") ? "hrms" : landingApp;
   if (page.startsWith("codexsun."))
     return enabledApps.includes("codexsun") ? "codexsun" : landingApp;
@@ -3246,4 +3276,10 @@ function pageForApp(app: PlatformAppId): AppPage {
 
 function isAppRootPath(pathname: string) {
   return pathname === "/app" || pathname === "/app/";
+}
+
+function codeitStandaloneUrl() {
+  if (__CODEXSUN_CODEIT_WEB_URL__) return __CODEXSUN_CODEIT_WEB_URL__;
+  if (!["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname)) return undefined;
+  return `http://127.0.0.1:${__CODEXSUN_CODEIT_WEB_PORT__}/codeit/overview`;
 }

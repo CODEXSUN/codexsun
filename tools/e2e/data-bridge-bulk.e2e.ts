@@ -4,15 +4,15 @@ import { randomBytes } from "node:crypto";
 import { createConnection } from "mysql2/promise";
 import { createPool } from "mysql2";
 import { Kysely, MysqlDialect } from "kysely";
-import { ConflictResolutionService } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.resolution.service.js";
-import { CommonBulkService } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.bulk.service.js";
-import { migrateDataBridgeDatabase } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.migration.js";
+import { ConflictResolutionService } from "../../devkits/data-bridge/api/src/modules/report/report.resolution.service.js";
+import { CommonBulkService } from "../../devkits/data-bridge/api/src/modules/report/report.bulk.service.js";
+import { migrateDataBridgeDatabase } from "../../devkits/data-bridge/api/src/modules/data-bridge/data-bridge.migration.js";
 import {
   commonTableNames,
   coreMasterTableNames,
   type CommonTableImportHost
-} from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.types.js";
-import { parentOrder } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.bulk.order.js";
+} from "../../devkits/data-bridge/api/src/modules/import-review/import-review.types.js";
+import { parentOrder } from "../../devkits/data-bridge/api/src/modules/report/report.bulk.order.js";
 
 test("bulk order places parents first and rejects cycles", () => {
   assert.deepEqual(

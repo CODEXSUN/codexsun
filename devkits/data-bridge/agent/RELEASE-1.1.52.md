@@ -1,0 +1,88 @@
+# Data Bridge release log: 1.1.52
+
+Reference: #1.52. Date: 2026-10-24, Asia/Calcutta.
+
+## Database changes
+
+The operator chose to preserve Core and existing target business data.
+No client database or business table was dropped.
+Repository migrations created or upgraded Billing schema on the selected local targets.
+No source users, roles, permissions, migration history, activity logs, caches, internal events, or queued commands were imported.
+Existing Data Bridge migration keys and checksums remain valid. Group scope and summaries use existing JSON records.
+
+| Tenant | Common tables / matched rows | Master tables / outcomes       | Billing tables / outcomes          |
+| ------ | ---------------------------- | ------------------------------ | ---------------------------------- |
+| SUKRAA | 31 / 520 existing            | 16 / 205 existing, one warning | 23 / 1,253 inserted, one warning   |
+| ALTEX  | 31 / 405 existing            | 16 / 254 existing              | 23 / 4,812 inserted, zero warnings |
+
+The import followed discovered parent order across 140 business tables.
+Both source databases and pre-existing target business rows passed independent preservation checks.
+Target dashboard caches refreshed through repository lifecycle work. They were not copied from source.
+
+## Invoice verification
+
+| Tenant | Invoices matched | Item rows matched | Deleted invoices retained |
+| ------ | ---------------: | ----------------: | ------------------------: |
+| SUKRAA |        137 / 137 |               521 |                         0 |
+| ALTEX  |        184 / 184 |               690 |                         5 |
+
+Each header, item, available compliance document, and other business child matched after foreign-identity translation.
+Invoice subtotals, tax, and totals reconciled to source item sums.
+All 354 checked relationships had zero orphan references. No source business record was missing.
+All 106 import jobs completed under the correct tenant context with zero retries.
+
+## Approved warnings
+
+1. SUKRAA product `SHORTS/` is deleted in the source but active in the target. The target state remains unchanged.
+2. SUKRAA Billing settings differ in layout and numbering. Existing target settings remain unchanged. Imported document numbers retain source values.
+
+The operator explicitly approved both preservation decisions.
+The five ALTEX deleted invoices and their children remain deleted history.
+These warnings differ from the older product-unit and default-company corrections recorded in release 1.1.51.
+
+## App codebase changes
+
+The Data Bridge sidebar now has Database Connection, Common Tables, Master Tables, Billing Tables, and Report.
+Each business group owns its code folder and five connected import tabs.
+Saved mapping links and historical records remain available.
+Business catalogs use destination dependency order. Billing excludes runtime and migration-only tables.
+New field rules keep identity and audit metadata destination-owned by default.
+Reports preserve warning status after processing and no longer silently omit older transfer sessions behind the former summary limit.
+The audit moved report/correction DTOs into Report, removed unused legacy frontend clients and polling, and standardized internal module symbols.
+
+The owner SKILLS guide and module-local SKILLS files describe discovery, mapping, source collections, preparation, queue execution, and verification.
+The handoff separates reusable rules, client-specific acceptance, current limits, and future extensions.
+Examples explain relationship discovery rather than prescribing a copied field list.
+
+The all-workspace commit also retains separate Codeit launcher integration and existing formatting changes requested through commit-all authorization.
+Codeit live behavior is outside this Data Bridge migration proof.
+
+## Proof
+
+- [Detailed live report and exact table order](BILLING-IMPORT-VERIFICATION-2026-10-24.md).
+- [Sanitized release summary](verification/release-1.1.52/summary.json).
+- [Invoice and business-child proof](verification/release-1.1.52/invoice-proof.json).
+- [Independent integrity and queue proof](verification/release-1.1.52/integrity-proof.json).
+- [Proof checksums](verification/release-1.1.52/SHA256SUMS.txt).
+
+Screenshots in the proof folder record live acceptance before the version manifest changed from 1.1.51 to 1.1.52.
+They do not claim a deployment or a later fresh audit.
+Full customer payloads and backups remain outside Git.
+
+## Release boundary and limits
+
+The lockstep source version is 1.1.52.
+Current imports commit per table. Complete invoice comparison afterward is not a single cross-table transaction.
+Selecting a header does not automatically stage every child.
+Normal transfers use saved source snapshots. Reprepare after mutable source or parent changes.
+There is no arbitrary SQL executor, fuzzy merge, automatic conflict overwrite, or provider-job replay.
+This release does not deploy services or rebuild mobile installers.
+
+Read [HANDOFF.md](HANDOFF.md) and [SKILLS.md](SKILLS.md) before repeating or extending the workflow.
+
+## Final release checks
+
+All 13 Data Bridge regressions and the included Codeit activation/catalog contract passed on 1.1.52.
+Full workspace checks, API/web builds, version alignment, boundaries, Docs coverage, and dependency layout passed.
+The source ownership scan found no unresolved private sibling imports, duplicate executable roles, unsafe route casts, or retired active imports.
+Read [the detailed review](REVIEW-1.1.52.md).

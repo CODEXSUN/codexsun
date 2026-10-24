@@ -27,6 +27,7 @@
 @source "../../../devkits/data-migration/web/src";
 @source "../../../devkits/zuno/web/src";
 @source "../../../devkits/uiux/src";
+@source "../../../devkits/codeit/src";
 
 @custom-variant dark (&:is(.dark *));
 

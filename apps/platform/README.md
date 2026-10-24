@@ -1,5 +1,17 @@
 # Platform
 
+## Codeit launch integration
+
+The optional `codeit` catalog entry appears in Tenant Apps and the tenant launcher after activation.
+Codeit owns its read-only overview and settings through the public `@codexsun/codeit` package.
+Platform composes `/app/codeit/overview` and `/app/codeit/settings` with its tenant activation gate.
+The app settings shortcut follows the active Codeit application.
+The launch button opens the separate Codeit runtime. Platform does not start or embed that runtime.
+Local launch links use `CODEXSUN_CODEIT_WEB_PORT`, default 7070.
+Hosted launch links require `CODEXSUN_CODEIT_WEB_URL` at web build time.
+Run the normal Platform registry seed for existing databases to receive the catalog row.
+See [Codeit](../../devkits/codeit/README.md) for the standalone scope and startup command.
+
 Platform composes Data Bridge's `data-bridge.common-import` Queue Manager processor. Jobs carry the registered target tenant, operator, correlation ID, bounded retry policy, and a run reference. Data Bridge owns parent ordering, row audits, inserts, and combined reports. The Common Tables bulk action requires an enabled queue worker.
 
 Frappe enquiry scheduling honors the selected inbound-only or bidirectional mode.

@@ -500,3 +500,13 @@ The worker owns processing and document mapping. The types file owns its databas
 CRM owns the outbox schema. Platform verifies the tenant and resolves credentials before calling the worker.
 This worker has no independent HTTP routes, tables, seeds, event publication, or offline synchronization.
 Attendance frontend state remains in its workspace. Its list owns table rendering and row actions.
+
+## Data Bridge group ownership
+
+Data Bridge group folders own destination policies, fixed endpoint clients, and workspaces.
+Common Tables, Master Tables, and Billing Tables compose five workflow tabs through public transfer-session contracts.
+The database-connection group owns verified pair selection. Report owns combined reports and saved history.
+Technical transfer-session and import-review folders retain their own record repositories.
+The data-bridge composition folder preserves existing schema migrations and their checksums.
+Read-only group modules omit storage, seeds, events, sync, and workers.
+The boundary checker lists these specific role contracts. New business groups must declare their own roles.

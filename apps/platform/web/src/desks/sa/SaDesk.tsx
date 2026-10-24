@@ -48,14 +48,26 @@ const MigrationRunQueueWorkspace = lazyWorkspace(() =>
 const DataMigrationSettings = lazyWorkspace(() =>
   import("@codexsun/data-migration-web").then((module) => module.DataMigrationSettings)
 );
-const DataBridgeWorkspace = lazyWorkspace(() =>
-  import("@codexsun/data-bridge-web").then((module) => module.DataBridgeWorkspace)
+const DatabaseConnectionWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-bridge-web").then((module) => module.DatabaseConnectionWorkspace)
+);
+const CommonTablesWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-bridge-web").then((module) => module.CommonTablesWorkspace)
+);
+const MasterTablesWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-bridge-web").then((module) => module.MasterTablesWorkspace)
+);
+const BillingTablesWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-bridge-web").then((module) => module.BillingTablesWorkspace)
+);
+const ReportWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-bridge-web").then((module) => module.ReportWorkspace)
 );
 const TransferWorkspace = lazyWorkspace(() =>
   import("@codexsun/data-bridge-web").then((module) => module.TransferWorkspace)
 );
-const CommonTableImportWorkspace = lazyWorkspace(() =>
-  import("@codexsun/data-bridge-web").then((module) => module.CommonTableImportWorkspace)
+const TableImportReviewWorkspace = lazyWorkspace(() =>
+  import("@codexsun/data-bridge-web").then((module) => module.TableImportReviewWorkspace)
 );
 const ZetroAdminWorkspace = lazyWorkspace(() =>
   import("@codexsun/zetro-web/modules/admin").then((module) => module.ZetroAdminWorkspace)
@@ -66,69 +78,71 @@ function lazyWorkspace<Props>(loader: () => Promise<ComponentType<Props>>) {
 }
 
 const DesignSystemGallery = lazyWorkspace(() =>
-  import("../../modules/design-system").then((module) => module.DesignSystemGallery)
+  import("../../modules/design-system/index").then((module) => module.DesignSystemGallery)
 );
 const UiuxGallery = lazyWorkspace(() =>
   import("@codexsun/uiux").then((module) => module.UiuxGallery)
 );
-const loadTenantList = () => import("../../modules/tenant");
+const loadTenantList = () => import("../../modules/tenant/index");
 const initialTenantList = window.location.pathname === "/sa/tenants" ? loadTenantList() : undefined;
 const TenantList = lazyWorkspace(() =>
   (initialTenantList ?? loadTenantList()).then((module) => module.TenantList)
 );
 const TenantDomainList = lazyWorkspace(() =>
-  import("../../modules/tenant-domain").then((module) => module.TenantDomainList)
+  import("../../modules/tenant-domain/index").then((module) => module.TenantDomainList)
 );
 const PlanWorkspace = lazyWorkspace(() =>
-  import("../../modules/plan").then((module) => module.PlanWorkspace)
+  import("../../modules/plan/index").then((module) => module.PlanWorkspace)
 );
 const SubscriptionWorkspace = lazyWorkspace(() =>
-  import("../../modules/subscription").then((module) => module.SubscriptionWorkspace)
+  import("../../modules/subscription/index").then((module) => module.SubscriptionWorkspace)
 );
 const AppRegistryWorkspace = lazyWorkspace(() =>
-  import("../../modules/app-registry").then((module) => module.AppRegistryWorkspace)
+  import("../../modules/app-registry/index").then((module) => module.AppRegistryWorkspace)
 );
 const IndustryWorkspace = lazyWorkspace(() =>
-  import("../../modules/industry").then((module) => module.IndustryWorkspace)
+  import("../../modules/industry/index").then((module) => module.IndustryWorkspace)
 );
 const EntitlementWorkspace = lazyWorkspace(() =>
-  import("../../modules/entitlement").then((module) => module.EntitlementWorkspace)
+  import("../../modules/entitlement/index").then((module) => module.EntitlementWorkspace)
 );
 const PlanAccessWorkspace = lazyWorkspace(() =>
-  import("../../modules/plan-access").then((module) => module.PlanAccessWorkspace)
+  import("../../modules/plan-access/index").then((module) => module.PlanAccessWorkspace)
 );
 const TenantAccessWorkspace = lazyWorkspace(() =>
-  import("../../modules/tenant-access").then((module) => module.TenantAccessWorkspace)
+  import("../../modules/tenant-access/index").then((module) => module.TenantAccessWorkspace)
 );
 const TenantUserWorkspace = lazyWorkspace(() =>
-  import("../../modules/tenant-user").then((module) => module.TenantUserWorkspace)
+  import("../../modules/tenant-user/index").then((module) => module.TenantUserWorkspace)
 );
 const AccessControlWorkspace = lazyWorkspace(() =>
-  import("../../modules/access-control").then((module) => module.AccessControlWorkspace)
+  import("../../modules/access-control/index").then((module) => module.AccessControlWorkspace)
 );
 const PlatformActivityWorkspace = lazyWorkspace(() =>
-  import("../../modules/platform-activity").then((module) => module.PlatformActivityWorkspace)
+  import("../../modules/platform-activity/index").then((module) => module.PlatformActivityWorkspace)
 );
 const MasterDatabaseWorkspace = lazyWorkspace(() =>
-  import("../../modules/master-database").then((module) => module.MasterDatabaseWorkspace)
+  import("../../modules/master-database/index").then((module) => module.MasterDatabaseWorkspace)
 );
 const MasterDatabaseBackupsWorkspace = lazyWorkspace(() =>
-  import("../../modules/master-database").then((module) => module.MasterDatabaseBackupsWorkspace)
+  import("../../modules/master-database/index").then(
+    (module) => module.MasterDatabaseBackupsWorkspace
+  )
 );
 const TenantDatabaseWorkspace = lazyWorkspace(() =>
-  import("../../modules/tenant-database").then((module) => module.TenantDatabaseWorkspace)
+  import("../../modules/tenant-database/index").then((module) => module.TenantDatabaseWorkspace)
 );
 const TenantDatabaseBackupsRoute = lazyWorkspace(() =>
-  import("../../modules/tenant-database").then((module) => module.TenantDatabaseBackupsRoute)
+  import("../../modules/tenant-database/index").then((module) => module.TenantDatabaseBackupsRoute)
 );
 const QueueManagementWorkspace = lazyWorkspace(() =>
-  import("../../modules/queue-management").then((module) => module.QueueManagementWorkspace)
+  import("../../modules/queue-management/index").then((module) => module.QueueManagementWorkspace)
 );
 const StorageManagerWorkspace = lazyWorkspace(() =>
-  import("../../modules/storage-manager").then((module) => module.StorageManagerWorkspace)
+  import("../../modules/storage-manager/index").then((module) => module.StorageManagerWorkspace)
 );
 const TaskManagerWorkspace = lazyWorkspace(() =>
-  import("../../modules/task-manager").then((module) => module.TaskManagerWorkspace)
+  import("../../modules/task-manager/index").then((module) => module.TaskManagerWorkspace)
 );
 const AppOrchestrationWorkspace = lazyWorkspace(() =>
   import("../../modules/app-orchestration/app-orchestration.workspace").then(
@@ -155,6 +169,9 @@ type SaPage =
   | "data-bridge-prepare"
   | "data-bridge-confirm"
   | "data-bridge-results"
+  | "data-bridge-master-tables"
+  | "data-bridge-billing-tables"
+  | "data-bridge-report"
   | "data-bridge-core-masters"
   | "data-bridge-common-tables"
   | "data-bridge-table-import"
@@ -239,6 +256,21 @@ export function SaDesk() {
       to: "/sa/$",
       params: { _splat: bridgeStages[stage - 1]! },
       search: id ? { transfer: id } : {}
+    });
+  }
+  const groupStage = Math.min(6, Math.max(2, Number(bridgeSearch.tab) || 2));
+  function openGroupedImport(groupPage: SaPage, stage: number, id?: string) {
+    void navigate({
+      to: "/sa/$",
+      params: { _splat: groupPage },
+      search: { tab: stage, ...(id ? { transfer: id } : {}) }
+    });
+  }
+  function openBridgeReport(kind?: string, id?: string) {
+    void navigate({
+      to: "/sa/$",
+      params: { _splat: "data-bridge-report" },
+      search: kind && id ? { kind, record: id } : {}
     });
   }
   function openCommonTableImport(selection: {
@@ -343,26 +375,9 @@ export function SaDesk() {
       isActive: page.startsWith("data-bridge"),
       items: [
         {
-          title: "Overview",
-          isActive: page === "data-bridge",
-          onSelect: () => selectPage("data-bridge")
-        },
-        ...[
-          "Database Connections",
-          "Table Mapping",
-          "Field Mapping",
-          "Import Preparation",
-          "Confirm Import",
-          "Import Results"
-        ].map((title, index) => ({
-          title,
-          isActive: page === bridgeStages[index],
-          onSelect: () => openBridgeStage(index + 1, transferId)
-        })),
-        {
-          title: "Core Masters",
-          isActive: page === "data-bridge-core-masters",
-          onSelect: () => selectPage("data-bridge-core-masters")
+          title: "Database Connection",
+          isActive: page === "data-bridge-connections" || page === "data-bridge",
+          onSelect: () => selectPage("data-bridge-connections")
         },
         {
           title: "Common Tables",
@@ -370,9 +385,22 @@ export function SaDesk() {
           onSelect: () => selectPage("data-bridge-common-tables")
         },
         {
-          title: "Table Import Review",
-          isActive: page === "data-bridge-table-import",
-          onSelect: () => selectPage("data-bridge-table-import")
+          title: "Master Tables",
+          isActive: page === "data-bridge-master-tables" || page === "data-bridge-core-masters",
+          onSelect: () => selectPage("data-bridge-master-tables")
+        },
+        {
+          title: "Billing Tables",
+          isActive: page === "data-bridge-billing-tables",
+          onSelect: () => selectPage("data-bridge-billing-tables")
+        },
+        {
+          title: "Report",
+          isActive:
+            page === "data-bridge-report" ||
+            page === "data-bridge-table-import" ||
+            bridgeStages.slice(1).includes(page),
+          onSelect: () => selectPage("data-bridge-report")
         }
       ]
     },
@@ -639,43 +667,71 @@ export function SaDesk() {
               />
             ) : null}
             {page === "data-migration-settings" ? <DataMigrationSettings /> : null}
-            {page === "data-bridge" ? (
-              <DataBridgeWorkspace
-                onOpenCommonTables={() => selectPage("data-bridge-common-tables")}
-                onStartImport={() => openBridgeStage(1)}
+            {page === "data-bridge" || page === "data-bridge-connections" ? (
+              <DatabaseConnectionWorkspace
+                onManageSources={() => selectPage("data-migration-settings")}
               />
             ) : null}
-            {bridgeStages.includes(page) ? (
+            {page === "data-bridge-common-tables" ? (
+              <CommonTablesWorkspace
+                stage={groupStage}
+                {...(transferId ? { id: transferId } : {})}
+                onNavigate={(stage, id) =>
+                  openGroupedImport("data-bridge-common-tables", stage, id)
+                }
+                onConfigure={() => selectPage("data-bridge-connections")}
+                onReport={(id) => openBridgeReport("bulk", id)}
+              />
+            ) : null}
+            {page === "data-bridge-master-tables" || page === "data-bridge-core-masters" ? (
+              <MasterTablesWorkspace
+                stage={groupStage}
+                {...(transferId ? { id: transferId } : {})}
+                onNavigate={(stage, id) =>
+                  openGroupedImport("data-bridge-master-tables", stage, id)
+                }
+                onConfigure={() => selectPage("data-bridge-connections")}
+                onReport={(id) => openBridgeReport("bulk", id)}
+              />
+            ) : null}
+            {page === "data-bridge-billing-tables" ? (
+              <BillingTablesWorkspace
+                stage={groupStage}
+                {...(transferId ? { id: transferId } : {})}
+                onNavigate={(stage, id) =>
+                  openGroupedImport("data-bridge-billing-tables", stage, id)
+                }
+                onConfigure={() => selectPage("data-bridge-connections")}
+              />
+            ) : null}
+            {page === "data-bridge-report" ? (
+              <ReportWorkspace
+                {...(typeof bridgeSearch.record === "string"
+                  ? { recordId: bridgeSearch.record }
+                  : {})}
+                {...(typeof bridgeSearch.kind === "string" ? { kind: bridgeSearch.kind } : {})}
+                onOpen={openBridgeReport}
+                onResume={(group, stage, id) => {
+                  if (group === "common") openGroupedImport("data-bridge-common-tables", stage, id);
+                  else if (group === "masters")
+                    openGroupedImport("data-bridge-master-tables", stage, id);
+                  else if (group === "billing")
+                    openGroupedImport("data-bridge-billing-tables", stage, id);
+                  else openBridgeStage(stage, id);
+                }}
+              />
+            ) : null}
+            {bridgeStages.slice(1).includes(page) ? (
               <TransferWorkspace
                 stage={bridgeStages.indexOf(page) + 1}
                 {...(transferId ? { id: transferId } : {})}
                 onNavigate={openBridgeStage}
               />
             ) : null}
-            {page === "data-bridge-core-masters" ? (
-              <CommonTableImportWorkspace
-                view="tables"
-                scope="masters"
-                onOpenTable={openCommonTableImport}
-              />
-            ) : null}
-            {page === "data-bridge-common-tables" ? (
-              <CommonTableImportWorkspace view="tables" onOpenTable={openCommonTableImport} />
-            ) : null}
             {page === "data-bridge-table-import" ? (
-              <CommonTableImportWorkspace
-                view="review"
+              <TableImportReviewWorkspace
                 {...(bridgeSelection ? { selection: bridgeSelection } : {})}
-                onBack={() =>
-                  selectPage(
-                    bridgeSelection &&
-                      /^core_(companies|contacts)(_|$)|^core_(products|work_orders|financial_years|default_company_settings)$/.test(
-                        bridgeSelection.table
-                      )
-                      ? "data-bridge-core-masters"
-                      : "data-bridge-common-tables"
-                  )
-                }
+                onBack={() => selectPage("data-bridge-report")}
                 onOpenSaved={(importId) => {
                   if (bridgeSelection) openCommonTableImport({ ...bridgeSelection, importId });
                 }}
@@ -737,6 +793,9 @@ function pageFromUrl(pathname: string): SaPage {
     page === "data-bridge-confirm" ||
     page === "data-bridge-results" ||
     page === "data-bridge" ||
+    page === "data-bridge-master-tables" ||
+    page === "data-bridge-billing-tables" ||
+    page === "data-bridge-report" ||
     page === "data-bridge-core-masters" ||
     page === "data-bridge-common-tables" ||
     page === "data-bridge-table-import" ||

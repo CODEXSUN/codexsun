@@ -32,6 +32,7 @@ export type Tenant = {
     | "qcafe"
     | "hrms"
     | "docs"
+    | "codeit"
     | "himsx"
     | "codexsun"
     | "sites";

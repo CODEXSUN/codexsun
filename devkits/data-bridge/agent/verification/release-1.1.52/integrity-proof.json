@@ -1,0 +1,81 @@
+{
+  "scope": "Sanitized acceptance evidence. No credentials, raw customer rows, or backups.",
+  "pairs": [
+    {
+      "tenant": "sukraa",
+      "tables": 70,
+      "missingRecords": 0,
+      "relationships": 177,
+      "orphanReferences": 0,
+      "preservedDifferences": [
+        {
+          "table": "core_products",
+          "records": [
+            {
+              "sourceId": 26,
+              "targetId": 18,
+              "fields": ["deleted_at"]
+            }
+          ]
+        },
+        {
+          "table": "billing_company_settings",
+          "records": [
+            {
+              "sourceId": 1,
+              "targetId": 2,
+              "fields": ["settings_json"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tenant": "altex",
+      "tables": 70,
+      "missingRecords": 0,
+      "relationships": 177,
+      "orphanReferences": 0,
+      "preservedDifferences": []
+    }
+  ],
+  "queue": {
+    "jobs": 106,
+    "incomplete": 0,
+    "wrongTarget": 0,
+    "missing": 0,
+    "retried": 0
+  },
+  "preservation": [
+    {
+      "database": "sukraa_cloud_db",
+      "checkedTables": 96,
+      "businessChanges": [],
+      "runtimeChanges": []
+    },
+    {
+      "database": "sukraa_db",
+      "checkedTables": 85,
+      "businessChanges": [],
+      "runtimeChanges": [
+        {
+          "table": "billing_dashboard_snapshots",
+          "before": 2,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "database": "altex_cloud_db",
+      "checkedTables": 96,
+      "businessChanges": [],
+      "runtimeChanges": []
+    },
+    {
+      "database": "altex_db",
+      "checkedTables": 47,
+      "businessChanges": [],
+      "runtimeChanges": []
+    }
+  ]
+}

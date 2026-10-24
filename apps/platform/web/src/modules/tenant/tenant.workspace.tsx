@@ -37,8 +37,8 @@ import {
 } from "../tenant-domain/tenant-domain.services";
 import { usePlatformAppsQuery } from "../app-registry/app-registry.hooks";
 import type { PlatformApp } from "../app-registry/app-registry.types";
-import { TenantDatabaseControl } from "../tenant-database";
-import { TenantDomainControl } from "../tenant-domain";
+import { TenantDatabaseControl } from "../tenant-database/index";
+import { TenantDomainControl } from "../tenant-domain/index";
 import { TenantActivityControl } from "./tenant.activity";
 import { TenantAppConnections, TenantAppSelectionCard } from "./tenant.apps";
 import { TenantIdentityControl } from "./tenant.identity";

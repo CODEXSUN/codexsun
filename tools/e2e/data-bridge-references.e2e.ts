@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { randomBytes } from "node:crypto";
 import { createConnection } from "mysql2/promise";
-import { CommonTableReferences } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.references.js";
+import { CommonTableReferences } from "../../devkits/data-bridge/api/src/modules/import-review/import-review.references.js";
 
 test("Data Bridge translates nested source parent IDs by target business keys", async () => {
   const config = {

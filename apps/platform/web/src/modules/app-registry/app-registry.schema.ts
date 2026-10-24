@@ -24,6 +24,7 @@ export const appRegistrySchema = z.object({
     "qcafe",
     "hrms",
     "docs",
+    "codeit",
     "himsx",
     "codexsun",
     "sites",

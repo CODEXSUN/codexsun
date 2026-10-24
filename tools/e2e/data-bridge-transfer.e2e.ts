@@ -4,9 +4,9 @@ import { randomBytes } from "node:crypto";
 import { createConnection } from "mysql2/promise";
 import { createPool } from "mysql2";
 import { Kysely, MysqlDialect } from "kysely";
-import { migrateDataBridgeDatabase } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.migration.js";
-import { TransferService } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.transfer.service.js";
-import type { CommonTableImportHost } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.types.js";
+import { migrateDataBridgeDatabase } from "../../devkits/data-bridge/api/src/modules/data-bridge/data-bridge.migration.js";
+import { TransferService } from "../../devkits/data-bridge/api/src/modules/transfer-session/transfer-session.service.js";
+import type { CommonTableImportHost } from "../../devkits/data-bridge/api/src/modules/import-review/import-review.types.js";
 test("six-stage transfer maps different tables and fields, blocks invalid stages and preserves existing data", async () => {
   const config = {
     host: process.env.DB_HOST!,

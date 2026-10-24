@@ -30,6 +30,7 @@ export type Tenant = {
     | "qcafe"
     | "hrms"
     | "docs"
+    | "codeit"
     | "himsx"
     | "codexsun"
     | "sites";
@@ -79,6 +80,7 @@ export type TenantSavePayload = {
     | "qcafe"
     | "hrms"
     | "docs"
+    | "codeit"
     | "himsx"
     | "codexsun"
     | "sites";
@@ -117,7 +119,7 @@ export type TenantRuntime = {
       | "blog"
       | "auditor"
       | "marketing"
-    | "crm"
+      | "crm"
       | "frappe"
       | "zetro"
       | "logicx-erp"
@@ -126,6 +128,7 @@ export type TenantRuntime = {
       | "qcafe"
       | "hrms"
       | "docs"
+      | "codeit"
       | "himsx"
       | "codexsun";
     label: string;
@@ -143,7 +146,7 @@ export type TenantRuntime = {
       | "blog"
       | "auditor"
       | "marketing"
-    | "crm"
+      | "crm"
       | "frappe"
       | "zetro"
       | "logicx-erp"
@@ -152,6 +155,7 @@ export type TenantRuntime = {
       | "qcafe"
       | "hrms"
       | "docs"
+      | "codeit"
       | "himsx"
       | "codexsun";
   }>;
@@ -177,6 +181,7 @@ export type TenantRuntime = {
     | "qcafe"
     | "hrms"
     | "docs"
+    | "codeit"
     | "himsx"
     | "codexsun";
   tenant: Tenant | null;

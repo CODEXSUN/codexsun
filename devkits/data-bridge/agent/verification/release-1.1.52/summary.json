@@ -1,0 +1,95 @@
+{
+  "completedAt": "2026-10-24T03:50:49.283Z",
+  "groups": [
+    {
+      "tenant": "sukraa",
+      "group": "common",
+      "tables": 31,
+      "sourceRows": 520,
+      "inserted": 0,
+      "existing": 520,
+      "warnings": 0,
+      "blocked": 0
+    },
+    {
+      "tenant": "sukraa",
+      "group": "masters",
+      "tables": 16,
+      "sourceRows": 206,
+      "inserted": 0,
+      "existing": 205,
+      "warnings": 1,
+      "blocked": 0
+    },
+    {
+      "tenant": "sukraa",
+      "group": "billing",
+      "tables": 23,
+      "sourceRows": 1254,
+      "inserted": 1253,
+      "existing": 0,
+      "warnings": 1,
+      "blocked": 0
+    },
+    {
+      "tenant": "altex",
+      "group": "common",
+      "tables": 31,
+      "sourceRows": 405,
+      "inserted": 0,
+      "existing": 405,
+      "warnings": 0,
+      "blocked": 0
+    },
+    {
+      "tenant": "altex",
+      "group": "masters",
+      "tables": 16,
+      "sourceRows": 254,
+      "inserted": 0,
+      "existing": 254,
+      "warnings": 0,
+      "blocked": 0
+    },
+    {
+      "tenant": "altex",
+      "group": "billing",
+      "tables": 23,
+      "sourceRows": 4812,
+      "inserted": 4812,
+      "existing": 0,
+      "warnings": 0,
+      "blocked": 0
+    }
+  ],
+  "invoices": [
+    {
+      "source": "sukraa_cloud_db",
+      "invoices": 137,
+      "matched": 137,
+      "warnings": 0,
+      "deleted": 0,
+      "items": 521
+    },
+    {
+      "source": "altex_cloud_db",
+      "invoices": 184,
+      "matched": 184,
+      "warnings": 0,
+      "deleted": 5,
+      "items": 690
+    }
+  ],
+  "tablesChecked": 140,
+  "orphanReferences": 0,
+  "relationshipsChecked": 354,
+  "missingSourceRows": 0,
+  "queue": {
+    "jobs": 106,
+    "missing": 0,
+    "wrongTarget": 0,
+    "incomplete": 0
+  },
+  "sourceUnchanged": true,
+  "targetBusinessPreserved": true
+}

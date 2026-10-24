@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { getTenantPublicPortal, type TenantPublicPortal } from "../../modules/tenant-portal";
+import { getTenantPublicPortal, type TenantPublicPortal } from "../../modules/tenant-portal/index";
 import { logout, restoreSession } from "../../shared/api/platform-api";
 import { setPlatformFavicon } from "../../shared/document/PageTitle";
 import { fallbackTenantPortal } from "./tenant-site.defaults";

@@ -89,6 +89,7 @@ export type PlatformAppsTable = {
     | "qcafe"
     | "hrms"
     | "docs"
+    | "codeit"
     | "himsx"
     | "codexsun"
     | "sites";

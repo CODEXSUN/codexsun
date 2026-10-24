@@ -26,6 +26,7 @@ export type PlatformApp = {
     | "qcafe"
     | "hrms"
     | "docs"
+    | "codeit"
     | "himsx"
     | "codexsun"
     | "sites"

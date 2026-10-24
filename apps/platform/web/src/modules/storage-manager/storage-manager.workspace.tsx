@@ -9,7 +9,7 @@ import {
 import { StorageManagerList } from "./storage-manager.list";
 import { cleanStorageState } from "./storage-manager.schema";
 import type { StorageBrowserState } from "./storage-manager.types";
-import { useTenantsQuery } from "../tenant";
+import { useTenantsQuery } from "../tenant/index";
 
 export function StorageManagerWorkspace() {
   const tenants = useTenantsQuery();

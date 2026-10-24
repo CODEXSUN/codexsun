@@ -1,0 +1,105 @@
+# Codeit contracts
+
+Status: proposed. T00 must agree exact schemas, routes, migrations, and contract versions.
+Names below describe typed contracts. They do not create runtime endpoints.
+
+## Record ownership
+
+| Record         | Required fields beyond repository identity and timestamps                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| Project        | Canonical root reference, repository identity, trust state, policy revision                          |
+| Conversation   | Project UUID, title, selected mode, archived state                                                   |
+| Message        | Conversation UUID, role, content references, client request key, completion state                    |
+| Run            | Project/conversation UUID, request, mode, state, revision, budget, cancellation generation           |
+| Assignment     | Run UUID, task ID, worker identity, dependencies, lease, allowed paths, attempt, deadline            |
+| ToolInvocation | Run/assignment UUID, tool/version, validated arguments hash, grant reference, state, result artifact |
+| Approval       | Exact action digest, project/root, revision, constraints, expiry, actor, decision                    |
+| Artifact       | Owner run, type, content hash, relative storage key, revision, provenance                            |
+| PluginInstall  | Plugin/version, manifest digest, enabled state, grants, secret references                            |
+| PersonalFact   | Scope, owner, value, source, confirmation state, verification time, revision, retention              |
+| RunEvent       | Run UUID, monotonic sequence, event type/version, payload, time, correlation ID                      |
+
+Cross-project references require validation in the owning service.
+Raw filesystem paths, SQL identifiers, and provider secrets are not public object identifiers.
+Persist request keys and enforce uniqueness where retries can duplicate work.
+Audit every mutable lifecycle operation, including trust, grants, memory edits, plugin state, and run cancellation.
+
+## Run state machine
+
+| State      | Allowed next states                                     | Meaning                                                      |
+| ---------- | ------------------------------------------------------- | ------------------------------------------------------------ |
+| queued     | planning, running, cancelling, failed                   | Accepted and waiting for capacity                            |
+| planning   | waiting, running, verifying, cancelling, failed         | Context and plan preparation                                 |
+| waiting    | queued, planning, running, cancelling, failed           | A specific user decision or approval is required             |
+| running    | waiting, paused, blocked, verifying, cancelling, failed | Authorized work is active                                    |
+| paused     | queued, cancelling                                      | User-requested pause or explicit budget pause                |
+| blocked    | queued, cancelling, failed                              | Recorded dependency or environment failure prevents progress |
+| verifying  | running, waiting, succeeded, cancelling, failed         | Checks and review are in progress                            |
+| cancelling | cancelled, failed                                       | New dispatch is fenced and processes are stopping            |
+| succeeded  | none                                                    | Accepted result and final evidence were persisted            |
+| failed     | none                                                    | Terminal failed attempt with evidence                        |
+| cancelled  | none                                                    | Terminal cancellation with retained partial work             |
+
+A retry creates a new attempt linked to its predecessor. It does not rewrite terminal evidence.
+Resume validates current grants, project revision, dependency results, and budget before enqueueing.
+Provider responses cannot directly set run state or mark checks passed.
+Approval denial returns a structured result and a blocked action. It never creates a broader grant.
+
+## Durable event and stream rules
+
+Commit state and the corresponding event in one transaction.
+Use per-run monotonic event sequence numbers and replay from a last-seen cursor.
+Clients deduplicate events and detect gaps. Reconnect never repeats side effects.
+Distinguish pending text, finalized messages, tool proposals, invocation starts, results, and verification evidence.
+Apply backpressure. Truncate large output into artifact references with an explicit truncation indicator.
+Cancellation increments a generation fence before acknowledging the request.
+Old generations and expired leases cannot start tools, persist patches, or report success.
+On restart, reconcile active attempts as interrupted before offering resume.
+Never blindly replay an interrupted external write.
+
+## API groups
+
+Propose fixed route groups under `/api/codeit`.
+Every route needs strict input/output schemas and a documented permission.
+The list below defines operations, not arbitrary dynamic CRUD routing.
+
+| Group           | Operations                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------------- |
+| project         | List/register, inspect trust, update trust/settings, archive                                            |
+| conversation    | List/create, read messages, append user request, archive                                                |
+| run             | Create, inspect, stream events, pause, resume, cancel, list assignments                                 |
+| tool            | Inspect catalog, inspect invocation, propose invocation, decide exact approval                          |
+| workspace       | Read/search within authorized project, inspect diff, propose/apply exact patch, execute bounded command |
+| artifact        | Read metadata/content, create reviewed plan revision, inspect evidence                                  |
+| provider        | List configured capabilities, update secret references, test approved connection                        |
+| plugin          | Inspect, install reviewed version, enable, disable, revoke, uninstall                                   |
+| personalization | List by scope, propose, confirm, update, forget, preview context                                        |
+
+Map each operation to a concrete owner route. Avoid accepting arbitrary module paths or table names.
+Use `registerContractRoute()` and the shared response envelope if the Codeit host adopts Framework transport.
+If local transport needs a different host, T00 must document an equivalent reviewed contract and boundary-check exemption.
+Keep HTTP error status, code, message, retryability, field errors, and correlation ID aligned.
+Use standard request size limits, pagination, and explicit mutation revision checks.
+
+## Capability invocation contract
+
+Each request identifies project, run, assignment, tool version, arguments, request key, and expected policy revision.
+The backend resolves the principal and canonical root. It does not trust supplied paths or grants.
+The policy result is allow, require an exact approval, or deny with a reason.
+An approval binds the validated action digest, root, grant scope, expiry, and relevant file/content hashes.
+Changing arguments, roots, plugin version, or material input invalidates approval.
+An allow result still needs validation at execution time to detect revocation and filesystem changes.
+
+## Provider adapter contract
+
+Define model capabilities, input limits, streamed events, tool-call IDs, usage, finish reason, and normalized errors.
+Support cancellation and bounded retry for transient read failures.
+Do not silently retry external actions or change model/provider without an explicit policy.
+Preserve stable invocation IDs across a provider reconnect without duplicating tool execution.
+Usage may be unavailable. Show unknown values instead of fabricated token or cost totals.
+
+## Contract freeze evidence
+
+T00 records schemas, sample valid/invalid payloads, dependency edges, owner exports, state invariants, and failure codes.
+Review cross-module changes through injected public contracts.
+A contract change after freeze requires a revision and affected packet review before workers continue.

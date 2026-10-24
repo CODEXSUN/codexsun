@@ -1,0 +1,111 @@
+# Data Bridge handoff
+
+## Start here
+
+Read [SKILLS.md](SKILLS.md), [PLAN.md](PLAN.md), and the matching module-local SKILLS file before changing behavior.
+Read [the current release log](RELEASE-1.1.52.md) for the acceptance boundary.
+The manual and automation protocol is metadata-driven. Client values in evidence are not a future field-mapping recipe.
+
+## Delivered state
+
+- Five sidebar pages and five persisted workflow tabs per business group.
+- Separate Common, Master, and Billing policies, APIs, clients, and workspaces.
+- Explicit different-name table/field mapping, selected source records, and destination parent translation.
+- Saved preparation, explicit confirmation, trusted target queue jobs, revisions, locks, and per-table transactions.
+- Existing/conflicting destination preservation and visible warning summaries.
+- Parent-first business scope that excludes source security configuration, caches, logs, queues, and migration history.
+- Complete local SUKRAA and ALTEX acceptance with invoice and child comparison.
+
+## Latest accepted results
+
+| Tenant | Common       | Masters                   | Billing                     |
+| ------ | ------------ | ------------------------- | --------------------------- |
+| SUKRAA | 520 existing | 205 existing, one warning | 1,253 inserted, one warning |
+| ALTEX  | 405 existing | 254 existing              | 4,812 inserted, no warnings |
+
+All 321 invoice headers and 1,211 item rows matched their targets.
+Available business child documents also matched.
+All 106 import jobs completed without retries under the correct tenant context.
+Independent checks found no missing source records and no broken references across 354 relationships.
+Five ALTEX deleted invoices retain their deletion state and complete child history.
+
+The two approved SUKRAA warnings are retained intentionally:
+
+1. A product is deleted in the source but active in the target. Preserve the target state.
+2. Existing Billing settings differ in layout and numbering. Preserve target settings and historical source document numbers.
+
+Do not automatically clear these warnings by changing data.
+Do not confuse them with the older unit/default-company corrections documented in release 1.1.51.
+
+## Public composition and code locations
+
+- API entry: `api/src/index.ts`.
+- Frontend entry: `src/index.ts`.
+- Platform API composition: `apps/platform/api/src/data-bridge-host.ts` from the repository root.
+- Super Admin composition: `apps/platform/web/src/desks/sa/SaDesk.tsx`.
+- API groups and technical record owners: `api/src/modules/`.
+- Matching frontend groups: `src/modules/`.
+- Saved schema ledger: `api/src/modules/data-bridge/data-bridge.migration.ts`.
+
+The original migration table names and checksums remain unchanged.
+New group scope and summary fields use existing JSON records. No new Data Bridge schema step is required for this refactor.
+Repository Billing migrations created or upgraded the approved local targets during acceptance.
+
+## Repeating an approved operation
+
+Use Database Connection, then the relevant business group and its five tabs.
+Use each group's public API service or fixed authenticated endpoints for automation.
+Inspect executable schemas, current source-key requirements, and selection limits before batching.
+Resolve the approved pair through saved sources and the active tenant registry.
+Run the protocol in SKILLS.md, including recovery verification, isolated rehearsal, and independent saved-data checks.
+One-off local acceptance scripts remain ignored artifacts. They are not a supported unattended importer or a client-specific template.
+
+Do not reimport live data just to reproduce a release check.
+Reopen saved Results or Report for the accepted evidence.
+A current-state claim still requires a fresh read-only audit because client data may change later.
+
+## Verification commands
+
+Run commands from the repository root.
+
+```powershell
+npm run typecheck -w @codexsun/data-bridge-api
+npm run typecheck -w @codexsun/data-bridge-web
+npm run lint -w @codexsun/data-bridge-api
+npm run lint -w @codexsun/data-bridge-web
+node tools/check-module-boundaries.mjs data-bridge
+node --env-file=.env --import tsx --test tools/e2e/data-bridge-bulk.e2e.ts tools/e2e/data-bridge-references.e2e.ts tools/e2e/data-bridge.e2e.ts tools/e2e/data-bridge-transfer.e2e.ts tools/e2e/data-bridge-groups.e2e.ts devkits/data-bridge/api/src/modules/import-review/import-review.routes.test.ts devkits/data-bridge/src/modules/import-review/table-data.comparison.test.ts
+npm run docs:sync
+npm run dependencies:check
+npm run check:versions
+npm run check
+npm run build -w @codexsun/platform-web
+```
+
+The focused database tests create and remove their own disposable databases.
+Live imports and deployment require their own approved scope. These commands do not authorize them.
+
+## Evidence and recovery
+
+- [Detailed table order and live results](BILLING-IMPORT-VERIFICATION-2026-10-24.md).
+- [Sanitized release summary](verification/release-1.1.52/summary.json).
+- [Invoice and child proof](verification/release-1.1.52/invoice-proof.json).
+- [Integrity and queue proof](verification/release-1.1.52/integrity-proof.json).
+- [Checksums](verification/release-1.1.52/SHA256SUMS.txt).
+
+Full private snapshots and operational logs remain under local ignored verification storage.
+Verified backups remain outside build output under the path recorded in the live verification document.
+All three owned rehearsal databases were removed after acceptance. The named client databases were preserved.
+Never commit full customer dumps, raw invoice payloads, private snapshots, passwords, or tokens.
+
+## Limits to preserve during handoff
+
+- Current commits are per table, not one atomic invoice aggregate transaction.
+- Header selection does not automatically select every child.
+- Reprepare normal transfers after source or parent changes. Do not assume correction fingerprint guarantees apply to every path.
+- Do not add implicit overwrite, fuzzy matching, arbitrary SQL, provider-job replay, or credential fields.
+- Future business groups and stronger aggregate automation need separate owner contracts and tests.
+
+No deployment or new mobile artifact is included in this release.
+The user authorized committing all current workspace changes, including separate Codeit integration and formatting already present.
+Those changes pass the shared release gates but are not part of the Data Bridge live migration proof.

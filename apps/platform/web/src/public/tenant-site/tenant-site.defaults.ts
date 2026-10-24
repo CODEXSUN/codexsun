@@ -1,4 +1,4 @@
-import type { TenantPublicPortal } from "../../modules/tenant-portal";
+import type { TenantPublicPortal } from "../../modules/tenant-portal/index";
 
 export const fallbackTenantPortal: TenantPublicPortal = {
   brandName: "CODEXSUN",

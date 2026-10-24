@@ -1,0 +1,78 @@
+{
+  "recordedAt": "2026-10-24T03:48:38.210Z",
+  "scope": "Local live import. Full private invoice data remains outside source control.",
+  "pairs": [
+    {
+      "source": "sukraa_cloud_db",
+      "target": "sukraa_db",
+      "invoiceCount": 137,
+      "matchedInvoices": 137,
+      "warnings": 0,
+      "deletedHistory": 0,
+      "allHeadersMatched": true,
+      "children": {
+        "billing_receipt_allocations": {
+          "sourceRows": 0,
+          "targetRows": 0,
+          "allMatched": true
+        },
+        "billing_sales_comments": {
+          "sourceRows": 0,
+          "targetRows": 0,
+          "allMatched": true
+        },
+        "billing_sales_einvoices": {
+          "sourceRows": 10,
+          "targetRows": 10,
+          "allMatched": true
+        },
+        "billing_sales_eway_bills": {
+          "sourceRows": 9,
+          "targetRows": 9,
+          "allMatched": true
+        },
+        "billing_sales_items": {
+          "sourceRows": 521,
+          "targetRows": 521,
+          "allMatched": true
+        }
+      }
+    },
+    {
+      "source": "altex_cloud_db",
+      "target": "altex_db",
+      "invoiceCount": 184,
+      "matchedInvoices": 184,
+      "warnings": 0,
+      "deletedHistory": 5,
+      "allHeadersMatched": true,
+      "children": {
+        "billing_receipt_allocations": {
+          "sourceRows": 0,
+          "targetRows": 0,
+          "allMatched": true
+        },
+        "billing_sales_comments": {
+          "sourceRows": 0,
+          "targetRows": 0,
+          "allMatched": true
+        },
+        "billing_sales_einvoices": {
+          "sourceRows": 0,
+          "targetRows": 0,
+          "allMatched": true
+        },
+        "billing_sales_eway_bills": {
+          "sourceRows": 0,
+          "targetRows": 0,
+          "allMatched": true
+        },
+        "billing_sales_items": {
+          "sourceRows": 690,
+          "targetRows": 690,
+          "allMatched": true
+        }
+      }
+    }
+  ]
+}

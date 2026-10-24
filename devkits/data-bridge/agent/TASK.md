@@ -1,5 +1,8 @@
 # Data Bridge tasks
 
+Current release: 1.1.52. Read [HANDOFF.md](HANDOFF.md) for the current operating state and approved warnings.
+Earlier sections below retain historical implementation and verification notes. Unchecked historical entries do not replace the latest release gates.
+
 ## Common Core table import
 
 - [x] Keep Data Bridge as a separate Super Admin module and add Common Tables and Table Import Review subpages.
@@ -104,3 +107,69 @@ Disposable database verification covers different names, invalid stages, sensiti
 - [x] Require Super Admin authorization, explicit confirmation, saved fingerprints, stale-data checks, and table/row locks for correction commits.
 - [x] Test parent translation, source/target changes, rollback, invalid fingerprints, authorization denial, and repeat commits.
 - [x] Verify live browser commits and independent database proof for the two SUKRAA records. Preserve row counts, identities, unrelated data, and source checksums.
+
+## Grouped workspaces (2026-10-24)
+
+The sidebar contains Database Connection, Common Tables, Master Tables, Billing Tables, and Report.
+Each table group has five tabs: Table Mapping, Field Mapping, Import Preparation, Confirm Import, and Results.
+Database Connection verifies the source and target before a new session. It stores no browser credentials.
+Common Tables owns 31 destination names. Master Tables owns 16 master and child destination names.
+Billing Tables discovers installed target tables with the `billing_` prefix.
+Each group owns its policy, API routes, API service, frontend service, and workspace folder.
+Shared technical modules are `transfer-session`, `import-review`, `database-connection`, `report`, and frontend `transport`.
+The `data-bridge` API folder composes routes and preserves the original migration ledger.
+New sessions persist an immutable server-created group scope in the existing JSON record. No new schema migration is required.
+Old sessions, snapshots, queue reports, and hidden stage URLs remain supported.
+New group URLs persist `tab` and `transfer` parameters. Report lists saved work across groups.
+Future CRM and ecommerce groups should add their own policies, fixed API clients, and workspaces through composition.
+Do not add business catalogs to the shared transfer engine.
+Read-only group modules omit persistence roles. Technical session, review, and report modules retain their own repositories.
+The boundary checker records these specific role exemptions without weakening other owners.
+The isolated grouped regression verifies renamed Billing fields and contact ID translation before a disposable import.
+Live Billing imports are outside this refactor.
+
+### Grouped workflow verification
+
+- All 13 focused Data Bridge tests passed, including renamed Billing fields, destination scope rejection, and source parent 1 to target parent 41.
+- Full `npm run check`, owner API/web checks, module boundaries, Docs sync, dependency checks, and Platform web production build passed.
+- Chrome verified the five sidebar items, Common catalog 31, Master catalog 16, and discovered Billing catalog 38.
+- Common mapping session `19b6af68-c920-4e5c-b9d9-9154fb1a1086` reached Confirm Import with one existing row and no warnings.
+- Reload preserved the active Field Mapping tab and saved session. The final import action was not invoked.
+- Report loaded saved history and opened the retained SUKRAA success report: 47 tables, 726 existing, zero inserted, zero attention tables.
+- Screenshots: `dist/.cache/verification/data-bridge-grouped-navigation.jpg`, `data-bridge-grouped-common.jpg`, and `data-bridge-grouped-report.jpg`.
+- Focused log: `dist/.cache/verification/data-bridge-final-tests.log`. Root check: `data-bridge-root-check.log`.
+- No new live tenant import, release, commit, or push formed part of this refactor.
+
+## Business-only migration verification (2026-10-24)
+
+- Preserve Core and existing target business records. Do not drop either tenant database.
+- Use repository migrations to create missing Billing schema. Do not import source users, roles, permissions, runtime jobs, or migration history.
+- Billing table selection excludes activity logs, entry-tool commands, compliance jobs, domain events, dashboard caches, outbox jobs, and legacy assignment records.
+- Catalogs follow target foreign-key order. Location parents start with Country, State, District, City, then Pincode.
+- New mappings omit audit actors and metadata where defaults exist. Required UUID fields use new target identities.
+- Existing-row conflicts remain warnings. Completed sessions with warning rows also show warning in Report.
+- Retain soft-deleted invoices and their children as deleted history when the operator chooses that policy. Never reactivate them by omitting deletion state.
+- Import parent documents before their child tables. Verify complete invoice business values and every child after all related tables finish.
+- Current transfers commit per table. Full invoice comparison verifies the completed aggregate. This does not claim a single transaction across all invoice tables.
+- Local rehearsal evidence is under `dist/.cache/verification/billing-rehearsal/`. Backups passed restore and full row-hash comparison before live schema work.
+
+### Live business migration completed
+
+- Operator chose to preserve Core and all existing target business data. No target table was dropped.
+- SUKRAA: Common 520 existing. Masters 205 existing and one approved deletion-state warning. Billing 1,253 inserted and one approved settings warning.
+- ALTEX: Common 405 existing. Masters 254 existing. Billing 4,812 inserted with zero warnings.
+- Independent checks verified 140 business tables, 354 relationships, zero missing source business records, and zero broken references.
+- All 137 SUKRAA and 184 ALTEX invoices matched, including 521 and 690 item rows respectively. Five ALTEX invoices retain deleted history.
+- All 106 import queue jobs completed under the correct target tenant. Chrome traversed the five tabs for every group and tenant.
+- All source rows and pre-existing target business rows passed preservation checks. Existing dashboard caches refreshed during repository lifecycle work.
+- Full proof and exact table order: [Billing import verification](BILLING-IMPORT-VERIFICATION-2026-10-24.md).
+- All 13 focused tests, owner API/web checks, root checks, boundaries, Docs sync, dependency checks, and Platform web production build passed.
+
+## Release 1.1.52 handoff
+
+The metadata-driven operating protocol and 16 module-local SKILLS files are complete.
+Report/correction frontend types now belong to Report. Unused legacy clients and polling were removed.
+The current source review covers 97 TypeScript files with no unresolved ownership findings.
+All 13 Data Bridge regressions, the Codeit contract, full workspace checks, builds, versions, boundaries, Docs, and dependency checks passed.
+Private client data remains outside Git. Sanitized release evidence and checksums are committed with the handoff.
+See [release review](REVIEW-1.1.52.md) and [handoff](HANDOFF.md).

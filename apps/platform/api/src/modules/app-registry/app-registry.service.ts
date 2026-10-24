@@ -29,7 +29,28 @@ export const defaultTenantModuleKeys = [
 ] as const;
 
 export const platformAppRegistry: PlatformAppDefinition[] = [
-  {appId:"marketing",id:0,uuid:"",label:"Marketing",moduleKey:"marketing",stack:"marketing",alwaysEnabled:false,defaultLanding:false,description:"Tenant campaigns, capture and CRM handoff."},
+  {
+    appId: "codeit",
+    id: 0,
+    uuid: "",
+    label: "Codeit",
+    moduleKey: "codeit",
+    stack: "codeit",
+    alwaysEnabled: false,
+    defaultLanding: false,
+    description: "Standalone development workspace and runtime overview."
+  },
+  {
+    appId: "marketing",
+    id: 0,
+    uuid: "",
+    label: "Marketing",
+    moduleKey: "marketing",
+    stack: "marketing",
+    alwaysEnabled: false,
+    defaultLanding: false,
+    description: "Tenant campaigns, capture and CRM handoff."
+  },
   {
     appId: "sportsclub",
     id: 0,
@@ -39,7 +60,8 @@ export const platformAppRegistry: PlatformAppDefinition[] = [
     stack: "sportsclub",
     alwaysEnabled: false,
     defaultLanding: false,
-    description: "Multi-tenant sports academy and club management with student, master and club admin portals."
+    description:
+      "Multi-tenant sports academy and club management with student, master and club admin portals."
   },
   {
     appId: "tconnect",

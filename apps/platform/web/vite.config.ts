@@ -40,6 +40,10 @@ export default defineConfig(({ command, mode }) => {
     cacheDir: "../../../dist/.cache/vite/platform-web",
     envDir: "../../..",
     define: {
+      __CODEXSUN_CODEIT_WEB_PORT__: JSON.stringify(
+        Number(runtimeEnv.CODEXSUN_CODEIT_WEB_PORT ?? 7070)
+      ),
+      __CODEXSUN_CODEIT_WEB_URL__: JSON.stringify(runtimeEnv.CODEXSUN_CODEIT_WEB_URL ?? ""),
       __CODEXSUN_TCONNECT_WEB_PORT__: JSON.stringify(
         Number(runtimeEnv.CODEXSUN_TCONNECT_WEB_PORT ?? 7040)
       ),

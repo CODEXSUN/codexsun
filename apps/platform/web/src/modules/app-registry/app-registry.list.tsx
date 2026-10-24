@@ -14,6 +14,7 @@ export const appRegistryFields: RegistryField<PlatformApp>[] = [
     type: "select",
     options: [
       { label: "Platform", value: "platform" },
+      { label: "Codeit", value: "codeit" },
       { label: "Billing", value: "billing" },
       { label: "Accounts", value: "accounts" },
       { label: "CRM", value: "crm" },

@@ -1,16 +1,207 @@
-# Data Bridge working rules
+# Data Bridge working skills
 
-Read the Data Bridge README, TASK, and PLAN with the repository Agent Guide and governance rules before changing this owner.
+## Purpose and entry points
 
-## Ownership and safety
+Use this guide for repeated migration work, manual operation, automation, review, and handoff.
+Read the repository Agent Guide and governance rules first.
+Then read this owner's README, TASK, PLAN, and the relevant module-local SKILLS file.
+This guidance describes the workflow. It does not grant database access or authorize a live import.
 
-- Keep common-table import behavior, preview, schema checks, snapshots, and import status inside Data Bridge.
-- Platform owns authentication, Super Admin navigation/composition, and registered-tenant connection resolution.
-- Data Migration owns saved external sources and encrypted source credentials. Use its public server-side access contract; never import its private repository or return a resolved secret to a client.
-- Common Tables uses the fixed Core allowlist. Guided transfers discover source and target base tables from the selected databases. Validate live table/field metadata, require transactional destination tables, quote identifiers, and bind row values. Resolve declared foreign references through business identity or an unambiguous full business-record match; never copy source parent IDs as destination identity. Block required sensitive fields and ambiguous relationships.
-- Normal imports preserve target records on duplicate keys. Existing-row changes require the separate confirmed correction contract, a saved before/after plan, stale-data checks, destination locks, and tests. Never add automatic merge, overwrite, delete, or truncate behavior.
-- Treat saved row snapshots as sensitive migration data and verify imports only against disposable databases.
+Public packages are `@codexsun/data-bridge-api` and `@codexsun/data-bridge-web`.
+Platform supplies authenticated Super Admin access, registered target routing, and durable Queue Manager dispatch.
+Data Migration supplies saved external connections through its public server-side resolver.
+Data Bridge owns preparation, import decisions, saved snapshots, conflicts, and reports.
 
-## Verification
+## Ownership map
 
-Run API/web checks, `node tools/check-module-boundaries.mjs data-bridge`, Platform composition checks, component docs, dependency layout checks, and isolated database/browser tests before claiming the workflow works.
+| Folder              | Responsibility                                                                                 |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| database-connection | Verify the selected pair and maintain browser connection preferences without secrets.          |
+| common-tables       | Own the approved lookup-table catalog and its workspace.                                       |
+| master-tables       | Own the master and child catalog and its workspace.                                            |
+| billing-tables      | Own the Billing business-table policy and its workspace.                                       |
+| transfer-session    | Own shared technical inspection, mapping, selection, preparation, and queued transfer records. |
+| import-review       | Own selected snapshots, legacy saved reviews, and public reference/audit contracts.            |
+| report              | Own combined results, row details, historical summaries, and explicit correction plans.        |
+| data-bridge         | Compose API modules and retain the original migration ledger.                                  |
+| transport           | Frontend HTTP envelope, authentication slot, and error handling only.                          |
+
+Group folders own their policies, fixed endpoints, clients, and pages.
+Do not put sibling business fields or catalogs into a generic CRUD registry.
+Use another owner's public index or injected contract instead of its private repository.
+New business groups require their own policies and workspaces.
+A human request can authorize an operation. It cannot bypass backend authentication, tenant scope, or permission checks.
+
+## Repeatable operating protocol
+
+### 1. Establish scope and recovery
+
+1. Resolve the saved source and active registered target through server contracts.
+2. Verify both connections and confirm they are different databases.
+3. Record the operator, connection identifiers, intended business groups, and approved operation.
+4. Inventory the current target before proposing deletion or replacement.
+5. Preserve extra target data unless the operator explicitly approves a concrete replacement scope.
+6. Create consistent backups before schema changes or live writes.
+7. Verify backup checksums and restore them into owned disposable databases.
+8. Compare restored rows and schema before accepting the backup.
+9. Keep private backups outside source control and outside build-clean output.
+
+Never log passwords, tokens, authentication cookies, private keys, or raw customer dumps.
+Do not turn a test request into an unapproved live import.
+Use isolated rehearsals first. A live request must identify the intended pair and write scope.
+
+### 2. Discover tables and relationships
+
+Read live table, column, index, constraint, nullability, default, and engine metadata on both sides.
+Use database metadata and `SHOW CREATE TABLE` or equivalent owner-supported inspection.
+Do not assume matching table names, matching field names, or matching numeric identities.
+The group policy controls eligible business tables. Discovery does not authorize arbitrary tables.
+Exclude security configuration, permission data, runtime queues, caches, internal events, and migration history from business transfer.
+Keep the destination owner's migrations and permission seeds under that owner.
+
+Build a dependency graph from declared foreign keys.
+Order common parents before masters, document headers, children, and allocation relations.
+For example, a city can depend on a district, which depends on a state and country.
+Follow discovered constraints rather than a copied alphabetical table list.
+Stop on unsupported cycles or relationships. Do not disable foreign-key checks to make an import pass.
+If a parent lies outside the selected group, verify it already exists in the target.
+
+### 3. Map tables and fields
+
+Select actual source and target tables from their verified catalogs.
+Read the selected schemas again before mapping fields.
+Present source values, destination fields, required values, compatible types, defaults, and relationship choices.
+Let the operator map different source and target names explicitly.
+
+Derive field behavior from metadata and approved business meaning.
+For example, a product may refer to a unit through a numeric key.
+Resolve the source unit's business code or other declared identity in the target.
+Store the resolved target key instead of copying the source number.
+A field label or familiar name alone does not prove identity.
+
+Keep destination identity and audit metadata destination-owned unless explicitly requested otherwise.
+Use defaults, generated identity, current values, selected parents, or validated custom values as appropriate.
+Required identity values need a supported generation rule when no destination default exists.
+Required sensitive fields must block the generic import and use the owning application's supported process.
+Reject narrowing, incompatible types, unsupported relationships, and unfilled required fields.
+Check the selector's current primary-key constraints in `TransferDatabase.verify()` before staging records.
+
+### 4. Prepare the source collection
+
+Read only the selected source records using stable primary keys.
+Treat visible row positions and pagination numbers as display information.
+Capture only selected business fields and explicitly chosen value rules.
+Resolve declared parents recursively through business identity.
+Use a complete unique business key when available.
+An exact business-record fallback is acceptable only when the result is unambiguous.
+Never use a first-row guess, fuzzy text similarity, or equal source/target numeric keys as proof.
+
+Save the prepared target values with their source context and schema snapshot.
+Show extracted source data, resolved target references, current matched target values, and differences before commit.
+Separate ready, existing, conflicting, and blocked rows.
+Preserve existing conflicts and ask the operator to decide their treatment.
+Changes to an existing record require the separate correction contract and its explicit confirmation.
+
+For deleted business history, ask whether to retain it or exclude its entire aggregate.
+Preserve the deletion state when retaining history. Do not silently reactivate it.
+If excluding a document, exclude its dependent children and allocations consistently.
+
+### 5. Rehearse and confirm
+
+Rehearse the approved selection against disposable targets with repository migrations.
+Verify translated references, required values, duplicate handling, rollback, and repeated imports.
+For a document, include its header, all business children, referenced parents, and available business assets.
+For example, an invoice review covers lines, tax values, allocations, and available signed compliance documents.
+Do not copy queued commands or replay provider submissions as document data.
+
+Normal mapped transfers use a saved source snapshot. They do not promise a fresh source-value comparison at execution.
+Reprepare after changes to selected data, parents, mapping rules, schema, or routing.
+Correction plans have stronger source/parent/target fingerprint checks. Keep those guarantees distinct.
+Record source fingerprints for independent before/after verification.
+Confirm the exact prepared destination before queuing writes.
+
+### 6. Execute through the queue
+
+Use fixed authenticated module operations to create, inspect, map, preview, prepare, confirm, and read results.
+Do not bypass authorization or insert tenant rows through an agent-only write shortcut.
+Queue work through the public host contract with the target tenant, operator, correlation identifier, retry policy, and saved run reference.
+Verify that the queued target matches the saved preparation.
+Use revisions, destination locks, transactions, bound values, and schema checks.
+Respect route selection limits and split larger selections into traceable chunks.
+Wait for each required parent operation to complete before processing dependent children.
+Stop on new execution warnings or failures. Do not continue dependent writes blindly.
+
+Current mapped transfers commit per table.
+A full document comparison afterward does not make those commits one atomic document transaction.
+Cross-table atomic migration is a future capability that needs an explicit owner contract and rollback tests.
+Never describe the current implementation as providing that guarantee.
+
+### 7. Verify saved data independently
+
+Query the real target after jobs finish. A successful route or job status alone is insufficient.
+Compare business values after translating foreign identities.
+For example, the same unit may have different numeric keys in two databases but the same declared business identity.
+Normalize representations only where the field contract permits it.
+Do not normalize away a real case, numeric, lifecycle, or JSON difference.
+
+Verify each document header and every included child as one aggregate.
+Compare child counts and values, document amounts, tax sums, and stored business assets.
+Verify orphan references, retained deletion state, existing target preservation, and unchanged source fingerprints.
+Verify each queue job's target, completion, attempts, and run reference.
+Repeat an approved selection and confirm that it creates no duplicate business records.
+
+A warning can be an approved preserved difference. It is not an exact match.
+Keep warning rows visible in Results and Report even when processing completed.
+Distinguish historical reports from a fresh audit of current data.
+
+### 8. Record evidence and hand off
+
+Record scope, ordered tables, selected rows and fields, generated rules, parent identity decisions, and operator choices.
+Record per-table source, imported, existing, warning, missing, and extra counts.
+Record aggregate comparison results, broken-reference counts, source preservation, and queue evidence.
+Keep private row snapshots and full backups in protected local storage.
+Commit only reviewed summaries, sanitized proof, and safe screenshots.
+Keep tenant-specific evidence separate from this reusable protocol.
+
+Leave the next operator a release log, current limitations, public entry points, verification commands, and unresolved decisions.
+Do not create a permanent import script containing client database names, credentials, or a copied field list.
+Automation must resolve the approved pair and current metadata on each run.
+Do not rerun a live import merely to reproduce release screenshots or version checks.
+
+## Manual page sequence
+
+1. Verify a pair in Database Connection.
+2. Open the relevant business group.
+3. Complete Table Mapping.
+4. Verify Field Mapping.
+5. Select records and audit Import Preparation.
+6. Review Confirm Import and explicitly queue the approved work.
+7. Read Results and the persisted Report entry.
+
+All five group tabs share the saved session and routing context.
+Changing tabs must not recreate the session or require a second click to load data.
+Test refresh, direct links, saved-session reopening, and navigation between groups.
+Preserve legacy saved links without exposing them as duplicate sidebar stages.
+
+## Required checks
+
+Run the owner API/web typecheck, lint, build, and module-boundary checks.
+Run the focused Data Bridge integration and comparison tests.
+Run Platform composition checks, Docs sync, dependency checks, and the root check.
+For a release, also run version alignment after the authorized lockstep bump.
+Use disposable databases for automated write tests.
+State exactly which browser, persistence, authorization, rollback, and live-data checks passed.
+Do not infer deployment or live import proof from builds or mocks.
+
+## Current limits and continuation
+
+The current source selector needs a supported single integer primary key.
+The guided preparation route limits each selected batch and validates mapped-field counts.
+See the executable route schemas instead of copying old limits into new automation.
+Business-parent resolution requires supported declared relationships and unique or unambiguous identity.
+There is no fuzzy matching, arbitrary SQL execution, automatic merge, or automatic conflict overwrite.
+There is no single atomic transaction for an entire multi-table invoice.
+Billing provider jobs and source runtime history remain excluded.
+New groups such as CRM or ecommerce need owner-specific business scope and fresh verification.
+
+Read [HANDOFF.md](HANDOFF.md) for the current release state and evidence links.

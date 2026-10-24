@@ -1,4 +1,5 @@
 import {
+  Code2Icon,
   AlertTriangleIcon,
   ArchiveIcon,
   BadgePercentIcon,
@@ -70,11 +71,13 @@ export type PlatformAppId =
   | "qcafe"
   | "hrms"
   | "docs"
+  | "codeit"
   | "himsx"
   | "codexsun"
   | "sites";
 
 export type PlatformAppRootPage =
+  | "codeit.overview"
   | "application.overview"
   | "billing.overview"
   | "accounts.overview"
@@ -176,6 +179,7 @@ export type PlatformAppDefinition = {
     | "qcafe"
     | "hrms"
     | "docs"
+    | "codeit"
     | "himsx"
     | "codexsun"
     | "sites";
@@ -205,6 +209,17 @@ export const defaultTenantModuleKeys = [
 ] as const;
 
 export const platformAppRegistry: PlatformAppDefinition[] = [
+  {
+    id: "codeit",
+    label: "Codeit",
+    moduleKey: "codeit",
+    stack: "codeit",
+    alwaysEnabled: false,
+    defaultLanding: false,
+    description: "Standalone development workspace and runtime overview.",
+    icon: Code2Icon,
+    accentClass: "bg-slate-700"
+  },
   {
     id: "marketing",
     label: "Marketing",
@@ -550,6 +565,7 @@ export function defaultLandingApp(value: unknown, moduleKeys: string[]): Platfor
 }
 
 export function appRootPage(appId: PlatformAppId): PlatformAppRootPage {
+  if (appId === "codeit") return "codeit.overview";
   if (appId === "codexsun") return "codexsun.frontdesk";
   if (appId === "marketing") return "marketing.brands";
   if (appId === "sites") return "sites.overview";
@@ -590,6 +606,13 @@ export function appMenuFor(
   billingEnabled = false,
   chatCounts?: ChatNavigationCounts
 ): SidemenuItem {
+  if (appId === "codeit")
+    return {
+      icon: Code2Icon,
+      title: "Codeit",
+      isActive: activePage.startsWith("codeit."),
+      items: codeitMenuItems(activePage, onSelect)
+    };
   if (appId === "codexsun")
     return {
       icon: SparklesIcon,
@@ -1319,6 +1342,7 @@ export function appMenuItemsFor(
         onSelect: () => onSelect(`marketing.${key}`)
       })
     );
+  if (appId === "codeit") return codeitMenuItems(activePage, onSelect);
   if (appId === "codexsun") return codexsunMenuItems(activePage, onSelect);
   if (appId === "hrms")
     return [
@@ -2289,4 +2313,21 @@ function commonMasterMenuGroups(
     })),
     title: group.label
   }));
+}
+
+function codeitMenuItems(activePage: string, onSelect: (page: string) => void): SidemenuItem[] {
+  return [
+    {
+      title: "Overview",
+      icon: LayoutDashboardIcon,
+      isActive: activePage === "codeit.overview",
+      onSelect: () => onSelect("codeit.overview")
+    },
+    {
+      title: "Settings",
+      icon: Settings2Icon,
+      isActive: activePage === "codeit.settings",
+      onSelect: () => onSelect("codeit.settings")
+    }
+  ];
 }

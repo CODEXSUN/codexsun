@@ -177,10 +177,15 @@ const capabilityBackendRoles = new Map([
     "data-migration-api/migration",
     ["module", "service", "repository", "routes", "migration", "types", "secrets"]
   ],
-  [
-    "data-bridge-api/common-table-import",
-    ["module", "service", "repository", "routes", "migration", "types"]
-  ],
+  // Data Bridge catalogs orchestrate migration sessions rather than own tenant business CRUD.
+  ["data-bridge-api/data-bridge", ["module", "migration"]],
+  ["data-bridge-api/database-connection", ["module", "routes", "service", "lock"]],
+  ["data-bridge-api/common-tables", ["module", "routes", "service", "policy"]],
+  ["data-bridge-api/master-tables", ["module", "routes", "service", "policy"]],
+  ["data-bridge-api/billing-tables", ["module", "routes", "service", "policy"]],
+  ["data-bridge-api/import-review", ["module", "service", "repository", "routes", "types"]],
+  ["data-bridge-api/transfer-session", ["module", "service", "repository", "routes", "types"]],
+  ["data-bridge-api/report", ["module", "service", "repository", "routes", "types"]],
   ["zuno-api/diagnostics", ["module", "service", "repository", "routes", "types"]],
   ["zuno-api/cases", ["module", "service", "repository", "routes", "migration", "types"]],
   ["zuno-api/watch", ["module", "service", "repository", "routes", "types"]],
@@ -236,6 +241,7 @@ const capabilityBackendRoles = new Map([
 ]);
 
 const webModuleRoots = [
+  { app: "codeit-web", path: join(process.cwd(), "devkits", "codeit", "src", "modules") },
   { app: "marketing-web", path: join(process.cwd(), "apps", "marketing", "web", "src", "modules") },
   { app: "tconnect-web", path: join(process.cwd(), "apps", "tconnect", "web", "src", "modules") },
   { app: "qcafe-web", path: join(process.cwd(), "apps", "qcafe", "web", "src", "modules") },
@@ -311,6 +317,7 @@ const requiredFrontendRoles = ["workspace", "list", "form", "services", "hooks",
 const shellOnlyFrontendModules = new Set();
 const shellOnlyFrontendRoles = ["module", "workspace", "services", "hooks", "types"];
 const capabilityFrontendRoles = new Map([
+  ["codeit-web/overview", ["workspace"]],
   ["crm-web/lead", ["workspace", "list", "show", "services", "hooks", "types"]],
   ["tconnect-web/conversation", ["workspace", "list", "services", "hooks", "types", "schema"]],
   [
@@ -327,8 +334,14 @@ const capabilityFrontendRoles = new Map([
     "data-migration-web/migration",
     ["workspace", "settings", "list", "form", "services", "types", "schema"]
   ],
-  ["data-bridge-web/data-bridge", ["workspace"]],
-  ["data-bridge-web/common-table-import", ["workspace", "services", "types"]],
+  ["data-bridge-web/database-connection", ["workspace", "services", "types", "store"]],
+  ["data-bridge-web/common-tables", ["workspace", "services"]],
+  ["data-bridge-web/master-tables", ["workspace", "services"]],
+  ["data-bridge-web/billing-tables", ["workspace", "services"]],
+  ["data-bridge-web/import-review", ["workspace", "services", "types"]],
+  ["data-bridge-web/transfer-session", ["workspace", "services", "types"]],
+  ["data-bridge-web/report", ["workspace", "services", "types"]],
+  ["data-bridge-web/transport", ["request"]],
   ["docs-web/overview", ["workspace", "services", "hooks", "types"]],
   ["himsx-web/overview", ["workspace", "services", "hooks", "types"]],
   ["sites-web/overview", ["workspace", "services", "hooks", "types"]],

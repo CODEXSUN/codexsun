@@ -1,0 +1,62 @@
+# Planning verification
+
+Date: 24-10-2026. Scope: documentation inside `devkits/codeit/agent` only.
+This record describes plan verification. It does not certify the future Codeit runtime.
+
+## Baseline inspected
+
+Read the current Codeit README, plan, tasks, working rules, package scripts, Vite configuration, and app shell.
+The inspected source remains a read-only web shell with overview and settings.
+The planned API, persistent conversations, providers, tools, plugins, personalization, and worker scheduler are absent.
+Historical shell evidence in TASK.md was preserved without rerunning or reclassifying it.
+The repository contains unrelated active changes. This planning task does not repair or reset them.
+
+## Conceptual walk-through
+
+| Case                   | Planned control path                                                                          | Review conclusion                                                      |
+| ---------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Plan-only request      | Composer mode → run policy → read tools → versioned plan artifact                             | Source changes and commands stay denied                                |
+| Authorized coding      | Accepted scope → grants → isolated patch/command runner → diff → tests → review               | M2 follows real M1 contracts and adds execution gates                  |
+| Parallel work          | Frozen contracts → ready dependencies → disjoint leases → handoffs → combined revision tests  | Shared files have one integrator. Overlap cannot dispatch              |
+| Changed file           | Exact patch hash → current hash comparison → conflict                                         | New user edits are preserved. Old approval does not force an overwrite |
+| Cancellation/crash     | Generation fence → stop owned processes → reject late effects → reconcile interrupted attempt | Resume rechecks grants, hashes, and partial effects                    |
+| Plugin revocation      | Disable/revoke → policy revision/fence → broker stop → partial-effect evidence                | Installed plugins cannot bypass capability policy                      |
+| Personal fact conflict | Scope/source revision → confirmation/precedence → context preview                             | Preferences cannot grant tools or leak between projects                |
+| Cross-IDE handoff      | Common packet/base/lease → manual or supported native dispatch → exact evidence review        | No assumed shared IDE state or undocumented integration                |
+
+This is a design consistency review by the author, not an independent runtime test or external approval.
+T00 requires executable proof and decision review before implementation depends on these controls.
+
+## Required planning checks
+
+- Passed structural validation of 37 Markdown files and 46 local links.
+- Passed validation of 14 task packets, 22 dependency edges, topological order, and absence of cycles.
+- Passed required packet section, planned-state, role/template, and E01–E26 uniqueness checks.
+- Formatted all handbook Markdown with the root Prettier command.
+- Passed `npm run check:component-docs`: 34 owners with four required documents each.
+- Passed `npm run test:component-docs`: two tests, zero failures.
+- Compared SHA-256 hashes for the original Codeit files outside the agent folder.
+  All nine original non-manifest implementation/configuration/README files remained byte-identical.
+  The package manifest changed from version 1.1.51 to 1.1.52 during concurrent workspace activity.
+  A generated `.turbo` log also appeared outside this task's edits.
+  This planning task did not edit the manifest or create that log. No whole-workspace unchanged claim is made.
+
+The structural validator ran as an ephemeral read-only command. No validator implementation was added to the application.
+The final verification commands include a targeted Prettier check and whitespace checks on tracked agent files.
+
+## IDE source verification
+
+Official Antigravity planning/artifact-review and OpenCode agent/permission documents were checked for IDE-HANDOFF.md.
+The handoff records the source links and access date.
+An OpenCode launcher is available on PATH. No version, login, provider call, or execution test ran.
+No Antigravity executable was found on PATH. This does not establish whether its desktop application is installed.
+Native configuration files were not created or changed.
+
+## Deliberately unexecuted work
+
+No feature code, runtime configuration, dependency manifest, lockfile, database, or launcher integration was changed for this request.
+No coding workers were launched in either IDE.
+No plugins were installed, accounts connected, credentials accessed, or paid provider requests made.
+No future E01–E26 scenario was executed. Their current state is planned.
+No new app build or runtime E2E claim is made from documentation checks.
+Repository-wide Docs synchronization was not run because it writes outside the authorized agent folder.
