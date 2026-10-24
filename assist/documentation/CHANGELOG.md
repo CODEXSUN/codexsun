@@ -22,6 +22,23 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 ## v-1.1.55
 
+### [v 1.1.55] 2026-10-24 3:18 pm - Cloud SUKRAA business migration verified
+
+#### Database Changes
+
+- Complete the approved missing-only import from cloud sukraa_db to registered SUKRAA target sukraa_v2_db. Keep source data unchanged.
+- Commit only the approved placeholder-product unit and default-company corrections through fingerprinted authenticated plans.
+- Import 1,598 missing rows across both live runs. Final audit verifies 1,980 records, 137 invoices, 521 item rows, 10 e-invoices, and 9 e-way bills.
+- Verify 156 relationships, zero orphan references, zero migration warnings, preserved original target records, and identical source dump hashes.
+
+#### App Codebase Changes
+
+- Verify the live 1.1.55 proxy fix, exact connection pair, master correction action, and all six report tabs.
+- Complete the held import through the database queue after a Redis delivery stall. Restore BullMQ + Redis and preserve unrelated failed jobs.
+- Record private recovery artifact locations and sanitized proof in devkits/data-bridge/agent/CLOUD-SUKRAA-2026-10-24.md. Remove only disposable rehearsal databases.
+- Retain the Redis delivery issue as an operational follow-up. This report does not claim fresh Redis job delivery passed.
+
+
 ### [v 1.1.55] 2026-10-24 2:21 pm - Data Migration production API proxy repair
 
 #### Database Changes

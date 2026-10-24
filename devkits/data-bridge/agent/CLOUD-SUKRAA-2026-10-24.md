@@ -23,8 +23,7 @@ The authenticated external Chrome page now shows 1.1.55. Database Settings and D
 Save the current server source, choose `sukraa_db`, and verify the exact registered target.
 Start the missing-only business import through the authenticated browser.
 
-The initial live run is still under verification. Do not interpret rehearsal success as final production acceptance.
-Final corrections, repeat audit, source preservation proof, and report results will be appended after completion.
+The final live run completed successfully. See the production acceptance evidence below.
 
 ## Code and checks
 
@@ -35,3 +34,58 @@ Keep existing-row corrections separate from missing-only import.
 Passed: 38 focused Core/CRM/Platform tests, Core API, CRM API/web, Platform API, and Data Bridge web typechecks.
 Data Bridge web lint passed. The deployment build passed API and web compilation.
 Pending ecommerce and Codeit changes remain outside this release.
+
+## Final production acceptance — 2026-10-24, 3:18 pm IST
+
+Run: `2d4427f2-c0ec-4a21-a8af-4130380fa46e`. Status: success. All 70 eligible tables completed.
+The authenticated external Chrome workflow committed both fingerprinted correction plans.
+Product ID 1 changed unit_id from 2 to 1. Default company settings ID 1 changed company_id from 1 to resolved target ID 2.
+Only those business fields changed. Their normal updated_at audit timestamps advanced. Target IDs, UUIDs, and creation metadata stayed unchanged.
+
+| Group   | Imported in final run | Existing exact matches | Warnings |
+| ------- | --------------------: | ---------------------: | -------: |
+| Common  |                     0 |                    520 |        0 |
+| Masters |                     0 |                    206 |        0 |
+| Billing |                    12 |                  1,242 |        0 |
+| Total   |                    12 |                  1,968 |        0 |
+
+The first run imported 1,586 rows and preserved 380 matches. It held two conflicts and 12 dependent lines.
+The final run imported those 12 lines without replacing invoice headers or existing business records.
+Total new business rows across both runs: 1,598.
+
+### Invoice and saved-data verification
+
+- Match all 137 invoice headers and 521 item rows after target foreign-ID translation.
+- Match all 10 e-invoice rows and 9 e-way bill rows. Find no child differences or extra children.
+- Verify zero receipt allocations and sales comments on both sides for these invoices.
+- Check 156 declared relationships. Find zero orphan references.
+- Independently query all 1,980 prepared business records against the real target. Find no missing prepared values.
+- Compare all 384 original target rows across eligible tables with the restored pre-import target backup.
+- Preserve every original field except the two approved business fields and their automatic updated_at timestamps.
+- Verify Summary, Common, Masters, Billing, Invoices, and Warnings in the live browser. The Warnings tab is empty.
+- The final business queue job, ID 2527, completed in one attempt. The master audit job, ID 2517, also completed in one attempt.
+
+Source normalized full-dump SHA-256 before and after:
+`9b27e5a1ea0be97c7e0a156629f8b5712264b7d7d6390403ecab4bf19d071dbf`.
+The hashes are identical. The source received no migration writes, schema changes, or configuration updates.
+
+### Queue recovery and limitations
+
+Redis delivery left the master audit pending with zero attempts.
+Temporarily use the authenticated Queue Management setting to select the database backend.
+Complete the approved audit and held-row import through that backend.
+Restore BullMQ + Redis through the same authenticated UI. Verify the checked live setting and persisted backend after restoration.
+Do not count this operation as proof of fresh Redis delivery. Its delivery issue requires a separate diagnosis.
+Five unrelated pre-existing failed queue jobs remain untouched.
+Commits remain per table. The invoice aggregate checks do not provide cross-table atomic commits.
+
+### Recovery artifacts and handoff
+
+Retain protected before-import backups and final source, target, and verification files on the VPS.
+Final checksum-verified directory:
+`/home/codexsun-backups/data-bridge/20261024T094712Z-live-after/final-proof-094807/`.
+Private snapshots and browser captures remain outside Git.
+Remove the four owned disposable rehearsal and baseline databases after verification. Preserve the real source and target.
+
+API and web run revision `1609d1984a16658c01d6d50ed89a0d8345601f76`, version 1.1.55.
+Shop, legacy applications, shared infrastructure, ecommerce changes, and Codeit changes remain outside this release.
