@@ -106,6 +106,34 @@ test("copies an empty compatible table and rolls back a failed transfer", async 
           }
         });
         assert.equal(updateResponse.statusCode, 200, updateResponse.body);
+        const copyPayload = {
+          label: "Copied source",
+          host: config.host,
+          port: config.port,
+          database: names[1],
+          user: config.user,
+          tlsMode: "disabled"
+        };
+        const copied = await api.inject({
+          method: "POST",
+          url: `/api/data-migration/sources/${sourceId}/copy`,
+          payload: copyPayload
+        });
+        assert.equal(copied.statusCode, 200, copied.body);
+        const copiedId = Number(copied.json().data.id);
+        assert.notEqual(copiedId, sourceId);
+        const savedSources = await service.listSources();
+        assert.equal(savedSources.find((item) => item.id === sourceId)?.database, names[0]);
+        assert.equal(savedSources.find((item) => item.id === copiedId)?.database, names[1]);
+        assert.equal(JSON.stringify(copied.json()).includes(config.password), false);
+        assert.deepEqual(await service.listTables(copiedId), ["sample"]);
+        const rejectedCopy = await api.inject({
+          method: "POST",
+          url: `/api/data-migration/sources/${sourceId}/copy`,
+          payload: { ...copyPayload, label: "Blocked copy", database: names[2] }
+        });
+        assert.notEqual(rejectedCopy.statusCode, 200);
+        await service.removeSource(copiedId, "test@codexsun.app");
       } finally {
         await api.close();
       }
@@ -768,6 +796,12 @@ test("denies migration reads and writes before resolving a tenant", async () => 
       method: "GET",
       url: "/api/data-migration/sources/1/databases"
     });
+    const sourceCopy = await app.inject({
+      method: "POST",
+      url: "/api/data-migration/sources/1/copy",
+      payload: {}
+    });
+    assert.notEqual(sourceCopy.statusCode, 200);
     const planRead = await app.inject({
       method: "POST",
       url: "/api/data-migration/plan/read",

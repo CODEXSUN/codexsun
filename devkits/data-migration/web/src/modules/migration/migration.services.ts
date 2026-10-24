@@ -108,6 +108,8 @@ export const getCurrentConnection = () =>
   request<{ host: string; port: number; user: string }>("/current-connection");
 export const saveCurrentConnection = () => request<{ id: number }>("/sources/current", {});
 export const addSource = (input: SourceInput) => request<{ id: number }>("/sources", input);
+export const copySource = (id: number, input: SourceUpdate) =>
+  request<{ id: number }>(`/sources/${id}/copy`, input);
 export const updateSource = (id: number, input: SourceUpdate) =>
   request<{ id: number }>(`/sources/${id}`, input, "PUT");
 export const verifySource = (id: number) =>

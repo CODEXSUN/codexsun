@@ -75,6 +75,11 @@ export class MigrationService {
     return { id };
   }
 
+  async copySource(id: number, input: MigrationSourceUpdate, actor: string) {
+    const saved = await this.runs.resolveSource(id, this.host.secretKey);
+    return this.addSource({ ...input, password: input.password ?? saved.password }, actor);
+  }
+
   async verifySource(id: number, actor: string) {
     const source = await this.runs.resolveSource(id, this.host.secretKey);
     const result = await this.withConnection(source, async (connection) => {

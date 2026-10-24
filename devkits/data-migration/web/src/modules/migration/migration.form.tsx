@@ -15,6 +15,7 @@ import {
 } from "@codexsun/ui/workspace/upsert";
 import {
   addSource,
+  copySource,
   listDatabases,
   updateSource,
   type SourceInput,
@@ -34,11 +35,13 @@ const initial: SourceInput = {
 
 export function SourceForm({
   source,
+  copy = false,
   sources,
   onSaved,
   onCancel
 }: {
   source?: SourceOption | undefined;
+  copy?: boolean;
   sources: SourceOption[];
   onSaved: (id: number) => void;
   onCancel: () => void;
@@ -46,7 +49,7 @@ export function SourceForm({
   const [values, setValues] = useState<SourceInput>(
     source
       ? {
-          label: source.label,
+          label: copy ? `${source.label} copy` : source.label,
           host: source.host,
           port: source.port,
           database: source.database,
@@ -111,7 +114,7 @@ export function SourceForm({
     try {
       const { password, ...connection } = values;
       const result = source
-        ? await updateSource(source.id, {
+        ? await (copy ? copySource : updateSource)(source.id, {
             ...connection,
             ...(password ? { password } : {})
           })

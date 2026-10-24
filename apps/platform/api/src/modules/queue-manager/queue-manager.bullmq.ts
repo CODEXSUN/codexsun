@@ -2,6 +2,13 @@ import { createHash } from "node:crypto";
 import { Queue, Worker, type JobsOptions } from "bullmq";
 import { env } from "../../env.js";
 import type { QueueJobRecord } from "./queue-manager.types.js";
+import { readQueueDelivery, redisQueuePrefix } from "./queue-manager.delivery.js";
+
+export const queueRedisPrefix = redisQueuePrefix({
+  host: env.DB_HOST,
+  port: env.DB_PORT,
+  name: env.DB_MASTER_NAME
+});
 
 const queues = new Map<string, Queue>();
 const workers = new Map<string, Worker>();
@@ -16,7 +23,11 @@ export async function publishBullMqJob(job: QueueJobRecord) {
     removeOnComplete: false,
     removeOnFail: false
   };
-  await queue.add(job.jobName, { queueJobId: job.id, ...job.payload }, options);
+  await queue.add(
+    job.jobName,
+    { ...job.payload, queueJobId: job.id, queueJobUuid: job.uuid },
+    options
+  );
 }
 
 function bullMqJobId(job: QueueJobRecord) {
@@ -27,19 +38,16 @@ function bullMqJobId(job: QueueJobRecord) {
 
 export function startBullMqWorker(
   queueName: string,
-  run: (queueJobId: number) => Promise<unknown>
+  run: (queueJobId: number, queueJobUuid: string) => Promise<unknown>
 ) {
   if (workers.has(queueName)) return null;
   const worker = new Worker(
     queueName,
     async (job) => {
-      const queueJobId = Number(job.data?.queueJobId);
-      if (!Number.isInteger(queueJobId) || queueJobId <= 0) {
-        throw new Error("BullMQ job is missing queueJobId.");
-      }
-      return run(queueJobId);
+      const identity = readQueueDelivery(job.data);
+      return run(identity.id, identity.uuid);
     },
-    { connection: redisConnectionOptions() }
+    { connection: redisConnectionOptions(), prefix: queueRedisPrefix }
   );
   workers.set(queueName, worker);
   return worker;
@@ -47,7 +55,8 @@ export function startBullMqWorker(
 
 export async function probeBullMq() {
   const queue = new Queue(`codexsun-probe-${process.pid}`, {
-    connection: redisConnectionOptions()
+    connection: redisConnectionOptions(),
+    prefix: queueRedisPrefix
   });
   let timer: NodeJS.Timeout | undefined;
   try {
@@ -74,7 +83,10 @@ export async function closeBullMq() {
 function queueFor(queueName: string) {
   const existing = queues.get(queueName);
   if (existing) return existing;
-  const queue = new Queue(queueName, { connection: redisConnectionOptions() });
+  const queue = new Queue(queueName, {
+    connection: redisConnectionOptions(),
+    prefix: queueRedisPrefix
+  });
   queues.set(queueName, queue);
   return queue;
 }

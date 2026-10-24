@@ -597,3 +597,12 @@ The real local signed session opened all six standalone Marketing forms without 
 
 The Super Admin sidebar composes five Data Bridge pages. Group pages own their five workflow tabs.
 Legacy stage URLs remain hidden compatibility routes. Database credentials remain server-side.
+
+## Redis delivery isolation — 2026-10-24
+
+- [x] Reproduce shared legacy/default-prefix consumption against separate master databases.
+- [x] Add database-specific Redis namespaces, persisted job UUID validation, and pending delivery reconciliation.
+- [x] Pass real Redis isolation, duplicate publication, hostile payload, and identity regressions against temporary VPS queues.
+- [ ] Verify a fresh authenticated Data Bridge job through Redis without duplicate rows or source changes.
+
+See [the Redis delivery log](REDIS-DELIVERY-2026-10-24.md).

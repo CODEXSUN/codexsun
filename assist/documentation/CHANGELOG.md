@@ -22,6 +22,22 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 
 ## v-1.1.55
 
+### [v 1.1.55] 2026-10-24 3:32 pm - Isolate Redis delivery by master database
+
+#### Database Changes
+
+- Add no schema migration. Preserve saved business records and both approved migration sources.
+- Allow an authenticated source connection copy with server-side password reuse, a separate encrypted record, and unchanged original routing.
+
+#### App Codebase Changes
+
+- Fix shared Redis queue consumption across CODEXSUN and legacy CXApp master databases with a database-specific namespace.
+- Require persisted job UUIDs, protect delivery identifiers from module payloads, and reject missing or mismatched worker records before dispatch.
+- Reconcile pending database jobs into Redis after startup while retaining idempotent delivery IDs.
+- Pass real Redis legacy-isolation and duplicate-publication tests on temporary VPS queues. Pass source-copy and migration authorization E2E tests.
+- Record live deployment, fresh SUKRAA Redis verification, and ALTEX acceptance as pending until verified.
+
+
 ### [v 1.1.55] 2026-10-24 3:18 pm - Cloud SUKRAA business migration verified
 
 #### Database Changes

@@ -213,3 +213,12 @@ tenant company records or create, connect, or provision tenant databases.
 ## Data Bridge guided import composition
 
 Platform composes six Super Admin routes and sidebar entries: Database Connections, Table Mapping, Field Mapping, Import Preparation, Confirm Import, and Import Results. A transfer UUID in the URL resumes the saved owner session. Platform queues `data-bridge.mapped-import` with tenant, actor, correlation, retry, and idempotency context; Data Bridge owns mapping validation, snapshots, execution, and reports. API/web typechecks and production builds passed. Authenticated Chrome and the database Queue Manager worker completed a local SUKRAA review-only session with two existing rows and no target inserts. No real-tenant missing-row import was executed for this workflow.
+
+## Redis queue ownership
+
+BullMQ publishers and workers use a CODEXSUN prefix derived from the configured master database identity.
+Separate master databases therefore use separate queues even when they share one Redis database.
+Every worker delivery carries both the persisted numeric job ID and UUID. Mismatched identities fail before dispatch.
+The Redis worker tick republishes pending database records to recover missing deliveries after startup.
+Upgrade every worker for the same master database together. Do not purge shared Redis or legacy queues during this change.
+See [the delivery verification log](agent/REDIS-DELIVERY-2026-10-24.md).

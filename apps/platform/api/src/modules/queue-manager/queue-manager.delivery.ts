@@ -1,0 +1,32 @@
+import { createHash } from "node:crypto";
+
+export function redisQueuePrefix(database: { host: string; port: number; name: string }) {
+  const identity = JSON.stringify([
+    database.host.trim().toLowerCase(),
+    database.port,
+    database.name
+  ]);
+  return `codexsun-${createHash("sha256").update(identity).digest("hex").slice(0, 24)}`;
+}
+
+export function readQueueDelivery(data: unknown) {
+  if (!data || typeof data !== "object") throw new Error("Invalid queue delivery.");
+  const record = data as Record<string, unknown>;
+  if (
+    !Number.isSafeInteger(record.queueJobId) ||
+    Number(record.queueJobId) <= 0 ||
+    typeof record.queueJobUuid !== "string" ||
+    !record.queueJobUuid.length ||
+    record.queueJobUuid.length > 128
+  )
+    throw new Error("Queue delivery requires a persisted job ID and UUID.");
+  return { id: Number(record.queueJobId), uuid: record.queueJobUuid };
+}
+
+export function verifyQueueDelivery(
+  expectedUuid: string,
+  job: { uuid: string } | null | undefined
+) {
+  if (!job || job.uuid !== expectedUuid)
+    throw new Error("Queue delivery does not match the persisted job identity.");
+}

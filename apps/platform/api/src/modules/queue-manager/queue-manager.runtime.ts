@@ -25,27 +25,19 @@ export function startQueueManagerWorker(app: FastifyInstance, service = new Queu
       .currentBackend()
       .then(async (backend) => {
         if (backend === "bullmq-redis") {
-          startBullMqWorker("chat", (queueJobId) =>
-            service.runJob(queueJobId, { fromWorker: true })
-          );
-          startBullMqWorker("crm", (queueJobId) =>
-            service.runJob(queueJobId, { fromWorker: true })
-          );
-          startBullMqWorker("maintenance", (queueJobId) =>
-            service.runJob(queueJobId, { fromWorker: true })
-          );
-          startBullMqWorker("mail", (queueJobId) =>
-            service.runJob(queueJobId, { fromWorker: true })
-          );
-          startBullMqWorker("marketing", (queueJobId) =>
-            service.runJob(queueJobId, { fromWorker: true })
-          );
-          startBullMqWorker("reports", (queueJobId) =>
-            service.runJob(queueJobId, { fromWorker: true })
-          );
-          startBullMqWorker("system", (queueJobId) =>
-            service.runJob(queueJobId, { fromWorker: true })
-          );
+          for (const name of [
+            "chat",
+            "crm",
+            "maintenance",
+            "mail",
+            "marketing",
+            "reports",
+            "system"
+          ])
+            startBullMqWorker(name, (queueJobId, expectedUuid) =>
+              service.runJob(queueJobId, { fromWorker: true, expectedUuid })
+            );
+          await service.reconcilePendingDeliveries();
           return null;
         }
         await closeBullMq();

@@ -126,6 +126,17 @@ export async function registerMigrationRoutes(app: FastifyInstance, host: DataMi
       { requestId: request.id }
     )
   );
+  registerContractRoute(app, {
+    method: "POST",
+    url: "/sources/:id/copy",
+    schemas: {
+      params: idParams,
+      body: sourceUpdate,
+      response: z.object({ id: z.number().int().positive() }).strict()
+    },
+    handler: async ({ params, body, request }) =>
+      service.copySource(params.id, body, await host.authorize(request))
+  });
   app.post("/sources/:id/verify", async (request) =>
     ok(
       await service.verifySource(idParams.parse(request.params).id, await host.authorize(request)),

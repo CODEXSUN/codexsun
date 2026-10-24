@@ -44,3 +44,7 @@ It uses local disposable ports and files and never contacts a VPS or writes busi
 From the repository root run `npm run typecheck -w @codexsun/data-migration-api`, `npm run typecheck -w @codexsun/data-migration-web`, `npm run lint -w @codexsun/data-migration-api`, `npm run lint -w @codexsun/data-migration-web`, and the Platform API/web checks. Verify fresh and existing master migration, a real two-database transfer, denied access, rollback, and browser navigation before production use.
 
 `npm run test:e2e:data-migration` uses configured local MariaDB credentials to create three uniquely named disposable schemas. It checks the tracked source and ledger migration, encrypted source setup, preview, copy, repeat-copy rejection, failed-insert rollback, and denied API access, then removes those schemas.
+
+Database Settings can copy an existing saved source into a new connection record.
+The API reuses the encrypted password on the server when no replacement is supplied, tests the selected database, and encrypts the new record separately.
+The original connection and its migration history stay unchanged. Super Admin authorization and system/master database exclusions still apply.

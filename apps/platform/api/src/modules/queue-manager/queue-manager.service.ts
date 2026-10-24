@@ -13,6 +13,7 @@ import type {
 import { processMailJob } from "@codexsun/mail-api";
 import { getTenantDatabaseByName } from "../../database/tenant-database.js";
 import { queueJobProcessor } from "./queue-manager.worker.js";
+import { verifyQueueDelivery } from "./queue-manager.delivery.js";
 
 export class QueueManagerService {
   constructor(
@@ -77,8 +78,12 @@ export class QueueManagerService {
     return { jobId: job.id, jobUuid: job.uuid, status: job.status };
   }
 
-  async runJob(id: number, options: { fromWorker?: boolean } = {}) {
+  async runJob(id: number, options: { fromWorker?: boolean; expectedUuid?: string } = {}) {
     const job = await this.repository.find(id);
+    if (options.fromWorker) {
+      if (!options.expectedUuid) throw new Error("Queue worker requires a job UUID.");
+      verifyQueueDelivery(options.expectedUuid, job);
+    }
     if (!job) return null;
     if (
       (await this.repository.backend()) === "bullmq-redis" &&
@@ -135,6 +140,11 @@ export class QueueManagerService {
     if (backend === "bullmq-redis") return null;
     const job = await this.repository.nextRunnable();
     return job ? this.runJob(job.id) : null;
+  }
+
+  async reconcilePendingDeliveries() {
+    const jobs = await this.repository.list({ status: "pending" });
+    for (const job of jobs) await publishBullMqJob(job);
   }
 
   async retryJob(id: number) {

@@ -18,6 +18,7 @@ import {
 export function DataMigrationSettings() {
   const [sources, setSources] = useState<SourceOption[]>([]);
   const [editing, setEditing] = useState<SourceOption | null>(null);
+  const [copying, setCopying] = useState(false);
   const [adding, setAdding] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -47,6 +48,7 @@ export function DataMigrationSettings() {
       const { id } = await saveCurrentConnection();
       const items = await refresh();
       setAdding(false);
+      setCopying(false);
       setEditing(items.find((item) => item.id === id) ?? null);
       toast.success("Platform server connection saved. Choose a database when ready.");
     } catch (reason) {
@@ -104,6 +106,7 @@ export function DataMigrationSettings() {
             type="button"
             onClick={() => {
               setEditing(null);
+              setCopying(false);
               setAdding(true);
             }}
           >
@@ -132,17 +135,20 @@ export function DataMigrationSettings() {
       </div>
       {adding || editing ? (
         <SourceForm
-          key={editing?.id ?? "new"}
+          key={`${editing?.id ?? "new"}-${copying}`}
           source={editing ?? undefined}
+          copy={copying}
           sources={sources}
           onCancel={() => {
             setAdding(false);
             setEditing(null);
+            setCopying(false);
           }}
           onSaved={(id) => {
             void refresh()
               .then((items) => {
                 setAdding(false);
+                setCopying(false);
                 setEditing(items.find((item) => item.id === id) ?? null);
                 toast.success("Server connection saved. Choose a database when ready.");
               })
@@ -200,9 +206,23 @@ export function DataMigrationSettings() {
                     onClick={() => {
                       setAdding(false);
                       setEditing(row.original);
+                      setCopying(false);
                     }}
                   >
                     Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={busyId !== null}
+                    onClick={() => {
+                      setAdding(false);
+                      setEditing(row.original);
+                      setCopying(true);
+                    }}
+                  >
+                    Copy
                   </Button>
                   <Button
                     type="button"
