@@ -6,7 +6,11 @@ import { TableImportReviewWorkspace } from "./table-import-review.workspace.js";
 
 export function CommonTableImportWorkspace(
   props:
-    | { view: "tables"; onOpenTable: (selection: CommonTableSelection) => void }
+    | {
+        view: "tables";
+        scope?: "common" | "masters";
+        onOpenTable: (selection: CommonTableSelection) => void;
+      }
     | {
         view: "review";
         selection?: CommonTableSelection;
@@ -15,7 +19,12 @@ export function CommonTableImportWorkspace(
       }
 ) {
   if (props.view === "tables") {
-    return <CommonTableListWorkspace onOpenTable={props.onOpenTable} />;
+    return (
+      <CommonTableListWorkspace
+        onOpenTable={props.onOpenTable}
+        {...(props.scope ? { scope: props.scope } : {})}
+      />
+    );
   }
   return (
     <TableImportReviewWorkspace

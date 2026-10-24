@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ConflictCorrectionPreview } from "./common-table-import.resolution.preview.js";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspacePagination } from "@codexsun/ui/workspace/pagination";
 import { WorkspaceTableHeaderCell } from "@codexsun/ui/workspace/table";
@@ -6,7 +7,7 @@ import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import type { CommonBulkReport } from "./common-table-import.types.js";
 
 type TableReport = CommonBulkReport["tables"][number];
-export function CommonBulkRows({ table }: { table: TableReport }) {
+export function CommonBulkRows({ table, runId }: { table: TableReport; runId?: string }) {
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(100);
@@ -25,7 +26,7 @@ export function CommonBulkRows({ table }: { table: TableReport }) {
               setPage(1);
             }}
           >
-            {value === "all" ? "All rows" : value[0]!.toUpperCase() + value.slice(1)} �{" "}
+            {value === "all" ? "All rows" : value[0]!.toUpperCase() + value.slice(1)} ·{" "}
             {(table.rows ?? []).filter((row) => value === "all" || row.status === value).length}
           </Button>
         ))}
@@ -40,7 +41,7 @@ export function CommonBulkRows({ table }: { table: TableReport }) {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr>
-                  {["Source ID", "Result", "Source data", "Saved target data", "Details"].map(
+                  {["Source ID", "Result", "Source collection", "Saved target data", "Details"].map(
                     (label) => (
                       <WorkspaceTableHeaderCell key={label}>{label}</WorkspaceTableHeaderCell>
                     )
@@ -65,7 +66,7 @@ export function CommonBulkRows({ table }: { table: TableReport }) {
                     </td>
                     <td className="p-3 align-top">
                       <pre className="min-w-64 whitespace-pre-wrap break-all text-xs">
-                        {JSON.stringify(row.source, null, 2)}
+                        {JSON.stringify(row.collection ?? row.source, null, 2)}
                       </pre>
                     </td>
                     <td className="p-3 align-top">
@@ -75,7 +76,16 @@ export function CommonBulkRows({ table }: { table: TableReport }) {
                           : "No matching target record captured"}
                       </pre>
                     </td>
-                    <td className="p-3 align-top">{row.message}</td>
+                    <td className="p-3 align-top">
+                      {row.message}
+                      {runId && row.status === "warning" && row.target ? (
+                        <ConflictCorrectionPreview
+                          runId={runId}
+                          table={table.table}
+                          sourceId={row.rowId}
+                        />
+                      ) : null}
+                    </td>
                   </tr>
                 ))}
                 {!rows.length && (

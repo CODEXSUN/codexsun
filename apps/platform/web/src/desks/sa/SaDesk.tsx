@@ -155,6 +155,7 @@ type SaPage =
   | "data-bridge-prepare"
   | "data-bridge-confirm"
   | "data-bridge-results"
+  | "data-bridge-core-masters"
   | "data-bridge-common-tables"
   | "data-bridge-table-import"
   | "zuno"
@@ -358,6 +359,11 @@ export function SaDesk() {
           isActive: page === bridgeStages[index],
           onSelect: () => openBridgeStage(index + 1, transferId)
         })),
+        {
+          title: "Core Masters",
+          isActive: page === "data-bridge-core-masters",
+          onSelect: () => selectPage("data-bridge-core-masters")
+        },
         {
           title: "Common Tables",
           isActive: page === "data-bridge-common-tables",
@@ -646,6 +652,13 @@ export function SaDesk() {
                 onNavigate={openBridgeStage}
               />
             ) : null}
+            {page === "data-bridge-core-masters" ? (
+              <CommonTableImportWorkspace
+                view="tables"
+                scope="masters"
+                onOpenTable={openCommonTableImport}
+              />
+            ) : null}
             {page === "data-bridge-common-tables" ? (
               <CommonTableImportWorkspace view="tables" onOpenTable={openCommonTableImport} />
             ) : null}
@@ -653,7 +666,16 @@ export function SaDesk() {
               <CommonTableImportWorkspace
                 view="review"
                 {...(bridgeSelection ? { selection: bridgeSelection } : {})}
-                onBack={() => selectPage("data-bridge-common-tables")}
+                onBack={() =>
+                  selectPage(
+                    bridgeSelection &&
+                      /^core_(companies|contacts)(_|$)|^core_(products|work_orders|financial_years|default_company_settings)$/.test(
+                        bridgeSelection.table
+                      )
+                      ? "data-bridge-core-masters"
+                      : "data-bridge-common-tables"
+                  )
+                }
                 onOpenSaved={(importId) => {
                   if (bridgeSelection) openCommonTableImport({ ...bridgeSelection, importId });
                 }}
@@ -715,6 +737,7 @@ function pageFromUrl(pathname: string): SaPage {
     page === "data-bridge-confirm" ||
     page === "data-bridge-results" ||
     page === "data-bridge" ||
+    page === "data-bridge-core-masters" ||
     page === "data-bridge-common-tables" ||
     page === "data-bridge-table-import" ||
     page === "zuno" ||

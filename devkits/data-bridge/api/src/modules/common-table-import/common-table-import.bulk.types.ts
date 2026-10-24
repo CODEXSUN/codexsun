@@ -14,11 +14,15 @@ export type BulkTableReport = {
     message: string;
     source: Record<string, unknown>;
     target: Record<string, unknown> | null;
+    collection?: Record<string, unknown>;
+    prepared?: Record<string, unknown>;
   }>;
   attention: Array<{ rowId: number | null; message: string }>;
 };
 
 export type BulkImportReport = {
+  resolutions?: import("./common-table-import.resolution.types.js").ConflictResolution[];
+  scope?: "common" | "masters";
   id: string;
   sourceId: number;
   targetTenantId: number;

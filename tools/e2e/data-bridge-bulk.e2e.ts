@@ -4,10 +4,12 @@ import { randomBytes } from "node:crypto";
 import { createConnection } from "mysql2/promise";
 import { createPool } from "mysql2";
 import { Kysely, MysqlDialect } from "kysely";
+import { ConflictResolutionService } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.resolution.service.js";
 import { CommonBulkService } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.bulk.service.js";
 import { migrateDataBridgeDatabase } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.migration.js";
 import {
   commonTableNames,
+  coreMasterTableNames,
   type CommonTableImportHost
 } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.types.js";
 import { parentOrder } from "../../devkits/data-bridge/api/src/modules/common-table-import/common-table-import.bulk.order.js";
@@ -160,6 +162,97 @@ test("bulk imports all common tables in parent order, persists attention and rep
       );
       const [original] = await target.query<any[]>("SELECT status FROM core_colours WHERE id=50");
       assert.equal(original[0].status, "active");
+      // Master child rows have no natural unique index and resolve a parent with a different target ID.
+      for (const table of coreMasterTableNames) {
+        for (const connection of [source, target]) {
+          await connection.query(
+            `CREATE TABLE ${table} (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(32) NOT NULL, status VARCHAR(24) NOT NULL DEFAULT 'active'${table === "core_contacts_phones" ? ", contact_id INT NOT NULL, FOREIGN KEY (contact_id) REFERENCES core_contacts(id)" : table === "core_products" ? ", unit_id INT NOT NULL, UNIQUE(name), FOREIGN KEY (unit_id) REFERENCES core_units(id)" : ""})`
+          );
+        }
+        await source.query(
+          `INSERT INTO ${table} (id,name${table === "core_contacts_phones" ? ", contact_id" : table === "core_products" ? ", unit_id" : ""}) VALUES (1,'Master'${table === "core_contacts_phones" || table === "core_products" ? ", 1" : ""})`
+        );
+      }
+      await target.query("INSERT INTO core_contacts (id,name) VALUES (50,'Master')");
+      const masters = await service.start(1, 2, "test", "masters", "masters");
+      const masterReport = await service.run(masters.id, 2);
+      assert.equal(masterReport.tables.length, 47);
+      assert.equal(
+        masterReport.tables.find((row) => row.table === "core_contacts_phones")?.status,
+        "success"
+      );
+      const [phones] = await target.query<any[]>("SELECT contact_id FROM core_contacts_phones");
+      assert.equal(phones[0].contact_id, 50);
+      const preparedPhone = masterReport.tables.find((row) => row.table === "core_contacts_phones")!
+        .rows![0]!;
+      assert.equal(preparedPhone.collection?.contact_name, "Master");
+      assert.equal(preparedPhone.prepared?.contact_id, 50);
+      assert.equal(preparedPhone.collection?.contact_id, undefined);
+      assert.equal(
+        masterReport.tables
+          .filter((row) => coreMasterTableNames.includes(row.table as any))
+          .reduce((n, row) => n + row.inserted, 0),
+        15
+      );
+      assert.equal((await service.latest(1, 2, "masters"))?.id, masters.id);
+      assert.equal((await service.latest(1, 2))?.id, repeated.id);
+      const masterRepeat = await service.start(1, 2, "test", "masters-repeat", "masters");
+      const masterRepeated = await service.run(masterRepeat.id, 2);
+      assert.equal(
+        masterRepeated.tables.reduce((n, row) => n + row.inserted, 0),
+        0
+      );
+      await target.query(
+        "UPDATE core_products SET unit_id=51,status='inactive' WHERE name='Master'"
+      );
+      const conflictRun = await service.start(1, 2, "test", "correction", "masters");
+      await service.run(conflictRun.id, 2);
+      const corrections = new ConflictResolutionService(host);
+      let plan = await corrections.prepare(conflictRun.id, "core_products", 1, "test");
+      assert.equal(plan.collection.unit_name, "Existing");
+      assert.equal(plan.prepared.unit_id, 50);
+      assert.equal(plan.references[0]?.sourceId, 1);
+      assert.equal(plan.references[0]?.targetId, 50);
+      assert.deepEqual(plan.changes.sort(), ["status", "unit_id"]);
+      await assert.rejects(
+        corrections.commit(conflictRun.id, plan.id, "0".repeat(64), "test"),
+        /Prepare/u
+      );
+      await target.query("UPDATE core_products SET status='pending' WHERE name='Master'");
+      await assert.rejects(
+        corrections.commit(conflictRun.id, plan.id, plan.fingerprint, "test"),
+        /changed/u
+      );
+      plan = await corrections.prepare(conflictRun.id, "core_products", 1, "test");
+      await source.query("UPDATE core_products SET status='suspended' WHERE id=1");
+      await assert.rejects(
+        corrections.commit(conflictRun.id, plan.id, plan.fingerprint, "test"),
+        /changed/u
+      );
+      await source.query("UPDATE core_products SET status='active' WHERE id=1");
+      await target.query(
+        "CREATE TRIGGER reject_product_update BEFORE UPDATE ON core_products FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Rejected update'"
+      );
+      await assert.rejects(corrections.commit(conflictRun.id, plan.id, plan.fingerprint, "test"));
+      const [unchanged] = await target.query<any[]>(
+        "SELECT status,unit_id FROM core_products WHERE id=?",
+        [plan.targetId]
+      );
+      assert.equal(unchanged[0].status, "pending");
+      assert.equal(unchanged[0].unit_id, 51);
+      await target.query("DROP TRIGGER reject_product_update");
+      const committed = await corrections.commit(conflictRun.id, plan.id, plan.fingerprint, "test");
+      assert.equal(committed.status, "committed");
+      assert.equal(
+        (await corrections.commit(conflictRun.id, plan.id, plan.fingerprint, "test")).status,
+        "committed"
+      );
+      const [corrected] = await target.query<any[]>(
+        "SELECT status,unit_id FROM core_products WHERE id=?",
+        [plan.targetId]
+      );
+      assert.equal(corrected[0].status, "active");
+      assert.equal(corrected[0].unit_id, 50);
     } finally {
       await source.end();
       await target.end();

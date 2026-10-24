@@ -33,8 +33,10 @@ export type CommonTableSelection = {
 };
 
 export function CommonTableListWorkspace({
-  onOpenTable
+  onOpenTable,
+  scope = "common"
 }: {
+  scope?: "common" | "masters";
   onOpenTable: (selection: CommonTableSelection) => void;
 }) {
   const [sources, setSources] = useState<DataBridgeSource[]>([]);
@@ -45,7 +47,7 @@ export function CommonTableListWorkspace({
   const [tables, setTables] = useState<CommonTableOption[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const bulk = useCommonBulkImport(sourceId, targetTenantId);
+  const bulk = useCommonBulkImport(sourceId, targetTenantId, scope);
   const [confirmBulk, setConfirmBulk] = useState(false);
 
   function startBulk() {
@@ -86,7 +88,7 @@ export function CommonTableListWorkspace({
       const activeTargetId = targetTenantId || tenantOptions[0]?.id || 0;
       const currentTables =
         activeSourceId && activeTargetId
-          ? await listCommonTables(activeSourceId, activeTargetId)
+          ? await listCommonTables(activeSourceId, activeTargetId, scope)
           : [];
       setSources(sourceOptions);
       setTenants(tenantOptions);
@@ -115,18 +117,22 @@ export function CommonTableListWorkspace({
     }
     setBusy(true);
     setError("");
-    void listCommonTables(sourceId, targetTenantId)
+    void listCommonTables(sourceId, targetTenantId, scope)
       .then(setTables)
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : "Unable to inspect common tables.")
       )
       .finally(() => setBusy(false));
-  }, [sourceId, targetTenantId]);
+  }, [sourceId, targetTenantId, scope]);
 
   return (
     <WorkspacePage
-      title="Common Tables"
-      description="Review the common master tables available between the selected source and target."
+      title={scope === "masters" ? "Core Masters" : "Common Tables"}
+      description={
+        scope === "masters"
+          ? "Contacts, companies, products, work orders, and their child records."
+          : "Review the common master tables available between the selected source and target."
+      }
       actions={
         <Button
           disabled={busy || bulk.starting || bulk.active || !sourceId || !targetTenantId}
@@ -143,7 +149,10 @@ export function CommonTableListWorkspace({
               <DialogTitle>Audit and import missing Core data</DialogTitle>
               <DialogDescription>
                 {sources.find((item) => item.id === sourceId)?.database} →{" "}
-                {tenants.find((item) => item.id === targetTenantId)?.database}. All common tables
+                {tenants.find((item) => item.id === targetTenantId)?.database}.{" "}
+                {scope === "masters"
+                  ? "All Core masters and their common parents"
+                  : "All common tables"}{" "}
                 are audited in parent order. Existing records are preserved and conflicts are
                 reported.
               </DialogDescription>
@@ -218,8 +227,10 @@ export function CommonTableListWorkspace({
         <section className="overflow-hidden rounded-md border bg-card">
           <div className="flex items-center justify-between border-b px-4 py-3">
             <h2 className="font-semibold">
-              Common table availability{" "}
-              <span className="text-muted-foreground">· {tables.length}/31</span>
+              {scope === "masters" ? "Core master availability" : "Common table availability"}{" "}
+              <span className="text-muted-foreground">
+                · {tables.length}/{scope === "masters" ? 16 : 31}
+              </span>
             </h2>
             <button
               className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm"
@@ -235,7 +246,7 @@ export function CommonTableListWorkspace({
             <table className="w-full min-w-[840px] text-left text-sm">
               <thead className="bg-muted text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3">Common table</th>
+                  <th className="px-4 py-3">Table</th>
                   <th className="px-4 py-3">Source rows</th>
                   <th className="px-4 py-3">Target rows</th>
                   <th className="px-4 py-3">Availability</th>
@@ -252,6 +263,7 @@ export function CommonTableListWorkspace({
                       item.targetTenantId === targetTenantId &&
                       item.table === table.table
                   );
+                  const outcome = bulk.report?.tables.find((entry) => entry.table === table.table);
                   const ready = table.sourceAvailable && table.targetAvailable && table.compatible;
                   return (
                     <tr
@@ -296,7 +308,20 @@ export function CommonTableListWorkspace({
                             : "—"}
                       </td>
                       <td className="px-4 py-3">
-                        {saved ? `${saved.status} · ${saved.rowCount} rows` : "Not prepared"}
+                        {outcome && ["success", "warning"].includes(outcome.status) ? (
+                          <StatusLabel
+                            ready={outcome.status === "success"}
+                            text={
+                              outcome.status === "success"
+                                ? `Verified · ${outcome.inserted + outcome.existing} rows`
+                                : `Warning · ${outcome.attention.length} records`
+                            }
+                          />
+                        ) : saved ? (
+                          `${saved.status} · ${saved.rowCount} rows`
+                        ) : (
+                          "Not prepared"
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
@@ -361,7 +386,10 @@ export function CommonTableListWorkspace({
               <tbody className="divide-y">
                 {imports
                   .filter(
-                    (item) => item.sourceId === sourceId && item.targetTenantId === targetTenantId
+                    (item) =>
+                      item.sourceId === sourceId &&
+                      item.targetTenantId === targetTenantId &&
+                      tables.some((table) => table.table === item.table)
                   )
                   .map((item) => (
                     <tr key={item.id}>
@@ -395,7 +423,10 @@ export function CommonTableListWorkspace({
                     </tr>
                   ))}
                 {!imports.some(
-                  (item) => item.sourceId === sourceId && item.targetTenantId === targetTenantId
+                  (item) =>
+                    item.sourceId === sourceId &&
+                    item.targetTenantId === targetTenantId &&
+                    tables.some((table) => table.table === item.table)
                 ) ? (
                   <tr>
                     <td className="px-4 py-8 text-center text-muted-foreground" colSpan={6}>

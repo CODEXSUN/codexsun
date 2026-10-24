@@ -6,7 +6,11 @@ import { CommonTableImportRepository } from "./common-table-import.repository.js
 import { CommonTableImportService, withConnections } from "./common-table-import.service.js";
 import { CommonBulkEngine } from "./common-table-import.bulk.engine.js";
 import { parentOrder } from "./common-table-import.bulk.order.js";
-import { commonTableNames, type CommonTableImportHost } from "./common-table-import.types.js";
+import {
+  commonTableNames,
+  coreTableNames,
+  type CommonTableImportHost
+} from "./common-table-import.types.js";
 import type { BulkImportReport } from "./common-table-import.bulk.types.js";
 
 export class CommonBulkService {
@@ -16,18 +20,24 @@ export class CommonBulkService {
     this.reports = new CommonBulkRepository(host.database);
     this.locks = new CommonTableImportRepository(host.database);
   }
-  latest(sourceId: number, targetTenantId: number) {
-    return this.reports.latest(sourceId, targetTenantId);
+  latest(sourceId: number, targetTenantId: number, scope: "common" | "masters" = "common") {
+    return this.reports.latest(sourceId, targetTenantId, scope);
   }
   get(id: string) {
     return this.reports.get(id);
   }
 
-  async start(sourceId: number, targetTenantId: number, actor: string, correlationId: string) {
+  async start(
+    sourceId: number,
+    targetTenantId: number,
+    actor: string,
+    correlationId: string,
+    scope: "common" | "masters" = "common"
+  ) {
     if (!this.host.enqueueBulk)
       throw AppError.validation("The Data Bridge import worker is unavailable.");
     return this.locks.withImportLock(`bulk:${sourceId}:${targetTenantId}`, async () => {
-      const previous = await this.reports.latest(sourceId, targetTenantId);
+      const previous = await this.reports.latest(sourceId, targetTenantId, scope);
       if (previous && ["queued", "running"].includes(previous.status)) return previous;
       const [source, target] = await Promise.all([
         this.host.dataMigration.resolveSource(sourceId),
@@ -37,6 +47,7 @@ export class CommonBulkService {
       const at = new Date().toISOString();
       const report: BulkImportReport = {
         id: randomUUID(),
+        scope,
         sourceId,
         targetTenantId,
         sourceDatabase: source.database,
@@ -87,7 +98,10 @@ export class CommonBulkService {
               parents.push(String(row.parent));
               dependencies.set(String(row.child), parents);
             }
-            const ordered = parentOrder(commonTableNames, dependencies);
+            const ordered = parentOrder(
+              report.scope === "masters" ? coreTableNames : commonTableNames,
+              dependencies
+            );
             if (!report.tables.length)
               report.tables = ordered.map((table) => ({
                 table,
@@ -114,7 +128,9 @@ export class CommonBulkService {
             : "success";
           report.message =
             report.status === "success"
-              ? "All common tables audited successfully."
+              ? report.scope === "masters"
+                ? "All Core masters and common parents audited successfully."
+                : "All common tables audited successfully."
               : "Import completed with records or tables needing attention.";
         } catch (error) {
           report.status = "failed";

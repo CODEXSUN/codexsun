@@ -55,3 +55,19 @@ Live Chrome verified connections, different table names, required-field blocking
 All 47 current Core schemas passed read-only verification across 659 source rows. Against the empty real destination, 331 records were ready and 328 correctly required parents first. A separate disposable Core target then imported all 659 records in discovered parent order with zero warnings or failures. Repeating the full run found 659 existing records, zero inserts, and zero warnings. Disposable databases were removed. Source Core checksums remained unchanged; the real `altex_db` Core tables and renamed verification table remain empty.
 
 Proof artifacts are under root `dist/.cache/verification/`: `altex-core-preimport-report.json`, `altex-core-disposable-import-report.json`, and `altex-live-six-stage-proof.json`. These are local verification outputs, not deployment evidence.
+
+## Core Masters scope
+
+A separate Core Masters page lists the 16 master/child tables. Its queue report uses scope `masters` and imports the 47-table parent closure.
+Common Tables retains scope `common` and its original 31-table behavior. Reports persist their scope in existing JSON, without a schema migration.
+The existing same-name review APIs accept the explicit 47-table Core catalog. Guided imports continue to support discovered custom targets.
+Both workflows share parent resolution and destination table locks. Existing unique-key conflicts stay visible and preserve target values.
+Live acceptance must distinguish actual matches from preserved conflicts. SUKRAA has two such conflicts, documented in CORE-MASTERS-VERIFICATION.md.
+
+## Source collection and correction contract
+
+Prepare each selected record from source business values. Collect declared parent values and resolve their target identities before comparing or writing business data.
+Normal imports preserve conflicts. The separate Super Admin correction contract prepares immutable business snapshots and fingerprints in the existing master report JSON.
+Confirmed commits revalidate source, parent values, schema, destination identity, and before-data under destination table/row locks.
+Only approved business fields change. Transaction rollback and idempotent recovery protect failed retries. Fresh audits retain independent post-commit proof.
+The approved SUKRAA product-unit and company-default corrections completed on 2026-10-24. All 47 Core tables now pass with 726 verified matches.

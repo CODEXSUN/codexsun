@@ -16,8 +16,19 @@ export function CommonBulkReportPanel({
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [attentionOnly, setAttentionOnly] = useState(false);
+  const [showParents, setShowParents] = useState(false);
+  const visibleTables =
+    report.scope === "masters" && !showParents
+      ? report.tables.filter((table) =>
+          /^core_(companies|contacts)(_|$)|^core_(products|work_orders|financial_years|default_company_settings)$/.test(
+            table.table
+          )
+        )
+      : report.tables;
   const needingAttention = report.tables.filter((table) => table.status === "warning");
-  const shown = attentionOnly ? needingAttention : report.tables;
+  const shown = attentionOnly
+    ? visibleTables.filter((table) => table.status === "warning")
+    : visibleTables;
   return (
     <section
       className="space-y-3 rounded-md border bg-card p-4"
@@ -46,7 +57,7 @@ export function CommonBulkReportPanel({
       </div>
       <p className="text-sm">
         {report.tables.filter((table) => ["success", "warning"].includes(table.status)).length}/
-        {report.tables.length || 31} tables checked ·{" "}
+        {report.tables.length || (report.scope === "masters" ? 47 : 31)} tables checked ·{" "}
         {report.tables.reduce((sum, table) => sum + table.inserted, 0)} inserted ·{" "}
         {report.tables.reduce((sum, table) => sum + table.existing, 0)} existing ·{" "}
         {needingAttention.length} tables need attention
@@ -69,6 +80,11 @@ export function CommonBulkReportPanel({
           Needs attention only
         </Button>
       </div>
+      {report.scope === "masters" ? (
+        <Button variant="outline" onClick={() => setShowParents((value) => !value)}>
+          {showParents ? "Hide common parents" : "Show common parents"}
+        </Button>
+      ) : null}
       <div className="max-h-[34rem] overflow-auto rounded-md border [scrollbar-width:thin]">
         <table className="w-full text-left text-sm">
           <thead className="sticky top-0 z-10 bg-muted">
@@ -142,7 +158,11 @@ export function CommonBulkReportPanel({
                 {expanded === table.table ? (
                   <tr>
                     <td colSpan={6}>
-                      <CommonBulkRows key={`${report.id}-${table.table}`} table={table} />
+                      <CommonBulkRows
+                        key={`${report.id}-${table.table}`}
+                        table={table}
+                        {...(report.scope === "masters" ? { runId: report.id } : {})}
+                      />
                     </td>
                   </tr>
                 ) : null}

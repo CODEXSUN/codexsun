@@ -47,7 +47,7 @@ test("Data Bridge translates nested source parent IDs by target business keys", 
       );
       await assert.rejects(
         references.translate("core_cities", { district_id: 25, name: "Town" }),
-        /parent before this table/u
+        /parent (first|before this table)/u
       );
       await target.query("UPDATE core_countries SET name='Different' WHERE id=9");
       await target.query("INSERT INTO core_countries VALUES (10,'OTHER','India')");

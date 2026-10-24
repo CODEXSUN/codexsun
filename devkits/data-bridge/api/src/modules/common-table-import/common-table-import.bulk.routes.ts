@@ -1,19 +1,23 @@
 import { z } from "zod";
+import { conflictResolutionSchema } from "./common-table-import.resolution.routes.js";
 import type { FastifyInstance } from "fastify";
 import { registerContractRoute } from "@codexsun/framework/http";
 import type { CommonTableImportHost } from "./common-table-import.types.js";
-import { commonTableNames } from "./common-table-import.types.js";
+import { coreTableNames } from "./common-table-import.types.js";
 import { CommonBulkService } from "./common-table-import.bulk.service.js";
 
 const pair = z
   .object({
     sourceId: z.coerce.number().int().positive(),
-    targetTenantId: z.coerce.number().int().positive()
+    targetTenantId: z.coerce.number().int().positive(),
+    scope: z.enum(["common", "masters"]).default("common")
   })
   .strict();
 const report = z
   .object({
+    resolutions: z.array(conflictResolutionSchema).optional(),
     id: z.string().uuid(),
+    scope: z.enum(["common", "masters"]).optional(),
     sourceId: z.number().int(),
     targetTenantId: z.number().int(),
     sourceDatabase: z.string(),
@@ -26,7 +30,7 @@ const report = z
     tables: z.array(
       z
         .object({
-          table: z.enum(commonTableNames),
+          table: z.enum(coreTableNames),
           status: z.enum(["pending", "running", "success", "warning"]),
           sourceRows: z.number().int(),
           existing: z.number().int(),
@@ -41,7 +45,9 @@ const report = z
                   status: z.enum(["imported", "existing", "warning", "pending"]),
                   message: z.string(),
                   source: z.record(z.string(), z.unknown()),
-                  target: z.record(z.string(), z.unknown()).nullable()
+                  target: z.record(z.string(), z.unknown()).nullable(),
+                  collection: z.record(z.string(), z.unknown()).optional(),
+                  prepared: z.record(z.string(), z.unknown()).optional()
                 })
                 .strict()
             )
@@ -62,13 +68,19 @@ export function registerCommonBulkRoutes(app: FastifyInstance, host: CommonTable
     url: "/bulk-imports",
     schemas: { body: pair, response: report },
     handler: async ({ body, request }) =>
-      service.start(body.sourceId, body.targetTenantId, await host.authorize(request), request.id)
+      service.start(
+        body.sourceId,
+        body.targetTenantId,
+        await host.authorize(request),
+        request.id,
+        body.scope
+      )
   });
   registerContractRoute(app, {
     method: "GET",
     url: "/bulk-imports/latest",
     schemas: { querystring: pair, response: report.nullable() },
-    handler: ({ query }) => service.latest(query.sourceId, query.targetTenantId)
+    handler: ({ query }) => service.latest(query.sourceId, query.targetTenantId, query.scope)
   });
   registerContractRoute(app, {
     method: "GET",

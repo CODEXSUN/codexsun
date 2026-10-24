@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { registerContractRoute } from "@codexsun/framework/http";
 import { z } from "zod";
 import { CommonTableImportService } from "./common-table-import.service.js";
-import { commonTableNames, type CommonTableImportHost } from "./common-table-import.types.js";
+import { coreTableNames, type CommonTableImportHost } from "./common-table-import.types.js";
 
 const selection = z
   .object({
@@ -10,7 +10,7 @@ const selection = z
     targetTenantId: z.coerce.number().int().positive()
   })
   .strict();
-const tableParams = z.object({ table: z.enum(commonTableNames) }).strict();
+const tableParams = z.object({ table: z.enum(coreTableNames) }).strict();
 const importParams = z.object({ id: z.string().uuid() }).strict();
 const pageQuery = selection
   .extend({ page: z.coerce.number().int().positive().default(1) })
@@ -35,7 +35,7 @@ const summary = z
     id: z.string().uuid(),
     sourceId: z.number().int().positive(),
     targetTenantId: z.number().int().positive(),
-    table: z.enum(commonTableNames),
+    table: z.enum(coreTableNames),
     sourceDatabase: z.string(),
     targetDatabase: z.string(),
     rowCount: z.number().int().nonnegative(),
@@ -47,7 +47,7 @@ const summary = z
   .strict();
 const option = z
   .object({
-    table: z.enum(commonTableNames),
+    table: z.enum(coreTableNames),
     sourceRows: z.number().int().nonnegative().nullable(),
     targetRows: z.number().int().nonnegative().nullable(),
     sourceAvailable: z.boolean(),
@@ -115,8 +115,11 @@ export function registerCommonTableImportRoutes(app: FastifyInstance, host: Comm
   registerContractRoute(app, {
     method: "GET",
     url: "/common-tables",
-    schemas: { querystring: selection, response: z.array(option) },
-    handler: ({ query }) => service.listTables(query.sourceId, query.targetTenantId)
+    schemas: {
+      querystring: selection.extend({ scope: z.enum(["common", "masters"]).default("common") }),
+      response: z.array(option)
+    },
+    handler: ({ query }) => service.listTables(query.sourceId, query.targetTenantId, query.scope)
   });
   registerContractRoute(app, {
     method: "GET",
@@ -130,7 +133,7 @@ export function registerCommonTableImportRoutes(app: FastifyInstance, host: Comm
     schemas: {
       body: selection
         .extend({
-          table: z.enum(commonTableNames),
+          table: z.enum(coreTableNames),
           rowIds: z.array(z.number().int().positive()).min(1).max(10000),
           columns: z
             .array(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/u))

@@ -6,7 +6,11 @@ import {
 } from "./common-table-import.services.js";
 import type { CommonBulkReport } from "./common-table-import.types.js";
 
-export function useCommonBulkImport(sourceId: number, targetTenantId: number) {
+export function useCommonBulkImport(
+  sourceId: number,
+  targetTenantId: number,
+  scope: "common" | "masters" = "common"
+) {
   const [report, setReport] = useState<CommonBulkReport | null>(null);
   const [error, setError] = useState("");
   const [starting, setStarting] = useState(false);
@@ -15,7 +19,7 @@ export function useCommonBulkImport(sourceId: number, targetTenantId: number) {
     setReport(null);
     setError("");
     if (sourceId && targetTenantId)
-      void latestCommonBulkReport(sourceId, targetTenantId)
+      void latestCommonBulkReport(sourceId, targetTenantId, scope)
         .then((value) => {
           if (!cancelled) setReport(value);
         })
@@ -28,7 +32,7 @@ export function useCommonBulkImport(sourceId: number, targetTenantId: number) {
     return () => {
       cancelled = true;
     };
-  }, [sourceId, targetTenantId]);
+  }, [sourceId, targetTenantId, scope]);
   const active = report?.status === "queued" || report?.status === "running";
   useEffect(() => {
     if (!report || !active) return;
@@ -61,7 +65,7 @@ export function useCommonBulkImport(sourceId: number, targetTenantId: number) {
     setStarting(true);
     setError("");
     try {
-      setReport(await startCommonBulkImport(sourceId, targetTenantId));
+      setReport(await startCommonBulkImport(sourceId, targetTenantId, scope));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to queue the import.");
     } finally {

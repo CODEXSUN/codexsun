@@ -59,8 +59,6 @@ export class CommonBulkEngine {
         );
       const audit = new CommonTableRowAudit(this.target, entry.table, columns);
       const keys = await audit.uniqueKeys();
-      if (!keys.length)
-        throw new Error("No shared business unique key. Review this table manually.");
       const references = new CommonTableReferences(this.source, this.target);
       const selected: number[] = [];
       entry.rows = [];
@@ -76,10 +74,13 @@ export class CommonBulkEngine {
         };
         entry.rows.push(snapshot);
         try {
-          const data = await references.translate(
+          const prepared = await references.prepare(
             entry.table,
             Object.fromEntries(columns.map((name) => [name, row[name]]))
           );
+          const data = prepared.data;
+          snapshot.collection = prepared.collection;
+          snapshot.prepared = data;
           const checked = await audit.row({ rowNumber: Number(row.id), data }, keys);
           snapshot.message = checked.message;
           snapshot.status =
@@ -91,7 +92,7 @@ export class CommonBulkEngine {
           snapshot.target = await audit.matchingData(data, keys);
           if (checked.status === "ready") selected.push(Number(row.id));
           else {
-            entry.existing++;
+            if (checked.status === "existing") entry.existing++;
             if (checked.status === "conflict")
               entry.attention.push({ rowId: Number(row.id), message: checked.message });
           }
@@ -115,8 +116,10 @@ export class CommonBulkEngine {
         await this.service.auditSaved(saved.id, run.actor);
         const result = await this.service.importSaved(saved.id, run.actor);
         entry.inserted = result.imported;
-        entry.existing += result.skipped;
+
         const detail = await this.service.getImport(saved.id);
+        entry.existing +=
+          detail.report?.rows.filter((row) => row.status === "existing").length ?? 0;
         for (const row of detail.report?.rows ?? []) {
           if (["conflict", "warning", "rolled_back"].includes(row.status))
             entry.attention.push({

@@ -73,6 +73,7 @@ export type ImportReport = {
 };
 
 export type CommonBulkReport = {
+  scope?: "common" | "masters";
   id: string;
   sourceId: number;
   targetTenantId: number;
@@ -97,7 +98,37 @@ export type CommonBulkReport = {
       message: string;
       source: Record<string, unknown>;
       target: Record<string, unknown> | null;
+      collection?: Record<string, unknown>;
+      prepared?: Record<string, unknown>;
     }>;
     attention: Array<{ rowId: number | null; message: string }>;
   }>;
+};
+
+export type ConflictResolution = {
+  id: string;
+  table: string;
+  sourceId: number;
+  targetId: number;
+  targetUuid: string | null;
+  status: "prepared" | "committed";
+  source: Record<string, unknown>;
+  collection: Record<string, unknown>;
+  references: Array<{
+    field: string;
+    parentTable: string;
+    sourceId: number;
+    targetId: number;
+    sourceValue: unknown;
+    targetValue: unknown;
+    sourceKey: Record<string, unknown>;
+    targetKey: Record<string, unknown>;
+  }>;
+  prepared: Record<string, unknown>;
+  before: Record<string, unknown>;
+  changes: string[];
+  fingerprint: string;
+  actor: string;
+  preparedAt: string;
+  committedAt: string | null;
 };

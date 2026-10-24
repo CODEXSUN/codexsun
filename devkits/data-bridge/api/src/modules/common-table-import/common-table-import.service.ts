@@ -7,6 +7,7 @@ import { CommonTableReferences } from "./common-table-import.references.js";
 import type { ImportReport, ImportRowReport } from "./common-table-import.types.js";
 import {
   commonTableNames,
+  coreMasterTableNames,
   type CommonTableImportHost,
   type CommonTableName,
   type CommonTableOption
@@ -46,7 +47,11 @@ export class CommonTableImportService {
     return this.imports.pageRows(id, page, pageLimit);
   }
 
-  async listTables(sourceId: number, targetTenantId: number) {
+  async listTables(
+    sourceId: number,
+    targetTenantId: number,
+    scope: "common" | "masters" = "common"
+  ) {
     const [source, target, saved] = await Promise.all([
       this.host.dataMigration.resolveSource(sourceId),
       this.host.resolveTenant(targetTenantId),
@@ -63,7 +68,7 @@ export class CommonTableImportService {
         this.existingTables(targetDb, target.database)
       ]);
       const result: CommonTableOption[] = [];
-      for (const table of commonTableNames) {
+      for (const table of scope === "masters" ? coreMasterTableNames : commonTableNames) {
         const sourceAvailable = sourceTables.has(table);
         const targetAvailable = targetTables.has(table);
         const [sourceColumns, targetColumns, sourceCount, targetCount] = await Promise.all([
@@ -310,65 +315,76 @@ export class CommonTableImportService {
     ]);
     try {
       const result = await this.withDatabases(source, target, async (sourceDb, targetDb) => {
-        const [sourceColumns, targetColumns] = await Promise.all([
-          this.columns(sourceDb, saved.table),
-          this.columns(targetDb, saved.table)
+        const lockName = `codexsun.bridge.table:${createHash("sha256").update(`${target.database}.${saved.table}`).digest("hex").slice(0, 32)}`;
+        const [lock] = await targetDb.query<RowDataPacket[]>("SELECT GET_LOCK(?, 30) AS acquired", [
+          lockName
         ]);
-        const currentHash = this.schemaHash(sourceColumns, targetColumns, saved.columns);
-        if (currentHash !== saved.schemaHash) {
-          throw AppError.validation(
-            "The table schema changed after review. Refresh and save it again."
-          );
-        }
-        const rows = await this.imports.rows(id);
-        const audit = new CommonTableRowAudit(targetDb, saved.table, saved.columns);
-        const keys = await audit.uniqueKeys();
-        const names = saved.columns as string[];
-        const insertSql = `INSERT INTO ${quoteIdentifier(saved.table)} (${names
-          .map(quoteIdentifier)
-          .join(", ")}) VALUES (${names.map(() => "?").join(", ")})`;
-        let imported = 0;
-        let skipped = 0;
-        await targetDb.beginTransaction();
+        if (Number(lock[0]?.acquired) !== 1)
+          throw AppError.validation("Another import is using this target table. Try again.");
         try {
-          for (const row of rows) {
-            const checked = await audit.row(row, keys);
-            if (checked.status !== "ready") {
-              report.rows.push(checked);
-              skipped += 1;
-              continue;
-            }
-            try {
-              await targetDb.execute(
-                insertSql,
-                names.map((name) => bindValue(row.data[name]))
-              );
-              imported += 1;
-              report.rows.push({
-                rowNumber: row.rowNumber,
-                status: "inserted",
-                message: "Inserted successfully."
-              });
-            } catch (error) {
-              if (isDuplicateKey(error)) {
+          const [sourceColumns, targetColumns] = await Promise.all([
+            this.columns(sourceDb, saved.table),
+            this.columns(targetDb, saved.table)
+          ]);
+          const currentHash = this.schemaHash(sourceColumns, targetColumns, saved.columns);
+          if (currentHash !== saved.schemaHash) {
+            throw AppError.validation(
+              "The table schema changed after review. Refresh and save it again."
+            );
+          }
+          const rows = await this.imports.rows(id);
+          const audit = new CommonTableRowAudit(targetDb, saved.table, saved.columns);
+          const keys = await audit.uniqueKeys();
+          const names = saved.columns as string[];
+          const insertSql = `INSERT INTO ${quoteIdentifier(saved.table)} (${names
+            .map(quoteIdentifier)
+            .join(", ")}) VALUES (${names.map(() => "?").join(", ")})`;
+          let imported = 0;
+          let skipped = 0;
+          await targetDb.beginTransaction();
+          try {
+            for (const row of rows) {
+              const checked = await audit.row(row, keys);
+              if (checked.status !== "ready") {
+                report.rows.push(checked);
                 skipped += 1;
-                report.rows.push({
-                  rowNumber: row.rowNumber,
-                  status: "warning",
-                  message: "A unique key became occupied during import. Existing row kept; skipped."
-                });
                 continue;
               }
-              throw error;
+              try {
+                await targetDb.execute(
+                  insertSql,
+                  names.map((name) => bindValue(row.data[name]))
+                );
+                imported += 1;
+                report.rows.push({
+                  rowNumber: row.rowNumber,
+                  status: "inserted",
+                  message: "Inserted successfully."
+                });
+              } catch (error) {
+                if (isDuplicateKey(error)) {
+                  skipped += 1;
+                  report.rows.push({
+                    rowNumber: row.rowNumber,
+                    status: "warning",
+                    message:
+                      "A unique key became occupied during import. Existing row kept; skipped."
+                  });
+                  continue;
+                }
+                throw error;
+              }
             }
+            await targetDb.commit();
+            targetCommitted = true;
+          } catch (error) {
+            await targetDb.rollback();
+            throw error;
           }
-          await targetDb.commit();
-          targetCommitted = true;
-        } catch (error) {
-          await targetDb.rollback();
-          throw error;
+          return { imported, skipped };
+        } finally {
+          await targetDb.query("SELECT RELEASE_LOCK(?)", [lockName]);
         }
-        return { imported, skipped };
       });
       await this.imports.complete(id, actor, result.imported, result.skipped, report);
       return { ...result, status: "imported" as const };

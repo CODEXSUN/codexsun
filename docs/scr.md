@@ -1,0 +1,62 @@
+now fix these two warnings in sukraa for product unit and default company settings, verify the saved data and confirm all core masters are green
+
+in this we have to find all common table field first and get its id and then prepare and commit
+
+steps:
+
+on source database
+
+1. get one record
+2. get all its foreign text value and prepare collection for
+
+   eg :product table
+
+source would be
+
+"created_by": "sundar",
+"id": 20,
+"uuid": "a65c18fc",
+"name": "t shirt",
+"product_type_id": 1,
+"product_category_id": 1,
+"hsn_code_id": 20,
+"unit_id": 4,
+"gst_tax_id": 4,
+"opening_qty": 0,
+"opening_price": 0,
+"status": "active",
+"created_at": "2026-08-17 11:23:53",
+"updated_at": "2026-08-17 11:23:53",
+"deleted_at": null
+
+set name
+
+"name": "t shirt",
+"product_type_name": "computer",
+"product_category_name": "goods" ,
+"hsn_code_name": "12523525",
+"unit_name": "kgs",
+"gst_tax_id": "18",
+"opening_qty": 0,
+"opening_price": 0,
+"status": "active",
+
+3. now get proper value id of target database
+
+"created_by": "system:migration",
+"id": 21, => can be new id
+"uuid": "b23c1658", => can be new uuid
+"name": "t shirt",
+"product_type_id": 1,
+"product_category_id": 2,
+"hsn_code_id": 21,
+"unit_id": 6,
+"gst_tax_id": 5,
+"opening_qty": 0,
+"opening_price": 0,
+"status": "active",
+"created_at": "2026-08-17 11:23:53",
+"updated_at": "2026-08-17 11:23:53",
+"deleted_at": null
+
+get like this and then process

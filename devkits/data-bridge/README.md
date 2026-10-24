@@ -66,3 +66,24 @@ Proof artifacts are under root `dist/.cache/verification/`: `altex-core-preimpor
 The authorized local import completed with 659 records across all 47 Core tables and zero warnings or failures.
 Saved business values, row counts, queue completion, foreign references, and unchanged source checksums were verified.
 See [release log and proof](agent/RELEASE-1.1.49.md).
+
+## Core Masters
+
+Core Masters is a separate Super Admin Data Bridge page for contacts, companies, products, work orders, their children, financial years, and default company settings.
+It lists 16 master/child tables and reuses the Common Tables preview, column selection, row selection, audit, import, and report drill-down controls.
+Its bulk action audits all 47 Core tables in parent order, including common parents. Common Tables retains its 31-table scope.
+Reports remain separate by scope and connection pair. Core master results appear first, with an optional common-parent view.
+Tables without business unique indexes use exact selected-business-value matching. Missing or ambiguous parents remain warnings.
+Target table locks serialize writes with the guided importer. Conflicts never overwrite existing live records or appear as exact matches.
+See [Core Masters verification](agent/CORE-MASTERS-VERIFICATION.md) for live results and unresolved SUKRAA conflicts.
+
+## Parent-value collections and explicit corrections
+
+Core Masters prepares source collections with parent business values, then resolves destination parent IDs before comparing or inserting records.
+Reports show these source collections alongside saved target data. IDs, UUIDs, and creation metadata remain destination-owned.
+Existing conflicts remain preserved during normal imports. A Super Admin can separately prepare a correction from a completed master audit.
+The correction dialog shows the source collection, current target, prepared target data, resolved references, and changed fields.
+Commit requires explicit confirmation and rejects changed source, parent, schema, or target snapshots. It updates only approved business fields under destination locks.
+Saved correction plans include before-data and operator attribution. Run a fresh audit after correction.
+The two SUKRAA warnings were explicitly corrected and all 47 Core tables now pass with 726 matches and no warnings.
+See [SUKRAA correction proof](agent/SUKRAA-CORRECTIONS-2026-10-24.md).

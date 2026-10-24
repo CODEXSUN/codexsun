@@ -148,7 +148,7 @@ export function TableImportReviewWorkspace({
     return (
       <WorkspacePage title="Table Import Review" onBack={onBack}>
         <section className="rounded-md border bg-card p-5">
-          Select a common table from the Common Tables page to review its source and target data.
+          Select a table from Common Tables or Core Masters to review its source and target data.
         </section>
       </WorkspacePage>
     );

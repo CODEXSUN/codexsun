@@ -587,3 +587,8 @@ No provider operation, commit, push, version change, or cloud deployment was per
 For the consent continuation, Platform API/Web typecheck, lint, build, and boundaries passed.
 Loader/navigation regression tests, component documentation, synchronized Docs, and dependency layout passed.
 The real local signed session opened all six standalone Marketing forms without a list behind them; column URL state survived reload.
+
+## Data Bridge Core Masters
+
+- [x] Add the Super Admin Core Masters sidebar route and preserve owner-controlled table review navigation.
+- [x] Reuse the existing tenant-bound Data Bridge bulk queue processor for scoped 47-table master imports.

@@ -1,0 +1,550 @@
+{
+  "date": "2026-10-24",
+  "verifiedAt": "2026-10-24T02:30:55.897Z",
+  "source": "sukraa_cloud_db",
+  "target": "sukraa_db",
+  "reportId": "35519eb3-0ff8-415b-bfe9-01bc1b8cd89c",
+  "correctionReportId": "420321bb-7a56-41f7-9baa-2e2df1d15de4",
+  "status": "success",
+  "changedSourceTables": [],
+  "changedTargetTables": [
+    "core_products",
+    "core_default_company_settings"
+  ],
+  "rowCountsUnchanged": true,
+  "corrections": [
+    {
+      "table": "core_products",
+      "sourceId": 1,
+      "targetId": 1,
+      "status": "committed",
+      "fields": [
+        "unit_id"
+      ],
+      "before": {
+        "unit_id": 2
+      },
+      "after": {
+        "unit_id": 1
+      },
+      "identitiesAndOtherFieldsPreserved": true,
+      "savedValuesVerified": true,
+      "references": [
+        {
+          "field": "product_type_id",
+          "parentTable": "core_product_types",
+          "sourceId": 1,
+          "targetId": 1,
+          "sourceValue": "-",
+          "targetValue": "-"
+        },
+        {
+          "field": "product_category_id",
+          "parentTable": "core_product_categories",
+          "sourceId": 1,
+          "targetId": 1,
+          "sourceValue": "-",
+          "targetValue": "-"
+        },
+        {
+          "field": "hsn_code_id",
+          "parentTable": "core_hsn_codes",
+          "sourceId": 1,
+          "targetId": 1,
+          "sourceValue": "-",
+          "targetValue": "-"
+        },
+        {
+          "field": "unit_id",
+          "parentTable": "core_units",
+          "sourceId": 1,
+          "targetId": 1,
+          "sourceValue": "-",
+          "targetValue": "-"
+        },
+        {
+          "field": "gst_tax_id",
+          "parentTable": "core_taxes",
+          "sourceId": 1,
+          "targetId": 1,
+          "sourceValue": -1,
+          "targetValue": -1
+        }
+      ],
+      "committedAt": "2026-10-24T02:28:54.825Z"
+    },
+    {
+      "table": "core_default_company_settings",
+      "sourceId": 1,
+      "targetId": 1,
+      "status": "committed",
+      "fields": [
+        "company_id",
+        "landing_app"
+      ],
+      "before": {
+        "company_id": 1,
+        "landing_app": "application"
+      },
+      "after": {
+        "company_id": 2,
+        "landing_app": "billing"
+      },
+      "identitiesAndOtherFieldsPreserved": true,
+      "savedValuesVerified": true,
+      "references": [
+        {
+          "field": "company_id",
+          "parentTable": "core_companies",
+          "sourceId": 1,
+          "targetId": 2,
+          "sourceValue": "SUKRAA GARMENTS",
+          "targetValue": "SUKRAA GARMENTS"
+        },
+        {
+          "field": "financial_year_id",
+          "parentTable": "core_financial_years",
+          "sourceId": 1,
+          "targetId": 1,
+          "sourceValue": "FY 2026-27",
+          "targetValue": "FY 2026-27"
+        }
+      ],
+      "committedAt": "2026-10-24T02:29:25.968Z"
+    }
+  ],
+  "tables": [
+    {
+      "table": "core_ledger_groups",
+      "status": "success",
+      "sourceRows": 6,
+      "existing": 6,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 6
+    },
+    {
+      "table": "core_ledgers",
+      "status": "success",
+      "sourceRows": 6,
+      "existing": 6,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 6
+    },
+    {
+      "table": "core_address_types",
+      "status": "success",
+      "sourceRows": 4,
+      "existing": 4,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 4
+    },
+    {
+      "table": "core_bank_names",
+      "status": "success",
+      "sourceRows": 158,
+      "existing": 158,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 158
+    },
+    {
+      "table": "core_contact_groups",
+      "status": "success",
+      "sourceRows": 3,
+      "existing": 3,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 3
+    },
+    {
+      "table": "core_contact_types",
+      "status": "success",
+      "sourceRows": 6,
+      "existing": 6,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 6
+    },
+    {
+      "table": "core_countries",
+      "status": "success",
+      "sourceRows": 6,
+      "existing": 6,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 6
+    },
+    {
+      "table": "core_states",
+      "status": "success",
+      "sourceRows": 38,
+      "existing": 38,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 38
+    },
+    {
+      "table": "core_districts",
+      "status": "success",
+      "sourceRows": 42,
+      "existing": 42,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 42
+    },
+    {
+      "table": "core_cities",
+      "status": "success",
+      "sourceRows": 42,
+      "existing": 42,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 42
+    },
+    {
+      "table": "core_pincodes",
+      "status": "success",
+      "sourceRows": 49,
+      "existing": 49,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 49
+    },
+    {
+      "table": "core_currencies",
+      "status": "success",
+      "sourceRows": 3,
+      "existing": 3,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 3
+    },
+    {
+      "table": "core_months",
+      "status": "success",
+      "sourceRows": 13,
+      "existing": 13,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 13
+    },
+    {
+      "table": "core_payment_terms",
+      "status": "success",
+      "sourceRows": 4,
+      "existing": 4,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 4
+    },
+    {
+      "table": "core_priorities",
+      "status": "success",
+      "sourceRows": 4,
+      "existing": 4,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 4
+    },
+    {
+      "table": "core_sales_types",
+      "status": "success",
+      "sourceRows": 3,
+      "existing": 3,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 3
+    },
+    {
+      "table": "core_brands",
+      "status": "success",
+      "sourceRows": 2,
+      "existing": 2,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 2
+    },
+    {
+      "table": "core_colours",
+      "status": "success",
+      "sourceRows": 20,
+      "existing": 20,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 20
+    },
+    {
+      "table": "core_hsn_codes",
+      "status": "success",
+      "sourceRows": 31,
+      "existing": 31,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 31
+    },
+    {
+      "table": "core_product_categories",
+      "status": "success",
+      "sourceRows": 2,
+      "existing": 2,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 2
+    },
+    {
+      "table": "core_product_groups",
+      "status": "success",
+      "sourceRows": 2,
+      "existing": 2,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 2
+    },
+    {
+      "table": "core_product_types",
+      "status": "success",
+      "sourceRows": 3,
+      "existing": 3,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 3
+    },
+    {
+      "table": "core_sizes",
+      "status": "success",
+      "sourceRows": 47,
+      "existing": 47,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 47
+    },
+    {
+      "table": "core_styles",
+      "status": "success",
+      "sourceRows": 2,
+      "existing": 2,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 2
+    },
+    {
+      "table": "core_taxes",
+      "status": "success",
+      "sourceRows": 5,
+      "existing": 5,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 5
+    },
+    {
+      "table": "core_units",
+      "status": "success",
+      "sourceRows": 8,
+      "existing": 8,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 8
+    },
+    {
+      "table": "core_destinations",
+      "status": "success",
+      "sourceRows": 2,
+      "existing": 2,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 2
+    },
+    {
+      "table": "core_stock_rejection_types",
+      "status": "success",
+      "sourceRows": 3,
+      "existing": 3,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 3
+    },
+    {
+      "table": "core_transports",
+      "status": "success",
+      "sourceRows": 2,
+      "existing": 2,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 2
+    },
+    {
+      "table": "core_warehouses",
+      "status": "success",
+      "sourceRows": 2,
+      "existing": 2,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 2
+    },
+    {
+      "table": "core_work_order_types",
+      "status": "success",
+      "sourceRows": 2,
+      "existing": 2,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 2
+    },
+    {
+      "table": "core_companies",
+      "status": "success",
+      "sourceRows": 1,
+      "existing": 1,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 1
+    },
+    {
+      "table": "core_companies_addresses",
+      "status": "success",
+      "sourceRows": 0,
+      "existing": 0,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 0
+    },
+    {
+      "table": "core_companies_bank_accounts",
+      "status": "success",
+      "sourceRows": 0,
+      "existing": 0,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 0
+    },
+    {
+      "table": "core_companies_emails",
+      "status": "success",
+      "sourceRows": 0,
+      "existing": 0,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 0
+    },
+    {
+      "table": "core_companies_phones",
+      "status": "success",
+      "sourceRows": 0,
+      "existing": 0,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 0
+    },
+    {
+      "table": "core_companies_social_links",
+      "status": "success",
+      "sourceRows": 0,
+      "existing": 0,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 0
+    },
+    {
+      "table": "core_contacts",
+      "status": "success",
+      "sourceRows": 80,
+      "existing": 80,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 80
+    },
+    {
+      "table": "core_contacts_addresses",
+      "status": "success",
+      "sourceRows": 84,
+      "existing": 84,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 84
+    },
+    {
+      "table": "core_contacts_bank_accounts",
+      "status": "success",
+      "sourceRows": 0,
+      "existing": 0,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 0
+    },
+    {
+      "table": "core_contacts_emails",
+      "status": "success",
+      "sourceRows": 0,
+      "existing": 0,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 0
+    },
+    {
+      "table": "core_contacts_phones",
+      "status": "success",
+      "sourceRows": 0,
+      "existing": 0,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 0
+    },
+    {
+      "table": "core_contacts_social_links",
+      "status": "success",
+      "sourceRows": 0,
+      "existing": 0,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 0
+    },
+    {
+      "table": "core_products",
+      "status": "success",
+      "sourceRows": 38,
+      "existing": 38,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 38
+    },
+    {
+      "table": "core_work_orders",
+      "status": "success",
+      "sourceRows": 1,
+      "existing": 1,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 1
+    },
+    {
+      "table": "core_financial_years",
+      "status": "success",
+      "sourceRows": 1,
+      "existing": 1,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 1
+    },
+    {
+      "table": "core_default_company_settings",
+      "status": "success",
+      "sourceRows": 1,
+      "existing": 1,
+      "inserted": 0,
+      "warnings": 0,
+      "verifiedSavedRows": 1
+    }
+  ],
+  "foreignKeysChecked": 31,
+  "orphanReferences": 0,
+  "verifiedRows": 726,
+  "altex": {
+    "status": "success",
+    "tables": 47,
+    "warnings": 0,
+    "existing": 659
+  }
+}

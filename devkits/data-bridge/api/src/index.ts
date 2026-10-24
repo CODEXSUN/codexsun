@@ -22,3 +22,4 @@ export async function registerDataBridgeApi(app: FastifyInstance, host: CommonTa
 }
 
 export { TransferService } from "./modules/common-table-import/common-table-import.transfer.service.js";
+export { ConflictResolutionService } from "./modules/common-table-import/common-table-import.resolution.service.js";

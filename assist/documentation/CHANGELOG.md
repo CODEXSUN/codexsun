@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.50
+Current version: 1.1.51
 
-Release tag: v-1.1.50
+Release tag: v-1.1.51
 
-Changelog label: v 1.1.50
+Changelog label: v 1.1.51
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -20,11 +20,38 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
 
+## v-1.1.51
+
+### [v 1.1.51] 2026-10-24 8:09 am - Data Bridge source collections and verified SUKRAA target mapping
+
+#### Database Changes
+
+- Complete the explicitly approved local SUKRAA corrections: placeholder product unit ID 2 to 1, default company resolved from source ID 1 to target ID 2, and landing app application to billing.
+- Verify all 47 Core tables with 726 exact business matches, zero warnings/inserts, and zero orphan references across 31 foreign-key relationships. Preserve source checksums, target identities, unrelated fields, and row counts. No new schema migration is required.
+
+- Database update: Yes (manual).
+
+#### App Codebase Changes
+
+- Add readable source parent-value collections, business-key target ID resolution, and prepared destination data. Keep Core Masters and Common Tables as separate scoped pages with saved row reports.
+- Add explicit correction preview and commit routes with saved before-data, confirmation, fingerprints, stale source/parent/schema/target checks, destination locks, rollback, and idempotent recovery. Normal imports continue to preserve conflicting records.
+- Verify both corrections through authenticated Chrome and independent database reads. Pass 12 focused regressions, including authorization denial and failed-update rollback. Record release details and all-green proof in devkits/data-bridge/agent/RELEASE-1.1.51.md.
+
+- Bumped workspace version to 1.1.51.
+
 ## v-1.1.50
 
 ### [v 1.1.50] 2026-10-23 9:12 pm - Preserve enquiry assignments and align Frappe identities
 
 #### Database Changes
+
+- On 2026-10-24, commit the two explicitly approved SUKRAA corrections: placeholder product unit ID 2 to 1, default company ID 1 to resolved target ID 2, and landing app application to billing.
+- Fresh verification passes all 47 Core tables with 726 exact business matches, zero warnings/inserts, and no orphan references across 31 foreign keys. Only the two intended records changed. Source checksums, target identities, unrelated fields, and row counts remain unchanged. No schema migration is added.
+
+
+- Data Bridge Core Masters imported 200 missing local SUKRAA rows. Repeat verified 724 exact business matches and preserved two target conflicts: product unit and default company/landing-app settings.
+- ALTEX verified 659 existing business matches with zero warnings or inserts. Both sources remained unchanged. Both targets passed 31 foreign-key checks without orphan references.
+
 
 - Database update: No (manual). No schema migration is required.
 - Completed the approved TECHMEDIA data repair for nine enquiries. Reused existing Customers C2083, C3663, and C9325. Added eight Mobile Contacts and eight Customer associations.
@@ -34,6 +61,15 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Confirmed all eight Frappe enquiries are Closed with one matching Job Comments note each and zero unsent enquiry events. Retained test SOP/report records with completion notes.
 
 #### App Codebase Changes
+
+- Data Bridge now collects readable source parent values and prepares resolved target IDs before import. Add a separate Super Admin correction preview/commit contract with saved before-data, explicit confirmation, stale source/parent/schema/target checks, destination locks, rollback, and idempotent recovery.
+- Verify the approved corrections through authenticated external Chrome and independent saved-data reads. Record proof in devkits/data-bridge/agent/SUKRAA-CORRECTIONS-2026-10-24.md.
+
+
+- Add a separate Core Masters page for contacts, companies, products, work orders, and children. Its scoped queue imports 47 Core tables in parent order while Common Tables retains its 31-table scope.
+- Reuse live table previews, selected rows/columns, report drill-down, and parent resolution. Support business-row duplicate checks without natural unique indexes and shared destination-table locks.
+- Keep conflicting records visible as warnings instead of counting them as existing exact matches. See devkits/data-bridge/agent/CORE-MASTERS-VERIFICATION.md for proof.
+
 
 - Bumped workspace version to 1.1.50.
 

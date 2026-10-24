@@ -2,11 +2,24 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import fastify from "fastify";
 import { registerDataBridgeApi } from "../../index.js";
-import { commonTableNames } from "./common-table-import.types.js";
+import {
+  commonTableNames,
+  coreMasterTableNames,
+  coreTableNames
+} from "./common-table-import.types.js";
 import type { CommonTableImportHost } from "./common-table-import.types.js";
 
 test("common table catalogue has 31 unique Core tables", () => {
   assert.equal(commonTableNames.length, 31);
+  assert.equal(coreMasterTableNames.length, 16);
+  assert.equal(new Set(coreTableNames).size, 47);
+  for (const name of [
+    "core_contacts",
+    "core_companies",
+    "core_products",
+    "core_work_orders"
+  ] as const)
+    assert.ok(coreMasterTableNames.includes(name));
   assert.equal(new Set(commonTableNames).size, commonTableNames.length);
   assert.ok(commonTableNames.every((name) => /^core_[a-z0-9_]+$/u.test(name)));
 });
@@ -28,6 +41,24 @@ test("Data Bridge gates lookup routes with the Super Admin host authorization", 
       payload: { sourceId: 1, targetTenantId: 7 }
     });
     assert.equal(deniedBulk.statusCode, 403);
+    for (const [action, payload] of [
+      ["prepare", { table: "core_products", sourceId: 1 }],
+      [
+        "commit",
+        {
+          planId: "00000000-0000-4000-8000-000000000002",
+          fingerprint: "0".repeat(64),
+          confirmed: true
+        }
+      ]
+    ] as const) {
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/data-bridge/bulk-imports/00000000-0000-4000-8000-000000000001/corrections/${action}`,
+        payload
+      });
+      assert.equal(response.statusCode, 403);
+    }
     for (const url of [
       "/api/data-bridge/transfers",
       "/api/data-bridge/transfers/00000000-0000-4000-8000-000000000001"

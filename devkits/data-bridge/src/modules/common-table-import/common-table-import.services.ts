@@ -51,9 +51,13 @@ export async function request<T>(path: string, body?: unknown) {
 export const listDataBridgeSources = () => request<DataBridgeSource[]>("/sources");
 export const listDataBridgeTenants = () => request<DataBridgeTenant[]>("/tenants");
 export const listCommonTableImports = () => request<CommonTableImportSummary[]>("/imports");
-export const listCommonTables = (sourceId: number, targetTenantId: number) =>
+export const listCommonTables = (
+  sourceId: number,
+  targetTenantId: number,
+  scope: "common" | "masters" = "common"
+) =>
   request<CommonTableOption[]>(
-    `/common-tables?sourceId=${sourceId}&targetTenantId=${targetTenantId}`
+    `/common-tables?sourceId=${sourceId}&targetTenantId=${targetTenantId}&scope=${scope}`
   );
 export const previewCommonTable = (
   sourceId: number,
@@ -88,14 +92,34 @@ export const runCommonTableImport = (id: string) =>
   request<{ imported: number; skipped: number; status: "imported" }>(`/imports/${id}/run`, {});
 export const auditCommonTableImport = (id: string) =>
   request<import("./common-table-import.types.js").ImportReport>(`/imports/${id}/audit`, {});
-export const startCommonBulkImport = (sourceId: number, targetTenantId: number) =>
+export const startCommonBulkImport = (
+  sourceId: number,
+  targetTenantId: number,
+  scope: "common" | "masters" = "common"
+) =>
   request<import("./common-table-import.types.js").CommonBulkReport>("/bulk-imports", {
     sourceId,
-    targetTenantId
+    targetTenantId,
+    scope
   });
-export const latestCommonBulkReport = (sourceId: number, targetTenantId: number) =>
+export const latestCommonBulkReport = (
+  sourceId: number,
+  targetTenantId: number,
+  scope: "common" | "masters" = "common"
+) =>
   request<import("./common-table-import.types.js").CommonBulkReport | null>(
-    `/bulk-imports/latest?sourceId=${sourceId}&targetTenantId=${targetTenantId}`
+    `/bulk-imports/latest?sourceId=${sourceId}&targetTenantId=${targetTenantId}&scope=${scope}`
   );
 export const getCommonBulkReport = (id: string) =>
   request<import("./common-table-import.types.js").CommonBulkReport>(`/bulk-imports/${id}`);
+
+export const prepareConflictCorrection = (runId: string, table: string, sourceId: number) =>
+  request<import("./common-table-import.types.js").ConflictResolution>(
+    `/bulk-imports/${runId}/corrections/prepare`,
+    { table, sourceId }
+  );
+export const commitConflictCorrection = (runId: string, planId: string, fingerprint: string) =>
+  request<import("./common-table-import.types.js").ConflictResolution>(
+    `/bulk-imports/${runId}/corrections/commit`,
+    { planId, fingerprint, confirmed: true }
+  );

@@ -30,10 +30,10 @@ export class CommonBulkRepository {
     return typeof value === "string" ? (JSON.parse(value) as BulkImportReport) : value;
   }
 
-  async latest(sourceId: number, targetTenantId: number) {
+  async latest(sourceId: number, targetTenantId: number, scope: "common" | "masters" = "common") {
     const result = await sql<{
       uuid: string;
-    }>`SELECT uuid FROM data_bridge_common_import_runs WHERE source_id=${sourceId} AND target_tenant_id=${targetTenantId} ORDER BY id DESC LIMIT 1`.execute(
+    }>`SELECT uuid FROM data_bridge_common_import_runs WHERE source_id=${sourceId} AND target_tenant_id=${targetTenantId} AND COALESCE(JSON_VALUE(report_json, '$.scope'), 'common')=${scope} ORDER BY id DESC LIMIT 1`.execute(
       this.database
     );
     return result.rows[0] ? this.get(result.rows[0].uuid) : null;

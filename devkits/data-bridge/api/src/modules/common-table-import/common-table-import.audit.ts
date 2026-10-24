@@ -28,7 +28,7 @@ export class CommonTableRowAudit {
     row: { rowNumber: number; data: Record<string, unknown> },
     keys: string[][]
   ): Promise<ImportRowReport> {
-    if (await this.exists(row.data, this.columns)) {
+    if (await this.exists(row.data, this.columns, true)) {
       return {
         rowNumber: row.rowNumber,
         status: "existing",
@@ -56,7 +56,11 @@ export class CommonTableRowAudit {
 
   async matchingData(data: Record<string, unknown>, keys: string[][]) {
     for (const names of [this.columns, ...keys]) {
-      if (names.some((name) => data[name] === null || data[name] === undefined)) continue;
+      if (
+        names !== this.columns &&
+        names.some((name) => data[name] === null || data[name] === undefined)
+      )
+        continue;
       const [rows] = await this.database.query<RowDataPacket[]>(
         `SELECT ${this.columns.map((name) => `\`${name}\``).join(", ")} FROM \`${this.table}\` WHERE ${names.map((name) => `\`${name}\` <=> ?`).join(" AND ")} LIMIT 1`,
         names.map((name) =>
@@ -70,8 +74,14 @@ export class CommonTableRowAudit {
     return null;
   }
 
-  private async exists(data: Record<string, unknown>, names: string[]) {
-    const where = names.map((name) => `\`${name}\` <=> ?`).join(" AND ");
+  private async exists(data: Record<string, unknown>, names: string[], exact = false) {
+    const where = names
+      .map((name) =>
+        exact && typeof data[name] === "string"
+          ? `BINARY \`${name}\` <=> BINARY ?`
+          : `\`${name}\` <=> ?`
+      )
+      .join(" AND ");
     const [rows] = await this.database.query<RowDataPacket[]>(
       `SELECT 1 FROM \`${this.table}\` WHERE ${where} LIMIT 1`,
       names.map((name) =>
