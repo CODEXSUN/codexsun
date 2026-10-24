@@ -603,6 +603,6 @@ Legacy stage URLs remain hidden compatibility routes. Database credentials remai
 - [x] Reproduce shared legacy/default-prefix consumption against separate master databases.
 - [x] Add database-specific Redis namespaces, persisted job UUID validation, and pending delivery reconciliation.
 - [x] Pass real Redis isolation, duplicate publication, hostile payload, and identity regressions against temporary VPS queues.
-- [ ] Verify a fresh authenticated Data Bridge job through Redis without duplicate rows or source changes.
+- [x] Verify fresh Redis job 2584, zero inserts, all 137 SUKRAA invoices, unchanged source and all 70 target business tables.
 
 See [the Redis delivery log](REDIS-DELIVERY-2026-10-24.md).

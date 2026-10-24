@@ -34,7 +34,36 @@ Completed and failed database records are not republished by this recovery path.
 
 ## Deployment and live acceptance
 
-Pending: deploy only the reviewed CODEXSUN API/web revision, preserve legacy services and infrastructure, run a fresh authenticated SUKRAA import through Redis, compare both databases before and after, and record the final report.
+Deploy revision ef5b3b356ff20378d4c8414d541216ca3ceb2bfd to CODEXSUN API and web only. Both containers are healthy. Preserve legacy services, Shop, databases, credentials, and shared infrastructure.
 
 The next approved pair is altex_db to registered ALTEX target altexlabs_v2_db.
 Keep the source read-only, rehearse with protected verified backups, import missing business data only, and hold new conflicts for review.
+
+## Fresh live Redis acceptance
+
+Backend remained BullMQ + Redis throughout this acceptance test. No database-backend fallback or manual Run action was used.
+Authenticated browser action created job 2584, persisted UUID 83f91916, run 4e5b74af-2a91-434f-80db-5faf20827ced.
+Both the database job and Redis delivery completed in one attempt.
+Delivery ID and UUID match the persisted job. The Redis result references the same business run.
+No matching delivery exists in the legacy prefix.
+The system queue has one CODEXSUN worker in its new namespace and one legacy worker in the old namespace.
+
+The fresh run checked all 70 eligible tables and 1,980 business records.
+It inserted zero rows, preserved 1,980 matches, verified 137/137 invoices and 156 relationships, and reported zero warnings or orphan references.
+The live browser shows the same successful report.
+
+SUKRAA source full normalized dump hash remained:
+`9b27e5a1ea0be97c7e0a156629f8b5712264b7d7d6390403ecab4bf19d071dbf`.
+All 70 target business-table dump blocks remained byte-identical after comment normalization, with SHA-256:
+`3f869d0b2c08c1475b69392d4606165b2c477bd1dc9c83a3cdaebcfbe5b8cef2`.
+This proves no duplicate business rows or other business changes during the repeat.
+The complete target dump changed in four app role/permission tables and Billing dashboard snapshots during runtime activity.
+Those tables are excluded from Data Bridge business import. Do not claim the entire active target database remained unchanged.
+
+Connection Copy is verified against disposable MariaDB databases.
+Inherited credentials remain restricted to the same host, port, user, and TLS setting. A changed server requires an explicit replacement password.
+The original source record and encrypted secret stay unchanged. The response returns only the new connection ID.
+
+Private pre-cutover backups and repeat dumps are retained under:
+`/home/codexsun-backups/data-bridge/20261024T100232Z-redis-cutover/`.
+No customer dumps, credentials, or tokens belong in Git.
