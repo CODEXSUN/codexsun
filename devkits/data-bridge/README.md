@@ -48,6 +48,9 @@ All 321 invoices and 1,211 item rows matched their target business data.
 Both targets were complete, so missing-only processing inserted zero rows.
 SUKRAA retained two approved warnings. ALTEX completed without warnings.
 Read [the live release evidence](agent/RELEASE-1.1.53.md).
+Version 1.1.54 prepares this runtime for cloud staging verification.
+Read [the cloud handoff](agent/RELEASE-1.1.54.md) before deployment or remote imports.
+Cloud connectivity, queue execution, backups, and invoice verification remain pending until tested there.
 
 ## Reference material
 

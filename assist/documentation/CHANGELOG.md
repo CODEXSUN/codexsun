@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.53
+Current version: 1.1.54
 
-Release tag: v-1.1.53
+Release tag: v-1.1.54
 
-Changelog label: v 1.1.53
+Changelog label: v 1.1.54
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -19,6 +19,23 @@ Records schema, migration, seed, tenant provisioning, and data compatibility cha
 #### App Codebase Changes
 
 Records UI, API, service logic, tooling, packaging, and documentation changes.
+
+## v-1.1.54
+
+### [v 1.1.54] 2026-10-24 11:10 am - Data Bridge cloud staging handoff
+
+#### Database Changes
+
+- Database update: No (manual).
+- Add no new schema or data change. Cloud deployments still require the existing Data Bridge v6 migration and target owner schemas.
+- Preserve the verified local SUKRAA and ALTEX results. Do not run or imply a remote migration in this release.
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.54.
+- Add the Data Bridge cloud staging handoff with deployment ownership, backup, connectivity, queue, and invoice verification gates.
+- Record cloud production import acceptance as pending until the operator deploys and configures the exact remote pair.
+- Keep per-table commits, missing-only writes, target preservation, and explicit review of new remote warnings.
 
 ## v-1.1.53
 

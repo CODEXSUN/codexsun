@@ -3,11 +3,15 @@
 ## Start here
 
 Read [SKILLS.md](SKILLS.md), [PLAN.md](PLAN.md), and the matching module-local SKILLS file before changing behavior.
-Read [the current release log](RELEASE-1.1.53.md) for the acceptance boundary.
+Read [the current cloud handoff](RELEASE-1.1.54.md) for deployment ownership and remote acceptance gates.
+Read [the local runtime release](RELEASE-1.1.53.md) for verified database and browser evidence.
 Release 1.1.52 remains historical evidence for the earlier initial migration.
 The manual and automation protocol is metadata-driven. Client values in evidence are not a future field-mapping recipe.
 
 ## Delivered state
+
+Version 1.1.54 prepares the verified runtime for cloud staging. Remote deployment and import remain pending.
+The operator will deploy and configure remote connections before the next cloud verification session.
 
 Release 1.1.53 adds one ordered business import action and six separate report tabs.
 Its v6 migration adds run and invoice verification storage without changing earlier ledger entries.

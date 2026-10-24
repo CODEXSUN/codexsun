@@ -1,7 +1,14 @@
 # Data Bridge tasks
 
-Current release: 1.1.53. Read [HANDOFF.md](HANDOFF.md) for the current operating state and approved warnings.
+Current release: 1.1.54. Read [HANDOFF.md](HANDOFF.md) for the current operating state and approved warnings.
 Earlier sections below retain historical implementation and verification notes. Unchecked historical entries do not replace the latest release gates.
+
+## Cloud staging handoff
+
+- [x] Record the local acceptance baseline and cloud deployment sequence in RELEASE-1.1.54.md.
+- [x] Keep cloud deployment, database setup, and remote import acceptance separate from local proof.
+- [ ] Operator deploys the release and configures remote source and target connections.
+- [ ] Verify all remote acceptance gates before approving real cloud business migration.
 
 ## Ordered business import live acceptance
 
