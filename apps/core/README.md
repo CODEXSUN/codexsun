@@ -86,3 +86,9 @@ Core New/Edit routes retain their existing paths. Sidebar navigation returns to 
 The public `contactIdsForEmailPolicy` lookup returns every matching recipient identity ID, including inactive/deleted identities.
 It reads only Core-owned email fields. CRM consumes these IDs to check restrictions without merging contacts.
 Platform selects the trusted tenant database before calling the contract. No new public HTTP search or write permission is added.
+
+### Existing company favicon schema
+
+`core.organisation.company-favicon-v2` adds the nullable `favicon_path` column to existing tenant company tables.
+A separate versioned step is required because applied company baseline migrations are skipped.
+This prevents company updates from failing on older schemas. Existing company values remain unchanged.

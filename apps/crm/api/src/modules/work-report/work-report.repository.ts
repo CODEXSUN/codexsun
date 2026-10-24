@@ -358,10 +358,7 @@ function formatCapturedAt(value: string | Date | null) {
       ? value
       : new Date(/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value) ? value : `${value.replace(" ", "T")}Z`);
   if (Number.isNaN(date.getTime())) return "unknown";
-  const hour = date.getUTCHours();
-  const hour12 = hour % 12 || 12;
-  const twoDigits = (part: number) => String(part).padStart(2, "0");
-  return `${twoDigits(date.getUTCDate())}-${twoDigits(date.getUTCMonth() + 1)}-${twoDigits(date.getUTCFullYear() % 100)} ${twoDigits(hour12)}:${twoDigits(date.getUTCMinutes())}:${twoDigits(date.getUTCSeconds())} ${hour < 12 ? "AM" : "PM"}`;
+  return date.toISOString();
 }
 
 function captureSecond(value: string | Date | null) {

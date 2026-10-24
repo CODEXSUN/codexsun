@@ -38,6 +38,10 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Pass seven frontend regressions and real local Nginx coverage of all three templates. Reproduce the old HTML fallback and verify protected JSON responses from the actual local API.
 - Add the scoped proxy repair release log. Leave cloud deployment and web-image rollout to the operator.
 
+- Verified the cloud proxy rollout and the SUKRAA connection pair. Record live import gates in the Data Bridge cloud verification log. Final production acceptance remains pending.
+- Add the Master Tables audit action to reach saved conflict reports and approved fingerprinted corrections.
+- Include the reviewed pending Core favicon migration and CRM timestamp/access fixes. Preserve excluded ecommerce and Codeit work.
+
 ## v-1.1.54
 
 ### [v 1.1.54] 2026-10-24 11:10 am - Data Bridge cloud staging handoff

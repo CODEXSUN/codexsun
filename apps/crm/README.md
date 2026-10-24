@@ -56,7 +56,7 @@ Use [CODEXSUN/logicx-biz](https://github.com/CODEXSUN/logicx-biz.git) for custom
 Read the [CRM comparison](agent/FRAPPE-COMPARISON.md) and
 [complete DocType catalogue](../frappe/agent/LOGICX-CRM-REFERENCE.md) for the reviewed source snapshot.
 CRM remains locally authoritative for normal enquiries. Frappe-imported enquiries preserve their source timestamps and comments, and the approved Frappe live-sync path posts CRM enquiry changes back to the linked Frappe record. Reference parity does not authorize additional outbound integration beyond this explicit enquiry sync contract.
-Local enquiry creates and edits now append a durable upsert event in the same transaction, then dispatch it to the queue after commit. Queue retries and the periodic relay recover transient failures; the CRM save does not wait for the remote Frappe request. The Frappe sync status column and detail history require `crm.enquiry.frappe-sync.view`; Platform checks this permission on every request.
+Local enquiry creates and edits now append a durable upsert event in the same transaction, then dispatch it to the queue after commit. Queue retries and the periodic relay recover transient failures; the CRM save does not wait for the remote Frappe request. Only the exact account `admin@tenant.com` can see the Frappe sync status column and detail history, and it must also have `crm.enquiry.frappe-sync.view`. Platform checks both conditions on every request.
 See the [implemented Duty bindings](../frappe/agent/CRM-DUTY-FIELD-MAPPING.md) for frequency, Department, Employee, and report fields.
 Run `npm run test:crm-frappe` for CRM/Frappe unit tests and isolated Duty API/database E2E.
 
@@ -68,6 +68,10 @@ The options return permission flags only; team-wide report lists and summaries s
 Tasks can save without a contact. Below Task details, select a saved contact or enter a mobile number and customer name.
 New customers resolve through Core during the task transaction. Select a customer when several share a mobile number.
 Clear contact removes the task link without deleting the contact.
+
+## Work timestamp display
+
+Job start/stop and check-in/check-out reports retain UTC instants. Generated work comments now keep timestamps in ISO UTC form so web and mobile can convert them to the viewer's local timezone. Both clients display `DD-MM-YYYY hh:mm:ss am/pm`. Older generated job and checkpoint comments are interpreted as UTC; older pinned-location captures remain local. Job start/stop fields and captured location times use the same display format.
 The task detail page links to the saved contact and shows its mobile number.
 The additive `crm.task.optional-contact-v4` migration adds a nullable contact ID and a restrictive foreign key.
 Existing tasks remain unlinked. Older clients that omit contact fields preserve saved links on update.

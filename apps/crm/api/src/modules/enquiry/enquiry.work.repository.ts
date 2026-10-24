@@ -346,10 +346,7 @@ export function jobCycleComment(
 }
 
 function formatJobTimestamp(value: string) {
-  const date = new Date(value);
-  const hour = date.getUTCHours();
-  const twoDigits = (part: number) => String(part).padStart(2, "0");
-  return `${twoDigits(date.getUTCDate())}-${twoDigits(date.getUTCMonth() + 1)}-${twoDigits(date.getUTCFullYear() % 100)} ${twoDigits(hour % 12 || 12)}:${twoDigits(date.getUTCMinutes())}:${twoDigits(date.getUTCSeconds())} ${hour < 12 ? "AM" : "PM"}`;
+  return new Date(value).toISOString();
 }
 
 function formatDuration(totalSeconds: number) {

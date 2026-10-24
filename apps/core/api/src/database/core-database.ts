@@ -1,3 +1,4 @@
+import { companyFaviconMigration } from "../modules/organisation/company/company.favicon.migration.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
   applyTablePrefixPolicy,
@@ -94,6 +95,7 @@ export const coreTenantMigrations = [
   ...commonMigrationSteps.map(({ description, key }) => ({ description, name: key })),
   ...organisationMigrationSteps.map(({ description, key }) => ({ description, name: key })),
   ...masterMigrationSteps.map(({ description, key }) => ({ description, name: key })),
+  { description: companyFaviconMigration.description, name: companyFaviconMigration.name },
   {
     description: "Backfill and validate standard Core table identity and audit columns.",
     name: "core.standard-columns-v1"
@@ -149,7 +151,8 @@ export const coreMigrationBatch: MigrationBatch<CoreDatabase> = {
           coreTableNames.map((tableName) => `core_${tableName}`)
         ),
       version: 2
-    }
+    },
+    companyFaviconMigration
   ]
 };
 

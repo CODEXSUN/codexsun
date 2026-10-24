@@ -285,7 +285,7 @@ class TaskDetailPageState extends State<TaskDetailPage>
                 '${row['latitude'] == null ? '' : '\nGPS: ${row['latitude']}, ${row['longitude']} · ${row['accuracy_meters']} m'}'
                 '${row['capturedAt'] == null ? '' : '\nCaptured @ ${row['capturedAt']}'}',
               )
-            : normalizeCrmText('${row['body'] ?? ''}');
+            : formatWorkTimestamps(normalizeCrmText('${row['body'] ?? ''}'));
         return ListTile(
           leading: CircleAvatar(
             backgroundColor: const Color(0xFFF2E5FA),

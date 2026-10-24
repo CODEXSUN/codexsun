@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@codexsun/ui/components/button";
 import { WorkspaceMinimalEditor } from "@codexsun/ui/workspace/minimal-editor";
 import { formatDate } from "@codexsun/ui/workspace/utils";
+import { formatCrmWorkTimestamps } from "../../crm-time.js";
 import type { TaskComment } from "./task.types";
 
 export function TaskComments({
@@ -79,7 +80,7 @@ export function TaskComments({
               </span>
               <div className="min-w-0 flex-1">
                 <p className="whitespace-pre-wrap break-words rounded-md bg-muted/25 px-3 py-2 text-sm">
-                  {plainText(item.body)}
+                  {formatCrmWorkTimestamps(plainText(item.body))}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center justify-end gap-4 text-xs text-muted-foreground">
                   {item.id === latestId && canRespond ? (

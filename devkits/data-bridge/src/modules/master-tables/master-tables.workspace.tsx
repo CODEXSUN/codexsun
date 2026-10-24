@@ -7,7 +7,7 @@ import {
   useImportGroup,
   SavedGroupImports
 } from "../transfer-session/index.js";
-import { GroupImportResults } from "../report/index.js";
+import { GroupImportResults, startMasterAudit } from "../report/index.js";
 import { masterTables } from "./master-tables.services.js";
 export function MasterTablesWorkspace({
   stage,
@@ -24,6 +24,21 @@ export function MasterTablesWorkspace({
 }) {
   const flow = useImportGroup(masterTables, stage, id, onNavigate);
   const [family, setFamily] = useState("all");
+  const [auditing, setAuditing] = useState(false);
+  const [auditError, setAuditError] = useState("");
+  async function auditMasters() {
+    if (!flow.pair || auditing) return;
+    setAuditing(true);
+    setAuditError("");
+    try {
+      const report = await startMasterAudit(flow.pair.sourceId, flow.pair.targetTenantId);
+      onReport(report.id);
+    } catch (cause) {
+      setAuditError(cause instanceof Error ? cause.message : "Unable to queue master audit.");
+    } finally {
+      setAuditing(false);
+    }
+  }
   const shown = flow.tables.filter(
     (table) => family === "all" || table.table.startsWith(`core_${family}`)
   );
@@ -31,9 +46,18 @@ export function MasterTablesWorkspace({
     <WorkspacePage
       title="Master Tables"
       actions={
-        <Button disabled={!flow.pair || flow.busy} onClick={() => void flow.start()}>
-          New mapping
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            disabled={!flow.pair || flow.busy || auditing}
+            onClick={() => void auditMasters()}
+          >
+            {auditing ? "Queuing master audit…" : "Audit and import missing masters"}
+          </Button>
+          <Button disabled={!flow.pair || flow.busy} onClick={() => void flow.start()}>
+            New mapping
+          </Button>
+        </div>
       }
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -49,6 +73,11 @@ export function MasterTablesWorkspace({
       {flow.error ? (
         <p role="alert" className="mb-3 text-sm text-destructive">
           {flow.error}
+        </p>
+      ) : null}
+      {auditError ? (
+        <p role="alert" className="mb-3 text-sm text-destructive">
+          {auditError}
         </p>
       ) : null}
       <ImportStageTabs

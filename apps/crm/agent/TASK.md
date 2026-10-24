@@ -1,5 +1,20 @@
 # CRM Delivery Tasks
 
+## Work timestamp consistency — 2026-10-24
+
+- [x] Preserve UTC instants in generated job-cycle and checkpoint comments; avoid preformatting to timezone-less UTC text.
+- [x] Format job start/stop, check-in/check-out, and captured-location times on web and mobile as `DD-MM-YYYY hh:mm:ss am/pm` in the viewer's local timezone.
+- [x] Correct older UTC-formatted job/checkpoint comments while preserving legacy pinned-location local time.
+- [x] Pass focused API/web timestamp tests, all 78 CRM mobile tests, CRM API/web typechecks, mobile analysis, and format checks.
+- [x] Build and install an isolated debug APK (`in.codexsun.crm_timecheck`) on `emulator-5554`; verify it opens the sign-in screen. Cloud health returned HTTP 200 by read-only GET. No authenticated cloud record flow was attempted, and no deploy, commit, or push was performed.
+
+## Frappe sync visibility — 2026-10-24
+
+- [x] Restrict the enquiry Frappe sync column, details, and API fields to `admin@tenant.com` with `crm.enquiry.frappe-sync.view`.
+- [x] Keep other users' enquiry responses free of Frappe sync status and error fields.
+- [x] Pass focused access tests, Platform API typecheck and lint, and CRM module-boundary checks.
+- [ ] Verify the change in the deployed browser. No commit or deployment was requested.
+
 ## Frappe delivery feedback — 2026-10-23
 
 - [x] Show persisted export errors on web contact, enquiry, duty, and report records during retry.

@@ -47,7 +47,7 @@ test("task date ranges filter creation timestamps with an inclusive start and ex
   assert.deepEqual(query.parameters, ["2026-10-01 00:00:00", "2026-10-02 00:00:00"]);
 });
 
-test("completed enquiry and task job comments use the requested date and time format", () => {
+test("completed enquiry and task job comments preserve UTC timestamps for client-local formatting", () => {
   const start = "2026-10-22T00:05:09.000Z";
   const stop = "2026-10-22T13:05:09.000Z";
 
@@ -55,8 +55,8 @@ test("completed enquiry and task job comments use the requested date and time fo
     jobCycleComment(4, start, stop, 46_800),
     taskJobCycleComment(4, start, stop, 46_800)
   ]) {
-    assert.match(body, /Started @ 22-10-26 12:05:09 AM/);
-    assert.match(body, /Completed @ 22-10-26 01:05:09 PM/);
+    assert.match(body, /Started @ 2026-10-22T00:05:09\.000Z/);
+    assert.match(body, /Completed @ 2026-10-22T13:05:09\.000Z/);
     assert.match(body, /Duration: 13:00:00/);
   }
 });

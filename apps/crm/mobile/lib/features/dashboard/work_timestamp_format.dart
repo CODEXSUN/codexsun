@@ -9,6 +9,12 @@ final _javascriptTimestamp = RegExp(
   r'GMT([+-])(\d{2})(\d{2})(?:\s+\([^)]+\))?',
 );
 
+final _legacyTimestamp = RegExp(
+  r'\b(Started|Completed|Captured) @ (\d{2})-(\d{2})-(\d{2}) '
+  r'(\d{2}):(\d{2}):(\d{2}) (AM|PM)\b',
+  caseSensitive: false,
+);
+
 const _monthNumbers = {
   'Jan': 1,
   'Feb': 2,
@@ -25,11 +31,25 @@ const _monthNumbers = {
 };
 
 String formatWorkTimestamps(String text) {
+  final isJobCycle = RegExp(
+    r'Job #\S+ completed',
+    caseSensitive: false,
+  ).hasMatch(text);
+  final isCheckpointCycle = RegExp(
+    r'\bCheck (?:in|out)\b',
+    caseSensitive: false,
+  ).hasMatch(text);
+  final isPinnedLocation = RegExp(
+    r'^\s*Pinned location\b',
+    caseSensitive: false,
+  ).hasMatch(text);
   final withIsoDates = text.replaceAllMapped(_isoTimestamp, (match) {
     final parsed = DateTime.tryParse(match[0]!);
     return parsed == null ? match[0]! : formatWorkDateTime(parsed);
   });
-  return withIsoDates.replaceAllMapped(_javascriptTimestamp, (match) {
+  final withDeviceDates = withIsoDates.replaceAllMapped(_javascriptTimestamp, (
+    match,
+  ) {
     final month = _monthNumbers[match[1]];
     if (month == null) return match[0]!;
     final offset = Duration(
@@ -47,6 +67,37 @@ String formatWorkTimestamps(String text) {
     ).subtract(signedOffset);
     return formatWorkDateTime(utc);
   });
+  return withDeviceDates.replaceAllMapped(_legacyTimestamp, (match) {
+    final label = match[1]!.toLowerCase();
+    final isServerTimestamp =
+        (isJobCycle && (label == 'started' || label == 'completed')) ||
+        (isCheckpointCycle && label == 'captured');
+    if (!isServerTimestamp && !(isPinnedLocation && label == 'captured')) {
+      return match[0]!;
+    }
+
+    final hour12 = int.parse(match[5]!);
+    final hour = hour12 % 12 + (match[8]!.toUpperCase() == 'PM' ? 12 : 0);
+    final year = 2000 + int.parse(match[4]!);
+    final date = isServerTimestamp
+        ? DateTime.utc(
+            year,
+            int.parse(match[3]!),
+            int.parse(match[2]!),
+            hour,
+            int.parse(match[6]!),
+            int.parse(match[7]!),
+          )
+        : DateTime(
+            year,
+            int.parse(match[3]!),
+            int.parse(match[2]!),
+            hour,
+            int.parse(match[6]!),
+            int.parse(match[7]!),
+          );
+    return '${match[1]} @ ${formatWorkDateTime(date)}';
+  });
 }
 
 String formatWorkDateTime(DateTime value) {
@@ -55,7 +106,7 @@ String formatWorkDateTime(DateTime value) {
   final period = local.hour < 12 ? 'am' : 'pm';
   final day = local.day.toString().padLeft(2, '0');
   final month = local.month.toString().padLeft(2, '0');
-  final year = (local.year % 100).toString().padLeft(2, '0');
+  final year = local.year.toString().padLeft(4, '0');
   final hourText = hour.toString().padLeft(2, '0');
   final minute = local.minute.toString().padLeft(2, '0');
   final second = local.second.toString().padLeft(2, '0');

@@ -119,3 +119,14 @@ Existing local business row counts were preserved. No commit, push, or deploymen
 
 Focused owner typecheck, lint, build, and module boundaries passed for the email policy continuation.
 Marketing database tests verify exact UTC timestamps and near-expiry rejection alongside tenant and owner policy checks.
+
+## Rainbow company save repair — 2026-10-24
+
+- [x] Reproduce Company 1 update HTTP 500 on live RAINBOW. The SQL update referenced missing core_companies.favicon_path.
+- [x] Add the separate tracked core.organisation.company-favicon-v2 step without changing applied baseline checksums.
+- [x] Pass a disposable older-schema test: retain the company, save its renamed value, and skip the migration on replay.
+- [x] Create and checksum-verify the Rainbow backup, pass production preflight, and apply only the new step to Rainbow.
+- [x] Verify an authenticated same-name Company 1 PUT returns HTTP 200 and preserves identity/name. Verify migration replay skips.
+
+Backup and operation evidence: /home/codexsun-releases/rainbow-company-favicon-20261024.
+This repair changes only the nullable company favicon column and its migration ledger entry. It does not resume Frappe import or alter the company name.

@@ -108,7 +108,6 @@ test("completed checkpoint comments include both notes and captured locations", 
   assert.match(body, /13\.08, 80\.27 · 8 m/);
   assert.match(body, /Check out\nWork finished\./);
   assert.match(body, /13\.09, 80\.28 · 10 m/);
-  assert.match(body, /Captured @ 22-10-26 08:05:09 AM/);
-  assert.match(body, /Captured @ 22-10-26 01:05:09 PM/);
-  assert.doesNotMatch(body, /Captured: 2026-/);
+  assert.match(body, /Captured @ 2026-10-22T08:05:09\.000Z/);
+  assert.match(body, /Captured @ 2026-10-22T13:05:09\.000Z/);
 });

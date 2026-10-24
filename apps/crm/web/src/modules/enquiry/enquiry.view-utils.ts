@@ -1,7 +1,5 @@
-import {
-  formatDate as formatWorkspaceDate,
-  formatDateTime as formatWorkspaceDateTime
-} from "@codexsun/ui/workspace";
+import { formatDate as formatWorkspaceDate } from "@codexsun/ui/workspace";
+import { formatCrmDateTime } from "../../crm-time.js";
 
 export function formatDate(value: string | null) {
   return value ? formatWorkspaceDate(value) : "—";
@@ -18,7 +16,7 @@ export function formatListDueDate(value: string | null) {
 }
 
 export function formatDateTime(value: string) {
-  return formatWorkspaceDateTime(value);
+  return formatCrmDateTime(value);
 }
 
 export function formatCommentByline(

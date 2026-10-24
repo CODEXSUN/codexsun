@@ -4,7 +4,7 @@ import { Textarea } from "@codexsun/ui/components/textarea";
 import { WorkspaceShowCard } from "@codexsun/ui/workspace/show";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTableEmptyState } from "@codexsun/ui/workspace/table";
-import { formatDateTime } from "@codexsun/ui/workspace/utils";
+import { formatCrmDateTime } from "../../crm-time.js";
 import { ClosurePendingBadge } from "../closure";
 import type { TaskClosure, TaskJob } from "./task.types";
 
@@ -50,9 +50,9 @@ export function TaskJobsPanel({
               <tr className="border-t border-border/70" key={job.uuid}>
                 <td className="px-3 py-2 font-medium">#{job.id}</td>
                 <td className="px-3 py-2">{job.startedBy}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(job.startedAt)}</td>
+                <td className="px-3 py-2 whitespace-nowrap">{formatCrmDateTime(job.startedAt)}</td>
                 <td className="px-3 py-2 whitespace-nowrap">
-                  {job.stoppedAt ? formatDateTime(job.stoppedAt) : "—"}
+                  {job.stoppedAt ? formatCrmDateTime(job.stoppedAt) : "—"}
                 </td>
                 <td className="px-3 py-2">
                   <WorkspaceStatusBadge
@@ -196,7 +196,7 @@ export function TaskClosurePanel({
                     <td className="min-w-48 px-3 py-2">{item.reason || "—"}</td>
                     <td className="px-3 py-2">{item.requestedBy}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
-                      {formatDateTime(item.createdAt)}
+                      {formatCrmDateTime(item.createdAt)}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{item.reviewedBy || "—"}</td>
                     <td className="min-w-48 px-3 py-2 text-muted-foreground">

@@ -1,6 +1,12 @@
 import { request } from "../transport/index.js";
 import type { BridgeReportSummary } from "./report.types.js";
 export const listBridgeReports = () => request<BridgeReportSummary[]>("/reports");
+export const startMasterAudit = (sourceId: number, targetTenantId: number) =>
+  request<import("./report.types.js").CommonBulkReport>("/bulk-imports", {
+    sourceId,
+    targetTenantId,
+    scope: "masters"
+  });
 export const latestCommonBulkReport = (
   sourceId: number,
   targetTenantId: number,

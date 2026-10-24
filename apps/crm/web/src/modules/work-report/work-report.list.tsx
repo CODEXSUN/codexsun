@@ -1,4 +1,4 @@
-import { formatDateTime } from "@codexsun/ui/workspace/utils";
+import { formatCrmDateTime } from "../../crm-time.js";
 import { WorkspaceTableEmptyState } from "@codexsun/ui/workspace/table";
 import type { WorkReport } from "./work-report.types";
 
@@ -52,12 +52,12 @@ export function WorkReportList({
                       </a>
                       {" · Accuracy: "}
                       {row.accuracy_meters ?? "Unknown"} m{" · Captured: "}
-                      {row.captured_at ? formatDateTime(row.captured_at) : "—"}
+                      {row.captured_at ? formatCrmDateTime(row.captured_at) : "—"}
                     </p>
                   ) : null}
                 </td>
                 <td className="px-3 py-2 break-words">{row.created_by_name || row.created_by}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(row.created_at)}</td>
+                <td className="px-3 py-2 whitespace-nowrap">{formatCrmDateTime(row.created_at)}</td>
               </tr>
             ))}
           </tbody>

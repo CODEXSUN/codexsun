@@ -841,7 +841,7 @@ export async function createApp() {
       if (!(error instanceof AppError) || error.code !== "FORBIDDEN") throw error;
     }
     let canViewFrappeSync = false;
-    canViewFrappeSync = await canViewCrmEnquiryFrappeSync(() =>
+    canViewFrappeSync = await canViewCrmEnquiryFrappeSync(context.actorEmail, () =>
       context.authorize("crm.enquiry.frappe-sync.view")
     );
     return {
