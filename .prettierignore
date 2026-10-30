@@ -1,0 +1,10 @@
+node_modules/
+dist/
+storage/
+**/.dart_tool/
+**/.gradle/
+**/build/
+**/target/
+**/.turbo/
+**/ephemeral/
+package-lock.json

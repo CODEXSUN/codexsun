@@ -1,0 +1,46 @@
+name: codexsun-redis
+
+services:
+  redis:
+    build:
+      context: ../../..
+      dockerfile: .container/database/redis/Dockerfile
+      args:
+        CODEXSUN_VERSION: ${CODEXSUN_VERSION:?CODEXSUN_VERSION is required}
+        REDIS_BASE_IMAGE: ${REDIS_BASE_IMAGE:?REDIS_BASE_IMAGE is required}
+    image: ${CODEXSUN_IMAGE_REGISTRY:?CODEXSUN_IMAGE_REGISTRY is required}/redis:${REDIS_IMAGE_TAG:?REDIS_IMAGE_TAG is required}
+    container_name: codexsun-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -ec
+      - |
+        if [ -n "$${REDIS_PASSWORD}" ]; then
+          exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"
+        fi
+        exec redis-server --appendonly yes
+    ports:
+      - "${CODEXSUN_BIND_ADDRESS:?CODEXSUN_BIND_ADDRESS is required}:${REDIS_HOST_PORT:?REDIS_HOST_PORT is required}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - codexsun-network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - if [ -n "$${REDIS_PASSWORD}" ]; then redis-cli -a "$${REDIS_PASSWORD}" ping; else redis-cli ping; fi
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 12
+
+volumes:
+  redis-data:
+    name: ${REDIS_DATA_VOLUME:?REDIS_DATA_VOLUME is required}
+
+networks:
+  codexsun-network:
+    name: ${CODEXSUN_DOCKER_NETWORK:?CODEXSUN_DOCKER_NETWORK is required}
+    external: true
