@@ -1,0 +1,34 @@
+{
+  "name": "@codexsun/sportsclub-api",
+  "version": "1.1.87",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contracts": "./src/sportsclub.contracts.ts",
+    "./member-contract": "./src/modules/member/member.schema.ts",
+    "./master-contract": "./src/modules/master/master.schema.ts",
+    "./program-contract": "./src/modules/program/program.schema.ts",
+    "./session-contract": "./src/modules/session/session.schema.ts",
+    "./attendance-contract": "./src/modules/attendance/attendance.schema.ts",
+    "./progress-contract": "./src/modules/progress/progress.schema.ts",
+    "./event-contract": "./src/modules/event/event.schema.ts",
+    "./enquiry-contract": "./src/modules/enquiry/enquiry.schema.ts",
+    "./migration": "./src/sportsclub.migration.ts",
+    "./seed": "./src/sportsclub.seed.ts",
+    "./billing-contract": "./src/sportsclub.billing-contract.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src",
+    "test": "node --import tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@codexsun/framework": "^1.1.87",
+    "fastify": "^5.12.5",
+    "kysely": "^0.29.7",
+    "mysql2": "^3.24.6",
+    "zod": "^4.6.7"
+  }
+}
