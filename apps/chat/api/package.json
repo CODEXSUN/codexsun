@@ -1,0 +1,27 @@
+{
+  "name": "@codexsun/chat-api",
+  "version": "1.1.87",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./modules/chat": "./src/modules/chat/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test src/modules/chat/chat.spec.ts src/modules/chat/chat.realtime.spec.ts src/modules/chat/chat.telegram.spec.ts",
+    "typecheck": "npm run build -w @codexsun/framework && tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/framework": "^1.1.87",
+    "@fastify/websocket": "11.3.4",
+    "@types/ws": "^8.18.1",
+    "big-integer": "^1.6.52",
+    "fastify": "^5.12.5",
+    "kysely": "^0.29.7",
+    "teleproto": "^1.232.0",
+    "ws": "^8.22.0",
+    "zod": "^4.6.7"
+  }
+}

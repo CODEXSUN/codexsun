@@ -1,0 +1,19 @@
+@media print {
+  html:has(.billing-print-document),
+  body:has(.billing-print-document),
+  body:has(.billing-print-document) *:has(.billing-print-document) {
+    background: white !important;
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    width: 202mm !important;
+    min-width: 0 !important;
+    max-width: 202mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    gap: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+}
