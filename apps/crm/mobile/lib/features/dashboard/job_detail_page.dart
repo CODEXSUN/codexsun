@@ -1,0 +1,689 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+
+import '../../core/api/crm_mobile_api.dart';
+import '../../core/api/mobile_request_outcome.dart';
+import 'dashboard_list_page.dart';
+import 'work_action_sheet.dart';
+import 'job_duration.dart';
+import 'job_work_feed.dart';
+import 'work_charges_section.dart';
+
+const _detailSurfaceTone = Color(0xFFFCF9FD);
+const _mobileDetailSections = <(String, String)>[
+  ('comments', 'Comments'),
+  ('actions', 'Action'),
+  ('checkpoints', 'Check in / out'),
+  ('jobs', 'Jobs'),
+  ('charges', 'Charges'),
+  ('schedules', 'Schedules'),
+];
+
+class JobDetailPage extends StatefulWidget {
+  const JobDetailPage({
+    required this.api,
+    required this.session,
+    required this.enquiry,
+    required this.initialJob,
+    this.capturePosition,
+    this.onJobChanged,
+    this.onJobUpdated,
+    this.onClosurePendingChanged,
+    super.key,
+  });
+
+  final CrmMobileApi api;
+  final UserSession session;
+  final DashboardListItem enquiry;
+  final CrmJob initialJob;
+  final Future<Position> Function()? capturePosition;
+  final VoidCallback? onJobChanged;
+  final ValueChanged<CrmJob>? onJobUpdated;
+  final ValueChanged<bool>? onClosurePendingChanged;
+
+  @override
+  State<JobDetailPage> createState() => _JobDetailPageState();
+}
+
+class _JobDetailPageState extends State<JobDetailPage>
+    with WidgetsBindingObserver {
+  late CrmJob _job;
+  ClosureRequest? _closureRequest;
+  List<CrmEnquiryLocation> _locations = const [];
+  List<Map<String, dynamic>> _workReports = [];
+  List<Map<String, dynamic>> _schedules = [];
+  bool _checkedIn = false;
+  var _isLoading = false;
+  var _isSending = false;
+  var _selectedSection = 'comments';
+  int _chargeVersion = 0;
+  Timer? _runningTimer;
+  Timer? _closureTimer;
+  var _partialFailureReported = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _closureTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted && !_isLoading) {
+        _refresh();
+      }
+    });
+    _job = widget.initialJob;
+    _syncRunningTimer();
+    _refresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _closureTimer?.cancel();
+    _runningTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_isLoading) _refresh();
+  }
+
+  void _syncRunningTimer() {
+    if (!_job.jobs.any((job) => job.isRunning)) {
+      _runningTimer?.cancel();
+      _runningTimer = null;
+      return;
+    }
+    _runningTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'Add action',
+        onPressed: _isSending ? null : _openAddActions,
+        child: const Icon(Icons.add),
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _CompactJobDetail(
+              enquiry: DashboardListItem.fromCrmJob(_job),
+              job: _job,
+              onTapStatus: _isSending ? () {} : _showStatusPicker,
+              onOpenNewCall: _isSending ? () {} : _openNewCall,
+              selectedSection: _selectedSection,
+              onSelectSection: (section) =>
+                  setState(() => _selectedSection = section),
+            ),
+            if (_isLoading) const LinearProgressIndicator(minHeight: 2),
+            if (_closureRequest?.status == 'pending')
+              const MaterialBanner(
+                content: Text('Completion sent. Waiting for web approval.'),
+                leading: Icon(Icons.hourglass_top_rounded),
+                actions: [SizedBox.shrink()],
+              ),
+            if (_closureRequest?.status == 'rejected')
+              MaterialBanner(
+                content: Text(
+                  _closureRequest?.reviewNote?.trim().isNotEmpty == true
+                      ? 'Closure request rejected: ${_closureRequest!.reviewNote}'
+                      : 'Closure request was rejected. You can request again.',
+                ),
+                leading: const Icon(Icons.info_outline),
+                actions: const [SizedBox.shrink()],
+              ),
+            Expanded(
+              child: _selectedSection == 'charges'
+                  ? WorkChargesSection(
+                      key: ValueKey(_chargeVersion),
+                      api: widget.api,
+                      session: widget.session,
+                      enquiryId: _job.id,
+                    )
+                  : JobWorkFeed(
+                      job: _job,
+                      session: widget.session,
+                      locations: _locations,
+                      reports: _workReports,
+                      schedules: _schedules,
+                      selectedSection: _selectedSection,
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _refresh() async {
+    setState(() => _isLoading = true);
+    try {
+      final job = await widget.api.job(
+        widget.session.accessToken,
+        widget.initialJob.sourceId,
+      );
+      final results = await Future.wait([
+        captureMobileRequest<ClosureRequest?>(
+          widget.api.latestClosureRequest(
+            accessToken: widget.session.accessToken,
+            id: widget.initialJob.sourceId,
+          ),
+        ),
+        captureMobileRequest<List<Map<String, dynamic>>>(
+          widget.api.workReports(
+            widget.session.accessToken,
+            enquiryId: widget.initialJob.id,
+          ),
+        ),
+        captureMobileRequest<List<CrmEnquiryLocation>>(
+          widget.api.enquiryLocations(
+            accessToken: widget.session.accessToken,
+            enquiryId: widget.initialJob.sourceId,
+          ),
+        ),
+        captureMobileRequest<List<Map<String, dynamic>>>(
+          widget.api.enquirySchedules(
+            widget.session.accessToken,
+            enquiryId: widget.initialJob.id,
+          ),
+        ),
+        captureMobileRequest<bool>(
+          widget.api.workCheckpoint(
+            widget.session.accessToken,
+            enquiryId: widget.initialJob.id,
+          ),
+        ),
+      ]);
+      if (mounted) {
+        setState(() {
+          _job = job;
+          if (results[0].succeeded) {
+            _closureRequest = results[0].value as ClosureRequest?;
+          }
+          if (results[1].succeeded) {
+            _workReports = results[1].value as List<Map<String, dynamic>>;
+          }
+          if (results[2].succeeded) {
+            _locations = results[2].value as List<CrmEnquiryLocation>;
+          }
+          if (results[3].succeeded) {
+            _schedules = results[3].value as List<Map<String, dynamic>>;
+          }
+          if (results[4].succeeded) _checkedIn = results[4].value as bool;
+        });
+        _syncRunningTimer();
+        widget.onJobChanged?.call();
+        widget.onJobUpdated?.call(_job);
+        widget.onClosurePendingChanged?.call(
+          _closureRequest?.status == 'pending',
+        );
+        final hasPartialFailure = results.any((result) => !result.succeeded);
+        if (hasPartialFailure && !_partialFailureReported) {
+          _partialFailureReported = true;
+          _showError('Some job details could not be refreshed. Retry shortly.');
+        } else if (!hasPartialFailure) {
+          _partialFailureReported = false;
+        }
+      }
+    } on CrmMobileApiException catch (error) {
+      if (mounted) _showError(error.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _openAddActions() async {
+    final saved = await showWorkActionSheet(
+      context: context,
+      api: widget.api,
+      session: widget.session,
+      enquiries: [_job],
+      checkedIn: _checkedIn,
+      closurePending: _closureRequest?.status == 'pending',
+      closed: _closureRequest?.status == 'approved',
+      capturePosition: widget.capturePosition,
+      onEnquiryUpdated: widget.onJobUpdated,
+      onClosurePendingChanged: widget.onClosurePendingChanged,
+      onCollectionSaved: () => setState(() {
+        _selectedSection = 'charges';
+        _chargeVersion++;
+      }),
+    );
+    if (saved && mounted) await _refresh();
+  }
+
+  Future<void> _openNewCall() async {
+    setState(() => _isSending = true);
+    try {
+      final updated = await widget.api.openNewCall(
+        accessToken: widget.session.accessToken,
+        id: widget.initialJob.sourceId,
+      );
+      if (mounted) {
+        setState(() => _job = updated);
+        _syncRunningTimer();
+        widget.onJobChanged?.call();
+        widget.onJobUpdated?.call(_job);
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('New call opened successfully.')),
+          );
+      }
+    } on CrmMobileApiException catch (error) {
+      if (mounted) _showError(error.message);
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  Future<void> _showStatusPicker() async {
+    try {
+      final formData = await widget.api.callEnquiryFormData(
+        widget.session.accessToken,
+      );
+      if (!mounted || formData.statuses.isEmpty) return;
+      final chosenStatus = await showModalBottomSheet<CrmCallEnquiryStatus>(
+        context: context,
+        showDragHandle: true,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Text(
+                  'Change Status',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: formData.statuses.map((status) {
+                    final isCurrent =
+                        status.name.toLowerCase() == _job.status.toLowerCase();
+                    return ListTile(
+                      title: Text(status.name),
+                      trailing: isCurrent
+                          ? const Icon(Icons.check, color: Color(0xFF662C90))
+                          : null,
+                      onTap: () => Navigator.of(context).pop(status),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (!mounted || chosenStatus == null) return;
+      if (chosenStatus.name.toLowerCase() == _job.status.toLowerCase()) return;
+
+      String? closedReason;
+      final code = chosenStatus.code.toLowerCase();
+      if (code == 'won' || code == 'lost' || code == 'closed') {
+        closedReason = await showDialog<String>(
+          context: context,
+          builder: (context) {
+            final reasonController = TextEditingController();
+            return AlertDialog(
+              title: Text('Reason for ${chosenStatus.name}'),
+              content: TextField(
+                controller: reasonController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Enter outcome or closure reason...',
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final text = reasonController.text.trim();
+                    if (text.isNotEmpty) Navigator.of(context).pop(text);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+        if (closedReason == null || closedReason.isEmpty) return;
+      }
+
+      setState(() => _isSending = true);
+      try {
+        final updated = await widget.api.updateProperties(
+          accessToken: widget.session.accessToken,
+          id: widget.initialJob.sourceId,
+          statusId: chosenStatus.id,
+          closedReason: closedReason,
+        );
+        if (mounted) {
+          setState(() => _job = updated);
+          _syncRunningTimer();
+          widget.onJobChanged?.call();
+          widget.onJobUpdated?.call(_job);
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text('Status updated to ${chosenStatus.name}.'),
+              ),
+            );
+        }
+      } on CrmMobileApiException catch (error) {
+        if (mounted) _showError(error.message);
+      } finally {
+        if (mounted) setState(() => _isSending = false);
+      }
+    } on CrmMobileApiException catch (error) {
+      if (mounted) _showError(error.message);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _CompactJobDetail extends StatelessWidget {
+  const _CompactJobDetail({
+    required this.enquiry,
+    required this.job,
+    required this.onTapStatus,
+    required this.onOpenNewCall,
+    required this.selectedSection,
+    required this.onSelectSection,
+  });
+
+  final DashboardListItem enquiry;
+  final CrmJob job;
+  final VoidCallback? onTapStatus;
+  final VoidCallback onOpenNewCall;
+  final String selectedSection;
+  final ValueChanged<String> onSelectSection;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      decoration: const BoxDecoration(
+        color: _detailSurfaceTone,
+        border: Border(bottom: BorderSide(color: Color(0xFFE7E1E9))),
+      ),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compactHeader = constraints.maxWidth < 380;
+                    return Row(
+                      children: [
+                        IconButton(
+                          tooltip: 'Back to jobs',
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 32,
+                            height: 32,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.arrow_back_rounded),
+                        ),
+                        _DetailStatusBadge(
+                          number: enquiry.enquiryNumber,
+                          status: enquiry.status,
+                          statusName: job.status.isNotEmpty ? job.status : null,
+                          onTap: onTapStatus,
+                        ),
+                        if (job.status.toLowerCase() == 'new') ...[
+                          if (compactHeader)
+                            IconButton(
+                              tooltip: 'Open call',
+                              visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints.tightFor(
+                                width: 32,
+                                height: 32,
+                              ),
+                              padding: EdgeInsets.zero,
+                              onPressed: onOpenNewCall,
+                              icon: const Icon(Icons.call_made, size: 14),
+                            )
+                          else ...[
+                            const SizedBox(width: 8),
+                            FilledButton.tonalIcon(
+                              style: FilledButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                              ),
+                              onPressed: onOpenNewCall,
+                              icon: const Icon(Icons.call_made, size: 14),
+                              label: const Text(
+                                'Open call',
+                                style: TextStyle(fontSize: 11),
+                              ),
+                            ),
+                          ],
+                        ],
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEBE6F0),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              enquiry.list.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF5A5260),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        _DetailJobTimer(job: job),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  enquiry.title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1E1724),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Created by ${enquiry.createdBy} · ${enquiry.createdDate} | ${enquiry.createdAgo}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF6D6870),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: -4,
+            right: -8,
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: PopupMenuButton<String>(
+                key: const ValueKey('show-page-section-menu'),
+                tooltip: 'Select section',
+                icon: const Icon(Icons.more_vert_rounded),
+                iconSize: 24,
+                padding: EdgeInsets.zero,
+                position: PopupMenuPosition.under,
+                onSelected: onSelectSection,
+                itemBuilder: (context) => [
+                  for (final section in _mobileDetailSections)
+                    PopupMenuItem<String>(
+                      value: section.$1,
+                      child: Row(
+                        children: [
+                          Icon(
+                            section.$1 == selectedSection
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_unchecked,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(section.$2)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailStatusBadge extends StatelessWidget {
+  const _DetailStatusBadge({
+    required this.number,
+    required this.status,
+    this.statusName,
+    this.onTap,
+  });
+
+  final String number;
+  final JobStatus status;
+  final String? statusName;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final rawLabel = statusName != null && statusName!.trim().isNotEmpty
+        ? statusName!.trim()
+        : _detailStatusLabel(status);
+    final label = rawLabel.length > 1
+        ? '${rawLabel[0].toUpperCase()}${rawLabel.substring(1)}'
+        : rawLabel.toUpperCase();
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFF4F7FD4),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.radio_button_checked,
+              size: 12,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 3),
+            Text(
+              '#$number  $label',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            if (onTap != null) ...[
+              const SizedBox(width: 2),
+              const Icon(Icons.arrow_drop_down, size: 14, color: Colors.white),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailJobTimer extends StatelessWidget {
+  const _DetailJobTimer({required this.job});
+
+  final CrmJob job;
+
+  @override
+  Widget build(BuildContext context) {
+    final running = job.jobs.any((execution) => execution.isRunning);
+    if (!running) return const SizedBox.shrink();
+    final runningJob = job.jobs
+        .where((execution) => execution.isRunning)
+        .firstOrNull;
+    final label = formatJobDuration(runningJob!);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1DDF5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.timer_outlined,
+              size: 15,
+              color: Color(0xFF682A82),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF682A82),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _detailStatusLabel(JobStatus status) => switch (status) {
+  JobStatus.open => 'Open',
+  JobStatus.won => 'Won',
+  JobStatus.lost => 'Lost',
+};

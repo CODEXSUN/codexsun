@@ -1,0 +1,29 @@
+{
+  "name": "@codexsun/ecommerce-web",
+  "version": "1.1.87",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./modules/overview": "./src/modules/overview/index.ts",
+    "./modules/overview/gateway": "./src/modules/overview/overview.services.ts",
+    "./modules/pages": "./src/modules/ecommerce-composition/ecommerce-composition.pages.tsx",
+    "./modules/storefront": "./src/modules/storefront/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/blog": "1.0.16",
+    "@codexsun/ui": "^1.1.87",
+    "@tanstack/react-query": "^5.105.0",
+    "@tanstack/react-router": "^1.170.46",
+    "lucide-react": "^1.62.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "sonner": "^2.0.8",
+    "zod": "^4.6.7"
+  }
+}

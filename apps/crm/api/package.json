@@ -1,0 +1,25 @@
+{
+  "name": "@codexsun/crm-api",
+  "version": "1.1.87",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./enquiry-sync": "./src/enquiry-sync.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/framework": "^1.1.87",
+    "fastify": "^5.12.5",
+    "kysely": "^0.29.7",
+    "sanitize-html": "^2.18.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/sanitize-html": "^2.16.2"
+  }
+}

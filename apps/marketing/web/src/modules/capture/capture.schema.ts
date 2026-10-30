@@ -1,0 +1,15 @@
+import { z } from "zod";
+export const captureSchema = z.strictObject({
+  brandUuid: z.string().regex(/^[a-f0-9]{8}$/),
+  campaignUuid: z.string().regex(/^[a-f0-9]{8}$/),
+  name: z.string().trim().min(1).max(160),
+  allowedOrigin: z
+    .url()
+    .refine(
+      (value) => new URL(value).origin === value && value.startsWith("https://"),
+      "Use an HTTPS origin without a path."
+    ),
+  consentNotice: z.string().trim().min(10).max(2000),
+  noticeVersion: z.string().trim().min(1).max(40),
+  status: z.enum(["active", "inactive"])
+});

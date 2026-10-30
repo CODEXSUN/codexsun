@@ -1,0 +1,20 @@
+name: codexsun_mobile
+description: CODEXSUN Zuno device communication and approvals.
+publish_to: none
+version: 1.0.90+90
+environment:
+  sdk: ^3.13.1
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  socket_io_client: ^3.1.6
+  web_socket: ^1.0.1
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  uses-material-design: true

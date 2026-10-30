@@ -1,0 +1,276 @@
+import type { DutyAssignmentContext } from "./duty-assignment.types.js";
+import { AppError } from "@codexsun/framework/errors";
+import { randomUUID } from "node:crypto";
+import { sql, type Kysely } from "kysely";
+import type {
+  DutyAssignment,
+  DutyAssignmentDatabase,
+  DutyAssignmentInput
+} from "./duty-assignment.types.js";
+import { enqueueCrmFrappeSync } from "../frappe-sync/index.js";
+import type { CrmFrappeSyncDatabase } from "../frappe-sync/index.js";
+
+export class DutyAssignmentRepository {
+  constructor(
+    private readonly db: Kysely<DutyAssignmentDatabase>,
+    private readonly notifyWork?: DutyAssignmentContext["notifyWork"]
+  ) {}
+  async listForUser(userId: number) {
+    const today = new Date().toISOString().slice(0, 10);
+    return this.listBase()
+      .where("assignment.assignee_user_id", "=", userId)
+      .where("assignment.status", "=", "active")
+      .where("assignment.start_date", "<=", today)
+      .where((eb) =>
+        eb.or([eb("assignment.end_date", "is", null), eb("assignment.end_date", ">=", today)])
+      )
+      .orderBy("assignment.display_order")
+      .execute()
+      .then((rows) => rows.map(map));
+  }
+  async listAll() {
+    return this.listBase()
+      .orderBy("assignment.created_at", "desc")
+      .execute()
+      .then((rows) => rows.map(map));
+  }
+  listBase() {
+    return this.db
+      .selectFrom("crm_duty_assignments as assignment")
+      .innerJoin("crm_sop_items as item", "item.id", "assignment.sop_item_id")
+      .innerJoin("crm_sop_item_revisions as revision", "revision.id", "assignment.revision_id")
+      .innerJoin("crm_sops as sop", "sop.id", "item.sop_id")
+      .innerJoin("app_users as person", "person.id", "assignment.assignee_user_id")
+      .leftJoin("crm_frappe_sync_queue as sync", (join) =>
+        join
+          .onRef("sync.local_record_id", "=", "assignment.id")
+          .on("sync.entity_type", "=", "duty-assignment")
+      )
+      .select([
+        "assignment.id",
+        "assignment.uuid",
+        "assignment.sop_item_id",
+        "assignment.revision_id",
+        "assignment.assignee_user_id",
+        "assignment.display_order",
+        "assignment.start_date",
+        "assignment.end_date",
+        "assignment.status",
+        "assignment.assigned_by",
+        "assignment.created_at",
+        "sop.code as sop_code",
+        "sop.title as sop_title",
+        "item.code as item_code",
+        "item.title as item_title",
+        "item.department",
+        "item.frequency",
+        "revision.instructions",
+        "revision.evidence_guidance",
+        "person.name as assignee_name",
+        "person.email as assignee_email",
+        "sync.status as frappe_sync_status",
+        "sync.last_error as frappe_sync_error"
+      ]);
+  }
+  async create(input: DutyAssignmentInput, actor: string) {
+    const id = await this.db.transaction().execute(async (trx) => {
+      // Serialize assignment creation with changes to the item's recurrence.
+      await trx
+        .selectFrom("crm_sop_items")
+        .select("id")
+        .where("id", "=", input.sopItemId)
+        .forUpdate()
+        .executeTakeFirst();
+      const revision = await trx
+        .selectFrom("crm_sop_item_revisions as revision")
+        .innerJoin("crm_sop_items as item", "item.id", "revision.sop_item_id")
+        .innerJoin("crm_sops as sop", "sop.id", "item.sop_id")
+        .select([
+          "revision.id",
+          "revision.status",
+          "item.status as item_status",
+          "sop.status as sop_status"
+        ])
+        .where("revision.id", "=", input.revisionId)
+        .where("revision.sop_item_id", "=", input.sopItemId)
+        .executeTakeFirst();
+      const user = await trx
+        .selectFrom("app_users")
+        .select("id")
+        .where("id", "=", input.assigneeUserId)
+        .where("status", "=", "active")
+        .executeTakeFirst();
+      if (
+        !revision ||
+        revision.status !== "published" ||
+        revision.item_status !== "active" ||
+        revision.sop_status !== "active" ||
+        !user
+      )
+        return null;
+      const duplicate = await trx
+        .selectFrom("crm_duty_assignments")
+        .select("id")
+        .where("sop_item_id", "=", input.sopItemId)
+        .where("assignee_user_id", "=", input.assigneeUserId)
+        .executeTakeFirst();
+      if (duplicate) throw AppError.conflict("This SOP is already assigned to the selected user.");
+      const result = await trx
+        .insertInto("crm_duty_assignments")
+        .values({
+          uuid: randomUUID(),
+          sop_item_id: input.sopItemId,
+          revision_id: input.revisionId,
+          assignee_user_id: input.assigneeUserId,
+          display_order: input.displayOrder,
+          start_date: input.startDate,
+          end_date: input.endDate,
+          status: "active",
+          assigned_by: actor
+        })
+        .executeTakeFirstOrThrow();
+      await enqueueCrmFrappeSync(
+        trx as unknown as Kysely<CrmFrappeSyncDatabase>,
+        "duty-assignment",
+        Number(result.insertId),
+        actor
+      );
+      await this.notifyWork?.(trx, Number(result.insertId), "SOP duty assigned.");
+      return Number(result.insertId);
+    });
+    return id
+      ? ((await this.listBase().where("assignment.id", "=", id).execute()).map(map)[0] ?? null)
+      : null;
+  }
+  async update(id: number, input: DutyAssignmentInput, actor: string) {
+    await this.db.transaction().execute(async (trx) => {
+      const current = await trx
+        .selectFrom("crm_duty_assignments")
+        .selectAll()
+        .where("id", "=", id)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!current) throw AppError.notFound("Duty was not found.");
+      await trx
+        .selectFrom("crm_sop_items")
+        .select("id")
+        .where("id", "=", input.sopItemId)
+        .forUpdate()
+        .executeTakeFirst();
+      const changed =
+        current.sop_item_id !== input.sopItemId ||
+        current.assignee_user_id !== input.assigneeUserId ||
+        current.revision_id !== input.revisionId;
+      const history = await sql<{
+        id: number;
+      }>`SELECT id FROM crm_duty_reports WHERE assignment_id = ${id} LIMIT 1`.execute(trx);
+      if (changed && history.rows.length)
+        throw AppError.conflict(
+          "This duty has reports. Its SOP, user, and instruction revision cannot change."
+        );
+      const revision = await trx
+        .selectFrom("crm_sop_item_revisions as revision")
+        .innerJoin("crm_sop_items as item", "item.id", "revision.sop_item_id")
+        .innerJoin("crm_sops as sop", "sop.id", "item.sop_id")
+        .select(["revision.status", "item.status as itemStatus", "sop.status as sopStatus"])
+        .where("revision.id", "=", input.revisionId)
+        .where("item.id", "=", input.sopItemId)
+        .executeTakeFirst();
+      const user = await trx
+        .selectFrom("app_users")
+        .select("id")
+        .where("id", "=", input.assigneeUserId)
+        .where("status", "=", "active")
+        .executeTakeFirst();
+      if (
+        !revision ||
+        !user ||
+        (changed && revision.status !== "published") ||
+        revision.itemStatus !== "active" ||
+        revision.sopStatus !== "active"
+      )
+        throw AppError.validation("Choose an active user and a published SOP.");
+      const duplicate = await trx
+        .selectFrom("crm_duty_assignments")
+        .select("id")
+        .where("id", "!=", id)
+        .where("sop_item_id", "=", input.sopItemId)
+        .where("assignee_user_id", "=", input.assigneeUserId)
+        .executeTakeFirst();
+      if (duplicate) throw AppError.conflict("This SOP is already assigned to the selected user.");
+      const invalidDates = await sql<{
+        id: number;
+      }>`SELECT id FROM crm_duty_reports WHERE assignment_id = ${id} AND (performed_date < ${input.startDate} OR (${input.endDate} IS NOT NULL AND performed_date > ${input.endDate})) LIMIT 1`.execute(
+        trx
+      );
+      if (invalidDates.rows.length)
+        throw AppError.conflict("Duty dates cannot exclude existing reports.");
+      await trx
+        .insertInto("crm_duty_assignment_edits")
+        .values({ assignment_id: id, before_data: JSON.stringify(current), changed_by: actor })
+        .execute();
+      await trx
+        .updateTable("crm_duty_assignments")
+        .set({
+          sop_item_id: input.sopItemId,
+          revision_id: input.revisionId,
+          assignee_user_id: input.assigneeUserId,
+          display_order: input.displayOrder,
+          start_date: input.startDate,
+          end_date: input.endDate,
+          updated_at: sql`UTC_TIMESTAMP()`
+        })
+        .where("id", "=", id)
+        .execute();
+      await enqueueCrmFrappeSync(
+        trx as unknown as Kysely<CrmFrappeSyncDatabase>,
+        "duty-assignment",
+        id,
+        actor
+      );
+      await this.notifyWork?.(trx, id, "SOP duty assignment updated.");
+    });
+    return (await this.listBase().where("assignment.id", "=", id).execute()).map(map)[0]!;
+  }
+  async deactivate(id: number) {
+    await this.db
+      .updateTable("crm_duty_assignments")
+      .set({ status: "inactive", updated_at: sql`UTC_TIMESTAMP()` })
+      .where("id", "=", id)
+      .execute();
+  }
+}
+type SelectedAssignment = Awaited<
+  ReturnType<ReturnType<DutyAssignmentRepository["listBase"]>["execute"]>
+>[number];
+function map(row: SelectedAssignment): DutyAssignment {
+  return {
+    id: row.id,
+    uuid: row.uuid,
+    sopItemId: row.sop_item_id,
+    revisionId: row.revision_id,
+    assigneeUserId: row.assignee_user_id,
+    displayOrder: row.display_order,
+    startDate: dateOnly(row.start_date),
+    endDate: row.end_date ? dateOnly(row.end_date) : null,
+    status: row.status,
+    frappeSyncStatus: row.frappe_sync_status ?? null,
+    frappeSyncError: row.frappe_sync_error ?? null,
+    assignedBy: row.assigned_by,
+    sopCode: row.sop_code,
+    sopTitle: row.sop_title,
+    itemCode: row.item_code,
+    itemTitle: row.item_title,
+    department: row.department,
+    frequency: row.frequency,
+    instructions: row.instructions,
+    evidenceGuidance: row.evidence_guidance,
+    assigneeName: row.assignee_name,
+    assigneeEmail: row.assignee_email,
+    createdAt: new Date(row.created_at).toISOString()
+  };
+}
+
+function dateOnly(value: unknown) {
+  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+}

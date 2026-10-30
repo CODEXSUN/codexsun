@@ -1,0 +1,44 @@
+{
+  "name": "@codexsun/crm-web",
+  "version": "1.1.87",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./modules/overview": "./src/modules/overview/index.ts",
+    "./modules/reports": "./src/modules/reports/index.ts",
+    "./modules/enquiry": "./src/modules/enquiry/index.ts",
+    "./modules/enquiry/services": "./src/modules/enquiry/enquiry.services.ts",
+    "./modules/activities": "./src/modules/activities/index.ts",
+    "./modules/closure": "./src/modules/closure/index.ts",
+    "./modules/call-log": "./src/modules/call-log/index.ts",
+    "./modules/enquiry/hooks": "./src/modules/enquiry/enquiry.hooks.ts",
+    "./modules/list-in": "./src/modules/list-in/index.ts",
+    "./modules/status": "./src/modules/status/index.ts",
+    "./modules/priority": "./src/modules/priority/index.ts",
+    "./modules/contact-360": "./src/modules/contact-360/index.ts",
+    "./modules/contact": "./src/modules/contact/index.ts",
+    "./modules/task": "./src/modules/task/index.ts",
+    "./modules/sop": "./src/modules/sop/index.ts",
+    "./modules/duties": "./src/modules/duties.ts",
+    "./modules/duty-assignment": "./src/modules/duty-assignment/index.ts",
+    "./modules/duty-report": "./src/modules/duty-report/index.ts",
+    "./modules/scheduler": "./src/modules/scheduler/index.ts",
+    "./modules/scheduler/services": "./src/modules/scheduler/scheduler.services.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/core-web": "^1.1.87",
+    "@codexsun/ui": "^1.1.87",
+    "@tanstack/react-query": "^5.105.0",
+    "@tanstack/react-table": "^9.3.1",
+    "lucide-react": "^1.62.0",
+    "react": "^19.3.1",
+    "sonner": "^2.0.8",
+    "zod": "^4.6.7"
+  }
+}

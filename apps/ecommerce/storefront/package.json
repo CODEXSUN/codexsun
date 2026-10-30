@@ -1,0 +1,24 @@
+{
+  "name": "@codexsun/ecommerce-storefront",
+  "version": "1.1.87",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@codexsun/ecommerce-web": "^1.1.87",
+    "@codexsun/ui": "^1.1.87",
+    "@tanstack/react-query": "^5.105.0",
+    "lucide-react": "^1.62.0",
+    "react": "^19.3.1",
+    "zod": "^4.6.7",
+    "react-dom": "^19.3.1"
+  },
+  "description": "Techmedia public computer-shop storefront"
+}
