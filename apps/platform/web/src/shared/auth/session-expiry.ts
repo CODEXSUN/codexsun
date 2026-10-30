@@ -1,0 +1,99 @@
+import type { Desk } from "../api/platform-api";
+import { getSessionSlot, isPlatformApiRequest } from "./tab-session";
+
+export const SESSION_EXPIRED_REASON = "session-expired";
+export const SESSION_EXPIRED_ERROR_CODE = "AUTH_SESSION_EXPIRED";
+export const SESSION_REFRESHED_REASON = "session-refreshed";
+
+const loginPaths: Record<Desk, string> = {
+  admin: "/admin/login",
+  sa: "/sa/login",
+  tenant: "/login"
+};
+
+let clearSession: () => void = () => undefined;
+let redirectStarted = false;
+let interceptorInstalled = false;
+
+export function protectedDeskFromPathname(pathname: string): Desk | null {
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    return pathname === "/admin/login" ? null : "admin";
+  }
+  if (pathname === "/sa" || pathname.startsWith("/sa/")) {
+    return pathname === "/sa/login" ? null : "sa";
+  }
+  if (pathname === "/app" || pathname.startsWith("/app/")) {
+    return "tenant";
+  }
+  return null;
+}
+
+export function sessionExpiredLoginPath(desk: Desk): string {
+  return `${loginPaths[desk]}?reason=${SESSION_EXPIRED_REASON}`;
+}
+
+export function hasSessionExpiredReason(search: string): boolean {
+  return new URLSearchParams(search).get("reason") === SESSION_EXPIRED_REASON;
+}
+
+export function hasSessionRefreshedReason(search: string): boolean {
+  return new URLSearchParams(search).get("reason") === SESSION_REFRESHED_REASON;
+}
+
+export function redirectForExpiredSession(desk?: Desk): boolean {
+  const activeDesk = desk ?? protectedDeskFromPathname(window.location.pathname);
+  if (!activeDesk || redirectStarted) return false;
+
+  redirectStarted = true;
+  clearSession();
+  const loginPath = sessionExpiredLoginPath(activeDesk);
+  window.location.replace(
+    activeDesk === "tenant" && window.location.pathname.startsWith("/app/tconnect/")
+      ? `${loginPath}&app=tconnect${window.location.pathname.startsWith("/app/tconnect/buyer") ? "&account=buyer" : ""}`
+      : activeDesk === "tenant" && window.location.pathname.startsWith("/app/sportsclub")
+        ? `${loginPath}&app=sportsclub`
+        : loginPath
+  );
+  return true;
+}
+
+export function installSessionExpiryInterceptor(onClearSession: () => void): void {
+  clearSession = onClearSession;
+  if (interceptorInstalled) return;
+
+  interceptorInstalled = true;
+  const browserFetch = window.fetch.bind(window);
+  window.fetch = async (...arguments_: Parameters<typeof window.fetch>) => {
+    const [input, init] = arguments_;
+    const slot = getSessionSlot();
+    const platformRequest = isPlatformApiRequest(input);
+    const options =
+      slot && platformRequest ? { ...init, headers: withSessionSlot(input, init, slot) } : init;
+    const response = await browserFetch(input, options);
+    if (
+      platformRequest &&
+      slot === getSessionSlot() &&
+      (await isExpiredSessionResponse(response))
+    ) {
+      redirectForExpiredSession();
+    }
+    return response;
+  };
+}
+
+function withSessionSlot(input: RequestInfo | URL, init: RequestInit | undefined, slot: string) {
+  const headers = new Headers(input instanceof Request ? input.headers : undefined);
+  new Headers(init?.headers).forEach((value, name) => headers.set(name, value));
+  headers.set("x-codexsun-session-slot", slot);
+  return headers;
+}
+
+export async function isExpiredSessionResponse(response: Response): Promise<boolean> {
+  if (response.status !== 401) return false;
+  try {
+    const payload = (await response.clone().json()) as { error?: { code?: string } };
+    return payload.error?.code === SESSION_EXPIRED_ERROR_CODE;
+  } catch {
+    return false;
+  }
+}

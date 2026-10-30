@@ -1,0 +1,21 @@
+{
+  "name": "@codexsun/windows",
+  "version": "1.1.87",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && vite build",
+    "dev": "vite",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src vite.config.ts",
+    "tauri": "node ../../../tools/prepare-native-output.mjs windows && tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4"
+  }
+}
