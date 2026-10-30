@@ -1,0 +1,1 @@
+-- Numeric codes are assigned by the item editor; empty installations need no seed data.

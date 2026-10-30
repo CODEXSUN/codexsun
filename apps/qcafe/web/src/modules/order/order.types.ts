@@ -1,0 +1,61 @@
+export type OrderLine = {
+  menuUuid: string;
+  code: string;
+  name: string;
+  quantity: number;
+  rate: number;
+  amount: number;
+};
+export type BookingDetails = { customerName: string; mobile: string; pickupAt: string };
+export type OrderPatch = {
+  booking?: BookingDetails | null | undefined;
+  name: string;
+  mode: "POS" | "KOT" | "TAKE AWAY";
+  tableUuid: string | null;
+  seats: number[];
+  lines: { menuUuid: string; quantity: number }[];
+};
+export type OrderInput = OrderPatch & {
+  requestId: string;
+  revision: number;
+  action: "save" | "kitchen" | "bill" | "cancel";
+};
+export type KitchenTicket = {
+  uuid: string;
+  number: string;
+  kind: "send" | "cancel";
+  createdAt: string;
+  lines: OrderLine[];
+};
+export type CafeOrder = Omit<OrderPatch, "lines"> & {
+  booking: BookingDetails | null;
+  bookingToken: string | null;
+  parcelToken: string | null;
+  uuid: string;
+  revision: number;
+  status: "draft" | "billed" | "cancelled";
+  tableName: string;
+  lines: OrderLine[];
+  tickets: KitchenTicket[];
+  billUuid: string | null;
+};
+export type MenuOption = {
+  uuid: string;
+  code: string;
+  name: string;
+  category: string;
+  price: number;
+  normalPrice?: number;
+  activeSpecial?: { prefix: string; name: string } | null;
+  imageUrl?: string | undefined;
+  status: "active" | "inactive";
+};
+export type TableOption = {
+  uuid: string;
+  name: string;
+  seats: number;
+  status: "active" | "inactive";
+};
+export type OccupiedSeat = { tableUuid: string; seat: number; orderUuid: string };
+export type FloorBill = { uuid: string; name: string; tableUuid: string; billUuid: string };
+export type LastBill = { number: string; total: number; status: string };

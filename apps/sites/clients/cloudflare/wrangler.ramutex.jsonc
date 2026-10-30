@@ -1,0 +1,36 @@
+{
+  "name": "codexsun-sites-ramutex",
+  "account_id": "a68cf61bf5bae3f83ddb7765dc29a835",
+  "main": "ramutex.mjs",
+  "compatibility_date": "2026-10-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "ramutex.codexsun.com",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "directory": "../../../../dist/apps/sites/cloudflare/ramutex/public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "none",
+    "not_found_handling": "none"
+  },
+  "d1_databases": [
+    {
+      "binding": "CODEXSUN_SITES_DB",
+      "database_name": "codexsun-sites-ramutex",
+      "database_id": "1e5f1379-1433-490d-9317-dd8d3d308200"
+    }
+  ],
+  "triggers": {
+    "crons": ["17 2 * * *"]
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Q Cafe",
+  "version": "1.0.38",
+  "identifier": "in.codexsun.qcafe",
+  "build": {
+    "beforeDevCommand": {
+      "cwd": "../../../..",
+      "script": "npm.cmd run dev:qcafe"
+    },
+    "devUrl": "http://127.0.0.1:5180/qcafe/",
+    "beforeBuildCommand": {
+      "cwd": "../../../..",
+      "script": "npm.cmd run build:qcafe:desktop"
+    },
+    "frontendDist": "../../../../dist/apps/qcafe/web"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Q Cafe",
+        "width": 1440,
+        "height": 920,
+        "minWidth": 1024,
+        "minHeight": 700,
+        "maximized": true,
+        "closable": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:4180; img-src 'self' asset: http://asset.localhost http://127.0.0.1:4180 data: blob: https:; style-src 'self' 'unsafe-inline'; font-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "icon": [
+      "icons/icon.ico"
+    ],
+    "targets": [
+      "msi",
+      "nsis"
+    ],
+    "resources": {
+      "../../../../dist/apps/qcafe/desktop/resources/node.exe": "node.exe",
+      "resources/qcafe-print-service-installer.cjs": "qcafe-print-service-installer.cjs"
+    },
+    "windows": {
+      "wix": {
+        "language": "en-US"
+      },
+      "nsis": {
+        "installMode": "perMachine",
+        "displayLanguageSelector": true,
+        "installerHooks": "installer/close-qcafe.nsh"
+      }
+    }
+  }
+}

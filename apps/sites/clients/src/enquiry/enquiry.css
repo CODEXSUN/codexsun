@@ -1,0 +1,136 @@
+.site-enquiry {
+  --enquiry-accent: var(--portfolio-accent, #36594b);
+  padding: 32px;
+  background: #fff;
+  border: 1px solid #dce2e0;
+  border-radius: 16px;
+  color: #233b34;
+  line-height: 1.6;
+}
+.site-enquiry h2 {
+  font-size: 26px;
+  line-height: 1.25;
+  margin: 0 0 12px;
+}
+.site-enquiry p {
+  font-size: 15px;
+}
+.site-enquiry fieldset {
+  border: 0;
+  padding: 0;
+  margin: 24px 0 0;
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.enquiry-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.site-enquiry label {
+  display: block;
+  font-size: 14px;
+  font-weight: 550;
+}
+.site-enquiry label > span:first-child {
+  color: inherit;
+}
+.site-enquiry input:not([type="checkbox"]),
+.site-enquiry textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  background: #f9fbfa;
+  border: 1px solid #c8d4cf;
+  border-radius: 6px;
+  padding: 12px;
+  color: #233b34;
+  margin-top: 8px;
+  font: inherit;
+  min-width: 0;
+}
+.site-enquiry input:focus-visible,
+.site-enquiry textarea:focus-visible {
+  outline: 2px solid var(--enquiry-accent);
+  outline-offset: 2px;
+}
+.site-enquiry [aria-invalid="true"] {
+  border-color: #ad342c !important;
+}
+.site-enquiry small,
+.enquiry-error {
+  color: #ad342c;
+  font-size: 13px;
+}
+.enquiry-error {
+  padding: 12px;
+  background: #fff4f2;
+  border-radius: 6px;
+}
+.site-enquiry .enquiry-trap {
+  display: none;
+}
+.site-enquiry .enquiry-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 400;
+}
+.enquiry-consent input {
+  margin-top: 5px;
+  accent-color: var(--enquiry-accent);
+}
+.enquiry-consent a {
+  color: inherit;
+  text-decoration: underline;
+}
+.enquiry-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: var(--enquiry-accent);
+  color: white;
+  border: 0;
+  border-radius: 6px;
+  padding: 14px 24px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.site-enquiry .enquiry-note {
+  font-size: 12px;
+  margin: 0;
+}
+.site-enquiry button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.enquiry-success {
+  border-color: var(--enquiry-accent);
+}
+.enquiry-success button {
+  padding: 10px 0;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+  background: transparent;
+  color: inherit;
+}
+.enquiry-reference {
+  font-family: monospace;
+  font-size: 12px !important;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  .site-enquiry {
+    padding: 22px;
+  }
+  .enquiry-row {
+    grid-template-columns: 1fr;
+  }
+}
+.site-enquiry .enquiry-required {
+  color: #ad342c;
+}

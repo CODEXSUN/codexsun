@@ -1,0 +1,28 @@
+# Local configuration, operator credentials, and restaurant data
+.env
+.env.*
+!.env.example
+.local/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+
+# Dependencies, generated web output, and desktop toolchains
+**/node_modules/
+**/dist/
+**/dist-types/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+desktop/release/
+desktop/src-tauri/resources/node.exe
+desktop/src-tauri/resources/qcafe-print-service.exe
+
+# Temporary output and logs
+**/.cache/
+**/.vite/
+**/.turbo/
+**/tmp/
+**/temp/
+*.log
+*.tsbuildinfo

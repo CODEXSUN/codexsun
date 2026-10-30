@@ -1,0 +1,8 @@
+{
+  "frappe.svg": "https://raw.githubusercontent.com/frappe/frappe/develop/frappe/public/images/frappe-comp-logo.svg",
+  "erpnext.svg": "https://raw.githubusercontent.com/frappe/erpnext/develop/erpnext/public/images/erpnext-logo.svg",
+  "react.svg": "https://raw.githubusercontent.com/reactjs/react.dev/main/public/images/brand/logo_light.svg",
+  "tailwindcss.svg": "https://raw.githubusercontent.com/tailwindlabs/tailwindcss.com/main/src/app/(docs)/brand/img/tailwindcss-mark.svg",
+  "python.svg": "https://www.python.org/static/community_logos/python-logo-generic.svg",
+  "nodejs.svg": "https://nodejs.org/static/logos/nodejsHex.svg"
+}

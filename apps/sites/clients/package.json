@@ -1,0 +1,44 @@
+{
+  "name": "@codexsun/sites-clients",
+  "version": "1.1.87",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./logicx": "./src/clients/logicx/index.ts",
+    "./ramutex": "./src/clients/ramutex/index.ts",
+    "./tirupurconnect": "./src/clients/tirupurconnect/site.tsx",
+    "./tenkasisports": "./src/clients/tenkasisports/site.tsx"
+  },
+  "scripts": {
+    "build:tenkasisports": "node --import tsx deploy/build.mjs tenkasisports",
+    "dev:tenkasisports": "node --import tsx ../../../node_modules/vite/bin/vite.js --mode tenkasisports",
+    "prepare:deploy": "node --import tsx deploy/prepare.mjs",
+    "test:runtime": "node --import tsx --test runtime/content/content-store.test.mjs runtime/enquiry/enquiry.test.mjs",
+    "build:portfolio": "node deploy/build.mjs portfolio",
+    "dev:portfolio": "node --max-http-header-size=262144 --import tsx ../../../node_modules/vite/bin/vite.js --mode portfolio",
+    "build": "tsc -p tsconfig.json --noEmit && node --import tsx deploy/build.mjs logicx ramutex tirupurconnect tenkasisports",
+    "build:logicx": "node deploy/build.mjs logicx",
+    "build:ramutex": "node --import tsx deploy/build.mjs ramutex",
+    "dev:logicx": "node --max-http-header-size=262144 --import tsx ../../../node_modules/vite/bin/vite.js --mode logicx",
+    "dev:ramutex": "node --max-http-header-size=262144 --import tsx ../../../node_modules/vite/bin/vite.js --mode ramutex",
+    "lint": "oxlint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build:tirupurconnect": "node --import tsx deploy/build.mjs tirupurconnect",
+    "dev:tirupurconnect": "node ../../../tools/preflight.mjs tconnect-web"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
+  },
+  "dependencies": {
+    "zod": "^4.6.7",
+    "@codexsun/sites-api": "^1.1.87",
+    "@codexsun/ui": "^1.1.87",
+    "framer-motion": "^14.6.0",
+    "lucide-react": "^1.62.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "@codexsun/tconnect-web": "^1.1.87"
+  },
+  "description": "Sites clients: LogicX (7131), Ramu Tex (7132) and Tirupur Connect (7040)"
+}

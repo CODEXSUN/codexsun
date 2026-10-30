@@ -1,0 +1,91 @@
+.qcafe-special-settings {
+  max-width: 1050px;
+  margin: 12px auto;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.qcafe-special-settings header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+.qcafe-special-settings header > div:last-child {
+  display: flex;
+  gap: 8px;
+}
+.qcafe-special-settings h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 20px;
+}
+.qcafe-special-settings h2 {
+  font-weight: 600;
+  font-size: 15px;
+}
+.qcafe-special-settings p {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin: 8px 0 16px;
+  line-height: 1.6;
+}
+.qcafe-special-selection {
+  border: 1px solid var(--border);
+  padding: 18px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  display: grid;
+  gap: 16px;
+}
+.qcafe-special-settings label {
+  font-size: 13px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.qcafe-special-selection > label:last-of-type {
+  display: grid;
+  gap: 8px;
+}
+.qcafe-special-selection select,
+.qcafe-menu-special select {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--background);
+}
+.qcafe-special-add,
+.qcafe-special-row {
+  display: grid;
+  grid-template-columns: 130px minmax(180px, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+}
+.qcafe-special-add label {
+  display: grid;
+  gap: 6px;
+}
+.qcafe-special-add > button {
+  align-self: end;
+}
+.qcafe-special-row {
+  border-top: 1px solid var(--border);
+}
+.qcafe-special-row > button {
+  color: var(--destructive);
+  cursor: pointer;
+}
+@media (max-width: 700px) {
+  .qcafe-special-add,
+  .qcafe-special-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .qcafe-special-settings header {
+    flex-wrap: wrap;
+  }
+}

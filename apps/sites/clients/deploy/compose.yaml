@@ -1,0 +1,20 @@
+services:
+  portfolio:
+    build: .
+    restart: unless-stopped
+    read_only: true
+    ports:
+      - "127.0.0.1:${CODEXSUN_SITES_HOST_PORT:-8080}:8080"
+    environment:
+      CODEXSUN_SITES_ORIGIN: ${CODEXSUN_SITES_ORIGIN:?Set the canonical HTTPS site origin}
+      CODEXSUN_SITES_TRUSTED_PROXIES: ${CODEXSUN_SITES_TRUSTED_PROXIES:-}
+    volumes:
+      - site-data:/data
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+volumes:
+  site-data:

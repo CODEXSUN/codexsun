@@ -1,0 +1,13 @@
+{
+  "name": "@codexsun/qcafe-desktop",
+  "version": "1.1.87",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../../tools/prepare-native-output.mjs qcafe && node ../../../node_modules/@tauri-apps/cli/tauri.js dev",
+    "package:windows": "node ../../../tools/package-qcafe-windows.mjs"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4"
+  }
+}

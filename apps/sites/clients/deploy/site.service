@@ -1,0 +1,29 @@
+[Unit]
+Description=Client portfolio website
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+WorkingDirectory=/srv/codexsun-sites/client-slug/current
+StateDirectory=codexsun-sites/client-slug
+StateDirectoryMode=0700
+Environment=NODE_ENV=production
+Environment=CODEXSUN_SITES_DB=/var/lib/codexsun-sites/client-slug/content.sqlite
+Environment=CODEXSUN_SITES_ORIGIN=https://client.example
+Environment=CODEXSUN_SITES_PORT=8080
+Environment=CODEXSUN_SITES_TRUSTED_PROXIES=127.0.0.1,::ffff:127.0.0.1,::1
+ExecStart=/usr/bin/node /srv/codexsun-sites/client-slug/current/runtime/server.mjs
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
