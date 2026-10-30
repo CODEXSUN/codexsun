@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@codexsun/ui": ["../../packages/ui/src/index.ts"],
+      "@codexsun/ui/*": ["../../packages/ui/src/*"]
+    },
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src", "api", "vite.config.ts"]
+}

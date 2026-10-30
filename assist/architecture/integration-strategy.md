@@ -1,0 +1,154 @@
+# Integration Strategy
+
+## Goal
+
+CODEXSUN should integrate with external systems without making the core platform fragile.
+
+Integrations must be tenant-aware, retry-safe, observable, and permission-controlled.
+
+## Integration Types
+
+### Communication Integrations
+
+Examples:
+
+- WhatsApp.
+- Telegram.
+- Email.
+- SMS if added later.
+
+### Compliance Integrations
+
+Examples:
+
+- e-Invoice.
+- e-Way bill.
+- GST-related services where applicable.
+
+### Accounting And Export Integrations
+
+Examples:
+
+- Tally export.
+- Bank statement import.
+- Excel import and export.
+- External accounting systems where required.
+
+### Business Integrations
+
+Examples:
+
+- Marketplace platforms.
+- Payment gateways.
+- Logistics providers.
+- CRM systems.
+- Custom customer APIs.
+
+## Adapter Pattern
+
+Each integration should use an adapter.
+
+Adapter owns:
+
+- Provider configuration.
+- Authentication.
+- Request mapping.
+- Response mapping.
+- Error mapping.
+- Retry rules.
+- Logs.
+- Webhook verification.
+
+The core module should not depend directly on provider-specific behavior.
+
+## Telegram Account API
+
+Chat owns the Telegram MTProto client integration. The **Telegram** launcher
+opens `/app/chat/telegram`. Its Settings page is `/app/chat/telegram/settings`.
+The integration follows Chat activation and backend permissions.
+
+Each CODEXSUN user configures a regular Telegram account for their selected company.
+Get an API ID and API hash from `https://my.telegram.org/apps`. Enter those values
+and the account phone number in Settings. Telegram sends a sign-in code. Complete
+code verification and the account's two-step password when Telegram requires it.
+CODEXSUN does not create Telegram accounts or bypass Telegram verification.
+
+API credentials, phone details, pending verification input, and the saved
+MTProto session are encrypted in the tenant database. Encryption binds each record
+to its tenant, company, CODEXSUN user, and account UUID. API responses exclude secrets.
+Verification inputs expire after ten minutes and allow at most five attempts.
+The worker clears each submitted verification input after processing it.
+
+Sign-in, conversation refresh, disconnect, and synchronization run through the
+`chat.telegram.sync` Queue Manager job. Queue payloads contain opaque account and
+operation identifiers. They never contain credentials, codes, passwords, sessions,
+or message bodies. Automatic operation requires `CODEXSUN_QUEUE_WORKER_ENABLED=1`.
+Both database and BullMQ backends use the same job contract.
+
+The MTProto client allows bounded RPC retries so Telegram can redirect sign-in
+to the account's data center. A single attempt disables that protocol recovery.
+Phone, data-center, and additional verification errors have separate safe messages.
+
+After sign-in, Settings lists up to 100 recent Telegram conversations. A user
+must explicitly link a Telegram conversation to a Chat conversation. The linking
+user must be a Chat conversation admin. Linking shares text with that Chat
+conversation's participants. Other CODEXSUN users cannot read the account session or
+its unlinked Telegram conversation list. Changing Telegram identity removes the
+previous account's Chat links before refreshing its conversations.
+
+Only linked conversations synchronize. Incoming writes and message cursors share
+a database transaction. Imported messages retain a Telegram sender identity and
+do not echo back. Outgoing deliveries persist an MTProto random ID before sending.
+A retry reuses that ID so Telegram can suppress duplicates. Local Chat history is
+not sent when a conversation is first linked. Initial incoming sync starts from
+the message position recorded by the latest conversation refresh.
+
+Provider failures pause new scheduled work for the account. Existing safe queue
+retries can finish the same operation. Rate-limit errors do not trigger immediate
+retries. Wait for the provider limit, then refresh conversations in Settings to
+resume synchronization.
+
+The `chat.007_telegram_account` migration adds account, dialog, and delivery tables.
+It disables the older bot connections and erases their saved bot tokens. Historical
+bot tables and existing messages remain in place. The bot API and BotFather setup
+are no longer used by the active integration.
+
+Disconnect revokes the Telegram session when the provider is reachable and always
+clears local credentials. If remote revocation cannot complete, Settings tells the
+user to revoke the session through Telegram Settings > Devices.
+
+This version synchronizes text. Files, edits, deletions, account registration,
+additional provider verification challenges, and full history imports are outside
+this version. Check Telegram Settings for provider errors and Queue Manager for
+job failures.
+
+Verify with `npm test -w @codexsun/chat-api` and
+`npx tsx tools/e2e/chat-telegram.e2e.ts`. The database test creates and removes an
+isolated test database and uses a simulated MTProto client. Live verification
+requires real API credentials and the account holder's sign-in.
+
+## General Integration Rules
+
+- Store credentials encrypted.
+- Keep tenant-specific credentials separate.
+- Log every important request and response metadata.
+- Never log secrets.
+- Use queues for external calls where possible.
+- Make callbacks idempotent.
+- Verify webhook signatures when provider supports it.
+- Expose failed integration actions to support.
+
+## User Control
+
+For outbound communication:
+
+- User should know what will be sent.
+- Message templates should be visible.
+- Attachments should be confirmed.
+- Delivery status should be tracked.
+
+For compliance submissions:
+
+- User approval is required for final submission.
+- Source data should be locked or versioned where required.
+- Provider response should be stored.
