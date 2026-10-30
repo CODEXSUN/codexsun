@@ -1,0 +1,50 @@
+.codexsun-notification-ripple {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--destructive);
+  border-radius: 9999px;
+  animation: codexsun-notification-ripple 2.6s ease-out infinite;
+}
+
+.codexsun-notification-ripple:nth-child(2) {
+  animation-delay: -1.3s;
+}
+
+.codexsun-notification-dot {
+  animation: codexsun-notification-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes codexsun-notification-ripple {
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  12% {
+    opacity: 0.7;
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(2.3);
+  }
+}
+
+@keyframes codexsun-notification-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.86);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .codexsun-notification-ripple,
+  .codexsun-notification-dot {
+    animation: none;
+  }
+  .codexsun-notification-ripple {
+    opacity: 0;
+  }
+}

@@ -1,0 +1,232 @@
+@layer theme, base, components, utilities;
+
+@layer components {
+  .global-loader {
+    align-items: center;
+    background: color-mix(in oklab, var(--background, #ffffff) 55%, transparent);
+    color: var(--foreground, #102039);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: center;
+    padding: 24px;
+    z-index: 100;
+    box-sizing: border-box;
+    font-family: var(--font-sans, Arial, sans-serif);
+  }
+
+  .global-loader-fullscreen {
+    animation: global-loader-backdrop-in 220ms linear 90ms both;
+    backdrop-filter: blur(0);
+    background: transparent;
+    inset: 0;
+    isolation: isolate;
+    min-height: 100svh;
+    overflow: hidden;
+    position: fixed;
+    will-change: background-color, backdrop-filter;
+  }
+
+  .global-loader-fullscreen::before {
+    animation: global-loader-aurora 18s ease-in-out infinite alternate;
+    background:
+      radial-gradient(ellipse at 15% 30%, rgb(110 231 183 / 0.12), transparent 55%),
+      radial-gradient(ellipse at 70% 20%, rgb(196 181 253 / 0.14), transparent 55%),
+      radial-gradient(ellipse at 80% 75%, rgb(125 211 252 / 0.12), transparent 55%),
+      radial-gradient(ellipse at 30% 85%, rgb(249 168 212 / 0.09), transparent 50%);
+    content: "";
+    filter: blur(36px);
+    inset: -15%;
+    pointer-events: none;
+    position: absolute;
+    z-index: -1;
+  }
+
+  .global-loader-fullscreen .global-loader-mark {
+    animation: global-loader-mark-in 160ms ease-out 35ms both;
+  }
+
+  .global-loader-fullscreen.global-loader-steady,
+  .global-loader-fullscreen.global-loader-steady .global-loader-mark {
+    animation: none;
+  }
+
+  .global-loader-inline {
+    min-height: 320px;
+    width: 100%;
+  }
+
+  .global-loader-message {
+    color: var(--muted-foreground, #657187);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    margin: -4px 0 0;
+    text-align: center;
+  }
+
+  .global-loader-mark {
+    height: 168px;
+    position: relative;
+    width: 168px;
+  }
+
+  .global-loader-core {
+    background: radial-gradient(
+      circle at 30% 30%,
+      color-mix(in oklab, var(--background, #ffffff) 65%, var(--primary, #2f6fed) 35%) 0%,
+      color-mix(in oklab, var(--card, #ffffff) 92%, var(--secondary, #e8eef8) 8%) 58%,
+      color-mix(in oklab, var(--card, #ffffff) 84%, var(--accent, #70d9bd) 16%) 100%
+    );
+    border: 1px solid color-mix(in oklab, var(--border, #d9e0ea) 88%, transparent);
+    border-radius: 999px;
+    box-shadow: 0 24px 48px color-mix(in oklab, var(--primary, #2f6fed) 16%, transparent);
+    inset: 22%;
+    position: absolute;
+  }
+
+  .global-loader-ring {
+    animation: global-loader-ring-spin 3s linear infinite;
+    border-radius: 999px;
+    inset: 0;
+    position: absolute;
+  }
+
+  .global-loader-ring-accent {
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      var(--accent, #70d9bd) 90deg,
+      transparent 180deg
+    );
+    mask: radial-gradient(
+      circle at 50% 50%,
+      transparent 35%,
+      black 37%,
+      black 39%,
+      transparent 41%
+    );
+    opacity: 0.8;
+  }
+
+  .global-loader-ring-dark {
+    animation-duration: 2.5s;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      color-mix(in oklab, var(--foreground, #102039) 90%, var(--primary, #2f6fed) 10%) 120deg,
+      color-mix(in oklab, var(--foreground, #102039) 48%, transparent) 240deg,
+      transparent 360deg
+    );
+    mask: radial-gradient(
+      circle at 50% 50%,
+      transparent 42%,
+      black 44%,
+      black 48%,
+      transparent 50%
+    );
+    opacity: 0.9;
+  }
+
+  .global-loader-ring-soft {
+    animation-direction: reverse;
+    animation-duration: 4s;
+    background: conic-gradient(
+      from 180deg,
+      transparent 0deg,
+      color-mix(in oklab, var(--foreground, #102039) 58%, transparent) 45deg,
+      transparent 90deg
+    );
+    mask: radial-gradient(
+      circle at 50% 50%,
+      transparent 52%,
+      black 54%,
+      black 56%,
+      transparent 58%
+    );
+    opacity: 0.35;
+  }
+
+  .global-loader-logo {
+    align-items: center;
+    display: flex;
+    height: 41px;
+    justify-content: center;
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 41px;
+  }
+
+  .global-loader-logo img {
+    display: block;
+    height: 41px;
+    object-fit: contain;
+    width: 41px;
+  }
+
+  @keyframes global-loader-backdrop-in {
+    from {
+      backdrop-filter: blur(0);
+      background-color: transparent;
+    }
+
+    to {
+      backdrop-filter: blur(10px);
+      background-color: color-mix(in oklab, var(--background, #ffffff) 18%, transparent);
+    }
+  }
+
+  @keyframes global-loader-ring-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes global-loader-aurora {
+    from {
+      transform: translate(-3%, -2%) rotate(-6deg) scale(1);
+    }
+    to {
+      transform: translate(3%, 2%) rotate(6deg) scale(1.08);
+    }
+  }
+
+  @keyframes global-loader-mark-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .global-loader-ring {
+      animation: none;
+    }
+    .global-loader-fullscreen::before {
+      animation: none;
+    }
+
+    .global-loader-fullscreen,
+    .global-loader-fullscreen .global-loader-mark {
+      animation-delay: 0ms;
+      animation-duration: 1ms;
+    }
+  }
+
+  .global-loader-logo .global-loader-logo-dark {
+    display: none;
+  }
+  .dark .global-loader-logo .global-loader-logo-light {
+    display: none;
+  }
+  .dark .global-loader-logo .global-loader-logo-dark {
+    display: block;
+  }
+}
