@@ -81,10 +81,29 @@ class PromotionPolicy:
 
     def check_recovery(self):
         fresh(self.recovery["completedAt"], 3600)
-        require(set(self.recovery.get("newTenantDatabases", [])) == SCOPED_DATABASES,
-                "New tenant backups must cover only Techmedia and Rainbow")
         targets = self.migrations.get("targets", [])
         require(targets and "master" in targets, "Migration target evidence must include the master")
+        expanded = self.record.get("recoveryScopeAuthorization")
+        if expanded is None:
+            require(set(self.recovery.get("newTenantDatabases", [])) == SCOPED_DATABASES,
+                    "New tenant backups must cover only Techmedia and Rainbow")
+        else:
+            require(expanded.get("source") == self.record["source"] and
+                    expanded.get("images") == self.images,
+                    "Expanded recovery authorization must bind exact source and images")
+            approved = expanded.get("tenantDatabases", [])
+            require(isinstance(approved, list) and approved and
+                    all(isinstance(name, str) and re.fullmatch(r"[A-Za-z0-9_]+", name) and
+                        name.lower() not in {"master", "mysql", "sys", "information_schema", "performance_schema"}
+                        for name in approved) and
+                    len(approved) == len(set(approved)) and SCOPED_DATABASES <= set(approved),
+                    "Expanded recovery requires explicit unique tenant database names")
+            require(expanded.get("preserveInfrastructure") is True and
+                    expanded.get("humanAuthorizationReference"),
+                    "Expanded recovery requires recorded human scope authorization and preserved infrastructure")
+            require(set(self.recovery.get("newTenantDatabases", [])) == set(approved) and
+                    set(targets) == {"master"} | set(approved),
+                    "Expanded recovery must equal the authorized actual migration target set")
         require(set(targets) <= set(self.recovery.get("coveredTargets", [])),
                 "Recovery does not cover all actual migration targets")
         require(self.recovery.get("registryTargetsVerified") is True,

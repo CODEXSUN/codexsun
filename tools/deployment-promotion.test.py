@@ -145,6 +145,26 @@ class PromotionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "only Techmedia and Rainbow"):
             self.policy().validate()
 
+    def test_expanded_recovery_requires_exact_bound_authorization(self):
+        self.data["migrations"]["targets"] = ["master", "techmedia_db", "rainbow_db", "extra_tenant"]
+        self.data["recovery"]["newTenantDatabases"] = ["techmedia_db", "rainbow_db", "extra_tenant"]
+        self.data["recovery"]["coveredTargets"] = list(self.data["migrations"]["targets"])
+        shared = {"capturedAt": self.now(), "coveredTargets": self.data["migrations"]["targets"],
+                  "restoreVerified": True, "artifacts": [self.file("expanded-shared", b"Verified synthetic restore") ]}
+        self.data["recovery"]["artifacts"]["shared-coverage"] = self.file("shared-expanded", json.dumps(shared).encode())
+        self.record["recoveryScopeAuthorization"] = {
+            "source": self.source, "images": self.images,
+            "tenantDatabases": ["techmedia_db", "rainbow_db", "extra_tenant"],
+            "preserveInfrastructure": True, "humanAuthorizationReference": "synthetic-human-task"}
+        self.policy().validate()
+        self.record["recoveryScopeAuthorization"]["tenantDatabases"].append("unapproved_tenant")
+        with self.assertRaisesRegex(ValueError, "authorized actual migration target"):
+            self.policy().validate()
+        self.record["recoveryScopeAuthorization"]["tenantDatabases"].pop()
+        self.record["recoveryScopeAuthorization"]["source"] = {"version": "1.1.70", "revision": "c" * 40}
+        with self.assertRaisesRegex(ValueError, "bind exact source"):
+            self.policy().validate()
+
     def test_image_config_without_load_manifest_cannot_establish_recovery(self):
         self.data["recovery"]["artifacts"]["images"] = self.archive("config-only.tar.gz", {
             "blobs/sha256/" + self.saved_image_digest: self.saved_image})

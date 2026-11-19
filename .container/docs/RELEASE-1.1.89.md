@@ -58,3 +58,9 @@ Source preparation passed the full `npm run check` and version consistency check
 The live registry inspection found 14 tenant database names plus the master. The
 published recovery policy's two-tenant limit requires an explicit scope decision
 before broader fresh database/storage captures. No expired exception was reused.
+
+The user subsequently confirmed preserving MariaDB infrastructure while allowing
+verified application backups and required migrations, with explicit priority for
+Rainbow and Techmedia. The optional exact-source/image-bound recovery scope
+record supports the actual registered CODEXSUN target set without changing the
+two-tenant default or bypassing restore and freshness checks.

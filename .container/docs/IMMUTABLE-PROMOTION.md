@@ -84,6 +84,17 @@ The recovery receipt's `coveredTargets` must cover every actual migration target
 Set `registryTargetsVerified` and `restoreRehearsalVerified` only after actual verification.
 This does not permit creating other tenant backups or treating old snapshots as current coverage.
 
+An explicit new human task may authorize a wider CODEXSUN recovery scope while
+preserving the MariaDB service and its volumes. Record that task under optional
+`recoveryScopeAuthorization`, binding exact `source`, `images`, an explicit unique
+`tenantDatabases` list, `preserveInfrastructure: true` and a
+`humanAuthorizationReference`. This record documents existing authorization; it
+does not grant authority by itself. The captured `newTenantDatabases` and actual
+migration targets (plus `master`) must match that list exactly. Without this
+record, the two-tenant default remains enforced. Scope expansion never waives
+freshness, restore rehearsal, shared coverage, tenant ownership, image recovery,
+quiescence or adoption checks. Scoped Techmedia/Rainbow artifacts remain required.
+
 The recovery `artifacts` mapping requires these checksummed indexes or files:
 
 - `scoped-sql`: JSON array of two database/path/hash records. SQL directives and completion markers are checked.
