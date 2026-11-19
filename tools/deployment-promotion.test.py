@@ -7,6 +7,7 @@ import tempfile
 import io
 import tarfile
 import subprocess
+import os
 import unittest
 from contextlib import nullcontext
 from datetime import datetime, timezone, timedelta
@@ -117,6 +118,19 @@ class PromotionTests(unittest.TestCase):
 
     def test_complete_synthetic_policy(self):
         self.policy().validate()
+
+    @unittest.skipUnless(os.name == "posix", "POSIX operator lock ownership")
+    def test_inherited_lock_requires_exact_canonical_file(self):
+        canonical = self.root / "deployment.lock"
+        other = self.root / "other.lock"
+        canonical.touch(mode=0o600)
+        other.touch(mode=0o600)
+        with canonical.open("a") as valid, other.open("a") as invalid:
+            PROMOTE.verify_lock_descriptor(valid.fileno(), canonical)
+            with self.assertRaisesRegex(ValueError, "canonical deployment lock"):
+                PROMOTE.verify_lock_descriptor(invalid.fileno(), canonical)
+            with self.assertRaisesRegex(ValueError, "Invalid inherited"):
+                PROMOTE.verify_lock_descriptor(1, canonical)
 
     def test_data_bridge_removal_requires_exact_read_only_mount_and_rollback(self):
         target = "/storage/data-bridge-sources/cxapp"

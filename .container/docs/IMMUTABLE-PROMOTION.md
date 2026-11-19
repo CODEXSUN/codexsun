@@ -125,6 +125,13 @@ Classic Docker layers also match their configuration's uncompressed content dige
 
 This command consumes final recovery artifacts. It does not orchestrate maintenance, stop original writers, or take final backups.
 The approved maintenance procedure must hold the prescribed lock while it quiesces writers and verifies final backups.
+The Linux maintenance parent may pass that same open lock descriptor to apply
+using `--inherited-lock-fd N` and `subprocess`'s `pass_fds`. The promoter checks
+that it is the operator-owned regular canonical lock file and reasserts the
+exclusive lock on that inherited open file description. The parent retains it
+through final backup, migration and promotion; there is no unlock/relock gap.
+All normal policy, private-input, quiescence and image checks still run. Standalone
+apply continues to acquire the canonical lock itself.
 Never force-kill writers. Abort on graceful-stop timeout and recover the previous running state.
 Before apply, `quiescedContainers` must match each actual container ID and Docker `FinishedAt` value.
 Every previous application container must still be stopped. A restart after the final backup invalidates that state.

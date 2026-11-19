@@ -13,10 +13,30 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 from promotion import PromotionError, PromotionPolicy, SERVICES, require
 
+DEPLOYMENT_LOCK_PATH = "/tmp/codexsun-v1-deployment.lock"
+
+
+def verify_lock_descriptor(descriptor, path=None):
+    import stat
+    require(type(descriptor) is int and descriptor >= 3, "Invalid inherited deployment lock descriptor")
+    opened = os.fstat(descriptor)
+    canonical = os.stat(path or DEPLOYMENT_LOCK_PATH, follow_symlinks=False)
+    require(stat.S_ISREG(opened.st_mode) and stat.S_ISREG(canonical.st_mode) and
+            (opened.st_dev, opened.st_ino) == (canonical.st_dev, canonical.st_ino) and
+            canonical.st_uid == os.geteuid() and not canonical.st_mode & 0o022,
+            "Inherited descriptor must identify the operator-owned canonical deployment lock")
+    expected = os.stat(path or DEPLOYMENT_LOCK_PATH, follow_symlinks=False)
+    actual = os.fstat(descriptor)
+    require(stat.S_ISREG(expected.st_mode) and stat.S_ISREG(actual.st_mode) and
+            (expected.st_dev, expected.st_ino) == (actual.st_dev, actual.st_ino) and
+            expected.st_uid == os.geteuid() and not expected.st_mode & 0o022,
+            "Inherited descriptor must identify the operator-owned canonical deployment lock")
+
 
 class ImagePromotion:
-    def __init__(self, policy):
+    def __init__(self, policy, inherited_lock_fd=None):
         self.policy = policy
+        self.inherited_lock_fd = inherited_lock_fd
 
     def inspect(self):
         p = self.policy
@@ -98,7 +118,12 @@ class ImagePromotion:
     def lock(self):
         require(sys.platform == "linux", "Promotion requires the audited Linux VPS")
         import fcntl
-        with open("/tmp/codexsun-v1-deployment.lock", "a") as lock:
+        if self.inherited_lock_fd is not None:
+            verify_lock_descriptor(self.inherited_lock_fd)
+            fcntl.flock(self.inherited_lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            yield
+            return
+        with open(DEPLOYMENT_LOCK_PATH, "a") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             yield
 
@@ -207,6 +232,7 @@ def main():
     parser.add_argument("--expected-revision", required=True)
     parser.add_argument("--expected-operator-revision")
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--inherited-lock-fd", type=int)
     parser.add_argument("--release172-exception", action="store_true")
     parser.add_argument("--release172-local-verification-sha256")
     args = parser.parse_args()
@@ -220,7 +246,8 @@ def main():
         else:
             require(args.release172_local_verification_sha256 is None, "Local verification flag requires the pinned release exception")
             policy = PromotionPolicy(args.manifest, args.expected_revision).validate()
-        runtime = ImagePromotion(policy).inspect()
+        require(args.apply or args.inherited_lock_fd is None, "Inherited lock is only valid for maintenance apply")
+        runtime = ImagePromotion(policy, args.inherited_lock_fd).inspect()
         if args.apply:
             runtime.apply()
         result = {"status": "promoted" if args.apply else "inputs-checked", "source": policy.record["source"],
