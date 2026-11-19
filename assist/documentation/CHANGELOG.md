@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.1.88
+Current version: 1.1.89
 
-Release tag: v-1.1.88
+Release tag: v-1.1.89
 
-Changelog label: v 1.1.88
+Changelog label: v 1.1.89
 
 This changelog starts fresh from the cleaned CODEXSUN foundation. Earlier copied application history was intentionally removed because it did not represent the current workspace.
 
@@ -37,6 +37,20 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 - Update the [Thirumurugan migration guide](../../devkits/data-bridge/agent/thirumurugan-migration.md) with the completed VPS phase.
 - Add the [dated operation log](../../devkits/data-bridge/agent/THIRUMURUGAN-VPS-TRANSFER-2026-10-27.md) with verification and recovery evidence.
 - No application logic, package version, image deployment, or credential change in this documentation task.
+
+## v-1.1.89
+
+### [v 1.1.89] 2026-11-19 9:53 pm - Prepare verified Hostinger 1.1.89 promotion and legacy cleanup
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Bumped workspace version to 1.1.89.
+- Add the release plan for isolated staging, scoped recovery, five-service promotion and conditional legacy-folder removal.
+- Preserve current production mounts, tenant data and unrelated services; production acceptance remains recorded separately from source checks.
 
 ## v-1.1.88
 
