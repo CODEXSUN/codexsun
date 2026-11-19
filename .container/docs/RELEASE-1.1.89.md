@@ -64,3 +64,10 @@ verified application backups and required migrations, with explicit priority for
 Rainbow and Techmedia. The optional exact-source/image-bound recovery scope
 record supports the actual registered CODEXSUN target set without changing the
 two-tenant default or bypassing restore and freshness checks.
+
+The application candidate is frozen at
+`3fbc7ebcb8dbce9a28f37e812cd92fe84c169533`. Subsequent operator-only checks may
+use a separately published operator revision, as required by the promotion
+contract; they must not relabel or rebuild an already accepted application image.
+An owned path with no files needs actual fresh inventory evidence, rather than
+a fabricated archive or an implicit waiver of media recovery.

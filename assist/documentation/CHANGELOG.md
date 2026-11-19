@@ -49,6 +49,7 @@ Records UI, API, service logic, tooling, packaging, and documentation changes.
 #### App Codebase Changes
 
 - Bumped workspace version to 1.1.89.
+- Require fresh release-bound filesystem evidence for genuinely empty owned storage paths; missing ownership never counts as a verified backup.
 - Allow an explicitly authorized recovery target list bound to exact source and images, while retaining the default two-tenant limit and all restore and freshness gates.
 - Add the release plan for isolated staging, scoped recovery, five-service promotion and conditional legacy-folder removal.
 - Preserve current production mounts, tenant data and unrelated services; production acceptance remains recorded separately from source checks.

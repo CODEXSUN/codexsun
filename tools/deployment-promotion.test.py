@@ -165,6 +165,23 @@ class PromotionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "bind exact source"):
             self.policy().validate()
 
+    def test_empty_owned_media_requires_fresh_exact_release_inventory(self):
+        role = "scoped-media"
+        proof = {"capturedAt": self.now(), "source": self.source, "images": self.images,
+                 "role": role, "tenantOwnershipVerified": True,
+                 "tenantUuids": ["de870404", "14c8040c"], "allowedPrefixes": ["tenants/de870404", "tenants/14c8040c"],
+                 "volume": "fixture-media", "inspectionMethod": "recursive-filesystem-inventory", "files": [], "links": []}
+        index = {"tenantOwnershipVerified": True, "tenantUuids": proof["tenantUuids"],
+                 "allowedPrefixes": proof["allowedPrefixes"], "verifiedEmpty": True,
+                 "absenceEvidence": self.file("absence", json.dumps(proof).encode())}
+        self.data["recovery"]["artifacts"][role] = self.file("empty-media-index", json.dumps(index).encode())
+        self.policy().validate()
+        proof["files"] = ["tenants/de870404/not-backed-up.pdf"]
+        index["absenceEvidence"] = self.file("absence", json.dumps(proof).encode())
+        self.data["recovery"]["artifacts"][role] = self.file("empty-media-index", json.dumps(index).encode())
+        with self.assertRaisesRegex(ValueError, "filesystem inventory"):
+            self.policy().validate()
+
     def test_image_config_without_load_manifest_cannot_establish_recovery(self):
         self.data["recovery"]["artifacts"]["images"] = self.archive("config-only.tar.gz", {
             "blobs/sha256/" + self.saved_image_digest: self.saved_image})

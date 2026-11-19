@@ -32,6 +32,19 @@ def verify_recovery_artifacts(policy):
                 "Storage recovery requires both verified tenant ownership mappings")
         prefixes = index.get("allowedPrefixes", [])
         require(prefixes and all(safe_name(p) for p in prefixes), "Missing safe scoped archive paths")
+        if index.get("verifiedEmpty") is True:
+            proof = json.loads(policy.read_reference(index.get("absenceEvidence")))
+            fresh(proof["capturedAt"], 3600)
+            require(proof.get("source") == policy.record["source"] and
+                    proof.get("images") == policy.images and proof.get("role") == role,
+                    "Empty storage evidence must bind the exact release and storage role")
+            require(proof.get("tenantOwnershipVerified") is True and
+                    set(proof.get("tenantUuids", [])) == {"de870404", "14c8040c"} and
+                    proof.get("allowedPrefixes") == prefixes and
+                    proof.get("volume") and proof.get("inspectionMethod") == "recursive-filesystem-inventory" and
+                    proof.get("files") == [] and proof.get("links") == [],
+                    "Empty storage requires a current explicit owned-path filesystem inventory")
+            continue
         archive = policy.verify_reference(index["archive"])
         count = 0
         with tarfile.open(archive, "r|*") as stream:

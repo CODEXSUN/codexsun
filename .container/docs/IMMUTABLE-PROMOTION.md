@@ -106,6 +106,13 @@ The recovery `artifacts` mapping requires these checksummed indexes or files:
 The scoped UUIDs are `de870404` and `14c8040c`. Verify their exact live registry/database bindings before creating backups.
 Archive members must stay within reviewed tenant-owned prefixes. Links, special files, traversal, and empty archives fail.
 Do not infer ownership from a filename or fabricate an empty backup when storage mapping is unresolved.
+For reviewed owned paths that genuinely contain no files, an index may instead
+record `verifiedEmpty: true` and a checksummed `absenceEvidence` reference. That
+fresh recursive-filesystem inventory must bind the exact source, images, storage
+role, volume, both tenant UUIDs and reviewed prefixes, and explicitly contain
+empty `files` and `links` arrays. It is operator evidence of actual inspection,
+not permission to infer emptiness from missing or unresolved ownership. Preserve
+the actual path inventory privately; later file creation invalidates the proof.
 Existing shared coverage must be fresh and sufficient. Missing coverage blocks the operation under the two-tenant limit.
 Image and configuration artifacts do not establish database restore capability.
 Image archives support classic Docker configuration identities and Docker/containerd OCI index or manifest identities.
